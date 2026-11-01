@@ -251,8 +251,11 @@ B.biteForm=function(edit,opt){
 };
 /* γρήγορη καταγραφή κατά την έξοδο (κουμπιά στον χάρτη, όπως η κλασική): χωρίς φόρμα, με θέση, ώρα, συνθήκες και εξοπλισμό του τελευταίου ψαριού.
    Το είδος συμπληρώνεται αργότερα από το Ημερολόγιο. */
-B.quickRec=function(miss,at){
-  var S=st(), f=(B.trip&&B.trip.fix&&B.trip.fix())||null, p=at||(f&&Date.now()-(f.t||0)<180000?f:B.lastPos()), dt=nowLocal(), date=dt.slice(0,10), time=dt.slice(11,16);
+/* v31z521: tms = ώρα της καταγραφής (π.χ. από το κουμπί στο ρολόι)· η θέση βγαίνει από το πιο κοντινό σημείο της διαδρομής */
+function trackAt(tms){ var t=ls.get('psaro-track',null); if(!t||!Array.isArray(t.pts)||!t.pts.length) return null; var best=null, bd=1e15; t.pts.forEach(function(q){ var d=Math.abs((q[2]||0)-tms); if(d<bd){ bd=d; best=q; } }); return best&&bd<15*60000?{lat:best[0],lon:best[1]}:null; }
+function localAt(ms){ var d=new Date(ms); return d.getFullYear()+'-'+B.pad(d.getMonth()+1)+'-'+B.pad(d.getDate())+'T'+B.pad(d.getHours())+':'+B.pad(d.getMinutes()); }
+B.quickRec=function(miss,at,tms,quiet){
+  var S=st(), f=(B.trip&&B.trip.fix&&B.trip.fix())||null, p=at||(tms?trackAt(tms):null)||(f&&Math.abs((tms||Date.now())-(f.t||0))<180000?f:B.lastPos()), dt=tms?localAt(tms):nowLocal(), date=dt.slice(0,10), time=dt.slice(11,16);
   var rec={date:date,time:time,tz:-new Date().getTimezoneOffset(),species:'',latin:'',bait:'',tech:'',depth:null,kg:null,len:null,notes:'',place:'',lat:null,lon:null,photo:false,src:at?(miss?'miss-map':'map'):(miss?'miss':'quick'),prof:B.prof()};
   if(p){ rec.lat=+(+p.lat).toFixed(5); rec.lon=+(+p.lon).toFixed(5); var ns=nearSpot(rec.lat,rec.lon); if(ns){ rec.lat=ns.lat; rec.lon=ns.lon; rec.place=ns.name||''; } }
   if(miss) rec.miss=true;
@@ -265,7 +268,7 @@ B.quickRec=function(miss,at){
   if(rec.trip){ var t=S.raw('trips').filter(function(x){ return x.sid===rec.trip; })[0]; if(t){ var bs=S.raw('bites').filter(function(b){ return b.trip===rec.trip&&!b.miss&&!b.deleted; }); S.save('trips',Object.assign({},t,{count:bs.reduce(function(s2,b){ return s2+Math.max(1,Math.floor(+b.cnt)||1); },0)})); } }
   B.emit('store','psaro-bites'); B.emit('trip');
   try{ navigator.vibrate&&navigator.vibrate(25); }catch(e){}
-  B.toast(miss?T('Καταγράφηκε αστοχία ✕','Miss logged ✕'):T('Ψάρι καταγράφηκε 🐟 Πρόσθεσε το είδος αργότερα από το Ημερολόγιο.','Catch logged 🐟 Add the species later from the Logbook.'));
+  if(!quiet) B.toast(miss?T('Καταγράφηκε αστοχία ✕','Miss logged ✕'):T('Ψάρι καταγράφηκε 🐟 Πρόσθεσε το είδος αργότερα από το Ημερολόγιο.','Catch logged 🐟 Add the species later from the Logbook.'));
   /* χωρίς συνθήκες από την πρόγνωση: ιστορικός καιρός στο παρασκήνιο */
   if(!Object.keys(c).length&&rec.lat!=null&&window.PsaroHist&&navigator.onLine!==false){ var HK=PsaroHist.keys||['wind','wdeg','wave','press','ptrend','cloud','temp','sst','tide'];
     PsaroHist.fetch(rec.lat,rec.lon,Date.now()).then(function(hc){ if(!hc) return; var cur=S.get('bites',id); if(!cur) return; var nx=Object.assign({},cur); HK.forEach(function(k){ if(hc[k]!=null&&nx[k]==null) nx[k]=hc[k]; }); S.save('bites',nx); }).catch(function(){}); }

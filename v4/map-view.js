@@ -162,7 +162,8 @@ function setWind(v){ var W=window.PsaroWindMap; if(!W) return; if(v){ if(!W.on()
 function setSeaSt(v){ var S2=window.PsaroSeaState; if(!S2||!S2.start) return; if(v&&!seaOn()) S2.start(); else if(!v&&seaOn()) S2.stop(); saveWx(); }
 function setStations(v){ if(pressed('bWindSt')!==!!v){ var b=cbtn('bWindSt'); if(b) b.click(); } }
 function saveWx(){ setTimeout(function(){ cfg.wind=windOn(); cfg.seast=seaOn(); saveCfg(); },50); }
-function restoreWx(){ if(!map) return; if(cfg.seast) setSeaSt(true); if(cfg.wind) setTimeout(function(){ setWind(true); },cfg.seast?800:0); }
+/* v31z522: ένα χρωματιστό στρώμα τη φορά· αν είχαν μείνει και τα δύο, κρατάμε το κύμα */
+function restoreWx(){ if(!map) return; if(cfg.seast){ setSeaSt(true); if(cfg.wind){ cfg.wind=false; saveCfg(); } } else if(cfg.wind) setWind(true); setTimeout(function(){ if(window._qpaint) window._qpaint(); },1200); }
 /* τα κουμπιά των μονάδων της κλασικής μπαίνουν στη δεξιά στήλη του χάρτη· η αλλαγή τους θυμάται */
 function hookBtns(){ document.addEventListener('click',function(e){ var t=e.target; if(t&&t.closest&&t.closest('#bWind,#bSeaState,#ndMapDock')) saveWx(); }); }
 

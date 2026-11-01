@@ -206,3 +206,37 @@ function check(now){
 setInterval(function(){ try{ tick(); }catch(e){} },30000);
 })();
 
+/* ---------- v31z521: κουμπιά στην ειδοποίηση εξόδου (και στο ρολόι). Ρύθμιση psaro-v4-tripnotif ---------- */
+(function(){
+var B=window.BC, ls=B.ls, T=B.T;
+function on(){ return ls.get('psaro-v4-tripnotif',true)!==false; }
+function reg(){ return navigator.serviceWorker?navigator.serviceWorker.getRegistration().then(function(r){ return r||null; }).catch(function(){ return null; }):Promise.resolve(null); }
+function active(){ return !!(B.trip&&B.trip.active&&B.trip.active()); }
+function count(){ try{ var sf=ls.get('psaro-safe',{})||{}; return B.store.raw('bites').filter(function(b){ return b.trip===sf.id&&!b.miss&&!b.deleted; }).length; }catch(e){ return 0; } }
+function show(){
+  if(!on()||!active()||!('Notification' in window)) return;
+  if(Notification.permission==='default'){ Notification.requestPermission().then(function(p){ if(p==='granted') show(); }); return; }
+  if(Notification.permission!=='granted') return;
+  var n=count();
+  reg().then(function(r){ if(!r) return; r.showNotification(T('Έξοδος σε εξέλιξη','Trip in progress'),{body:(n?n+(n===1?T(' ψάρι · ',' catch · '):T(' ψάρια · ',' catches · ')):'')+T('Πάτα «Ψάρι εδώ» και από το ρολόι σου.','Tap “Fish here”, also from your watch.'),
+    tag:'psaro-trip',renotify:false,silent:true,requireInteraction:true,icon:'../icon-192.png',badge:'../icon-192.png',data:{bc4trip:1,lang:B.LANG},
+    actions:[{action:'fish',title:T('🐟 Ψάρι εδώ','🐟 Fish here')},{action:'lost',title:T('✕ Χάθηκε','✕ Lost')}]}).catch(function(){}); }); }
+function hide(){ reg().then(function(r){ if(!r||!r.getNotifications) return; r.getNotifications({tag:'psaro-trip'}).then(function(a){ a.forEach(function(x){ x.close(); }); }); }); }
+B.tripNotif={on:on,set:function(v){ ls.set('psaro-v4-tripnotif',!!v); if(v) show(); else hide(); },show:show};
+/* ό,τι πατήθηκε στο ρολόι/ειδοποίηση → Ημερολόγιο */
+function qdb(){ return new Promise(function(res,rej){ var r=indexedDB.open('bc4q',1); r.onupgradeneeded=function(){ r.result.createObjectStore('q',{autoIncrement:true}); }; r.onsuccess=function(){ res(r.result); }; r.onerror=function(){ rej(r.error); }; }); }
+var draining=false;
+function drain(){ if(draining||!window.indexedDB||!B.quickRec) return; draining=true;
+  qdb().then(function(db){ return new Promise(function(res){ var tx=db.transaction('q','readwrite'), st=tx.objectStore('q'), out=[]; st.openCursor().onsuccess=function(ev){ var c=ev.target.result; if(c){ out.push(c.value); c.delete(); c.continue(); } }; tx.oncomplete=function(){ res(out); }; tx.onerror=function(){ res([]); }; }); })
+  .then(function(items){ draining=false; if(!items.length) return; var f=0, m=0;
+    items.sort(function(a,b){ return a.t-b.t; }).forEach(function(it){ try{ B.quickRec(!!it.miss,null,it.t,true); if(it.miss) m++; else f++; }catch(e){} });
+    B.toast((f?T('Από την ειδοποίηση/ρολόι: ','From the notification/watch: ')+f+(f===1?T(' ψάρι',' catch'):T(' ψάρια',' catches')):'')+(m?(f?' · ':'')+m+T(' χαμένα',' lost'):'')+T('. Πρόσθεσε το είδος από το Ημερολόγιο.','. Add the species from the Logbook.'),7000);
+    setTimeout(show,800); })
+  .catch(function(){ draining=false; }); }
+B.watchDrain=drain;
+if(navigator.serviceWorker) navigator.serviceWorker.addEventListener('message',function(e){ if(e.data&&e.data.type==='bc4q') drain(); });
+document.addEventListener('visibilitychange',function(){ if(!document.hidden){ drain(); if(active()) show(); } });
+var was=null; function sync(){ var a=active(); if(a!==was){ was=a; if(a) show(); else hide(); } }
+B.on('trip',function(){ setTimeout(sync,300); }); setTimeout(function(){ drain(); sync(); },2500); setInterval(sync,30000);
+})();
+
