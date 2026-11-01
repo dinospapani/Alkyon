@@ -159,3 +159,15 @@ svg.pwc{width:100%;height:auto}
 .pwl .k2::before{width:14px!important;height:3px!important;background:var(--accent)!important;opacity:1!important}
 .hb{min-height:0}
 .pwh .seg button{flex:none;overflow:visible;text-overflow:clip}
+/* έκθεση ακτής (exposure.js της κλασικής) */
+.expo #fcExposure{background:var(--surface);border-radius:var(--r-lg,20px);box-shadow:var(--shadow);padding:18px;margin:0 0 14px}
+.expo #fcExposure h3{margin:0 0 6px;font-size:18px}
+.expo #fcExposure .note{color:var(--ink-2);font-size:13.5px;line-height:1.45;margin:4px 0}
+.expo #fcExposure .sealog b{font-size:15px}
+.expo #fcExposure .sealog button{min-height:40px}
+.extcard{background:var(--surface);border-radius:var(--r-lg,20px);box-shadow:var(--shadow);padding:18px;margin:0 0 14px}
+.extcard h3{margin:0 0 6px;font-size:18px}
+.extcard .note,.extcard .meta{color:var(--ink-2);font-size:13.5px;line-height:1.45}
+.extcard .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.extcard .btn{min-height:42px;padding:0 14px}
+.extcard .btn.ghost{background:var(--surface-2);color:var(--ink);box-shadow:none}

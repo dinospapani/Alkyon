@@ -31,6 +31,27 @@ function fld(label,input){ return h('label',{class:'fld'},h('span',{text:label})
 function saveB(b){ ls.set('psaro-boat',b); }
 function saveS(s){ ls.set('psaro-smart',s); }
 
+/* λιμάνι, γραμμή επιστροφής, αυτονομία, αυτόματες προτάσεις, λίστα ελέγχου (κοινά με την κλασική: psaro-smart) */
+function portCard(){
+  var M=B.smart, s=M.state(), c=h('section',{class:'card'},h('h2',{text:T('Λιμάνι και έξοδος','Port and trips')}));
+  c.append(h('div',{class:'rows one'},h('div',{class:'row'},h('span',{text:T('Λιμάνι','Home port')}),h('b',{text:s.home?(s.home.name||T('Λιμάνι','Port')):T('Δεν έχει οριστεί','Not set')}))));
+  if(!s.home) c.append(h('p',{class:'sub',text:T('Χρειάζεται για «Πότε να γυρίσω», αυτονομία καυσίμου και αυτόματες προτάσεις έναρξης/λήξης.','Needed for “when to head back”, fuel range and automatic start/end suggestions.')}));
+  var spots=B.store.raw('spots').filter(function(x){ return !x.deleted&&typeof x.lat==='number'; }), sel=h('select',{class:'select'}); sel.append(h('option',{value:'',text:T('Από τα σημεία μου…','From my spots…')}));
+  spots.forEach(function(x){ sel.append(h('option',{value:x.id,text:x.name||'?'})); });
+  sel.addEventListener('change',function(){ var x=spots.filter(function(q){ return q.id===sel.value; })[0]; if(x){ M.setHome({lat:x.lat,lon:x.lon,name:x.name}); draw(); } });
+  c.append(sel,h('div',{class:'acts'},h('button',{class:'btn',type:'button',text:T('Θέση μου τώρα','My position'),onclick:function(){ M.fixNow(function(p){ M.setHome({lat:p.lat,lon:p.lon,name:T('Λιμάνι','Port')}); B.toast(T('Το λιμάνι ορίστηκε στη θέση σου.','Port set to your position.')); draw(); },function(){ B.toast(T('Δεν βρέθηκε θέση GPS.','No GPS fix.')); }); }}),
+    h('button',{class:'btn',type:'button',text:T('Βρες λιμάνι','Find port'),onclick:function(){ M.fixNow(function(p){ M.offerHome(p,'').then(draw); },function(){ B.toast(T('Δεν βρέθηκε θέση GPS.','No GPS fix.')); }); }}),
+    s.home?h('button',{class:'btn',type:'button',text:T('Καθαρισμός','Clear'),onclick:function(){ M.setHome(null); draw(); }}):null));
+  function tg(lab,sub,on,fn){ return h('label',{class:'tg'},h('input',{type:'checkbox',checked:on,onchange:function(ev){ var x=M.state(); fn(x,ev.target.checked); M.save(x); }}),h('span',null,lab,h('small',{class:'tgsub',text:sub}))); }
+  c.append(tg(T('Γραμμή επιστροφής στον χάρτη','Return strip on the map'),T('«🏠 απόσταση · ώρα · ⛽» κατά την έξοδο. Πάτα την για πλοήγηση προς το λιμάνι.','“🏠 distance · time · ⛽” during a trip. Tap it to navigate home.'),s.chip!==false,function(x,v){ x.chip=v; }),
+    tg(T('Δαχτυλίδι αυτονομίας','Range ring'),T('Στον χάρτη, γύρω από το λιμάνι, με βάση το καύσιμο και την εφεδρεία.','On the map around the port, from fuel and reserve.'),s.ring!==false,function(x,v){ x.ring=v; }),
+    tg(T('Προτάσεις έναρξης και λήξης','Start and end suggestions'),T('Ρωτά όταν φεύγεις από το λιμάνι ή γυρίζεις. Χρησιμοποιεί GPS όσο η εφαρμογή είναι ανοιχτή.','Asks when you leave or return to the port. Uses GPS while the app is open.'),s.auto!==false,function(x,v){ x.auto=v; if(v) setTimeout(M.autoStart,100); else M.autoStop(); }));
+  var rs=h('select',{class:'select'}); [['0',T('Ευθεία γραμμή (χωρίς έλεγχο στεριάς)','Straight line (no land check)')],['100',T('100 μ. από στεριά','100 m from land')],['200',T('200 μ. από στεριά (προεπιλογή)','200 m from land (default)')],['500',T('500 μ. από στεριά','500 m from land')],['1852',T('1 ν.μ. από στεριά','1 nm from land')]].forEach(function(o){ rs.append(h('option',{value:o[0],text:o[1]})); });
+  rs.value=String(ls.get('psaro-route-clr',200)); if(rs.selectedIndex<0) rs.value='200'; rs.addEventListener('change',function(){ ls.set('psaro-route-clr',+rs.value); });
+  c.append(h('label',{class:'fld'},h('span',{text:T('«Πήγαινε εκεί»: διαδρομή γύρω από στεριά','“Go there”: route around land')}),rs,h('small',{class:'wn',text:T('Ενδεικτική διαδρομή που κρατά απόσταση από ακτές και νησιά. Δεν είναι ναυτικός χάρτης: δεν ξέρει ξέρες. Χρειάζεται σύνδεση.','Indicative route keeping a distance from coasts and islands. Not a nautical chart: it does not know shoals. Needs a connection.')})));
+  c.append(h('button',{class:'btn full',type:'button',text:'✓ '+T('Λίστα ελέγχου πριν βγεις','Pre-departure checklist')+' ('+M.clCount()+'/'+s.cl.items.length+')',onclick:function(){ M.checklist(draw); }}));
+  return c;
+}
 function draw(){
   if(!root) return;
   var b=D(), s=Sm(), page=h('div',{class:'page'}), y=window.scrollY;
@@ -95,7 +116,8 @@ function draw(){
       h('button',{class:'link',type:'button',style:{color:'var(--poor)'},text:T('Διαγραφή μπαταρίας','Delete battery'),onclick:function(){ var bb=D(); bb.bat=bb.bat.filter(function(q){ return q.id!==x.id; }); saveB(bb); draw(); }}))); });
   c7.append(h('button',{class:'btn',type:'button',text:T('+ Μπαταρία','+ Battery'),onclick:function(){ var x=D(); x.bat.push({id:uid(),name:'',type:'agm',inst:today()}); saveB(x); draw(); }}));
   page.append(c7);
-  page.append(h('p',{class:'foot'},T('Λιμάνι, αυτόματη έναρξη και λήξη εξόδου και λίστα ελέγχου: ','Home port, automatic trip start/end and checklist: '),h('a',{href:B.classic('?a=p&k=boat'),text:T('κλασική έκδοση','classic version')}),'. '+T('Τα στοιχεία μπαίνουν στο αντίγραφο ασφαλείας.','The details are included in the backup.')));
+  if(B.smart) page.append(portCard());
+  page.append(h('p',{class:'foot',text:T('Τα στοιχεία μπαίνουν στο αντίγραφο ασφαλείας. Οι εκτιμήσεις (ώρα επιστροφής, καύσιμο) είναι ενδεικτικές και δεν αντικαθιστούν την κρίση σου.','The details are included in the backup. Estimates (return time, fuel) are indicative and do not replace your judgement.')}));
   root.replaceChildren(page); try{ window.scrollTo(0,y); }catch(e){}
 }
 B.view('boat',{title:T('Σκάφος','Boat'),mount:function(el){ root=el; draw(); },unmount:function(){ root=null; },resume:function(){ draw(); }});

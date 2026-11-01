@@ -22,7 +22,7 @@ function build(){
   return sec;
 }
 /* τα δεδομένα των ειδών, των περιοχών και των μεγεθών φορτώνονται μόνο όταν ανοίξει ο Οδηγός */
-function deps(){ var p=Promise.resolve(), L=['../cy100.js','../regions.js','../rules.js'];
+function deps(){ var p=Promise.resolve(), L=['../cy100.js'].concat(window.SPECIES_REG?[]:['../regions.js']).concat(window.MIN_SIZES?[]:['../rules.js']);
   if(EN&&!window.PsaroTrWatch){ window.PSARO_NO_DOMTR=true; L.unshift('../i18n.js'); }
   L.forEach(function(f){ p=p.then(function(){ return load(f); }); }); return p; }
 B.guideReady=function(){ if(ready) return ready;

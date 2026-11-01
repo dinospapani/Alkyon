@@ -39,15 +39,15 @@ function toast(msg,ms){
 /* φύλλο από κάτω: sheet({title, body:Node}) → {close} */
 var openSheet=null;
 function sheet(o){
-  if(openSheet) openSheet.close(true);
-  var scrim=h('div',{class:'scrim'}), box=h('section',{class:'sheet',role:'dialog','aria-modal':'true','aria-label':o.title});
+  var parent=null; if(o.stack&&openSheet){ parent=openSheet; } else if(openSheet) openSheet.close(true);
+  var scrim=h('div',{class:'scrim'+(parent?' stk':'')}), box=h('section',{class:'sheet'+(parent?' stk':''),role:'dialog','aria-modal':'true','aria-label':o.title});
   var x=h('button',{class:'iconbtn',type:'button','aria-label':T('Κλείσιμο','Close'),html:iconSvg('close')});
   box.append(h('div',{class:'grab'}),h('header',null,h('h2',{text:o.title}),x),h('div',{class:'body'},o.body));
   document.body.append(scrim,box);
   var prevFocus=document.activeElement;
   requestAnimationFrame(function(){ scrim.classList.add('on'); box.classList.add('on'); var f=box.querySelector(o.focus||'.body button,.body input'); if(f&&o.focus) f.focus(); });
   var api={close:function(quick){
-    if(openSheet!==api) return; openSheet=null; document.removeEventListener('keydown',key);
+    if(openSheet!==api) return; openSheet=parent; document.removeEventListener('keydown',key);
     scrim.classList.remove('on'); box.classList.remove('on');
     setTimeout(function(){ scrim.remove(); box.remove(); },quick?0:260);
     try{ if(prevFocus&&prevFocus.focus) prevFocus.focus(); }catch(e){}

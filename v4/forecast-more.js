@@ -66,6 +66,7 @@ B.fcAdv=function(page,fc,ctx){
   }
   page.append(c2);
   page.append(h('p',{class:'foot',text:T('Τρέχει μόνο στο κινητό σου. Ξεκινά από γενική γνώση για τα είδη και περνά στα δικά σου ψάρια όσο τα καταγράφεις.','Runs only on your phone. It starts from general knowledge about the species and moves to your own catches as you log them.')}));
+  if(window.PsaroExt){ try{ var xc=PsaroExt.card(function(){ B.emit('store','psaro-fprof'); }); xc.classList.add('extcard'); page.append(xc); }catch(e){} }
 };
 
 /* ---------- Δικά μου ---------- */

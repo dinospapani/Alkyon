@@ -117,6 +117,7 @@ function start(o){
   var d=load(), s=Object.assign({},d,{active:true,id:'trip-'+Date.now().toString(36),route:o.route||'',due:o.due,autoExt:0,sosAt:0,pgStart:0,pgEnd:0,last:null,start:Date.now(),startDate:B.store?todayStr():'',cond0:cond0(),sil:o.sil||0,noAlert:!o.notify,synced:undefined});
   save(s); ls.set('psaro-track',null); watch(); startTimer();
   pushContact().then(trackPos).then(pushTrip);
+  B.emit('tripstart',s);
   if(s.noAlert) B.toast(T('Καλή έξοδος! Η επαφή σου δεν θα ειδοποιηθεί σε αυτή την έξοδο (το SOS λειτουργεί).','Have a good trip! Your contact will not be notified on this trip (SOS still works).'));
   else B.toast(hasContact(d)?T('Καλή έξοδος! Η επαφή σου ενημερώθηκε.','Have a good trip! Your contact has been notified.'):T('Καλή έξοδος! Δεν έχεις επαφή ασφαλείας, θα έχεις μόνο υπενθύμιση στο κινητό.','Have a good trip! You have no safety contact, so you only get a reminder on your phone.'));
 }
@@ -147,7 +148,8 @@ function back(){
     var id=B.store.save('trips',rec), gc=gearCompact(id); if(gc){ var t=B.store.get('trips',id); B.store.save('trips',Object.assign({},t,{gear:gc})); }
     B.toast(T('Η έξοδος καταχωρήθηκε: ','Trip saved: ')+dur(d)+', '+(sm.n?sm.n+' '+T('ψάρια','catches'):T('χωρίς ψάρια (κρατήθηκε: βοηθά την προσωπική πρόγνωση)','no catches (kept: it helps your personal forecast)')));
     seaQuestion(id,pos);
-  } else B.toast(T('Καλωσόρισες πίσω. Η έξοδος ήταν κάτω από 20 λεπτά χωρίς ψάρια, οπότε δεν καταχωρήθηκε.','Welcome back. The trip was under 20 minutes with no catches, so it was not saved.'));
+    B.emit('tripend',{id:id,startMs:s.start,endMs:Date.now()});
+  } else { B.emit('tripend',{id:null,startMs:s.start,endMs:Date.now()}); B.toast(T('Καλωσόρισες πίσω. Η έξοδος ήταν κάτω από 20 λεπτά χωρίς ψάρια, οπότε δεν καταχωρήθηκε.','Welcome back. The trip was under 20 minutes with no catches, so it was not saved.')); }
 }
 /* «Πώς ήταν η θάλασσα;» (διορθώνει την πρόγνωση κύματος της περιοχής, psaro-seaobs) */
 function seaQuestion(id,pos){ if(B.prof()==='lake'||!pos) return; var body=h('div',{class:'bform'}), sh;
@@ -173,14 +175,14 @@ B.tripStart=function(){
   var rt=h('input',{type:'text',maxlength:'80',value:d.route||'',placeholder:T('π.χ. Πωμός, ύφαλος','e.g. Pomos, reef')});
   var sil=h('select',{class:'select'}); [[0,T('Χωρίς','Off')],[30,T('Μετά από 30 λεπτά','After 30 minutes')],[60,T('Μετά από 60 λεπτά','After 60 minutes')],[90,T('Μετά από 90 λεπτά','After 90 minutes')]].forEach(function(o){ sil.append(h('option',{value:String(o[0]),text:o[1]})); }); sil.value=String(d.sil!=null?d.sil:60);
   var nt=h('input',{type:'checkbox',checked:true}), gp=h('input',{type:'checkbox',checked:gpsOn()});
-  var c=hasContact(d), logged=!!Cl();
+  var c=hasContact(d), logged=!!Cl(), ex=B.tripStartExtras?B.tripStartExtras(rt):null;
   var info=h('div',{class:'card',style:{margin:'0'}},h('b',{text:c?T('Επαφή ασφαλείας: ','Safety contact: ')+(d.name||d.phone||d.email||(d.tgLinked?'Telegram':'')):T('Δεν έχεις επαφή ασφαλείας','No safety contact')}),
     h('p',{class:'sub',style:{margin:'4px 0 0'},text:!logged?T('Χωρίς λογαριασμό η επαφή δεν μπορεί να ειδοποιηθεί αυτόματα. Θα έχεις μόνο υπενθύμιση στο κινητό.','Without an account your contact cannot be alerted automatically. You only get a reminder on your phone.'):c?T('Αν δεν γυρίσεις στην ώρα σου ή χαθεί η επαφή μαζί σου, ειδοποιείται αυτόματα.','If you are not back on time or contact is lost, they are alerted automatically.'):T('Πρόσθεσέ τη στο Προφίλ › Επαφή ασφαλείας.','Add one in Profile › Safety contact.')}));
   var go=h('button',{class:'btn pri full',type:'button',text:'▶ '+T('Έναρξη εξόδου','Start trip'),onclick:function(){ if(!tm.value){ B.toast(T('Βάλε ώρα επιστροφής.','Set a return time.')); return; }
-    ls.set('psaro-gps',gp.checked?'1':'0'); sh.close(); start({due:toMs(tm.value),route:rt.value.trim(),sil:+sil.value||0,notify:nt.checked}); }});
+    ls.set('psaro-gps',gp.checked?'1':'0'); if(ex&&ex.apply) ex.apply(); sh.close(); start({due:toMs(tm.value),route:rt.value.trim(),sil:+sil.value||0,notify:nt.checked}); }});
   var body=h('div',{class:'bform'},info,h('div',{class:'fld'},h('span',{text:T('Επιστροφή σε','Back in')}),chips),h('label',{class:'fld'},h('span',{text:T('Ώρα επιστροφής','Return time')}),tm),h('label',{class:'fld'},h('span',{text:T('Πού πας (προαιρετικό)','Where (optional)')}),rt),
     h('label',{class:'fld'},h('span',{text:T('Αν χαθεί η επαφή με το κινητό','If contact with the phone is lost')}),sil,h('small',{text:T('Ο server ελέγχει ότι το κινητό στέλνει σήμα. Αν σταματήσει για τόσο χρόνο, σε ρωτά στο Telegram και μετά ειδοποιεί την επαφή.','The server checks that the phone keeps sending a signal. If it stops for this long, it asks you on Telegram, then alerts your contact.')})),
-    h('label',{class:'tg'},nt,h('span',{text:T('Ειδοποίησε την επαφή μου σε αυτή την έξοδο','Alert my contact on this trip')})),h('label',{class:'tg'},gp,h('span',{text:T('Καταγραφή διαδρομής GPS (περισσότερη μπαταρία)','Record GPS route (uses more battery)')})),go);
+    h('label',{class:'tg'},nt,h('span',{text:T('Ειδοποίησε την επαφή μου σε αυτή την έξοδο','Alert my contact on this trip')})),h('label',{class:'tg'},gp,h('span',{text:T('Καταγραφή διαδρομής GPS (περισσότερη μπαταρία)','Record GPS route (uses more battery)')})),ex?ex.nodes:null,go);
   var sh=B.sheet({title:T('Έξοδος για ψάρεμα','Fishing trip'),body:body});
 };
 B.tripSheet=function(){

@@ -8,6 +8,15 @@ function nowLocal(){ var d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth
 function km(a,b,c,d){ var dy=(a-c)*111.2, dx=(b-d)*111.2*Math.cos(a*Math.PI/180); return Math.sqrt(dx*dx+dy*dy); }
 function nearSpot(lat,lon){ var best=null; st().raw('spots').forEach(function(s){ if(typeof s.lat!=='number') return; var k=km(lat,lon,s.lat,s.lon); if(k<=0.3&&(!best||k<best.k)) best={s:s,k:k}; }); return best&&best.s; }
 function uniq(a){ var m={}, o=[]; a.forEach(function(x){ x=String(x||'').trim(); if(!x) return; var k=x.toLowerCase(); if(m[k]) { m[k].n++; return; } m[k]={v:x,n:1}; o.push(m[k]); }); return o.sort(function(a,b){ return b.n-a.n; }).map(function(x){ return x.v; }); }
+/* τεχνικές: ίδια λίστα με την κλασική (techs.js) ανά τύπο ψαρέματος, και οι δικές σου (psaro-customtech). Αποθηκεύεται η ελληνική τιμή, όπως στην κλασική. */
+var TECH={boat:[['Βυθού','Bottom fishing'],['Καθετή ρηχή','Shallow vertical'],['Καθετή βαθιά','Deep vertical'],['Τρόλινγκ','Trolling'],['Συρτή αφρού','Surface trolling'],['Συρτή βυθού','Deep / bottom trolling'],['Jigging','Jigging'],['Slow jigging','Slow jigging'],['Tai Rubber','Tai Rubber'],['Tenya','Tenya'],['Ika Metal','Ika Metal'],['Καλαμαριέρα','Squid jigging'],['Spinning','Spinning'],['Ζωντανό δόλωμα','Live bait'],['Drifting','Drifting'],['Με πλωτήρα','Float fishing'],['Light / ultralight','Light / ultralight']],
+  shore:[['Surf casting','Surf casting'],['Spinning από στεριά','Shore spinning'],['Βυθού από στεριά','Shore bottom fishing'],['Με πλωτήρα από στεριά','Shore float fishing'],['Καλαμαριέρα','Squid jigging'],['Light / ultralight','Light / ultralight'],['Jigging','Jigging'],['Βυθού','Bottom fishing'],['Ζωντανό δόλωμα','Live bait']],
+  lake:[['Με πλωτήρα','Float fishing'],['Βυθού με δόλωμα','Bottom with bait'],['Spinning','Spinning'],['Ζωντανό δόλωμα','Live bait'],['Fly fishing','Fly fishing']],
+  spear:[['Αναμονή','Ambush (hovering)'],['Περιπλάνηση','Searching / roaming'],['Τρύπες και φωλιές','Holes and ledges'],['Βαθιά κατάδυση','Deep dive']]};
+function techList(prof,used){ var d=h('datalist',{id:'bfTech'}), seen={}; function add(v,l){ if(!v||seen[v]) return; seen[v]=1; d.append(h('option',{value:v,label:l&&l!==v?l:null})); }
+  (TECH[prof]||TECH.boat).forEach(function(x){ add(x[0],EN?x[1]:null); }); (ls.get('psaro-customtech',[])||[]).forEach(function(x){ add(x); }); used.slice(0,30).forEach(function(x){ add(x); }); return d; }
+function rememberTech(v){ v=String(v||'').trim(); if(!v) return; var known=false; Object.keys(TECH).forEach(function(k){ TECH[k].forEach(function(x){ if(x[0]===v||x[1]===v) known=true; }); }); if(known) return;
+  var a=ls.get('psaro-customtech',[])||[]; if(a.map(function(x){ return x.toLowerCase(); }).indexOf(v.toLowerCase())<0){ a.push(v.slice(0,40)); ls.set('psaro-customtech',a); } }
 function datalist(id,items){ var d=h('datalist',{id:id}); items.slice(0,80).forEach(function(v){ d.append(h('option',{value:v})); }); return d; }
 function field(label,input,hint){ return h('label',{class:'fld'},h('span',{text:label}),input,hint?h('small',{text:hint}):null); }
 
@@ -69,6 +78,13 @@ B.biteForm=function(edit,opt){
   var cntRow=h('div',{class:'inl',hidden:!many.checked},field(T('Πόσα ψάρια','How many'),cnt));
   many.addEventListener('change',function(){ cntRow.hidden=!many.checked; if(many.checked) cnt.focus(); });
   var sizeRow=null; miss.addEventListener('change',function(){ if(sizeRow) sizeRow.hidden=miss.checked; });
+  /* σε ποια έξοδο ανήκει (αλλαγή εκ των υστέρων, όπως στην κλασική) */
+  var tripSel=null, tsel=null;
+  if(e){ var trs=S.raw('trips').filter(function(t){ return !t.deleted&&t.sid; }).sort(function(a,b){ return (b.startMs||0)-(a.startMs||0); }).slice(0,40);
+    tsel=h('select',{class:'select'}); tsel.append(h('option',{value:'',text:T('Καμία έξοδος','No trip')}));
+    trs.forEach(function(t){ var d=t.startMs?new Date(t.startMs):null; tsel.append(h('option',{value:t.sid,text:(t.date||'')+(d?' '+B.pad(d.getHours())+':'+B.pad(d.getMinutes()):'')+(t.spot?' · '+t.spot:'')})); });
+    if(e.trip&&!trs.some(function(t){ return t.sid===e.trip; })) tsel.append(h('option',{value:e.trip,text:T('Τρέχουσα / άλλη έξοδος','Current / other trip')}));
+    tsel.value=e.trip||''; tripSel=field(T('Έξοδος','Trip'),tsel); }
   /* ελάχιστο νόμιμο μέγεθος και προειδοποιήσεις (ίδιοι κανόνες με την κλασική: rules.js, Τμήμα Αλιείας) */
   var lawNote=h('p',{class:'lawnote',hidden:true,role:'status'});
   function latinOf(name){ var n=String(name||'').trim().toLowerCase(); if(!n) return ''; var kb=(window.SPKB||[]).filter(function(k){ return k.n.toLowerCase()===n||(k.en||'').toLowerCase()===n; })[0]; if(kb) return kb.l;
@@ -85,11 +101,12 @@ B.biteForm=function(edit,opt){
   var save=h('button',{class:'btn pri full',type:'submit',text:e?T('Αποθήκευση αλλαγών','Save changes'):T('Αποθήκευση','Save')});
   var form=h('form',{class:'bform',novalidate:true},
     datalist('bfSp',uniq(all.map(function(b){ return b.species; }).concat((window.SPKB||[]).map(function(k){ return EN&&k.en?k.en:k.n; })))),
-    datalist('bfBait',uniq(all.map(function(b){ return b.bait; }))),datalist('bfTech',uniq(all.map(function(b){ return b.tech; })).concat(EN?['Bottom fishing','Spinning','Trolling','Live bait','Jigging']:['Βυθού','Spinning','Τρόλινγκ','Ζωντανό δόλωμα','Jigging'])),
+    datalist('bfBait',uniq(all.map(function(b){ return b.bait; }))),techList(prof,uniq(all.map(function(b){ return b.tech; }))),
     !e&&B.voice&&B.voice.ok?h('button',{class:'btn micbtn',type:'button',html:B.voice.MIC+'<span>'+T('Πες το','Say it')+'</span>',onclick:function(){ B.voice.fill(applyVoice); }}):null,
     gearIt?h('p',{class:'gearnote',text:T('Εργαλείο: ','Gear: ')+(gearIt.name||'')}):null,
     h('label',{class:'tg'},miss,h('span',{text:T('Χάθηκε: τσίμπησε αλλά δεν το έβγαλα','Lost: it bit but I did not land it')})),
     field(T('Είδος','Species'),sp,T('Για χαμένο ψάρι είναι προαιρετικό.','Optional for a lost fish.')),
+    B.speciesPick?h('button',{class:'linkbtn',type:'button',text:'📖 '+T('Διάλεξε από τη λίστα ειδών','Pick from the species list'),onclick:function(){ B.speciesPick(function(nm){ sp.value=nm; law(); }); }}):null,
     lawNote,
     h('label',{class:'tg'},many,h('span',{text:T('Πολλά ψάρια μαζί (μία εγγραφή)','Several fish together (one entry)')})),cntRow,
     (sizeRow=h('div',{class:'g3',hidden:miss.checked},field(T('Βάρος (kg)','Weight (kg)'),kg),field(T('Μήκος (cm)','Length (cm)'),len),field(T('Βάθος (m)','Depth (m)'),dep))),
@@ -98,7 +115,9 @@ B.biteForm=function(edit,opt){
     h('div',{class:'g2'},field(T('Δόλωμα','Bait'),bait),field(T('Τεχνική','Technique'),tech)),
     h('div',{class:'fld'},h('span',{text:T('Εξοπλισμός','Tackle')}),tkBox),
     h('div',{class:'fld'},h('span',{text:T('Φωτογραφίες','Photos')}),phBox,file),
+    B.aiButton&&B.aiOn()?B.aiButton(function(){ return photos[0]||null; },function(nm){ sp.value=nm; law(); }):null,
     field(T('Σημειώσεις','Notes'),notes),
+    tripSel,
     h('label',{class:'tg'},rel,h('span',{text:T('Το άφησα ελεύθερο','I released it')})),
     h('label',{class:'tg'},priv,h('span',{text:T('Ιδιωτικό: δεν το βλέπουν οι φίλοι','Private: friends cannot see it')})),
     err,save,
@@ -119,6 +138,7 @@ B.biteForm=function(edit,opt){
     else if(w==='keep'&&e){ lat=e.lat; lon=e.lon; place=e.place||''; }
     else if(w.slice(0,2)==='s:'){ var spt=S.get('spots',w.slice(2)); if(spt){ lat=spt.lat; lon=spt.lon; place=spt.name||''; } }
     var kb=(window.SPKB||[]).filter(function(k){ return k.n.toLowerCase()===name.toLowerCase()||(k.en||'').toLowerCase()===name.toLowerCase(); })[0];
+    rememberTech(tech.value);
     rec=Object.assign({},e||{},{date:date,time:time,tz:-new Date().getTimezoneOffset(),species:name,latin:kb?kb.l:(e&&e.latin)||'',bait:bait.value.trim(),tech:tech.value.trim(),
       depth:num(dep),kg:num(kg),len:num(len),notes:notes.value.trim(),place:place,lat:lat,lon:lon,src:e?(e.src||'app'):'v4'});
     if(many.checked) rec.cnt=Math.floor(+cnt.value); else delete rec.cnt;
@@ -138,6 +158,7 @@ B.biteForm=function(edit,opt){
     if(moved){ HK.forEach(function(k){ rec[k]=null; }); delete rec.wavePeriod; delete rec.hist; }
     /* ενεργή έξοδος (από την κλασική): σύνδεση με την έξοδο */
     if(!e){ var sf=ls.get('psaro-safe',{})||{}; if(sf.active&&sf.id){ rec.trip=sf.id; rec.n=S.raw('bites').filter(function(b){ return b.trip===sf.id&&!!b.miss===!!rec.miss; }).reduce(function(m,b){ return Math.max(m,+b.n||0); },0)+1; } }
+    if(e&&tsel){ if(tsel.value&&tsel.value!==e.trip){ rec.trip=tsel.value; rec.n=S.raw('bites').filter(function(b){ return b.trip===tsel.value&&!!b.miss===!!rec.miss; }).reduce(function(m,b){ return Math.max(m,+b.n||0); },0)+1; } else if(!tsel.value){ delete rec.trip; delete rec.n; } }
     if(phDirty||!e){ rec.photo=photos.length>0; if(photos.length>1) rec.xph=photos.length-1; else delete rec.xph; }
     save.disabled=true;
     /* ιστορικός καιρός (ίδια πηγή με την κλασική: Open-Meteo, εκτίμηση μοντέλου ~25 km) */

@@ -40,7 +40,7 @@ function biteMs(b){ var a=(b.date||today()).split('-').map(Number), t=(b.time||'
 B.biteMs=biteMs;
 var Store={get:function(k){ return B.store.raw(k).filter(function(x){ return !x.deleted; }); },raw:function(k){ return B.store.raw(k); },save:function(k,r){ var id=B.store.save(k,r); return Promise.resolve(id); },remove:function(k,id){ B.store.remove(k,id); return Promise.resolve(); },
   misses:function(){ return B.store.misses(); },on:function(k,f){ B.on('store',function(x){ if(x==='psaro-'+k) f(); }); }};
-window.PsaroCore=Object.assign(window.PsaroCore||{},{Store:Store,biteMs:biteMs,getPosition:getPosition,depthAt:B.depthAt,getCond:function(){ var p=B.lastPos(); return p?{lat:p.lat,lon:p.lon}:null; },
+window.PsaroCore=Object.assign(window.PsaroCore||{},{h:B.h,Store:Store,biteMs:biteMs,getPosition:getPosition,depthAt:B.depthAt,getCond:function(){ var p=B.lastPos(); return p?{lat:p.lat,lon:p.lon}:null; },
   utcMin:utcMin,utcOff:utcMin,nicosiaToday:today,lsGet:ls.get,lsSet:ls.set,toast:function(t){ B.toast(t); },bc:function(b){ return Math.max(1,Math.floor(+b.cnt)||1); }});
 
 /* ---------- body.ontrip ---------- */

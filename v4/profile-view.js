@@ -13,6 +13,7 @@ function draw(){
   if(B.safetyCard) page.append(B.safetyCard());
   page.append(mine());
   page.append(backupCard());
+  if(B.dataCards) B.dataCards().forEach(function(c){ page.append(c); });
   var dm=dataCard(); if(dm) page.append(dm);
   page.append(more());
   page.append(h('p',{class:'foot'},'BiteCast 4 ('+T('δοκιμαστικό','beta')+') · '+(window.PSARO_VERSION||'')+'. ',h('a',{href:B.classic(),text:T('Άνοιγμα της κλασικής έκδοσης','Open the classic version')}),'.'));
@@ -50,8 +51,9 @@ function signInCard(){
 function prefs(){
   var c=h('section',{class:'card'},h('h2',{text:T('Ρυθμίσεις','Settings')}));
   c.append(h('h3',{class:'h3',text:T('Τύπος ψαρέματος','Fishing type')}),B.seg(Object.keys(B.PROF).map(function(k){ return [k,B.PROF[k]]; }),B.prof(),function(v){ try{ localStorage.setItem('psaro-fprof',v); }catch(e){} B.emit('store','psaro-fprof'); B.toast(T('Ο βαθμός και οι προτάσεις προσαρμόστηκαν.','The score and suggestions were adjusted.')); },T('Τύπος ψαρέματος','Fishing type')));
+  if(B.startPick) c.append(h('button',{class:'linkbtn',type:'button',text:T('Ακτή ή σκάφος, και ερώτηση στο άνοιγμα…','Shore or boat, and the question at start…'),onclick:function(){ B.startPick(); }}));
   c.append(h('h3',{class:'h3',text:T('Γλώσσα','Language')}),B.seg([['el','Ελληνικά'],['en','English']],B.LANG,function(v){ try{ localStorage.setItem('psaro-lang',v); }catch(e){} location.reload(); },T('Γλώσσα','Language')));
-  if(U&&U.options){ var L={wind:T('Άνεμος','Wind'),temp:T('Θερμοκρασία','Temperature'),press:T('Πίεση','Pressure'),wave:T('Κύμα','Waves'),dist:T('Απόσταση','Distance')};
+  if(U&&U.options){ var L={wind:T('Άνεμος','Wind'),temp:T('Θερμοκρασία','Temperature'),press:T('Πίεση','Pressure'),wave:T('Κύμα','Waves'),dist:T('Απόσταση','Distance'),coord:T('Συντεταγμένες','Coordinates')};
     Object.keys(L).forEach(function(k){ c.append(h('h3',{class:'h3',text:L[k]}),B.seg(U.options[k].map(function(o){ return [o[0],o[1]]; }),U.cfg[k],function(v){ U.set(k,v); B.emit('store','psaro-units'); },L[k])); }); }
   return c;
 }

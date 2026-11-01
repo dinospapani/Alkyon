@@ -189,6 +189,8 @@ function dayView(page,fc,d){
 
   /* γιατί αυτός ο βαθμός */
   var why2=reasons(d); if(why2.length) page.append(h('section',{class:'card'},h('h2',{text:T('Γιατί','Why')}),h('ul',{class:'why'},why2.map(function(r){ return h('li',{class:r[0]},r[1]); }))));
+  if(isToday&&B.lastYearCard){ var ly=B.lastYearCard(); if(ly) page.append(ly); }
+  if(isToday&&B.bestDaysCard&&hr){ var bd=B.bestDaysCard({press:hr.pres,wind:hr.wind,wave:hr.wave,sst:hr.sst,temp:hr.temp}); if(bd) page.append(bd); }
 
   page.append(pwCard(fc,d));
   /* ήλιος και σελήνη */
@@ -199,6 +201,9 @@ function dayView(page,fc,d){
     if(mj.length) rr.push([T('Κύριες περίοδοι','Major periods'),mj.join(', ')]); if(mn.length) rr.push([T('Δευτερεύουσες','Minor periods'),mn.join(', ')]); }
   ms.append(h('div',{class:'rows one'},rr.map(function(r){ return h('div',{class:'row'},h('span',{text:r[0]}),h('b',{text:r[1]})); })));
   page.append(ms);
+  /* έκθεση της ακτής ανά κατεύθυνση ανέμου και swell (ίδιος υπολογισμός με την κλασική, exposure.js) — μόνο για σήμερα, θάλασσα */
+  if(isToday&&B.prof()!=='lake'&&window.PsaroExposure){ var ex=h('div',{class:'expo'},h('div',{id:'fcDays',hidden:true})); page.append(ex);
+    setTimeout(function(){ try{ window.dispatchEvent(new CustomEvent('psaro-fcloaded',{detail:{place:{lat:p.lat,lon:p.lon,name:p.name||''},fc:fc}})); }catch(e){} },0); }
 }
 /* 24 μπάρες: πάτημα = λεπτομέρειες της ώρας. Χρώμα: καλύτερο παράθυρο, περίοδος σελήνης, μη ασφαλής ώρα. */
 function hourRows(hr){

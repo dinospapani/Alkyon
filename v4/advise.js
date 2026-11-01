@@ -29,7 +29,9 @@ function collect(){
     var ms=PP.biteMs(b,utc); o.n++; total++;
     o.bites.push({depth:b.depth,ph:(ms!=null?PP.phaseAt(ms,b.lat,b.lon,utc):null),hr:b.time?+b.time.slice(0,2):null,moon:ms!=null?PP.moonOf(ms):null,month:b.date?+b.date.slice(5,7)-1:null,pt:PTS.indexOf(b.ptrend),w:windCls(b.wind),tide:b.tide||null,sst:b.sst,tech:b.tech||'',bait:b.bait||'',lat:b.lat,lon:b.lon,kg:+b.kg||0});
   });
-  return {model:m,by:by,ext:{},total:total,H:m.H||0};
+  /* δεδομένα φίλου (ext.js): ξεχωριστά, μόνο ως εποχιακή ένδειξη, όπως στην κλασική */
+  var ext={}; try{ ((window.PsaroExt&&window.PsaroExt.use())||[]).forEach(function(r){ if(!r.sp) return; var e=kbOf(r.sp,''), key=e?e.n:norm(r.sp).replace(/\s*\(.*$/,''); var o=ext[key]||(ext[key]={n:0,m:[0,0,0,0,0,0,0,0,0,0,0,0]}); o.n++; if(r.month!=null) o.m[r.month]++; }); }catch(e){}
+  return {model:m,by:by,ext:ext,total:total,H:m.H||0};
 }
 function lnTod(e,hr){ var w=e.tod[Math.floor(hr/3)]; return Math.log(0.4+1.2*w); }
 function lnMonth(e,mo){ var w=e.m[mo]/3; return Math.log(0.4+1.2*w); }

@@ -99,3 +99,16 @@
 .bwxcard .bwn{font-size:12.5px;color:var(--ink-2);margin-top:6px;line-height:1.4}
 .lawnote{margin:-6px 0 0;font-size:13.5px;color:var(--ink-2);line-height:1.4}
 .lawnote.warn{color:var(--poor);font-weight:700}
+.crange{margin:-4px 0 12px}
+.crange input{width:100%;min-height:44px;padding:0 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:15px}
+.lost .bt.lv{display:flex;background:var(--surface-2)}
+.lost .bt.lv i{display:block;height:100%;border-radius:0}
+.lost .bt.lv i.g{background:#2e9e5b}
+.lost .bt.lv i.r{background:#d8431c}
+.lost .bv{min-width:96px}
+.dives #ndDives{margin:0 0 14px}
+.dives #ndDives>b{font-size:17px}
+.dives .note{color:var(--ink-2);font-size:13.5px;margin:6px 0}
+.dives .row{display:flex;gap:8px}
+.dives .btn.acc{background:var(--accent);color:#fff}
+.dives .btn.ghost{background:var(--surface-2);color:var(--ink);box-shadow:none;min-height:36px}

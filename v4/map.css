@@ -1,6 +1,7 @@
 /* BiteCast 4 · Χάρτης */
 body.mapon .app{padding:0;max-width:none}
-.mapbox{position:fixed;inset:0;z-index:1;background:#0b2230}
+.mapbox{position:fixed;inset:0;z-index:1;background:#0b2230;overflow:hidden}
+.lmap{position:absolute;inset:0}
 .mapbar{position:fixed;right:12px;top:calc(var(--safe-t) + 12px);z-index:20;display:flex;flex-direction:column;gap:10px}
 .mapbar .iconbtn{width:46px;height:46px}
 .cross{position:fixed;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;z-index:10;pointer-events:none;opacity:.5}
@@ -105,3 +106,41 @@ body.maptrip .fishbtns{display:flex}
 body.mapon:has(#ndMapDock:not([hidden])) .fishbtns{bottom:calc(var(--nav-h) + var(--safe-b) + 40px + var(--ndwh,0px))}
 .dlpb{height:8px;border-radius:99px;background:var(--surface-2);overflow:hidden;margin:6px 0}
 .dlpb i{display:block;height:100%;background:var(--accent)}
+/* γραμμή επιστροφής */
+.rtwrap{position:fixed;left:12px;bottom:calc(var(--nav-h) + var(--safe-b) + 76px);z-index:21;display:flex;flex-direction:column;align-items:flex-start;gap:6px;max-width:calc(100% - 110px)}
+body:not(.maptrip) .rtwrap{display:none}
+.rtchip{min-height:40px;padding:0 14px;border:0;border-radius:99px;background:rgba(10,38,51,.9);color:#fff;font:650 13.5px var(--font);box-shadow:0 4px 12px rgba(0,0,0,.3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.rtchip[hidden]{display:none}
+.rtchip.warn{background:#b7791f}
+.rtchip.bad{background:#c53030}
+.rtmsg{padding:8px 12px;border-radius:12px;background:rgba(10,38,51,.9);color:#fff;font-size:13px;line-height:1.35}
+.rtmsg[hidden]{display:none}
+
+/* βέλος πορείας στη θέση σου */
+.mk.me.hd i::after{content:"";position:absolute;left:50%;top:-14px;width:0;height:0;margin-left:-6px;border:6px solid transparent;border-bottom:10px solid #1e88ff;transform-origin:6px 23px;transform:rotate(var(--hd,0deg))}
+.mk.me i{position:relative}
+/* προσανατολισμός χάρτη (NU / CU / HU) κατά την έξοδο */
+.mo-btn{position:fixed;left:12px;top:calc(var(--safe-t) + 210px);z-index:710;width:52px;height:52px;border-radius:50%;border:0;background:var(--surface);color:var(--ink);font:800 14px/1 var(--font);box-shadow:var(--shadow)}
+.mo-btn.on{background:var(--accent);color:#fff}
+.mo-btn.wait{opacity:.7}
+body:not(.ontrip) .mo-btn,body:not(.mapon) .mo-btn{display:none!important}
+body.hasdt .mo-btn{top:calc(var(--safe-t) + 282px)}
+.mapbox.mrot .leaflet-marker-icon>div:not(.you){transform:rotate(var(--mc,0deg))}
+.mapbox.mrot .leaflet-popup{rotate:var(--mc,0deg);transition:opacity .2s linear,rotate .35s linear}
+.mapbox.mrot .leaflet-marker-icon.mk{rotate:var(--mc,0deg)}
+#bNav{display:none!important}
+.zonewarn.navwarn{position:fixed;left:12px;right:12px;top:calc(var(--safe-t) + 70px);z-index:30;padding:12px 14px;border-radius:14px;color:#fff;font-weight:700;font-size:14px;box-shadow:0 6px 18px rgba(0,0,0,.35);max-width:540px;margin:0 auto}
+.zonewarn[hidden]{display:none}
+.navpopw .note{font-size:12.5px;color:#4B6570}
+.navpopw .btn{min-height:34px;padding:0 10px;font-size:13px;border-radius:10px}
+/* κάρτα καιρού */
+.mapwx{position:fixed;left:76px;right:70px;top:calc(var(--safe-t) + 12px);z-index:19;display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;justify-content:center;padding:8px 12px;border-radius:16px;background:color-mix(in srgb,var(--surface) 92%,transparent);box-shadow:var(--shadow);max-width:400px;margin:0 auto;cursor:pointer}
+.mapwx[hidden]{display:none}
+.mapwx .mw{display:flex;flex-direction:column;align-items:center;line-height:1.15}
+.mapwx .mw b{font-size:14.5px;font-weight:750;white-space:nowrap}
+.mapwx .mw span{font-size:11px;color:var(--ink-2)}
+.mapwx .mwempty{font-size:12.5px;color:var(--ink-2)}
+.mapwx .mwopt{min-height:32px;padding:0 10px;border-radius:99px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);font:600 12.5px var(--font)}
+.mapwx .mwopt[aria-pressed=true]{background:var(--accent);color:#fff;border-color:transparent}
+.mapwx .mwopt.ok{background:var(--ink);color:var(--bg)}
+body.hasdt .mapwx{top:calc(var(--safe-t) + 84px)}
