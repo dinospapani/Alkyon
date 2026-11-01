@@ -98,11 +98,13 @@ function tapData(ll){
 }
 function tapIcon(ll){
   var d=tapData(ll), body;
+  /* v31z519: στη v4 τα στοιχεία του σημείου φαίνονται σε κάρτα στο κάτω πλαίσιο· στον χάρτη μένει μόνο η κουκκίδα */
+  if(window.PSARO_TAPCARD){ try{ window.dispatchEvent(new CustomEvent('psaro-wxtap',{detail:{lat:ll.lat,lng:ll.lng}})); }catch(e){} return L.divIcon({className:'',iconSize:[0,0],html:'<div style="position:absolute;left:-8px;top:-8px;width:16px;height:16px;border-radius:50%;background:#fff;border:4px solid '+(d?col(d.v.sp):'#888')+';box-shadow:0 1px 5px #0009"></div>'}); }
   if(!d) body='<span>'+T('Εκτός περιοχής δεδομένων','Outside the data area')+'</span>';
   else body='<svg viewBox="0 0 24 24" width="18" height="18" style="vertical-align:-3px;margin-right:5px;transform:rotate('+Math.round(d.v.dir)+'deg)"><path d="M12 3v16M6 13l6 6 6-6" stroke="'+col(d.v.sp)+'" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><span>'+d.txt+'</span>'+(d.sea?'<div style="font-weight:600;font-size:12px;opacity:.95;margin-top:2px">'+d.sea+'</div>':'');
   return L.divIcon({className:'',iconSize:[0,0],html:'<div style="position:relative"><div style="position:absolute;left:-7px;top:-7px;width:14px;height:14px;border-radius:50%;background:#fff;border:3px solid '+(d?col(d.v.sp):'#888')+';box-shadow:0 1px 4px #0008"></div><div style="position:absolute;bottom:12px;left:0;transform:translateX(-50%);background:rgba(10,20,30,.93);color:#fff;border-radius:10px;padding:5px 10px;font:600 13px system-ui;white-space:nowrap;box-shadow:0 2px 8px #0008">'+body+'</div></div>'});
 }
-function clearTap(){ if(tapPop){ try{ map.removeLayer(tapPop); }catch(e){} tapPop=null; } tapLL=null; }
+function clearTap(q){ if(tapPop){ try{ map.removeLayer(tapPop); }catch(e){} tapPop=null; } tapLL=null; if(window.PSARO_TAPCARD&&!q) try{ window.dispatchEvent(new CustomEvent('psaro-wxtap',{detail:{clear:true}})); }catch(e){} }
 function onTap(e){
   if(!on||!grid||(!shown&&!seaOn())) return;
   var t=e.target; if(t&&t.closest&&(t.closest('.mapbtns')||t.closest('#ndMapDock')||t.closest('#ndRuler')||t.closest('.leaflet-marker-icon')||t.closest('.leaflet-control')||t.closest('.ndbar')||t.closest('.ndsheet')||t.closest('.ndsb')||t.closest('button,a,input,select'))) return;
@@ -321,5 +323,5 @@ stBtn.addEventListener('click',function(){ stSet(!stOn); if(stOn) try{ C.toast(T
 map.on('moveend',function(){ if(stOn) drawStations(); });
 setTimeout(function(){ var v=null; try{ v=localStorage.getItem('psaro-wst'); }catch(e){} stSet(v==='1'); },1500);
 function sampleAll(lat,lon){ if(!grid) return []; var o=[]; grid.m.forEach(function(m){ var v=sampleSrc(m,hi,lat,lon); if(v) o.push({name:m.name,v:v}); }); return o; }
-window.PsaroWindMap={start:start,stop:stop,show:show,shown:function(){ return on&&shown; },on:function(){ return on; },sample:sample,sampleAll:sampleAll,obs:function(lat,lon){ return obsAdj(lat,lon,hi); },modelFetch:modelFetch,diffTxt:diffTxt};
+window.PsaroWindMap={start:start,stop:stop,show:show,shown:function(){ return on&&shown; },on:function(){ return on; },sample:sample,sampleAll:sampleAll,obs:function(lat,lon){ return obsAdj(lat,lon,hi); },clearTap:function(){ clearTap(true); },col:col,hour:function(){ return hours[hi]||null; },modelFetch:modelFetch,diffTxt:diffTxt};
 })();

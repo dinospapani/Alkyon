@@ -352,6 +352,7 @@ function onTap(e){
   if(tapMk) try{ map.removeLayer(tapMk); }catch(x){}
   tapMk=null; if(!windOn()) tapMk=Lf.circleMarker(tapLL,{radius:7,color:'#fff',weight:3,fillColor:'#13212e',fillOpacity:1,interactive:false}).addTo(map);
   showPoint();
+  if(window.PSARO_TAPCARD) try{ window.dispatchEvent(new CustomEvent('psaro-wxtap',{detail:{lat:tapLL.lat,lng:tapLL.lng}})); }catch(x){}
 }
 var MS={1:[[3,0]],2:[[0,1]],3:[[3,1]],4:[[1,2]],5:[[3,0],[1,2]],6:[[0,2]],7:[[3,2]],8:[[2,3]],9:[[2,0]],10:[[0,1],[2,3]],11:[[2,1]],12:[[1,3]],13:[[1,0]],14:[[0,3]]};
 function contour(GH,GA,gw,gh,G,lv){
@@ -539,5 +540,5 @@ function stop(){
   var D=document.getElementById('ndMapDock'); if(D&&D._sync) D._sync();
 }
 btn.addEventListener('click',function(){ on?stop():start(); });
-window.PsaroSeaState.start=start; window.PsaroSeaState.stop=stop; window.PsaroSeaState.pointInfo=pointInfo;
+window.PsaroSeaState.start=start; window.PsaroSeaState.stop=stop; window.PsaroSeaState.pointInfo=pointInfo; window.PsaroSeaState.clearTap=function(){ if(tapMk){ try{ map.removeLayer(tapMk); }catch(e){} tapMk=null; } tapLL=null; showPoint(); };
 })();
