@@ -39,7 +39,7 @@ function toast(msg,ms,act){
 }
 /* σύρσιμο προς τα αριστερά για διαγραφή (λίστες): content = το στοιχείο της γραμμής, onDel = διαγραφή */
 function swipeDel(content,onDel){
-  var w=h('div',{class:'swp'}), bg=h('button',{class:'swbg',type:'button',tabindex:'-1',text:T('Διαγραφή','Delete'),onclick:function(){ go(); }}), fg=h('div',{class:'swfg'},content);
+  var w=h('div',{class:'swp'}), bg=h('button',{class:'swbg',type:'button',tabindex:'-1','aria-hidden':'true',text:T('Διαγραφή','Delete'),onclick:function(){ go(); }}), fg=h('div',{class:'swfg'},content);
   w.append(bg,fg); var x0=null, y0=0, dx=0, drag=false, open=false;
   function set(v,anim){ fg.style.transition=anim?'transform .2s ease':'none'; fg.style.transform=v?'translateX('+v+'px)':''; }
   function go(){ fg.style.transition='transform .2s ease'; fg.style.transform='translateX(-110%)'; w.classList.add('gone'); setTimeout(function(){ w.style.height=w.offsetHeight+'px'; requestAnimationFrame(function(){ w.style.height='0px'; }); setTimeout(function(){ w.remove(); onDel(); },220); },180); }

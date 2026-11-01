@@ -216,3 +216,22 @@ body.ontrip .mk.me.hd i::after{display:none}
 .lg.spot{width:16px;height:16px;border-radius:50%;background:var(--accent);border:2.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4)}
 .lg.mob{padding:2px 4px;border-radius:5px;background:#e53935;color:#fff;font:800 9px var(--font)}
 .lg.zn{width:24px;height:16px;border-radius:4px;border:2px solid var(--c);background:color-mix(in srgb,var(--c) 30%,transparent)}
+/* καθαρότερος χάρτης: δεξιά μόνο Στρώματα, Θέση, Μέτρηση· τα υπόλοιπα στα γρήγορα στρώματα και στο μενού */
+.mapbtns #bNav,.mapbtns #bWindSt,.mapbtns #bPorts,.mapbtns #bWind,.mapbtns #bSeaState{display:none!important}
+.mapbar .gearbtn[hidden]{display:none}
+.mchips{position:fixed;left:70px;right:70px;top:calc(var(--safe-t) + 14px);z-index:19;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;justify-content:safe center;padding:2px}
+.mchips::-webkit-scrollbar{display:none}
+.mchip{flex:none;display:inline-flex;align-items:center;gap:5px;height:36px;padding:0 11px 0 8px;border:0;border-radius:18px;background:var(--surface);color:var(--ink);box-shadow:var(--shadow);font:650 13px var(--font);white-space:nowrap}
+.mchip span{display:grid;place-items:center}
+.mchip svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.mchip[aria-pressed=true]{background:var(--accent);color:#fff}
+body:not(.mapon) .mchips{display:none}
+.mapwx{top:calc(var(--safe-t) + 60px)}
+body.hasdt .mchips{top:calc(var(--safe-t) + 84px)}
+body.hasdt .mapwx{top:calc(var(--safe-t) + 130px)}
+body.maptrip.hasdt .mchips{top:calc(var(--safe-t) + 140px)}
+body.maptrip.hasdt .mapwx{top:calc(var(--safe-t) + 186px)}
+.mchips{justify-content:center;gap:6px}
+.mchip{flex-direction:column;justify-content:center;gap:1px;width:60px;height:48px;padding:0;border-radius:14px;font:650 10.5px var(--font)}
+.mchip svg{width:19px;height:19px}
+.mchips{gap:5px;left:66px;right:66px}.mchip{width:56px}

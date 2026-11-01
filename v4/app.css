@@ -253,3 +253,16 @@ svg{display:block}
 .updbar{position:fixed;left:12px;right:12px;bottom:calc(var(--nav-h) + var(--safe-b) + 16px);z-index:60;max-width:536px;margin:0 auto;display:flex;align-items:center;gap:10px;padding:10px 10px 10px 16px;border-radius:14px;background:var(--ink);color:var(--bg);font:600 14px var(--font);box-shadow:0 8px 22px rgba(0,0,0,.3)}
 .updbar span{flex:1}
 .updbar .x{width:32px;height:32px;border:0;border-radius:50%;background:transparent;color:inherit;font-size:15px}
+/* καλωσόρισμα */
+.onb{position:fixed;inset:0;z-index:400;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:calc(var(--safe-t) + 24px) 20px calc(var(--safe-b) + 24px);overflow:auto}
+.obc{width:100%;max-width:440px;display:flex;flex-direction:column;gap:12px;text-align:center;margin:auto}
+.obic{width:84px;height:84px;margin:0 auto 6px;border-radius:26px;display:grid;place-items:center;background:var(--accent);color:var(--accent-ink,#fff)}
+.obic svg{width:44px;height:44px;stroke:currentColor;fill:none;stroke-width:1.8}
+.obc h2{margin:0;font:800 26px/1.2 var(--font);color:var(--ink)}
+.obc>p{margin:0 0 6px;font-size:16px;line-height:1.5;color:var(--ink-2)}
+.obc .stgrid,.obc .stlist{text-align:left}
+.obd{display:flex;justify-content:center;gap:8px;margin:8px 0}
+.obd i{width:8px;height:8px;border-radius:50%;background:var(--line)}
+.obd i.on{width:22px;border-radius:4px;background:var(--accent)}
+.obskip{border:0;background:none;color:var(--ink-3);font:600 14.5px var(--font);padding:10px}
+.obc .stgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.obc .stlist{display:flex;flex-direction:column;gap:8px}

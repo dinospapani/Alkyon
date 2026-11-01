@@ -110,6 +110,7 @@ function classicMods(){
 }
 function applyDepthInit(){ if(!depthC&&map) applyDepth(); }
 function cbtn(id){ return document.getElementById(id); }
+function gearAtSea(){ var g=ls.get('psaro-gear',null); return !!(g&&Array.isArray(g.items)&&g.items.some(function(i){ return i.state&&i.state!=='done'; })); }
 function pressed(id){ var b=cbtn(id); return !!(b&&b.getAttribute('aria-pressed')==='true'); }
 function windOn(){ var W=window.PsaroWindMap; return !!(W&&W.shown&&W.shown()); }
 function seaOn(){ return document.body.classList.contains('ndsea'); }
@@ -319,7 +320,7 @@ function paintDl(){ if(!dlBox||!dlBox.isConnected) return; var rec=ls.get('psaro
     h('div',{class:'acts'},h('button',{class:'btn pri',type:'button',text:T('Κατέβασμα','Download'),disabled:!p.ok,onclick:startDl}),rec.length?h('button',{class:'btn',type:'button',text:T('Διαγραφή','Clear'),onclick:clearDl}):null)); }
 function offlineSection(body){ dlBox=h('div',{class:'dlbox'}); body.append(h('h3',{class:'h3',text:T('Χάρτης εκτός σύνδεσης','Offline map')}),dlBox); paintDl(); }
 
-var LIC={
+var LIC={gear:'<svg viewBox="0 0 24 24"><path d="M3 7h18M3 12h18M3 17h18M7 4v16M12 4v16M17 4v16"/></svg>',
   sat:'<svg viewBox="0 0 24 24"><path d="M3 7l6-3 6 3 6-3v13l-6 3-6-3-6 3z"/><path d="M9 4v13M15 7v13"/></svg>',
   wind:'<svg viewBox="0 0 24 24"><path d="M3 8h11a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 16h8a3 3 0 1 1-3 3"/></svg>',
   wave:'<svg viewBox="0 0 24 24"><path d="M2 8c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2"/><path d="M2 13c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2"/><path d="M2 18c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2"/></svg>',
@@ -343,7 +344,7 @@ function layersSheet(){
   /* πλακίδιο: icon, τίτλος, υπότιτλος, get() → ενεργό, set(v) */
   function tile(ic,lab,sub,get,set,dis){ var b=h('button',{type:'button',class:'ltile',disabled:!!dis,onclick:function(){ set(!get()); setTimeout(paint,60); setTimeout(paint,600); }},h('span',{class:'lic',html:LIC[ic]}),h('b',{text:lab}),sub?h('small',{text:sub}):null);
     var t={b:b,get:get}; tiles.push(t); return b; }
-  function paint(){ tiles.forEach(function(t){ var on=false; try{ on=!!t.get(); }catch(e){} t.b.setAttribute('aria-pressed',String(on)); }); }
+  function paint(){ tiles.forEach(function(t){ var on=false; try{ on=!!t.get(); }catch(e){} t.b.setAttribute('aria-pressed',String(on)); }); if(B.qpaint) B.qpaint(); }
   function grid(title,items){ body.append(h('h3',{class:'lyh',text:title}),h('div',{class:'lgrid'},items.filter(Boolean))); }
   /* χάρτης βάσης: δύο μεγάλα πλακίδια με προεπισκόπηση */
   var bases=h('div',{class:'lbase'});
@@ -374,6 +375,8 @@ function layersSheet(){
   /* ενέργειες */
   var acts=h('div',{class:'list lacts'});
   function act(ic,lab,sub,fn){ acts.append(h('button',{class:'li',type:'button',onclick:fn},h('span',{class:'ic lic',html:LIC[ic]}),h('span',{class:'tx'},h('b',{text:lab}),sub?h('small',{text:sub}):null),B.icon('chev'))); }
+  act('spot',T('Νέο σημείο στο κέντρο','New spot at the centre'),T('Ή κράτα πατημένο τον χάρτη','Or long-press the map'),function(){ B.closeSheet(); spotForm(null,map.getCenter()); });
+  if(B.gearPanel) act('gear',T('Παραγάδι, δίχτυ, ζεμπίλι','Longline, net, pot'),T('Ρίψη και ανέβασμα εργαλείων','Set and haul gear'),function(){ B.closeSheet(); B.gearPanel(); });
   act('dl',T('Χάρτης εκτός σύνδεσης','Offline map'),T('Κατέβασε την περιοχή που βλέπεις','Download the area you see'),function(){ var bx=h('div',{class:'bform'}); offlineSection(bx); B.sheet({title:T('Χάρτης εκτός σύνδεσης','Offline map'),body:bx,stack:true}); });
   if(window.PsaroPorts) act('plus',T('Πρόσθεσε λιμάνι ή ράμπα','Add a port or ramp'),T('Πάτα μετά στον χάρτη','Then tap the map'),function(){ B.closeSheet(); B.closeSheet(); PsaroPorts.startAdd(); });
   if(B.shareSpots) act('share',T('Στείλε τα σημεία μου','Send my spots'),T('Σύνδεσμος για φίλο','A link for a friend'),function(){ B.shareSpots(S().raw('spots').filter(function(x){ return !x.deleted&&typeof x.lat==='number'; })); });
@@ -400,9 +403,16 @@ function mount(el){
   var bar=h('div',{class:'mapbar'},
     h('button',{class:'iconbtn',type:'button','aria-label':T('Στρώματα','Layers'),html:B.iconSvg('map'),onclick:layersSheet}),
     h('button',{class:'iconbtn',type:'button','aria-label':T('Η θέση μου','My position'),html:B.iconSvg('gps'),onclick:function(){ locate(true); }}),
-    h('button',{class:'iconbtn',type:'button','aria-label':T('Νέο σημείο εδώ','New spot here'),html:B.iconSvg('star'),onclick:function(){ spotForm(null,map.getCenter()); }}),
-    h('button',{class:'iconbtn gearbtn',type:'button','aria-label':T('Εργαλεία: παραγάδι, δίχτυ, ζεμπίλι','Gear: longline, net, pot'),html:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h18M3 12h18M3 17h18M7 4v16M12 4v16M17 4v16"/></svg>',onclick:function(){ if(B.gearPanel) B.gearPanel(); }}),
+    h('button',{class:'iconbtn gearbtn',hidden:!gearAtSea(),type:'button','aria-label':T('Εργαλεία: παραγάδι, δίχτυ, ζεμπίλι','Gear: longline, net, pot'),html:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h18M3 12h18M3 17h18M7 4v16M12 4v16M17 4v16"/></svg>',onclick:function(){ if(B.gearPanel) B.gearPanel(); }}),
     mbtns);
+  /* γρήγορα στρώματα: άνεμος, κύμα, ρεύματα, βάθη (τα υπόλοιπα στο μενού «Στρώματα») */
+  var qc=h('div',{class:'mchips',role:'group','aria-label':T('Γρήγορα στρώματα','Quick layers')});
+  function qchip(ic,lab,get,set){ var b=h('button',{type:'button',class:'mchip',onclick:function(){ set(!get()); setTimeout(qpaint,80); setTimeout(qpaint,900); }},h('span',{html:LIC[ic]}),h('b',{text:lab})); b._g=get; qc.append(b); }
+  function qpaint(){ [].forEach.call(qc.children,function(b){ var on=false; try{ on=!!b._g(); }catch(e){} b.setAttribute('aria-pressed',String(on)); }); }
+  qchip('wind',T('Άνεμος','Wind'),windOn,setWind); qchip('wave',T('Κύμα','Waves'),seaOn,setSeaSt);
+  qchip('cur',T('Ρεύματα','Currents'),function(){ return !!cfg.cur; },function(v){ cfg.cur=v; saveCfg(); currents(true); });
+  qchip('depth',T('Βάθη','Depths'),function(){ return dmode()>0; },function(v){ var last=+ls.get('psaro-v4-dlast',2)||2; if(!v){ ls.set('psaro-v4-dlast',dmode()); setDepth(0); } else setDepth(last,last===2?((window.PsaroDense&&PsaroDense.mode())||ls.get('psaro-dl','std')):null); });
+  B.qpaint=qpaint; setTimeout(qpaint,400); setTimeout(qpaint,2500);
   var trip=h('button',{class:'tripbtn',type:'button',onclick:function(){ B.tripStart(); }},h('span',{class:'tbic',html:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 15h18l-2.5 4.5h-13z"/><path d="M12 3v12"/><path d="M12 4l6 9h-6"/></svg>'}),h('span',{text:B.prof()==='boat'||(B.fishSide&&B.fishSide()==='boat')?T('Έναρξη εξόδου','Start a trip'):T('Ξεκινάω ψάρεμα','Start fishing')}));
   var seab=h('div',{class:'seabar'},h('button',{class:'mobbtn',type:'button','aria-label':'MOB',text:'MOB',onclick:function(){ B.mob(); }}),B.voice&&B.voice.ok?h('button',{class:'iconbtn micmap',type:'button','aria-label':T('Φωνητική καταγραφή ψαριού','Voice catch log'),html:B.voice.MIC,onclick:function(){ B.voice.log(); }}):null,h('button',{class:'iconbtn ancbtn',type:'button','aria-label':T('Συναγερμός άγκυρας','Anchor alarm'),text:'⚓',onclick:function(){ if(B.anchor()) B.ask(T('Να σταματήσει ο συναγερμός άγκυρας;','Turn off the anchor alarm?'),T('Σταμάτημα','Turn off')).then(function(y){ if(y) B.anchorOff(); }); else B.anchorOn(); }}));
   var cross=h('div',{class:'cross','aria-hidden':'true'});
@@ -415,7 +425,7 @@ function mount(el){
     btn.addEventListener('click',function(){ if(held){ held=false; return; } if(miss) B.quickRec(true); else B.biteForm(); }); }
   hold(bCatch,false); hold(bMiss,true);
   fishb=h('div',{class:'fishbtns'},bMiss,bCatch); fishCounts();
-  el.replaceChildren(box,cross,bar,trip,seab,dtBarEl(),fishb,mwBox());
+  el.replaceChildren(box,cross,bar,qc,trip,seab,dtBarEl(),fishb,mwBox());
   if(B.smartChip){ var rc=h('div',{class:'rtwrap'}); B.smartChip().forEach(function(n){ rc.append(n); }); el.append(rc); }
   if(map){ setTimeout(function(){ if(!map) return; map.invalidateSize(); drawData(); applyPend(); drawDirect(); },30); locate(false); return; }
   leaflet().then(function(){
@@ -440,6 +450,7 @@ function applyPend(){ if(!pend||!map) return false; var q=pend; pend=null;
   if(q.tr&&q.tr.length>1){ gRev=L.layerGroup([L.polyline(q.tr.map(function(p){ return [p[0],p[1]]; }),{color:'#ff8a50',weight:5,opacity:.95}),L.circleMarker(q.tr[0],{radius:7,color:'#fff',weight:3,fillColor:'#3ddc97',fillOpacity:1}),L.circleMarker(q.tr[q.tr.length-1],{radius:7,color:'#fff',weight:3,fillColor:'#ff4d4d',fillOpacity:1})]).addTo(map); map.fitBounds(L.latLngBounds(q.tr.map(function(p){ return [p[0],p[1]]; })),{padding:[40,40]}); }
   else { map.setView([q.lat,q.lon],q.z||15); gRev=L.layerGroup([L.circleMarker([q.lat,q.lon],{radius:11,color:'#E4572E',weight:3,fillOpacity:.15})]).addTo(map); }
   return true; }
+B.spotSheet=function(sp){ spotSheet(sp); };
 B.mapGo=function(lat,lon,z,tr){ pend={lat:lat,lon:lon,z:z,tr:tr}; if(map&&root) applyPend(); else location.hash='#map'; };
 
 B.view('map',{title:T('Χάρτης','Map'),mount:mount,unmount:unmount,resume:function(){ if(map&&root){ map.invalidateSize(); drawData(); } }});

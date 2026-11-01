@@ -106,7 +106,7 @@ function draw(){
         if(x.type==='set'){ var bt={}; mem.forEach(function(y){ if(!bt[y.type]) bt[y.type]=y; }); var cp=compat(bt.rod,bt.reel,bt.line); if(cp.w.length) warn='⚠ '+cp.w[0]; else if(cp.ok) warn='✔ '+T('Καλάμι, μουλινέ και νήμα ταιριάζουν','Rod, reel and line match'); }
         if(x.qty!=null&&x.qty<=2&&(x.type==='hook'||x.type==='lure')) warn='⚠ '+T('Σου τελειώνουν','Running low');
         var ic=h('span',{class:'tkth',html:tkIco(x.type)}); if(x.photo) thumb(x.id).then(function(u){ if(u){ ic.style.backgroundImage='url('+u+')'; ic.innerHTML=''; } });
-        l.append(h('button',{class:'li',type:'button',onclick:function(){ form(x); }},ic,h('span',{class:'tx'},h('b',{text:x.name||''}),h('small',{text:meta(x,mem)||' '}),warn?h('small',{class:warn.charAt(0)==='⚠'?'tkw bad':'tkw ok',text:warn}):null),c.f?h('span',{class:'when',text:c.f+' '+T('ψάρια','catches')}):null,B.icon('chev'))); });
+        var row=h('button',{class:'li',type:'button',onclick:function(){ form(x); }},ic,h('span',{class:'tx'},h('b',{text:x.name||''}),h('small',{text:meta(x,mem)||' '}),warn?h('small',{class:warn.charAt(0)==='⚠'?'tkw bad':'tkw ok',text:warn}):null),c.f?h('span',{class:'when',text:c.f+' '+T('ψάρια','catches')}):null,B.icon('chev')); l.append(B.swipeDel(row,function(){ S().delUndo('tackle',x,T('Διαγράφηκε: ','Deleted: ')+(x.name||'')); })); });
       out.push(l); });
     if(!out.length) out.push(h('p',{class:'sub',style:{margin:'12px 4px'},text:T('Δεν βρέθηκε κάτι.','Nothing found.')}));
     box.replaceChildren.apply(box,out);
