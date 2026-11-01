@@ -61,8 +61,8 @@ function drawPanel(msg){
   sl.addEventListener('input',function(){ hi=+sl.value; pause(); label(); seed(); });
   pb.addEventListener('click',function(){ playing?pause():play(); });
   var tg=document.createElement('button'); tg.type='button'; tg.className='btn ghost sm'; tg.style.cssText='min-width:40px;min-height:40px;flex:none;padding:0'; tg.textContent=detOpen?'▾':'▴'; tg.setAttribute('aria-expanded',String(detOpen)); tg.setAttribute('aria-label',T('Λεπτομέρειες','Details')); tg.addEventListener('click',function(){ detOpen=!detOpen; drawPanel(); });
-  var x=document.createElement('button'); x.type='button'; x.className='btn ghost sm'; x.style.cssText='min-width:40px;min-height:40px;flex:none;padding:0'; x.textContent='✕'; x.setAttribute('aria-label',seaOn()?T('Απόκρυψη ανέμου (η κατάσταση θάλασσας μένει)','Hide wind (sea state stays on)'):T('Κλείσιμο','Close')); x.addEventListener('click',function(){ if(seaOn()) show(false); else stop(); });
-  top.append(pb,sl,tg); if(!seaOn()||shown) top.append(x); panel.append(top);
+  var x=document.createElement('button'); x.type='button'; x.className='btn ghost sm'; x.style.cssText='min-width:40px;min-height:40px;flex:none;padding:0'; x.textContent='✕'; x.setAttribute('aria-label',seaOn()?T('Απόκρυψη ανέμου (η κατάσταση θάλασσας μένει)','Hide wind (sea state stays on)'):T('Κλείσιμο','Close')); if(window.PSARO_WINDY) x.setAttribute('aria-label',T('Κλείσιμο ανέμου και κύματος','Close wind and waves')); x.addEventListener('click',function(){ if(window.PSARO_WINDY){ var S2=window.PsaroSeaState; if(seaOn()&&S2&&S2.stop) S2.stop(); if(on) stop(); try{ window.dispatchEvent(new Event('psaro-wxchange')); }catch(e){} return; } if(seaOn()) show(false); else stop(); });
+  top.append(pb,sl,tg); if(!seaOn()||shown||window.PSARO_WINDY) top.append(x); panel.append(top);
   var lab=document.createElement('div'); lab.id='ndWindLab'; lab.style.cssText='font-weight:600;font-size:13px;margin-top:4px'; lab.setAttribute('aria-live','polite'); panel.append(lab);
   if(msg){ lab.textContent=msg; return; }
   var hint=document.createElement('div'); hint.className='note'; hint.style.cssText='font-size:11px'; hint.hidden=seaOn()&&!detOpen; hint.textContent=T('Πάτα στον χάρτη για να δεις κατεύθυνση και ένταση σε οποιοδήποτε σημείο.','Tap the map to see direction and strength at any point.'); panel.append(hint);
@@ -126,7 +126,7 @@ function label(){
   try{ window.dispatchEvent(new CustomEvent('psaro-windhour',{detail:{t:hours[hi]||null}})); }catch(e){}
   var el=document.getElementById('ndWindLab'); if(!el||!hours.length) return; refreshTap();
   var t=hours[hi], ms=Date.parse(t+'Z'), s;
-  try{ s=new Date(ms).toLocaleString(EN?'en-GB':'el-GR',{weekday:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Nicosia'}); }catch(e){ s=t.slice(11,16)+'Z'; }
+  try{ s=new Date(ms).toLocaleString(EN?'en-GB':'el-GR',{weekday:'short',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Nicosia'}); }catch(e){ s=t.slice(11,16)+'Z'; }
   var c=map.getCenter(), v=sample(c.lat,c.lng);
   el.textContent=s+(v?' · '+T('κέντρο χάρτη: ','map centre: ')+dn(v.dir)+' '+W(v.sp):'');
   var ag=document.getElementById('ndWindAg'); if(ag){ var a=agree(c.lat,c.lng); ag.replaceChildren();
@@ -292,13 +292,18 @@ var RM=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').
 function loop(ts){
   raf=0; if(!on||!grid||!shown||document.hidden){ if(on&&grid&&shown) raf=requestAnimationFrame(loop); return; }
   raf=requestAnimationFrame(loop); if(ts-last<33) return; last=ts;
-  var s=map.getSize(); ctx.globalCompositeOperation='destination-out'; ctx.fillStyle='rgba(0,0,0,'+(RM?1:0.08)+')'; ctx.fillRect(0,0,s.x,s.y); ctx.globalCompositeOperation='source-over'; ctx.lineWidth=1.6; ctx.lineCap='round';
+  var s=map.getSize(); ctx.globalCompositeOperation='destination-out'; ctx.fillStyle='rgba(0,0,0,'+(RM?1:(window.PSARO_WINDY?0.06:0.08))+')'; ctx.fillRect(0,0,s.x,s.y); ctx.globalCompositeOperation='source-over'; ctx.lineWidth=1.6; ctx.lineCap='round';
   var sc=0.12*Math.pow(2,(map.getZoom()-8)*0.35);
   for(var i=0;i<parts.length;i++){
     var p=parts[i], ll=map.containerPointToLatLng([p.x,p.y]), v=sample(ll.lat,ll.lng);
     if(!v||p.age--<=0){ parts[i]=np(); parts[i].age=40+Math.floor(Math.random()*30); continue; }
     var nx=p.x+v.u*sc, ny=p.y-v.v*sc;
-    var sea=seaOn(); ctx.strokeStyle=sea?'#ffffff':col(v.sp); ctx.globalAlpha=sea?0.7:0.9; ctx.lineWidth=sea?1.3:1.6; ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(nx,ny); ctx.stroke();
+    var sea=seaOn();
+    if(window.PSARO_WINDY){ /* v31z520: όπως το Windy: λευκά σωματίδια πάνω στο χρωματιστό πεδίο, ορατά και στον ασθενή άνεμο */
+      var kf=Math.max(1,6/Math.max(0.5,v.sp)); nx=p.x+v.u*sc*kf*1.15; ny=p.y-v.v*sc*kf*1.15;
+      ctx.strokeStyle='#ffffff'; ctx.globalAlpha=0.9; ctx.lineWidth=1.7; }
+    else { ctx.strokeStyle=sea?'#ffffff':col(v.sp); ctx.globalAlpha=sea?0.7:0.9; ctx.lineWidth=sea?1.3:1.6; }
+    ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(nx,ny); ctx.stroke();
     p.x=nx; p.y=ny; if(nx<0||ny<0||nx>s.x||ny>s.y){ parts[i]=np(); parts[i].age=40+Math.floor(Math.random()*30); }
   }
   ctx.globalAlpha=1;
@@ -323,5 +328,5 @@ stBtn.addEventListener('click',function(){ stSet(!stOn); if(stOn) try{ C.toast(T
 map.on('moveend',function(){ if(stOn) drawStations(); });
 setTimeout(function(){ var v=null; try{ v=localStorage.getItem('psaro-wst'); }catch(e){} stSet(v==='1'); },1500);
 function sampleAll(lat,lon){ if(!grid) return []; var o=[]; grid.m.forEach(function(m){ var v=sampleSrc(m,hi,lat,lon); if(v) o.push({name:m.name,v:v}); }); return o; }
-window.PsaroWindMap={start:start,stop:stop,show:show,shown:function(){ return on&&shown; },on:function(){ return on; },sample:sample,sampleAll:sampleAll,obs:function(lat,lon){ return obsAdj(lat,lon,hi); },clearTap:function(){ clearTap(true); },col:col,hour:function(){ return hours[hi]||null; },modelFetch:modelFetch,diffTxt:diffTxt};
+window.PsaroWindMap={start:start,stop:stop,show:show,shown:function(){ return on&&shown; },on:function(){ return on; },sample:sample,sampleAll:sampleAll,obs:function(lat,lon){ return obsAdj(lat,lon,hi); },clearTap:function(){ clearTap(true); },col:col,hour:function(){ return hours[hi]||null; },hours:function(){ return hours; },idx:function(){ return hi; },modelFetch:modelFetch,diffTxt:diffTxt};
 })();

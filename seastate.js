@@ -540,5 +540,10 @@ function stop(){
   var D=document.getElementById('ndMapDock'); if(D&&D._sync) D._sync();
 }
 btn.addEventListener('click',function(){ on?stop():start(); });
+/* v31z520: ύψος και κατεύθυνση κύματος από τα μοντέλα, για όλη τη θάλασσα (και πέρα από τα 10 km). Για το πεδίο κύματος της v4. */
+window.PsaroSeaState.modelAt=function(lat,lon){ if(!on||!REG) return null; var P=prepNow(), hs=0, u=0, v=0, tp=0, n=0;
+  P.waves.forEach(function(m){ var s=latSample(m.L,lat,lon,function(p){ return m.ok[p]?[m.h[p],m.wu[p],m.wv[p],m.tp[p]]:null; }); if(s){ hs+=s[0]; u+=s[1]; v+=s[2]; tp+=s[3]; n++; } });
+  if(!n) return null; return {h:hs/n,dir:(u||v)?(Math.atan2(u,v)*180/Math.PI+360)%360:null,tp:tp/n}; };
+window.PsaroSeaState.ready=function(){ return !!(on&&REG&&REG.waves&&REG.waves.length); };
 window.PsaroSeaState.start=start; window.PsaroSeaState.stop=stop; window.PsaroSeaState.pointInfo=pointInfo; window.PsaroSeaState.clearTap=function(){ if(tapMk){ try{ map.removeLayer(tapMk); }catch(e){} tapMk=null; } tapLL=null; showPoint(); };
 })();
