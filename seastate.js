@@ -521,7 +521,7 @@ function start(){
   map.on('zoomstart',hide); map.on('moveend zoomend resize',later); window.addEventListener('psaro-depthmode',depthSync); depthSync();
   window.addEventListener('psaro-windhour',later); window.addEventListener('psaro-windstop',onWindStop);
   map.getContainer().addEventListener('click',onTap,true);
-  if(!windOn()&&window.PsaroWindMap&&window.PsaroWindMap.start){ ownWind=true; window.PsaroWindMap.start(); }
+  if(!windOn()&&window.PsaroWindMap&&window.PsaroWindMap.start){ ownWind=true; window.PsaroWindMap.start(window.PSARO_WINDY?{hidden:true}:undefined); }
   else if(window.PsaroWindMap&&window.PsaroWindMap.show){ /* ο άνεμος ήταν ήδη ανοιχτός: ξαναζωγραφίζεται το πλαίσιο με τα χρώματα πάνω */ try{ window.PsaroWindMap.show(window.PsaroWindMap.shown()); }catch(e){} }
   status(T('Φόρτωση…','Loading…'));
   loadIndex().then(function(){ if(on) later(); });
