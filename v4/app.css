@@ -235,3 +235,12 @@ svg{display:block}
 .stlist{display:flex;flex-direction:column;gap:8px;margin-bottom:8px}
 .stm{border:2px solid transparent;border-radius:16px;background:var(--surface);box-shadow:var(--shadow)}
 .stm .sti{margin-right:4px}
+/* σύρσιμο για διαγραφή */
+.swp{position:relative;overflow:hidden;transition:height .2s ease}
+.swp .swbg{position:absolute;inset:0;border:0;background:#d64532;color:#fff;font:700 15px var(--font);display:flex;align-items:center;justify-content:flex-end;padding-right:20px}
+.swp .swfg{position:relative;background:var(--surface);touch-action:pan-y}
+.list .swp:not(:last-child){border-bottom:1px solid var(--line)}
+.list .swp .li{border-bottom:0}
+/* μήνυμα με ενέργεια (π.χ. Αναίρεση) */
+.toast.act{pointer-events:auto;display:flex;align-items:center;gap:14px;text-align:left}
+.toast .tact{border:0;background:none;color:var(--accent);font:800 14.5px var(--font);padding:6px 4px;white-space:nowrap}

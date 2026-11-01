@@ -30,10 +30,25 @@ function icon(n){ var w=document.createElement('span'); w.innerHTML=iconSvg(n); 
 
 /* μήνυμα στο κάτω μέρος */
 var tEl=null, tT=0;
-function toast(msg,ms){
+function toast(msg,ms,act){
   if(!tEl){ tEl=h('div',{class:'toast',role:'status','aria-live':'polite'}); document.body.appendChild(tEl); }
-  tEl.textContent=msg; clearTimeout(tT); requestAnimationFrame(function(){ tEl.classList.add('on'); });
-  tT=setTimeout(function(){ tEl.classList.remove('on'); },ms||2600);
+  tEl.replaceChildren(h('span',{text:msg})); tEl.classList.toggle('act',!!act);
+  if(act) tEl.append(h('button',{type:'button',class:'tact',text:act.label,onclick:function(){ clearTimeout(tT); tEl.classList.remove('on'); act.fn(); }}));
+  clearTimeout(tT); requestAnimationFrame(function(){ tEl.classList.add('on'); });
+  tT=setTimeout(function(){ tEl.classList.remove('on'); },ms||(act?5000:2600));
+}
+/* σύρσιμο προς τα αριστερά για διαγραφή (λίστες): content = το στοιχείο της γραμμής, onDel = διαγραφή */
+function swipeDel(content,onDel){
+  var w=h('div',{class:'swp'}), bg=h('button',{class:'swbg',type:'button',tabindex:'-1',text:T('Διαγραφή','Delete'),onclick:function(){ go(); }}), fg=h('div',{class:'swfg'},content);
+  w.append(bg,fg); var x0=null, y0=0, dx=0, drag=false, open=false;
+  function set(v,anim){ fg.style.transition=anim?'transform .2s ease':'none'; fg.style.transform=v?'translateX('+v+'px)':''; }
+  function go(){ fg.style.transition='transform .2s ease'; fg.style.transform='translateX(-110%)'; w.classList.add('gone'); setTimeout(function(){ w.style.height=w.offsetHeight+'px'; requestAnimationFrame(function(){ w.style.height='0px'; }); setTimeout(function(){ w.remove(); onDel(); },220); },180); }
+  fg.addEventListener('touchstart',function(e){ var t=e.touches[0]; x0=t.clientX; y0=t.clientY; dx=0; drag=false; },{passive:true});
+  fg.addEventListener('touchmove',function(e){ if(x0==null) return; var t=e.touches[0], mx=t.clientX-x0, my=t.clientY-y0; if(!drag){ if(Math.abs(mx)>10&&Math.abs(mx)>Math.abs(my)*1.4) drag=true; else if(Math.abs(my)>10){ x0=null; return; } }
+    if(drag){ dx=Math.min(0,mx+(open?-96:0)); set(dx,false); } },{passive:true});
+  fg.addEventListener('touchend',function(){ if(x0==null) return; x0=null; if(!drag) return; if(dx<-170){ go(); } else if(dx<-50){ open=true; set(-96,true); } else { open=false; set(0,true); } });
+  fg.addEventListener('click',function(e){ if(open){ e.stopPropagation(); e.preventDefault(); open=false; set(0,true); } },true);
+  return w;
 }
 
 /* φύλλο από κάτω: sheet({title, body:Node}) → {close} */
@@ -87,5 +102,5 @@ function ask(q,okText,danger){ return new Promise(function(res){ var done=false;
   ok.addEventListener('click',function(){ done=true; sh.close(); res(true); }); no.addEventListener('click',function(){ sh.close(); });
 }); }
 
-Object.assign(B,{icon:icon,iconSvg:iconSvg,toast:toast,sheet:sheet,closeSheet:function(){ if(openSheet) openSheet.close(true); },seg:seg,longPress:longPress,ask:ask});
+Object.assign(B,{icon:icon,iconSvg:iconSvg,toast:toast,swipeDel:swipeDel,sheet:sheet,closeSheet:function(){ if(openSheet) openSheet.close(true); },seg:seg,longPress:longPress,ask:ask});
 })();

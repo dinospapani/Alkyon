@@ -204,6 +204,23 @@ function drawMw(){ if(!mwEl) return; var on=ls.get('psaro-v4-mapwx',true)!==fals
   if(!mwEl.children.length) mwEl.append(h('span',{class:'mwempty',text:T('Πάτα για να διαλέξεις στοιχεία','Tap to choose items')})); }
 function mwBox(){ mwEl=h('div',{class:'mapwx',role:'button','aria-label':T('Καιρός τώρα. Πάτα για να διαλέξεις τι φαίνεται.','Weather now. Tap to choose what is shown.'),onclick:function(){ mwEdit=!mwEdit; drawMw(); }}); setTimeout(drawMw,0); return mwEl; }
 
+/* ---------- θαλάσσια ρεύματα (Open-Meteo Marine, μοντέλο ~8 km· ενδεικτικό, όχι μέτρηση) ---------- */
+var curT=0, curKey='';
+function currents(force){
+  clearTimeout(curT); if(!map) return;
+  if(!cfg.cur){ if(ov.cur){ map.removeLayer(ov.cur); ov.cur=null; } curKey=''; return; }
+  curT=setTimeout(function(){ if(!map||!cfg.cur) return; var b=map.getBounds(), z=map.getZoom(), la=[], lo=[], NY=6, NX=5;
+    var key=b.getSouth().toFixed(2)+b.getWest().toFixed(2)+b.getNorth().toFixed(2)+b.getEast().toFixed(2)+new Date().getHours(); if(key===curKey&&!force) return; curKey=key;
+    for(var i=0;i<NY;i++) for(var j=0;j<NX;j++){ la.push((b.getSouth()+(b.getNorth()-b.getSouth())*(i+0.5)/NY).toFixed(3)); lo.push((b.getWest()+(b.getEast()-b.getWest())*(j+0.5)/NX).toFixed(3)); }
+    fetch('https://marine-api.open-meteo.com/v1/marine?latitude='+la.join(',')+'&longitude='+lo.join(',')+'&current=ocean_current_velocity,ocean_current_direction&timezone=GMT').then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(j){
+      if(!map||!cfg.cur) return; var a=Array.isArray(j)?j:[j]; if(ov.cur) map.removeLayer(ov.cur); ov.cur=L.layerGroup().addTo(map); var n=0;
+      a.forEach(function(q){ var c=q&&q.current; if(!c||c.ocean_current_velocity==null||c.ocean_current_direction==null) return; var kn=c.ocean_current_velocity/1.852; if(kn<0.05) return; n++;
+        var cls=kn>=1?'strong':kn>=0.4?'mid':'weak';
+        L.marker([q.latitude,q.longitude],{interactive:false,keyboard:false,icon:L.divIcon({className:'mk cur '+cls,iconSize:null,html:'<div class="cw"><i style="transform:rotate('+Math.round(c.ocean_current_direction)+'deg)">↑</i><b>'+B.num(kn,kn<1?1:0)+' kn</b></div>'})}).addTo(ov.cur); });
+      if(!n&&force) B.toast(T('Δεν υπάρχουν δεδομένα ρευμάτων εδώ (μόνο ανοιχτή θάλασσα).','No current data here (open sea only).'));
+    }).catch(function(){ curKey=''; if(force) B.toast(T('Τα ρεύματα δεν φορτώθηκαν. Χρειάζεται σύνδεση.','Currents did not load. Needs a connection.')); }); },force?0:500);
+}
+
 /* ---------- φύλλα ---------- */
 function fishSheet(a){
   if(a.length===1&&B.biteDetail){ B.biteDetail(a[0]); return; }
@@ -292,6 +309,7 @@ function layersSheet(){
     wxTg(T('Άνεμος (κινούμενος, 48 ώρες)','Wind (animated, 48 hours)'),T('Μοντέλα ECMWF, ICON, GFS. Πάτα στον χάρτη για ένταση και κατεύθυνση.','ECMWF, ICON and GFS models. Tap the map for strength and direction.'),windOn(),setWind),
     wxTg(T('Κατάσταση θάλασσας (κύμα)','Sea state (waves)'),T('Χρώματα κατά ύψος κύματος, με την ώρα του ανέμου.','Colours by wave height, following the wind hour.'),seaOn(),setSeaSt),
     wxTg(T('Σταθμοί ανέμου (μετρήσεις τώρα)','Wind stations (live observations)'),'',pressed('bWindSt'),setStations));
+  body.append(h('label',{class:'tg'},h('input',{type:'checkbox',checked:!!cfg.cur,onchange:function(ev){ cfg.cur=ev.target.checked; saveCfg(); currents(true); }}),h('span',null,T('Θαλάσσια ρεύματα (τώρα)','Sea currents (now)'),h('small',{class:'tgsub',text:T('Βέλη προς τα πού πάει το νερό. Μοντέλο Open-Meteo (~8 km), ενδεικτικό· κοντά στην ακτή συχνά διαφέρει.','Arrows show where the water flows. Open-Meteo model (~8 km), indicative; near the coast it often differs.')}))));
   if(cbtn('bNav')) body.append(wxTg(T('Περιορισμοί ψαρέματος (ProtectedSeas)','Fishing restrictions (ProtectedSeas)'),T('Προστατευόμενες περιοχές και κανόνες στην Ανατολική Μεσόγειο. Κατά την έξοδο σε ειδοποιεί όταν μπαίνεις σε περιοχή με περιορισμούς.','Protected areas and rules in the eastern Mediterranean. During a trip it warns you when you enter a restricted area.'),pressed('bNav'),function(v){ if(pressed('bNav')!==v){ var b=cbtn('bNav'); if(b) b.click(); } }));
   body.append(h('h3',{class:'h3',text:T('Λιμάνια','Ports')}),wxTg(T('Λιμάνια, μαρίνες και ράμπες','Ports, marinas and boat ramps'),T('Από το OpenStreetMap. Μπορεί να λείπουν ή να είναι παλιά.','From OpenStreetMap. May be missing or out of date.'),pressed('bPorts'),function(v){ if(pressed('bPorts')!==v){ var b=cbtn('bPorts'); if(b) b.click(); } }),
     window.PsaroPorts?h('button',{class:'btn full',type:'button',text:T('Πρόσθεσε δικό σου λιμάνι ή ράμπα','Add your own port or ramp'),onclick:function(){ B.closeSheet(); PsaroPorts.startAdd(); }}):null);
@@ -338,8 +356,8 @@ function mount(el){
     if(!root||map) return;
     var p=B.lastPos(), v=ls.get('psaro-v4-mapview',null);
     map=L.map(lmEl,{zoomControl:false,attributionControl:true,tap:true}).setView(v?[v.lat,v.lon]:(p?[p.lat,p.lon]:[35.0,33.2]),v?v.z:(p?12:9));
-    drawBase(); drawData(); drawOverlays(); applyDepth(); applyPend(); locate(false); drawDirect();
-    map.on('moveend',function(){ var c=map.getCenter(); ls.set('psaro-v4-mapview',{lat:+c.lat.toFixed(5),lon:+c.lng.toFixed(5),z:map.getZoom()}); });
+    drawBase(); drawData(); drawOverlays(); applyDepth(); applyPend(); locate(false); drawDirect(); if(cfg.cur) currents(true);
+    map.on('moveend',function(){ if(cfg.cur) currents(false); var c=map.getCenter(); ls.set('psaro-v4-mapview',{lat:+c.lat.toFixed(5),lon:+c.lng.toFixed(5),z:map.getZoom()}); });
     map.on('contextmenu',function(e){ spotForm(null,e.latlng); });
     map.on('dragstart zoomstart',function(){ followPause=Date.now()+20000; }); map.on('popupopen',function(){ followPause=Date.now()+20000; });
     map.on('popupopen',function(e){ var c=e.popup.getContent(); if(c&&c.classList&&c.classList.contains('portpop')&&!c.querySelector('.pgo')){ var ll=e.popup.getLatLng(), nm=(c.querySelector('b')||{}).textContent||''; var r=c.querySelector('.pbtns')||c; var g=h('button',{class:'pb pgo',type:'button',text:T('Πήγαινε εκεί','Go there'),onclick:function(){ map.closePopup(); B.goTo(ll.lat,ll.lng,nm); }}); r.insertBefore(g,r.firstChild); e.popup.update(); } });

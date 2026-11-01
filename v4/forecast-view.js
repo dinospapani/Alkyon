@@ -425,12 +425,16 @@ function placeSheet(){
   var tm=0; q.addEventListener('input',function(){ clearTimeout(tm); var v=q.value.trim(); if(v.length<2){ res.replaceChildren(); return; } tm=setTimeout(function(){ geo(v); },350); });
   function geo(v){
     res.replaceChildren(h('p',{class:'sub',style:{margin:'10px 4px'},text:T('Αναζήτηση…','Searching…')}));
-    fetch('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(v)+'&count=6&format=json&language='+(EN?'en':'el')).then(function(r){ return r.json(); }).then(function(j){
+    fetch('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(v)+'&count=20&format=json&language='+(EN?'en':'el')).then(function(r){ return r.json(); }).then(function(j){
       if(q.value.trim()!==v) return; var a=(j&&j.results)||[];
+      /* πρώτα τα πιο κοντινά σε σένα (θέση GPS ή η τοποθεσία που βλέπεις) */
+      var me=B.lastPos()||(cur&&cur.lat!=null?cur:null)||{lat:35.0,lon:33.2};
+      a.forEach(function(x){ var R=Math.PI/180, dl=(x.latitude-me.lat)*R, dn=(x.longitude-me.lon)*R, z=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(me.lat*R)*Math.cos(x.latitude*R)*Math.sin(dn/2)*Math.sin(dn/2); x._d=12742*Math.asin(Math.min(1,Math.sqrt(z))); });
+      a.sort(function(x,y){ return x._d-y._d; }); a=a.slice(0,8);
       if(!a.length){ res.replaceChildren(h('p',{class:'sub',style:{margin:'10px 4px'},text:T('Δεν βρέθηκε τοποθεσία με αυτό το όνομα.','No place found with that name.')})); return; }
       var l=h('div',{class:'list',style:{marginTop:'8px'}});
       a.forEach(function(x){ var lab=[x.admin1,x.country].filter(Boolean).filter(function(v2,i,aa){ return aa.indexOf(v2)===i&&v2!==x.name; }).join(', ');
-        l.append(h('button',{class:'li',type:'button',onclick:function(){ sh.close(); addPlace(x.name,x.latitude,x.longitude); }},h('span',{class:'ic'},B.icon('pin')),h('span',{class:'tx'},h('b',{text:x.name}),h('small',{text:lab})))); });
+        l.append(h('button',{class:'li',type:'button',onclick:function(){ sh.close(); addPlace(x.name,x.latitude,x.longitude); }},h('span',{class:'ic'},B.icon('pin')),h('span',{class:'tx'},h('b',{text:x.name}),h('small',{text:lab+(x._d!=null?' · '+(x._d<10?B.num(x._d,1):Math.round(x._d))+' km':'')})))); });
       res.replaceChildren(l);
     }).catch(function(){ res.replaceChildren(h('p',{class:'sub',style:{margin:'10px 4px'},text:T('Η αναζήτηση χρειάζεται σύνδεση.','Search needs a connection.')})); });
   }
@@ -441,10 +445,13 @@ function placeSheet(){
     var pick=h('button',{class:'li',type:'button',style:{borderBottom:0,flex:1},onclick:function(){ sh.close(); select(p.id); }},h('span',{class:'ic'},B.icon(p.gps?'gps':'pin')),h('span',{class:'tx'},h('b',{text:p.name}),h('small',{text:p.gps?T('Ακολουθεί το κινητό σου','Follows your phone'):(+p.lat).toFixed(3)+', '+(+p.lon).toFixed(3)})),p.id===cur.id?B.icon('check'):null);
     if(p.id===cur.id) pick.lastChild.setAttribute('class','ck');
     row.append(pick);
-    if(!p.gps) row.append(h('button',{class:'del',type:'button','aria-label':T('Διαγραφή ','Delete ')+p.name,html:B.iconSvg('trash'),onclick:function(){ B.ask(T('Διαγραφή της τοποθεσίας «'+p.name+'»;','Delete the place “'+p.name+'”?'),T('Διαγραφή','Delete'),true).then(function(y){ if(y){ delPlace(p.id); B.toast(T('Η τοποθεσία διαγράφηκε.','Place deleted.')); } }); }}));
-    l.append(row);
+    if(!p.gps) row.append(h('button',{class:'del',type:'button','aria-label':T('Διαγραφή ','Delete ')+p.name,html:B.iconSvg('trash'),onclick:function(){ wrap.querySelector('.swbg').click(); }}));
+    var wrap=p.gps?row:B.swipeDel(row,function(){ var before=saved(), wasSel=ls.get('psaro-fcsel','gps')===p.id; delPlace(p.id);
+      B.toast(T('Η τοποθεσία «','Place “')+p.name+T('» διαγράφηκε.','” deleted.'),5000,{label:T('Αναίρεση','Undo'),fn:function(){ ls.set('psaro-places',before); if(wasSel) select(p.id); if(sh&&sh.el&&sh.el.isConnected) placeSheet(); B.toast(T('Επαναφέρθηκε.','Restored.')); }}); });
+    l.append(wrap);
   });
   body.append(l);
+  if(saved().length) body.append(h('p',{class:'foot',text:T('Σύρε μια τοποθεσία προς τα αριστερά για διαγραφή.','Swipe a place to the left to delete it.')}));
   var spots=B.records('spots').filter(function(x){ return !x.deleted&&typeof x.lat==='number'&&typeof x.lon==='number'; });
   if(spots.length){
     body.append(h('h3',{class:'listh',text:T('Από τα σημεία σου','From your spots')}));
