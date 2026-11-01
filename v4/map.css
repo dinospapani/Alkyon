@@ -286,3 +286,40 @@ body:has(#bRuler[aria-pressed=true]) .cross{display:block;opacity:.8}
 .tmore[open]>summary::after{transform:rotate(-135deg)}
 .tmore[open]{display:flex;flex-direction:column;gap:12px}
 .tgo{min-height:54px;font-size:16.5px}
+/* ψάρια με χρώμα ανά είδος (όπως η κλασική) */
+.mk.fish{--g:#2b8c7a}
+.mk.fish.g-grouper{--g:#8d5a2b}.mk.fish.g-bass{--g:#3f78a8}.mk.fish.g-sparid{--g:#c59a12}.mk.fish.g-pelagic{--g:#1d55c4}.mk.fish.g-ceph{--g:#8e44ad}.mk.fish.g-mullet{--g:#d9472b}.mk.fish.g-other{--g:#2b8c7a}
+.mk.fish.sym{width:28px;height:28px;translate:-14px -14px;display:grid;place-items:center;border-radius:50%;background:#fff;border:3px solid var(--g);color:var(--g);box-shadow:0 1px 4px rgba(0,0,0,.5)}
+.mk.fish.sym svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.mk.fish.sym.ph{box-shadow:0 0 0 2px #fff,0 0 0 4px var(--accent),0 1px 4px #0008}
+.mk.fish.sym.rel{border-style:dashed}
+.mk.fish.sym.sp{border-style:double;border-width:4px}
+.mk.fish.sym.lk{border-radius:9px}
+.mk.fish.many{background:var(--g);box-shadow:0 0 0 3px #fff,0 0 0 6px color-mix(in srgb,var(--g) 35%,transparent),0 1px 4px rgba(0,0,0,.5)}
+.mk.fish.miss{width:22px;height:22px;translate:-11px -11px;display:grid;place-items:center;border-radius:50%;background:#fff;border:2px solid #d64532;color:#d64532;font:900 12px/1 var(--font);box-shadow:0 1px 3px rgba(0,0,0,.45)}
+.mk.fish.miss b{color:#d64532;font-size:11px}
+/* σημεία με χρώμα ανά τύπο */
+.mk.spot.k-reef i{background:#b5532c}.mk.spot.k-sand i{background:#d9b44a}.mk.spot.k-wreck i{background:#37474f;border-radius:3px}.mk.spot.k-ledge i{background:#6d4c9f}.mk.spot.k-current i{background:#1e88c9}.mk.spot.k-port i{background:#2e7d4f}
+.lg.fg{width:16px;height:16px;border-radius:50%;background:#fff;border:3px solid var(--g)}
+.lg.fmiss{width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid #d64532;color:#d64532;font:900 9px/1 var(--font);display:inline-grid;place-items:center}
+.legend{grid-template-columns:1fr}
+@media (min-width:380px){.legend{grid-template-columns:1fr 1fr}}
+/* επανάληψη εξόδου */
+.mk.rpboat i{display:block;width:30px;height:30px;transform:translate(-15px,-15px) rotate(var(--hd,0deg));filter:drop-shadow(0 2px 3px rgba(0,0,0,.6));background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 1.5C22 8 24.5 17 22.5 30H9.5C7.5 17 10 8 16 1.5z' fill='%23ff6a2a' stroke='%23fff' stroke-width='2.4' stroke-linejoin='round'/%3E%3Crect x='12' y='15' width='8' height='8' rx='1.5' fill='%23fff'/%3E%3C/svg%3E") center/contain no-repeat}
+.mk.pop{animation:mkpop .35s ease-out}
+@keyframes mkpop{0%{scale:.2}70%{scale:1.25}100%{scale:1}}
+.rpbar{position:fixed;left:12px;right:12px;bottom:calc(var(--nav-h) + var(--safe-b) + 14px);z-index:46;max-width:536px;margin:0 auto;padding:10px 14px 12px;border-radius:18px;background:var(--surface);color:var(--ink);box-shadow:0 10px 30px rgba(0,0,0,.4)}
+.rph{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.rph small{color:var(--ink-2)}
+.rpc{display:flex;align-items:center;gap:10px;margin-top:6px}
+.rpc input{flex:1;accent-color:var(--accent)}
+.rpc .iconbtn{background:var(--accent);color:#fff}
+.rptime{min-width:48px;text-align:right;font-variant-numeric:tabular-nums}
+.rpcnt{display:block;margin-top:4px;font-size:13px;color:var(--ink-2)}
+body.replaying .tripbtn,body.replaying .tripbar,body.replaying #ndMapDock{display:none!important}
+/* «Πού πιάνω» */
+.heatpill{position:fixed;left:12px;bottom:calc(var(--nav-h) + var(--safe-b) + 84px);z-index:21;display:flex;align-items:center;gap:10px;max-width:60vw;padding:8px 14px 8px 10px;border:0;border-radius:16px;background:var(--surface);color:var(--ink);box-shadow:var(--shadow);text-align:left;font-family:var(--font)}
+.heatpill[hidden]{display:none}
+.heatpill .hpd{flex:none;width:26px;height:12px;border-radius:6px;background:linear-gradient(90deg,#fdd835,#fb8c00,#e53935)}
+.heatpill .tx{display:flex;flex-direction:column;min-width:0}.heatpill b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.heatpill small{font-size:11.5px;color:var(--ink-2)}
+body.maptrip .heatpill{display:none}

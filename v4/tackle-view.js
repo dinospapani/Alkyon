@@ -93,7 +93,8 @@ function draw(){
     h('button',{type:'button',class:'tkt'+(rc?' warn':''),onclick:listSheet},h('b',{text:T('Υπενθυμίσεις','Reminders')+(rc?' · '+rc:'')}),h('small',{text:T('Αλλαγή, συντήρηση, αγορές','Change, service, shopping')})),
     h('button',{type:'button',class:'tkt',onclick:moreSheet},h('b',{text:T('Μονάδες, αρχείο','Units, file')}),h('small',{text:Wu()+' · '+Du()+' · '+Lu()}))));
   var used={}; all.forEach(function(x){ used[x.type]=1; });
-  var chips=h('div',{class:'chips'}); [['all',T('Όλα','All')]].concat(TY.filter(function(t){ return used[t[0]]; }).map(function(t){ return [t[0],t[1]]; })).forEach(function(c){ var n=c[0]==='all'?all.length:all.filter(function(x){ return x.type===c[0]; }).length; chips.append(h('button',{type:'button',class:'chip','aria-pressed':String(fType===c[0]),text:c[1]+' '+n,onclick:function(){ fType=c[0]; draw(); }})); });
+  var TYO=TY.filter(function(t){ return t[0]==='set'; }).concat(TY.filter(function(t){ return t[0]!=='set'; }));
+  var chips=h('div',{class:'chips tkf'}); [['all',T('Όλα','All')]].concat(TYO.filter(function(t){ return used[t[0]]; }).map(function(t){ return [t[0],t[1]]; })).forEach(function(c){ var n=c[0]==='all'?all.length:all.filter(function(x){ return x.type===c[0]; }).length; chips.append(h('button',{type:'button',class:'chip','aria-pressed':String(fType===c[0]),text:c[1]+' '+n,onclick:function(){ var sx=chips.scrollLeft, y=window.scrollY; fType=c[0]; draw(); var nc=root&&root.querySelector('.chips.tkf'); if(nc) nc.scrollLeft=sx; try{ window.scrollTo(0,Math.min(y,(nc?nc.offsetTop-10:0))); }catch(e){} }})); });
   var qi=h('input',{type:'search',value:q,placeholder:T('Αναζήτηση','Search'),'aria-label':T('Αναζήτηση εξοπλισμού','Search tackle')}), box=h('div');
   qi.addEventListener('input',function(){ q=qi.value; fill(); });
   if(all.length) page.append(chips,h('div',{class:'search'},B.icon('search'),qi)); page.append(box);
@@ -101,7 +102,7 @@ function draw(){
     var ql=q.toLowerCase(), a=all.filter(function(x){ return (fType==='all'||x.type===fType)&&(!ql||[x.name,x.brand,x.spec,x.notes,x.color].join(' ').toLowerCase().indexOf(ql)>=0); });
     if(!all.length){ box.replaceChildren(h('div',{class:'card empty'},h('h3',{text:T('Δεν έχεις καταχωρίσει εξοπλισμό','No tackle yet')}),h('p',{text:T('Πρόσθεσε καλάμια, μουλινέ, τεχνητά ή ψαροντούφεκα. Μετά τα διαλέγεις σε κάθε ψάρι και βλέπεις τι πιάνει.','Add rods, reels, lures or spearguns. Then pick them on each catch and see what works.')}),h('button',{class:'btn pri',type:'button',text:T('Νέο κομμάτι','New item'),onclick:function(){ form(null); }}))); return; }
     var groups={}; a.forEach(function(x){ (groups[x.type||'other']=groups[x.type||'other']||[]).push(x); });
-    var out=[]; TY.forEach(function(t){ var g=groups[t[0]]; if(!g) return; out.push(h('h3',{class:'listh',text:t[1]+' ('+g.length+')'}));
+    var out=[]; TYO.forEach(function(t){ var g=groups[t[0]]; if(!g) return; out.push(h('h3',{class:'listh',text:t[1]+' ('+g.length+')'}));
       var l=h('div',{class:'list'}); g.sort(function(x,y){ return String(x.name).localeCompare(String(y.name)); }).forEach(function(x){ var mem=x.type==='set'?setMem(x,m):[], c=catches(x,mem), warn='';
         if(x.type==='set'){ var bt={}; mem.forEach(function(y){ if(!bt[y.type]) bt[y.type]=y; }); var cp=compat(bt.rod,bt.reel,bt.line); if(cp.w.length) warn='⚠ '+cp.w[0]; else if(cp.ok) warn='✔ '+T('Καλάμι, μουλινέ και νήμα ταιριάζουν','Rod, reel and line match'); }
         if(x.qty!=null&&x.qty<=2&&(x.type==='hook'||x.type==='lure')) warn='⚠ '+T('Σου τελειώνουν','Running low');

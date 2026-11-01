@@ -197,6 +197,17 @@ function dayView(page,fc,d){
       h('span',{text:T('Επόμενη καλή μέρα','Next good day')}),h('b',{text:B.dayName(nx.date,td)+', '+win(nx)}),h('i',{class:'sc',text:String(nx.best)}))); }
   if(tg) hero.append(h('span',{class:'tag '+tg[0],text:tg[1]}));
   page.append(hero);
+  /* «Σήμερα με μια ματιά»: ο καιρός αυτή την ώρα και γρήγορες ενέργειες */
+  if(isToday){ var hn=hourOf(d,nh), lake=B.prof()==='lake', onTrip=!!(B.trip&&B.trip.active&&B.trip.active());
+    if(hn){ var cells=[[U.windP(hn.wind)[0],U.windP(hn.wind)[1]+' '+dirTxt(hn.dir),T('άνεμος','wind')]];
+      if(!lake&&hn.wave!=null) cells.push([U.waveP(hn.wave)[0],U.waveP(hn.wave)[1],T('κύμα','waves')]);
+      if(hn.pres!=null) cells.push([String(Math.round(hn.pres)),({fast:'↓↓',slow:'↘',rise:'↗',stable:'→'}[hn.ptrend]||''),T('πίεση','pressure')]);
+      cells.push([U.tempP(lake?hn.temp:(hn.sst!=null?hn.sst:hn.temp))[0],U.tempP(lake?hn.temp:(hn.sst!=null?hn.sst:hn.temp))[1],lake||hn.sst==null?T('αέρας','air'):T('νερό','water')]);
+      var nc=h('section',{class:'card nowcard','aria-label':T('Τώρα','Now')},h('div',{class:'nwh'},h('b',{text:T('Τώρα','Now')+', '+B.pad(nh)+':00'}),h('span',{class:'sub',text:sky(hn.code)})),
+        h('div',{class:'nwg'},cells.map(function(c){ return h('div',{class:'nwc'},h('b',null,c[0],h('small',{text:' '+c[1]})),h('span',{text:c[2]})); })),
+        h('div',{class:'nwa'},onTrip?h('button',{class:'btn pri',type:'button',text:T('Ψάρι εδώ','Catch here'),onclick:function(){ B.quickRec&&B.quickRec(false); }}):h('a',{class:'btn pri',href:'#trip',text:'▶ '+T('Έναρξη εξόδου','Start trip')}),
+          h('button',{class:'btn',type:'button',text:'+ '+T('Νέο ψάρι','New catch'),onclick:function(){ B.biteForm&&B.biteForm(); }})));
+      page.append(nc); } }
 
   /* ανά ώρα: μπάρες και λεπτομέρειες της ώρας (σύρε το δάχτυλο πάνω στις μπάρες) */
   if(hr) page.append(hourCard(fc,d,selH,isToday?nh:null));
