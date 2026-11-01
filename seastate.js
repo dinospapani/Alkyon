@@ -66,7 +66,7 @@ function pad(n,w){ var s=String(Math.abs(n)); while(s.length<w) s='0'+s; return 
 function tkey(la,lo){ return 'N'+pad(la,2)+'E'+pad(lo,3); }
 function loadIndex(){
   if(IDXP) return IDXP;
-  IDXP=fetch('cx_index.json').then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+  IDXP=fetch((window.PSARO_BASE||'')+'cx_index.json').then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
     .then(function(j){ IDXJ=(j&&Array.isArray(j.tiles))?j:{tiles:[]}; return IDXJ; })
     .catch(function(){ IDXP=null; IDXJ=null; return null; });
   return IDXP;
@@ -92,7 +92,7 @@ function decodeTile(j){
 function loadTile(key){
   var o=TL[key]; if(o) return o.p;
   o={st:'loading'}; TL[key]=o;
-  o.p=fetch('cx_'+key+'.json').then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+  o.p=fetch((window.PSARO_BASE||'')+'cx_'+key+'.json').then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
     .then(function(j){ o.t=decodeTile(j); o.st=o.t?'ok':'bad'; })
     .catch(function(){ o.st='bad'; setTimeout(function(){ if(TL[key]===o) delete TL[key]; },60000); });
   return o.p;
