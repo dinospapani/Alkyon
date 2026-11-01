@@ -283,7 +283,7 @@ function compare(){
     .map(function(st){ var v=sampleSrc(grid.mean,nowIdx,st.lat,st.lon); return v?{st:st,mod:v.sp,d:st.spd-v.sp}:null; }).filter(Boolean);
 }
 function seed(){
-  var s=map.getSize(), cnt=Math.min(1600,Math.round(s.x*s.y/(window.PSARO_WINDY?900:520))); parts=[];
+  var s=map.getSize(), cnt=Math.min(1600,Math.round(s.x*s.y/(window.PSARO_WINDY?480:520))); parts=[];
   for(var i=0;i<cnt;i++) parts.push(np());
   clear();
 }
@@ -300,8 +300,11 @@ function loop(ts){
     var nx=p.x+v.u*sc, ny=p.y-v.v*sc;
     var sea=seaOn();
     if(window.PSARO_WINDY){ /* v31z520: όπως το Windy: λευκά σωματίδια πάνω στο χρωματιστό πεδίο, ορατά και στον ασθενή άνεμο */
-      var kf=Math.max(1,3/Math.max(0.5,v.sp)); nx=p.x+v.u*sc*kf*0.9; ny=p.y-v.v*sc*kf*0.9;
-      ctx.strokeStyle='#ffffff'; ctx.globalAlpha=Math.min(0.95,0.45+v.sp/30); ctx.lineWidth=1.1+Math.min(1.2,v.sp/20); }
+      /* v31z524: η εικόνα δείχνει την ένταση: δυνατός άνεμος = πυκνές, μακριές, παχιές γραμμές· άπνοια = λίγες, κοντές, αχνές */
+      if(p.vis==null) p.vis=Math.random();
+      nx=p.x+v.u*sc*1.15; ny=p.y-v.v*sc*1.15;
+      if(p.vis>Math.min(1,0.18+v.sp/16)){ p.x=nx; p.y=ny; if(nx<0||ny<0||nx>s.x||ny>s.y){ parts[i]=np(); parts[i].age=40+Math.floor(Math.random()*30); } continue; }
+      ctx.strokeStyle='#ffffff'; ctx.globalAlpha=Math.min(0.95,0.3+v.sp/22); ctx.lineWidth=0.7+Math.min(2.3,v.sp/11); }
     else { ctx.strokeStyle=sea?'#ffffff':col(v.sp); ctx.globalAlpha=sea?0.7:0.9; ctx.lineWidth=sea?1.3:1.6; }
     ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(nx,ny); ctx.stroke();
     p.x=nx; p.y=ny; if(nx<0||ny<0||nx>s.x||ny>s.y){ parts[i]=np(); parts[i].age=40+Math.floor(Math.random()*30); }
