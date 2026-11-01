@@ -8,9 +8,20 @@ B.view=function(name,def){ VIEWS[name]=def; };
 var TABS=[['forecast',T('Πρόγνωση','Forecast'),'forecast'],['map',T('Χάρτης','Map'),'map'],null,['log',T('Ημερολόγιο','Logbook'),'log'],['profile',T('Προφίλ','Profile'),'user']];
 function nav(){
   var bar=h('div'); TABS.forEach(function(t){
-    if(!t){ /* v31z521: κράτα πατημένο το + για καταγραφή με φωνή («λαβράκι δύο κιλά») */
-      var lp=null, lpDone=false, fab=h('button',{class:'fab',type:'button','aria-label':T('Νέο ψάρι. Κράτα πατημένο για φωνή.','New catch. Long-press for voice.'),html:B.iconSvg('plus'),onclick:function(ev){ if(lpDone){ lpDone=false; ev.preventDefault(); return; } if(B.biteForm) B.biteForm(); }});
-      fab.addEventListener('pointerdown',function(){ lpDone=false; clearTimeout(lp); lp=setTimeout(function(){ if(B.voice&&B.voice.ok){ lpDone=true; try{ navigator.vibrate&&navigator.vibrate(30); }catch(e){} B.voice.log(); } },550); });
+    if(!t){ /* v31z525: το κεντρικό κουμπί ξεκινά έξοδο (με το εικονίδιο του τύπου σου)· κατά την έξοδο γίνεται «+» για νέο ψάρι.
+               Παρατεταμένο πάτημα: νέο ψάρι χωρίς έξοδο ή καταγραφή με φωνή. */
+      var lp=null, lpDone=false, fab=h('button',{class:'fab',type:'button',onclick:function(ev){ if(lpDone){ lpDone=false; ev.preventDefault(); return; }
+        if(onTrip()){ if(B.biteForm) B.biteForm(); } else if(B.tripStart){ if((location.hash||'')!=='#map') location.hash='#map'; setTimeout(function(){ B.tripStart(); },location.hash==='#map'?0:350); } }});
+      function onTrip(){ return !!(B.trip&&B.trip.active&&B.trip.active()); }
+      function paint(){ var tr=onTrip(); fab.classList.toggle('fabtrip',!tr); fab.innerHTML=tr?B.iconSvg('plus'):(B.profIcon?B.profIcon(B.prof()):B.iconSvg('plus'));
+        fab.setAttribute('aria-label',tr?T('Νέο ψάρι. Κράτα πατημένο για φωνή.','New catch. Long-press for voice.'):T('Έναρξη εξόδου. Κράτα πατημένο για νέο ψάρι ή φωνή.','Start a trip. Long-press for a new catch or voice.')); }
+      paint(); B.on('trip',function(){ setTimeout(paint,50); }); B.on('store',function(k){ if(k==='psaro-fprof') paint(); }); window.addEventListener('focus',paint);
+      function menu(){ var body=h('div',{class:'fabmenu'},
+          h('button',{type:'button',class:'li',onclick:function(){ B.closeSheet(); if(B.biteForm) B.biteForm(); }},h('span',{class:'ic',html:B.iconSvg('plus')}),h('span',{class:'tx'},h('b',{text:T('Νέο ψάρι','New catch')}),h('small',{text:T('Καταγραφή χωρίς έξοδο (ή για παλιό ψάρι)','Log without a trip (or a past catch)')}))),
+          B.voice&&B.voice.ok?h('button',{type:'button',class:'li',onclick:function(){ B.closeSheet(); B.voice.log(); }},h('span',{class:'ic',html:B.voice.MIC}),h('span',{class:'tx'},h('b',{text:T('Πες το','Say it')}),h('small',{text:T('«λαβράκι δύο κιλά»','“sea bass two kilos”')}))):null,
+          !onTrip()&&B.tripStart?h('button',{type:'button',class:'li',onclick:function(){ B.closeSheet(); fab.click(); }},h('span',{class:'ic',html:B.profIcon?B.profIcon(B.prof()):''}),h('span',{class:'tx'},h('b',{text:T('Έναρξη εξόδου','Start a trip')}))):null);
+        B.sheet({title:T('Γρήγορες ενέργειες','Quick actions'),body:body}); }
+      fab.addEventListener('pointerdown',function(){ lpDone=false; clearTimeout(lp); lp=setTimeout(function(){ lpDone=true; try{ navigator.vibrate&&navigator.vibrate(30); }catch(e){} if(onTrip()&&B.voice&&B.voice.ok) B.voice.log(); else menu(); },550); });
       ['pointerup','pointerleave','pointercancel'].forEach(function(n){ fab.addEventListener(n,function(){ clearTimeout(lp); }); });
       fab.addEventListener('contextmenu',function(ev){ ev.preventDefault(); });
       bar.append(fab); return; }
@@ -36,6 +47,8 @@ function start(){
   document.body.append(main,nav());
   /* v31z520: στα αγγλικά, ό,τι έμεινε ελληνικό (ονόματα ειδών, τεχνικές, δολώματα, συμβουλές της γνώσης) μεταφράζεται με το λεξικό της κλασικής */
   if(window.LANG==='en'&&window.PsaroTrWatch){ window.PSARO_TRBODY=true; try{ PsaroTrWatch(document.body); }catch(e){} }
+  /* στα αγγλικά: και η πλήρης λίστα ειδών Κύπρου (cy100), ώστε να μεταφράζονται και ονόματα όπως «Στήρα», «Πίγγα» */
+  if(window.LANG==='en'&&!window.CY100) setTimeout(function(){ var sc=document.createElement('script'); sc.src='../cy100.js'; sc.onload=function(){ try{ var w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT), n, G=/[\u0370-\u03FF]/; while((n=w.nextNode())){ if(G.test(n.nodeValue)&&window.PsaroTr){ var v=window.spName?window.spName(n.nodeValue):n.nodeValue; if(v!==n.nodeValue) n.nodeValue=v; } } }catch(e){} }; document.head.appendChild(sc); },1500);
   window.addEventListener('hashchange',route);
   document.addEventListener('visibilitychange',function(){ if(!document.hidden&&cur&&VIEWS[cur].resume) VIEWS[cur].resume(); });
   route();

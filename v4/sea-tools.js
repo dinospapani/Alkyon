@@ -70,7 +70,8 @@ function wxCheck(f){
   function once(k,gap){ if(sent[k]&&now-sent[k]<gap) return false; sent[k]=now; ls.set('psaro-wxa-sent',sent); return true; }
   var mxW=0, mxG=0, mxV=0, at='', cur=null; (f.days[0].hours||[]).forEach(function(x){ if(x.t&&x.t.slice(0,13)===nowH) cur=x; });
   next.forEach(function(x){ if((x.wind||0)>mxW){ mxW=x.wind; at=x.t.slice(11,16); } mxG=Math.max(mxG,x.gust||0); mxV=Math.max(mxV,x.wave||0); });
-  var rising=(cur&&cur.wind!=null&&mxW-cur.wind>=7), bad=mxW>=22||mxG>=30||mxV>=1.8, warn=!bad&&(mxW>=17||mxV>=1.2||rising), anc=!!ls.get('psaro-anchor',null);
+  var LM=(window.PF&&PF.lims)?PF.lims():{wind:14,wave:0.9,gust:24};
+  var rising=(cur&&cur.wind!=null&&mxW-cur.wind>=7), bad=mxW>=LM.wind+8||mxG>=LM.gust+6||mxV>=LM.wave*2, warn=!bad&&(mxW>LM.wind||mxV>LM.wave||mxG>LM.gust||rising), anc=!!ls.get('psaro-anchor',null);
   var txt=T('Άνεμος έως ','Wind up to ')+(U?U.wind(mxW):Math.round(mxW)+' kn')+(mxV?', '+T('κύμα ','waves ')+(U?U.wave(mxV):mxV+' m'):'')+(at?' '+T('γύρω στις ','around ')+at:'');
   if(bad&&once('bad',3*3600000)) notify(T('⚠ Δυνατός καιρός σε λίγες ώρες','⚠ Rough weather within hours'),txt);
   else if(warn&&(tripOn()||anc)&&once('warn',3*3600000)) notify(T('Ο καιρός δυναμώνει','Weather is picking up'),txt);

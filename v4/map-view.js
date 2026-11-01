@@ -97,7 +97,7 @@ function drawSea(){ if(!map) return; if(gSea) map.removeLayer(gSea); gSea=L.laye
   var a=B.anchor&&B.anchor(); if(a){ L.circle([a.lat,a.lon],{radius:a.r,color:'#ffb020',weight:2,fillColor:'#ffb020',fillOpacity:.12,dashArray:'6 6'}).addTo(gSea); L.circleMarker([a.lat,a.lon],{radius:6,color:'#fff',weight:2,fillColor:'#ffb020',fillOpacity:1}).addTo(gSea); }
   var fx=(B.trip&&B.trip.fix())||B.lastPos();
   (B.mobs?B.mobs():[]).forEach(function(m){ L.marker([m.lat,m.lon],{icon:icon('mob','<b>MOB</b>')}).on('click',function(){ mobSheet(m); }).addTo(gSea); if(fx) L.polyline([[fx.lat,fx.lon],[m.lat,m.lon]],{color:'#ff3b30',weight:3,dashArray:'6 6'}).addTo(gSea); });
-  var on=B.trip&&B.trip.active(); document.body.classList.toggle('maptrip',!!on); var tb=root&&root.querySelector('.tripbtn'); if(tb) tb.hidden=!!on; }
+  var on=B.trip&&B.trip.active(); document.body.classList.toggle('maptrip',!!on); if(on) document.body.setAttribute('data-tprof',B.prof()); else document.body.removeAttribute('data-tprof'); var tb=root&&root.querySelector('.tripbtn'); if(tb) tb.hidden=!!on; }
 function mobSheet(m){ var fx=(B.trip&&B.trip.fix())||B.lastPos(), rows=[[T('Ώρα','Time'),new Date(m.t).toTimeString().slice(0,5)],[T('Συντεταγμένες','Coordinates'),m.lat.toFixed(5)+', '+m.lon.toFixed(5)]];
   if(fx){ var R=6371000, r=Math.PI/180, dLa=(m.lat-fx.lat)*r, dLo=(m.lon-fx.lon)*r, x=Math.sin(dLa/2)*Math.sin(dLa/2)+Math.cos(fx.lat*r)*Math.cos(m.lat*r)*Math.sin(dLo/2)*Math.sin(dLo/2), d=2*R*Math.asin(Math.min(1,Math.sqrt(x)));
     var y=Math.sin(dLo)*Math.cos(m.lat*r), xx=Math.cos(fx.lat*r)*Math.sin(m.lat*r)-Math.sin(fx.lat*r)*Math.cos(m.lat*r)*Math.cos(dLo), br=(Math.atan2(y,xx)/r+360)%360; rows.push([T('Απόσταση','Distance'),d<1000?Math.round(d)+' m':B.num(d/1852,2)+' nm'],[T('Πορεία','Bearing'),Math.round(br)+'°']); }
@@ -304,6 +304,7 @@ function wcDraw(){
   var me=fixNow||B.lastPos(), fromMe=me?dtFmt(hav(me,{lat:wcLL.lat,lon:wcLL.lng})):'';
   var cd=cell(T('Βάθος','Depth'),'',dep==null?'…':dep==='none'?'–':'~'+dep+' m',r&&isFinite(r.distKm)?T('ακτή ','shore ')+(r.distKm<1?Math.round(r.distKm*1000)+' m':B.num(r.distKm,1)+' km'):'',fromMe?T('από εσένα ','from you ')+fromMe:'');
   var foot=h('div',{class:'wcf'});
+  var sbd=B.seabedAt?B.seabedAt(wcLL.lat,wcLL.lng):null; if(sbd) foot.append(h('span',{class:'wcsst',html:'<i style="background:'+(sbd.slope>=25?'#d63a3a':sbd.slope>=12?'#f08c30':sbd.slope>=5?'#ffd23f':'#8a96a3')+'"></i><span>'+(sbd.slope>=5?T('Drop-off · ','Drop-off · '):T('Βυθός · ','Seabed · '))+Math.round(sbd.slope)+T(' m/100 m',' m/100 m')+'</span>'}));
   var sv=B.sstAt?B.sstAt(wcLL.lat,wcLL.lng):null; if(sv!=null){ var U2=window.PsaroUnits; foot.append(h('span',{class:'wcsst',html:'<i style="background:rgb('+(B.sst.color?B.sst.color(0.5).map(Math.round).join(','):'64,182,180')+')"></i><span>'+T('Νερό ','Water ')+(U2&&U2.temp?U2.temp(sv,1):B.num(sv,1)+'°C')+'</span>'})); }
   if(cur){ var ck=cur.ocean_current_velocity/1.852; foot.append(h('span',{class:'wccur',html:wcArrow((cur.ocean_current_direction+180)%360,'#5bc0de')+'<span>'+T('Ρεύμα ','Current ')+B.num(ck,1)+' kn '+T('προς ','to ')+COMP[Math.round(cur.ocean_current_direction/45)%8]+'</span>'})); }
   wcEl.replaceChildren(
@@ -482,6 +483,7 @@ function layersSheet(){
     tile('wave',T('Κύμα','Waves'),T('χρώματα','colours'),seaOn,setSeaSt,!ready),
     tile('cur',T('Ρεύματα','Currents'),T('τώρα','now'),function(){ return !!cfg.cur; },function(v){ cfg.cur=v; saveCfg(); currents(true); }),
     tile('sst',T('Νερό','Water'),T('θερμοκρασία, μέτωπα','temperature, fronts'),function(){ return !!(B.sst&&B.sst.on()); },function(v){ if(B.sst) B.sst.set(v); }),
+    tile('depth',T('Δομή βυθού','Seabed'),T('drop-offs, υψώματα','drop-offs, rises'),function(){ return !!(B.seabed&&B.seabed.on()); },function(v){ if(B.seabed) B.seabed.set(v); }),
     tile('st',T('Σταθμοί','Stations'),T('μετρήσεις','observed'),function(){ return pressed('bWindSt'); },setStations,!ready),
     tile('card',T('Κάρτα καιρού','Weather card'),'',function(){ return ls.get('psaro-v4-mapwx',true)!==false; },function(v){ ls.set('psaro-v4-mapwx',v); drawMw(); })]);
   /* βάθη: πλακίδιο + επιλογή τρόπου */
@@ -560,7 +562,7 @@ function mount(el){
   dchip._g=function(){ return dmode()>0; }; dchip._lab=function(){ var c=dcur(); return c==='off'?T('Βάθη','Depths'):c==='col'?T('Χρώματα','Colours'):c==='std'?T('Βάθη','Depths'):c+' m'; }; qc.append(dchip);
   B.qpaint=qpaint; setTimeout(qpaint,400); setTimeout(qpaint,2500);
   heatPill=h('button',{class:'heatpill',type:'button',hidden:!cfg.heat,onclick:heatSheet},h('span',{class:'hpd'}),h('span',{class:'tx'},h('b',{text:''}),h('small',{text:''})));
-  var trip=h('button',{class:'tripbtn',type:'button',onclick:function(){ B.tripStart(); }},h('span',{class:'tbic',html:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 15h18l-2.5 4.5h-13z"/><path d="M12 3v12"/><path d="M12 4l6 9h-6"/></svg>'}),h('span',{text:B.prof()==='boat'||(B.fishSide&&B.fishSide()==='boat')?T('Έναρξη εξόδου','Start a trip'):T('Ξεκινάω ψάρεμα','Start fishing')}));
+  var trip=h('button',{class:'tripbtn',type:'button',onclick:function(){ B.tripStart(); }},h('span',{class:'tbic',html:B.profBadge?B.profBadge(B.prof()):'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 15h18l-2.5 4.5h-13z"/><path d="M12 3v12"/><path d="M12 4l6 9h-6"/></svg>'}),h('span',{text:B.prof()==='boat'||(B.fishSide&&B.fishSide()==='boat')?T('Έναρξη εξόδου','Start a trip'):T('Ξεκινάω ψάρεμα','Start fishing')}));
   var seab=h('div',{class:'seabar'},h('button',{class:'mobbtn',type:'button','aria-label':'MOB',text:'MOB',onclick:function(){ B.mob(); }}),B.voice&&B.voice.ok?h('button',{class:'iconbtn micmap',type:'button','aria-label':T('Φωνητική καταγραφή ψαριού','Voice catch log'),html:B.voice.MIC,onclick:function(){ B.voice.log(); }}):null,h('button',{class:'iconbtn ancbtn',type:'button','aria-label':T('Συναγερμός άγκυρας','Anchor alarm'),text:'⚓',onclick:function(){ if(B.anchor()) B.ask(T('Να σταματήσει ο συναγερμός άγκυρας;','Turn off the anchor alarm?'),T('Σταμάτημα','Turn off')).then(function(y){ if(y) B.anchorOff(); }); else B.anchorOn(); }}));
   var cross=h('div',{class:'cross','aria-hidden':'true'});
   /* κατά την έξοδο: πράσινο ψάρι = έπιασα (φόρμα), κόκκινο = τσίμπησε και χάθηκε (καταγράφεται αμέσως). Κράτα πατημένο = διαγραφή του τελευταίου. */

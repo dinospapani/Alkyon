@@ -157,6 +157,14 @@ B.biteForm=function(edit,opt){
     if(B.aiButton&&B.aiOn()){ aiBox=B.aiButton(function(){ return photos[0]||null; },function(nm,la){ sp.value=nm; pickLa=la||''; law(); sugTk(); }); aiSlot.append(aiBox); }
     else if(B.aiSetup) aiSlot.append(h('button',{class:'linkbtn',type:'button',text:'🔍 '+T('Αναγνώριση είδους από φωτογραφία (ρύθμιση AI)','Identify species from a photo (set up AI)'),onclick:function(){ B.aiSetup(aiPaint,aiSlot); }})); }
   aiPaint();
+  /* v31z525: βάρος από το μήκος (εκτίμηση ανά είδος) όταν δεν έχεις ζυγίσει */
+  var kgEst=h('small',{class:'wn kgest',hidden:true}), kgAuto=false;
+  function estKg(){ var la=pickLa||latinOf(sp.value), L=+len.value||0, w=B.weightFromLen?B.weightFromLen(la,L):null;
+    if(!w||w<0.01){ kgEst.hidden=true; if(kgAuto){ kg.value=''; kgAuto=false; } return; }
+    var v=w>=10?Math.round(w*10)/10:Math.round(w*100)/100;
+    if(!kg.value||kgAuto){ kg.value=String(v); kgAuto=true; kgEst.hidden=false; kgEst.textContent='≈ '+B.num(v,v>=10?1:2)+T(' kg: εκτίμηση από το μήκος. Αν το ζύγισες, γράψε το πραγματικό.',' kg: estimated from the length. If you weighed it, enter the real weight.'); }
+    else kgEst.hidden=true; }
+  len.addEventListener('input',estKg); sp.addEventListener('change',estKg); kg.addEventListener('input',function(){ kgAuto=false; kgEst.hidden=true; });
   var err=h('p',{class:'err',role:'alert'});
   var save=h('button',{class:'btn pri full',type:'submit',text:e?T('Αποθήκευση αλλαγών','Save changes'):T('Αποθήκευση','Save')});
   var form=h('form',{class:'bform',novalidate:true},
@@ -169,6 +177,7 @@ B.biteForm=function(edit,opt){
     lawNote,
     h('label',{class:'tg'},many,h('span',{text:T('Πολλά ψάρια μαζί (μία εγγραφή)','Several fish together (one entry)')})),cntRow,
     (sizeRow=h('div',{class:'g3',hidden:miss.checked},field(T('Βάρος (kg)','Weight (kg)'),kg),field(T('Μήκος (cm)','Length (cm)'),len),field(T('Βάθος (m)','Depth (m)'),dep))),
+    kgEst,
     field(T('Πότε','When'),when),
     h('label',{class:'fld'},h('span',{text:T('Πού','Where')}),where,whereNote),cwrap,
     h('div',{class:'g2'},field(T('Δόλωμα','Bait'),bait),field(T('Τεχνική','Technique'),tech)),baitChips,
@@ -201,7 +210,7 @@ B.biteForm=function(edit,opt){
     var kb=(window.SPKB||[]).filter(function(k){ return k.n.toLowerCase()===name.toLowerCase()||(k.en||'').toLowerCase()===name.toLowerCase(); })[0];
     rememberTech(tech.value);
     rec=Object.assign({},e||{},{date:date,time:time,tz:-new Date().getTimezoneOffset(),species:name,latin:kb?kb.l:(pickLa||latinOf(name)||(e&&e.latin)||''),bait:bait.value.trim(),tech:tech.value.trim(),
-      depth:num(dep),kg:num(kg),len:num(len),notes:notes.value.trim(),place:place,lat:lat,lon:lon,src:e?(e.src||'app'):'v4'});
+      depth:num(dep),kg:num(kg),len:num(len),notes:notes.value.trim(),place:place,lat:lat,lon:lon,src:e?(e.src||'app'):'v4'}); if(kgAuto&&rec.kg!=null) rec.kgEst=true; else delete rec.kgEst;
     if(many.checked) rec.cnt=Math.floor(+cnt.value); else delete rec.cnt;
     if(miss.checked){ rec.miss=true; if(!e) rec.src='miss'; } else delete rec.miss;
     if(!e&&opt&&opt.gear){ rec.gear=opt.gear.id; rec.gearName=opt.gear.name||''; if(!rec.tech) rec.tech={ll:T('Παραγάδι','Longline'),net:T('Δίχτυ','Net'),trap:T('Ζεμπίλι / παγίδα','Trap / pot')}[opt.gear.type]||''; }

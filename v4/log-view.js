@@ -90,7 +90,7 @@ function trips(page){
   page.append(h('p',{class:'sum',text:a.length+' '+T(a.length===1?'έξοδος':'έξοδοι',a.length===1?'trip':'trips')+', '+B.num(tot,0)+T(' ώρες, ',' hours, ')+n+' '+T('ψάρια','catches')}));
   var l=h('div',{class:'list'});
   a.slice(0,200).forEach(function(t){ var d=dur(t), c=+t.count||0;
-    var row=h('button',{class:'li triprow',type:'button',onclick:function(){ tripDetail(t); }},h('span',{class:'tc'+(c?'':' z'),text:String(c)}),h('span',{class:'tx'},h('b',{text:(t.spot||B.PROF[t.prof||'boat']||'')+(t.priv?' 🔒':'')}),h('small',{text:[when(t),d!=null?B.num(d,1)+' h':'',+t.kg?B.num(t.kg,1)+' kg':''].filter(Boolean).join(' · ')})),B.icon('chev')); l.append(B.swipeDel(row,function(){ S().delUndo('trips',t,T('Η έξοδος διαγράφηκε. Τα ψάρια της μένουν.','Trip deleted. Its catches stay.')); }));
+    var row=h('button',{class:'li triprow',type:'button',onclick:function(){ tripDetail(t); }},h('span',{class:'tc'+(c?'':' z'),text:String(c)}),h('span',{class:'tx'},h('b',null,h('i',{class:'tpi',html:B.profBadge?B.profBadge(t.prof||'boat'):''}),document.createTextNode((t.spot||B.PROF[t.prof||'boat']||'')+(t.priv?' 🔒':''))),h('small',{text:[when(t),d!=null?B.num(d,1)+' h':'',+t.kg?B.num(t.kg,1)+' kg':''].filter(Boolean).join(' · ')})),B.icon('chev')); l.append(B.swipeDel(row,function(){ S().delUndo('trips',t,T('Η έξοδος διαγράφηκε. Τα ψάρια της μένουν.','Trip deleted. Its catches stay.')); }));
   });
   page.append(l);
 }
@@ -183,6 +183,6 @@ function lostAnalysis(page,bs){
   if(shown) page.append(c);
 }
 B.biteDetail=detail;
-B.view('log',{title:T('Ημερολόγιο','Logbook'),mount:function(el){ root=el; draw(); },unmount:function(){ root=null; },resume:function(){ draw(); }});
+B.view('log',{title:T('Ημερολόγιο','Logbook'),mount:function(el){ root=el; st.tab=ls.get('psaro-v4-logtab',st.tab)||st.tab; draw(); },unmount:function(){ root=null; },resume:function(){ st.tab=ls.get('psaro-v4-logtab',st.tab)||st.tab; draw(); }});
 B.on('store',function(k){ if(root&&/^psaro-(bites|trips|spots|sess|gear)$/.test(k)) draw(); });
 })();

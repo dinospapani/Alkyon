@@ -155,7 +155,7 @@ function draw(){
   } else if(st.view==='week') week(page,fc);
   else if(st.view==='adv') B.fcAdv(page,fc,{place:p,today:td,open:openDay,reload:function(){ load(false); }});
   else if(st.view==='mine'){ if(B.oppsCard) page.append(B.oppsCard(5)); B.fcMine(page,fc,{place:p,today:td}); }
-  else { if(!st.day||!(fc.days||[]).some(function(x){ return x.date===st.day; })) st.day=td; page.append(dayStrip(fc)); dayView(page,fc,dayOf(st.day)); }
+  else { if(!st.day||st.day<td||!(fc.days||[]).some(function(x){ return x.date===st.day; })) st.day=td; if(!(fc.days||[]).some(function(x){ return x.date===st.day; })){ var fd=(fc.days||[]).filter(function(x){ return x.date>=td; })[0]||(fc.days||[])[fc.days.length-1]; if(fd) st.day=fd.date; } page.append(dayStrip(fc)); var dw=h('div',{class:'dwrap'}); dayView(dw,fc,dayOf(st.day)); page.append(dw); }
 
   if(st.note) page.append(h('p',{class:'foot',text:st.note}));
   if(fc) page.append(h('p',{class:'foot'},T('Ενημέρωση ','Updated ')+ago(st.t)+'. '+T('Καιρός και κύμα από ','Weather and waves from '),h('a',{href:'https://open-meteo.com',target:'_blank',rel:'noopener',text:'Open-Meteo'}),T('. Ενδεικτική πρόγνωση, όχι επίσημη.','. Indicative, not an official forecast.')));
@@ -168,15 +168,18 @@ function skeleton(){ return h('div',{role:'status','aria-label':T('Φόρτωσ�
 
 function openDay(date,hr){ st.view='today'; st.day=date; st.hour=hr==null?null:hr; draw(); try{ window.scrollTo(0,0); }catch(e){} }
 /* ---------- οι 7 μέρες σε μία λωρίδα πάνω: πάτημα = λεπτομέρειες της μέρας από κάτω ---------- */
+/* v31z525: αλλαγή ημέρας χωρίς να ξαναχτίζεται όλη η σελίδα (χωρίς «blink») */
+function swapDay(bar,date){ [].forEach.call(bar.children,function(b){ var on=b._d===date; b.classList.toggle('on',on); b.setAttribute('aria-selected',String(on)); });
+  var old=root&&root.querySelector('.dwrap'); if(!old||!st.fc){ draw(); return; } var nw=h('div',{class:'dwrap'}); dayView(nw,st.fc,dayOf(date)); old.replaceWith(nw); }
 function dayStrip(fc){
   var td=today(), sel=st.day||td, bar=h('div',{class:'dstrip',role:'tablist','aria-label':T('Ημέρες','Days')}), selEl=null;
-  (fc.days||[]).forEach(function(d){ var on=d.date===sel, lv=d.safe?lvl(d.best):'poor', dt=new Date(d.date+'T12:00:00');
+  (fc.days||[]).filter(function(d){ return d.date>=td; }).forEach(function(d){ var on=d.date===sel, lv=d.safe?lvl(d.best):'poor', dt=new Date(d.date+'T12:00:00');
     var nm=d.date===td?T('Σήμερα','Today'):dt.toLocaleDateString(EN?'en-GB':'el-GR',{weekday:'short'}).replace('.','');
-    var b=h('button',{type:'button',role:'tab','aria-selected':String(on),class:'dtile lv-'+lv+(on?' on':''),onclick:function(){ if(st.day===d.date) return; var x=bar.scrollLeft; st.day=d.date; st.hour=null; draw(); var nb=root&&root.querySelector('.dstrip'); if(nb) nb.scrollLeft=x; try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){ window.scrollTo(0,0); } }},
+    var b=h('button',{type:'button',role:'tab','aria-selected':String(on),class:'dtile lv-'+lv+(on?' on':''),onclick:function(){ if(st.day===d.date) return; st.day=d.date; st.hour=null; swapDay(bar,d.date); try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){ window.scrollTo(0,0); } }},
       h('span',{class:'dn',text:nm}),h('span',{class:'dd',text:String(dt.getDate())}),
       d.safe?h('b',{class:'dsc',text:String(d.best)}):h('b',{class:'dsc no',title:d.why==='night'?T('χωρίς φως','no light'):shortWhy(d),text:'—'}),
       h('small',{class:'dw',text:d.safe&&d.win?B.pad(d.win.s)+'–'+B.pad((d.win.e+1)%24):(d.why==='night'?T('νύχτα','night'):shortWhy(d).split(' ')[0])}));
-    if(on) selEl=b; bar.append(b); });
+    b._d=d.date; if(on) selEl=b; bar.append(b); });
   if(selEl) setTimeout(function(){ try{ var r=selEl.offsetLeft-bar.clientWidth/2+selEl.clientWidth/2; if(r>0&&bar.scrollLeft===0) bar.scrollLeft=r; }catch(e){} },0);
   return bar;
 }

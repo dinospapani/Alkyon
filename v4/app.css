@@ -404,3 +404,41 @@ a.li .tx small{color:var(--ink-2)}
 .imrow:last-child{border-bottom:0}
 .imrow input{width:22px;height:22px;flex:none;accent-color:var(--accent)}
 .imrow .tx{display:flex;flex-direction:column;min-width:0}.imrow .tx b{font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.imrow .tx small{font-size:12px;color:var(--ink-2)}
+/* v31z525: όρια ασφαλείας */
+.limc .select{margin:4px 0 10px}
+.limc .limr{display:flex;flex-direction:column;gap:4px;margin:8px 0}
+.limc .limh{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font:600 14px var(--font);color:var(--ink-2)}
+.limc .limh b{color:var(--ink);font:750 14px var(--font)}
+.limc input[type=range]{width:100%;accent-color:var(--accent);height:28px}
+.kgest{display:block;margin:-4px 0 8px}
+/* v31z525: εικονίδια τύπου ψαρέματος */
+.ptiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:4px 0 12px}
+.ptile{display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px;border-radius:16px;border:1.5px solid var(--line);background:var(--surface-2);color:var(--ink);font-family:var(--font);cursor:pointer}
+.ptile[aria-pressed=true]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--surface-2))}
+.ptile .pti svg{width:44px;height:44px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.ptile[aria-pressed=true] .pti svg{stroke:var(--accent)}
+.ptile b{font:700 14px var(--font)}
+.tpi{display:inline-grid;vertical-align:-3px;margin-right:6px}
+.tpi svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;opacity:.8}
+.pic svg,.tbic svg{fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round}
+/* v31z525b: σήματα τύπου (κουτιά με διαβάθμιση) */
+.ptile .pti svg{width:56px;height:56px;stroke:none;filter:drop-shadow(0 4px 10px rgba(0,0,0,.3))}
+.ptile[aria-pressed=true] .pti svg{stroke:none}
+.ptile[aria-pressed=true]{border-width:2px}
+.tpi svg{width:22px;height:22px;stroke:none;opacity:1;vertical-align:-5px}
+.pic svg{stroke:none}
+.li .ic.pic:has(svg[viewBox="0 0 48 48"]){background:none;padding:0}
+.li .ic.pic svg[viewBox="0 0 48 48"]{width:36px;height:36px}
+.ptile .pti svg{width:72px;height:72px;border-radius:18px;filter:drop-shadow(0 6px 14px rgba(0,0,0,.35))}
+.tpi svg{width:26px;height:26px;border-radius:7px;vertical-align:-7px}
+.li .ic.pic svg[viewBox="0 0 64 64"]{width:38px;height:38px;border-radius:10px}
+.li .ic.pic:has(svg[viewBox="0 0 64 64"]){background:none;padding:0}
+/* φωτογραφίες ως εικονίδια τύπου */
+img.pbph{display:block;object-fit:cover;border-radius:18px}
+.ptile .pti img.pbph{width:72px;height:72px;box-shadow:0 6px 14px rgba(0,0,0,.35)}
+.tpi img.pbph{display:inline-block;width:26px;height:26px;border-radius:7px;vertical-align:-7px}
+.li .ic.pic:has(img.pbph){background:none;padding:0}
+.li .ic.pic img.pbph{width:38px;height:38px;border-radius:10px}
+.fab.fabtrip svg{fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;width:34px;height:34px}
+.fabmenu{display:flex;flex-direction:column}
+.fabmenu .ic svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}

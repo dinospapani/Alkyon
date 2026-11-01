@@ -18,7 +18,7 @@ function subId(sub){ return crypto.subtle.digest('SHA-256',new TextEncoder().enc
 function vapid(){ if(window.VAPID_PUBLIC) return Promise.resolve(window.VAPID_PUBLIC); return new Promise(function(res){ var s=document.createElement('script'); s.src='../push-config.js'; s.onload=function(){ res(window.VAPID_PUBLIC||null); }; s.onerror=function(){ res(null); }; document.head.appendChild(s); }); }
 function getSub(create){ return Promise.all([reg(),vapid()]).then(function(a){ var r=a[0], key=a[1]; if(!r||!r.pushManager||!key) return null;
   return r.pushManager.getSubscription().then(function(sub){ if(sub||!create) return sub; return r.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(key)}); }); }); }
-function writeCfg(){ var n=nt(), cfg={sp:spCfg(),lang:B.LANG,on:n.on,threshold:n.threshold,pressure:n.pressure!==false,turn:!!n.turn,wind:wwCfg(),notified:n.notified,server:!!n.server,places:cfgPlaces()};
+function writeCfg(){ var n=nt(), cfg={limits:ls.get('psaro-limits',null)||undefined,sp:spCfg(),lang:B.LANG,on:n.on,threshold:n.threshold,pressure:n.pressure!==false,turn:!!n.turn,wind:wwCfg(),notified:n.notified,server:!!n.server,places:cfgPlaces()};
   return caches.open('psaro-cfg').then(function(c){ return c.put(new URL('__cfg',ROOT).href,new Response(JSON.stringify(cfg))); }).catch(function(){}); }
 function pushServer(){ var cl=B.cloud&&B.cloud.session()?B.cloud:null; if(!cl) return Promise.resolve(false); var n=nt();
   return getSub(true).then(function(sub){ if(!sub) return false; return subId(sub).then(function(id){
@@ -75,6 +75,9 @@ function draw(){
       h('label',{class:'tg'},an,h('span',{text:T('Ειδοποίησέ με 7 μέρες πριν από μέρες που είχα πιάσει ψάρια σε προηγούμενες χρονιές','Notify me 7 days before dates when I caught fish in past years')})),
       h('label',{class:'tg'},si,h('span',{text:T('Ειδοποίησέ με όταν έρχεται μέρα με ίδιες συνθήκες με παλιά ψαριά (σελήνη, άνεμος, κύμα, πίεση, νερό)','Notify me when a coming day has the same conditions as a past catch (moon, wind, waves, pressure, water)')})),sr)); }
   /* ειδοποιήσεις καιρού όσο είναι ανοιχτή η εφαρμογή (κοινή ρύθμιση με την κλασική) */
+  if(B.limitsCard) page.append(B.limitsCard());
+  if(B.zoneAlert){ var za=h('input',{type:'checkbox',checked:B.zoneAlert.on(),onchange:function(ev){ B.zoneAlert.set(ev.target.checked); }});
+    page.append(h('section',{class:'card'},h('h2',{text:T('Απαγορευμένες περιοχές','Restricted areas')}),h('label',{class:'tg'},za,h('span',{text:T('Κατά την έξοδο, ειδοποίηση όταν πλησιάζεις (300 m) ή μπαίνεις σε περιοχή όπου απαγορεύεται η αλιεία','During a trip, alert when approaching (300 m) or entering an area where fishing is prohibited')})),h('p',{class:'sub',text:T('Περιοχές του Τμήματος Αλιείας (Κύπρος). Δεν αντικαθιστά τον επίσημο χάρτη.','Fisheries Department areas (Cyprus). Not a substitute for the official map.')}))); }
   if(B.wxAlerts){ var wa=h('input',{type:'checkbox',checked:B.wxAlerts.on(),onchange:function(ev){ B.wxAlerts.set(ev.target.checked); }});
     page.append(h('section',{class:'card'},h('h2',{text:T('Καιρός κατά το ψάρεμα','Weather while fishing')}),h('label',{class:'tg'},wa,h('span',{text:T('Ειδοποίηση όταν δυναμώνει ο άνεμος ή το κύμα, και πριν από καλή ώρα ψαρέματος','Alert when wind or waves pick up, and before a good fishing window')})),h('p',{class:'sub',text:T('Λειτουργεί όσο η εφαρμογή είναι ανοιχτή (και στο παρασκήνιο κατά την έξοδο).','Works while the app is open (and in the background during a trip).')}))); }
   if(B.tripNotif){ var tn=h('input',{type:'checkbox',checked:B.tripNotif.on(),onchange:function(ev){ B.tripNotif.set(ev.target.checked); }});

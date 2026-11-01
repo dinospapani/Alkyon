@@ -27,7 +27,7 @@ var PI={tackle:'<path d="M4 20L18.5 5.5"/><path d="M18.5 5.5c1.2-1.2 2.5-.4 2.5 
   units:'<path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/>',safety:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
   ai:'<path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',cloud:'<path d="M7 18h10a4 4 0 0 0 .5-8 6 6 0 0 0-11.5 2A3 3 0 0 0 7 18z"/>',
   backup:'<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v3h16v-3"/>',stats:'<path d="M5 20V10M12 20V4M19 20v-7"/>'};
-function pic(k){ return h('span',{class:'ic pic',html:'<svg viewBox="0 0 24 24" aria-hidden="true">'+(PI[k]||'')+'</svg>'}); }
+function pic(k){ return h('span',{class:'ic pic',html:k==='type'&&B.profBadge?B.profBadge(B.prof()):'<svg viewBox="0 0 24 24" aria-hidden="true">'+(PI[k]||'')+'</svg>'}); }
 function row(k,title,sub,href,fn){ var a=h(href?'a':'button',{class:'li',href:href||null,type:href?null:'button',onclick:fn||null},pic(k),h('span',{class:'tx'},h('b',{text:title}),sub?h('small',{text:sub}):null),B.icon('chev')); return a; }
 function group(title,rows){ return h('div',{class:'pgrp'},title?h('h3',{class:'listh',text:title}):null,h('div',{class:'list'},rows.filter(Boolean))); }
 var tab=ls.get('psaro-v4-ptab','mine');
@@ -61,6 +61,8 @@ function mineTab(page){
     row('boat',T('Σκάφος','Boat'),bn||T('Κινητήρας, συντήρηση, λήξεις, μπαταρίες','Engine, maintenance, expiries, batteries'),'#boat'),
     row('gear',T('Παραγάδια, δίχτυα, ζεμπίλια','Longlines, nets, pots'),gn?gn+' '+T('καταγραφές','records'):T('Ρίψη και ανέβασμα εργαλείων','Set and haul gear'),null,function(){ ls.set('psaro-v4-logtab','gear'); location.hash='#log'; }),
     row('spots',T('Τα σημεία μου','My spots'),sp?sp+' '+T('σημεία','spots'):T('Δεν έχεις αποθηκεύσει σημεία','No saved spots yet'),null,function(){ ls.set('psaro-v4-logtab','spots'); location.hash='#log'; })]));
+  /* v31z525: η εισαγωγή είναι δεδομένα σου, όχι ρύθμιση λογαριασμού */
+  page.append(group(T('Εισαγωγή δεδομένων','Import data'),[row('backup',T('Από plotter, GPS ή ρολόι κατάδυσης','From a plotter, GPS or dive watch'),'GPX · KML · CSV · FIT · UDDF',null,function(){ if(B.importSheet) B.importSheet(); })]));
   page.append(group(T('Κοινότητα','Community'),[
     row('community',T('Κοινότητα','Community'),T('Ψάρια άλλων ψαράδων, χωρίς θέση','Other anglers’ catches, no locations'),'#community'),
     row('people',T('Φίλοι','Friends'),T('Κοινά ψάρια και σημεία με φίλους','Share catches and spots with friends'),'#friends')]));
@@ -73,7 +75,7 @@ function settingsTab(page){
   var uSum=U&&U.cfg?[U.cfg.wind,U.cfg.wave,U.cfg.temp].filter(Boolean).join(' · '):'';
   page.append(group(T('Ψάρεμα','Fishing'),[
     row('type',T('Τύπος ψαρέματος','Fishing type'),(B.PROF[B.prof()]||'')+(ls.raw&&ls.raw('psaro-askfp')==='"0"'?'':''),null,function(){ var body=h('div',{class:'bform'},
-        B.seg(Object.keys(B.PROF).map(function(k){ return [k,B.PROF[k]]; }),B.prof(),function(v){ try{ localStorage.setItem('psaro-fprof',v); }catch(e){} B.emit('store','psaro-fprof'); B.toast(T('Ο βαθμός και οι προτάσεις προσαρμόστηκαν.','The score and suggestions were adjusted.')); draw(); },T('Τύπος ψαρέματος','Fishing type')),
+        h('div',{class:'ptiles',role:'group','aria-label':T('Τύπος ψαρέματος','Fishing type')},Object.keys(B.PROF).map(function(k){ return h('button',{type:'button',class:'ptile','aria-pressed':String(B.prof()===k),onclick:function(){ try{ localStorage.setItem('psaro-fprof',k); }catch(e){} B.emit('store','psaro-fprof'); B.toast(T('Ο βαθμός και οι προτάσεις προσαρμόστηκαν.','The score and suggestions were adjusted.')); B.closeSheet(); draw(); }},h('span',{class:'pti',html:B.profBadge?B.profBadge(k):''}),h('b',{text:B.PROF[k]})); })),
         h('button',{class:'btn full',type:'button',text:T('Ακτή ή σκάφος, και ερώτηση στο άνοιγμα','Shore or boat, and the question at start'),onclick:function(){ B.closeSheet(); setTimeout(B.startPick,250); }}));
       sheetOf(T('Τύπος ψαρέματος','Fishing type'),body); }),
     row('safety',T('Επαφή ασφαλείας','Safety contact'),sf.name||sf.phone||sf.email||(sf.tgLinked?'Telegram':T('Δεν έχει οριστεί','Not set')),null,function(){ if(B.safetyCard) sheetOf(T('Επαφή ασφαλείας','Safety contact'),B.safetyCard()); }),
@@ -88,7 +90,6 @@ function unitsSheet(){ var body=h('div',{class:'bform'}), L={wind:T('Άνεμο�
   Object.keys(L).forEach(function(k){ if(!U.options[k]) return; body.append(h('h3',{class:'h3',text:L[k]}),B.seg(U.options[k].map(function(o){ return [o[0],o[1]]; }),U.cfg[k],function(v){ U.set(k,v); B.emit('store','psaro-units'); draw(); },L[k])); });
   sheetOf(T('Μονάδες','Units'),body); }
 function accountTab(page,s){
-  page.append(group(T('Εισαγωγή','Import'),[row('backup',T('Από plotter, GPS ή ρολόι κατάδυσης','From a plotter, GPS or dive watch'),'GPX · KML · CSV · FIT · UDDF',null,function(){ if(B.importSheet) B.importSheet(); })]));
   page.append(s?accountCard(s):signInCard());
   page.append(backupCard());
   if(B.dataCards){ var dc=B.dataCards(); page.append(dc[0]); page.append(dc[2]); }
