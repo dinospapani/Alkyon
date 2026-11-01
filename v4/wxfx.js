@@ -40,7 +40,8 @@ function render(){
   dctx.setTransform(dpr,0,0,dpr,0,0);
   var fx=fillCv.getContext('2d'); fx.setTransform(1,0,0,1,0,0); fx.clearRect(0,0,fillCv.width,fillCv.height);
   parts=[]; stopAnim();
-  wxLegend(mode);
+  var legs=[]; if(mode==='sea') legs.push('sea'); if(windOn()&&mode!=='sea') legs.push('wind'); wxLegend(mode?legs:[]);
+  setTimeout(drawLabels,mode==='sea'?600:200);
   if(!mode){ fillCv.style.opacity='0'; return; }
   var st=6, bw=Math.ceil(sz.x/st)+1, bh=Math.ceil(sz.y/st)+1, pc=document.createElement('canvas'); pc.width=bw; pc.height=bh;
   var px=pc.getContext('2d'), im=px.createImageData(bw,bh), d=im.data, any=false, lat=[], lon=[];
@@ -63,34 +64,63 @@ function render(){
 
 /* κλίμακα σαν το Windy: τι σημαίνει κάθε χρώμα, στις μονάδες σου */
 var wlEl=null;
-function wxLegend(mode){
-  var D=window.PsaroMapDock&&window.PsaroMapDock(); if(!D) return;
-  if(!mode){ if(wlEl){ wlEl.remove(); wlEl=null; if(D._sync) D._sync(); } return; }
-  if(!wlEl||!wlEl.isConnected){ wlEl=document.createElement('div'); wlEl.id='wxLeg'; wlEl.setAttribute('role','note'); }
-  var wp=document.getElementById('ndWindPanel'); if(wp&&wp.parentNode===D) D.insertBefore(wlEl,wp); else D.appendChild(wlEl);
+function legRow(mode){
   var U=window.PsaroUnits, stops=[], ticks=[], ttl='';
   if(mode==='wind'){ ttl=T('Άνεμος','Wind'); var mx=44; for(var k=0;k<=mx;k+=2){ var c=wcol(k); stops.push('rgb('+c.map(Math.round).join(',')+') '+(100*k/mx).toFixed(1)+'%'); }
     var un='kn'; [0,7,11,17,22,28,34,41].forEach(function(kn){ var wp=U&&U.windP?U.windP(kn):[String(kn),'kn']; un=wp[1]; ticks.push([100*kn/mx,wp[0]]); }); ttl+=' ('+un+')'; }
   else { ttl=T('Κύμα (m)','Waves (m)'); var G=S()&&S().grad, mxw=3; for(var h2=0;h2<=mxw;h2+=0.125){ var g=G?G(h2):[52,168,120]; stops.push('rgb('+g.map(Math.round).join(',')+') '+(100*h2/mxw).toFixed(1)+'%'); }
     [[0,'0'],[0.5,'0.5'],[1.25,'1.25'],[2.5,'2.5']].forEach(function(t){ ticks.push([100*t[0]/mxw,EN?t[1]:t[1].replace('.',',')]); }); }
-  wlEl.innerHTML=''; var tt=document.createElement('b'); tt.textContent=ttl; var bar=document.createElement('div'); bar.className='wlbar'; bar.style.background='linear-gradient(90deg,'+stops.join(',')+')';
+  var row=document.createElement('div'); row.className='wlr'; var tt=document.createElement('b'); tt.textContent=ttl; var bar=document.createElement('div'); bar.className='wlbar'; bar.style.background='linear-gradient(90deg,'+stops.join(',')+')';
   var tk=document.createElement('div'); tk.className='wltk'; ticks.forEach(function(t){ var sp=document.createElement('span'); sp.style.left=t[0]+'%'; sp.textContent=t[1]; tk.append(sp); });
-  var wrap=document.createElement('div'); wrap.className='wlw'; wrap.append(bar,tk); wlEl.append(tt,wrap); if(D._sync) D._sync();
+  var wrap=document.createElement('div'); wrap.className='wlw'; wrap.append(bar,tk); row.append(tt,wrap); return row; }
+/* κλίμακα: μία γραμμή για το χρώμα που βλέπεις (κύμα ή άνεμος)· όταν είναι ανοιχτά και τα δύο, ο άνεμος διαβάζεται από τις ετικέτες */
+function wxLegend(list){
+  var D=window.PsaroMapDock&&window.PsaroMapDock(); if(!D) return;
+  if(!list||!list.length){ if(wlEl){ wlEl.remove(); wlEl=null; if(D._sync) D._sync(); } return; }
+  if(!wlEl||!wlEl.isConnected){ wlEl=document.createElement('div'); wlEl.id='wxLeg'; wlEl.setAttribute('role','note'); }
+  var wp=document.getElementById('ndWindPanel'); if(wp&&wp.parentNode===D) D.insertBefore(wlEl,wp); else D.appendChild(wlEl);
+  wlEl.replaceChildren(); list.forEach(function(m){ wlEl.append(legRow(m)); }); if(D._sync) D._sync(); }
+/* τιμές πάνω στον χάρτη (σαν τους αριθμούς του Windy): βελάκι + ένταση ανέμου και ύψος κύματος, σε πλέγμα */
+var labCv=null;
+function arrowPath(c,x,y,deg,r){ var a=deg*Math.PI/180, dx=Math.sin(a), dy=-Math.cos(a); c.beginPath(); c.moveTo(x-dx*r,y-dy*r); c.lineTo(x+dx*r,y+dy*r); c.moveTo(x+dx*r,y+dy*r); c.lineTo(x+dx*r-(dx*0.55-dy*0.45)*r,y+dy*r-(dy*0.55+dx*0.45)*r); c.moveTo(x+dx*r,y+dy*r); c.lineTo(x+dx*r-(dx*0.55+dy*0.45)*r,y+dy*r-(dy*0.55-dx*0.45)*r); c.stroke(); }
+function rr(c,x,y,w,h2,r){ c.beginPath(); c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h2,r); c.arcTo(x+w,y+h2,x,y+h2,r); c.arcTo(x,y+h2,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath(); }
+function drawLabels(){
+  if(!ensure()) return; if(!labCv){ labCv=document.createElement('canvas'); labCv.className='wxlab'; labCv.setAttribute('aria-hidden','true'); labCv.style.cssText='position:absolute;left:0;top:0;pointer-events:none'; pane('wxLabPane',370).appendChild(labCv); map.on('movestart zoomstart',function(){ if(labCv) labCv.style.opacity='0'; }); map.on('move',function(){ if(labCv) pin(labCv); }); }
+  var sz=map.getSize(), dpr=Math.min(window.devicePixelRatio||1,2); labCv.width=Math.round(sz.x*dpr); labCv.height=Math.round(sz.y*dpr); labCv.style.width=sz.x+'px'; labCv.style.height=sz.y+'px'; pin(labCv);
+  var c=labCv.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0); c.clearRect(0,0,sz.x,sz.y);
+  var wOn=windOn(), sOn=seaOn(); if(!mapOn()||(!wOn&&!sOn)){ labCv.style.opacity='0'; return; }
+  var Wx=W(), Sx=S(), U=window.PsaroUnits, dock=document.getElementById('ndMapDock'), bot=sz.y-(dock&&!dock.hidden?dock.getBoundingClientRect().height+40:40)-60, top=125;
+  var gx=sz.x<500?118:140, gy=104, row=0; c.font='800 12.5px system-ui,-apple-system,Segoe UI,Roboto,sans-serif'; c.textBaseline='middle'; c.lineCap='round'; c.lineJoin='round';
+  for(var y=top;y<=bot;y+=gy,row++) for(var x=(row%2?gx*0.75:gx*0.25);x<sz.x-20;x+=gx){
+    var ll=map.containerPointToLatLng([x,y]), isL=land(ll.lat,ll.lng)===1, lines=[];
+    if(wOn&&!(sOn&&isL)){ var v=Wx&&Wx.sample?Wx.sample(ll.lat,ll.lng):null; if(v){ var wp=U&&U.windP?U.windP(v.sp):[String(Math.round(v.sp)),'kn']; lines.push({deg:(v.dir+180)%360,txt:wp[0]+' '+wp[1],col:wcol(v.sp),r:4+Math.min(5,v.sp/5)}); } }
+    if(sOn&&!isL){ var r=null; try{ r=Sx&&Sx.pointInfo?Sx.pointInfo(ll.lat,ll.lng):null; }catch(e){} var hh=r&&r.hs>=0?r.hs:null, dd=r?r.wdir:null; if(hh==null){ var m=Sx&&Sx.modelAt?Sx.modelAt(ll.lat,ll.lng):null; if(m){ hh=m.h; dd=m.dir; } }
+      if(hh!=null){ var g=Sx.grad?Sx.grad(hh):[52,168,120]; lines.push({deg:dd!=null?(dd+180)%360:null,txt:(U&&U.wave?U.wave(hh):B.num(hh,1)+' m'),col:g,wave:1,r:4+Math.min(5,hh*3.5)}); } }
+    if(!lines.length) continue;
+    var w=0; lines.forEach(function(l){ w=Math.max(w,c.measureText(l.txt).width); }); var bw=w+34, bh=lines.length*19+8, bx=x-bw/2, by=y-bh/2;
+    c.fillStyle='rgba(12,22,32,.78)'; rr(c,bx,by,bw,bh,9); c.fill();
+    lines.forEach(function(l,i){ var cy=by+4+i*19+9.5, col='rgb('+l.col.map(Math.round).join(',')+')';
+      c.strokeStyle=l.wave?'#7fd3ff':'#fff'; c.lineWidth=1.4+(l.r-4)*0.25; if(l.deg!=null) arrowPath(c,bx+12,cy,l.deg,l.r); else { c.fillStyle='#7fd3ff'; c.fillRect(bx+7,cy-1,10,2); }
+      c.fillStyle='#fff'; c.textAlign='left'; c.fillText(l.txt,bx+23,cy+0.5);
+      c.fillStyle=col; c.fillRect(bx+bw-5,cy-6,3,12); });
+  }
+  labCv.style.opacity='1';
 }
 /* κορυφές κύματος: κοντές λευκές γραμμές κάθετες στη διεύθυνση που ταξιδεύει το κύμα */
 function np(sz){ return {x:Math.random()*sz.x,y:Math.random()*sz.y,age:0,life:50+Math.floor(Math.random()*70)}; }
-function startAnim(){ if(!dashCv) return; var sz=map.getSize(), n=Math.min(700,Math.round(sz.x*sz.y/700)); parts=[]; for(var i=0;i<n;i++){ var p=np(sz); p.age=Math.floor(Math.random()*p.life); parts.push(p); } if(!raf) raf=requestAnimationFrame(loop); }
+function startAnim(){ if(!dashCv) return; var sz=map.getSize(), n=Math.min(1100,Math.round(sz.x*sz.y/420)); parts=[]; for(var i=0;i<n;i++){ var p=np(sz); p.age=Math.floor(Math.random()*p.life); parts.push(p); } if(!raf) raf=requestAnimationFrame(loop); }
 function stopAnim(){ if(raf){ cancelAnimationFrame(raf); raf=0; } }
 function loop(ts){
   raf=0; if(!parts.length||!seaOn()||!mapOn()) return; raf=requestAnimationFrame(loop);
   if(document.hidden||ts-last<40) return; last=ts;
-  var sz=map.getSize(), Sx=S(); dctx.clearRect(0,0,sz.x,sz.y); dctx.lineCap='round'; dctx.strokeStyle='#ffffff'; dctx.lineWidth=1.6;
+  var sz=map.getSize(), Sx=S(); dctx.clearRect(0,0,sz.x,sz.y); dctx.lineCap='round'; dctx.strokeStyle=windOn()?'#bfe9ff':'#ffffff'; dctx.lineWidth=1.6;
   for(var i=0;i<parts.length;i++){ var p=parts[i];
     if(p.m===undefined||p.age%25===0){ var ll=map.containerPointToLatLng([p.x,p.y]); p.m=land(ll.lat,ll.lng)===1?null:Sx.modelAt(ll.lat,ll.lng); }
     var m=p.m; if(!m||m.dir==null||p.age++>p.life){ parts[i]=np(sz); continue; }
+    if(p.vis==null) p.vis=Math.random(); if(p.vis>Math.min(1,0.12+m.h/1.6)){ continue; }
     var go=(m.dir+180)*Math.PI/180, sp=RM?0:(0.18+Math.min(10,m.tp||4)*0.045), dx=Math.sin(go), dy=-Math.cos(go);
     p.x+=dx*sp; p.y+=dy*sp; if(p.x<0||p.y<0||p.x>sz.x||p.y>sz.y){ parts[i]=np(sz); continue; }
-    var f=p.age/p.life, al=Math.sin(Math.PI*f)*Math.min(0.85,0.35+m.h*0.5), len=4+Math.min(6,m.h*5);
+    var f=p.age/p.life, al=Math.sin(Math.PI*f)*Math.min(0.9,0.3+m.h*0.45), len=2.5+Math.min(9,m.h*6); dctx.lineWidth=1+Math.min(1.8,m.h*1.2);
     dctx.globalAlpha=al; dctx.beginPath(); dctx.moveTo(p.x-dy*len,p.y+dx*len); dctx.lineTo(p.x+dy*len,p.y-dx*len); dctx.stroke();
   }
   dctx.globalAlpha=1;

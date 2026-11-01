@@ -407,3 +407,7 @@ body:not(.mapon) .sstleg,.sstleg[hidden]{display:none}
 #wxLeg .wltk span{position:absolute;top:2px;transform:translateX(-50%)}
 #wxLeg .wltk span:first-child{transform:none}
 #ndMapDock:has(#wxLeg) #ndSeaLeg{display:none!important}
+#wxLeg{display:block;padding:6px 12px 2px}
+#wxLeg .wlr{display:flex;align-items:center;gap:10px;margin-bottom:2px}
+#wxLeg .wlr>b{font:750 11px var(--font);color:var(--ink-2);white-space:nowrap;min-width:72px}
+#wxLeg .wlr .wlw{flex:1;min-width:0}

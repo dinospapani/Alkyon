@@ -163,7 +163,7 @@ function setSeaSt(v){ var S2=window.PsaroSeaState; if(!S2||!S2.start) return; if
 function setStations(v){ if(pressed('bWindSt')!==!!v){ var b=cbtn('bWindSt'); if(b) b.click(); } }
 function saveWx(){ setTimeout(function(){ cfg.wind=windOn(); cfg.seast=seaOn(); saveCfg(); },50); }
 /* v31z522: ένα χρωματιστό στρώμα τη φορά· αν είχαν μείνει και τα δύο, κρατάμε το κύμα */
-function restoreWx(){ if(!map) return; if(cfg.seast){ setSeaSt(true); if(cfg.wind){ cfg.wind=false; saveCfg(); } } else if(cfg.wind) setWind(true); setTimeout(function(){ if(window._qpaint) window._qpaint(); },1200); }
+function restoreWx(){ if(!map) return; var w=cfg.wind; if(cfg.seast) setSeaSt(true); if(w) setTimeout(function(){ setWind(true); },cfg.seast?900:0); setTimeout(function(){ if(window._qpaint) window._qpaint(); },1500); }
 /* τα κουμπιά των μονάδων της κλασικής μπαίνουν στη δεξιά στήλη του χάρτη· η αλλαγή τους θυμάται */
 function hookBtns(){ document.addEventListener('click',function(e){ var t=e.target; if(t&&t.closest&&t.closest('#bWind,#bSeaState,#ndMapDock')) saveWx(); }); }
 
@@ -547,8 +547,8 @@ function mount(el){
   if(!window._qpL){ window._qpL=1; ['psaro-wxchange','psaro-windstop'].forEach(function(ev){ window.addEventListener(ev,function(){ setTimeout(function(){ if(window._qpaint) window._qpaint(); },120); }); }); }
   window._qpaint=qpaint;
   /* v31z521: σαν το Windy, ένα χρωματιστό στρώμα τη φορά: Άνεμος ή Κύμα */
-  qchip('wind',T('Άνεμος','Wind'),windOn,function(v){ if(v&&seaOn()) setSeaSt(false); setWind(v); });
-  qchip('wave',T('Κύμα','Waves'),seaOn,function(v){ setSeaSt(v); if(v) setTimeout(function(){ var W=window.PsaroWindMap; if(W&&W.shown&&W.shown()) W.show(false); if(window._qpaint) window._qpaint(); },400); });
+  /* v31z524: άνεμος και κύμα μαζί· χρώμα = κύμα (αν είναι ανοιχτό) αλλιώς άνεμος, σωματίδια = άνεμος, τιμές πάνω στον χάρτη */
+  qchip('wind',T('Άνεμος','Wind'),windOn,setWind); qchip('wave',T('Κύμα','Waves'),seaOn,setSeaSt);
   qchip('cur',T('Ρεύματα','Currents'),function(){ return !!cfg.cur; },function(v){ cfg.cur=v; saveCfg(); currents(true); });
   qchip('sst',T('Νερό','Water'),function(){ return !!(B.sst&&B.sst.on()); },function(v){ if(B.sst) B.sst.set(v); });
   /* βάθη: κάθε πάτημα αλλάζει πυκνότητα γραμμών: Στάνταρ → 5 m → 10 m → 20 m → κλειστά (χρώματα από το μενού Στρωμάτων) */
