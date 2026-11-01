@@ -77,7 +77,8 @@ function settingsTab(page){
         h('button',{class:'btn full',type:'button',text:T('Ακτή ή σκάφος, και ερώτηση στο άνοιγμα','Shore or boat, and the question at start'),onclick:function(){ B.closeSheet(); setTimeout(B.startPick,250); }}));
       sheetOf(T('Τύπος ψαρέματος','Fishing type'),body); }),
     row('safety',T('Επαφή ασφαλείας','Safety contact'),sf.name||sf.phone||sf.email||(sf.tgLinked?'Telegram':T('Δεν έχει οριστεί','Not set')),null,function(){ if(B.safetyCard) sheetOf(T('Επαφή ασφαλείας','Safety contact'),B.safetyCard()); }),
-    row('bell',T('Ειδοποιήσεις','Notifications'),n.on?T('Ενεργές','On'):T('Ανενεργές','Off'),'#alerts')]));
+    row('bell',T('Ρυθμίσεις ειδοποιήσεων','Notification settings'),n.on?T('Ενεργές','On'):T('Ανενεργές','Off'),'#alerts'),
+    row('bell',T('Ιστορικό ειδοποιήσεων','Notification history'),T('Ό,τι σου στάλθηκε','Everything sent to you'),'#inbox')]));
   page.append(group(T('Εφαρμογή','App'),[
     row('lang',T('Γλώσσα','Language'),B.LANG==='en'?'English':'Ελληνικά',null,function(){ sheetOf(T('Γλώσσα','Language'),h('div',{class:'bform'},B.seg([['el','Ελληνικά'],['en','English']],B.LANG,function(v){ try{ localStorage.setItem('psaro-lang',v); }catch(e){} location.reload(); },T('Γλώσσα','Language')))); }),
     U&&U.options?row('units',T('Μονάδες','Units'),uSum,null,unitsSheet):null,

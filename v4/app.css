@@ -304,7 +304,7 @@ html.pg-open body{overflow:hidden}
 .sprow+.sprow{border-top:1px solid rgba(255,255,255,.08)}
 .sprow.on{background:color-mix(in srgb,var(--accent) 10%,transparent)}
 .spmi{flex:none;width:46px;height:46px;border-radius:13px;display:grid;place-items:center;background:rgba(255,255,255,.08)}
-.sprow.on .spmi{background:color-mix(in srgb,var(--accent) 22%,transparent)}
+.sprow.on .spmi{background-color:color-mix(in srgb,var(--accent) 22%,transparent)}
 .spmi svg{width:26px;height:26px;fill:none;stroke:#fff;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .sprow .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .sprow .tx b{font-size:16px;font-weight:700}
@@ -378,3 +378,19 @@ a.li .tx small{color:var(--ink-2)}
 .spgo{height:54px}
 .spfoot{margin-top:10px;font-size:12.5px}
 @media (max-height:700px){.spfoot{display:none}.spcap small{display:none}}
+/* ===== ειδοποιήσεις ===== */
+.bellb{position:relative}
+.bellb .bdg{position:absolute;top:-2px;right:-2px;min-width:19px;height:19px;padding:0 5px;border-radius:10px;background:var(--poor);color:#fff;font:800 11px/19px var(--font);font-style:normal;text-align:center;box-shadow:0 0 0 2px var(--bg)}
+.ibrow{align-items:flex-start;text-align:left}
+.ibrow .tx small{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.4;margin-top:2px}
+.ibrow .tx small.full{display:block;-webkit-line-clamp:unset}
+.ibrow .when{flex:none;font-size:12px;color:var(--ink-3);margin-top:2px}
+.ibrow.new .tx b::after{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin-left:8px;vertical-align:middle}
+.ibic{flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:var(--surface-2);color:var(--ink-2)}
+.ibic svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ibic.k-good{background:var(--good-bg);color:var(--good)}.ibic.k-press{background:var(--fair-bg);color:var(--fair)}.ibic.k-wind,.ibic.k-sea{background:color-mix(in srgb,var(--sea) 18%,transparent);color:var(--sea)}.ibic.k-trip{background:var(--poor-bg);color:var(--poor)}.ibic.k-tool{background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent)}
+.ibon{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--ink);margin-bottom:8px}
+.ibon .tx{flex:1;display:flex;flex-direction:column;gap:2px}.ibon .tx small{color:var(--ink-2);font-size:13px}
+.ibon>svg{width:18px;height:18px;fill:none;stroke:var(--ink-3);stroke-width:2}
+.spmi.sph{width:56px;height:56px;border-radius:14px;background-size:cover!important;background-position:center!important;background-repeat:no-repeat!important}
+.sprow{min-height:66px}

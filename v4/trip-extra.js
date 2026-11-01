@@ -13,7 +13,7 @@ function pos(){ var f=B.trip&&B.trip.fix&&B.trip.fix(); if(f&&f.lat!=null) retur
 function J(u){ return fetch(u).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }); }
 function num(v){ return String(Math.round(v*10)/10).replace('.',EN?'.':','); }
 function sg(v){ return (v>0?'+':v<0?'−':'±')+num(Math.abs(v)); }
-function notify(title,body,tag){
+function notify(title,body,tag){ if(B.inboxAdd) B.inboxAdd(title,body,'trip');
   try{ if('Notification' in window&&Notification.permission==='granted'&&navigator.serviceWorker){ navigator.serviceWorker.getRegistration(new URL('../',location.href).href).then(function(r){ if(r) r.showNotification(title,{body:body,tag:tag||'bc-trip',icon:'../icon-192.png'}); }).catch(function(){}); } }catch(e){}
 }
 function trips(){ return B.store.raw('trips').filter(function(t){ return !t.deleted; }); }

@@ -52,7 +52,7 @@ var U=window.PsaroUnits;
 function T(a,b){ return B.EN?b:a; }
 function wxOn(){ return ls.get('psaro-wxal',true)!==false; }
 B.wxAlerts={on:wxOn,set:function(v){ ls.set('psaro-wxal',!!v); if(v){ try{ if('Notification' in window&&Notification.permission==='default') Notification.requestPermission(); }catch(e){} setTimeout(wxTick,500); } }};
-function notify(title,body){
+function notify(title,body){ if(B.inboxAdd) B.inboxAdd(title,body,'sea');
   try{ if(document.hidden&&'Notification' in window&&Notification.permission==='granted'){ navigator.serviceWorker.getRegistration(new URL('../',location.href).href).then(function(r){ if(r) r.showNotification(title,{body:body,icon:'../icon-192.png',tag:'psaro-sea',vibrate:[200,100,200]}); else new Notification(title,{body:body}); }).catch(function(){ new Notification(title,{body:body}); }); return; } }catch(e){}
   B.toast(title+(body?' · '+body:''));
 }

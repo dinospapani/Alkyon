@@ -25,7 +25,7 @@ function fixNow(cb,fail){ var fx=B.trip&&B.trip.fix&&B.trip.fix(); if(fx&&fx.lat
   navigator.geolocation.getCurrentPosition(function(p){ cb({lat:p.coords.latitude,lon:p.coords.longitude}); },function(){ fail&&fail(); },{enableHighAccuracy:true,timeout:9000,maximumAge:30000}); }
 function notify(title,body){ try{ if(document.hidden&&'Notification' in window&&Notification.permission==='granted'){ navigator.serviceWorker.getRegistration(ROOT).then(function(r){ if(r) r.showNotification(title,{body:body,icon:'../icon-192.png',tag:'psaro-smart',vibrate:[200,100,200]}); }); return; } }catch(e){} B.toast(title+(body?' · '+body:'')); }
 function note(title,body,key,gap){ var sent=ls.get('psaro-smart-sent',{})||{}, now=Date.now(); if(key){ if(sent[key]&&now-sent[key]<gap) return; sent[key]=now; ls.set('psaro-smart-sent',sent); }
-  notify(title,body); try{ navigator.vibrate&&navigator.vibrate([200,100,200]); }catch(e){} }
+  if(B.inboxAdd) B.inboxAdd(title,body,'smart'); notify(title,body); try{ navigator.vibrate&&navigator.vibrate([200,100,200]); }catch(e){} }
 
 /* ---------- γραμμή επιστροφής: λιμάνι, ώρα, καύσιμο ---------- */
 var chip=null, ringL=null, rtState={level:'',msg:'',txt:''};

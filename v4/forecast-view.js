@@ -141,7 +141,7 @@ function draw(){
   if(false){ var bk=h('button',{class:'iconbtn',type:'button','aria-label':T('Πίσω στις 7 ημέρες','Back to 7 days'),html:B.iconSvg('back'),onclick:function(){ st.view='week'; st.day=null; st.hour=null; draw(); }}); top.append(h('div',{style:{display:'flex',alignItems:'center',gap:'12px',minWidth:0}},bk,h('h1',{class:'lt',text:title}))); }
   else top.append(h('h1',{class:'lt',text:title}));
   var rf=h('button',{class:'iconbtn'+(st.loading&&fc?' spin':''),type:'button','aria-label':T('Ανανέωση πρόγνωσης','Refresh forecast'),html:B.iconSvg('refresh'),onclick:function(){ if(p.gps) B.locate(6000).then(function(){ load(true); }); else load(true); }});
-  var bell=h('a',{class:'iconbtn',href:'#alerts','aria-label':T('Ειδοποιήσεις','Alerts'),html:B.iconSvg('bell')});
+  var bell=h('a',{class:'iconbtn bellb',href:'#inbox','aria-label':T('Ειδοποιήσεις','Notifications'),html:B.iconSvg('bell')}); if(B.inboxUnread) B.inboxUnread().then(function(n){ if(n>0) bell.append(h('i',{class:'bdg',text:n>9?'9+':String(n)})); });
   top.append(h('div',{style:{display:'flex',gap:'8px'}},bell,rf)); page.append(top);
   var pl=h('button',{class:'place',type:'button','aria-label':T('Αλλαγή τοποθεσίας','Change location'),onclick:placeSheet},B.icon(p.gps?'gps':'pin'),h('b',{text:p.name}),h('i',{text:'▾'}));
   page.append(pl);
@@ -172,7 +172,7 @@ function dayStrip(fc){
   var td=today(), sel=st.day||td, bar=h('div',{class:'dstrip',role:'tablist','aria-label':T('Ημέρες','Days')}), selEl=null;
   (fc.days||[]).forEach(function(d){ var on=d.date===sel, lv=d.safe?lvl(d.best):'poor', dt=new Date(d.date+'T12:00:00');
     var nm=d.date===td?T('Σήμερα','Today'):dt.toLocaleDateString(EN?'en-GB':'el-GR',{weekday:'short'}).replace('.','');
-    var b=h('button',{type:'button',role:'tab','aria-selected':String(on),class:'dtile lv-'+lv+(on?' on':''),onclick:function(){ if(st.day===d.date) return; var y=window.scrollY, x=bar.scrollLeft; st.day=d.date; st.hour=null; draw(); var nb=root&&root.querySelector('.dstrip'); if(nb) nb.scrollLeft=x; try{ window.scrollTo(0,Math.min(y,nb?nb.offsetTop-8:y)); }catch(e){} }},
+    var b=h('button',{type:'button',role:'tab','aria-selected':String(on),class:'dtile lv-'+lv+(on?' on':''),onclick:function(){ if(st.day===d.date) return; var x=bar.scrollLeft; st.day=d.date; st.hour=null; draw(); var nb=root&&root.querySelector('.dstrip'); if(nb) nb.scrollLeft=x; try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){ window.scrollTo(0,0); } }},
       h('span',{class:'dn',text:nm}),h('span',{class:'dd',text:String(dt.getDate())}),
       d.safe?h('b',{class:'dsc',text:String(d.best)}):h('b',{class:'dsc no',title:d.why==='night'?T('χωρίς φως','no light'):shortWhy(d),text:'—'}),
       h('small',{class:'dw',text:d.safe&&d.win?B.pad(d.win.s)+'–'+B.pad((d.win.e+1)%24):(d.why==='night'?T('νύχτα','night'):shortWhy(d).split(' ')[0])}));

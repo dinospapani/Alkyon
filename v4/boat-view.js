@@ -86,7 +86,7 @@ function maintCard(){
   return c; }
 /* υπενθύμιση μία φορά την εβδομάδα για κάθε στοιχείο που πλησιάζει ή καθυστερεί */
 setTimeout(function(){ if(B.prof()!=='boat') return; var M=Mload(), now=Date.now(), ch=false; M.items.forEach(function(it){ var st=mstat(it); if(st.lv!=='bad'&&st.lv!=='warn') return; if(M.sent[it.id]&&now-M.sent[it.id]<7*86400000) return; M.sent[it.id]=now; ch=true;
-  B.toast('🔧 '+it.name+' · '+(st.lv==='bad'?T('Εκπρόθεσμο.','Overdue.'):T('Πλησιάζει η ώρα.','Coming due.')),6000); }); if(ch) Msave(M); },12000);
+  B.toast('🔧 '+it.name+' · '+(st.lv==='bad'?T('Εκπρόθεσμο.','Overdue.'):T('Πλησιάζει η ώρα.','Coming due.')),6000); if(B.inboxAdd) B.inboxAdd('🔧 '+it.name,st.lv==='bad'?T('Εκπρόθεσμη συντήρηση.','Maintenance overdue.'):T('Πλησιάζει η ώρα για συντήρηση.','Maintenance coming due.'),'maint'); }); if(ch) Msave(M); },12000);
 function draw(){
   if(!root) return;
   var b=D(), s=Sm(), page=h('div',{class:'page'}), y=window.scrollY;
