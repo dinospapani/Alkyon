@@ -283,7 +283,7 @@ function compare(){
     .map(function(st){ var v=sampleSrc(grid.mean,nowIdx,st.lat,st.lon); return v?{st:st,mod:v.sp,d:st.spd-v.sp}:null; }).filter(Boolean);
 }
 function seed(){
-  var s=map.getSize(), cnt=Math.min(1600,Math.round(s.x*s.y/520)); parts=[];
+  var s=map.getSize(), cnt=Math.min(1600,Math.round(s.x*s.y/(window.PSARO_WINDY?900:520))); parts=[];
   for(var i=0;i<cnt;i++) parts.push(np());
   clear();
 }
@@ -292,7 +292,7 @@ var RM=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').
 function loop(ts){
   raf=0; if(!on||!grid||!shown||document.hidden){ if(on&&grid&&shown) raf=requestAnimationFrame(loop); return; }
   raf=requestAnimationFrame(loop); if(ts-last<33) return; last=ts;
-  var s=map.getSize(); ctx.globalCompositeOperation='destination-out'; ctx.fillStyle='rgba(0,0,0,'+(RM?1:(window.PSARO_WINDY?0.06:0.08))+')'; ctx.fillRect(0,0,s.x,s.y); ctx.globalCompositeOperation='source-over'; ctx.lineWidth=1.6; ctx.lineCap='round';
+  var s=map.getSize(); ctx.globalCompositeOperation='destination-out'; ctx.fillStyle='rgba(0,0,0,'+(RM?1:(window.PSARO_WINDY?0.11:0.08))+')'; ctx.fillRect(0,0,s.x,s.y); ctx.globalCompositeOperation='source-over'; ctx.lineWidth=1.6; ctx.lineCap='round';
   var sc=0.12*Math.pow(2,(map.getZoom()-8)*0.35);
   for(var i=0;i<parts.length;i++){
     var p=parts[i], ll=map.containerPointToLatLng([p.x,p.y]), v=sample(ll.lat,ll.lng);
@@ -300,8 +300,8 @@ function loop(ts){
     var nx=p.x+v.u*sc, ny=p.y-v.v*sc;
     var sea=seaOn();
     if(window.PSARO_WINDY){ /* v31z520: όπως το Windy: λευκά σωματίδια πάνω στο χρωματιστό πεδίο, ορατά και στον ασθενή άνεμο */
-      var kf=Math.max(1,6/Math.max(0.5,v.sp)); nx=p.x+v.u*sc*kf*1.15; ny=p.y-v.v*sc*kf*1.15;
-      ctx.strokeStyle='#ffffff'; ctx.globalAlpha=0.9; ctx.lineWidth=1.7; }
+      var kf=Math.max(1,3/Math.max(0.5,v.sp)); nx=p.x+v.u*sc*kf*0.9; ny=p.y-v.v*sc*kf*0.9;
+      ctx.strokeStyle='#ffffff'; ctx.globalAlpha=Math.min(0.95,0.45+v.sp/30); ctx.lineWidth=1.1+Math.min(1.2,v.sp/20); }
     else { ctx.strokeStyle=sea?'#ffffff':col(v.sp); ctx.globalAlpha=sea?0.7:0.9; ctx.lineWidth=sea?1.3:1.6; }
     ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(nx,ny); ctx.stroke();
     p.x=nx; p.y=ny; if(nx<0||ny<0||nx>s.x||ny>s.y){ parts[i]=np(); parts[i].age=40+Math.floor(Math.random()*30); }
