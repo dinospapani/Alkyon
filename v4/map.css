@@ -150,3 +150,39 @@ body.hasdt .mapwx{top:calc(var(--safe-t) + 84px)}
 .mk.cur i{display:block;font-style:normal;font-weight:900;font-size:22px;line-height:1;color:#8fe3ff;text-shadow:0 1px 3px rgba(0,0,0,.8)}
 .mk.cur.mid i{color:#ffd166}.mk.cur.strong i{color:#ff6b5a}
 .mk.cur b{font-size:11px;font-weight:800;color:#fff;background:rgba(10,38,51,.75);padding:1px 5px;border-radius:6px;white-space:nowrap}
+/* στρώματα χάρτη: πλακίδια */
+.lyr .lyh{margin:18px 2px 10px;font-size:13px;font-weight:750;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-2)}
+.lyr .lyh:first-child{margin-top:0}
+.lbase{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.lbt{display:flex;flex-direction:column;gap:8px;align-items:stretch;padding:0;border:0;background:none;color:var(--ink);font:650 14.5px var(--font);text-align:center}
+.lbt .lprev{display:block;height:78px;border-radius:16px;border:3px solid transparent;box-shadow:var(--shadow);background-size:cover;background-position:center}
+.lbt.sat .lprev{background:radial-gradient(circle at 30% 40%,#3e5a3a 0 18%,transparent 19%),radial-gradient(circle at 70% 70%,#6b5a3a 0 22%,transparent 23%),linear-gradient(135deg,#0b3b57,#155b75 55%,#5a6b45 56%,#8a7a52)}
+.lbt.osm .lprev{background:linear-gradient(90deg,transparent 47%,#f3c86b 47% 53%,transparent 53%),linear-gradient(0deg,transparent 60%,#fff 60% 65%,transparent 65%),linear-gradient(135deg,#aad3df 0 40%,#f2efe9 40%)}
+.lbt[aria-pressed=true] .lprev{border-color:var(--accent)}
+.lbt[aria-pressed=true] b{color:var(--accent)}
+.lgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.ltile{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:4px;min-height:96px;padding:12px 6px;border-radius:16px;border:2px solid transparent;background:var(--surface);box-shadow:var(--shadow);color:var(--ink);text-align:center;transition:background .15s,border-color .15s}
+.ltile .lic{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:var(--surface-2);color:var(--ink-2);margin-bottom:2px}
+.ltile .lic svg,.lacts .lic svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.ltile b{font-size:13.5px;font-weight:700;line-height:1.2}
+.ltile small{font-size:11.5px;color:var(--ink-2);line-height:1.2}
+.ltile[aria-pressed=true]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--surface))}
+.ltile[aria-pressed=true] .lic{background:var(--accent);color:#fff}
+.ltile:disabled{opacity:.5}
+.ldepth{display:flex;flex-direction:column;gap:8px}
+.lacts .lic{display:grid;place-items:center;color:var(--ink-2)}
+/* κατά την έξοδο η θέση σου γίνεται βαρκάκι που γυρίζει με την πορεία (όπως η κλασική) */
+body.ontrip .mk.me i{width:34px;height:34px;border:0;border-radius:0;box-shadow:none;transform:translate(-17px,-17px) rotate(var(--hd,0deg));transition:transform .4s linear;filter:drop-shadow(0 2px 3px rgba(0,0,0,.55));background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 1.5C22 8 24.5 17 22.5 30H9.5C7.5 17 10 8 16 1.5z' fill='%23ff6a2a' stroke='%23fff' stroke-width='2.4' stroke-linejoin='round'/%3E%3Crect x='12' y='15' width='8' height='8' rx='1.5' fill='%23fff' stroke='%23123' stroke-width='.8'/%3E%3Cpath d='M16 5.5v6' stroke='%23fff' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E") center/contain no-repeat}
+body.ontrip .mk.me.hd i::after{display:none}
+/* σημείο παρατεταμένου πατήματος */
+.mk.tapdot i{display:block;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:rgba(228,87,46,.25);border:3px solid #E4572E;box-shadow:0 0 0 6px rgba(228,87,46,.18)}
+.pmhead{display:flex;flex-direction:column;gap:4px;margin:0 2px 14px}
+.pmc{font-size:19px;font-variant-numeric:tabular-nums}
+.pmsub{color:var(--ink-2);font-size:13.5px}
+.pmgrid .ltile{min-height:84px}
+.pmgrid .ltile.go .lic{background:#1f9d6b;color:#fff}
+.pmgrid .ltile.bad .lic{background:#d64532;color:#fff}
+/* κουμπί έναρξης εξόδου με βαρκάκι */
+.tripbtn{gap:10px;background:var(--accent)!important;color:#fff!important;font-weight:750;box-shadow:0 8px 22px rgba(228,87,46,.45)!important;padding:0 22px 0 14px}
+.tripbtn .tbic{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.22)}
+.tripbtn .tbic svg{width:22px;height:22px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}

@@ -58,13 +58,15 @@ B.biteForm=function(edit,opt){
   var pos=null;
   where.append(h('option',{value:'gps',text:T('Η θέση μου τώρα (GPS)','My position now (GPS)')}));
   if(e&&typeof e.lat==='number') where.append(h('option',{value:'keep',text:T('Όπως ήταν','As it was')+(e.place?': '+e.place:'')}));
+  if(!e&&opt&&opt.at) where.append(h('option',{value:'at',text:T('Το σημείο που διάλεξες στον χάρτη','The point you picked on the map')}));
   where.append(h('option',{value:'none',text:T('Χωρίς θέση','No position')}));
   S.raw('spots').filter(function(x){ return typeof x.lat==='number'; }).forEach(function(x){ where.append(h('option',{value:'s:'+x.id,text:'★ '+(x.name||T('Σημείο','Spot'))})); });
   if(e) where.value=typeof e.lat==='number'?'keep':'none';
   function locNow(){ whereNote.textContent=T('Βρίσκω τη θέση σου…','Finding your position…'); return B.locate(8000).then(function(p){ pos=p; if(!p){ whereNote.textContent=T('Δεν βρέθηκε θέση. Διάλεξε σημείο ή «Χωρίς θέση».','No position found. Pick a spot or “No position”.'); return; }
     var ns=nearSpot(p.lat,p.lon); whereNote.textContent=ns?T('Κοντά στο σημείο σου «','Near your spot “')+ns.name+T('». Θα αποθηκευτεί εκεί.','”. It will be saved there.'):p.lat.toFixed(5)+', '+p.lon.toFixed(5); }); }
   where.addEventListener('change',function(){ if(where.value==='gps') locNow(); else whereNote.textContent=''; });
-  var locP=!e?locNow():Promise.resolve();
+  if(!e&&opt&&opt.at){ where.value='at'; whereNote.textContent=window.PsaroCoord?PsaroCoord.fmt(opt.at.lat,opt.at.lon):opt.at.lat.toFixed(5)+', '+opt.at.lon.toFixed(5); }
+  var locP=!e&&!(opt&&opt.at)?locNow():Promise.resolve();
   /* φωτογραφίες */
   var phBox=h('div',{class:'phs'}), file=h('input',{type:'file',accept:'image/*',multiple:true,class:'vh'});
   var addPh=h('button',{type:'button',class:'phadd','aria-label':T('Προσθήκη φωτογραφίας','Add photo'),html:B.iconSvg('plus'),onclick:function(){ file.click(); }});
@@ -135,6 +137,7 @@ B.biteForm=function(edit,opt){
     var dt=when.value||nowLocal(), date=dt.slice(0,10), time=dt.slice(11,16);
     var lat=null, lon=null, place='', w=where.value;
     if(w==='gps'&&pos){ lat=pos.lat; lon=pos.lon; var ns=nearSpot(lat,lon); if(ns){ lat=ns.lat; lon=ns.lon; place=ns.name||''; } }
+    else if(w==='at'&&opt&&opt.at){ lat=+opt.at.lat.toFixed(5); lon=+opt.at.lon.toFixed(5); var ns2=nearSpot(lat,lon); if(ns2){ lat=ns2.lat; lon=ns2.lon; place=ns2.name||''; } }
     else if(w==='keep'&&e){ lat=e.lat; lon=e.lon; place=e.place||''; }
     else if(w.slice(0,2)==='s:'){ var spt=S.get('spots',w.slice(2)); if(spt){ lat=spt.lat; lon=spt.lon; place=spt.name||''; } }
     var kb=(window.SPKB||[]).filter(function(k){ return k.n.toLowerCase()===name.toLowerCase()||(k.en||'').toLowerCase()===name.toLowerCase(); })[0];
@@ -187,9 +190,9 @@ B.biteForm=function(edit,opt){
 };
 /* γρήγορη καταγραφή κατά την έξοδο (κουμπιά στον χάρτη, όπως η κλασική): χωρίς φόρμα, με θέση, ώρα, συνθήκες και εξοπλισμό του τελευταίου ψαριού.
    Το είδος συμπληρώνεται αργότερα από το Ημερολόγιο. */
-B.quickRec=function(miss){
-  var S=st(), f=(B.trip&&B.trip.fix&&B.trip.fix())||null, p=f&&Date.now()-(f.t||0)<180000?f:B.lastPos(), dt=nowLocal(), date=dt.slice(0,10), time=dt.slice(11,16);
-  var rec={date:date,time:time,tz:-new Date().getTimezoneOffset(),species:'',latin:'',bait:'',tech:'',depth:null,kg:null,len:null,notes:'',place:'',lat:null,lon:null,photo:false,src:miss?'miss':'quick',prof:B.prof()};
+B.quickRec=function(miss,at){
+  var S=st(), f=(B.trip&&B.trip.fix&&B.trip.fix())||null, p=at||(f&&Date.now()-(f.t||0)<180000?f:B.lastPos()), dt=nowLocal(), date=dt.slice(0,10), time=dt.slice(11,16);
+  var rec={date:date,time:time,tz:-new Date().getTimezoneOffset(),species:'',latin:'',bait:'',tech:'',depth:null,kg:null,len:null,notes:'',place:'',lat:null,lon:null,photo:false,src:at?(miss?'miss-map':'map'):(miss?'miss':'quick'),prof:B.prof()};
   if(p){ rec.lat=+(+p.lat).toFixed(5); rec.lon=+(+p.lon).toFixed(5); var ns=nearSpot(rec.lat,rec.lon); if(ns){ rec.lat=ns.lat; rec.lon=ns.lon; rec.place=ns.name||''; } }
   if(miss) rec.miss=true;
   var tk=lastTk(B.prof()); if(tk.length&&!miss) rec.tk=tk;

@@ -162,7 +162,8 @@ B.tripStartExtras=function(routeInput){
 /* ---------- άδεια, εβδομαδιαία περίληψη ---------- */
 function licCheck(){ S=load(); if(!S.lic) return; var td=today(), days=Math.round((Date.parse(S.lic+'T12:00:00Z')-Date.parse(td+'T12:00:00Z'))/86400000), sent=ls.get('psaro-smart-sent',{})||{};
   if(sent.lic===td) return; if(days<0||days<=14){ sent.lic=td; ls.set('psaro-smart-sent',sent); note('🪪 '+T('Άδεια ψαρέματος','Fishing licence'),days<0?T('Η άδεια έχει λήξει.','The licence has expired.'):T('Λήγει σε ','Expires in ')+days+T(' ημέρες.',' days.')); } }
-function weekly(){ S=load(); var now=Date.now(); if(S.weekly&&now-S.weekly<7*86400000) return; if(tripOn()) return;
+function busy(){ return !!document.querySelector('.sheet,.scrim')||document.hidden; }
+function weekly(){ S=load(); var now=Date.now(); if(S.weekly&&now-S.weekly<7*86400000) return; if(tripOn()) return; if(busy()){ setTimeout(weekly,60000); return; }
   var all=B.store.bites().filter(function(x){ return !x.deleted; }), tr=B.store.raw('trips').filter(function(x){ return !x.deleted; }); if(!all.length&&!tr.length) return;
   var d=new Date(now-7*86400000), lo=d.getFullYear()+'-'+B.pad(d.getMonth()+1)+'-'+B.pad(d.getDate()), b=all.filter(function(x){ return (x.date||'')>=lo; }), t=tr.filter(function(x){ return (x.date||'')>=lo; });
   S.weekly=now; save(); if(!b.length&&!t.length) return;
