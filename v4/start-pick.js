@@ -15,8 +15,8 @@ var IC={rod:'<path d="M4 20L18.5 5.5"/><path d="M18.5 5.5c1.2-1.2 2.5-.4 2.5 1v5
   shore:'<path d="M3 17c2.2 0 2.2-1.5 4.5-1.5S9.8 17 12 17s2.2-1.5 4.5-1.5S19 17 21 17"/><path d="M5 13l5-8"/><path d="M10 5l8 4"/>',
   boat:'<path d="M3 15h18l-2.5 4.5h-13z"/><path d="M7 15V9h7l3 6"/><path d="M10 9V5"/>'};
 function svg(k){ return '<svg viewBox="0 0 24 24" aria-hidden="true">'+(IC[k]||'')+'</svg>'; }
-var METH={shore:[{p:'shore',n:T('Καλάμι από την ακτή','Rod from the shore'),d:T('Βυθός · Spinning · Surfcasting','Bottom · Spinning · Surfcasting'),i:'rod'},{p:'spear',n:T('Ψαροντούφεκο από την ακτή','Spearfishing from the shore'),d:T('Βουτιά · Σημαδούρα · Ασφάλεια','Dive · Float · Safety'),i:'spear'},{p:'lake',n:T('Φράγμα ή λίμνη','Dam or lake'),d:T('Γλυκό νερό · Χωρίς κύμα','Fresh water · No waves'),i:'lake'}],
-  boat:[{p:'boat',n:T('Καλάμι','Rod'),d:T('Βυθός · Τρόλινγκ · Jigging · Casting','Bottom · Trolling · Jigging · Casting'),i:'rod'},{p:'spear',n:T('Ψαροντούφεκο από σκάφος','Spearfishing from a boat'),d:T('Βουτιά · Ψαροντούφεκο · Σημαδούρα · Ασφάλεια','Dive · Speargun · Float · Safety'),i:'spear'}]};
+var METH={shore:[{p:'shore',n:T('Καλάμι από την ακτή','Rod from the shore'),d:T('Βυθός · Spinning · Surfcasting','Bottom · Spinning · Surfcasting'),i:'rod',th:'bc-th-shorerod.jpg'},{p:'spear',n:T('Ψαροντούφεκο από την ακτή','Spearfishing from the shore'),d:T('Βουτιά · Σημαδούρα · Ασφάλεια','Dive · Float · Safety'),i:'spear',th:'bc-th-spear.jpg'},{p:'lake',n:T('Φράγμα ή λίμνη','Dam or lake'),d:T('Γλυκό νερό · Χωρίς κύμα','Fresh water · No waves'),i:'lake'}],
+  boat:[{p:'boat',n:T('Καλάμι','Rod'),d:T('Βυθός · Τρόλινγκ · Jigging · Casting','Bottom · Trolling · Jigging · Casting'),i:'rod',th:'bc-th-boatrod.jpg'},{p:'spear',n:T('Ψαροντούφεκο από σκάφος','Spearfishing from a boat'),d:T('Βουτιά · Ψαροντούφεκο · Σημαδούρα','Dive · Speargun · Float · Safety'),i:'spear',th:'bc-th-spear.jpg'}]};
 function cur(){ return B.prof(); }
 function side(){ var p=cur(), s=raw('psaro-fside'); if(p==='boat') return 'boat'; if(p==='shore'||p==='lake') return 'shore'; return s==='boat'?'boat':'shore'; }
 function label(p,s){ return s==='boat'?(p==='boat'?T('Σκάφος, καλάμι','Boat, rod'):T('Σκάφος, ψαροντούφεκο','Boat, spearfishing')):(p==='lake'?T('Φράγμα ή λίμνη','Dam or lake'):p==='spear'?T('Ακτή, ψαροντούφεκο','Shore, spearfishing'):T('Ακτή, καλάμι','Shore, rod')); }
@@ -35,7 +35,7 @@ function picker(st,onChange){
     var l=h('div',{class:'spmeth',role:'radiogroup','aria-label':T('Με τι ψαρεύεις','How you fish')});
     METH[st.s].forEach(function(m){ var on=st.p===m.p;
       l.append(h('button',{type:'button',class:'sprow'+(on?' on':''),role:'radio','aria-checked':String(on),onclick:function(){ st.p=m.p; paint(); onChange&&onChange(); }},
-        h('span',{class:'spmi',html:svg(m.i)}),h('span',{class:'tx'},h('b',{text:m.n}),h('small',{text:m.d})),h('span',{class:'sprad',html:on?CHK:''}))); });
+        (m.th?h('span',{class:'spmi sph',style:{backgroundImage:'url('+m.th+')'}}):h('span',{class:'spmi',html:svg(m.i)})),h('span',{class:'tx'},h('b',{text:m.n}),h('small',{text:m.d})),h('span',{class:'sprad',html:on?CHK:''}))); });
     box.append(g,h('h3',{class:'sph3',text:T('Με τι ψαρεύεις;','How are you fishing?')}),l); }
   paint(); return box;
 }

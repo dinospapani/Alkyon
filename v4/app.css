@@ -359,3 +359,22 @@ button.li{font-family:var(--font);color:var(--ink);cursor:pointer}
 a.li,a.li:visited{text-decoration:none;color:var(--ink)}
 a.li .tx small{color:var(--ink-2)}
 .li>svg:last-child{flex:none;width:18px;height:18px;fill:none;stroke:var(--ink-3);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* ===== σελίδα επιλογής: χωράει σε μία οθόνη ===== */
+.sppage:not(.tour){display:flex;flex-direction:column}
+.sppage:not(.tour) .sphero{flex:1 1 auto;height:auto;min-height:clamp(170px,26dvh,320px)}
+.sppage:not(.tour) .spbody{flex:none;width:100%;padding-top:10px;padding-bottom:calc(var(--safe-b) + 14px)}
+.sppage:not(.tour) .sptitle{bottom:10px}
+.sppage:not(.tour) .sptitle h1{font-size:clamp(23px,6.4vw,30px)}
+.sppage:not(.tour) .sptitle p{font-size:14px;margin-top:3px}
+.spcard{height:clamp(112px,17dvh,176px)}
+.sph3{margin:14px 2px 8px;font-size:15.5px}
+.sprow{min-height:58px;padding:9px 12px;gap:12px}
+.spmi{width:44px;height:44px}
+.spmi.sph{background:center/cover no-repeat;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+.sprow.on .spmi.sph{box-shadow:0 0 0 2px var(--accent)}
+.sprow .tx b{font-size:15.5px}
+.sprow .tx small{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.spask{margin:12px 4px}
+.spgo{height:54px}
+.spfoot{margin-top:10px;font-size:12.5px}
+@media (max-height:700px){.spfoot{display:none}.spcap small{display:none}}

@@ -135,9 +135,10 @@ function draw(){
   if(!root) return;
   var p=st.place||current(), fc=st.fc, td=today();
   var page=h('div',{class:'page fcpage'});
-  var title=st.view==='day'&&fc?B.dayName(st.day,td):T('Πρόγνωση','Forecast');
+  if(st.view==='day'||st.view==='week') st.view='today';
+  var title=T('Πρόγνωση','Forecast');
   var top=h('div',{class:'top'});
-  if(st.view==='day'){ var bk=h('button',{class:'iconbtn',type:'button','aria-label':T('Πίσω στις 7 ημέρες','Back to 7 days'),html:B.iconSvg('back'),onclick:function(){ st.view='week'; st.day=null; st.hour=null; draw(); }}); top.append(h('div',{style:{display:'flex',alignItems:'center',gap:'12px',minWidth:0}},bk,h('h1',{class:'lt',text:title}))); }
+  if(false){ var bk=h('button',{class:'iconbtn',type:'button','aria-label':T('Πίσω στις 7 ημέρες','Back to 7 days'),html:B.iconSvg('back'),onclick:function(){ st.view='week'; st.day=null; st.hour=null; draw(); }}); top.append(h('div',{style:{display:'flex',alignItems:'center',gap:'12px',minWidth:0}},bk,h('h1',{class:'lt',text:title}))); }
   else top.append(h('h1',{class:'lt',text:title}));
   var rf=h('button',{class:'iconbtn'+(st.loading&&fc?' spin':''),type:'button','aria-label':T('Ανανέωση πρόγνωσης','Refresh forecast'),html:B.iconSvg('refresh'),onclick:function(){ if(p.gps) B.locate(6000).then(function(){ load(true); }); else load(true); }});
   var bell=h('a',{class:'iconbtn',href:'#alerts','aria-label':T('Ειδοποιήσεις','Alerts'),html:B.iconSvg('bell')});
@@ -145,7 +146,7 @@ function draw(){
   var pl=h('button',{class:'place',type:'button','aria-label':T('Αλλαγή τοποθεσίας','Change location'),onclick:placeSheet},B.icon(p.gps?'gps':'pin'),h('b',{text:p.name}),h('i',{text:'▾'}));
   page.append(pl);
   if(navigator.onLine===false) page.append(h('div',{class:'offline',text:T('Χωρίς σύνδεση. Βλέπεις την τελευταία πρόγνωση που αποθηκεύτηκε.','Offline. Showing the last saved forecast.')}));
-  if(st.view!=='day') page.append(B.seg([['today',T('Σήμερα','Today')],['week',T('7 ημέρες','7 days')],['adv',T('Είδη','Species')],['mine',T('Δικά μου','Mine')]],st.view,function(v){ st.view=v; st.day=null; st.hour=null; draw(); },T('Όψη πρόγνωσης','Forecast view')));
+  page.append(B.seg([['today',T('Ημέρες','Days')],['adv',T('Είδη','Species')],['mine',T('Δικά μου','Mine')]],st.view,function(v){ st.view=v; st.day=null; st.hour=null; draw(); },T('Όψη πρόγνωσης','Forecast view')));
 
   if(!fc){
     if(st.err==='nopos') page.append(emptyBox(T('Χρειάζεται τοποθεσία','A location is needed'),T('Επίτρεψε την πρόσβαση στη θέση σου ή διάλεξε μια τοποθεσία.','Allow location access or choose a place.'),T('Διάλεξε τοποθεσία','Choose a place'),placeSheet));
@@ -154,7 +155,7 @@ function draw(){
   } else if(st.view==='week') week(page,fc);
   else if(st.view==='adv') B.fcAdv(page,fc,{place:p,today:td,open:openDay,reload:function(){ load(false); }});
   else if(st.view==='mine') B.fcMine(page,fc,{place:p,today:td});
-  else dayView(page,fc,st.view==='day'?dayOf(st.day):dayOf(td));
+  else { if(!st.day||!(fc.days||[]).some(function(x){ return x.date===st.day; })) st.day=td; page.append(dayStrip(fc)); dayView(page,fc,dayOf(st.day)); }
 
   if(st.note) page.append(h('p',{class:'foot',text:st.note}));
   if(fc) page.append(h('p',{class:'foot'},T('Ενημέρωση ','Updated ')+ago(st.t)+'. '+T('Καιρός και κύμα από ','Weather and waves from '),h('a',{href:'https://open-meteo.com',target:'_blank',rel:'noopener',text:'Open-Meteo'}),T('. Ενδεικτική πρόγνωση, όχι επίσημη.','. Indicative, not an official forecast.')));
@@ -165,7 +166,20 @@ function skeleton(){ return h('div',{role:'status','aria-label':T('Φόρτωσ�
   h('div',{class:'hero'},h('div',{class:'sk',style:{height:'22px',width:'60%',marginBottom:'12px'}}),h('div',{class:'sk',style:{height:'44px',width:'45%',marginBottom:'18px'}}),h('div',{class:'sk',style:{height:'120px'}})),
   h('div',{class:'card'},h('div',{class:'sk',style:{height:'150px'}}))); }
 
-function openDay(date,hr){ st.view='day'; st.day=date; st.hour=hr==null?null:hr; draw(); try{ window.scrollTo(0,0); }catch(e){} }
+function openDay(date,hr){ st.view='today'; st.day=date; st.hour=hr==null?null:hr; draw(); try{ window.scrollTo(0,0); }catch(e){} }
+/* ---------- οι 7 μέρες σε μία λωρίδα πάνω: πάτημα = λεπτομέρειες της μέρας από κάτω ---------- */
+function dayStrip(fc){
+  var td=today(), sel=st.day||td, bar=h('div',{class:'dstrip',role:'tablist','aria-label':T('Ημέρες','Days')}), selEl=null;
+  (fc.days||[]).forEach(function(d){ var on=d.date===sel, lv=d.safe?lvl(d.best):'poor', dt=new Date(d.date+'T12:00:00');
+    var nm=d.date===td?T('Σήμερα','Today'):dt.toLocaleDateString(EN?'en-GB':'el-GR',{weekday:'short'}).replace('.','');
+    var b=h('button',{type:'button',role:'tab','aria-selected':String(on),class:'dtile lv-'+lv+(on?' on':''),onclick:function(){ if(st.day===d.date) return; var y=window.scrollY, x=bar.scrollLeft; st.day=d.date; st.hour=null; draw(); var nb=root&&root.querySelector('.dstrip'); if(nb) nb.scrollLeft=x; try{ window.scrollTo(0,Math.min(y,nb?nb.offsetTop-8:y)); }catch(e){} }},
+      h('span',{class:'dn',text:nm}),h('span',{class:'dd',text:String(dt.getDate())}),
+      d.safe?h('b',{class:'dsc',text:String(d.best)}):h('b',{class:'dsc no',title:d.why==='night'?T('χωρίς φως','no light'):shortWhy(d),text:'—'}),
+      h('small',{class:'dw',text:d.safe&&d.win?B.pad(d.win.s)+'–'+B.pad((d.win.e+1)%24):(d.why==='night'?T('νύχτα','night'):shortWhy(d).split(' ')[0])}));
+    if(on) selEl=b; bar.append(b); });
+  if(selEl) setTimeout(function(){ try{ var r=selEl.offsetLeft-bar.clientWidth/2+selEl.clientWidth/2; if(r>0&&bar.scrollLeft===0) bar.scrollLeft=r; }catch(e){} },0);
+  return bar;
+}
 /* ---------- μία μέρα ---------- */
 function dayView(page,fc,d){
   if(!d) return;
@@ -179,7 +193,7 @@ function dayView(page,fc,d){
   else if(!d.safe){ var why=unsafeWhy(d); if(why) hero.append(h('p',{class:'hwhy',text:why.charAt(0).toUpperCase()+why.slice(1)+'.'})); }
   /* σήμερα δεν βγαίνει: δείξε την επόμενη καλή μέρα */
   if(isToday&&(!d.safe||(d.best<50))){ var nx=(fc.days||[]).filter(function(x){ return x.date>d.date&&x.safe&&x.best>=60; })[0];
-    if(nx) hero.append(h('button',{class:'next',type:'button',onclick:function(){ st.view='day'; st.day=nx.date; st.hour=null; draw(); try{ window.scrollTo(0,0); }catch(e){} }},
+    if(nx) hero.append(h('button',{class:'next',type:'button',onclick:function(){ st.view='today'; st.day=nx.date; st.hour=null; draw(); }},
       h('span',{text:T('Επόμενη καλή μέρα','Next good day')}),h('b',{text:B.dayName(nx.date,td)+', '+win(nx)}),h('i',{class:'sc',text:String(nx.best)}))); }
   if(tg) hero.append(h('span',{class:'tag '+tg[0],text:tg[1]}));
   page.append(hero);
