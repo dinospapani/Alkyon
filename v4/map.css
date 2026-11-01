@@ -323,3 +323,45 @@ body.replaying .tripbtn,body.replaying .tripbar,body.replaying #ndMapDock{displa
 .heatpill .hpd{flex:none;width:26px;height:12px;border-radius:6px;background:linear-gradient(90deg,#fdd835,#fb8c00,#e53935)}
 .heatpill .tx{display:flex;flex-direction:column;min-width:0}.heatpill b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.heatpill small{font-size:11.5px;color:var(--ink-2)}
 body.maptrip .heatpill{display:none}
+/* v31z519: κάρτα σημείου + πιο λεπτό κάτω πλαίσιο καιρού */
+#ndSeaLeg .ndslh,#ndSeaLeg .ndslx,#ndSeaPt,#ndSeaDep{display:none!important}
+#ndSeaLeg{padding:7px 12px 6px!important}
+#ndSeaSt{display:flex;align-items:center;gap:8px;margin:0!important;font:600 12px var(--font)!important;color:var(--ink-2)}
+#ndSeaSt::before{content:"";flex:none;width:34px;height:6px;border-radius:3px;background:linear-gradient(90deg,#34a878 0 15%,#f0c850 45%,#ee883e 70%,#d04248)}
+#ndSeaSt:empty{display:none}
+#ndSeaLeg:has(#ndSeaSt:empty){display:none}
+#ndWindPanel{padding:6px 10px 7px!important}
+#ndWindLab{font:600 12px var(--font)!important;color:var(--ink-2);margin-top:2px!important}
+#wxCard{padding:10px 12px 8px}
+#wxCard .wch{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+#wxCard .wch b{font:750 15px var(--font)}
+#wxCard .wch span{flex:1;color:var(--ink-2);font:600 12.5px var(--font)}
+#ndMapDock #wxCard .wcx{width:32px;height:32px;min-width:32px!important;min-height:32px!important;border:0;border-radius:50%;background:var(--surface-2);color:var(--ink);font:700 14px var(--font);cursor:pointer}
+#wxCard .wcg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+#wxCard .wcc{display:flex;flex-direction:column;gap:2px;min-width:0;padding:8px 9px;border-radius:12px;background:var(--surface-2);text-align:left;border:0;color:var(--ink);font-family:var(--font)}
+#wxCard .wcc small{font:750 10.5px var(--font);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+#wxCard .wcv{display:flex;align-items:center;gap:4px;min-height:26px}
+#wxCard .wcv b{font:800 18px/1.1 var(--font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#wxCard .wcar{width:20px;height:20px;flex:none}
+#wxCard .wcs{font:600 11.5px/1.3 var(--font);color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#wxCard .wcs.wclv{color:var(--ink);display:flex;align-items:center;gap:5px}
+#wxCard .wcs.wclv::before{content:"";width:8px;height:8px;border-radius:50%;flex:none;background:var(--lv)}
+#wxCard .wcoff{cursor:pointer;border:1px dashed var(--line);background:transparent}
+#wxCard .wcoff>b{font:800 18px var(--font);color:var(--accent)}
+#wxCard .wcf{display:flex;align-items:center;gap:8px;margin-top:6px;min-height:30px}
+#wxCard .wccur{display:flex;align-items:center;gap:4px;font:600 12px var(--font);color:var(--ink-2);flex:1;min-width:0}
+#wxCard .wccur svg{width:16px;height:16px;flex:none}
+#ndMapDock #wxCard .wcmore{margin-left:auto;border:0;background:none;color:var(--accent);font:700 13px var(--font);padding:4px 2px;cursor:pointer;min-height:30px}
+.wcrows{display:flex;flex-direction:column}
+.wcr{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
+.wcr span{color:var(--ink-2);flex:none}
+.wcr b{text-align:right;font-weight:650}
+.wcsh{margin:16px 0 8px;font-size:14px}
+.wcleg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.wcleg span{display:flex;flex-direction:column;gap:2px;font-size:12px}
+.wcleg i{height:8px;border-radius:4px}
+.wcleg small{color:var(--ink-2)}
+#ndSeaSt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block!important}
+#ndSeaSt::before{display:inline-block;vertical-align:1px;margin-right:8px}
+#ndMapDock:has(#wxCard) #ndWindLab{display:none}
+#wxCard .wch .wcmore{margin-left:auto}

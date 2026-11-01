@@ -250,7 +250,7 @@ function drawMw(){ if(!mwEl) return; var on=ls.get('psaro-v4-mapwx',true)!==fals
 function mwBox(){ mwEl=h('div',{class:'mapwx',role:'button','aria-label':T('Καιρός τώρα. Πάτα για να διαλέξεις τι φαίνεται.','Weather now. Tap to choose what is shown.'),onclick:function(){ mwEdit=!mwEdit; drawMw(); }}); setTimeout(drawMw,0); return mwEl; }
 
 /* ---------- θαλάσσια ρεύματα (Open-Meteo Marine, μοντέλο ~8 km· ενδεικτικό, όχι μέτρηση) ---------- */
-var curT=0, curKey='';
+var curT=0, curKey='', curData=[];
 function currents(force){
   clearTimeout(curT); if(!map) return;
   if(!cfg.cur){ if(ov.cur){ map.removeLayer(ov.cur); ov.cur=null; } curKey=''; return; }
@@ -258,13 +258,78 @@ function currents(force){
     var key=b.getSouth().toFixed(2)+b.getWest().toFixed(2)+b.getNorth().toFixed(2)+b.getEast().toFixed(2)+new Date().getHours(); if(key===curKey&&!force) return; curKey=key;
     for(var i=0;i<NY;i++) for(var j=0;j<NX;j++){ la.push((b.getSouth()+(b.getNorth()-b.getSouth())*(i+0.5)/NY).toFixed(3)); lo.push((b.getWest()+(b.getEast()-b.getWest())*(j+0.5)/NX).toFixed(3)); }
     fetch('https://marine-api.open-meteo.com/v1/marine?latitude='+la.join(',')+'&longitude='+lo.join(',')+'&current=ocean_current_velocity,ocean_current_direction&timezone=GMT').then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(j){
-      if(!map||!cfg.cur) return; var a=Array.isArray(j)?j:[j]; if(ov.cur) map.removeLayer(ov.cur); ov.cur=L.layerGroup().addTo(map); var n=0;
+      if(!map||!cfg.cur) return; var a=Array.isArray(j)?j:[j]; if(ov.cur) map.removeLayer(ov.cur); ov.cur=L.layerGroup().addTo(map); var n=0; curData=a;
       a.forEach(function(q){ var c=q&&q.current; if(!c||c.ocean_current_velocity==null||c.ocean_current_direction==null) return; var kn=c.ocean_current_velocity/1.852; if(kn<0.05) return; n++;
         var cls=kn>=1?'strong':kn>=0.4?'mid':'weak';
         L.marker([q.latitude,q.longitude],{interactive:false,keyboard:false,icon:L.divIcon({className:'mk cur '+cls,iconSize:null,html:'<div class="cw"><i style="transform:rotate('+Math.round(c.ocean_current_direction)+'deg)"><svg viewBox="0 0 24 24"><path d="M12 20V5M6 10l6-6 6 6"/></svg></i><b>'+B.num(kn,kn<1?1:0)+'</b></div>'})}).addTo(ov.cur); });
       if(!n&&force) B.toast(T('Δεν υπάρχουν δεδομένα ρευμάτων εδώ (μόνο ανοιχτή θάλασσα).','No current data here (open sea only).'));
     }).catch(function(){ curKey=''; if(force) B.toast(T('Τα ρεύματα δεν φορτώθηκαν. Χρειάζεται σύνδεση.','Currents did not load. Needs a connection.')); }); },force?0:500);
 }
+
+
+/* ---------- κάρτα σημείου: πατάς στον χάρτη με άνεμο ή κύμα ανοιχτό → άνεμος · κύμα · βάθος σε μία καθαρή κάρτα (v31z519) ---------- */
+window.PSARO_TAPCARD=true;
+var wcLL=null, wcEl=null, wcHr=null, wcDep={};
+function wcHour(){ var W=window.PsaroWindMap, t=wcHr||(W&&W.hour&&W.hour()); if(!t) return T('τώρα','now'); try{ return new Date(Date.parse(t+(t.length<=16?':00Z':'Z'))).toLocaleString(EN?'en-GB':'el-GR',{weekday:'short',hour:'2-digit',minute:'2-digit',hour12:false}); }catch(e){ return ''; } }
+function wcClose(){ wcLL=null; if(wcEl){ wcEl.remove(); wcEl=null; } var W=window.PsaroWindMap, S2=window.PsaroSeaState; try{ W&&W.clearTap&&W.clearTap(); }catch(e){} try{ S2&&S2.clearTap&&S2.clearTap(); }catch(e){} var D=document.getElementById('ndMapDock'); if(D&&D._sync) D._sync(); }
+function wcSea(){ var S2=window.PsaroSeaState; if(!wcLL||!seaOn()||!S2||!S2.pointInfo) return null; try{ return S2.pointInfo(wcLL.lat,wcLL.lng); }catch(e){ return null; } }
+function wcCur(){ if(!cfg.cur||!curData||!curData.length||!wcLL) return null; var best=null, bd=1e9; curData.forEach(function(q){ var c=q&&q.current; if(!c||c.ocean_current_velocity==null) return; var d=hav({lat:wcLL.lat,lon:wcLL.lng},{lat:q.latitude,lon:q.longitude}); if(d<bd){ bd=d; best=c; } }); return best&&bd<15000?best:null; }
+function wcArrow(dir,color){ return '<svg viewBox="0 0 24 24" class="wcar" style="transform:rotate('+Math.round(dir)+'deg)"><path d="M12 3v16M6 13l6 6 6-6" stroke="'+color+'" stroke-width="3.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>'; }
+function wcDraw(){
+  if(!wcLL){ if(wcEl){ wcEl.remove(); wcEl=null; } return; }
+  if(!windOn()&&!seaOn()){ wcClose(); return; }
+  var D=window.PsaroMapDock&&window.PsaroMapDock(); if(!D) return;
+  if(!wcEl||!wcEl.isConnected){ wcEl=h('div',{id:'wxCard',role:'region','aria-label':T('Καιρός στο σημείο','Weather at this point'),'aria-live':'polite'}); D.insertBefore(wcEl,D.firstChild); }
+  var W=window.PsaroWindMap, U=window.PsaroUnits, v=W&&W.sample?W.sample(wcLL.lat,wcLL.lng):null, r=wcSea(), cur=wcCur();
+  function cell(lab,ic,big,sub,sub2,color){ return h('div',{class:'wcc'},h('small',{text:lab}),h('div',{class:'wcv'},ic?h('span',{html:ic}):null,h('b',{text:big,style:color?'color:'+color:''})),sub?h('span',{class:'wcs',text:sub}):null,sub2?h('span',{class:'wcs',text:sub2}):null); }
+  var cw;
+  if(v){ var kn=v.sp, bf=U&&U.bft?U.bft(kn):null, main=U?U.wind(kn):Math.round(kn)+' kn', alt=(U&&U.cfg&&U.cfg.wind==='kn')?(bf!=null?bf+' Bft':''):Math.round(kn)+' kn', c=W.col?W.col(kn):'#4f9fd8';
+    cw=cell(T('Άνεμος','Wind'),wcArrow(v.dir,c),main,COMP[Math.round((((v.dir%360)+360)%360)/45)%8]+' '+Math.round(v.dir)+'°'+(alt?' · '+alt:''),v.obs&&v.obs.near?T('με διόρθωση σταθμού','station-corrected'):''); }
+  else cw=cell(T('Άνεμος','Wind'),'',' –',windOn()?T('εκτός περιοχής','outside the area'):'',null);
+  if(!windOn()&&!v) cw=h('button',{type:'button',class:'wcc wcoff',onclick:function(){ setWind(true); setTimeout(wcDraw,1500); }},h('small',{text:T('Άνεμος','Wind')}),h('b',{text:'+'}),h('span',{class:'wcs',text:T('Άνοιξε τον άνεμο','Turn wind on')}));
+  var cs;
+  if(r&&r.hs>=0){ var LV=window.PsaroSeaState.levels||[], lv=LV[r.level]||{}, g=window.PsaroSeaState.grad?window.PsaroSeaState.grad(r.hs):null, gc=g?'rgb('+g.map(Math.round).join(',')+')':'';
+    cs=cell(T('Κύμα','Waves'),r.wdir!=null?wcArrow(r.wdir,'#4aa8e0'):'',(U&&U.wave?U.wave(r.hs):B.num(r.hs,1)+' m'),(EN?(lv.en||'').split(' /')[0]:(lv.el||'').split(' ')[0])||'',(r.period>0?Math.round(r.period)+' s':'')+(r.wdir!=null?(r.period>0?' · ':'')+T('από ','from ')+COMP[Math.round((((r.wdir%360)+360)%360)/45)%8]:''));
+    var ln=cs.querySelector('.wcs'); if(ln&&gc){ ln.classList.add('wclv'); ln.style.setProperty('--lv',gc); } }
+  else if(seaOn()) cs=cell(T('Κύμα','Waves'),'','–',T('χωρίς εκτίμηση εδώ','no estimate here'),T('έως 10 km από ακτή','up to 10 km offshore'));
+  else cs=h('button',{type:'button',class:'wcc wcoff',onclick:function(){ setSeaSt(true); setTimeout(wcDraw,2500); }},h('small',{text:T('Κύμα','Waves')}),h('b',{text:'+'}),h('span',{class:'wcs',text:T('Άνοιξε το κύμα','Turn waves on')}));
+  var key=wcLL.lat.toFixed(4)+','+wcLL.lng.toFixed(4), dep=r&&isFinite(r.depth)?Math.round(r.depth):wcDep[key];
+  if(dep===undefined&&B.depthAt){ wcDep[key]=null; B.depthAt(wcLL.lat,wcLL.lng).then(function(x){ wcDep[key]=x!=null?Math.round(x):'none'; if(wcLL&&wcLL.lat.toFixed(4)+','+wcLL.lng.toFixed(4)===key) wcDraw(); }).catch(function(){}); }
+  var me=fixNow||B.lastPos(), fromMe=me?dtFmt(hav(me,{lat:wcLL.lat,lon:wcLL.lng})):'';
+  var cd=cell(T('Βάθος','Depth'),'',dep==null?'…':dep==='none'?'–':'~'+dep+' m',r&&isFinite(r.distKm)?T('ακτή ','shore ')+(r.distKm<1?Math.round(r.distKm*1000)+' m':B.num(r.distKm,1)+' km'):'',fromMe?T('από εσένα ','from you ')+fromMe:'');
+  var foot=h('div',{class:'wcf'});
+  if(cur){ var ck=cur.ocean_current_velocity/1.852; foot.append(h('span',{class:'wccur',html:wcArrow((cur.ocean_current_direction+180)%360,'#5bc0de')+'<span>'+T('Ρεύμα ','Current ')+B.num(ck,1)+' kn '+T('προς ','to ')+COMP[Math.round(cur.ocean_current_direction/45)%8]+'</span>'})); }
+  wcEl.replaceChildren(
+    h('div',{class:'wch'},h('b',{text:T('Σημείο','Point')}),h('span',{text:wcHour()}),h('button',{type:'button',class:'wcmore',text:T('Λεπτομέρειες ›','Details ›'),onclick:wcSheet}),h('button',{type:'button',class:'wcx','aria-label':T('Κλείσιμο','Close'),text:'✕',onclick:wcClose})),
+    h('div',{class:'wcg'},cw,cs,cd)); if(foot.children.length) wcEl.append(foot);
+  if(D._sync) D._sync();
+}
+function wcSheet(){
+  if(!wcLL) return; var W=window.PsaroWindMap, U=window.PsaroUnits, v=W&&W.sample?W.sample(wcLL.lat,wcLL.lng):null, r=wcSea(), rows=[], f1=function(x){ return B.num(x,1); }, Wd=function(k){ return U?U.wind(k):Math.round(k)+' kn'; }, dn=function(d){ return COMP[Math.round((((d%360)+360)%360)/45)%8]; };
+  function row(a,b){ rows.push(h('div',{class:'wcr'},h('span',{text:a}),h('b',{text:b}))); }
+  row(T('Ώρα','Time'),wcHour()); row(T('Θέση','Position'),wcLL.lat.toFixed(5)+', '+wcLL.lng.toFixed(5));
+  if(v){ row(T('Άνεμος','Wind'),dn(v.dir)+' '+Math.round(v.dir)+'° · '+Wd(v.sp)+(U&&U.cfg&&U.cfg.wind!=='kn'?' ('+Math.round(v.sp)+' kn)':''));
+    if(v.obs&&v.obs.near){ var ob=v.obs.near; row(T('Σταθμός','Station'),ob.name+' ('+Math.round(v.obs.dist)+' km) · '+T('μέτρηση ','observed ')+Wd(ob.obs)+' · '+T('μοντέλο ','model ')+Wd(ob.mod)); }
+    var all=W.sampleAll?W.sampleAll(wcLL.lat,wcLL.lng):[]; if(all.length>1) row(T('Μοντέλα ανέμου','Wind models'),all.map(function(a){ return a.name+' '+Wd(a.sp!=null?a.sp:(a.v&&a.v.sp)||0); }).join(' · ')); }
+  if(r&&r.hs>=0){ var lv=(window.PsaroSeaState.levels||[])[r.level]||{};
+    row(T('Κύμα','Waves'),'≈ '+f1(r.hs)+' m'+(r.hi-r.lo>=0.1?' ('+f1(r.lo)+'–'+f1(r.hi)+')':'')+' · '+((EN?lv.en:lv.el)||'')+(r.unc?T(' · αβέβαιο',' · uncertain'):''));
+    if(r.period>0) row(T('Περίοδος','Period'),'~'+Math.round(r.period)+' s');
+    if(r.wdir!=null) row(T('Κατεύθυνση κύματος','Wave direction'),T('από ','from ')+dn(r.wdir));
+    if(isFinite(r.windSea)) row(T('Κύμα ανέμου','Wind sea'),f1(r.windSea)+' m'+(r.tWind>0?' / '+Math.round(r.tWind)+' s':'')+(isFinite(r.fetchKm)?' · fetch '+(r.fetchKm<10?f1(r.fetchKm):Math.round(r.fetchKm))+' km':'')+(isFinite(r.dur)?' · '+(r.dur>=24?'24+':Math.round(r.dur))+' h':''));
+    if(r.swell) row('Swell',f1(r.swellEff)+' m'+(r.tSwell>0?' / '+Math.round(r.tSwell)+' s':'')+' · '+T('από ','from ')+dn(r.swell.dir)+(r.swell.h>r.swellEff+0.05?T(' (ανοιχτά ',' (offshore ')+f1(r.swell.h)+' m)':''));
+    if(r.model&&r.model.length) row(T('Μοντέλα κύματος','Wave models'),r.model.map(function(m){ return f1(m.h); }).join(' / ')+' m · '+T('βάρος ','weight ')+Math.round(100*r.wModel)+'%');
+    if(isFinite(r.depth)) row(T('Βάθος','Depth'),'~'+Math.round(r.depth)+' m'+(r.capped?T(' (περιορίζει το κύμα)',' (limits the waves)'):''));
+    if(isFinite(r.distKm)) row(T('Απόσταση από ακτή','Distance to shore'),r.distKm<1?Math.round(r.distKm*1000)+' m':f1(r.distKm)+' km'); }
+  var cur=wcCur(); if(cur) row(T('Ρεύμα','Current'),f1(cur.ocean_current_velocity/1.852)+' kn '+T('προς ','to ')+dn(cur.ocean_current_direction)+T(' (μοντέλο ~8 km)',' (model ~8 km)'));
+  var LV=(window.PsaroSeaState&&window.PsaroSeaState.levels)||[], G=window.PsaroSeaState&&window.PsaroSeaState.grad;
+  var leg=h('div',{class:'wcleg'},LV.map(function(l){ var hh=l.max>100?3:l.max*0.75, g=G?G(hh):[128,128,128]; return h('span',{},h('i',{style:'background:rgb('+g.map(Math.round).join(',')+')'}),h('b',{text:EN?l.en.split(' /')[0]:l.el.split(' ')[0]}),h('small',{text:EN?l.ren:l.r})); }));
+  var bd=h('div',null,h('div',{class:'wcrows'},rows)); if(LV.length) bd.append(h('h4',{class:'wcsh',text:T('Κατηγορίες θάλασσας (WMO)','Sea categories (WMO)')}),leg);
+  B.sheet({title:T('Καιρός στο σημείο','Weather at this point'),body:bd}); bd.append(
+    h('p',{class:'note',text:T('Εκτίμηση από μοντέλα (Open-Meteo) και βάθη EMODnet, έως 10 km από την ακτή. Ενδεικτικό, δεν είναι ναυτικό όργανο.','Estimate from models (Open-Meteo) and EMODnet depths, up to 10 km offshore. Indicative, not a navigation instrument.')}));
+}
+window.addEventListener('psaro-wxtap',function(e){ var d=e.detail||{}; if(d.clear){ setTimeout(wcDraw,60); return; } if(d.lat==null) return; var same=wcLL&&Math.abs(wcLL.lat-d.lat)<1e-9&&Math.abs(wcLL.lng-d.lng)<1e-9; wcLL={lat:d.lat,lng:d.lng}; clearTimeout(wcDraw._t); wcDraw._t=setTimeout(wcDraw,same?120:30); });
+window.addEventListener('psaro-windhour',function(e){ wcHr=e.detail&&e.detail.t||null; if(wcLL){ clearTimeout(wcDraw._t); wcDraw._t=setTimeout(wcDraw,150); } });
+window.addEventListener('psaro-windstop',function(){ setTimeout(wcDraw,80); });
 
 /* ---------- παρατεταμένο πάτημα στον χάρτη: ενέργειες για εκείνο το σημείο (όπως η κλασική) ---------- */
 var tapMk=null;
