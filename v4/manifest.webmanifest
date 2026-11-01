@@ -11,8 +11,75 @@
   "background_color": "#06171F",
   "theme_color": "#06171F",
   "icons": [
-    {"src": "../icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
-    {"src": "../icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
-    {"src": "../icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+    {
+      "src": "../icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "../icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "../icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Νέο ψάρι",
+      "short_name": "Ψάρι",
+      "description": "Καταγραφή ψαριού",
+      "url": "./#new",
+      "icons": [
+        {
+          "src": "../icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Έξοδος για ψάρεμα",
+      "short_name": "Έξοδος",
+      "description": "Έναρξη εξόδου",
+      "url": "./#trip",
+      "icons": [
+        {
+          "src": "../icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Πρόγνωση",
+      "short_name": "Πρόγνωση",
+      "url": "./#forecast",
+      "icons": [
+        {
+          "src": "../icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Χάρτης",
+      "short_name": "Χάρτης",
+      "url": "./#map",
+      "icons": [
+        {
+          "src": "../icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
   ]
 }

@@ -36,3 +36,16 @@ function start(){
 }
 B.start=start;
 })();
+/* «Νέα έκδοση διαθέσιμη» (όπως η κλασική): ελέγχει το ../version.js και ανανεώνει όταν το πατήσεις, ποτέ μέσα σε έξοδο */
+(function(){ var B=window.BC, T=B.T, bar=null, dis='';
+  function num(v){ var m=/z(\d+)/.exec(v||''); return m?+m[1]:0; }
+  function show(v){ if(bar||dis===v) return; bar=B.h('div',{class:'updbar',role:'status'},B.h('span',{text:T('Νέα έκδοση διαθέσιμη','A new version is available')}),
+      B.h('button',{type:'button',class:'btn sm pri',text:T('Ανανέωση','Update'),onclick:function(){ var go=function(){ location.reload(); };
+        try{ navigator.serviceWorker.getRegistration().then(function(r){ return r?r.update():0; }).catch(function(){}).then(go); }catch(e){ go(); } }}),
+      B.h('button',{type:'button',class:'x','aria-label':T('Κλείσιμο','Close'),text:'✕',onclick:function(){ dis=v; bar.remove(); bar=null; }}));
+    document.body.append(bar); }
+  function check(){ if(navigator.onLine===false||!window.PSARO_VERSION||document.body.classList.contains('ontrip')) return;
+    fetch('../version.js?_='+Date.now(),{cache:'no-store'}).then(function(r){ return r.ok?r.text():''; }).then(function(t){ var m=/PSARO_VERSION\s*=\s*'([^']+)'/.exec(t||''); if(m&&num(m[1])>num(window.PSARO_VERSION)) show(m[1]); }).catch(function(){}); }
+  document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible') check(); });
+  setTimeout(check,8000); setInterval(check,15*60000); B.on('tripend',function(){ setTimeout(check,3000); });
+})();

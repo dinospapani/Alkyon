@@ -4,6 +4,20 @@
 var B=window.BC, h=B.h, T=B.T, EN=B.EN, ls=B.ls, U=window.PsaroUnits, root=null;
 function C(){ return B.cloud; }
 
+/* διαγραφή λογαριασμού (ίδια ροή με την κλασική: έλεγχος ότι η υπηρεσία υπάρχει, σβήσιμο cloud, μετά λογαριασμός) */
+function delAccount(){ var word=T('ΔΙΑΓΡΑΦΗ','DELETE'), cl=B.cloud, inp=h('input',{type:'text',autocomplete:'off',autocapitalize:'characters',placeholder:word}), msg=h('p',{class:'err',role:'alert'}), sh;
+  var go=h('button',{class:'btn full sos',type:'button',text:T('Οριστική διαγραφή','Delete permanently'),onclick:function(){
+    if(inp.value.trim().toUpperCase()!==word){ msg.textContent=T('Γράψε ','Type ')+word+T(' για να συνεχίσεις.',' to continue.'); return; }
+    go.disabled=true; msg.textContent=T('Διαγραφή…','Deleting…'); var J={'Content-Type':'application/json'};
+    cl.rest('rpc/delete_my_account',{method:'POST',headers:J,body:JSON.stringify({dry:true})}).then(function(){
+      var q=Promise.resolve(); ['records?id=not.is.null','safety_trips?id=not.is.null','safety_contacts?updated_at=not.is.null'].forEach(function(pth){ q=q.then(function(){ return cl.rest(pth,{method:'DELETE'}).catch(function(){}); }); });
+      var uid=(cl.session()||{}).uid, pup=ls.get('psaro-pup',{})||{}; Object.keys(pup).forEach(function(k){ q=q.then(function(){ return cl.storage('DELETE','photos/'+uid+'/'+k+'.jpg').catch(function(){}); }); });
+      return q.then(function(){ return cl.rest('rpc/delete_my_account',{method:'POST',headers:J,body:JSON.stringify({dry:false})}); }).then(function(){
+        ['psaro-sess','psaro-last','psaro-pup'].forEach(function(k){ try{ localStorage.removeItem(k); }catch(e){} }); sh.close(); B.toast(T('Ο λογαριασμός διαγράφηκε.','Your account was deleted.')); setTimeout(function(){ location.reload(); },1200); })
+        .catch(function(){ go.disabled=false; msg.textContent=T('Η διαγραφή απέτυχε. Δοκίμασε ξανά.','Deletion failed. Try again.'); }); },
+      function(){ go.disabled=false; msg.textContent=T('Η διαγραφή λογαριασμού δεν έχει ενεργοποιηθεί ακόμα στον server. Δεν διαγράφηκε τίποτα.','Account deletion is not enabled on the server yet. Nothing was deleted.'); }); }});
+  sh=B.sheet({title:T('Διαγραφή λογαριασμού','Delete account'),body:h('div',{class:'bform'},h('p',{class:'sub',text:T('Θα διαγραφεί ο λογαριασμός σου και ό,τι έχει συγχρονιστεί στο cloud (ψάρια, σημεία, έξοδοι, φωτογραφίες, επαφή ασφαλείας). Δεν αναιρείται. Τα δεδομένα σε αυτό το κινητό μένουν.','Your account and everything synced to the cloud (catches, spots, trips, photos, safety contact) will be deleted. This cannot be undone. Data on this phone stays.')}),
+    h('label',{class:'fld'},h('span',{text:T('Γράψε ','Type ')+word+T(' για επιβεβαίωση',' to confirm')}),inp),msg,go)}); }
 function draw(){
   if(!root) return;
   var s=C().session(), page=h('div',{class:'page'});
@@ -31,6 +45,7 @@ function accountCard(s){
   var sb=h('button',{class:'btn full',type:'button',html:B.iconSvg('refresh')+'<span>'+T('Συγχρονισμός τώρα','Sync now')+'</span>',onclick:function(){ sb.disabled=true; C().sync(true).then(function(){ sb.disabled=false; draw(); }); }});
   c.append(sm,sb);
   c.append(h('button',{class:'btn full out',type:'button',text:T('Αποσύνδεση','Sign out'),onclick:function(){ B.ask(T('Αποσύνδεση από τον λογαριασμό; Τα δεδομένα σου μένουν στο κινητό και στον λογαριασμό.','Sign out? Your data stays on this phone and in your account.'),T('Αποσύνδεση','Sign out'),true).then(function(y){ if(y) C().signOut().then(function(){ B.toast(T('Αποσυνδέθηκες.','Signed out.')); draw(); }); }); }}));
+  c.append(h('button',{class:'linkbtn danger',type:'button',text:T('Διαγραφή λογαριασμού','Delete account'),onclick:delAccount}));
   return c;
 }
 function signInCard(){
@@ -62,6 +77,7 @@ function mine(){
   var n=B.store.raw('tackle').filter(function(x){ return !x.deleted; }).length, l=h('div',{class:'list'});
   var bt=ls.get('psaro-boat',null), bn=bt&&bt.boat&&bt.boat.name;
   l.append(h('a',{class:'li',href:'#boat'},h('span',{class:'ic'},B.icon('wave')),h('span',{class:'tx'},h('b',{text:T('Σκάφος','Boat')}),h('small',{text:bn||T('Κινητήρας, συντήρηση, λήξεις','Engine, maintenance, expiries')})),B.icon('chev')));
+  l.append(h('a',{class:'li',href:'#community'},h('span',{class:'ic'},B.icon('fish')),h('span',{class:'tx'},h('b',{text:T('Κοινότητα','Community')}),h('small',{text:T('Ψάρια άλλων ψαράδων, χωρίς θέση','Other anglers’ catches, no locations')})),B.icon('chev')));
   l.append(h('a',{class:'li',href:'#friends'},h('span',{class:'ic'},B.icon('user')),h('span',{class:'tx'},h('b',{text:T('Φίλοι','Friends')}),h('small',{text:T('Κοινά ψάρια και σημεία με φίλους','Share catches and spots with friends')})),B.icon('chev')));
   l.append(h('a',{class:'li',href:'#guide'},h('span',{class:'ic'},B.icon('fish')),h('span',{class:'tx'},h('b',{text:T('Οδηγός','Guide')}),h('small',{text:T('Είδη, ελάχιστα μεγέθη, νόμοι, κόμποι, λίστα ασφαλείας','Species, minimum sizes, laws, knots, safety checklist')})),B.icon('chev')));
   l.append(h('a',{class:'li',href:'#tackle'},h('span',{class:'ic'},B.icon('fish')),h('span',{class:'tx'},h('b',{text:T('Εξοπλισμός','Tackle')}),h('small',{text:n?n+' '+T('κομμάτια','items'):T('Πρόσθεσε καλάμια, μουλινέ, τεχνητά','Add rods, reels, lures')})),B.icon('chev')));

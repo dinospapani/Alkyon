@@ -15,7 +15,7 @@ function dF(s){ var t=dP(s); return t==null?'–':new Date(t).toLocaleDateString
 function addM(s,m){ var t=dP(s); if(t==null||!(m>0)) return null; var d=new Date(t); d.setUTCMonth(d.getUTCMonth()+Math.round(m)); return d.toISOString().slice(0,10); }
 function daysTo(s){ var t=dP(s), n=dP(today()); return t==null?null:Math.round((t-n)/DAY); }
 function lv(date,lead){ var d=daysTo(date); return {d:d,lv:!date?'n':d<0?'bad':d<=lead?'warn':'ok'}; }
-function lvTxt(o){ if(o.d==null) return T('χωρίς ημερομηνία','no date'); if(o.d<0) return T('έληξε πριν ','expired ')+(-o.d)+T(' ημέρες',' days ago'); if(o.d===0) return T('λήγει σήμερα','expires today'); return T('σε ','in ')+o.d+T(' ημέρες',' days'); }
+function lvTxt(o){ if(o.mt) return o.lv==='bad'?T('εκπρόθεσμο','overdue'):T('σύντομα','due soon'); if(o.d==null) return T('χωρίς ημερομηνία','no date'); if(o.d<0) return T('έληξε πριν ','expired ')+(-o.d)+T(' ημέρες',' days ago'); if(o.d===0) return T('λήγει σήμερα','expires today'); return T('σε ','in ')+o.d+T(' ημέρες',' days'); }
 function tag(o){ return h('span',{class:'tag '+(o.lv==='bad'?'poor':o.lv==='warn'?'fair':o.lv==='ok'?'good':''),text:lvTxt(o)}); }
 function dueList(b,s){ var out=[];
   b.exp.forEach(function(x){ if(x.date) out.push({name:x.name,date:x.date,lead:x.lead||30}); });
@@ -52,12 +52,47 @@ function portCard(){
   c.append(h('button',{class:'btn full',type:'button',text:'✓ '+T('Λίστα ελέγχου πριν βγεις','Pre-departure checklist')+' ('+M.clCount()+'/'+s.cl.items.length+')',onclick:function(){ M.checklist(draw); }}));
   return c;
 }
+
+/* ---------- πρόγραμμα συντήρησης κινητήρα (ίδιο με την κλασική insights.js: psaro-maint) ---------- */
+function Mload(){ var M=ls.get('psaro-maint',null); if(!M||!Array.isArray(M.items)) M={items:null,sent:{}}; M.sent=M.sent||{};
+  if(!M.items) M.items=(EN?[['Engine oil',100,12],['Fuel filter',100,12],['Gearcase oil',100,12],['Water impeller',200,24],['Anodes',0,6],['Propeller (inspect)',0,6],['Battery (inspect)',0,6],['Bilge pump (test)',0,3]]
+    :[['Λάδι κινητήρα',100,12],['Φίλτρο καυσίμου',100,12],['Λάδι ποδιού (gearcase)',100,12],['Πτερωτή νερού (impeller)',200,24],['Ανόδια',0,6],['Προπέλα (έλεγχος)',0,6],['Μπαταρία (έλεγχος)',0,6],['Αντλία σεντίνας (δοκιμή)',0,3]]).map(function(x,i){ return {id:'m'+i,name:x[0],h:x[1],mo:x[2],last:null}; });
+  return M; }
+function Msave(M){ ls.set('psaro-maint',M); }
+function engH(){ return +Sm().eng.h||0; }
+function mstat(it){
+  if(!it.last) return {lv:'n',tx:T('Δεν έχει καταγραφεί','Not logged yet')};
+  var eh=engH(), dh=it.h>0?it.h-(eh-it.last.h):null, dm=it.mo>0?it.mo*30.4-(Date.now()-it.last.t)/86400000:null, parts=[], l='ok';
+  if(dh!=null){ parts.push(dh>=0?T('σε ','in ')+Math.round(dh)+' h':T('καθυστέρηση ','overdue ')+Math.round(-dh)+' h'); if(dh<0) l='bad'; else if(dh<it.h*0.1) l='warn'; }
+  if(dm!=null){ parts.push(dm>=0?T('σε ','in ')+Math.round(dm)+T(' ημέρες',' days'):T('καθυστέρηση ','overdue ')+Math.round(-dm)+T(' ημέρες',' days')); if(dm<0) l='bad'; else if(dm<14&&l!=='bad') l='warn'; }
+  return {lv:l,tx:parts.join(' · ')+' · '+T('τελευταίο ','last ')+new Date(it.last.t).toLocaleDateString(EN?'en-GB':'el-GR')}; }
+B.maintDue=function(){ return Mload().items.filter(function(it){ var x=mstat(it).lv; return x==='bad'||x==='warn'; }); };
+function maintEdit(it){ var M=Mload(), cur=it?M.items.filter(function(x){ return x.id===it.id; })[0]:null, sh;
+  var nm=h('input',{type:'text',maxlength:'60',value:cur?cur.name:'',placeholder:T('π.χ. Μπουζί','e.g. Spark plugs')}), hh=h('input',{type:'number',min:'0',inputmode:'numeric',value:cur&&cur.h?cur.h:''}), mo=h('input',{type:'number',min:'0',inputmode:'numeric',value:cur?(cur.mo||''):'12'});
+  var body=h('form',{class:'bform',novalidate:true},fld(T('Όνομα','Name'),nm),h('div',{class:'g2'},fld(T('Κάθε (ώρες μηχανής)','Every (engine hours)'),hh),fld(T('ή κάθε (μήνες)','or every (months)'),mo)),
+    h('small',{class:'sub',text:T('Βάλε 0 ή άφησε κενό όποιο δεν ισχύει. Μετράει όποιο έρθει πρώτο.','Use 0 or leave empty for the one that does not apply. Whichever comes first counts.')}),
+    h('button',{class:'btn pri full',type:'submit',text:T('Αποθήκευση','Save')}),
+    cur?h('button',{class:'btn full del',type:'button',text:T('Διαγραφή','Delete'),onclick:function(){ var X=Mload(); X.items=X.items.filter(function(q){ return q.id!==cur.id; }); Msave(X); sh.close(); draw(); }}):null);
+  body.addEventListener('submit',function(ev){ ev.preventDefault(); var v=nm.value.trim(); if(!v){ nm.focus(); return; } var X=Mload(), o=cur?X.items.filter(function(q){ return q.id===cur.id; })[0]:null;
+    if(!o){ o={id:'m'+uid(),last:null}; X.items.push(o); } o.name=v.slice(0,60); o.h=Math.max(0,+hh.value||0); o.mo=Math.max(0,+mo.value||0); Msave(X); sh.close(); draw(); });
+  sh=B.sheet({title:cur?T('Στοιχείο συντήρησης','Maintenance item'):T('Νέο στοιχείο συντήρησης','New maintenance item'),body:body,focus:cur?null:'input'}); }
+function maintCard(){
+  var M=Mload(), c=h('section',{class:'card'},h('h2',{text:T('Πρόγραμμα συντήρησης','Maintenance schedule')}),h('p',{class:'sub',style:{margin:'-4px 0 8px'},text:T('Με βάση τις ώρες κινητήρα (','Based on engine hours (')+B.num(engH(),1)+' h) '+T('και τον χρόνο. Πάτα «Έγινε» όταν το κάνεις.','and time. Tap “Done” when you do it.')}));
+  var l=h('div',{class:'mini-list'});
+  M.items.forEach(function(it){ var st=mstat(it), iv=[]; if(it.h) iv.push(T('κάθε ','every ')+it.h+' h'); if(it.mo) iv.push(it.mo+T(' μήνες',' months'));
+    l.append(h('div',{class:'mrow mtrow '+st.lv},h('button',{type:'button',class:'mtname',onclick:function(){ maintEdit(it); }},h('b',{text:it.name}),h('small',{text:(iv.join(T(' ή ',' or '))||T('χωρίς διάστημα','no interval'))+' · '+st.tx})),
+      h('button',{class:'btn sm'+(st.lv==='bad'||st.lv==='warn'?' pri':''),type:'button',text:T('Έγινε','Done'),onclick:function(){ var X=Mload(); X.items.forEach(function(q){ if(q.id===it.id){ q.last={h:engH(),t:Date.now()}; delete X.sent[q.id]; } }); Msave(X); draw(); B.toast(T('Καταγράφηκε: ','Logged: ')+it.name); }}))); });
+  c.append(l,h('button',{class:'btn',type:'button',text:T('+ Νέο στοιχείο','+ New item'),onclick:function(){ maintEdit(null); }}));
+  return c; }
+/* υπενθύμιση μία φορά την εβδομάδα για κάθε στοιχείο που πλησιάζει ή καθυστερεί */
+setTimeout(function(){ if(B.prof()!=='boat') return; var M=Mload(), now=Date.now(), ch=false; M.items.forEach(function(it){ var st=mstat(it); if(st.lv!=='bad'&&st.lv!=='warn') return; if(M.sent[it.id]&&now-M.sent[it.id]<7*86400000) return; M.sent[it.id]=now; ch=true;
+  B.toast('🔧 '+it.name+' · '+(st.lv==='bad'?T('Εκπρόθεσμο.','Overdue.'):T('Πλησιάζει η ώρα.','Coming due.')),6000); }); if(ch) Msave(M); },12000);
 function draw(){
   if(!root) return;
   var b=D(), s=Sm(), page=h('div',{class:'page'}), y=window.scrollY;
   page.append(h('div',{class:'top'},h('div',{style:{display:'flex',alignItems:'center',gap:'12px'}},h('a',{class:'iconbtn',href:'#profile','aria-label':T('Πίσω στο Προφίλ','Back to Profile'),html:B.iconSvg('back')}),h('h1',{class:'lt',text:T('Σκάφος','Boat')}))));
   /* σύνοψη */
-  var eh=+s.eng.h||0, toSrv=s.eng.every?Math.round(s.eng.every-(eh-(+s.eng.last||0))):null, due=dueList(b,s), attn=due.filter(function(o){ return o.lv==='bad'||o.lv==='warn'; });
+  var eh=+s.eng.h||0, toSrv=s.eng.every?Math.round(s.eng.every-(eh-(+s.eng.last||0))):null, due=dueList(b,s), attn=due.filter(function(o){ return o.lv==='bad'||o.lv==='warn'; }).concat(B.maintDue().map(function(it){ var st=mstat(it); return {name:'🔧 '+it.name,lv:st.lv,d:null,mt:st.tx}; }));
   var sum=h('section',{class:'card'},h('h2',{text:(b.boat.name||T('Η βάρκα μου','My boat'))}),h('p',{class:'sub',style:{margin:'-4px 0 12px'},text:[b.boat.model,b.boat.len?b.boat.len+' m':'',b.eng.model?b.eng.model+(b.eng.hp?' '+b.eng.hp+' hp':''):''].filter(Boolean).join(' · ')||T('Συμπλήρωσε τα στοιχεία πιο κάτω.','Fill in the details below.')}));
   sum.append(h('div',{class:'kpis'},[[B.num(eh,1)+' h',T('ώρες κινητήρα','engine hours')],[toSrv!=null?Math.max(0,toSrv)+' h':'–',T('ως το service','to service')],[s.fuel?Math.round(s.fuel.L)+' L':'–',T('καύσιμο','fuel')],[String(attn.length),T('θέλουν προσοχή','need attention')]].map(function(k){ return h('div',{class:'kpi'},h('b',{text:k[0]}),h('span',{text:k[1]})); })));
   if(attn.length){ var al=h('div',{class:'mini-list'}); attn.forEach(function(o){ al.append(h('div',{class:'mrow'},h('b',{text:o.name}),tag(o),h('span'))); }); sum.append(al); }
@@ -75,6 +110,7 @@ function draw(){
   g2.append(fld(T('Ώρες κινητήρα τώρα','Engine hours now'),inp('number',s.eng.h,'0',function(v){ var x=Sm(); x.eng.h=v||0; saveS(x); draw(); })),fld(T('Service κάθε (ώρες)','Service every (h)'),inp('number',s.eng.every,'100',function(v){ var x=Sm(); x.eng.every=v||0; saveS(x); draw(); })));
   c2.append(g2,h('div',{class:'acts'},h('span',{class:'sub',style:{flex:'2',alignSelf:'center'},text:T('Τελευταίο service στις ','Last service at ')+(+s.eng.last||0)+' h'}),h('button',{class:'btn pri',type:'button',text:T('Έγινε service','Service done'),onclick:function(){ var x=Sm(), bb=D(); x.eng.last=x.eng.h; saveS(x); bb.log.unshift({id:uid(),date:today(),h:x.eng.h,note:'Service'}); saveB(bb); draw(); B.toast(T('Καταγράφηκε service.','Service logged.')); }})));
   page.append(c2);
+  page.append(maintCard());
   /* καύσιμο */
   var c3=h('section',{class:'card'},h('h2',{text:T('Καύσιμο και ταχύτητα','Fuel and speed')}),h('p',{class:'sub',style:{margin:'-4px 0 12px'},text:T('Για την ώρα επιστροφής και την αυτονομία στον χάρτη.','Used for return time and range on the map.')})), g3=h('div',{class:'g2'});
   g3.append(fld(T('Ταχύτητα πλεύσης (kn)','Cruise speed (kn)'),inp('number',s.cruise,'15',function(v){ var x=Sm(); x.cruise=v>0?v:15; saveS(x); })),fld(T('Ρεζερβουάρ (L)','Tank (L)'),inp('number',s.tank,'',function(v){ var x=Sm(); x.tank=v; if(v>0&&!x.fuel) x.fuel={L:v,t:Date.now()}; saveS(x); draw(); })),

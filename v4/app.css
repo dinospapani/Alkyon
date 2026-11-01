@@ -244,3 +244,12 @@ svg{display:block}
 /* μήνυμα με ενέργεια (π.χ. Αναίρεση) */
 .toast.act{pointer-events:auto;display:flex;align-items:center;gap:14px;text-align:left}
 .toast .tact{border:0;background:none;color:var(--accent);font:800 14.5px var(--font);padding:6px 4px;white-space:nowrap}
+.mtrow{display:flex;align-items:center;gap:10px}
+.mtrow .mtname{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:2px;border:0;background:none;padding:0;text-align:left;color:var(--ink);font-family:var(--font)}
+.mtrow .mtname small{color:var(--ink-3);font-size:12.5px}
+.mtrow.bad .mtname small{color:var(--poor)}
+.mtrow.warn .mtname small{color:var(--fair)}
+.linkbtn.danger{color:var(--poor);margin:14px auto 0;display:block;align-self:center}
+.updbar{position:fixed;left:12px;right:12px;bottom:calc(var(--nav-h) + var(--safe-b) + 16px);z-index:60;max-width:536px;margin:0 auto;display:flex;align-items:center;gap:10px;padding:10px 10px 10px 16px;border-radius:14px;background:var(--ink);color:var(--bg);font:600 14px var(--font);box-shadow:0 8px 22px rgba(0,0,0,.3)}
+.updbar span{flex:1}
+.updbar .x{width:32px;height:32px;border:0;border-radius:50%;background:transparent;color:inherit;font-size:15px}

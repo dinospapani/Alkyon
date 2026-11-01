@@ -378,6 +378,12 @@ function layersSheet(){
   if(window.PsaroPorts) act('plus',T('Πρόσθεσε λιμάνι ή ράμπα','Add a port or ramp'),T('Πάτα μετά στον χάρτη','Then tap the map'),function(){ B.closeSheet(); B.closeSheet(); PsaroPorts.startAdd(); });
   if(B.shareSpots) act('share',T('Στείλε τα σημεία μου','Send my spots'),T('Σύνδεσμος για φίλο','A link for a friend'),function(){ B.shareSpots(S().raw('spots').filter(function(x){ return !x.deleted&&typeof x.lat==='number'; })); });
   body.append(h('h3',{class:'lyh',text:T('Εργαλεία','Tools')}),acts);
+  /* υπόμνημα: σύμβολα και χρώματα περιοχών (όπως η κλασική) */
+  var Z=window.PsaroZoneCols||{noentry:'#9f1239',nofish:'#e02020',season:'#e8890c'}, leg=h('div',{class:'legend'});
+  [['<span class="lg me"></span>',T('Η θέση σου','Your position')],['<span class="lg fish"></span>',T('Ψάρι','Catch')],['<span class="lg fish many">3</span>',T('Πολλά ψάρια μαζί','Several catches')],['<span class="lg spot"></span>',T('Δικό σου σημείο','Your spot')],
+    ['<span class="lg mob">MOB</span>',T('Άνθρωπος στη θάλασσα','Man overboard')],['<span class="lg zn" style="--c:'+Z.nofish+'"></span>',T('Απαγόρευση αλιείας','No fishing')],['<span class="lg zn" style="--c:'+Z.noentry+'"></span>',T('Ούτε διέλευση σκαφών','No boats allowed')],['<span class="lg zn" style="--c:'+Z.season+'"></span>',T('Εποχικός περιορισμός','Seasonal limit')]]
+    .forEach(function(r){ leg.append(h('div',{class:'lgrow'},h('span',{class:'lgs',html:r[0]}),h('span',{text:r[1]}))); });
+  body.append(h('h3',{class:'lyh',text:T('Υπόμνημα','Legend')}),leg);
   if(!ready) body.append(h('p',{class:'sub',text:T('Τα στρώματα καιρού φορτώνουν…','Weather layers are loading…')}));
   body.append(h('p',{class:'foot',text:T('Κράτα πατημένο τον χάρτη για ψάρι, σημείο, πρόγνωση ή πλοήγηση σε εκείνο το σημείο. Βάθη, άνεμος, κύμα και ρεύματα είναι ενδεικτικά (μοντέλα και EMODnet), όχι ναυτικός χάρτης ή όργανο.','Long-press the map for a catch, spot, forecast or navigation at that point. Depths, wind, waves and currents are indicative (models and EMODnet), not a nautical chart or instrument.')}));
   paint();

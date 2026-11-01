@@ -127,5 +127,5 @@ setTimeout(function(){ if(S()) sync(false); },1500);
 
 B.store={raw:raw,get:get,save:save,remove:remove,tombs:tombs,Photos:Photos,phKeys:phKeys,resize:resize,
   bites:function(){ return raw('bites').filter(function(b){ return !b.miss; }); }, misses:function(){ return raw('bites').filter(function(b){ return b.miss; }); }};
-B.cloud={rest:rest,session:S,signIn:signIn,signUp:signUp,signOut:signOut,setName:setName,sync:sync,state:function(){ return state; },errText:errText};
+B.cloud={rest:rest,storage:storage,session:S,signIn:signIn,signUp:signUp,signOut:signOut,setName:setName,sync:sync,state:function(){ return state; },errText:errText};
 })();

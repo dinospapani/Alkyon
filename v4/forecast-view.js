@@ -292,12 +292,24 @@ function pwSeries(p,rk){
     var v={pts:out,now:now}; ls.set(key,{id:p.id,t:Date.now(),v:v}); delete pwMem[mk]; return v;
   }).catch(function(e){ delete pwMem[mk]; if(c&&c.id===p.id&&c.v) return c.v; throw e; });
 }
+/* μετρημένη πίεση από σταθμό (METAR ή Τμήμα Μετεωρολογίας) κοντά στο μέρος, για σύγκριση με το μοντέλο (όπως η κλασική, psaro-obsp) */
+function measured(box,p,modelNow){
+  var SUPA='https://sgfohmqwdwtkhtrebnix.supabase.co', SKEY='sb_publishable_LGuwvrvLnAj1CF22Q6g9vg_4OImZYbA';
+  function pick(list){ var best=null, bd=1e9; (list||[]).forEach(function(s){ if(s.pres==null||!isFinite(s.lat)||!isFinite(s.lon)||Date.now()-Date.parse(s.t||0)>2*3600000) return;
+      var dx=(s.lon-p.lon)*Math.cos(p.lat*Math.PI/180)*111.2, dy=(s.lat-p.lat)*111.2, d=Math.sqrt(dx*dx+dy*dy); if(d<bd){ bd=d; best=s; } }); return best&&bd<=60?{s:best,d:bd}:null; }
+  function show(r){ if(!r) return; var s=r.s, U=window.PsaroUnits, pf=function(v){ return U&&U.press?U.press(v):Math.round(v)+' hPa'; }, dif=modelNow!=null?Math.round((s.pres-modelNow)*10)/10:null;
+    var old=box.querySelector('.measp'); if(old) old.remove();
+    box.append(h('p',{class:'foot measp',text:T('Μετρημένη πίεση: ','Measured pressure: ')+pf(s.pres)+' · '+(s.name||s.id)+' ('+(s.src||'')+', '+String(s.t).slice(11,16)+'Z, '+Math.round(r.d)+' km)'+(dif!=null?' · '+T('μοντέλο τώρα: ','model now: ')+pf(modelNow)+' ('+(dif>0?'+':'')+B.num(dif,1)+' hPa)':'')})); }
+  if(p.lat==null) return; var c=ls.get('psaro-obsp',null); if(c&&Date.now()-c.t<10*60000&&c.v){ show(pick(c.v)); return; }
+  var to; try{ to=AbortSignal.timeout(10000); }catch(e){}
+  fetch(SUPA+'/functions/v1/smart-api',{signal:to,headers:{apikey:SKEY,Authorization:'Bearer '+SKEY}}).then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(j){ var l=Array.isArray(j)?j:[]; ls.set('psaro-obsp',{t:Date.now(),v:l}); show(pick(l)); }).catch(function(){});
+}
 function pwCard(fc,d){
   var rk=pwKey(), p=st.place||current(), c=h('section',{class:'card pw'});
   c.append(h('div',{class:'pwh'},h('h2',{text:T('Πίεση, άνεμος, σελήνη','Pressure, wind, moon')}),B.seg(Object.keys(PRG).map(function(k){ return [k,PRG[k].l]; }),rk,function(v){ ls.set('psaro-pwrange',v); st.pwi=null; draw(); },T('Εύρος','Range'))));
   var body=h('div',null,h('div',{class:'sk',style:{height:'200px'}})); c.append(body);
   if(p.lat==null) return c;
-  pwSeries(p,rk).then(function(v){ if(body.isConnected||!root) pwFill(body,v,p,fc,rk); else setTimeout(function(){ pwFill(body,v,p,fc,rk); },0); })
+  pwSeries(p,rk).then(function(v){ if(body.isConnected||!root) pwFill(body,v,p,fc,rk); else setTimeout(function(){ pwFill(body,v,p,fc,rk); },0); var mn=v&&v.pts&&v.now!=null&&v.pts[v.now]?v.pts[v.now].p:null; measured(c,p,mn); })
     .catch(function(){ body.replaceChildren(h('p',{class:'sub',text:T('Τα δεδομένα πίεσης δεν φορτώθηκαν.','Pressure data did not load.')})); });
   return c;
 }

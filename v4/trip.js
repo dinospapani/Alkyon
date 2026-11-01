@@ -164,7 +164,7 @@ function sos(){
 }
 
 /* ---------- οθόνες ---------- */
-B.trip={state:load,active:function(){ return !!load().active; },back:back,ext:ext,srv:function(){ return srv; },fix:function(){ return fixP; },track:function(){ var t=ls.get('psaro-track',null), s=load(); return s.active&&t&&t.id===s.id?t:null; }};
+B.trip={state:load,active:function(){ return !!load().active; },back:back,ext:ext,sos:sos,srv:function(){ return srv; },fix:function(){ return fixP; },track:function(){ var t=ls.get('psaro-track',null), s=load(); return s.active&&t&&t.id===s.id?t:null; }};
 B.tripStart=function(){
   var d=load();
   if(d.active){ B.tripSheet(); return; }
@@ -191,6 +191,7 @@ B.tripSheet=function(){
   body.append(h('div',{class:'card tripcard'+(lt?' late':''),style:{margin:'0'}},h('b',{text:lt?T('Πέρασε η ώρα επιστροφής (','Past your return time (')+hm(s.due)+')':T('Επιστροφή στις ','Back at ')+hm(s.due)+' ('+T('σε ','in ')+dur(s.due-Date.now())+')'}),
     h('p',{class:'sub',style:{margin:'4px 0 0'},text:[T('Έξοδος ','Out ')+dur(Date.now()-s.start),t&&t.m>=100?B.num(t.m/1000,1)+' km':'',sm.n+' '+T('ψάρια','catches')+(sm.kg?', '+B.num(sm.kg,1)+' kg':'')].filter(Boolean).join(' · ')}),
     srv?h('p',{class:'sub',style:{margin:'6px 0 0'},text:srv}):null));
+  var sx=B.tripSheetExtras&&B.tripSheetExtras(); if(sx) body.append(sx);
   body.append(h('div',{class:'acts'},h('button',{class:'btn',type:'button',text:T('+30 λεπτά','+30 min'),onclick:function(){ ext(); sh.close(); }}),h('button',{class:'btn',type:'button',text:T('Στείλε το σχέδιο','Send the plan'),onclick:function(){ sh.close(); chooseSend(load(),'plan'); }})));
   body.append(h('button',{class:'btn pri full',type:'button',text:'■ '+T('Τέλος εξόδου','End trip'),onclick:function(){ sh.close(); back(); }}));
   body.append(h('button',{class:'btn full sos',type:'button',text:'SOS',onclick:function(){ B.ask(T('Να σταλεί SOS με τη θέση σου στην επαφή ασφαλείας;','Send an SOS with your location to your safety contact?'),T('Αποστολή SOS','Send SOS'),true).then(function(y){ if(y){ sh.close(); sos(); } }); }}));

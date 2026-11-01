@@ -186,3 +186,33 @@ body.ontrip .mk.me.hd i::after{display:none}
 .tripbtn{gap:10px;background:var(--accent)!important;color:#fff!important;font-weight:750;box-shadow:0 8px 22px rgba(228,87,46,.45)!important;padding:0 22px 0 14px}
 .tripbtn .tbic{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.22)}
 .tripbtn .tbic svg{width:22px;height:22px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* ειδοποιήσεις εξόδου (πίεση, μπαταρία) */
+.tripal{position:fixed;left:12px;right:12px;top:calc(var(--safe-t) + 12px);z-index:150;max-width:540px;margin:0 auto;display:flex;gap:10px;align-items:flex-start;padding:12px 12px 12px 14px;border-radius:14px;background:#b26a00;color:#fff;font:600 14px/1.4 var(--font);box-shadow:0 10px 26px rgba(0,0,0,.4)}
+.tripal.bat{background:#c62828}
+.tripal span{flex:1}
+.tripal .x{flex:none;width:32px;height:32px;border:0;border-radius:50%;background:rgba(255,255,255,.2);color:#fff;font-size:15px}
+/* ψαροντούφεκο στην έξοδο */
+.spdock{position:fixed;left:12px;bottom:calc(var(--nav-h) + var(--safe-b) + 76px);z-index:22;display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+.spbuoy{min-height:40px;padding:0 14px;border-radius:20px;border:2px solid #ffb300;background:var(--surface);color:var(--ink);font:700 14px var(--font);box-shadow:var(--shadow)}
+.spbuoy.ok{border-color:var(--good);background:var(--good);color:#fff}
+.spdive{min-width:132px;min-height:64px;padding:8px 14px;border:0;border-radius:18px;background:var(--sea);color:#fff;display:flex;flex-direction:column;align-items:flex-start;box-shadow:0 8px 22px rgba(0,0,0,.35);text-align:left}
+.spdive b{font:800 24px/1.1 var(--font);font-variant-numeric:tabular-nums}
+.spdive small{font:600 11.5px var(--font);opacity:.85}
+.spdive.on{background:#0d47a1}
+.spdive.over{background:#c62828;animation:spblink 1s infinite}
+@keyframes spblink{50%{filter:brightness(1.35)}}
+.ruok{position:fixed;inset:0;z-index:300;background:rgba(160,0,0,.92);display:flex;align-items:center;justify-content:center;padding:24px}
+.ruc{width:100%;max-width:420px;display:flex;flex-direction:column;gap:14px;color:#fff;text-align:center}
+.ruc h2{margin:0;font:800 34px var(--font)}
+.ruc p{margin:0;font:600 18px var(--font)}
+.ruc .btn.big{min-height:64px;font-size:20px}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin:4px 0 8px}
+.lgrow{display:flex;align-items:center;gap:10px;font:500 13.5px var(--font);color:var(--ink-2);min-height:30px}
+.lgs{flex:none;width:30px;display:grid;place-items:center}
+.lg{display:inline-grid;place-items:center}
+.lg.me{width:16px;height:16px;border-radius:50%;background:#1e88ff;border:3px solid #fff;box-shadow:0 0 0 4px rgba(30,136,255,.25)}
+.lg.fish{width:13px;height:13px;border-radius:50%;background:#2fb6e8;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.lg.fish.many{width:22px;height:22px;font:800 10.5px var(--font);color:#fff}
+.lg.spot{width:16px;height:16px;border-radius:50%;background:var(--accent);border:2.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.lg.mob{padding:2px 4px;border-radius:5px;background:#e53935;color:#fff;font:800 9px var(--font)}
+.lg.zn{width:24px;height:16px;border-radius:4px;border:2px solid var(--c);background:color-mix(in srgb,var(--c) 30%,transparent)}
