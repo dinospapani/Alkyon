@@ -99,7 +99,7 @@ function trips(page){
 function spots(page){
   var q=h('input',{type:'search',placeholder:T('Αναζήτηση σημείου','Search spots'),'aria-label':T('Αναζήτηση','Search'),value:st.sq||''}), list=h('div');
   q.addEventListener('input',function(){ st.sq=q.value; fill(); });
-  page.append(h('div',{class:'search'},B.icon('search'),q),list);
+  page.append(h('div',{class:'srow'},h('div',{class:'search'},B.icon('search'),q),B.importSheet?h('button',{class:'iconbtn sm vtog',type:'button','aria-label':T('Εισαγωγή από plotter','Import from plotter'),html:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v3h16v-3"/></svg>',onclick:function(){ B.importSheet(); }}):null),list);
   function near(sp){ return S().raw('bites').filter(function(b){ return !b.miss&&(b.place===sp.name||(typeof b.lat==='number'&&Math.abs(b.lat-sp.lat)<0.0025&&Math.abs(b.lon-sp.lon)<0.003)); }).reduce(function(s,b){ return s+bc(b); },0); }
   function fill(){ var qq=nrm(st.sq||''), a=S().raw('spots').filter(function(x){ return !x.deleted&&typeof x.lat==='number'&&(!qq||nrm([x.name,x.type,x.notes].join(' ')).indexOf(qq)>=0); });
     if(!a.length){ list.replaceChildren(h('div',{class:'card empty'},h('h3',{text:qq?T('Δεν βρέθηκε σημείο','No spot found'):T('Δεν έχεις αποθηκεύσει σημεία','No saved spots yet')}),h('p',{text:T('Κράτα πατημένο τον χάρτη και διάλεξε «Σημείο εδώ», ή πάτα το αστέρι στον χάρτη για τη θέση σου.','Long-press the map and choose “Spot here”, or tap the star on the map for your position.')}),h('a',{class:'btn pri',href:'#map',text:T('Στον χάρτη','Open the map')}))); return; }

@@ -176,13 +176,19 @@ B.tripStart=function(){
   var sil=h('select',{class:'select'}); [[0,T('Χωρίς','Off')],[30,T('Μετά από 30 λεπτά','After 30 minutes')],[60,T('Μετά από 60 λεπτά','After 60 minutes')],[90,T('Μετά από 90 λεπτά','After 90 minutes')]].forEach(function(o){ sil.append(h('option',{value:String(o[0]),text:o[1]})); }); sil.value=String(d.sil!=null?d.sil:60);
   var nt=h('input',{type:'checkbox',checked:true}), gp=h('input',{type:'checkbox',checked:gpsOn()});
   var c=hasContact(d), logged=!!Cl(), ex=B.tripStartExtras?B.tripStartExtras(rt):null;
-  var info=h('div',{class:'card',style:{margin:'0'}},h('b',{text:c?T('Επαφή ασφαλείας: ','Safety contact: ')+(d.name||d.phone||d.email||(d.tgLinked?'Telegram':'')):T('Δεν έχεις επαφή ασφαλείας','No safety contact')}),
-    h('p',{class:'sub',style:{margin:'4px 0 0'},text:!logged?T('Χωρίς λογαριασμό η επαφή δεν μπορεί να ειδοποιηθεί αυτόματα. Θα έχεις μόνο υπενθύμιση στο κινητό.','Without an account your contact cannot be alerted automatically. You only get a reminder on your phone.'):c?T('Αν δεν γυρίσεις στην ώρα σου ή χαθεί η επαφή μαζί σου, ειδοποιείται αυτόματα.','If you are not back on time or contact is lost, they are alerted automatically.'):T('Πρόσθεσέ τη στο Προφίλ › Επαφή ασφαλείας.','Add one in Profile › Safety contact.')}));
-  var go=h('button',{class:'btn pri full',type:'button',text:'▶ '+T('Έναρξη εξόδου','Start trip'),onclick:function(){ if(!tm.value){ B.toast(T('Βάλε ώρα επιστροφής.','Set a return time.')); return; }
+  /* απλή μορφή: επαφή σε μία γραμμή, πότε γυρνάς, πού πας, ειδοποίηση· τα υπόλοιπα στο «Περισσότερα» */
+  var SH='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>';
+  var info=h('button',{type:'button',class:'tcontact'+(c&&logged?' ok':' warn'),onclick:function(){ if(B.safetyCard) B.sheet({title:T('Επαφή ασφαλείας','Safety contact'),body:B.safetyCard(),stack:true}); }},h('span',{class:'tci',html:SH}),
+    h('span',{class:'tx'},h('b',{text:c?T('Επαφή ασφαλείας: ','Safety contact: ')+(d.name||d.phone||d.email||(d.tgLinked?'Telegram':'')):T('Χωρίς επαφή ασφαλείας','No safety contact')}),
+      h('small',{text:!logged?T('Χωρίς λογαριασμό: μόνο υπενθύμιση στο κινητό','No account: phone reminder only'):c?T('Ειδοποιείται αν δεν γυρίσεις στην ώρα σου','Alerted if you are not back on time'):T('Πάτα για να ορίσεις','Tap to set one')})));
+  var tmRow=h('label',{class:'ttime'},h('span',{text:T('Επιστροφή έως','Back by')}),tm);
+  var more=h('details',{class:'tmore'},h('summary',{text:T('Περισσότερες ρυθμίσεις','More settings')}),
+    h('label',{class:'fld'},h('span',{text:T('Αν χαθεί η επαφή με το κινητό','If contact with the phone is lost')}),sil,h('small',{text:T('Αν το κινητό σταματήσει να στέλνει σήμα για τόσο χρόνο, σε ρωτά στο Telegram και μετά ειδοποιεί την επαφή.','If the phone stops sending a signal this long, it asks you on Telegram, then alerts your contact.')})),
+    h('label',{class:'tg'},gp,h('span',{text:T('Καταγραφή διαδρομής GPS (περισσότερη μπαταρία)','Record GPS route (uses more battery)')})),ex?ex.nodes:null);
+  var go=h('button',{class:'btn pri full tgo',type:'button',text:'▶ '+T('Έναρξη εξόδου','Start trip'),onclick:function(){ if(!tm.value){ B.toast(T('Βάλε ώρα επιστροφής.','Set a return time.')); return; }
     ls.set('psaro-gps',gp.checked?'1':'0'); if(ex&&ex.apply) ex.apply(); sh.close(); start({due:toMs(tm.value),route:rt.value.trim(),sil:+sil.value||0,notify:nt.checked}); }});
-  var body=h('div',{class:'bform'},info,h('div',{class:'fld'},h('span',{text:T('Επιστροφή σε','Back in')}),chips),h('label',{class:'fld'},h('span',{text:T('Ώρα επιστροφής','Return time')}),tm),h('label',{class:'fld'},h('span',{text:T('Πού πας (προαιρετικό)','Where (optional)')}),rt),
-    h('label',{class:'fld'},h('span',{text:T('Αν χαθεί η επαφή με το κινητό','If contact with the phone is lost')}),sil,h('small',{text:T('Ο server ελέγχει ότι το κινητό στέλνει σήμα. Αν σταματήσει για τόσο χρόνο, σε ρωτά στο Telegram και μετά ειδοποιεί την επαφή.','The server checks that the phone keeps sending a signal. If it stops for this long, it asks you on Telegram, then alerts your contact.')})),
-    h('label',{class:'tg'},nt,h('span',{text:T('Ειδοποίησε την επαφή μου σε αυτή την έξοδο','Alert my contact on this trip')})),h('label',{class:'tg'},gp,h('span',{text:T('Καταγραφή διαδρομής GPS (περισσότερη μπαταρία)','Record GPS route (uses more battery)')})),ex?ex.nodes:null,go);
+  var body=h('div',{class:'bform tstart'},info,h('div',{class:'fld'},h('span',{text:T('Πόση ώρα θα λείψεις;','How long will you be out?')}),chips,tmRow),h('label',{class:'fld'},h('span',{text:T('Πού πας (προαιρετικό)','Where (optional)')}),rt),
+    c?h('label',{class:'tg'},nt,h('span',{text:T('Ειδοποίηση της επαφής μου σε αυτή την έξοδο','Alert my contact on this trip')})):null,more,go);
   var sh=B.sheet({title:T('Έξοδος για ψάρεμα','Fishing trip'),body:body});
 };
 B.tripSheet=function(){

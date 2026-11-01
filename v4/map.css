@@ -260,3 +260,29 @@ body.maptrip.hasdt .mapwx{top:calc(var(--safe-t) + 186px)}
 #ndWindSl{accent-color:var(--accent)}
 .tripbtn{white-space:nowrap;max-width:calc(100vw - 40px);min-height:50px;font-size:16px}
 .tripbtn{border:0!important}
+/* ομάδες σημείων */
+.mk.spot.grp{translate:-14px -14px}
+.mk.spot.grp i{width:28px;height:28px;display:grid;place-items:center;font:800 12px var(--font);font-style:normal;color:#fff}
+.mk.fish.many{box-shadow:0 0 0 4px rgba(47,182,232,.3),0 1px 3px rgba(0,0,0,.5)}
+/* σταυρός κέντρου: μόνο όταν μετράς απόσταση (εκεί προστίθενται τα σημεία της μέτρησης) */
+.cross{display:none}
+body:has(#bRuler[aria-pressed=true]) .cross{display:block;opacity:.8}
+/* έναρξη εξόδου: απλή μορφή */
+.tstart{gap:14px}
+.tcontact{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border:0;border-radius:16px;background:var(--surface-2);color:var(--ink);text-align:left;font-family:var(--font)}
+.tcontact .tci{flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center}
+.tcontact.ok .tci{background:var(--good-bg);color:var(--good)}.tcontact.warn .tci{background:var(--fair-bg);color:var(--fair)}
+.tcontact .tci svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.tcontact .tx{display:flex;flex-direction:column;gap:2px;min-width:0}
+.tcontact .tx b{font-size:15px}.tcontact .tx small{font-size:12.5px;color:var(--ink-2)}
+.tstart .chips{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:0}
+.tstart .chips .chip{min-width:0;justify-content:center;padding:0}
+.ttime{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;font:600 14px var(--font);color:var(--ink-2)}
+.ttime input{width:auto;min-width:120px;text-align:center;font-weight:700}
+.tmore{border-top:1px solid var(--line);padding-top:2px}
+.tmore>summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;min-height:44px;font:650 14.5px var(--font);color:var(--accent)}
+.tmore>summary::-webkit-details-marker{display:none}
+.tmore>summary::after{content:"";width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);margin-right:6px}
+.tmore[open]>summary::after{transform:rotate(-135deg)}
+.tmore[open]{display:flex;flex-direction:column;gap:12px}
+.tgo{min-height:54px;font-size:16.5px}

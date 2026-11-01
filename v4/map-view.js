@@ -37,12 +37,19 @@ function drawData(){
   if(!map) return;
   if(gSpots) map.removeLayer(gSpots); if(gFish) map.removeLayer(gFish);
   gSpots=L.layerGroup(); gFish=L.layerGroup();
-  if(cfg.spots) S().raw('spots').forEach(function(sp){ if(typeof sp.lat!=='number') return;
-    L.marker([sp.lat,sp.lon],{icon:icon('spot','<i></i><b>'+esc(sp.name||'')+'</b>'),keyboard:true,title:sp.name||''}).on('click',function(){ spotSheet(sp); }).addTo(gSpots); });
-  if(cfg.fish){ /* ψάρια στο ίδιο σημείο (±60 m): ένας δείκτης με αριθμό */
-    var cells={}; S().raw('bites').forEach(function(b){ if(b.miss||typeof b.lat!=='number') return; var k=Math.round(b.lat*1800)+'_'+Math.round(b.lon*1800); (cells[k]=cells[k]||[]).push(b); });
-    Object.keys(cells).forEach(function(k){ var a=cells[k], n=a.reduce(function(s,b){ return s+Math.max(1,Math.floor(+b.cnt)||1); },0), la=0, lo=0; a.forEach(function(b){ la+=b.lat; lo+=b.lon; });
-      L.marker([la/a.length,lo/a.length],{icon:icon('fish'+(n>1?' many':''),n>1?'<b>'+n+'</b>':''),title:a.map(function(b){ return b.species; }).join(', ')}).on('click',function(){ fishSheet(a); }).addTo(gFish); }); }
+  /* ομαδοποίηση: ό,τι πέφτει πιο κοντά από ~36 pixel στην οθόνη γίνεται ένας δείκτης με αριθμό (αλλάζει με το ζουμ) */
+  var z=map.getZoom(), R=36;
+  function cluster(items,ll){ var out=[]; items.forEach(function(it){ var p=map.project(ll(it),z), hit=null;
+      for(var i=0;i<out.length;i++){ var c=out[i]; if(Math.abs(c.x-p.x)<R&&Math.abs(c.y-p.y)<R){ hit=c; break; } }
+      if(hit){ hit.a.push(it); hit.x=(hit.x*(hit.a.length-1)+p.x)/hit.a.length; hit.y=(hit.y*(hit.a.length-1)+p.y)/hit.a.length; } else out.push({x:p.x,y:p.y,a:[it]}); });
+    return out.map(function(c){ return {ll:map.unproject(L.point(c.x,c.y),z),a:c.a}; }); }
+  function spread(a,ll){ var b=L.latLngBounds(a.map(ll)); return b.getNorthEast().distanceTo(b.getSouthWest()); }
+  if(cfg.spots){ var sps=S().raw('spots').filter(function(sp){ return !sp.deleted&&typeof sp.lat==='number'; }), sll=function(sp){ return L.latLng(sp.lat,sp.lon); };
+    cluster(sps,sll).forEach(function(c){ if(c.a.length===1){ var sp=c.a[0]; L.marker([sp.lat,sp.lon],{icon:icon('spot','<i></i><b>'+esc(sp.name||'')+'</b>'),keyboard:true,title:sp.name||''}).on('click',function(){ spotSheet(sp); }).addTo(gSpots); return; }
+      L.marker(c.ll,{icon:icon('spot grp','<i>'+c.a.length+'</i>'),title:c.a.map(function(x){ return x.name; }).join(', ')}).on('click',function(){ if(spread(c.a,sll)<120||map.getZoom()>=17) spotList(c.a); else map.fitBounds(L.latLngBounds(c.a.map(sll)).pad(0.5),{maxZoom:17}); }).addTo(gSpots); }); }
+  if(cfg.fish){ var fs=S().raw('bites').filter(function(b){ return !b.deleted&&!b.miss&&typeof b.lat==='number'; }), fll=function(b){ return L.latLng(b.lat,b.lon); };
+    cluster(fs,fll).forEach(function(c){ var a=c.a, n=a.reduce(function(s,b){ return s+Math.max(1,Math.floor(+b.cnt)||1); },0);
+      L.marker(c.ll,{icon:icon('fish'+(n>1?' many':''),n>1?'<b>'+n+'</b>':''),title:a.map(function(b){ return b.species; }).join(', ')}).on('click',function(){ if(a.length===1||spread(a,fll)<150||map.getZoom()>=17) fishSheet(a); else map.fitBounds(L.latLngBounds(a.map(fll)).pad(0.5),{maxZoom:17}); }).addTo(gFish); }); }
   gFish.addTo(map); gSpots.addTo(map);
   drawGear(); drawSea();
   if(typeof declutterSoon==='function') declutterSoon();
@@ -255,6 +262,8 @@ function fishSheet(a){
     l.append(h('button',{class:'li',type:'button',onclick:function(){ sh.close(true); if(B.biteDetail) B.biteDetail(b); }},h('span',{class:'ic'},B.icon('fish')),h('span',{class:'tx'},h('b',{text:(b.species||'')+(+b.cnt>1?' ×'+b.cnt:'')}),h('small',{text:[B.dateShort(b.date)+(b.time?', '+b.time:''),+b.kg?b.kg+' kg':''].filter(Boolean).join(' · ')})))); });
   var sh=B.sheet({title:a.length+' '+T('ψάρια σε αυτό το σημείο','catches at this spot'),body:l});
 }
+function spotList(a){ var l=h('div',{class:'list'}), sh; a.forEach(function(sp){ l.append(h('button',{class:'li',type:'button',onclick:function(){ sh.close(true); spotSheet(sp); }},h('span',{class:'ic'},B.icon('pin')),h('span',{class:'tx'},h('b',{text:sp.name||T('Σημείο','Spot')}),h('small',{text:[sp.type,sp.depth!=null&&sp.depth!==''?sp.depth+' m':''].filter(Boolean).join(' · ')||' '})),B.icon('chev'))); });
+  sh=B.sheet({title:a.length+' '+T('σημεία εδώ','spots here'),body:l}); }
 function spotSheet(sp){
   var n=S().raw('bites').filter(function(b){ return !b.miss&&typeof b.lat==='number'&&Math.abs(b.lat-sp.lat)<0.0008&&Math.abs(b.lon-sp.lon)<0.001; }).length;
   var body=h('div',{class:'det'},h('div',{class:'card'},h('div',{class:'rows one'},[[T('Τύπος','Type'),sp.type||'–'],[T('Βάθος','Depth'),sp.depth!=null&&sp.depth!==''?sp.depth+' m':'–'],[T('Ψάρια εδώ','Catches here'),String(n)],[T('Συντεταγμένες','Coordinates'),window.PsaroCoord?PsaroCoord.fmt(sp.lat,sp.lon):sp.lat.toFixed(5)+', '+sp.lon.toFixed(5)]].map(function(r){ return h('div',{class:'row'},h('span',{text:r[0]}),h('b',{text:r[1]})); }))));
@@ -376,6 +385,7 @@ function layersSheet(){
   /* ενέργειες */
   var acts=h('div',{class:'list lacts'});
   function act(ic,lab,sub,fn){ acts.append(h('button',{class:'li',type:'button',onclick:fn},h('span',{class:'ic lic',html:LIC[ic]}),h('span',{class:'tx'},h('b',{text:lab}),sub?h('small',{text:sub}):null),B.icon('chev'))); }
+  if(B.importSheet) act('dl',T('Εισαγωγή από plotter ή ρολόι','Import from plotter or watch'),'GPX · KML · CSV · FIT',function(){ B.closeSheet(); B.importSheet(); });
   act('spot',T('Νέο σημείο στο κέντρο','New spot at the centre'),T('Ή κράτα πατημένο τον χάρτη','Or long-press the map'),function(){ B.closeSheet(); spotForm(null,map.getCenter()); });
   if(B.gearPanel) act('gear',T('Παραγάδι, δίχτυ, ζεμπίλι','Longline, net, pot'),T('Ρίψη και ανέβασμα εργαλείων','Set and haul gear'),function(){ B.closeSheet(); B.gearPanel(); });
   act('dl',T('Χάρτης εκτός σύνδεσης','Offline map'),T('Κατέβασε την περιοχή που βλέπεις','Download the area you see'),function(){ var bx=h('div',{class:'bform'}); offlineSection(bx); B.sheet({title:T('Χάρτης εκτός σύνδεσης','Offline map'),body:bx,stack:true}); });
@@ -409,10 +419,16 @@ function mount(el){
   /* γρήγορα στρώματα: άνεμος, κύμα, ρεύματα, βάθη (τα υπόλοιπα στο μενού «Στρώματα») */
   var qc=h('div',{class:'mchips',role:'group','aria-label':T('Γρήγορα στρώματα','Quick layers')});
   function qchip(ic,lab,get,set){ var b=h('button',{type:'button',class:'mchip',onclick:function(){ set(!get()); setTimeout(qpaint,80); setTimeout(qpaint,900); }},h('span',{html:LIC[ic]}),h('b',{text:lab})); b._g=get; qc.append(b); }
-  function qpaint(){ [].forEach.call(qc.children,function(b){ var on=false; try{ on=!!b._g(); }catch(e){} b.setAttribute('aria-pressed',String(on)); }); }
+  function qpaint(){ [].forEach.call(qc.children,function(b){ var on=false; try{ on=!!b._g(); }catch(e){} b.setAttribute('aria-pressed',String(on)); if(b._lab){ var t=b.querySelector('b'); if(t) t.textContent=b._lab(); } }); }
   qchip('wind',T('Άνεμος','Wind'),windOn,setWind); qchip('wave',T('Κύμα','Waves'),seaOn,setSeaSt);
   qchip('cur',T('Ρεύματα','Currents'),function(){ return !!cfg.cur; },function(v){ cfg.cur=v; saveCfg(); currents(true); });
-  qchip('depth',T('Βάθη','Depths'),function(){ return dmode()>0; },function(v){ var last=+ls.get('psaro-v4-dlast',2)||2; if(!v){ ls.set('psaro-v4-dlast',dmode()); setDepth(0); } else setDepth(last,last===2?((window.PsaroDense&&PsaroDense.mode())||ls.get('psaro-dl','std')):null); });
+  /* βάθη: κάθε πάτημα αλλάζει πυκνότητα γραμμών: Στάνταρ → 5 m → 10 m → 20 m → κλειστά (χρώματα από το μενού Στρωμάτων) */
+  var DSEQ=['off','std','5','10','20'];
+  function dcur(){ var m=dmode(); if(m===0) return 'off'; if(m===1) return 'col'; return String((window.PsaroDense&&PsaroDense.mode())||ls.get('psaro-dl','std')); }
+  var dchip=h('button',{type:'button',class:'mchip',onclick:function(){ var c=dcur(), i=DSEQ.indexOf(c), nx=DSEQ[(i<0?0:i+1)%DSEQ.length]; if(nx==='off') setDepth(0); else { ls.set('psaro-dl',nx); setDepth(2,nx); }
+      if(nx!=='off'&&+nx&&map&&map.getZoom()<11) B.toast(T('Οι γραμμές ','The ')+nx+T(' m φαίνονται από ζουμ 11 και πάνω.',' m lines show from zoom 11 up.'));
+      setTimeout(qpaint,80); setTimeout(qpaint,900); }},h('span',{html:LIC.depth}),h('b',{text:T('Βάθη','Depths')}));
+  dchip._g=function(){ return dmode()>0; }; dchip._lab=function(){ var c=dcur(); return c==='off'?T('Βάθη','Depths'):c==='col'?T('Χρώματα','Colours'):c==='std'?T('Βάθη','Depths'):c+' m'; }; qc.append(dchip);
   B.qpaint=qpaint; setTimeout(qpaint,400); setTimeout(qpaint,2500);
   var trip=h('button',{class:'tripbtn',type:'button',onclick:function(){ B.tripStart(); }},h('span',{class:'tbic',html:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 15h18l-2.5 4.5h-13z"/><path d="M12 3v12"/><path d="M12 4l6 9h-6"/></svg>'}),h('span',{text:B.prof()==='boat'||(B.fishSide&&B.fishSide()==='boat')?T('Έναρξη εξόδου','Start a trip'):T('Ξεκινάω ψάρεμα','Start fishing')}));
   var seab=h('div',{class:'seabar'},h('button',{class:'mobbtn',type:'button','aria-label':'MOB',text:'MOB',onclick:function(){ B.mob(); }}),B.voice&&B.voice.ok?h('button',{class:'iconbtn micmap',type:'button','aria-label':T('Φωνητική καταγραφή ψαριού','Voice catch log'),html:B.voice.MIC,onclick:function(){ B.voice.log(); }}):null,h('button',{class:'iconbtn ancbtn',type:'button','aria-label':T('Συναγερμός άγκυρας','Anchor alarm'),text:'⚓',onclick:function(){ if(B.anchor()) B.ask(T('Να σταματήσει ο συναγερμός άγκυρας;','Turn off the anchor alarm?'),T('Σταμάτημα','Turn off')).then(function(y){ if(y) B.anchorOff(); }); else B.anchorOn(); }}));
@@ -434,7 +450,7 @@ function mount(el){
     var p=B.lastPos(), v=ls.get('psaro-v4-mapview',null);
     map=L.map(lmEl,{zoomControl:false,attributionControl:true,tap:true}).setView(v?[v.lat,v.lon]:(p?[p.lat,p.lon]:[35.0,33.2]),v?v.z:(p?12:9));
     drawBase(); drawData(); drawOverlays(); applyDepth(); applyPend(); locate(false); drawDirect(); if(cfg.cur) currents(true);
-    map.on('moveend',function(){ declutterSoon(); if(cfg.cur) currents(false); var c=map.getCenter(); ls.set('psaro-v4-mapview',{lat:+c.lat.toFixed(5),lon:+c.lng.toFixed(5),z:map.getZoom()}); });
+    map.on('zoomend',function(){ drawData(); }); map.on('moveend',function(){ declutterSoon(); if(cfg.cur) currents(false); var c=map.getCenter(); ls.set('psaro-v4-mapview',{lat:+c.lat.toFixed(5),lon:+c.lng.toFixed(5),z:map.getZoom()}); });
     map.on('contextmenu',function(e){ try{ e.originalEvent&&e.originalEvent.preventDefault(); }catch(x){} pointMenu(e.latlng); });
     map.on('dragstart zoomstart',function(){ followPause=Date.now()+20000; }); map.on('popupopen',function(){ followPause=Date.now()+20000; });
     map.on('popupopen',function(e){ var c=e.popup.getContent(); if(c&&c.classList&&c.classList.contains('portpop')&&!c.querySelector('.pgo')){ var ll=e.popup.getLatLng(), nm=(c.querySelector('b')||{}).textContent||''; var r=c.querySelector('.pbtns')||c; var g=h('button',{class:'pb pgo',type:'button',text:T('Πήγαινε εκεί','Go there'),onclick:function(){ map.closePopup(); B.goTo(ll.lat,ll.lng,nm); }}); r.insertBefore(g,r.firstChild); e.popup.update(); } });

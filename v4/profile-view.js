@@ -88,6 +88,7 @@ function unitsSheet(){ var body=h('div',{class:'bform'}), L={wind:T('Άνεμο�
   Object.keys(L).forEach(function(k){ if(!U.options[k]) return; body.append(h('h3',{class:'h3',text:L[k]}),B.seg(U.options[k].map(function(o){ return [o[0],o[1]]; }),U.cfg[k],function(v){ U.set(k,v); B.emit('store','psaro-units'); draw(); },L[k])); });
   sheetOf(T('Μονάδες','Units'),body); }
 function accountTab(page,s){
+  page.append(group(T('Εισαγωγή','Import'),[row('backup',T('Από plotter, GPS ή ρολόι κατάδυσης','From a plotter, GPS or dive watch'),'GPX · KML · CSV · FIT · UDDF',null,function(){ if(B.importSheet) B.importSheet(); })]));
   page.append(s?accountCard(s):signInCard());
   page.append(backupCard());
   if(B.dataCards){ var dc=B.dataCards(); page.append(dc[0]); page.append(dc[2]); }
