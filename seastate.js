@@ -53,6 +53,7 @@ var LV=[
 var BOUNDS=[0.5,1.25,2.5];
 var GS=[[0,[52,168,120]],[0.25,[52,168,120]],[0.875,[240,200,80]],[1.875,[238,136,62]],[3,[208,66,72]]];
 function grad(h){
+  if(window.PSARO_WAVEGRAD) return window.PSARO_WAVEGRAD(h); /* v31z525: η v4 χρησιμοποιεί την κλίμακα του Windy (γαλάζιο → μπλε → μωβ) */
   if(!(h>0)) return GS[0][1];
   for(var i=1;i<GS.length;i++){ if(h<=GS[i][0]){ var a=GS[i-1], b=GS[i], t=(h-a[0])/(b[0]-a[0]); return [a[1][0]+(b[1][0]-a[1][0])*t,a[1][1]+(b[1][1]-a[1][1])*t,a[1][2]+(b[1][2]-a[1][2])*t]; } }
   return GS[GS.length-1][1];
@@ -151,7 +152,7 @@ function loadRegion(bounds){
   /* v31z388: οι τελευταίες περιοχές μένουν στη μνήμη, ώστε πήγαινε-έλα στον χάρτη να μην ξαναζητά από το Open-Meteo */
   var old=(window.__ndSeaRegs||[]).filter(function(x){ return covers(x,bounds)&&Date.now()-x.at<3600000&&!x.retry; })[0]; if(old){ REG=old; return old.p; }
   var b=regionFor(bounds), R={b:b,at:Date.now(),t0:Date.now(),done:false,wind:null,waves:[]}, NP=lattice(b,25), WP=lattice(b,49);
-  var pw=getJ('https://api.open-meteo.com/v1/forecast?'+latQ(NP)+'&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=kn&past_hours=24&forecast_hours=49&timezone=UTC')
+  var pw=getJ('https://api.open-meteo.com/v1/forecast?'+latQ(NP)+'&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=kn&past_hours=24&forecast_hours=121&timezone=UTC')
     .then(function(j){ var a=arrOf(j); if(!a||a.length!==NP.nla*NP.nlo||!a[0].hourly) return; R.wind={L:NP,t:a[0].hourly.time,sp:a.map(function(p){ return (p.hourly&&p.hourly.wind_speed_10m)||[]; }),dir:a.map(function(p){ return (p.hourly&&p.hourly.wind_direction_10m)||[]; })}; })
     .catch(function(){ R.retry=true; });
   /* v31z383: κάθε μοντέλο ζητιέται σε μικρά κομμάτια (20 σημεία), ώστε ένα σημείο στη στεριά ή ένα όριο να μη χαλάει όλο τον χάρτη.
@@ -164,7 +165,7 @@ function loadRegion(bounds){
     var all=new Array(pts.length), okN=0, lastErr='';
     return chunks.reduce(function(pr,ch,ci){ return pr.then(function(){ return ci?new Promise(function(r){ setTimeout(r,400); }):null; }).then(function(){
       var q='latitude='+ch.map(function(x){ return x[0]; }).join(',')+'&longitude='+ch.map(function(x){ return x[1]; }).join(',');
-      return getJ('https://marine-api.open-meteo.com/v1/marine?'+q+'&hourly=wave_height,wave_period,wave_direction,swell_wave_height,swell_wave_direction,swell_wave_period'+(model?'&models='+model:'')+'&past_hours=1&forecast_hours=49&timezone=UTC')
+      return getJ('https://marine-api.open-meteo.com/v1/marine?'+q+'&hourly=wave_height,wave_period,wave_direction,swell_wave_height,swell_wave_direction,swell_wave_period'+(model?'&models='+model:'')+'&past_hours=1&forecast_hours=121&timezone=UTC')
         .then(function(j){ var a=arrOf(j); if(!a) return; a.forEach(function(p,k){ all[ci*CH+k]=p; }); okN++; })
         .catch(function(e){ lastErr=(e&&e.message)||'error'; });
     }); },Promise.resolve()).then(function(){

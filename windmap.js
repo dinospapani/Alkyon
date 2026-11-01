@@ -213,7 +213,7 @@ async function load(){
   var id=++loadId, b=map.getBounds().pad(0.05), s=b.getSouth(), n=b.getNorth(), w=b.getWest(), e=b.getEast();
   var lat=[], lon=[]; for(var k=0;k<N;k++){ lat.push(s+(n-s)*k/(N-1)); lon.push(w+(e-w)*k/(N-1)); }
   var la=[], lo=[]; for(var j=0;j<N;j++) for(var i=0;i<N;i++){ la.push(lat[j].toFixed(3)); lo.push(lon[i].toFixed(3)); }
-  var base='https://api.open-meteo.com/v1/forecast?latitude='+la.join(',')+'&longitude='+lo.join(',')+'&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=kn&past_hours=1&forecast_hours=48&timezone=UTC';
+  var base='https://api.open-meteo.com/v1/forecast?latitude='+la.join(',')+'&longitude='+lo.join(',')+'&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=kn&past_hours=1&forecast_hours=120&timezone=UTC';
   var keepT=hours.length?hours[hi]:null, keepSc=panel?panel.scrollTop:0;
   if(!grid) drawPanel(T('Φόρτωση ανέμου…','Loading wind…'));
   try{

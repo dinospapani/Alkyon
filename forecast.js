@@ -115,7 +115,10 @@ function hourScore(sm,hr,w){
   return clamp(Math.round(base+b),5,98);
 }
 const bft=w=>[1,4,7,11,17,22,28,34,41,48,56,64].filter(x=>x<=w).length;
-const safeHour=h=>h.wind<=14&&(h.wave==null||h.wave<=0.9)&&(h.gust==null||h.gust<=24)&&(h.code==null||h.code<95);
+/* v31z525: όρια «ασφαλούς» ώρας ρυθμίζονται από τον χρήστη (psaro-limits: kn, kn, m)· προεπιλογή όπως πριν */
+const LIMD={wind:14,wave:0.9,gust:24}; let LIMO=null;
+function lims(){ if(LIMO) return Object.assign({},LIMD,LIMO); try{ const o=typeof localStorage!=='undefined'?JSON.parse(localStorage.getItem('psaro-limits')||'null'):null; if(o&&typeof o==='object') return Object.assign({},LIMD,o); }catch(e){} return LIMD; }
+const safeHour=h=>{ const L=lims(); return h.wind<=L.wind&&(h.wave==null||h.wave<=L.wave)&&(h.gust==null||h.gust<=L.gust)&&(h.code==null||h.code<95); };
 function ptrendOf(d){return d<=-3?'fast':d<=-1?'slow':d>=1?'rise':'stable';}
 async function fetchJson(url,fetchFn){
   const f=fetchFn||fetch, ac=typeof AbortController!=='undefined'?new AbortController():null, t=ac&&setTimeout(()=>ac.abort(),12000);
@@ -328,6 +331,7 @@ function whyGood(d,win,en){
    Πίεση (καμπές και απότομες αλλαγές): μόνο για την περιοχή ψαρέματος — cfg.area (π.χ. θέση ενεργής εξόδου), αλλιώς «Η θέση μου»,
    αλλιώς η πρώτη τοποθεσία με ειδοποιήσεις. Καμπές: «πριν» (σε ≤3 ώρες) και «μόλις άρχισε» (έως 4 ώρες μετά), για κάθε καμπή. */
 async function checkPlaces(cfg,fetchFn){
+  LIMO=(cfg&&cfg.limits&&typeof cfg.limits==='object')?cfg.limits:null;
   const thr=cfg.threshold||75, notified=Object.assign({},cfg.notified||{}), goods=[], press=[], winds=[], turns=[]; const errs=[]; let okN=0;
   const today=new Date(Date.now()-86400000).toISOString().slice(0,10);
   for(const k of Object.keys(notified)){ if(k.split(':').pop()<today) delete notified[k]; }
@@ -417,5 +421,5 @@ async function checkPlaces(cfg,fetchFn){
       body:lines[0]+(lines.length>1?' · +'+(goods.length-1):'')+(top[0]&&top[0].why?'\n'+top[0].why:''),full:goods.map(i=>i.place.name+': '+dayLabel(i.date)+' · '+t('δείκτης ','score ')+i.best+' · '+pad(i.win.s)+':00–'+pad((i.win.e+1)%24)+':00'+(i.why?'\n   '+i.why:'')).join('\n')}); }
   return {items,notified,title,body:lines.concat(pl,tl,wl).join('\n'),msgs,area:area?{name:area.name,lat:area.lat,lon:area.lon}:null,errs,okN,goodsN:goods.length,pressN:press.length,turnsN:turns.length,windsN:winds.length};
 }
-g.PF={moonAlt,moonEvents,moonPhase,solunarPeriods,pressureRise,sunMoon,hourScore,getForecast,findIdeal,message,check,goodDays,checkPlaces,dayLabel,bft,pressureEvent,windEvent,pressureTurns,pressureOutlook};
+g.PF={lims,moonAlt,moonEvents,moonPhase,solunarPeriods,pressureRise,sunMoon,hourScore,getForecast,findIdeal,message,check,goodDays,checkPlaces,dayLabel,bft,pressureEvent,windEvent,pressureTurns,pressureOutlook};
 })(typeof self!=='undefined'?self:this);
