@@ -235,3 +235,28 @@ body.maptrip.hasdt .mapwx{top:calc(var(--safe-t) + 186px)}
 .mchip{flex-direction:column;justify-content:center;gap:1px;width:60px;height:48px;padding:0;border-radius:14px;font:650 10.5px var(--font)}
 .mchip svg{width:19px;height:19px}
 .mchips{gap:5px;left:66px;right:66px}.mchip{width:56px}
+/* ===== ομοιομορφία χάρτη ===== */
+/* γρήγορα στρώματα: ίδιο υλικό με τα στρογγυλά κουμπιά· ενεργό = πορτοκαλί περίγραμμα και εικονίδιο */
+.mchips{top:calc(var(--safe-t) + 12px)}
+.mchip{height:46px;background:var(--surface);color:var(--ink-2);box-shadow:var(--shadow);border-radius:14px}
+.mchip[aria-pressed=true]{background:var(--surface);color:var(--accent);box-shadow:inset 0 0 0 2px var(--accent),var(--shadow)}
+.mchip b{font-weight:700}
+/* ρεύματα: βέλος και αριθμός, χωρίς σκούρα κουτάκια */
+.mk.cur i{display:grid;place-items:center;width:22px;height:22px;font-size:0}
+.mk.cur i svg{width:20px;height:20px;fill:none;stroke:#8fe3ff;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 1px 2px rgba(0,0,0,.85))}
+.mk.cur.mid i svg{stroke:#ffd166}.mk.cur.strong i svg{stroke:#ff6b5a}
+.mk.cur b{background:none;padding:0;font:800 10.5px var(--font);color:#fff;text-shadow:0 1px 2px #000,0 0 3px rgba(0,0,0,.8)}
+/* ονόματα σημείων: ίδια γραμματοσειρά, πιο ευανάγνωστα */
+.mk.spot b{font:700 12px var(--font);padding:1px 6px;border-radius:6px;background:rgba(6,20,32,.55);text-shadow:none}
+/* κατάσταση θάλασσας / άνεμος: ίδιο στυλ κάρτας με την υπόλοιπη εφαρμογή */
+#ndMapDock{left:12px!important;right:12px!important;max-width:536px;margin:0 auto;border-radius:18px!important;border:0!important;background:var(--surface)!important;color:var(--ink)!important;box-shadow:0 10px 30px rgba(0,0,0,.35)!important;font-family:var(--font)}
+#ndMapDock .btn.ghost.sm,#ndMapDock button.btn{min-width:36px!important;min-height:36px!important;height:36px;border-radius:12px!important;border:0!important;background:var(--surface-2)!important;color:var(--ink)!important;font:650 13px var(--font)!important;box-shadow:none!important}
+#ndMapDock b{font-weight:750}
+#ndSeaLeg{padding:10px 12px 8px!important;font-size:12.5px!important}
+#ndSeaLeg .ndslh{gap:10px!important;align-items:center}
+#ndSeaLeg .ndslh>div{height:6px!important}
+#ndMapDock>div+div{border-top:1px solid var(--line)!important}
+#ndWindPanel{padding:8px 12px 10px!important}
+#ndWindSl{accent-color:var(--accent)}
+.tripbtn{white-space:nowrap;max-width:calc(100vw - 40px);min-height:50px;font-size:16px}
+.tripbtn{border:0!important}

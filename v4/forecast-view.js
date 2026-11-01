@@ -202,7 +202,7 @@ function dayView(page,fc,d){
   ms.append(h('div',{class:'rows one'},rr.map(function(r){ return h('div',{class:'row'},h('span',{text:r[0]}),h('b',{text:r[1]})); })));
   page.append(ms);
   /* έκθεση της ακτής ανά κατεύθυνση ανέμου και swell (ίδιος υπολογισμός με την κλασική, exposure.js) — μόνο για σήμερα, θάλασσα */
-  if(isToday&&B.prof()!=='lake'&&window.PsaroExposure){ var ex=h('div',{class:'expo'},h('div',{id:'fcDays',hidden:true})); page.append(ex);
+  if(isToday&&B.prof()!=='lake'&&window.PsaroExposure){ var ex=h('div',{class:'expo'},h('div',{id:'fcDays',hidden:true})); page.append(ex); tidyExpo(ex);
     setTimeout(function(){ try{ window.dispatchEvent(new CustomEvent('psaro-fcloaded',{detail:{place:{lat:p.lat,lon:p.lon,name:p.name||''},fc:fc}})); }catch(e){} },0); }
 }
 /* 24 μπάρες: πάτημα = λεπτομέρειες της ώρας. Χρώμα: καλύτερο παράθυρο, περίοδος σελήνης, μη ασφαλής ώρα. */
@@ -292,6 +292,14 @@ function pwSeries(p,rk){
     var v={pts:out,now:now}; ls.set(key,{id:p.id,t:Date.now(),v:v}); delete pwMem[mk]; return v;
   }).catch(function(e){ delete pwMem[mk]; if(c&&c.id===p.id&&c.v) return c.v; throw e; });
 }
+/* η κάρτα «Έκθεση της ακτής» (κοινός κώδικας με την κλασική): κρατά ορατά τίτλο, «Τώρα» και μπάρες, τα υπόλοιπα κείμενα σε «Λεπτομέρειες» */
+function tidyExpo(ex){ var busy=false;
+  function fix(){ var c=ex.querySelector('#fcExposure'); if(!c||busy) return; var dd=c.querySelector(':scope>details.exmore'); if(dd){ var n=dd.nextElementSibling; if(n){ busy=true; while(n){ var nx=n.nextElementSibling; dd.append(n); n=nx; } busy=false; } return; } busy=true;
+    try{ var kids=[].slice.call(c.children), h3=kids[0], bars=null; kids.forEach(function(k){ if(!bars&&k.tagName==='DIV'&&k.children.length>=8) bars=k; }); if(!h3||!bars){ busy=false; return; }
+      var d=h('details',{class:'exmore'},h('summary',{text:T('Λεπτομέρειες · Πώς είναι η θάλασσα εδώ;','Details · How is the sea here?')})), now=null;
+      kids.forEach(function(k){ if(k===h3||k===bars) return; if(!now&&k.tagName==='P'&&!k.classList.contains('note')){ now=k; k.classList.add('exnow'); return; } d.append(k); });
+      c.append(d); }catch(e){} busy=false; }
+  try{ new MutationObserver(function(){ setTimeout(fix,0); }).observe(ex,{childList:true,subtree:true}); }catch(e){} setTimeout(fix,300); }
 /* μετρημένη πίεση από σταθμό (METAR ή Τμήμα Μετεωρολογίας) κοντά στο μέρος, για σύγκριση με το μοντέλο (όπως η κλασική, psaro-obsp) */
 function measured(box,p,modelNow){
   var SUPA='https://sgfohmqwdwtkhtrebnix.supabase.co', SKEY='sb_publishable_LGuwvrvLnAj1CF22Q6g9vg_4OImZYbA';

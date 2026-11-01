@@ -266,3 +266,72 @@ svg{display:block}
 .obd i.on{width:22px;border-radius:4px;background:var(--accent)}
 .obskip{border:0;background:none;color:var(--ink-3);font:600 14.5px var(--font);padding:10px}
 .obc .stgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.obc .stlist{display:flex;flex-direction:column;gap:8px}
+/* ===== «Πού ψαρεύεις σήμερα;» και καλωσόρισμα: ολόκληρη σελίδα με φωτογραφίες ===== */
+html.pre-pick body{background:#061420}
+html.pre-pick body>*:not(.sppage){visibility:hidden}
+html.pg-open body{overflow:hidden}
+.sppage{position:fixed;inset:0;z-index:500;overflow-y:auto;overscroll-behavior:contain;background:#061420;color:#fff;-webkit-font-smoothing:antialiased;animation:spin .28s ease both}
+.sppage.out{opacity:0;transition:opacity .25s ease}
+@keyframes spin{from{opacity:0}to{opacity:1}}
+.sphero{position:relative;height:clamp(250px,40vh,380px);background:#0b2a3a center 62%/cover no-repeat}
+.sphero.tall{height:clamp(360px,60vh,560px)}
+.spheroshade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(6,20,32,.55) 0%,rgba(6,20,32,0) 28%,rgba(6,20,32,.15) 55%,#061420 100%)}
+.spbrand{position:absolute;left:20px;top:calc(var(--safe-t) + 16px);display:flex;align-items:center;gap:10px}
+.spbrand img{width:42px;height:42px;border-radius:12px;box-shadow:0 4px 14px rgba(0,0,0,.4)}
+.spbrand span{display:flex;flex-direction:column;line-height:1.1}
+.spbrand b{font:800 21px var(--font);letter-spacing:.2px;text-shadow:0 2px 8px rgba(0,0,0,.5)}
+.spbrand small{font:700 9.5px var(--font);letter-spacing:1.6px;opacity:.85;text-shadow:0 1px 4px rgba(0,0,0,.6)}
+.spskip{position:absolute;right:16px;top:calc(var(--safe-t) + 20px);height:34px;padding:0 14px;border-radius:17px;border:1px solid rgba(255,255,255,.25);background:rgba(6,20,32,.45);color:#fff;font:650 13.5px var(--font);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.sptitle{position:absolute;left:20px;right:20px;bottom:14px}
+.sptitle h1{margin:0;font:800 clamp(25px,7vw,31px)/1.15 var(--font);text-shadow:0 2px 12px rgba(0,0,0,.45)}
+.sptitle p{margin:6px 0 0;font:500 15px/1.45 var(--font);color:rgba(255,255,255,.85)}
+.spbody{max-width:520px;margin:0 auto;padding:14px 18px calc(var(--safe-b) + 28px)}
+.spcards{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.spcard{position:relative;height:clamp(140px,40vw,180px);border-radius:18px;overflow:hidden;border:2px solid rgba(255,255,255,.12);padding:0;background:#0b2a3a;color:#fff;text-align:left;transition:border-color .15s,box-shadow .15s,transform .1s}
+.spcard:active{transform:scale(.98)}
+.spimg{position:absolute;inset:0;background:center/cover no-repeat}
+.spshade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(6,20,32,0) 25%,rgba(6,20,32,.88) 100%)}
+.spcard.on{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 35%,transparent),0 10px 26px rgba(0,0,0,.4)}
+.spchk{position:absolute;top:10px;right:10px;width:28px;height:28px;border-radius:50%;background:var(--accent);display:grid;place-items:center;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+.spchk svg,.sprad svg,.spbox svg{width:17px;height:17px;fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.spcap{position:absolute;left:12px;right:12px;bottom:11px;display:flex;flex-direction:column;gap:1px}
+.spic svg{width:22px;height:22px;fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;margin-bottom:2px}
+.spcap b{font:800 18px var(--font)}
+.spcap small{font:500 11.5px/1.3 var(--font);color:rgba(255,255,255,.82)}
+.sph3{margin:22px 2px 10px;font:750 16.5px var(--font);color:#fff}
+.spmeth{border-radius:18px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.09);overflow:hidden}
+.sprow{display:flex;align-items:center;gap:14px;width:100%;min-height:68px;padding:12px 14px;border:0;background:none;color:#fff;text-align:left;font-family:var(--font)}
+.sprow+.sprow{border-top:1px solid rgba(255,255,255,.08)}
+.sprow.on{background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.spmi{flex:none;width:46px;height:46px;border-radius:13px;display:grid;place-items:center;background:rgba(255,255,255,.08)}
+.sprow.on .spmi{background:color-mix(in srgb,var(--accent) 22%,transparent)}
+.spmi svg{width:26px;height:26px;fill:none;stroke:#fff;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.sprow .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.sprow .tx b{font-size:16px;font-weight:700}
+.sprow .tx small{font-size:13px;color:rgba(255,255,255,.66)}
+.sprad{flex:none;width:26px;height:26px;border-radius:50%;border:2px solid rgba(255,255,255,.35);display:grid;place-items:center}
+.sprow.on .sprad{background:var(--accent);border-color:var(--accent)}
+.spask{display:flex;align-items:center;gap:12px;margin:18px 4px;font:550 15px var(--font);cursor:pointer}
+.spask input{position:absolute;opacity:0;width:1px;height:1px}
+.spbox{flex:none;width:24px;height:24px;border-radius:7px;border:2px solid rgba(255,255,255,.4);display:grid;place-items:center}
+.spbox svg{opacity:0}
+.spask input:checked+.spbox{background:var(--accent);border-color:var(--accent)}
+.spask input:checked+.spbox svg{opacity:1}
+.spask input:focus-visible+.spbox{outline:2px solid #fff;outline-offset:2px}
+.spgo{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:56px;border:0;border-radius:16px;background:var(--accent);color:var(--accent-ink,#fff);font:750 16.5px var(--font);box-shadow:0 10px 24px color-mix(in srgb,var(--accent) 35%,transparent)}
+.spgo i{display:grid;place-items:center}.spgo svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.spsec{width:100%;height:52px;margin-top:10px;border-radius:16px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.06);color:#fff;font:650 15.5px var(--font)}
+.spfoot{margin:14px 0 0;text-align:center;font:500 13px var(--font);color:rgba(255,255,255,.55)}
+.sppage .obd{margin:18px 0}
+.sppage .obd i{background:rgba(255,255,255,.25)}
+.sppage.tour .spbody{padding-top:4px}
+.sppage.tour{display:flex;flex-direction:column}
+.sppage.tour .sphero.tall{flex:1 0 auto;height:auto;min-height:clamp(360px,62vh,640px)}
+.sppage.tour .spbody{flex:none;width:100%}
+.sppage .spgo:focus:not(:focus-visible){outline:none}
+/* 5 επιλογές (π.χ. Ημερολόγιο): μικρότερα γράμματα, χωρίς κόψιμο */
+.seg button:first-child:nth-last-child(5),.seg button:first-child:nth-last-child(5)~button{font-size:12.5px;padding:0 1px;letter-spacing:-.1px;text-overflow:clip}
+.seg button:first-child:nth-last-child(4),.seg button:first-child:nth-last-child(4)~button{text-overflow:clip}
+/* κουμπιά με κείμενο: πάντα σε μία γραμμή */
+.acts .btn,.btn.pri,.btn.sm{white-space:nowrap}
+.gbody>.list>.note,#g-species>.note{padding:0 4px}

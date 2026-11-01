@@ -45,6 +45,7 @@ function drawData(){
       L.marker([la/a.length,lo/a.length],{icon:icon('fish'+(n>1?' many':''),n>1?'<b>'+n+'</b>':''),title:a.map(function(b){ return b.species; }).join(', ')}).on('click',function(){ fishSheet(a); }).addTo(gFish); }); }
   gFish.addTo(map); gSpots.addTo(map);
   drawGear(); drawSea();
+  if(typeof declutterSoon==='function') declutterSoon();
 }
 /* έξοδος: διαδρομή, άγκυρα, MOB */
 var gSea=null;
@@ -210,14 +211,14 @@ var curT=0, curKey='';
 function currents(force){
   clearTimeout(curT); if(!map) return;
   if(!cfg.cur){ if(ov.cur){ map.removeLayer(ov.cur); ov.cur=null; } curKey=''; return; }
-  curT=setTimeout(function(){ if(!map||!cfg.cur) return; var b=map.getBounds(), z=map.getZoom(), la=[], lo=[], NY=6, NX=5;
+  curT=setTimeout(function(){ if(!map||!cfg.cur) return; var b=map.getBounds(), z=map.getZoom(), la=[], lo=[], NY=5, NX=4;
     var key=b.getSouth().toFixed(2)+b.getWest().toFixed(2)+b.getNorth().toFixed(2)+b.getEast().toFixed(2)+new Date().getHours(); if(key===curKey&&!force) return; curKey=key;
     for(var i=0;i<NY;i++) for(var j=0;j<NX;j++){ la.push((b.getSouth()+(b.getNorth()-b.getSouth())*(i+0.5)/NY).toFixed(3)); lo.push((b.getWest()+(b.getEast()-b.getWest())*(j+0.5)/NX).toFixed(3)); }
     fetch('https://marine-api.open-meteo.com/v1/marine?latitude='+la.join(',')+'&longitude='+lo.join(',')+'&current=ocean_current_velocity,ocean_current_direction&timezone=GMT').then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(j){
       if(!map||!cfg.cur) return; var a=Array.isArray(j)?j:[j]; if(ov.cur) map.removeLayer(ov.cur); ov.cur=L.layerGroup().addTo(map); var n=0;
       a.forEach(function(q){ var c=q&&q.current; if(!c||c.ocean_current_velocity==null||c.ocean_current_direction==null) return; var kn=c.ocean_current_velocity/1.852; if(kn<0.05) return; n++;
         var cls=kn>=1?'strong':kn>=0.4?'mid':'weak';
-        L.marker([q.latitude,q.longitude],{interactive:false,keyboard:false,icon:L.divIcon({className:'mk cur '+cls,iconSize:null,html:'<div class="cw"><i style="transform:rotate('+Math.round(c.ocean_current_direction)+'deg)">↑</i><b>'+B.num(kn,kn<1?1:0)+' kn</b></div>'})}).addTo(ov.cur); });
+        L.marker([q.latitude,q.longitude],{interactive:false,keyboard:false,icon:L.divIcon({className:'mk cur '+cls,iconSize:null,html:'<div class="cw"><i style="transform:rotate('+Math.round(c.ocean_current_direction)+'deg)"><svg viewBox="0 0 24 24"><path d="M12 20V5M6 10l6-6 6 6"/></svg></i><b>'+B.num(kn,kn<1?1:0)+'</b></div>'})}).addTo(ov.cur); });
       if(!n&&force) B.toast(T('Δεν υπάρχουν δεδομένα ρευμάτων εδώ (μόνο ανοιχτή θάλασσα).','No current data here (open sea only).'));
     }).catch(function(){ curKey=''; if(force) B.toast(T('Τα ρεύματα δεν φορτώθηκαν. Χρειάζεται σύνδεση.','Currents did not load. Needs a connection.')); }); },force?0:500);
 }
@@ -433,7 +434,7 @@ function mount(el){
     var p=B.lastPos(), v=ls.get('psaro-v4-mapview',null);
     map=L.map(lmEl,{zoomControl:false,attributionControl:true,tap:true}).setView(v?[v.lat,v.lon]:(p?[p.lat,p.lon]:[35.0,33.2]),v?v.z:(p?12:9));
     drawBase(); drawData(); drawOverlays(); applyDepth(); applyPend(); locate(false); drawDirect(); if(cfg.cur) currents(true);
-    map.on('moveend',function(){ if(cfg.cur) currents(false); var c=map.getCenter(); ls.set('psaro-v4-mapview',{lat:+c.lat.toFixed(5),lon:+c.lng.toFixed(5),z:map.getZoom()}); });
+    map.on('moveend',function(){ declutterSoon(); if(cfg.cur) currents(false); var c=map.getCenter(); ls.set('psaro-v4-mapview',{lat:+c.lat.toFixed(5),lon:+c.lng.toFixed(5),z:map.getZoom()}); });
     map.on('contextmenu',function(e){ try{ e.originalEvent&&e.originalEvent.preventDefault(); }catch(x){} pointMenu(e.latlng); });
     map.on('dragstart zoomstart',function(){ followPause=Date.now()+20000; }); map.on('popupopen',function(){ followPause=Date.now()+20000; });
     map.on('popupopen',function(e){ var c=e.popup.getContent(); if(c&&c.classList&&c.classList.contains('portpop')&&!c.querySelector('.pgo')){ var ll=e.popup.getLatLng(), nm=(c.querySelector('b')||{}).textContent||''; var r=c.querySelector('.pbtns')||c; var g=h('button',{class:'pb pgo',type:'button',text:T('Πήγαινε εκεί','Go there'),onclick:function(){ map.closePopup(); B.goTo(ll.lat,ll.lng,nm); }}); r.insertBefore(g,r.firstChild); e.popup.update(); } });
@@ -451,6 +452,10 @@ function applyPend(){ if(!pend||!map) return false; var q=pend; pend=null;
   else { map.setView([q.lat,q.lon],q.z||15); gRev=L.layerGroup([L.circleMarker([q.lat,q.lon],{radius:11,color:'#E4572E',weight:3,fillOpacity:.15})]).addTo(map); }
   return true; }
 B.spotSheet=function(sp){ spotSheet(sp); };
+/* ονόματα σημείων που πέφτουν το ένα πάνω στο άλλο: φαίνεται μόνο το πρώτο (τα υπόλοιπα με πάτημα στο σημείο) */
+function declutter(){ var kept=[]; [].forEach.call(document.querySelectorAll('#lmap .mk.spot b'),function(b){ b.style.visibility=''; var r=b.getBoundingClientRect(); if(!r.width) return;
+  var hit=kept.some(function(k){ return !(r.right<k.left-4||r.left>k.right+4||r.bottom<k.top-2||r.top>k.bottom+2); }); if(hit) b.style.visibility='hidden'; else kept.push(r); }); }
+var dcT=null; function declutterSoon(){ clearTimeout(dcT); dcT=setTimeout(declutter,120); }
 B.mapGo=function(lat,lon,z,tr){ pend={lat:lat,lon:lon,z:z,tr:tr}; if(map&&root) applyPend(); else location.hash='#map'; };
 
 B.view('map',{title:T('Χάρτης','Map'),mount:mount,unmount:unmount,resume:function(){ if(map&&root){ map.invalidateSize(); drawData(); } }});

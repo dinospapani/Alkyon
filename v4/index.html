@@ -13,6 +13,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Commissioner:wght@400..800&display=swap">
+<script>/* «Πού ψαρεύεις σήμερα;» ανοίγει πρώτο: κρύβει την εφαρμογή από πίσω μέχρι να φορτώσει η σελίδα επιλογής */
+try{(function(){var g=function(k){return localStorage.getItem(k);},s=JSON.parse(g('psaro-safe')||'null');if(/#(new|trip)/.test(location.hash)||(s&&s.active))return;
+if(!g('psaro-onboard')||!(g('psaro-askfp')==='0'&&g('psaro-fprof-done')))document.documentElement.classList.add('pre-pick');})();}catch(e){}</script>
+<link rel="preload" as="image" href="img/hero-boat.jpg">
 <link rel="stylesheet" href="app.css">
 <link rel="stylesheet" href="forecast.css">
 <link rel="stylesheet" href="log.css">

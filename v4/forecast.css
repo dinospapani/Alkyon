@@ -171,3 +171,13 @@ svg.pwc{width:100%;height:auto}
 .extcard .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 .extcard .btn{min-height:42px;padding:0 14px}
 .extcard .btn.ghost{background:var(--surface-2);color:var(--ink);box-shadow:none}
+/* κάρτα έκθεσης ακτής: ίδια τυπογραφία με τις άλλες κάρτες */
+#fcExposure>h3{margin:0 0 8px;font:750 19px/1.25 var(--font);color:var(--ink)}
+#fcExposure .exnow{margin:0 0 10px;font:650 15px/1.4 var(--font);color:var(--ink)}
+#fcExposure .exmore{margin-top:12px;border-top:1px solid var(--line);padding-top:4px}
+#fcExposure .exmore>summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;min-height:44px;font:650 14.5px var(--font);color:var(--accent)}
+#fcExposure .exmore>summary::-webkit-details-marker{display:none}
+#fcExposure .exmore>summary::after{content:"";width:9px;height:9px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);margin-right:6px;transition:transform .2s}
+#fcExposure .exmore[open]>summary::after{transform:rotate(-135deg)}
+#fcExposure .exmore p{font-size:13.5px;line-height:1.5;color:var(--ink-2)}
+#fcExposure .exmore button{border-radius:12px}
