@@ -14,7 +14,7 @@ var DATA=null, loading=null, group=null, rend=null, on=!!C.lsGet(KEY,false), ins
 function load(){
   if(DATA) return Promise.resolve(DATA);
   if(loading) return loading;
-  loading=fetch(FILE).then(function(r){ if(!r.ok) throw new Error('http'); return r.json(); }).then(function(j){
+  loading=fetch((window.PSARO_BASE||'')+FILE).then(function(r){ if(!r.ok) throw new Error('http'); return r.json(); }).then(function(j){
     DATA=((j&&j.f)||[]).filter(relevant); DATA.forEach(function(f){ f._s=sev(f); }); return DATA;
   }).catch(function(e){ loading=null; throw e; });
   return loading;

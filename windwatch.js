@@ -43,6 +43,7 @@ async function notify(title,body){
 }
 var busy=false;
 async function check(manual){
+  cfg=Object.assign({on:false,deg:60,kn:6,hours:6},C.lsGet(KEY,{})||{}); /* v31z506: η ρύθμιση μπορεί να άλλαξε από τη νέα έκδοση */
   if(busy||(!cfg.on&&!manual)) return null;
   var p=place(); if(!p){ return manual?{err:T('Δεν υπάρχει ακόμα θέση.','No position yet.')}:null; }
   busy=true;
