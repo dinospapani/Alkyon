@@ -526,6 +526,8 @@ function mount(el){
   var qc=h('div',{class:'mchips',role:'group','aria-label':T('Γρήγορα στρώματα','Quick layers')});
   function qchip(ic,lab,get,set){ var b=h('button',{type:'button',class:'mchip',onclick:function(){ set(!get()); setTimeout(qpaint,80); setTimeout(qpaint,900); }},h('span',{html:LIC[ic]}),h('b',{text:lab})); b._g=get; qc.append(b); }
   function qpaint(){ [].forEach.call(qc.children,function(b){ var on=false; try{ on=!!b._g(); }catch(e){} b.setAttribute('aria-pressed',String(on)); if(b._lab){ var t=b.querySelector('b'); if(t) t.textContent=b._lab(); } }); }
+  if(!window._qpL){ window._qpL=1; ['psaro-wxchange','psaro-windstop'].forEach(function(ev){ window.addEventListener(ev,function(){ setTimeout(function(){ if(window._qpaint) window._qpaint(); },120); }); }); }
+  window._qpaint=qpaint;
   qchip('wind',T('Άνεμος','Wind'),windOn,setWind); qchip('wave',T('Κύμα','Waves'),seaOn,setSeaSt);
   qchip('cur',T('Ρεύματα','Currents'),function(){ return !!cfg.cur; },function(v){ cfg.cur=v; saveCfg(); currents(true); });
   /* βάθη: κάθε πάτημα αλλάζει πυκνότητα γραμμών: Στάνταρ → 5 m → 10 m → 20 m → κλειστά (χρώματα από το μενού Στρωμάτων) */
@@ -600,11 +602,20 @@ function replay(t){ replayStop(); if(!map||!t||!t.track||t.track.length<2) retur
     h('div',{class:'rpc'},play,sl,lab),cnt);
   document.body.append(bar); document.body.classList.add('replaying'); rp={g:g,bar:bar,iv:null}; setPlay(false); show(0); setTimeout(start,700); }
 B.replayTrip=function(t){ if(!t||!t.track||t.track.length<2) return; pend={lat:t.track[0][0],lon:t.track[0][1],z:13,tr:t.track,replay:t}; if(map&&root) applyPend(); else location.hash='#map'; };
+/* v31z520: η διαδρομή ή το σημείο που άνοιξες από το Ημερολόγιο μένει στον χάρτη με ένα κουμπί «✕» για να φύγει */
+var revChip=null;
+function revClear(){ if(gRev&&map){ map.removeLayer(gRev); } gRev=null; if(revChip){ revChip.remove(); revChip=null; } }
+B.mapRevClear=revClear;
+function revShow(lab,trip){ if(revChip) revChip.remove();
+  revChip=h('div',{class:'revchip',role:'group'},h('span',{class:'rvt',text:lab}),
+    trip?h('button',{type:'button',class:'rvp','aria-label':T('Επανάληψη εξόδου','Replay trip'),text:'▶',onclick:function(){ replay(trip); }}):null,
+    h('button',{type:'button',class:'rvx','aria-label':T('Απόκρυψη από τον χάρτη','Hide from the map'),text:'✕',onclick:revClear}));
+  document.body.append(revChip); }
 function applyPend(){ if(!pend||!map) return false; var q=pend; pend=null;
-  if(gRev){ map.removeLayer(gRev); gRev=null; }
+  revClear();
   if(q.replay&&q.tr&&q.tr.length>1){ setTimeout(function(){ replay(q.replay); },300); }
-  if(q.tr&&q.tr.length>1){ gRev=L.layerGroup([L.polyline(q.tr.map(function(p){ return [p[0],p[1]]; }),{color:'#ff8a50',weight:5,opacity:.95}),L.circleMarker(q.tr[0],{radius:7,color:'#fff',weight:3,fillColor:'#3ddc97',fillOpacity:1}),L.circleMarker(q.tr[q.tr.length-1],{radius:7,color:'#fff',weight:3,fillColor:'#ff4d4d',fillOpacity:1})]).addTo(map); map.fitBounds(L.latLngBounds(q.tr.map(function(p){ return [p[0],p[1]]; })),{padding:[40,40]}); }
-  else { map.setView([q.lat,q.lon],q.z||15); gRev=L.layerGroup([L.circleMarker([q.lat,q.lon],{radius:11,color:'#E4572E',weight:3,fillOpacity:.15})]).addTo(map); }
+  if(q.tr&&q.tr.length>1){ gRev=L.layerGroup([L.polyline(q.tr.map(function(p){ return [p[0],p[1]]; }),{color:'#ff8a50',weight:5,opacity:.95}),L.circleMarker(q.tr[0],{radius:7,color:'#fff',weight:3,fillColor:'#3ddc97',fillOpacity:1}),L.circleMarker(q.tr[q.tr.length-1],{radius:7,color:'#fff',weight:3,fillColor:'#ff4d4d',fillOpacity:1})]).addTo(map); map.fitBounds(L.latLngBounds(q.tr.map(function(p){ return [p[0],p[1]]; })),{padding:[40,40]}); revShow(q.lab||T('Διαδρομή εξόδου','Trip route'),q.trip||q.replay||null); }
+  else { map.setView([q.lat,q.lon],q.z||15); gRev=L.layerGroup([L.circleMarker([q.lat,q.lon],{radius:11,color:'#E4572E',weight:3,fillOpacity:.15})]).addTo(map); revShow(q.lab||T('Σημείο από το Ημερολόγιο','Point from the logbook'),null); }
   return true; }
 B.spotSheet=function(sp){ spotSheet(sp); };
 /* ονόματα σημείων που πέφτουν το ένα πάνω στο άλλο: φαίνεται μόνο το πρώτο (τα υπόλοιπα με πάτημα στο σημείο) */

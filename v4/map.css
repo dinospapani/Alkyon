@@ -365,3 +365,20 @@ body.maptrip .heatpill{display:none}
 #ndSeaSt::before{display:inline-block;vertical-align:1px;margin-right:8px}
 #ndMapDock:has(#wxCard) #ndWindLab{display:none}
 #wxCard .wch .wcmore{margin-left:auto}
+/* v31z520: κουμπί για να φύγει η διαδρομή/το σημείο από τον χάρτη */
+.revchip{position:fixed;left:50%;transform:translateX(-50%);top:calc(var(--safe-t) + 74px);z-index:19;display:flex;align-items:center;gap:4px;padding:4px 4px 4px 14px;border-radius:999px;background:var(--surface);color:var(--ink);box-shadow:0 6px 18px rgba(0,0,0,.3);max-width:calc(100vw - 150px);font:700 13px var(--font)}
+.revchip .rvt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.revchip::before{content:"";width:14px;height:4px;border-radius:2px;background:#ff8a50;flex:none;margin-right:4px}
+.revchip button{width:34px;height:34px;border-radius:50%;border:0;background:var(--surface-2);color:var(--ink);font:700 13px var(--font);flex:none;cursor:pointer}
+.revchip .rvp{color:var(--accent)}
+body:not(.mapon) .revchip,body.replaying .revchip{display:none}
+.revchip{top:calc(var(--safe-t) + 118px)}
+body:has(.mapwx[hidden]) .revchip,body:not(:has(.mapwx)) .revchip{top:calc(var(--safe-t) + 70px)}
+/* v31z520: μέρες κάτω από τη μπάρα ώρας (σαν το Windy) */
+.wxdays{position:relative;height:18px;margin:2px 52px 0 50px;font:700 10.5px var(--font);color:var(--ink-2)}
+.wxdays span{position:absolute;top:2px;white-space:nowrap;transform:translateX(0)}
+.wxdays span.tick{padding-left:5px;border-left:1.5px solid var(--line)}
+.wxdays span:last-of-type{max-width:60px;overflow:hidden}
+.wxdays i.now{position:absolute;top:-10px;width:2px;height:8px;border-radius:1px;background:var(--accent);transform:translateX(-1px)}
+#ndWindPanel>.note{display:none}
+#ndWindPanel:has(button[aria-expanded=true])>.note{display:block}

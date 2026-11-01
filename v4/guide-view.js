@@ -26,7 +26,7 @@ function deps(){ var p=Promise.resolve(), L=['../cy100.js'].concat(window.SPECIE
   if(EN&&!window.PsaroTrWatch){ window.PSARO_NO_DOMTR=true; L.unshift('../i18n.js'); }
   L.forEach(function(f){ p=p.then(function(){ return load(f); }); }); return p; }
 B.guideReady=function(){ if(ready) return ready;
-  ready=deps().then(function(){ var tmp=null; if(!page.isConnected){ tmp=h('div',{hidden:true}); tmp.append(page); document.body.append(tmp); } var sec=page.querySelector('#tab-guide'); if(EN&&window.PsaroTrWatch) PsaroTrWatch(sec);
+  ready=deps().then(function(){ var tmp=null; if(!page.isConnected){ tmp=h('div',{hidden:true}); tmp.append(page); document.body.append(tmp); } var sec=page.querySelector('#tab-guide'); if(EN&&window.PsaroTrWatch&&!window.PSARO_TRBODY) PsaroTrWatch(sec);
     try{ core=window.PsaroGuideCore(); }catch(e){ console.error(e); }
     return load('../knots.js').then(function(){ if(tmp){ tmp.remove(); } }); }).then(function(){ return core; });
   return ready; };

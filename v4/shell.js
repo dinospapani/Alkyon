@@ -29,6 +29,8 @@ function route(){
 function start(){
   main=h('main',{class:'app',id:'main'});
   document.body.append(main,nav());
+  /* v31z520: στα αγγλικά, ό,τι έμεινε ελληνικό (ονόματα ειδών, τεχνικές, δολώματα, συμβουλές της γνώσης) μεταφράζεται με το λεξικό της κλασικής */
+  if(window.LANG==='en'&&window.PsaroTrWatch){ window.PSARO_TRBODY=true; try{ PsaroTrWatch(document.body); }catch(e){} }
   window.addEventListener('hashchange',route);
   document.addEventListener('visibilitychange',function(){ if(!document.hidden&&cur&&VIEWS[cur].resume) VIEWS[cur].resume(); });
   route();
