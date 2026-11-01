@@ -335,3 +335,27 @@ html.pg-open body{overflow:hidden}
 /* κουμπιά με κείμενο: πάντα σε μία γραμμή */
 .acts .btn,.btn.pri,.btn.sm{white-space:nowrap}
 .gbody>.list>.note,#g-species>.note{padding:0 4px}
+/* ===== Προφίλ: κεφαλίδα, στατιστικά χρονιάς, ομάδες ===== */
+.phead{padding:6px 14px 12px}
+.phid{display:flex;align-items:center;gap:12px;width:100%;min-height:64px;padding:6px 0;border:0;background:none;color:var(--ink);text-align:left;font-family:var(--font)}
+.phid .av{flex:none;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:var(--accent-ink);font:800 20px var(--font)}
+.phid .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.phid .tx b{font-size:17px;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.phid .tx small{display:flex;align-items:center;gap:6px;color:var(--ink-2);font-size:13px}
+.sdot{width:8px;height:8px;border-radius:50%;background:var(--ink-3);flex:none}
+.sdot.ok{background:var(--good)}.sdot.warn{background:var(--fair)}.sdot.bad{background:var(--poor)}
+.pstats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+.pst{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0;padding:10px 4px;border-radius:14px;background:var(--surface-2);text-align:center}
+.psi svg{width:20px;height:20px;fill:none;stroke:var(--accent);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.pst b{font-size:16px;font-weight:800;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pst small{font-size:11px;color:var(--ink-2);line-height:1.2;max-width:100%;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.pall{display:block;margin-top:10px;text-align:center;font:650 14px var(--font);color:var(--accent);text-decoration:none}
+.pgrp{margin-bottom:6px}
+.pgrp .listh{margin-top:18px}
+.ic.pic{background:color-mix(in srgb,var(--accent) 12%,var(--surface-2));color:var(--accent)}
+.ic.pic svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+button.li{font-family:var(--font);color:var(--ink);cursor:pointer}
+.phid>svg{flex:none;width:20px;height:20px;fill:none;stroke:var(--ink-3);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+a.li,a.li:visited{text-decoration:none;color:var(--ink)}
+a.li .tx small{color:var(--ink-2)}
+.li>svg:last-child{flex:none;width:18px;height:18px;fill:none;stroke:var(--ink-3);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
