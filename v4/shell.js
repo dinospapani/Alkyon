@@ -8,7 +8,12 @@ B.view=function(name,def){ VIEWS[name]=def; };
 var TABS=[['forecast',T('Πρόγνωση','Forecast'),'forecast'],['map',T('Χάρτης','Map'),'map'],null,['log',T('Ημερολόγιο','Logbook'),'log'],['profile',T('Προφίλ','Profile'),'user']];
 function nav(){
   var bar=h('div'); TABS.forEach(function(t){
-    if(!t){ bar.append(h('button',{class:'fab',type:'button','aria-label':T('Νέο ψάρι','New catch'),html:B.iconSvg('plus'),onclick:function(){ if(B.biteForm) B.biteForm(); }})); return; }
+    if(!t){ /* v31z521: κράτα πατημένο το + για καταγραφή με φωνή («λαβράκι δύο κιλά») */
+      var lp=null, lpDone=false, fab=h('button',{class:'fab',type:'button','aria-label':T('Νέο ψάρι. Κράτα πατημένο για φωνή.','New catch. Long-press for voice.'),html:B.iconSvg('plus'),onclick:function(ev){ if(lpDone){ lpDone=false; ev.preventDefault(); return; } if(B.biteForm) B.biteForm(); }});
+      fab.addEventListener('pointerdown',function(){ lpDone=false; clearTimeout(lp); lp=setTimeout(function(){ if(B.voice&&B.voice.ok){ lpDone=true; try{ navigator.vibrate&&navigator.vibrate(30); }catch(e){} B.voice.log(); } },550); });
+      ['pointerup','pointerleave','pointercancel'].forEach(function(n){ fab.addEventListener(n,function(){ clearTimeout(lp); }); });
+      fab.addEventListener('contextmenu',function(ev){ ev.preventDefault(); });
+      bar.append(fab); return; }
     var a=h('a',{href:'#'+t[0],data:{v:t[0]}}); a.innerHTML=B.iconSvg(t[2]); a.append(h('span',{text:t[1]})); bar.append(a); });
   return h('nav',{class:'nav','aria-label':T('Κύρια πλοήγηση','Main navigation')},bar);
 }

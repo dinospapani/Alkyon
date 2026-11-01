@@ -91,7 +91,8 @@ function draw(){
   if(all.length) page.append(h('div',{class:'tktools'},
     h('button',{type:'button',class:'tkt',onclick:advisor},h('b',{text:T('Τι να χρησιμοποιήσω;','What should I use?')}),h('small',{text:T('Πρόταση για ένα ψάρι','Suggestion for a fish')})),
     h('button',{type:'button',class:'tkt'+(rc?' warn':''),onclick:listSheet},h('b',{text:T('Υπενθυμίσεις','Reminders')+(rc?' · '+rc:'')}),h('small',{text:T('Αλλαγή, συντήρηση, αγορές','Change, service, shopping')})),
-    h('button',{type:'button',class:'tkt',onclick:moreSheet},h('b',{text:T('Μονάδες, αρχείο','Units, file')}),h('small',{text:Wu()+' · '+Du()+' · '+Lu()}))));
+    h('button',{type:'button',class:'tkt',onclick:moreSheet},h('b',{text:T('Μονάδες, αρχείο','Units, file')}),h('small',{text:Wu()+' · '+Du()+' · '+Lu()})),
+    B.nearShops?h('button',{type:'button',class:'tkt',onclick:B.nearShops},h('b',{text:'🛒 '+T('Μαγαζιά κοντά','Shops nearby')}),h('small',{text:T('Ψαρικά στον χάρτη Google','Tackle shops on Google Maps')})):null));
   var used={}; all.forEach(function(x){ used[x.type]=1; });
   var TYO=TY.filter(function(t){ return t[0]==='set'; }).concat(TY.filter(function(t){ return t[0]!=='set'; }));
   var chips=h('div',{class:'chips tkf'}); [['all',T('Όλα','All')]].concat(TYO.filter(function(t){ return used[t[0]]; }).map(function(t){ return [t[0],t[1]]; })).forEach(function(c){ var n=c[0]==='all'?all.length:all.filter(function(x){ return x.type===c[0]; }).length; chips.append(h('button',{type:'button',class:'chip','aria-pressed':String(fType===c[0]),text:c[1]+' '+n,onclick:function(){ var sx=chips.scrollLeft, y=window.scrollY; fType=c[0]; draw(); var nc=root&&root.querySelector('.chips.tkf'); if(nc) nc.scrollLeft=sx; try{ window.scrollTo(0,Math.min(y,(nc?nc.offsetTop-10:0))); }catch(e){} }})); });

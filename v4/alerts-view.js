@@ -77,6 +77,8 @@ function draw(){
   /* ειδοποιήσεις καιρού όσο είναι ανοιχτή η εφαρμογή (κοινή ρύθμιση με την κλασική) */
   if(B.wxAlerts){ var wa=h('input',{type:'checkbox',checked:B.wxAlerts.on(),onchange:function(ev){ B.wxAlerts.set(ev.target.checked); }});
     page.append(h('section',{class:'card'},h('h2',{text:T('Καιρός κατά το ψάρεμα','Weather while fishing')}),h('label',{class:'tg'},wa,h('span',{text:T('Ειδοποίηση όταν δυναμώνει ο άνεμος ή το κύμα, και πριν από καλή ώρα ψαρέματος','Alert when wind or waves pick up, and before a good fishing window')})),h('p',{class:'sub',text:T('Λειτουργεί όσο η εφαρμογή είναι ανοιχτή (και στο παρασκήνιο κατά την έξοδο).','Works while the app is open (and in the background during a trip).')}))); }
+  if(B.driftAsk){ var da=h('input',{type:'checkbox',checked:B.driftAsk.on(),onchange:function(ev){ B.driftAsk.set(ev.target.checked); }});
+    page.append(h('section',{class:'card'},h('h2',{text:T('Νέα σημεία κατά την έξοδο','New spots during a trip')}),h('label',{class:'tg'},da,h('span',{text:T('Όταν μένεις ακίνητος ή κάνεις drift ~10 λεπτά σε σημείο που δεν έχεις σώσει, ρώτα αν θέλω να το αποθηκεύσω','When I stay still or drift for ~10 minutes at a place I have not saved, ask whether to save it')})))); }
   page.append(h('a',{class:'btn full',href:'#inbox',style:{marginTop:'12px'},text:T('Ιστορικό ειδοποιήσεων','Notification history')}));
   root.replaceChildren(page);
 }

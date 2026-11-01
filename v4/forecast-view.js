@@ -154,7 +154,7 @@ function draw(){
     else page.append(skeleton());
   } else if(st.view==='week') week(page,fc);
   else if(st.view==='adv') B.fcAdv(page,fc,{place:p,today:td,open:openDay,reload:function(){ load(false); }});
-  else if(st.view==='mine') B.fcMine(page,fc,{place:p,today:td});
+  else if(st.view==='mine'){ if(B.oppsCard) page.append(B.oppsCard(5)); B.fcMine(page,fc,{place:p,today:td}); }
   else { if(!st.day||!(fc.days||[]).some(function(x){ return x.date===st.day; })) st.day=td; page.append(dayStrip(fc)); dayView(page,fc,dayOf(st.day)); }
 
   if(st.note) page.append(h('p',{class:'foot',text:st.note}));
@@ -207,7 +207,7 @@ function dayView(page,fc,d){
         h('div',{class:'nwg'},cells.map(function(c){ return h('div',{class:'nwc'},h('b',null,c[0],h('small',{text:' '+c[1]})),h('span',{text:c[2]})); })),
         h('div',{class:'nwa'},onTrip?h('button',{class:'btn pri',type:'button',text:T('Ψάρι εδώ','Catch here'),onclick:function(){ B.quickRec&&B.quickRec(false); }}):h('a',{class:'btn pri',href:'#trip',text:'▶ '+T('Έναρξη εξόδου','Start trip')}),
           h('button',{class:'btn',type:'button',text:'+ '+T('Νέο ψάρι','New catch'),onclick:function(){ B.biteForm&&B.biteForm(); }})));
-      page.append(nc); } }
+      page.append(nc); if(B.oppsCard) page.append(B.oppsCard(2,{hideEmpty:true})); } }
 
   /* ανά ώρα: μπάρες και λεπτομέρειες της ώρας (σύρε το δάχτυλο πάνω στις μπάρες) */
   if(hr) page.append(hourCard(fc,d,selH,isToday?nh:null));

@@ -168,3 +168,41 @@ B.tripSheetExtras=function(){ if(!spear()) return null;
     h('label',{class:'tg'},w,h('span',{text:T('«Είσαι εντάξει;» αν δεν ανέβεις','“Are you OK?” if you do not surface')})),
     h('small',{class:'sub',text:T('Αν το χρονόμετρο περάσει το όριο κατά 30 δευτ., το κινητό δονείται και ρωτά. Αν δεν απαντήσεις σε 30 δευτ., στέλνει SOS. Δουλεύει μόνο με ανοιχτή εφαρμογή και αν πατάς Κατάδυση/Επιφάνεια. Δεν αντικαθιστά τον συνοδό. Μη βουτάς μόνος.','If the timer passes the limit by 30 s, the phone vibrates and asks. If you do not answer within 30 s, it sends an SOS. Works only with the app open and if you use Dive/Surfaced. It does not replace a buddy. Never dive alone.')})); };
 })();
+
+/* ---------- v31z521: «Ψαρεύεις εδώ;» Κατά την έξοδο, όταν το σκάφος μένει ακίνητο ή κάνει drift ~10 λεπτά
+   σε σημείο που δεν έχεις αποθηκεύσει, προτείνει να το σώσεις. Ρύθμιση: psaro-v4-driftask (Ειδοποιήσεις). ---------- */
+(function(){
+var B=window.BC, ls=B.ls, T=B.T, buf=[], asked=[], tripId=null;
+function on(){ return ls.get('psaro-v4-driftask',true)!==false; }
+B.driftAsk={on:on,set:function(v){ ls.set('psaro-v4-driftask',!!v); }};
+function hav(a,b){ var R=6371000, r=Math.PI/180, dl=(b.lat-a.lat)*r, dn=(b.lon-a.lon)*r, x=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dn/2)*Math.sin(dn/2); return 2*R*Math.asin(Math.min(1,Math.sqrt(x))); }
+function spots(){ try{ return B.store.raw('spots').filter(function(s){ return !s.deleted&&s.lat!=null; }); }catch(e){ return []; } }
+function tick(){
+  var tr=B.trip, act=tr&&tr.active&&tr.active();
+  if(!act){ buf=[]; asked=[]; tripId=null; return; }
+  var st=tr.state&&tr.state(), id=(st&&st.id)||'x'; if(id!==tripId){ tripId=id; buf=[]; asked=[]; }
+  var f=tr.fix&&tr.fix(); if(!f||f.lat==null||Date.now()-(f.t||0)>90000) return;
+  if(!buf.length||buf[buf.length-1].t!==f.t) buf.push({lat:f.lat,lon:f.lon,t:f.t||Date.now()});
+  var now=Date.now(); buf=buf.filter(function(p){ return now-p.t<=13*60000; });
+  if(!on()) return; check(now);
+}
+B.driftCheck=function(points,now){ buf=points.slice(); return check(now||Date.now()); };
+function check(now){
+  var w=buf.filter(function(p){ return now-p.t<=10*60000; }); if(w.length<5) return null;
+  var dur=w[w.length-1].t-w[0].t; if(dur<9*60000) return null;
+  var c={lat:0,lon:0}; w.forEach(function(p){ c.lat+=p.lat; c.lon+=p.lon; }); c.lat/=w.length; c.lon/=w.length;
+  var maxR=Math.max.apply(null,w.map(function(p){ return hav(c,p); })), net=hav(w[0],w[w.length-1]), kn=net/(dur/1000)*1.94384;
+  var still=maxR<=120, drift=!still&&kn<=1.2&&maxR<=450; if(!still&&!drift) return null;
+  if(spots().some(function(s){ return hav(c,{lat:s.lat,lon:s.lon})<200; })) return null;
+  if(asked.some(function(a){ return hav(c,a)<400; })) return null;
+  var tk=B.trip.track&&B.trip.track(), p0=tk&&tk.pts&&tk.pts[0]; if(p0&&hav(c,{lat:p0[0],lon:p0[1]})<300) return null; /* λιμάνι / αφετηρία */
+  asked.push(c);
+  try{ navigator.vibrate&&navigator.vibrate([60,60,60]); }catch(e){}
+  var msg=still?T('Είσαι ακίνητος εδώ ~10′. Ψαρεύεις; Να σωθεί το σημείο;','You have been still here ~10′. Fishing? Save this spot?'):T('Κάνεις drift εδώ ~10′. Να σωθεί το σημείο;','Drifting here ~10′. Save this spot?');
+  if(B.inboxAdd) B.inboxAdd(T('Νέο σημείο;','New spot?'),msg,'trip');
+  B.toast(msg,15000,{label:T('Σώσε','Save'),fn:function(){ if(B.spotFormAt) B.spotFormAt(c.lat,c.lon,still?'':T('Drift','Drift')); }});
+  return {lat:c.lat,lon:c.lon,still:still,kn:kn};
+}
+setInterval(function(){ try{ tick(); }catch(e){} },30000);
+})();
+

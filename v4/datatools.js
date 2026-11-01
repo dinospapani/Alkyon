@@ -42,11 +42,13 @@ B.aiButton=function(getBlob,pick){
     if(!bl){ msg.textContent=T('Πρόσθεσε πρώτα φωτογραφία του ψαριού.','Add a photo of the fish first.'); return; }
     b.disabled=true; b.textContent=T('Αναγνώριση…','Identifying…');
     identify(bl).then(function(res){ if(!res.length){ msg.textContent=T('Δεν αναγνωρίστηκε ψάρι στη φωτογραφία.','No fish recognised in the photo.'); return; }
-      res.forEach(function(x){ var nm=nameFor(x), pct=typeof x.confidence==='number'?' '+Math.round(x.confidence*100)+'%':''; out.append(h('button',{type:'button',class:'chip',text:nm+' ('+x.latin+')'+pct,onclick:function(){ pick(nm); }})); });
+      res.forEach(function(x){ var nm=nameFor(x), pct=typeof x.confidence==='number'?' '+Math.round(x.confidence*100)+'%':''; out.append(h('button',{type:'button',class:'chip',text:nm+' ('+x.latin+')'+pct,onclick:function(){ pick(nm,x.latin); [].forEach.call(out.children,function(c){ c.classList.toggle('on',c===this); },this); }})); });
       msg.textContent=T('Πρόταση AI, μπορεί να είναι λάθος. Μη βασίζεσαι σε αυτήν για το αν επιτρέπεται ή αν τρώγεται ένα ψάρι.','AI suggestion, it may be wrong. Do not rely on it for whether a fish is legal or edible.'); })
     .catch(function(e){ msg.textContent=aiErr(e); }).then(function(){ b.disabled=false; b.textContent='🔍 '+T('Αναγνώριση με AI','Identify with AI'); }); }});
-  return h('div',{class:'fld aibox'},b,out,msg);
+  var box=h('div',{class:'fld aibox'},b,out,msg); box.run=function(){ if(!b.disabled) b.click(); }; return box;
 };
+/* v31z521: ρύθμιση κλειδιού μέσα από τη φόρμα ψαριού */
+B.aiSetup=function(done,into){ if(into){ var cd=aiCard(); cd.classList.add('aiinline'); into.replaceChildren(cd); var iv2=setInterval(function(){ if(!document.body.contains(cd)){ clearInterval(iv2); return; } if(B.aiOn()){ clearInterval(iv2); if(done) done(); } },600); return; } var sh=B.sheet({title:T('Αναγνώριση ψαριού με AI','AI fish identification'),body:aiCard()}); var iv=setInterval(function(){ if(B.aiOn()){ clearInterval(iv); try{ sh.close(true); }catch(e){} if(done) done(); } if(!document.body.contains(sh.el||document.body)) clearInterval(iv); },700); setTimeout(function(){ clearInterval(iv); },300000); };
 B.aiOn=function(){ return !!ls.get('psaro-akey',''); };
 function aiCard(){
   var c=h('section',{class:'card'},h('h2',{text:T('Αναγνώριση ψαριού με AI','AI fish identification')}),h('p',{class:'sub',text:T('Με δικό σου κλειδί Anthropic API (sk-ant-…). Το κλειδί μένει μόνο σε αυτή τη συσκευή και η φωτογραφία στέλνεται απευθείας στο api.anthropic.com. Η χρέωση γίνεται στον λογαριασμό σου.','With your own Anthropic API key (sk-ant-…). The key stays on this device only and the photo goes straight to api.anthropic.com. Usage is billed to your account.')}));

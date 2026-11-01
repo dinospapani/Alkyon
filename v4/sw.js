@@ -1,7 +1,7 @@
 /* BiteCast 4 · service worker (μόνο για τον φάκελο v4/).
    Δικά μας αρχεία: πρώτα δίκτυο, αλλιώς αποθηκευμένο αντίγραφο. Γραμματοσειρές: αποθηκευμένο αντίγραφο πρώτα. */
-const V = 'bitecast4-042';
-const SHELL = ['./', 'index.html', 'app.css', 'forecast.css', 'core.js', 'ui.js', 'shell.js', 'forecast-view.js', 'forecast-more.js', 'advise.js', 'store.js', 'bite-form.js', 'log-view.js', 'profile-view.js', 'log.css', 'map.css', 'map-view.js', 'wxfx.js', 'tackle-view.js', 'gear-view.js', 'boat-view.js', 'friends-view.js', 'community-view.js', 'trip.js', 'trip-extra.js', 'sea-tools.js', 'smart.js', '../ext.js', '../divelog.js', '../coords.js', '../regions.js', '../windwatch.js', '../coastgrid.js', '../exposure.js', '../bitewx.js', 'alerts-view.js', 'cards.js', 'datatools.js', 'import-view.js', 'insights.js', 'start-pick.js', 'bc-hero-boat.jpg', 'bc-card-shore.jpg', 'bc-card-boat.jpg', 'bc-hero-spear.jpg', 'bc-th-boatrod.jpg', 'bc-th-spear.jpg', 'bc-th-shorerod.jpg', '../species.js', '../rules.js', 'guide-core.js', 'guide-view.js', '../cy100.js', '../regions.js', '../knots.js', '../coastgrid.js', '../exposure.js', '../bathy-lines.js', '../windmap.js', '../windlocal.js', '../seastate.js', '../ruler.js', '../ports.js', '../orient.js', '../navigator.js', '../route.js', '../leaflet.js', '../leaflet.css', '../zones.js', '../dams_levels.json', '../version.js', '../hist.js', 'manifest.webmanifest',
+const V = 'bitecast4-043';
+const SHELL = ['./', 'index.html', 'app.css', 'forecast.css', 'core.js', 'ui.js', 'shell.js', 'forecast-view.js', 'forecast-more.js', 'advise.js', 'store.js', 'bite-form.js', 'log-view.js', 'profile-view.js', 'log.css', 'map.css', 'map-view.js', 'wxfx.js', 'opps.js', 'coordpick.js', 'tackle-view.js', 'gear-view.js', 'boat-view.js', 'friends-view.js', 'community-view.js', 'trip.js', 'trip-extra.js', 'sea-tools.js', 'smart.js', '../ext.js', '../divelog.js', '../coords.js', '../regions.js', '../windwatch.js', '../coastgrid.js', '../exposure.js', '../bitewx.js', 'alerts-view.js', 'cards.js', 'datatools.js', 'import-view.js', 'insights.js', 'start-pick.js', 'bc-hero-boat.jpg', 'bc-card-shore.jpg', 'bc-card-boat.jpg', 'bc-hero-spear.jpg', 'bc-th-boatrod.jpg', 'bc-th-spear.jpg', 'bc-th-shorerod.jpg', '../species.js', '../rules.js', 'guide-core.js', 'guide-view.js', '../cy100.js', '../regions.js', '../knots.js', '../coastgrid.js', '../exposure.js', '../bathy-lines.js', '../windmap.js', '../windlocal.js', '../seastate.js', '../ruler.js', '../ports.js', '../orient.js', '../navigator.js', '../route.js', '../leaflet.js', '../leaflet.css', '../zones.js', '../dams_levels.json', '../version.js', '../hist.js', 'manifest.webmanifest',
   '../units.js', '../knowledge.js', '../i18n.js', '../forecast.js', '../personal.js', '../icon-192.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(V).then(c => Promise.all(SHELL.map(u => c.add(u).catch(() => {})))).then(() => self.skipWaiting()));
@@ -19,6 +19,14 @@ self.addEventListener('fetch', e => {
   /* πλακίδια χάρτη: πρώτα όσα κατέβασες για χρήση χωρίς σήμα (κοινή αποθήκη με την κλασική) */
   if (/(^|\.)(arcgisonline\.com|tile\.openstreetmap\.org|openseamap\.org)$/.test(u.hostname)) {
     e.respondWith(caches.open('psaro-tiles').then(c => c.match(e.request.url, { ignoreVary: true })).then(r => r || fetch(e.request)));
+    return;
+  }
+  /* v31z521: βάθη (EMODnet) και καιρός (Open-Meteo): πρώτα ό,τι κατέβασες, μετά το δίκτυο· χωρίς σήμα, η τελευταία απάντηση για το ίδιο αίτημα */
+  if (/(^|\.)(emodnet-bathymetry\.eu|open-meteo\.com)$/.test(u.hostname)) {
+    e.respondWith(caches.open('psaro-tiles').then(c => c.match(e.request.url, { ignoreVary: true })).then(hit => hit || fetch(e.request).then(r => {
+      if (r.ok) { const cp = r.clone(); caches.open('psaro-offdata').then(c => c.put(e.request.url, cp).then(() => { if (Math.random() < 0.04) c.keys().then(ks => { const n = ks.length - 900; for (let i = 0; i < n; i++) c.delete(ks[i]); }); })); }
+      return r;
+    }).catch(err => caches.open('psaro-offdata').then(c => c.match(e.request.url)).then(r => { if (r) return r; throw err; }))));
     return;
   }
   if (u.origin !== location.origin) return;

@@ -382,3 +382,28 @@ body:has(.mapwx[hidden]) .revchip,body:not(:has(.mapwx)) .revchip{top:calc(var(-
 .wxdays i.now{position:absolute;top:-10px;width:2px;height:8px;border-radius:1px;background:var(--accent);transform:translateX(-1px)}
 #ndWindPanel>.note{display:none}
 #ndWindPanel:has(button[aria-expanded=true])>.note{display:block}
+/* v31z521: θερμοκρασία νερού */
+.sstleg{position:fixed;left:50%;transform:translateX(-50%);top:calc(var(--safe-t) + 118px);z-index:18;width:min(330px,calc(100vw - 150px));padding:7px 10px;border-radius:14px;background:color-mix(in srgb,var(--surface) 92%,transparent);color:var(--ink);box-shadow:0 6px 18px rgba(0,0,0,.25);font:600 11px var(--font)}
+body:has(.mapwx[hidden]) .sstleg,body:not(:has(.mapwx)) .sstleg{top:calc(var(--safe-t) + 70px)}
+body:has(.revchip) .sstleg{display:none}
+body:not(.mapon) .sstleg,.sstleg[hidden]{display:none}
+.sstleg .slt{display:flex;align-items:center;gap:6px}
+.sstleg .slt b{font:800 12px var(--font);white-space:nowrap}
+.sstleg .slb{flex:1;height:8px;border-radius:4px}
+.sstleg small{display:flex;align-items:center;gap:6px;margin-top:4px;color:var(--ink-2);line-height:1.25}
+.sstleg .slf{width:18px;height:3px;border-radius:2px;background:#ffd23f;flex:none;box-shadow:0 0 0 1px rgba(0,0,0,.25)}
+#wxCard .wcsst{display:flex;align-items:center;gap:5px;font:650 12px var(--font);color:var(--ink);flex:1}
+#wxCard .wcsst i{width:8px;height:8px;border-radius:50%;flex:none}
+.mchips{gap:4px;left:66px;right:66px}
+.mchip{width:50px;font-size:10px}
+.mchips{left:64px;right:64px}
+.mchip{width:46px}
+/* v31z521: κλίμακα ανέμου/κύματος (σαν το Windy) */
+#wxLeg{display:flex;align-items:center;gap:10px;padding:7px 12px 4px}
+#wxLeg>b{font:750 11px var(--font);color:var(--ink-2);white-space:nowrap}
+#wxLeg .wlw{flex:1;min-width:0}
+#wxLeg .wlbar{height:9px;border-radius:5px}
+#wxLeg .wltk{position:relative;height:14px;font:700 10px var(--font);color:var(--ink-2)}
+#wxLeg .wltk span{position:absolute;top:2px;transform:translateX(-50%)}
+#wxLeg .wltk span:first-child{transform:none}
+#ndMapDock:has(#wxLeg) #ndSeaLeg{display:none!important}
