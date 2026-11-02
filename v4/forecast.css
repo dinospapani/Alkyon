@@ -235,3 +235,10 @@ svg.pwc{width:100%;height:auto}
 .hcard .hover[hidden]{display:none}
 .hcard .hover b{color:var(--poor)}
 .hcard .hover a{display:inline-block;margin-left:6px;color:var(--accent);font-weight:700;text-decoration:none}
+/* v31z544 · πλάνο εξόδου */
+.hero .planbtn{display:flex;align-items:center;gap:10px;width:100%;margin:12px 0 0;padding:10px 12px;border-radius:14px;border:1.5px dashed var(--line);background:transparent;color:var(--ink);text-align:left;font:inherit;cursor:pointer}
+.hero .planbtn .pli{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--surface-2);font-size:16px}
+.hero .planbtn b{display:block;font-size:14.5px}.hero .planbtn small{display:block;font-size:12px;color:var(--ink-2);margin-top:1px}
+.hero .planbtn.on{border-style:solid;border-color:var(--good);background:var(--good-bg)}
+.hero .planbtn.on .pli{background:var(--good);color:#fff;font-weight:800}
+.dtile{position:relative}.dtile .dpl{position:absolute;top:-5px;right:-4px;width:20px;height:20px;border-radius:50%;background:var(--good);color:#fff;font:800 12px/20px var(--font);font-style:normal;text-align:center;box-shadow:0 0 0 2px var(--bg)}

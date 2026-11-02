@@ -52,6 +52,11 @@ function rt(){
       if(b){ var margin=b.mins-eta;
         if(margin<=20){ level='bad'; msg=T('Ώρα να γυρίσεις: χρειάζεσαι ~','Time to head back: you need ~')+Math.round(eta)+T('′ και ο καιρός χειροτερεύει σε ~',' min and the weather worsens in ~')+Math.round(b.mins)+(EN?' min':'′'); note('🏠 '+T('Πότε να γυρίσεις','When to head back'),msg,'back',25*60000); }
         else if(margin<=60&&!level){ level='warn'; msg=T('Ο καιρός χειροτερεύει σε ~','Weather worsens in ~')+Math.round(b.mins)+T('′. Η επιστροφή θέλει ~',' min. The trip home takes ~')+Math.round(eta)+(EN?' min':'′'); note('🏠 '+T('Προσοχή στον καιρό','Weather watch'),msg,'backw',40*60000); } }
+      /* v31z543: δύση και ώρα επιστροφής που δήλωσες (όταν δεν υπάρχει ήδη ειδοποίηση καιρού) */
+      if(!level&&d!=null&&d/1.1>=0.9){ var hmT=function(ms){ var x=new Date(ms); return B.pad(x.getHours())+':'+B.pad(x.getMinutes()); }, ts=null; try{ ts=B.trip&&B.trip.state(); }catch(e){}
+        if(ts&&ts.due&&ts.due>now&&ts.due-now<=(eta+10)*60000){ level='warn'; msg=T('Για να είσαι πίσω στις ','To be back by ')+hmT(ts.due)+T(', ξεκίνα τώρα (~',', leave now (~')+Math.round(eta)+(EN?' min)':'′)'); note('🏠 '+T('Ώρα να γυρίσεις','Time to head back'),msg,'due'+ts.due,6*3600000); }
+        else if(window.PF&&PF.sunMoon){ try{ var dd=new Date(), ds=dd.getFullYear()+'-'+B.pad(dd.getMonth()+1)+'-'+B.pad(dd.getDate()), tz=-dd.getTimezoneOffset(), sm=PF.sunMoon(ds,p.lat,p.lon,tz), set=new Date(dd.getFullYear(),dd.getMonth(),dd.getDate()).getTime()+sm.set*60000;
+          if(set>now&&set-now<=(eta+15)*60000){ level='warn'; msg=T('Δύση στις ','Sunset at ')+hmT(set)+T('. Η επιστροφή θέλει ~','. The trip home takes ~')+Math.round(eta)+(EN?' min':'′'); note('🌅 '+T('Η δύση πλησιάζει','Sunset is near'),msg,'sunset'+ds,12*3600000); } }catch(e){} } }
       if(S.auto&&d!=null&&d/1.1<0.2){ atHome=atHome||now; if(now-atHome>120000&&!endAsked){ endAsked=true; B.ask(T('Φαίνεται ότι γύρισες στο λιμάνι. Να τελειώσει η έξοδος;','You seem to be back at the port. End the trip?'),T('Τέλος εξόδου','End trip')).then(function(y){ if(y&&B.trip) B.trip.back(); }); } } else atHome=0; }
     rtState={level:level,msg:msg,txt:parts.join('  ·  ')}; paintChip(); drawRing();
   },function(){});

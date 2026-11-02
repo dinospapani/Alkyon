@@ -116,6 +116,8 @@ function startTimer(){ clearInterval(timer); timer=setInterval(tick,60000); }
 function start(o){
   var d=load(), s=Object.assign({},d,{active:true,id:'trip-'+Date.now().toString(36),route:o.route||'',due:o.due,autoExt:0,sosAt:0,pgStart:0,pgEnd:0,last:null,start:Date.now(),startDate:B.store?todayStr():'',cond0:cond0(),sil:o.sil||0,noAlert:!o.notify,synced:undefined});
   save(s); ls.set('psaro-track',null); watch(); startTimer();
+  /* v31z543: στέλνει στον server όρια και λιμάνι, για ειδοποιήσεις καιρού / επιστροφής με κλειστό κινητό */
+  try{ if(B.pushSync) B.pushSync(); }catch(e){}
   pushContact().then(trackPos).then(pushTrip);
   B.emit('tripstart',s);
   if(s.noAlert) B.toast(T('Καλή έξοδος! Η επαφή σου δεν θα ειδοποιηθεί σε αυτή την έξοδο (το SOS λειτουργεί).','Have a good trip! Your contact will not be notified on this trip (SOS still works).'));

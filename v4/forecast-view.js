@@ -189,11 +189,30 @@ function dayStrip(fc){
     var b=h('button',{type:'button',role:'tab','aria-selected':String(on),class:'dtile lv-'+lv+(on?' on':''),onclick:function(){ if(st.day===d.date) return; st.day=d.date; st.hour=null; swapDay(bar,d.date); try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){ window.scrollTo(0,0); } }},
       h('span',{class:'dn',text:nm}),h('span',{class:'dd',text:String(dt.getDate())}),
       d.safe?h('b',{class:'dsc',text:String(d.best)}):h('b',{class:'dsc no',title:d.why==='night'?T('χωρίς φως','no light'):shortWhy(d),text:'—'}),
+      B.plans&&B.plans.get(d.date)?h('i',{class:'dpl',title:T('Πλάνο εξόδου','Trip plan'),text:'✓'}):null,
       h('small',{class:'dw',text:d.safe&&d.win?B.pad(d.win.s)+'–'+B.pad((d.win.e+1)%24):(d.why==='night'?T('νύχτα','night'):shortWhy(d).split(' ')[0])}));
     b._d=d.date; if(on) selEl=b; bar.append(b); });
   if(selEl) setTimeout(function(){ try{ var r=selEl.offsetLeft-bar.clientWidth/2+selEl.clientWidth/2; if(r>0&&bar.scrollLeft===0) bar.scrollLeft=r; }catch(e){} },0);
   return bar;
 }
+/* ---------- v31z544: πλάνο εξόδου («Θα βγω») ---------- */
+var PK='psaro-v4-plans';
+function plansAll(){ var a=ls.get(PK,[]); return Array.isArray(a)?a:[]; }
+B.plans={list:function(){ var td=today(); return plansAll().filter(function(x){ return x&&x.date>=td; }).slice(0,6); },
+  get:function(date){ return plansAll().filter(function(x){ return x.date===date; })[0]||null; },
+  set:function(date,p){ var td=today(), a=plansAll().filter(function(x){ return x.date!==date&&x.date>=td; }); if(p) a.push({date:date,id:p.id||'',name:p.name||'',lat:+(+p.lat).toFixed(4),lon:+(+p.lon).toFixed(4),t:Date.now()}); a.sort(function(x,y){ return x.date<y.date?-1:1; }); ls.set(PK,a); try{ if(B.pushSync) B.pushSync(); }catch(e){} }};
+function planBtn(d){
+  var pl=B.plans.get(d.date), p=st.place||current();
+  var b=h('button',{type:'button',class:'planbtn'+(pl?' on':''),onclick:function(){
+    if(B.plans.get(d.date)){ B.plans.set(d.date,null); B.toast(T('Το πλάνο ακυρώθηκε.','Plan cancelled.')); draw(); return; }
+    if(p.lat==null){ B.toast(T('Διάλεξε πρώτα τοποθεσία.','Pick a place first.')); return; }
+    B.plans.set(d.date,{id:p.id,name:p.gps?T('Η θέση μου','My location'):p.name,lat:p.lat,lon:p.lon});
+    var n=ls.get('psaro-notify',{})||{};
+    if(!n.on) B.toast(T('Αποθηκεύτηκε. Για υπενθυμίσεις άνοιξε τις ειδοποιήσεις.','Saved. Turn on alerts to get reminders.'),6000,{label:T('Άνοιγμα','Open'),fn:function(){ location.hash='#alerts'; }});
+    else B.toast(T('Θα σου θυμίσει το προηγούμενο βράδυ και ~1 ώρα πριν από την καλύτερη ώρα. Αν χαλάσει ο καιρός, θα σε ειδοποιήσει.','You will get a reminder the evening before and ~1 hour before the best time. If the weather turns, you will be told.'),6000);
+    draw(); }},
+    h('span',{class:'pli',text:pl?'✓':'📅'}),h('span',null,h('b',{text:pl?T('Θα βγεις αυτή τη μέρα','You are going out this day'):T('Θα βγω αυτή τη μέρα','I’ll go out this day')}),h('small',{text:pl?(pl.name?pl.name+' · ':'')+T('πάτα για ακύρωση','tap to cancel'):T('Υπενθύμιση το βράδυ πριν και πριν την καλύτερη ώρα','Reminder the evening before and before the best time')})));
+  return b; }
 /* ---------- μία μέρα ---------- */
 function dayView(page,fc,d){
   if(!d) return;
@@ -210,6 +229,7 @@ function dayView(page,fc,d){
     if(nx) hero.append(h('button',{class:'next',type:'button',onclick:function(){ st.view='today'; st.day=nx.date; st.hour=null; draw(); }},
       h('span',{text:T('Επόμενη καλή μέρα','Next good day')}),h('b',{text:B.dayName(nx.date,td)+', '+win(nx)}),h('i',{class:'sc',text:String(nx.best)}))); }
   if(tg) hero.append(h('span',{class:'tag '+tg[0],text:tg[1]}));
+  if(d.date>=td&&!(isToday&&d.why==='night')) hero.append(planBtn(d));
   page.append(hero);
   /* ψαροντούφεκο: ορατότητα νερού (δορυφόρος όταν υπάρχει, αλλιώς εκτίμηση από κύμα και βροχή) */
   if(B.prof()==='spear'&&B.clarityCard){ var cc=B.clarityCard(fc,d,st.place,isToday,isToday?nh:null); if(cc) page.append(cc); }
