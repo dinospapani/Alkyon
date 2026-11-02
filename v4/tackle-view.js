@@ -1,10 +1,10 @@
-/* BiteCast 4 · Εξοπλισμός (#tackle) και αντίγραφο ασφαλείας. Ίδια μορφή και ίδια λειτουργία με την κλασική tackle.js (psaro-tackle):
+/* Alkyon 4 · Εξοπλισμός (#tackle) και αντίγραφο ασφαλείας. Ίδια μορφή και ίδια λειτουργία με την κλασική tackle.js (alkyon-tackle):
    στοιχεία ανά είδος (βάρος και PE καλαμιού, drag και χωρητικότητα μουλινέ, βάρη ζόκας, μεγέθη αγκιστριών…), σετ με έλεγχο
    καλάμι/μουλινέ/νήμα, προτάσεις μοντέλων από τη βιβλιοθήκη (../tackle-lib.js), «Τι να χρησιμοποιήσω για…» (../tackle-guide.js),
-   υπενθυμίσεις αλλαγής/συντήρησης, λίστα αγορών (psaro-tk-shop), μονάδες (psaro-tk-units), φωτογραφία και αρχείο εξοπλισμού. */
+   υπενθυμίσεις αλλαγής/συντήρησης, λίστα αγορών (alkyon-tk-shop), μονάδες (alkyon-tk-units), φωτογραφία και αρχείο εξοπλισμού. */
 (function(){
 'use strict';
-var B=window.BC, h=B.h, T=B.T, EN=B.EN, ls=B.ls, root=null, q='', fType='all';
+var B=window.AK, h=B.h, T=B.T, EN=B.EN, ls=B.ls, root=null, q='', fType='all';
 var BR=['Major Craft','Shimano','Daiwa','Penn','Okuma','Abu Garcia','Savage Gear','Rapala','Yo-Zuri','Duel','Sunline','Varivas','Seaguar','Ygk','YGK','Jigging Master','Tailwalk','Ripple Fisher','Palms','Smith','Xesta','Williamson','Storm','Berkley','Fiiish','Cressi','Omer','Mares','Salvimar','Pathos','Rob Allen','Epsealon','Sigalsub','Dorado','Ultimate Fishing','Tica','Van Staal','Accurate','Fin-Nor','Stella','PowerPro','Daiwa J-Braid','X-Braid','Varivas'];
 function S(){ return B.store; }
 var TY=[['rod',T('Καλάμια','Rods'),T('Καλάμι','Rod'),T('Μήκος · δράση (π.χ. 2,7 m · fast)','Length · action (e.g. 9 ft · fast)')],['reel',T('Μουλινέδες','Reels'),T('Μουλινέ','Reel'),T('Μέγεθος · σχέση (π.χ. 4000 · 5.2:1)','Size · ratio (e.g. 4000 · 5.2:1)')],['line',T('Νήματα','Main lines'),T('Νήμα','Main line'),T('Τύπος · πάχος (π.χ. πλεκτό PE 1.5)','Type · size (e.g. braid PE 1.5)')],['leader',T('Πετονιές (leader)','Leaders'),T('Πετονιά (leader)','Leader'),T('Τύπος · πάχος (π.χ. fluorocarbon 0,40 mm)','Type · size (e.g. fluorocarbon 0.40 mm)')],['hook',T('Αγκίστρια','Hooks'),T('Αγκίστρι','Hook'),T('Τύπος (π.χ. circle, assist)','Type (e.g. circle, assist)')],['lure',T('Ζόκες / τεχνητά','Jigs / lures'),T('Ζόκα / τεχνητό','Jig / lure'),T('Σχήμα, φινίρισμα','Shape, finish')],['acc',T('Αξεσουάρ','Accessories'),T('Αξεσουάρ','Accessory'),T('π.χ. glow 6×8 mm','e.g. glow 6×8 mm')],
@@ -35,7 +35,7 @@ var num=function(s){ var v=parseFloat(String(s).replace(',','.')); return isFini
 function rng(s){ var m=String(s||'').replace(/[–—]/g,'-').match(/(\d+(?:[.,]\d+)?)\s*(?:-\s*(\d+(?:[.,]\d+)?))?/); if(!m) return null; var a=num(m[1]), b=m[2]!=null?num(m[2]):a; if(a==null||b==null) return null; return a<=b?[a,b]:[b,a]; }
 function fr(r){ return r?(r[0]===r[1]?''+r[0]:r[0]+'–'+r[1]):''; }
 function frd(r){ return r&&r[0]===0&&r[1]>0?T('έως ','max ')+r[1]:fr(r); }
-function uget(){ var v=String(ls.get('psaro-tk-units','g|kg|m')||'').split('|'); return {w:v[0]==='oz'?'oz':'g',d:v[1]==='lb'?'lb':'kg',l:v[2]==='yd'?'yd':'m'}; }
+function uget(){ var v=String(ls.get('alkyon-tk-units','g|kg|m')||'').split('|'); return {w:v[0]==='oz'?'oz':'g',d:v[1]==='lb'?'lb':'kg',l:v[2]==='yd'?'yd':'m'}; }
 function rnd(x,n){ var p=Math.pow(10,n); return Math.round(x*p)/p; }
 function Wu(){ return uget().w; } function Du(){ return uget().d; } function Lu(){ return uget().l; }
 function W(g){ g=+g; return Wu()==='oz'?rnd(g/28.3495,2):rnd(g,1); } function wIn(v){ return rnd(Wu()==='oz'?v*28.3495:v,1); }
@@ -66,7 +66,7 @@ function remind(){ var out={low:[],svc:[],nodate:[]}, td=today(), tr=trips();
   return out; }
 function remCount(){ try{ var r=remind(); return r.low.length+r.svc.length; }catch(e){ return 0; } }
 B.tackleRemCount=remCount;
-var SHOPK='psaro-tk-shop';
+var SHOPK='alkyon-tk-shop';
 function shop(){ var a=ls.get(SHOPK,[]); return Array.isArray(a)?a.filter(function(x){ return x&&typeof x.t==='string'; }):[]; }
 function shopSave(a){ ls.set(SHOPK,a.slice(0,200)); }
 
@@ -138,11 +138,11 @@ function draw(){
   var qi=h('input',{type:'search',value:q,placeholder:T('Αναζήτηση','Search'),'aria-label':T('Αναζήτηση εξοπλισμού','Search tackle')}), box=h('div');
   qi.addEventListener('input',function(){ q=qi.value; fill(); });
   /* v31z530: προβολή πλέγμα (κάρτες) ή λίστα, θυμάται την επιλογή */
-  var view=ls.get('psaro-v4-tkview','grid')==='list'?'list':'grid', VG='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>', VL='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg>';
-  var SO=[['fish',T('Ψάρια','Catches')],['recent',T('Πρόσφατα','Recent')],['name',T('Όνομα','Name')]], sort=ls.get('psaro-v4-tksort','fish'); if(!SO.some(function(o){ return o[0]===sort; })) sort='fish';
-  var sb=h('button',{type:'button',class:'tksort','aria-label':T('Ταξινόμηση','Sort'),onclick:function(){ var i=SO.findIndex(function(o){ return o[0]===sort; }); sort=SO[(i+1)%SO.length][0]; ls.set('psaro-v4-tksort',sort); sbl(); fill(); }});
+  var view=ls.get('alkyon-v4-tkview','grid')==='list'?'list':'grid', VG='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>', VL='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg>';
+  var SO=[['fish',T('Ψάρια','Catches')],['recent',T('Πρόσφατα','Recent')],['name',T('Όνομα','Name')]], sort=ls.get('alkyon-v4-tksort','fish'); if(!SO.some(function(o){ return o[0]===sort; })) sort='fish';
+  var sb=h('button',{type:'button',class:'tksort','aria-label':T('Ταξινόμηση','Sort'),onclick:function(){ var i=SO.findIndex(function(o){ return o[0]===sort; }); sort=SO[(i+1)%SO.length][0]; ls.set('alkyon-v4-tksort',sort); sbl(); fill(); }});
   function sbl(){ var o=SO.filter(function(x){ return x[0]===sort; })[0]; sb.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16M3 16l4 4 4-4M14 6h7M14 11h5M14 16h3"/></svg>'; sb.append(h('span',{text:o[1]})); } sbl();
-  var vb=h('button',{type:'button',class:'iconbtn tkvw','aria-label':T('Προβολή λίστα ή πλέγμα','List or grid view'),html:view==='grid'?VL:VG,onclick:function(){ view=view==='grid'?'list':'grid'; ls.set('psaro-v4-tkview',view); vb.innerHTML=view==='grid'?VL:VG; fill(); }});
+  var vb=h('button',{type:'button',class:'iconbtn tkvw','aria-label':T('Προβολή λίστα ή πλέγμα','List or grid view'),html:view==='grid'?VL:VG,onclick:function(){ view=view==='grid'?'list':'grid'; ls.set('alkyon-v4-tkview',view); vb.innerHTML=view==='grid'?VL:VG; fill(); }});
   if(all.length) page.append(chips,h('div',{class:'tksrow'},h('div',{class:'search'},B.icon('search'),qi),sb,vb)); page.append(box);
   function fill(){
     var ql=q.toLowerCase(), a=all.filter(function(x){ return (fType==='all'||x.type===fType)&&(!ql||[x.name,x.brand,x.spec,x.notes,x.color].join(' ').toLowerCase().indexOf(ql)>=0); });
@@ -281,7 +281,7 @@ function advise(qs,out){
   var top=function(o){ return Object.keys(o).sort(function(a,b){ return o[b]-o[a]; }).slice(0,3); };
   if(n) sec(T('Από τα δικά σου ψάρια (','From your own catches (')+n+')',top(term).map(function(k){ return k+' · '+term[k]; }).concat(top(setup).map(function(k){ return k+' · '+setup[k]; })));
   else sec(T('Από τα δικά σου ψάρια','From your own catches'),[],T('Δεν έχεις ακόμα ψάρια αυτού του είδους με καταγεγραμμένο εξοπλισμό.','No catches of this fish with recorded tackle yet.'));
-  if(G){ var cd=window.PsaroCore&&PsaroCore.getCond&&PsaroCore.getCond(), wave=cd&&cd.wave!=null?+cd.wave:null;
+  if(G){ var cd=window.AlkyonCore&&AlkyonCore.getCond&&AlkyonCore.getCond(), wave=cd&&cd.wave!=null?+cd.wave:null;
     var lures=inv.filter(function(x){ return x.type==='lure'&&x.kind&&G.k.indexOf(x.kind)>=0; }).sort(function(a,b){ return G.k.indexOf(a.kind)-G.k.indexOf(b.kind); });
     if(lures.length) sec(T('Από τον εξοπλισμό σου','From your tackle'),lures.map(function(x){ var ws=(x.w||[]).map(function(g){ return (G.w[1]>0&&g>=G.w[0]&&g<=G.w[1])?'✔'+W(g):''+W(g); }).join('/'); return x.name+' · '+kname(x.kind)+(ws?' · '+ws+' '+Wu():'')+((x.kind==='popper'||x.kind==='pencil')&&wave!=null&&wave>=0.8?T(' · μεγάλο κύμα σήμερα',' · rough sea today'):''); }));
     else sec(T('Από τον εξοπλισμό σου','From your tackle'),[],T('Δεν έχεις τεχνητό αυτού του είδους. Συνήθως: ','No lure of these kinds yet. Usually: ')+G.k.slice(0,4).map(kname).join(', ')+'.');
@@ -324,7 +324,7 @@ function listSheet(){ var body=h('div',{class:'bform'}), sh;
 
 /* ---------- μονάδες και αρχείο εξοπλισμού ---------- */
 function moreSheet(){ var body=h('div',{class:'bform'}), msg=h('p',{class:'sub',role:'status'});
-  function seg(label,key,opts){ var U=uget(), s=h('div',{class:'seg'}); opts.forEach(function(o){ s.append(h('button',{type:'button','aria-pressed':String(U[key]===o[0]),text:o[1],onclick:function(){ var u=uget(); u[key]=o[0]; ls.set('psaro-tk-units',u.w+'|'+u.d+'|'+u.l); paint(); draw(); }})); }); return h('div',{class:'fld'},h('span',{text:label}),s); }
+  function seg(label,key,opts){ var U=uget(), s=h('div',{class:'seg'}); opts.forEach(function(o){ s.append(h('button',{type:'button','aria-pressed':String(U[key]===o[0]),text:o[1],onclick:function(){ var u=uget(); u[key]=o[0]; ls.set('alkyon-tk-units',u.w+'|'+u.d+'|'+u.l); paint(); draw(); }})); }); return h('div',{class:'fld'},h('span',{text:label}),s); }
   function paint(){ body.replaceChildren(
     h('h3',{class:'h3',style:{marginTop:'0'},text:T('Μονάδες μέτρησης','Units')}),
     seg(T('Βάρος (ζόκες, όρια καλαμιού)','Weight (lures, rod ratings)'),'w',[['g','g'],['oz','oz']]),seg(T('Drag μουλινέ','Reel drag'),'d',[['kg','kg'],['lb','lb']]),seg(T('Μήκος νήματος','Line length'),'l',[['m','m'],['yd','yd']]),
@@ -334,7 +334,7 @@ function moreSheet(){ var body=h('div',{class:'bform'}), msg=h('p',{class:'sub',
     h('p',{class:'foot',text:T('Ο εξοπλισμός είναι και στο γενικό αντίγραφο ασφαλείας και συγχρονίζεται στον λογαριασμό σου.','Tackle is also in the full backup and syncs to your account.')})); }
   function exp(){ var it=items(), photos={}, p=Promise.resolve();
     it.forEach(function(t){ if(t.photo) p=p.then(function(){ return S().Photos.get('tk-'+t.id).then(function(bl){ if(bl) return b2u(bl).then(function(u){ photos['tk-'+t.id]=u; }); }).catch(function(){}); }); });
-    p.then(function(){ var a=h('a',{href:URL.createObjectURL(new Blob([JSON.stringify({app:'psarovarka',v:2,tackle:it,photos:photos})],{type:'application/json'})),download:'bitecast-tackle-'+today()+'.json'}); document.body.append(a); a.click(); a.remove(); msg.textContent=T('Αποθηκεύτηκαν ','Saved ')+it.length+T(' κομμάτια.',' items.'); }).catch(function(){ msg.textContent=T('Η εξαγωγή απέτυχε.','Export failed.'); }); }
+    p.then(function(){ var a=h('a',{href:URL.createObjectURL(new Blob([JSON.stringify({app:'alkyon',v:2,tackle:it,photos:photos})],{type:'application/json'})),download:'alkyon-tackle-'+today()+'.json'}); document.body.append(a); a.click(); a.remove(); msg.textContent=T('Αποθηκεύτηκαν ','Saved ')+it.length+T(' κομμάτια.',' items.'); }).catch(function(){ msg.textContent=T('Η εξαγωγή απέτυχε.','Export failed.'); }); }
   var imp=h('input',{type:'file',accept:'application/json,.json',hidden:true});
   imp.addEventListener('change',function(){ var f=imp.files&&imp.files[0]; if(!f) return; f.text().then(function(t){ var j=JSON.parse(t), arr=Array.isArray(j.tackle)?j.tackle:null; if(!arr) throw 0; var n=0, known={}; TY.forEach(function(x){ known[x[0]]=1; });
       arr.forEach(function(it){ if(it&&typeof it==='object'&&typeof it.id==='string'&&known[it.type]){ put(it); n++; } });
@@ -347,28 +347,28 @@ B.view('tackle',{title:T('Εξοπλισμός','Tackle'),mount:function(el){ ro
 /* ---------- αντίγραφο ασφαλείας (ίδια μορφή αρχείου με την κλασική) ---------- */
 function b2u(bl){ return new Promise(function(res){ var r=new FileReader(); r.onload=function(){ res(r.result); }; r.readAsDataURL(bl); }); }
 /* v31z550: και οι ρυθμίσεις (σκάφος, όρια, πλάνα, στόχοι, συντήρηση, τοποθεσίες, ειδοποιήσεις, ασφάλεια) */
-var SETK=['psaro-boat','psaro-smart','psaro-maint','psaro-limits','psaro-v4-plans','psaro-v4-goals','psaro-places','psaro-notify','psaro-safe','psaro-units','psaro-fprof','psaro-lang','psaro-v4-autostart','psaro-v4-night','psaro-mapwx-items','psaro-gear'];
+var SETK=['alkyon-boat','alkyon-smart','alkyon-maint','alkyon-limits','alkyon-v4-plans','alkyon-v4-goals','alkyon-places','alkyon-notify','alkyon-safe','alkyon-units','alkyon-fprof','alkyon-lang','alkyon-v4-autostart','alkyon-v4-night','alkyon-mapwx-items','alkyon-gear'];
 function settingsOf(){ var o={}; SETK.forEach(function(k){ var v=ls.get(k,undefined); if(v!==undefined&&v!==null) o[k]=v; }); return o; }
 B.backup={
   build:function(withPhotos){
     var bites=S().raw('bites'), photos={}, keys=[]; if(withPhotos){ bites.forEach(function(b){ S().phKeys(b).forEach(function(k){ keys.push(k); }); }); S().raw('tackle').forEach(function(t){ if(t.photo) keys.push('tk-'+t.id); }); }
     var p=Promise.resolve(); keys.forEach(function(k){ p=p.then(function(){ return S().Photos.get(k).then(function(bl){ if(bl) return b2u(bl).then(function(u){ photos[k]=u; }); }).catch(function(){}); }); });
-    return p.then(function(){ var g=ls.get('psaro-gear',null);
-      return {app:'psarovarka',v:3,at:new Date().toISOString(),ver:window.PSARO_VERSION||'',spots:S().raw('spots'),trips:S().raw('trips'),bites:bites,tackle:S().raw('tackle'),gear:g&&g.items?g.items:[],boat:ls.get('psaro-boat',null),settings:settingsOf(),photos:photos,nphotos:keys.length}; }); },
+    return p.then(function(){ var g=ls.get('alkyon-gear',null);
+      return {app:'alkyon',v:3,at:new Date().toISOString(),ver:window.ALKYON_VERSION||'',spots:S().raw('spots'),trips:S().raw('trips'),bites:bites,tackle:S().raw('tackle'),gear:g&&g.items?g.items:[],boat:ls.get('alkyon-boat',null),settings:settingsOf(),photos:photos,nphotos:keys.length}; }); },
   exportAll:function(){
     return B.backup.build(true).then(function(data){ var keys={length:data.nphotos};
-      var d=new Date(), name='psarovarka-'+d.getFullYear()+'-'+B.pad(d.getMonth()+1)+'-'+B.pad(d.getDate())+'.json';
+      var d=new Date(), name='alkyon-'+d.getFullYear()+'-'+B.pad(d.getMonth()+1)+'-'+B.pad(d.getDate())+'.json';
       var a=h('a',{href:URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'})),download:name}); document.body.append(a); a.click(); a.remove();
-      ls.set('psaro-lastbackup',Date.now()); return keys.length; });
+      ls.set('alkyon-lastbackup',Date.now()); return keys.length; });
   },
   importFile:function(file){ return file.text().then(function(t){ return B.backup.apply(JSON.parse(t)); }); },
   apply:function(d){
     return Promise.resolve().then(function(){ var n=0;
       ['spots','trips','bites','tackle'].forEach(function(k){ (Array.isArray(d[k])?d[k]:[]).forEach(function(it){ if(it&&typeof it==='object'){ S().save(k,it); n++; } }); });
-      if(Array.isArray(d.gear)&&d.gear.length){ var g=ls.get('psaro-gear',{})||{}, ex={}; g.items=Array.isArray(g.items)?g.items:[]; g.items.forEach(function(x){ ex[x.id]=1; }); d.gear.forEach(function(x){ if(x&&x.id&&!ex[x.id]){ g.items.push(x); n++; } }); ls.set('psaro-gear',g); }
-      if(d.boat&&typeof d.boat==='object'){ ls.set('psaro-boat',d.boat); n++; }
+      if(Array.isArray(d.gear)&&d.gear.length){ var g=ls.get('alkyon-gear',{})||{}, ex={}; g.items=Array.isArray(g.items)?g.items:[]; g.items.forEach(function(x){ ex[x.id]=1; }); d.gear.forEach(function(x){ if(x&&x.id&&!ex[x.id]){ g.items.push(x); n++; } }); ls.set('alkyon-gear',g); }
+      if(d.boat&&typeof d.boat==='object'){ ls.set('alkyon-boat',d.boat); n++; }
       /* v31z550: ρυθμίσεις (αν υπάρχουν στο αντίγραφο) */
-      if(d.settings&&typeof d.settings==='object') Object.keys(d.settings).forEach(function(k){ if(SETK.indexOf(k)>=0&&k!=='psaro-gear'&&k!=='psaro-boat'){ ls.set(k,d.settings[k]); n++; } });
+      if(d.settings&&typeof d.settings==='object') Object.keys(d.settings).forEach(function(k0){ var k=k0.replace(/^psaro-/,'alkyon-'); d.settings[k]=d.settings[k0]; if(SETK.indexOf(k)>=0&&k!=='alkyon-gear'&&k!=='alkyon-boat'){ ls.set(k,d.settings[k]); n++; } });
       var ph=d.photos&&typeof d.photos==='object'?d.photos:{}, p=Promise.resolve();
       Object.keys(ph).forEach(function(id){ p=p.then(function(){ return fetch(ph[id]).then(function(r){ return r.blob(); }).then(function(bl){ return S().Photos.put(id,bl); }).catch(function(){}); }); });
       return p.then(function(){ return n; }); });

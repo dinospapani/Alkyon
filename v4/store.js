@@ -1,36 +1,36 @@
-/* BiteCast 4 · δεδομένα και συγχρονισμός.
-   Ίδια μορφή με την κλασική: εγγραφές σε localStorage (psaro-bites/trips/spots/tackle, με _u = χρόνος αλλαγής),
-   διαγραφές στο psaro-tomb, φωτογραφίες στη βάση IndexedDB «psarovarka». Ο συγχρονισμός με το Supabase
+/* Alkyon 4 · δεδομένα και συγχρονισμός.
+   Ίδια μορφή με την κλασική: εγγραφές σε localStorage (alkyon-bites/trips/spots/tackle, με _u = χρόνος αλλαγής),
+   διαγραφές στο alkyon-tomb, φωτογραφίες στη βάση IndexedDB «alkyon». Ο συγχρονισμός με το Supabase
    ακολουθεί τον ίδιο κανόνα: κερδίζει η πιο πρόσφατη αλλαγή. Έτσι οι δύο εκδόσεις μπορούν να δουλεύουν μαζί. */
 (function(){
 'use strict';
-var B=window.BC, T=B.T, ls=B.ls;
+var B=window.AK, T=B.T, ls=B.ls;
 var URL_='https://sgfohmqwdwtkhtrebnix.supabase.co', KEY='sb_publishable_LGuwvrvLnAj1CF22Q6g9vg_4OImZYbA';
 var KINDS=['spots','trips','bites','tackle'];
 
 /* ---------- εγγραφές ---------- */
-function raw(k){ var a=ls.get('psaro-'+k,[]); return Array.isArray(a)?a:[]; }
-function put(k,a){ ls.set('psaro-'+k,a); }
-function tombs(){ var a=ls.get('psaro-tomb',[]); return Array.isArray(a)?a:[]; }
+function raw(k){ var a=ls.get('alkyon-'+k,[]); return Array.isArray(a)?a:[]; }
+function put(k,a){ ls.set('alkyon-'+k,a); }
+function tombs(){ var a=ls.get('alkyon-tomb',[]); return Array.isArray(a)?a:[]; }
 function newId(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 function save(k,obj){
   var id=obj.id||newId(), data=Object.assign({},obj,{id:id,_u:Date.now()});
   if(!obj.id&&!data.prof&&(k==='trips'||k==='bites')) data.prof=B.prof();
   put(k,raw(k).filter(function(x){ return x.id!==id; }).concat([data]));
-  ls.set('psaro-tomb',tombs().filter(function(t){ return !(t.k===k&&t.id===id); }));
-  B.emit('store','psaro-'+k); sched(); return id;
+  ls.set('alkyon-tomb',tombs().filter(function(t){ return !(t.k===k&&t.id===id); }));
+  B.emit('store','alkyon-'+k); sched(); return id;
 }
 function remove(k,id){
   put(k,raw(k).filter(function(x){ return x.id!==id; }));
-  ls.set('psaro-tomb',tombs().filter(function(t){ return !(t.k===k&&t.id===id); }).concat([{k:k,id:id,u:Date.now()}]));
+  ls.set('alkyon-tomb',tombs().filter(function(t){ return !(t.k===k&&t.id===id); }).concat([{k:k,id:id,u:Date.now()}]));
   if(k==='bites'&&S()){ storage('DELETE','photos/'+S().uid+'/'+id+'.jpg').catch(function(){}); }
-  B.emit('store','psaro-'+k); sched();
+  B.emit('store','alkyon-'+k); sched();
 }
 function get(k,id){ return raw(k).filter(function(x){ return x.id===id; })[0]||null; }
 
 /* ---------- φωτογραφίες ---------- */
 var dbp=null;
-function db(){ return dbp||(dbp=new Promise(function(res,rej){ var r=indexedDB.open('psarovarka',1); r.onupgradeneeded=function(){ r.result.createObjectStore('photos'); }; r.onsuccess=function(){ res(r.result); }; r.onerror=function(){ rej(r.error); }; })); }
+function db(){ if(window.alkyonPhotoDB) return window.alkyonPhotoDB(); return dbp||(dbp=new Promise(function(res,rej){ var r=indexedDB.open('alkyon',1); r.onupgradeneeded=function(){ r.result.createObjectStore('photos'); }; r.onsuccess=function(){ res(r.result); }; r.onerror=function(){ rej(r.error); }; })); }
 function tx(mode,fn){ return db().then(function(d){ return new Promise(function(res,rej){ var t=d.transaction('photos',mode), rq=fn(t.objectStore('photos')); t.oncomplete=function(){ res(rq&&rq.result); }; t.onerror=function(){ rej(t.error); }; t.onabort=function(){ rej(t.error); }; }); }); }
 var Photos={put:function(id,b){ return tx('readwrite',function(s){ return s.put(b,id); }); },get:function(id){ return tx('readonly',function(s){ return s.get(id); }); },del:function(id){ return tx('readwrite',function(s){ return s.delete(id); }); }};
 function phKeys(b){ var a=[]; if(b&&b.photo){ a.push(b.id); for(var i=1;i<=(+b.xph||0);i++) a.push(b.id+'~'+i); } return a; }
@@ -44,13 +44,13 @@ function resize(file){
 }
 
 /* ---------- λογαριασμός ---------- */
-function S(){ var s=ls.get('psaro-sess',null); return s&&s.access_token?s:null; }
+function S(){ var s=ls.get('alkyon-sess',null); return s&&s.access_token?s:null; }
 var outing=false; /* v31z545: κατά την αποσύνδεση δεν ξαναγράφεται συνεδρία από ανανέωση που ήταν ήδη σε εξέλιξη */
 function setSess(j,prev){
   if(outing) return prev;
   var s={access_token:j.access_token,refresh_token:j.refresh_token,exp:Date.now()+((j.expires_in||3600)-60)*1000,uid:(j.user&&j.user.id)||(prev&&prev.uid),email:(j.user&&j.user.email)||(prev&&prev.email),
     name:(j.user&&j.user.user_metadata&&j.user.user_metadata.name)||(prev&&prev.name)||''};
-  ls.set('psaro-sess',s); B.emit('store','psaro-sess'); return s;
+  ls.set('alkyon-sess',s); B.emit('store','alkyon-sess'); return s;
 }
 function auth(path,body){ return fetch(URL_+'/auth/v1/'+path,{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ if(!r.ok) throw new Error(j.msg||j.error_description||j.message||j.error||('HTTP '+r.status)); return j; }); }); }
 function ensure(){ var s=S(); if(!s) return Promise.reject(new Error('no session')); if(Date.now()<s.exp) return Promise.resolve(s);
@@ -77,15 +77,15 @@ function signUp(email,pw){ return auth('signup',{email:email,password:pw,options
    opt.wipe: σβήνει και τα δεδομένα από αυτό το κινητό, ΜΟΝΟ αν ο συγχρονισμός πέτυχε (μένουν στον λογαριασμό). Επιστρέφει {wiped, synced}. */
 function within(p,ms){ return Promise.race([p,new Promise(function(_,rej){ setTimeout(function(){ rej(new Error('timeout')); },ms); })]); }
 function signOut(opt){ opt=opt||{}; var s=S(), ok=false;
-  var done=function(){ outing=true; clearTimeout(timer); ls.set('psaro-sess',null); try{ localStorage.removeItem('psaro-sess'); localStorage.removeItem('psaro-last'); }catch(e){}
-    var wiped=false; if(opt.wipe&&ok){ try{ KINDS.forEach(function(k){ localStorage.removeItem('psaro-'+k); }); ['psaro-tomb','psaro-pup','psaro-v4-plans','psaro-v4-goals'].forEach(function(k){ localStorage.removeItem(k); }); wiped=true; }catch(e){} }
-    state={t:0,msg:'',err:false}; B.emit('store','psaro-sess'); B.emit('sync',state); setTimeout(function(){ outing=false; },15000); return {wiped:wiped,synced:ok}; };
+  var done=function(){ outing=true; clearTimeout(timer); ls.set('alkyon-sess',null); try{ localStorage.removeItem('alkyon-sess'); localStorage.removeItem('alkyon-last'); }catch(e){}
+    var wiped=false; if(opt.wipe&&ok){ try{ KINDS.forEach(function(k){ localStorage.removeItem('alkyon-'+k); }); ['alkyon-tomb','alkyon-pup','alkyon-v4-plans','alkyon-v4-goals'].forEach(function(k){ localStorage.removeItem(k); }); wiped=true; }catch(e){} }
+    state={t:0,msg:'',err:false}; B.emit('store','alkyon-sess'); B.emit('sync',state); setTimeout(function(){ outing=false; },15000); return {wiped:wiped,synced:ok}; };
   return within(sync(true),12000).then(function(){ ok=!state.err; },function(){ ok=false; })
     .then(function(){ if(!s) return; return within(fetch(URL_+'/auth/v1/logout',{method:'POST',headers:H(s)}),5000).catch(function(){}); }).then(done,done); }
-function setName(n){ return ensure().then(function(s){ return fetch(URL_+'/auth/v1/user',{method:'PUT',headers:H(s),body:JSON.stringify({data:{name:n}})}).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); s.name=n; ls.set('psaro-sess',s); B.emit('store','psaro-sess'); }); }); }
+function setName(n){ return ensure().then(function(s){ return fetch(URL_+'/auth/v1/user',{method:'PUT',headers:H(s),body:JSON.stringify({data:{name:n}})}).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); s.name=n; ls.set('alkyon-sess',s); B.emit('store','alkyon-sess'); }); }); }
 
 /* ---------- συγχρονισμός ---------- */
-var busy=null, again=false, timer=0, state={t:ls.get('psaro-last',0),msg:'',err:false};
+var busy=null, again=false, timer=0, state={t:ls.get('alkyon-last',0),msg:'',err:false};
 function iso(ms){ return new Date(ms).toISOString(); }
 function sched(){ if(!S()) return; clearTimeout(timer); timer=setTimeout(function(){ sync(false); },2500); }
 function sync(manual){
@@ -93,7 +93,7 @@ function sync(manual){
   if(busy){ again=true; return busy; }
   if(navigator.onLine===false){ state.msg=T('Χωρίς σύνδεση. Θα γίνει όταν συνδεθείς.','Offline. It will run when you are online.'); B.emit('sync',state); return Promise.resolve(); }
   state.msg=T('Συγχρονισμός…','Syncing…'); state.err=false; B.emit('sync',state);
-  var s0=S(), got=0, sent=0, needPh=[], pup=ls.get('psaro-pup',{})||{};
+  var s0=S(), got=0, sent=0, needPh=[], pup=ls.get('alkyon-pup',{})||{};
   busy=rest('records?select=kind,id,data,deleted,updated_at&user_id=eq.'+encodeURIComponent(s0.uid)+'&order=updated_at.asc&limit=10000').then(function(r){ return r.json(); }).then(function(rows){
     /* 1) λήψη: ό,τι είναι νεότερο στον server */
     var remote={}, cache={}, tb=tombs(); KINDS.forEach(function(k){ cache[k]=raw(k); });
@@ -104,7 +104,7 @@ function sync(manual){
       else { cache[x.kind]=cache[x.kind].filter(function(o){ return o.id!==x.id; }).concat([Object.assign({},x.data||{},{id:x.id,_u:u})]); tb=tb.filter(function(o){ return !(o.k===x.kind&&o.id===x.id); });
         if(x.kind==='bites'&&x.data&&x.data.photo){ needPh.push(x.id); for(var i=1;i<=(+x.data.xph||0);i++) needPh.push(x.id+'~'+i); } }
       got++; });
-    if(got){ KINDS.forEach(function(k){ put(k,cache[k]); }); ls.set('psaro-tomb',tb); }
+    if(got){ KINDS.forEach(function(k){ put(k,cache[k]); }); ls.set('alkyon-tomb',tb); }
     /* 2) αποστολή: ό,τι είναι νεότερο εδώ */
     var out=[];
     KINDS.forEach(function(k){ cache[k].forEach(function(o){ var rm=remote[k+'/'+o.id], ru=rm?((rm.data&&rm.data._u)||Date.parse(rm.updated_at)||0):0; if(!rm||(o._u||0)>ru) out.push({kind:k,id:o.id,data:o,deleted:false,updated_at:iso(o._u||Date.now())}); }); });
@@ -120,12 +120,12 @@ function sync(manual){
       return q;
     });
   }).then(function(){
-    ls.set('psaro-pup',pup); state.t=Date.now(); ls.set('psaro-last',state.t); state.err=false;
+    ls.set('alkyon-pup',pup); state.t=Date.now(); ls.set('alkyon-last',state.t); state.err=false;
     state.msg=T('Συγχρονίστηκε ','Synced ')+new Date().toLocaleTimeString(B.EN?'en-GB':'el-GR',{hour:'2-digit',minute:'2-digit'})+(got?T(', ήρθαν ',', received ')+got:'')+(sent?T(', στάλθηκαν ',', sent ')+sent:'');
-    if(got) KINDS.forEach(function(k){ B.emit('store','psaro-'+k); });
+    if(got) KINDS.forEach(function(k){ B.emit('store','alkyon-'+k); });
   }).catch(function(e){
     var m=String(e&&e.message||e); state.err=true;
-    if(/HTTP 4(01|03)|JWT|refresh_token|Refresh Token|invalid_grant/i.test(m)){ ls.set('psaro-sess',null); try{ localStorage.removeItem('psaro-sess'); }catch(x){} state.msg=T('Η σύνδεση έληξε. Συνδέσου ξανά.','Your session expired. Sign in again.'); B.emit('store','psaro-sess'); }
+    if(/HTTP 4(01|03)|JWT|refresh_token|Refresh Token|invalid_grant/i.test(m)){ ls.set('alkyon-sess',null); try{ localStorage.removeItem('alkyon-sess'); }catch(x){} state.msg=T('Η σύνδεση έληξε. Συνδέσου ξανά.','Your session expired. Sign in again.'); B.emit('store','alkyon-sess'); }
     else state.msg=errText(e);
   }).then(function(){ B.emit('sync',state); busy=null; if(again){ again=false; sched(); } });
   return busy;
@@ -147,7 +147,7 @@ B.store.delUndo=function(k,rec,msg){
   remove(k,rec.id); if(k==='bites') recountTrip(rec.trip);
   var t=setTimeout(function(){ if(!undone) keys.forEach(function(x){ Photos.del(x).catch(function(){}); }); },9000);
   B.toast(msg||T('Διαγράφηκε.','Deleted.'),7000,{label:T('Αναίρεση','Undo'),fn:function(){ undone=true; clearTimeout(t); var r=Object.assign({},rec); delete r.deleted; save(k,r);
-    if(k==='bites'){ var pup=ls.get('psaro-pup',{})||{}; keys.forEach(function(x){ delete pup[x]; }); ls.set('psaro-pup',pup); recountTrip(rec.trip); } B.toast(T('Επαναφέρθηκε.','Restored.')); }});
+    if(k==='bites'){ var pup=ls.get('alkyon-pup',{})||{}; keys.forEach(function(x){ delete pup[x]; }); ls.set('alkyon-pup',pup); recountTrip(rec.trip); } B.toast(T('Επαναφέρθηκε.','Restored.')); }});
 };
 B.cloud={rest:rest,storage:storage,session:S,signIn:signIn,signUp:signUp,signOut:signOut,setName:setName,sync:sync,state:function(){ return state; },errText:errText};
 })();

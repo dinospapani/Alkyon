@@ -1,14 +1,14 @@
-/* BiteCast 4 · κέλυφος: καρτέλες, πλοήγηση με #, κάτω μπάρα. Κάθε σελίδα δηλώνεται με BC.view(όνομα,{mount,unmount,resume}). */
+/* Alkyon 4 · κέλυφος: καρτέλες, πλοήγηση με #, κάτω μπάρα. Κάθε σελίδα δηλώνεται με AK.view(όνομα,{mount,unmount,resume}). */
 (function(){
 'use strict';
-var B=window.BC, h=B.h, T=B.T;
+var B=window.AK, h=B.h, T=B.T;
 var VIEWS={}, cur=null, main=null;
 B.view=function(name,def){ VIEWS[name]=def; };
 /* v31z550: φόρτωση κατά απαίτηση για σπάνια κομμάτια (γρηγορότερο άνοιγμα). Τα αρχεία είναι στο cache του service worker, οπότε δουλεύουν και χωρίς σήμα. */
 var LZ={};
 B.loadScripts=function(files){ return files.reduce(function(pr,f){ return pr.then(function(){ if(LZ[f]) return LZ[f]; LZ[f]=new Promise(function(res,rej){ var s=document.createElement('script'); s.src=f; s.onload=function(){ res(); }; s.onerror=function(){ delete LZ[f]; s.remove(); rej(new Error('load '+f)); }; document.head.appendChild(s); }); return LZ[f]; }); },Promise.resolve()); };
 B.lazyView=function(name,title,files){ if(VIEWS[name]) return; var stub={title:title,mount:function(el){ el.append(h('div',{class:'card empty lzload'},h('p',{class:'sub',text:T('Φόρτωση…','Loading…')})));
-    B.loadScripts(files).then(function(){ if(cur!==name||VIEWS[name]===stub) return; el.replaceChildren(); VIEWS[name].mount(el); document.title=(VIEWS[name].title||'BiteCast')+' · BiteCast'; })
+    B.loadScripts(files).then(function(){ if(cur!==name||VIEWS[name]===stub) return; el.replaceChildren(); VIEWS[name].mount(el); document.title=(VIEWS[name].title||'Alkyon')+' · Alkyon'; })
     .catch(function(){ if(cur!==name) return; el.replaceChildren(h('div',{class:'card empty'},h('p',{text:T('Δεν φορτώθηκε. Έλεγξε τη σύνδεση και ξαναδοκίμασε.','Could not load. Check your connection and try again.')}),h('button',{class:'btn',type:'button',text:T('Ξανά','Retry'),onclick:function(){ el.replaceChildren(); stub.mount(el); }}))); }); }};
   VIEWS[name]=stub; };
 B.lazyView('guide',T('Οδηγός','Guide'),['guide-core.js','guide-view.js']);
@@ -27,7 +27,7 @@ function nav(){
       function onTrip(){ return !!(B.trip&&B.trip.active&&B.trip.active()); }
       function paint(){ var tr=onTrip(); fab.classList.toggle('fabtrip',!tr); fab.innerHTML=tr?B.iconSvg('plus'):(B.profIcon?B.profIcon(B.prof()):B.iconSvg('plus'));
         fab.setAttribute('aria-label',tr?T('Νέο ψάρι. Κράτα πατημένο για φωνή.','New catch. Long-press for voice.'):T('Έναρξη εξόδου. Κράτα πατημένο για νέο ψάρι ή φωνή.','Start a trip. Long-press for a new catch or voice.')); }
-      paint(); B.on('trip',function(){ setTimeout(paint,50); }); B.on('store',function(k){ if(k==='psaro-fprof') paint(); }); window.addEventListener('focus',paint);
+      paint(); B.on('trip',function(){ setTimeout(paint,50); }); B.on('store',function(k){ if(k==='alkyon-fprof') paint(); }); window.addEventListener('focus',paint);
       function menu(){ var body=h('div',{class:'fabmenu'},
           h('button',{type:'button',class:'li',onclick:function(){ B.closeSheet(); if(B.biteForm) B.biteForm(); }},h('span',{class:'ic',html:B.iconSvg('plus')}),h('span',{class:'tx'},h('b',{text:T('Νέο ψάρι','New catch')}),h('small',{text:T('Καταγραφή χωρίς έξοδο (ή για παλιό ψάρι)','Log without a trip (or a past catch)')}))),
           B.voice&&B.voice.ok?h('button',{type:'button',class:'li',onclick:function(){ B.closeSheet(); B.voice.log(); }},h('span',{class:'ic',html:B.voice.MIC}),h('span',{class:'tx'},h('b',{text:T('Πες το','Say it')}),h('small',{text:T('«λαβράκι δύο κιλά»','“sea bass two kilos”')}))):null,
@@ -46,7 +46,7 @@ function route(){
   if(name==='new'||name==='trip'){ var act=name; history.replaceState(null,'',location.pathname+(act==='new'?'#log':'#map')); name=act==='new'?'log':'map'; setTimeout(function(){ if(act==='new'&&B.biteForm) B.biteForm(); else if(B.tripStart) B.tripStart(); },500); }
   if(/^share=/.test(name)) name='map';
   /* v31z537: σύνδεσμος πρόσκλησης φίλου (#addfriend=ΚΩΔΙΚΟΣ): κρατά τον κωδικό και ανοίγει τους Φίλους με τον κωδικό συμπληρωμένο */
-  if(/^addfriend=/.test(name)){ var fcd=decodeURIComponent(name.slice(10)).replace(/[^A-Za-z0-9]/g,'').toUpperCase(); try{ if(fcd.length>=6) localStorage.setItem('bc-friend-code',JSON.stringify({c:fcd,t:Date.now()})); }catch(e){} history.replaceState(null,'',location.pathname+'#friends'); name='friends'; }
+  if(/^addfriend=/.test(name)){ var fcd=decodeURIComponent(name.slice(10)).replace(/[^A-Za-z0-9]/g,'').toUpperCase(); try{ if(fcd.length>=6) localStorage.setItem('alk-friend-code',JSON.stringify({c:fcd,t:Date.now()})); }catch(e){} history.replaceState(null,'',location.pathname+'#friends'); name='friends'; }
   if(!VIEWS[name]) name='forecast';
   [].forEach.call(document.querySelectorAll('.nav a[data-v]'),function(a){ if(a.dataset.v===name) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
   if(cur===name) return;
@@ -54,15 +54,15 @@ function route(){
   if(cur&&VIEWS[cur].unmount) VIEWS[cur].unmount();
   cur=name; main.replaceChildren(); window.scrollTo(0,0);
   VIEWS[name].mount(main);
-  document.title=(VIEWS[name].title||'BiteCast')+' · BiteCast';
+  document.title=(VIEWS[name].title||'Alkyon')+' · Alkyon';
 }
 function start(){
   main=h('main',{class:'app',id:'main'});
   document.body.append(main,nav());
   /* v31z520: στα αγγλικά, ό,τι έμεινε ελληνικό (ονόματα ειδών, τεχνικές, δολώματα, συμβουλές της γνώσης) μεταφράζεται με το λεξικό της κλασικής */
-  if(window.LANG==='en'&&window.PsaroTrWatch){ window.PSARO_TRBODY=true; try{ PsaroTrWatch(document.body); }catch(e){} }
+  if(window.LANG==='en'&&window.AlkyonTrWatch){ window.ALKYON_TRBODY=true; try{ AlkyonTrWatch(document.body); }catch(e){} }
   /* στα αγγλικά: και η πλήρης λίστα ειδών Κύπρου (cy100), ώστε να μεταφράζονται και ονόματα όπως «Στήρα», «Πίγγα» */
-  if(window.LANG==='en'&&!window.CY100) setTimeout(function(){ var sc=document.createElement('script'); sc.src='../cy100.js'; sc.onload=function(){ try{ var w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT), n, G=/[\u0370-\u03FF]/; while((n=w.nextNode())){ if(G.test(n.nodeValue)&&window.PsaroTr){ var v=window.spName?window.spName(n.nodeValue):n.nodeValue; if(v!==n.nodeValue) n.nodeValue=v; } } }catch(e){} }; document.head.appendChild(sc); },1500);
+  if(window.LANG==='en'&&!window.CY100) setTimeout(function(){ var sc=document.createElement('script'); sc.src='../cy100.js'; sc.onload=function(){ try{ var w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT), n, G=/[\u0370-\u03FF]/; while((n=w.nextNode())){ if(G.test(n.nodeValue)&&window.AlkyonTr){ var v=window.spName?window.spName(n.nodeValue):n.nodeValue; if(v!==n.nodeValue) n.nodeValue=v; } } }catch(e){} }; document.head.appendChild(sc); },1500);
   window.addEventListener('hashchange',route);
   document.addEventListener('visibilitychange',function(){ if(!document.hidden&&cur&&VIEWS[cur].resume) VIEWS[cur].resume(); });
   route();
@@ -72,26 +72,26 @@ function start(){
    ανανέωση της σελίδας, εκτός αν είναι ανοιχτό παράθυρο ή γράφεις κάτι: τότε μήνυμα με κουμπί «Ανανέωση» (για να μη χαθεί ό,τι έγραφες). */
 function autoUpdate(){ var SW=navigator.serviceWorker, had=!!SW.controller, done=false, lastChk=0;
   function busy(){ var a=document.activeElement; return !!document.querySelector('.sheet.on')||!!(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)); }
-  function reload(){ if(done) return; done=true; try{ sessionStorage.setItem('bc-updated','1'); }catch(e){} location.reload(); }
+  function reload(){ if(done) return; done=true; try{ sessionStorage.setItem('alk-updated','1'); }catch(e){} location.reload(); }
   SW.addEventListener('controllerchange',function(){ if(!had){ had=true; return; } if(busy()){ B.toast(T('Νέα έκδοση της εφαρμογής.','New app version.'),12000,{label:T('Ανανέωση','Refresh'),fn:reload}); var w=setInterval(function(){ if(!busy()){ clearInterval(w); reload(); } },4000); } else reload(); });
   SW.register('sw.js',{scope:'./'}).then(function(reg){
     function chk(){ if(Date.now()-lastChk<60000) return; lastChk=Date.now(); try{ reg.update(); }catch(e){} }
     document.addEventListener('visibilitychange',function(){ if(!document.hidden) chk(); });
     setInterval(function(){ if(!document.hidden) chk(); },30*60000);
   }).catch(function(){});
-  try{ if(sessionStorage.getItem('bc-updated')){ sessionStorage.removeItem('bc-updated'); setTimeout(function(){ B.toast(T('Ενημερώθηκε στην ','Updated to ')+(window.PSARO_VERSION||''),3500); },1200); } }catch(e){} }
+  try{ if(sessionStorage.getItem('alk-updated')){ sessionStorage.removeItem('alk-updated'); setTimeout(function(){ B.toast(T('Ενημερώθηκε στην ','Updated to ')+(window.ALKYON_VERSION||''),3500); },1200); } }catch(e){} }
 B.start=start;
 })();
 /* «Νέα έκδοση διαθέσιμη» (όπως η κλασική): ελέγχει το ../version.js και ανανεώνει όταν το πατήσεις, ποτέ μέσα σε έξοδο */
-(function(){ var B=window.BC, T=B.T, bar=null, dis='';
-  function num(v){ var m=/z(\d+)/.exec(v||''); return m?+m[1]:0; }
+(function(){ var B=window.AK, T=B.T, bar=null, dis='';
+  function num(v){ var s=/^v?(\d+)\.(\d+)(?:\.(\d+))?$/.exec(v||''); if(s) return 1e7+(+s[1])*1e4+(+s[2])*100+(+(s[3]||0)); var m=/v(\d+)z(\d+)/.exec(v||''); return m?+m[1]*1000+(+m[2]):0; }
   function show(v){ if(bar||dis===v) return; bar=B.h('div',{class:'updbar',role:'status'},B.h('span',{text:T('Νέα έκδοση διαθέσιμη','A new version is available')}),
       B.h('button',{type:'button',class:'btn sm pri',text:T('Ανανέωση','Update'),onclick:function(){ var go=function(){ location.reload(); };
         try{ navigator.serviceWorker.getRegistration().then(function(r){ return r?r.update():0; }).catch(function(){}).then(go); }catch(e){ go(); } }}),
       B.h('button',{type:'button',class:'x','aria-label':T('Κλείσιμο','Close'),text:'✕',onclick:function(){ dis=v; bar.remove(); bar=null; }}));
     document.body.append(bar); }
-  function check(){ if(navigator.onLine===false||!window.PSARO_VERSION||document.body.classList.contains('ontrip')) return;
-    fetch('../version.js?_='+Date.now(),{cache:'no-store'}).then(function(r){ return r.ok?r.text():''; }).then(function(t){ var m=/PSARO_VERSION\s*=\s*'([^']+)'/.exec(t||''); if(m&&num(m[1])>num(window.PSARO_VERSION)) show(m[1]); }).catch(function(){}); }
+  function check(){ if(navigator.onLine===false||!window.ALKYON_VERSION||document.body.classList.contains('ontrip')) return;
+    fetch('../version.js?_='+Date.now(),{cache:'no-store'}).then(function(r){ return r.ok?r.text():''; }).then(function(t){ var m=/ALKYON_VERSION\s*=\s*'([^']+)'/.exec(t||''); if(m&&num(m[1])>num(window.ALKYON_VERSION)) show(m[1]); }).catch(function(){}); }
   document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible') check(); });
   setTimeout(check,8000); setInterval(check,15*60000); B.on('tripend',function(){ setTimeout(check,3000); });
 })();

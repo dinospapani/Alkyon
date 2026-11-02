@@ -5,38 +5,39 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#E9F0EF" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#06171F" media="(prefers-color-scheme: dark)">
-<meta name="description" content="BiteCast: πρόγνωση ψαρέματος, σημεία και ημερολόγιο.">
-<title>BiteCast</title>
+<meta name="description" content="Alkyon: πρόγνωση ψαρέματος, σημεία και ημερολόγιο.">
+<title>Alkyon</title>
 <link rel="manifest" href="../manifest.webmanifest">
 <link rel="icon" href="../icon-192.png">
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Commissioner:wght@400..800&display=swap" media="print" onload="this.media='all'">
+<script src="../migrate.js"></script>
 <script>/* «Πού ψαρεύεις σήμερα;» ανοίγει πρώτο: κρύβει την εφαρμογή από πίσω μέχρι να φορτώσει η σελίδα επιλογής */
-try{(function(){var g=function(k){return localStorage.getItem(k);},s=JSON.parse(g('psaro-safe')||'null');if(/#(new|trip|addfriend)/.test(location.hash)||(s&&s.active))return;
-if(!g('psaro-onboard')||!(g('psaro-askfp')==='0'&&g('psaro-fprof-done')))document.documentElement.classList.add('pre-pick');})();}catch(e){}</script>
-<link rel="preload" as="image" href="bc-hero-boat.jpg">
+try{(function(){var g=function(k){return localStorage.getItem(k);},s=JSON.parse(g('alkyon-safe')||'null');if(/#(new|trip|addfriend)/.test(location.hash)||(s&&s.active))return;
+if(!g('alkyon-onboard')||!(g('alkyon-askfp')==='0'&&g('alkyon-fprof-done')))document.documentElement.classList.add('pre-pick');})();}catch(e){}</script>
+<link rel="preload" as="image" href="alk-hero-boat.jpg">
 <link rel="stylesheet" href="app.css">
 <link rel="stylesheet" href="forecast.css">
 <link rel="stylesheet" href="log.css">
 <link rel="stylesheet" href="map.css">
 </head>
 <body>
-<noscript>Το BiteCast χρειάζεται JavaScript.</noscript>
+<noscript>Το Alkyon χρειάζεται JavaScript.</noscript>
 <script>/* καταγραφή σφαλμάτων στο κινητό (v31z526): τα 30 τελευταία, στο Προφίλ → «Αναφορά σφαλμάτων» */
-(function(){ var K='psaro-errlog'; function add(m,w){ try{ m=String(m||'').slice(0,300); if(!m||/^Script error\.?$/.test(m)||/ResizeObserver loop/.test(m)) return; var a=JSON.parse(localStorage.getItem(K)||'[]'), last=a[a.length-1];
-  if(last&&last.m===m&&last.w===w){ last.n=(last.n||1)+1; last.t=Date.now(); } else a.push({t:Date.now(),m:m,w:w||'',v:window.PSARO_VERSION||'',p:location.hash||''}); localStorage.setItem(K,JSON.stringify(a.slice(-30))); }catch(e){} }
+(function(){ var K='alkyon-errlog'; function add(m,w){ try{ m=String(m||'').slice(0,300); if(!m||/^Script error\.?$/.test(m)||/ResizeObserver loop/.test(m)) return; var a=JSON.parse(localStorage.getItem(K)||'[]'), last=a[a.length-1];
+  if(last&&last.m===m&&last.w===w){ last.n=(last.n||1)+1; last.t=Date.now(); } else a.push({t:Date.now(),m:m,w:w||'',v:window.ALKYON_VERSION||'',p:location.hash||''}); localStorage.setItem(K,JSON.stringify(a.slice(-30))); }catch(e){} }
   window.addEventListener('error',function(e){ if(e.target&&e.target!==window) return; add(e.message,(e.filename||'').split('/').pop()+':'+(e.lineno||'')+':'+(e.colno||'')); });
   window.addEventListener('unhandledrejection',function(e){ var r=e.reason; if(r&&(r.name==='AbortError'||/Failed to fetch|NetworkError|Load failed/i.test(r.message||''))) return; add('Promise: '+(r&&(r.message||r)),r&&r.stack?String(r.stack).split('\n')[1]||'':''); });
-  window.PsaroErrLog={get:function(){ try{ return JSON.parse(localStorage.getItem(K)||'[]'); }catch(e){ return []; } },clear:function(){ try{ localStorage.removeItem(K); }catch(e){} },add:add};
+  window.AlkyonErrLog={get:function(){ try{ return JSON.parse(localStorage.getItem(K)||'[]'); }catch(e){ return []; } },clear:function(){ try{ localStorage.removeItem(K); }catch(e){} },add:add};
 })();</script>
 <script src="errlog.js"></script>
 <script src="../version.js"></script>
 <script src="../units.js"></script>
 <script src="../knowledge.js"></script>
 <script src="../species.js"></script>
-<script>window.PSARO_NO_DOMTR=true;</script>
+<script>window.ALKYON_NO_DOMTR=true;</script>
 <script src="../i18n.js"></script>
 <script src="../forecast.js"></script>
 <script src="../personal.js"></script>
@@ -91,6 +92,6 @@ if(!g('psaro-onboard')||!(g('psaro-askfp')==='0'&&g('psaro-fprof-done')))documen
 <script src="../rules.js"></script>
 <script src="../regions.js"></script>
 <script src="../coords.js"></script>
-<script>BC.start();</script>
+<script>AK.start();</script>
 </body>
 </html>

@@ -1,13 +1,13 @@
-/* BiteCast 4 · service worker (μόνο για τον φάκελο v4/).
+/* Alkyon 4 · service worker (μόνο για τον φάκελο v4/).
    Δικά μας αρχεία: πρώτα δίκτυο, αλλιώς αποθηκευμένο αντίγραφο. Γραμματοσειρές: αποθηκευμένο αντίγραφο πρώτα. */
-const V = 'bitecast4-076';
-const SHELL = ['./', 'index.html', 'errlog.js', 'app.css', 'forecast.css', 'core.js', 'ui.js', 'shell.js', 'clarity.js', 'forecast-view.js', 'forecast-more.js', 'advise.js', 'store.js', 'bite-form.js', 'log-view.js', 'profile-view.js', 'log.css', 'map.css', 'map-view.js', 'wxfx.js', 'opps.js', 'coordpick.js', 'extras.js', 'seabed.js', 'tackle-view.js', 'gear-view.js', 'boat-view.js', 'friends-view.js', 'community-view.js', 'trip.js', 'trip-extra.js', 'autostart.js', 'night.js', 'bigtrip.js', 'records.js', 'live.js', 'help.js', 'sea-tools.js', 'smart.js', '../ext.js', '../divelog.js', '../coords.js', '../regions.js', '../windwatch.js', '../coastgrid.js', '../exposure.js', '../bitewx.js', 'alerts-view.js', 'cards.js', 'datatools.js', 'import-view.js', 'insights.js', 'years.js', 'backup.js', 'garmin.js', 'prefetch.js', 'syscheck.js', 'start-pick.js', 'bc-hero-boat.jpg', 'bc-card-shore.jpg', 'bc-card-boat.jpg', 'bc-hero-spear.jpg', 'bc-th-boatrod.jpg', 'bc-th-spear.jpg', 'bc-th-lake.jpg', 'bc-th-shorerod.jpg', '../species.js', '../rules.js', 'guide-core.js', 'guide-view.js', '../cy100.js', '../regions.js', '../knots.js', '../coastgrid.js', '../exposure.js', '../bathy-lines.js', '../windmap.js', '../windlocal.js', '../seastate.js', '../ruler.js', '../ports.js', '../orient.js', '../navigator.js', '../route.js', '../leaflet.js', '../leaflet.css', '../zones.js', '../dams_levels.json', '../version.js', '../hist.js', 'manifest.webmanifest',
-  '../units.js', '../knowledge.js', '../i18n.js', '../forecast.js', '../personal.js', '../icon-192.png'];
+const V = 'alkyon4-1.0.0';
+const SHELL = ['./', 'index.html', 'errlog.js', 'app.css', 'forecast.css', 'core.js', 'ui.js', 'shell.js', 'clarity.js', 'forecast-view.js', 'forecast-more.js', 'advise.js', 'store.js', 'bite-form.js', 'log-view.js', 'profile-view.js', 'log.css', 'map.css', 'map-view.js', 'wxfx.js', 'opps.js', 'coordpick.js', 'extras.js', 'seabed.js', 'tackle-view.js', 'gear-view.js', 'boat-view.js', 'friends-view.js', 'community-view.js', 'trip.js', 'trip-extra.js', 'autostart.js', 'night.js', 'bigtrip.js', 'records.js', 'live.js', 'help.js', 'sea-tools.js', 'smart.js', '../ext.js', '../divelog.js', '../coords.js', '../regions.js', '../windwatch.js', '../coastgrid.js', '../exposure.js', '../bitewx.js', 'alerts-view.js', 'cards.js', 'datatools.js', 'import-view.js', 'insights.js', 'years.js', 'backup.js', 'garmin.js', 'prefetch.js', 'syscheck.js', 'start-pick.js', 'alk-hero-boat.jpg', 'alk-hero.jpg', 'alk-card-shore.jpg', 'alk-card-boat.jpg', 'alk-hero-spear.jpg', 'alk-th-boatrod.jpg', 'alk-th-spear.jpg', 'alk-th-lake.jpg', 'alk-th-shorerod.jpg', '../species.js', '../rules.js', 'guide-core.js', 'guide-view.js', '../cy100.js', '../regions.js', '../knots.js', '../coastgrid.js', '../exposure.js', '../bathy-lines.js', '../windmap.js', '../windlocal.js', '../seastate.js', '../ruler.js', '../ports.js', '../orient.js', '../navigator.js', '../route.js', '../leaflet.js', '../leaflet.css', '../zones.js', '../dams_levels.json', '../version.js', '../hist.js', 'manifest.webmanifest',
+  '../units.js', '../knowledge.js', '../i18n.js', '../forecast.js', '../personal.js', '../icon-192.png', '../migrate.js'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(V).then(c => Promise.all(SHELL.map(u => c.add(u).catch(() => {})))).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('bitecast4-') && k !== V).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('alkyon4-') && k !== V).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
@@ -18,15 +18,15 @@ self.addEventListener('fetch', e => {
   }
   /* πλακίδια χάρτη: πρώτα όσα κατέβασες για χρήση χωρίς σήμα (κοινή αποθήκη με την κλασική) */
   if (/(^|\.)(arcgisonline\.com|tile\.openstreetmap\.org|openseamap\.org)$/.test(u.hostname)) {
-    e.respondWith(caches.open('psaro-tiles').then(c => c.match(e.request.url, { ignoreVary: true })).then(r => r || fetch(e.request)));
+    e.respondWith(caches.open('alkyon-tiles').then(c => c.match(e.request.url, { ignoreVary: true })).then(r => r || fetch(e.request)));
     return;
   }
   /* v31z521: βάθη (EMODnet) και καιρός (Open-Meteo): πρώτα ό,τι κατέβασες, μετά το δίκτυο· χωρίς σήμα, η τελευταία απάντηση για το ίδιο αίτημα */
   if (/(^|\.)(emodnet-bathymetry\.eu|open-meteo\.com)$/.test(u.hostname)) {
-    e.respondWith(caches.open('psaro-tiles').then(c => c.match(e.request.url, { ignoreVary: true })).then(hit => hit || fetch(e.request).then(r => {
-      if (r.ok) { const cp = r.clone(); caches.open('psaro-offdata').then(c => c.put(e.request.url, cp).then(() => { if (Math.random() < 0.04) c.keys().then(ks => { const n = ks.length - 900; for (let i = 0; i < n; i++) c.delete(ks[i]); }); })); }
+    e.respondWith(caches.open('alkyon-tiles').then(c => c.match(e.request.url, { ignoreVary: true })).then(hit => hit || fetch(e.request).then(r => {
+      if (r.ok) { const cp = r.clone(); caches.open('alkyon-offdata').then(c => c.put(e.request.url, cp).then(() => { if (Math.random() < 0.04) c.keys().then(ks => { const n = ks.length - 900; for (let i = 0; i < n; i++) c.delete(ks[i]); }); })); }
       return r;
-    }).catch(err => caches.open('psaro-offdata').then(c => c.match(e.request.url)).then(r => { if (r) return r; throw err; }))));
+    }).catch(err => caches.open('alkyon-offdata').then(c => c.match(e.request.url)).then(r => { if (r) return r; throw err; }))));
     return;
   }
   if (u.origin !== location.origin) return;
@@ -58,7 +58,7 @@ self.addEventListener('notificationclick', e => {
   if (e.action === 'fish' || e.action === 'lost') {
     const miss = e.action === 'lost', t = Date.now(), hm = new Date(t).toLocaleTimeString(en ? 'en-GB' : 'el-GR', { hour: '2-digit', minute: '2-digit', hour12: false });
     e.waitUntil(qadd({ t: t, miss: miss }).then(() => self.registration.showNotification(miss ? T('✕ Χάθηκε, ', '✕ Lost, ') + hm : T('🐟 Ψάρι, ', '🐟 Catch, ') + hm, {
-      body: T('Γράφτηκε στο Ημερολόγιο. Πάτα ξανά για το επόμενο.', 'Saved to the Logbook. Tap again for the next one.'), tag: 'psaro-trip', renotify: true, silent: false, requireInteraction: true, vibrate: [80],
+      body: T('Γράφτηκε στο Ημερολόγιο. Πάτα ξανά για το επόμενο.', 'Saved to the Logbook. Tap again for the next one.'), tag: 'alkyon-trip', renotify: true, silent: false, requireInteraction: true, vibrate: [80],
       icon: '../icon-192.png', badge: '../icon-192.png', data: d, actions: n.actions && n.actions.length ? n.actions : [{ action: 'fish', title: T('🐟 Ψάρι εδώ', '🐟 Fish here') }, { action: 'lost', title: T('✕ Χάθηκε', '✕ Lost') }] }))
       .then(() => self.clients.matchAll({ type: 'window', includeUncontrolled: true })).then(cs => cs.forEach(c => c.postMessage({ type: 'bc4q' }))));
     return;

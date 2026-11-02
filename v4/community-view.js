@@ -1,16 +1,16 @@
-/* BiteCast 4 · Κοινότητα (#community): ίδιοι πίνακες με την κλασική community.js (community_posts, community_likes,
-   community_comments, community_reports, φάκελος community στο storage) και ίδια κλειδιά (psaro-comm-shared, psaro-comm-ok, psaro-comm-block).
+/* Alkyon 4 · Κοινότητα (#community): ίδιοι πίνακες με την κλασική community.js (community_posts, community_likes,
+   community_comments, community_reports, φάκελος community στο storage) και ίδια κλειδιά (alkyon-comm-shared, alkyon-comm-ok, alkyon-comm-block).
    Μοιράζεσαι ένα ψάρι ΧΩΡΙΣ θέση ή όνομα σημείου. Η φωτογραφία ξαναφτιάχνεται από την αρχή (χωρίς EXIF/GPS). */
 (function(){
 'use strict';
-var B=window.BC, h=B.h, T=B.T, EN=B.EN, ls=B.ls, root=null, PAGE=15;
+var B=window.AK, h=B.h, T=B.T, EN=B.EN, ls=B.ls, root=null, PAGE=15;
 var SUPA='https://sgfohmqwdwtkhtrebnix.supabase.co';
 function C(){ return B.cloud; }
 function sess(){ return C()&&C().session(); }
 function uid(){ var s=sess(); return s&&s.uid; }
 function rest(p,o){ return C().rest(p,o); }
 function esc(s){ return encodeURIComponent(s); }
-function blocked(){ var a=ls.get('psaro-comm-block',[]); return Array.isArray(a)?a:[]; }
+function blocked(){ var a=ls.get('alkyon-comm-block',[]); return Array.isArray(a)?a:[]; }
 function author(){ var s=sess(); return ((s&&s.name)||T('Ψαράς','Angler')).trim().slice(0,40)||T('Ψαράς','Angler'); }
 var F={items:[],offset:0,end:false,loading:false,mine:false,liked:{},open:{},err:''};
 
@@ -34,7 +34,7 @@ function report(kind,id){ B.ask(T('Να αναφερθεί αυτό το περ�
   rest('community_reports',{method:'POST',body:JSON.stringify(kind==='post'?{post_id:id}:{comment_id:id}),headers:{'Content-Type':'application/json',Prefer:'return=minimal'}}).then(function(){ B.toast(T('Ευχαριστούμε. Θα ελεγχθεί.','Thanks. It will be reviewed.')); },function(){ B.toast(T('Δεν στάλθηκε η αναφορά.','Report not sent.')); }); }); }
 function delPost(p){ B.ask(T('Να διαγραφεί η ανάρτηση από την κοινότητα;','Delete this post from the community?'),T('Διαγραφή','Delete'),true).then(function(y){ if(!y) return;
   rest('community_posts?id=eq.'+p.id,{method:'DELETE'}).then(function(){ if(p.photo) C().storage('DELETE','community/'+p.photo).catch(function(){});
-    F.items=F.items.filter(function(x){ return x!==p; }); var sh=ls.get('psaro-comm-shared',{})||{}; Object.keys(sh).forEach(function(k){ if(sh[k]===p.id) delete sh[k]; }); ls.set('psaro-comm-shared',sh); draw(); },function(){ B.toast(T('Δεν διαγράφηκε.','Not deleted.')); }); }); }
+    F.items=F.items.filter(function(x){ return x!==p; }); var sh=ls.get('alkyon-comm-shared',{})||{}; Object.keys(sh).forEach(function(k){ if(sh[k]===p.id) delete sh[k]; }); ls.set('alkyon-comm-shared',sh); draw(); },function(){ B.toast(T('Δεν διαγράφηκε.','Not deleted.')); }); }); }
 function delComment(p,c){ rest('community_comments?id=eq.'+c.id,{method:'DELETE'}).then(function(){ p._c=(p._c||[]).filter(function(x){ return x!==c; }); p.comments=[{count:Math.max(0,cnt(p,'comments')-1)}]; draw(); },function(){ B.toast(T('Δεν διαγράφηκε.','Not deleted.')); }); }
 
 var MOON=['🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘'];
@@ -44,7 +44,7 @@ function post(p){
   var mine=p.user_id===uid(), card=h('article',{class:'card cmpost'});
   var more=h('button',{class:'iconbtn sm',type:'button','aria-label':T('Περισσότερα','More'),text:'⋯',onclick:function(){ var body=h('div',{class:'bform'}), sh;
     if(mine) body.append(h('button',{class:'btn full del',type:'button',text:T('Διαγραφή ανάρτησης','Delete post'),onclick:function(){ sh.close(true); delPost(p); }}));
-    else body.append(h('button',{class:'btn full',type:'button',text:T('Αναφορά','Report'),onclick:function(){ sh.close(true); report('post',p.id); }}),h('button',{class:'btn full',type:'button',text:T('Απόκρυψη χρήστη','Hide this user'),onclick:function(){ var b=blocked(); b.push(p.user_id); ls.set('psaro-comm-block',b); sh.close(); draw(); }}));
+    else body.append(h('button',{class:'btn full',type:'button',text:T('Αναφορά','Report'),onclick:function(){ sh.close(true); report('post',p.id); }}),h('button',{class:'btn full',type:'button',text:T('Απόκρυψη χρήστη','Hide this user'),onclick:function(){ var b=blocked(); b.push(p.user_id); ls.set('alkyon-comm-block',b); sh.close(); draw(); }}));
     sh=B.sheet({title:p.species||T('Ανάρτηση','Post'),body:body}); }});
   card.append(h('div',{class:'cmhd'},h('span',{class:'cmav',text:(p.author||'?').charAt(0).toUpperCase()}),h('span',{class:'cmwho'},h('b',{text:p.author||T('Ψαράς','Angler')}),h('small',{text:ago(p.created_at)})),more));
   if(p.photo) card.append(h('img',{class:'cmimg',loading:'lazy',alt:p.species||'',src:SUPA+'/storage/v1/object/public/community/'+p.photo}));
@@ -84,7 +84,7 @@ function jpeg(blob){ return new Promise(function(res,rej){ var u=URL.createObjec
   cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height); URL.revokeObjectURL(u); cv.toBlob(function(b){ if(b) res(b); else rej(new Error('jpeg')); },'image/jpeg',0.82); }; im.onerror=function(){ URL.revokeObjectURL(u); rej(new Error('img')); }; im.src=u; }); }
 function moonIdx(b){ try{ return Math.round(PF.moonPhase(B.biteMs(b)).f*8)%8; }catch(e){ return null; } }
 function uuid(){ return (window.crypto&&crypto.randomUUID)?crypto.randomUUID():'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
-B.commShared=function(id){ var s=ls.get('psaro-comm-shared',{})||{}; return !!s[id]; };
+B.commShared=function(id){ var s=ls.get('alkyon-comm-shared',{})||{}; return !!s[id]; };
 B.commShare=function(b){
   if(!sess()){ B.toast(T('Συνδέσου πρώτα στον λογαριασμό σου (Προφίλ).','Sign in first (Profile).')); return; }
   if(B.commShared(b.id)){ B.toast(T('Έχει ήδη μοιραστεί.','Already shared.')); return; }
@@ -98,12 +98,12 @@ B.commShare=function(b){
     body.append(h('label',{class:'tg'},cb,h('span',{text:T('Να φαίνονται και οι συνθήκες (άνεμος, κύμα, πίεση)','Also show conditions (wind, waves, pressure)')})),cr); }
   body.append(h('p',{class:'sub',text:T('Θα φαίνονται: το όνομά σου, είδος, βάρος, δόλωμα και τεχνική, ημερομηνία και η φωτογραφία (και οι συνθήκες, μόνο αν το επιλέξεις). ΔΕΝ θα φαίνεται θέση ή όνομα σημείου. Πρόσεξε να μη δείχνει η φωτογραφία χαρακτηριστικό τοπίο.','Visible: your name, species, weight, bait and technique, date and the photo (conditions only if you tick the option). NO location or spot name is shared. Make sure the photo does not show a recognisable landmark.')}));
   var go=h('button',{class:'btn pri full',type:'button',text:T('Δημοσίευση','Publish'),onclick:function(){
-    (ls.get('psaro-comm-ok',false)?Promise.resolve(true):B.ask(T('Η ανάρτηση θα είναι ορατή σε όλους τους χρήστες του BiteCast. Δεν περιλαμβάνει θέση. Μπορείς να τη διαγράψεις όποτε θέλεις. Συνέχεια;','The post will be visible to all BiteCast users. It does not include a location. You can delete it any time. Continue?'),T('Συνέχεια','Continue'))).then(function(y){ if(!y) return; ls.set('psaro-comm-ok',true);
+    (ls.get('alkyon-comm-ok',false)?Promise.resolve(true):B.ask(T('Η ανάρτηση θα είναι ορατή σε όλους τους χρήστες του Alkyon. Δεν περιλαμβάνει θέση. Μπορείς να τη διαγράψεις όποτε θέλεις. Συνέχεια;','The post will be visible to all Alkyon users. It does not include a location. You can delete it any time. Continue?'),T('Συνέχεια','Continue'))).then(function(y){ if(!y) return; ls.set('alkyon-comm-ok',true);
       go.disabled=true; go.textContent=T('Αποστολή…','Sending…'); var path=null;
       rest('community_posts?select=id&limit=1').then(function(){ if(!blob) return; return jpeg(blob).then(function(jb){ path=uid()+'/'+uuid()+'.jpg'; return C().storage('POST','community/'+path,jb,'image/jpeg'); }).then(function(r){ if(!r.ok) throw new Error('photo '+r.status); }); })
         .then(function(){ var cond=withCond?{wind:b.wind,wave:b.wave,press:b.press,ptrend:b.ptrend,sst:b.sst,temp:b.temp,moon:moonIdx(b)}:{}; Object.keys(cond).forEach(function(k){ if(cond[k]==null||cond[k]==='') delete cond[k]; else if(typeof cond[k]==='number') cond[k]=Math.round(cond[k]*10)/10; });
           return rest('community_posts',{method:'POST',body:JSON.stringify({src:b.id,author:author(),species:b.species,latin:b.latin||null,kg:b.kg!=null&&b.kg!==''?+b.kg:null,len:b.len!=null&&b.len!==''?+b.len:null,bait:b.bait||null,tech:b.tech||null,day:b.date||null,cond:cond,photo:path}),headers:{'Content-Type':'application/json',Prefer:'return=representation'}}).then(function(r){ return r.json(); }); })
-        .then(function(rows){ var s=ls.get('psaro-comm-shared',{})||{}; s[b.id]=(rows&&rows[0]&&rows[0].id)||1; ls.set('psaro-comm-shared',s); sh.close(); B.toast(T('Δημοσιεύτηκε στην κοινότητα.','Shared to the community.')); F.items=[]; F.end=false; F.offset=0; })
+        .then(function(rows){ var s=ls.get('alkyon-comm-shared',{})||{}; s[b.id]=(rows&&rows[0]&&rows[0].id)||1; ls.set('alkyon-comm-shared',s); sh.close(); B.toast(T('Δημοσιεύτηκε στην κοινότητα.','Shared to the community.')); F.items=[]; F.end=false; F.offset=0; })
         .catch(function(e){ if(path) C().storage('DELETE','community/'+path).catch(function(){}); var m=String(e&&e.message||e); go.disabled=false; go.textContent=T('Δημοσίευση','Publish');
           B.toast(/409|duplicate/i.test(m)?T('Έχει ήδη μοιραστεί.','Already shared.'):/rate/i.test(m)?T('Πολλές αναρτήσεις σήμερα.','Too many posts today.'):/404|relation|does not exist/i.test(m)?T('Η κοινότητα δεν έχει ενεργοποιηθεί ακόμη.','Community is not enabled yet.'):T('Δεν στάλθηκε. Έλεγξε τη σύνδεση.','Not sent. Check your connection.')); }); }); }});
   body.append(go); sh=B.sheet({title:T('Μοίρασμα στην κοινότητα','Share to the community'),body:body});

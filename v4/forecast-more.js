@@ -1,7 +1,7 @@
-/* BiteCast 4 · Πρόγνωση: «Τι ψαρεύω» και «Δικά μου» */
+/* Alkyon 4 · Πρόγνωση: «Τι ψαρεύω» και «Δικά μου» */
 (function(){
 'use strict';
-var B=window.BC, h=B.h, T=B.T, EN=B.EN, PP=window.PP, U=window.PsaroUnits;
+var B=window.AK, h=B.h, T=B.T, EN=B.EN, PP=window.PP, U=window.AlkyonUnits;
 var A=function(){ return B.adv; };
 var sel={di:0,hr:null};
 
@@ -45,10 +45,10 @@ B.fcAdv=function(page,fc,ctx){
   page.append(c);
 
   /* πότε και πού για ένα είδος */
-  var key=B.ls.get('psaro-advsp',''), c2=card(T('Πότε και πού','When and where'),T('Διάλεξε είδος. Ο βαθμός της πρόγνωσης προσαρμόζεται σε αυτό.','Choose a species. The forecast score adapts to it.'));
+  var key=B.ls.get('alkyon-advsp',''), c2=card(T('Πότε και πού','When and where'),T('Διάλεξε είδος. Ο βαθμός της πρόγνωσης προσαρμόζεται σε αυτό.','Choose a species. The forecast score adapts to it.'));
   var opts=A().speciesList(D), ss=h('select',{class:'select','aria-label':T('Είδος','Species')},h('option',{value:'',text:T('Όλα τα είδη','All species')}));
   opts.forEach(function(o){ ss.append(h('option',{value:o.v,text:o.t+(o.n?' ('+o.n+')':'')})); });
-  ss.value=key; ss.addEventListener('change',function(){ B.ls.set('psaro-advsp',ss.value); if(ctx.reload) ctx.reload(); });
+  ss.value=key; ss.addEventListener('change',function(){ B.ls.set('alkyon-advsp',ss.value); if(ctx.reload) ctx.reload(); });
   c2.append(ss);
   if(key){
     var R=A().species(D,key,fc);
@@ -66,7 +66,7 @@ B.fcAdv=function(page,fc,ctx){
   }
   page.append(c2);
   page.append(h('p',{class:'foot',text:T('Τρέχει μόνο στο κινητό σου. Ξεκινά από γενική γνώση για τα είδη και περνά στα δικά σου ψάρια όσο τα καταγράφεις.','Runs only on your phone. It starts from general knowledge about the species and moves to your own catches as you log them.')}));
-  if(window.PsaroExt){ try{ var xc=PsaroExt.card(function(){ B.emit('store','psaro-fprof'); }); xc.classList.add('extcard'); page.append(xc); }catch(e){} }
+  if(window.AlkyonExt){ try{ var xc=AlkyonExt.card(function(){ B.emit('store','alkyon-fprof'); }); xc.classList.add('extcard'); page.append(xc); }catch(e){} }
 };
 
 /* ---------- Δικά μου ---------- */

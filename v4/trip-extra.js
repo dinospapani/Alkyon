@@ -1,12 +1,12 @@
-/* BiteCast 4 · ό,τι κάνει η κλασική στο παρασκήνιο κατά την έξοδο (app.js, redesign.js), με τα ίδια κλειδιά:
+/* Alkyon 4 · ό,τι κάνει η κλασική στο παρασκήνιο κατά την έξοδο (app.js, redesign.js), με τα ίδια κλειδιά:
    - condH: πίεση και άνεμος ώρα με ώρα για κάθε έξοδο (Open-Meteo), για την προσωπική πρόγνωση (personal.js)
-   - scoreH: ο βαθμός που έδινε η εφαρμογή για κάθε ώρα, κρατημένος στην αρχή της εξόδου (psaro-tscore)
-   - ειδοποίηση απότομης πτώσης πίεσης (psaro-pa), εικόνα της πίεσης στην αρχή (psaro-tpb)
-   - χαμηλή μπαταρία (20% και 10%), «ψάρεψες εδώ 2 από τις 3 τελευταίες μέρες» (psaro-rest-trip)
-   - ψαροντούφεκο: χρονόμετρο κατάδυσης, σημαδούρα (psaro-buoy-…), «Είσαι εντάξει;» (psaro-divewatch) */
+   - scoreH: ο βαθμός που έδινε η εφαρμογή για κάθε ώρα, κρατημένος στην αρχή της εξόδου (alkyon-tscore)
+   - ειδοποίηση απότομης πτώσης πίεσης (alkyon-pa), εικόνα της πίεσης στην αρχή (alkyon-tpb)
+   - χαμηλή μπαταρία (20% και 10%), «ψάρεψες εδώ 2 από τις 3 τελευταίες μέρες» (alkyon-rest-trip)
+   - ψαροντούφεκο: χρονόμετρο κατάδυσης, σημαδούρα (alkyon-buoy-…), «Είσαι εντάξει;» (alkyon-divewatch) */
 (function(){
 'use strict';
-var B=window.BC, h=B.h, T=B.T, EN=B.EN, ls=B.ls;
+var B=window.AK, h=B.h, T=B.T, EN=B.EN, ls=B.ls;
 function st(){ return B.trip&&B.trip.state?B.trip.state():{}; }
 function on(){ return !!(B.trip&&B.trip.active&&B.trip.active()); }
 function pos(){ var f=B.trip&&B.trip.fix&&B.trip.fix(); if(f&&f.lat!=null) return f; var s=st(); if(s.last&&s.last.lat!=null) return s.last; return B.lastPos(); }
@@ -14,18 +14,18 @@ function J(u){ return fetch(u).then(function(r){ if(!r.ok) throw new Error('HTTP
 function num(v){ return String(Math.round(v*10)/10).replace('.',EN?'.':','); }
 function sg(v){ return (v>0?'+':v<0?'−':'±')+num(Math.abs(v)); }
 function notify(title,body,tag){ if(B.inboxAdd) B.inboxAdd(title,body,'trip');
-  try{ if('Notification' in window&&Notification.permission==='granted'&&navigator.serviceWorker){ navigator.serviceWorker.getRegistration(new URL('../',location.href).href).then(function(r){ if(r) r.showNotification(title,{body:body,tag:tag||'bc-trip',icon:'../icon-192.png'}); }).catch(function(){}); } }catch(e){}
+  try{ if('Notification' in window&&Notification.permission==='granted'&&navigator.serviceWorker){ navigator.serviceWorker.getRegistration(new URL('../',location.href).href).then(function(r){ if(r) r.showNotification(title,{body:body,tag:tag||'alk-trip',icon:'../icon-192.png'}); }).catch(function(){}); } }catch(e){}
 }
 function trips(){ return B.store.raw('trips').filter(function(t){ return !t.deleted; }); }
 function patchTrip(id,o){ var t=B.store.get('trips',id); if(t) B.store.save('trips',Object.assign({},t,o)); }
 
 /* ---------- scoreH: βαθμός ανά ώρα στην αρχή της εξόδου ---------- */
 function scoreSnap(){
-  var s=st(); if(!s.active||!s.id||!window.PF) return; var cur=ls.get('psaro-tscore',null); if(cur&&cur.id===s.id) return;
+  var s=st(); if(!s.active||!s.id||!window.PF) return; var cur=ls.get('alkyon-tscore',null); if(cur&&cur.id===s.id) return;
   var p=pos(); if(!p) return;
   PF.getForecast(+p.lat,+p.lon,undefined,{days:2}).then(function(fc){ var out=[];
     fc.days.forEach(function(d){ d.hours.forEach(function(x){ if(x.score==null) return; out.push([Math.floor((Date.parse(x.t+':00Z')-fc.tz*60000)/3600000),x.score]); }); });
-    if(out.length) ls.set('psaro-tscore',{id:s.id,h:out,sp:ls.get('psaro-advsp','')||''}); }).catch(function(){});
+    if(out.length) ls.set('alkyon-tscore',{id:s.id,h:out,sp:ls.get('alkyon-advsp','')||''}); }).catch(function(){});
 }
 /* ---------- condH: πίεση και άνεμος κάθε ώρας της εξόδου ---------- */
 function condH(t){
@@ -40,18 +40,18 @@ function condH(t){
       var d=b&&typeof b.p==='number'?a.p-b.p:null, pt=d==null?2:d<=-3?0:d<=-1?1:d>=1?3:2; out.push([hh,pt,typeof a.w==='number'?Math.round(a.w*10)/10:null]); }
     if(!out.length) return false; patchTrip(t.id,{condH:out}); return true; });
 }
-B.on('tripend',function(e){ var id=e&&e.id; if(!id) { ls.set('psaro-tscore',null); return; }
-  setTimeout(function(){ var t=B.store.get('trips',id), sc=ls.get('psaro-tscore',null);
+B.on('tripend',function(e){ var id=e&&e.id; if(!id) { ls.set('alkyon-tscore',null); return; }
+  setTimeout(function(){ var t=B.store.get('trips',id), sc=ls.get('alkyon-tscore',null);
     if(t&&sc&&Array.isArray(sc.h)&&(t.sid===sc.id||!t.sid)){ var lo=Math.floor(t.startMs/3600000), hi=Math.floor(t.endMs/3600000), hs=sc.h.filter(function(r){ return r[0]>=lo&&r[0]<=hi; });
       if(hs.length) patchTrip(id,{scoreH:hs,scoreSp:sc.sp||undefined}); }
-    ls.set('psaro-tscore',null); },2500);
+    ls.set('alkyon-tscore',null); },2500);
   setTimeout(function(){ condH(B.store.get('trips',id)).catch(function(){}); },5000); });
 /* παλιότερες έξοδοι χωρίς condH: λίγες κάθε φορά, στο παρασκήνιο */
 setTimeout(function(){ var list=trips().filter(function(t){ return t.startMs&&t.endMs&&!t.manual&&!Array.isArray(t.condH)&&Date.now()-t.endMs<85*86400000; }).slice(0,8), i=0;
   (function next(){ if(i>=list.length||navigator.onLine===false) return; condH(list[i++]).catch(function(){}).then(function(){ setTimeout(next,1500); }); })(); },20000);
 
 /* ---------- πτώση πίεσης κατά την έξοδο ---------- */
-var PA={key:'psaro-pa',cool:3*3600e3,drop:3.0};
+var PA={key:'alkyon-pa',cool:3*3600e3,drop:3.0};
 function banner(txt,cls){ var b=h('div',{class:'tripal'+(cls?' '+cls:''),role:'alert'},h('span',{text:txt}),h('button',{type:'button',class:'x','aria-label':T('Κλείσιμο','Close'),text:'✕',onclick:function(){ b.remove(); }}));
   [].forEach.call(document.querySelectorAll('.tripal'+(cls?'.'+cls:'')),function(x){ x.remove(); }); document.body.append(b); try{ navigator.vibrate&&navigator.vibrate([200,100,200]); }catch(e){} return b; }
 function paCheck(){
@@ -60,18 +60,18 @@ function paCheck(){
     var ts=(j.hourly&&j.hourly.time)||[], ps=(j.hourly&&j.hourly.pressure_msl)||[], i=-1; for(var k=0;k<ts.length;k++) if(Date.parse(ts[k]+'Z')<=Date.now()&&typeof ps[k]==='number') i=k;
     if(i<3||typeof ps[i-3]!=='number') return; var drop=ps[i]-ps[i-3]; if(drop>-PA.drop) return; ls.set(PA.key,Date.now());
     var txt=T('Η πίεση πέφτει γρήγορα: ','Pressure is falling fast: ')+num(-drop)+T(' hPa σε 3 ώρες (τώρα ',' hPa in 3 hours (now ')+Math.round(ps[i])+T(' hPa). Συχνά σημάδι αλλαγής καιρού. Κοίτα τον ορίζοντα και την πρόγνωση. Ενδεικτικό, από μοντέλο πρόγνωσης.',' hPa). Often a sign of changing weather. Check the horizon and the forecast. Indicative, from a forecast model.');
-    banner('⚠ '+txt,'pa'); notify('BiteCast: '+T('πτώση πίεσης','pressure falling'),txt,'bitecast-pa'); }).catch(function(){});
+    banner('⚠ '+txt,'pa'); notify('Alkyon: '+T('πτώση πίεσης','pressure falling'),txt,'alkyon-pa'); }).catch(function(){});
 }
 setInterval(paCheck,10*60000); setTimeout(paCheck,20000);
 
 /* ---------- εικόνα της πίεσης στην αρχή της εξόδου ---------- */
 function pressBrief(){
-  var s=st(); if(!s.active||!s.id||ls.get('psaro-tpb','')===s.id) return;
-  if(Date.now()-(+ls.get('psaro-tpb-at',0)||0)<20*60000){ ls.set('psaro-tpb',s.id); return; }
-  if(s.start&&Date.now()-s.start>30*60000){ ls.set('psaro-tpb',s.id); return; }
+  var s=st(); if(!s.active||!s.id||ls.get('alkyon-tpb','')===s.id) return;
+  if(Date.now()-(+ls.get('alkyon-tpb-at',0)||0)<20*60000){ ls.set('alkyon-tpb',s.id); return; }
+  if(s.start&&Date.now()-s.start>30*60000){ ls.set('alkyon-tpb',s.id); return; }
   var PFx=window.PF, p=pos(); if(!PFx||!PFx.pressureOutlook||!p) return;
   PFx.getForecast(+p.lat,+p.lon,undefined,{days:2}).then(function(fc){ var o=PFx.pressureOutlook(fc); if(!o) return;
-    ls.set('psaro-tpb',s.id); ls.set('psaro-tpb-at',Date.now());
+    ls.set('alkyon-tpb',s.id); ls.set('alkyon-tpb-at',Date.now());
     var hs=[]; fc.days.forEach(function(d){ d.hours.forEach(function(x){ if(x.p!=null) hs.push(x); }); }); hs.sort(function(a,b){ return a.t<b.t?-1:1; });
     var now=fc.nowLocal.slice(0,13), n0=-1; hs.forEach(function(x,i){ if(x.t.slice(0,13)<=now) n0=i; });
     var f3=n0>=0&&hs[n0+3]?hs[n0+3].p-hs[n0].p:null;
@@ -85,7 +85,7 @@ function pressBrief(){
     if(o.next) l2+=(o.next.kind==='peak'?T('Αναμένεται κορυφή ','Peak expected '):T('Αναμένεται κοιλάδα ','Low expected '))+num(o.next.p)+' hPa '+day(o.next.t)+T('γύρω στις ','around ')+hh(o.next.t)+T(' (σε ~',' (in ~')+o.next.hours+T(' ώρ.)',' h)')+(o.next.kind==='peak'?T(', μετά αρχίζει να πέφτει.',', then it starts falling.'):T(', μετά αρχίζει να ανεβαίνει.',', then it starts rising.'));
     else l2+=T('Δεν φαίνεται καμπή στις επόμενες ώρες της πρόγνωσης.','No turning point in the coming forecast hours.');
     B.toast(head+'. '+parts.join(' · ')+'. '+l2,9000);
-    notify(head+T(' · έναρξη εξόδου',' · trip start'),parts.join(' · ')+'. '+l2+T(' Πρόγνωση μοντέλου (Open-Meteo), όχι μέτρηση.',' Model forecast (Open-Meteo), not a measurement.'),'bc-tpb-'+s.id); }).catch(function(){});
+    notify(head+T(' · έναρξη εξόδου',' · trip start'),parts.join(' · ')+'. '+l2+T(' Πρόγνωση μοντέλου (Open-Meteo), όχι μέτρηση.',' Model forecast (Open-Meteo), not a measurement.'),'alk-tpb-'+s.id); }).catch(function(){});
 }
 
 /* ---------- «ψάρεψες εδώ πρόσφατα» ---------- */
@@ -98,8 +98,8 @@ function restDays(lat,lon){ var td=today(), lo=new Date(Date.parse(td+'T12:00:00
   trips().forEach(function(t){ if(!t.date||t.date<lo||t.date>td) return; if(near(t.lat,t.lon)||(Array.isArray(t.track)&&t.track.some(function(q){ return near(q[0],q[1]); }))) days[t.date]=1; });
   return Object.keys(days).sort(); }
 B.restDays=restDays;
-function restCheck(){ var s=st(); if(!s.active||!s.id||ls.get('psaro-rest-trip','')===s.id) return; var f=B.trip.fix&&B.trip.fix(); if(!f) return;
-  if(s.start&&Date.now()-s.start<4*60000) return; ls.set('psaro-rest-trip',s.id); var ds=restDays(f.lat,f.lon); if(ds.length<2) return;
+function restCheck(){ var s=st(); if(!s.active||!s.id||ls.get('alkyon-rest-trip','')===s.id) return; var f=B.trip.fix&&B.trip.fix(); if(!f) return;
+  if(s.start&&Date.now()-s.start<4*60000) return; ls.set('alkyon-rest-trip',s.id); var ds=restDays(f.lat,f.lon); if(ds.length<2) return;
   var alt=null; B.store.raw('spots').forEach(function(sp){ if(sp.deleted||typeof sp.lat!=='number') return; var d=km(f.lat,f.lon,sp.lat,sp.lon); if(d>REST_R*2&&restDays(sp.lat,sp.lon).length<2&&(!alt||d<alt.d)) alt={name:sp.name||T('Σημείο','Spot'),d:d}; });
   B.toast('🔁 '+T('Ψάρεψες σε αυτή την περιοχή ','You fished this area on ')+ds.length+T(' από τις 3 τελευταίες μέρες. Ένα ξεκούραστο σημείο ίσως δώσει περισσότερα',' of the last 3 days. A rested spot may bite better')+(alt?': '+alt.name+' ('+(alt.d<10?num(alt.d):Math.round(alt.d))+' km).':'.'),9000); }
 setInterval(restCheck,5*60000);
@@ -116,15 +116,15 @@ B.on('tripstart',function(){ setTimeout(pressBrief,2500); setTimeout(scoreSnap,4
 if(on()){ setTimeout(pressBrief,6000); setTimeout(scoreSnap,8000); }
 
 /* ---------- ψαροντούφεκο ---------- */
-var dv={on:false,t0:0,lastDive:0,lastSurf:0,warned:false,iv:null}; window.PsaroDive=dv;
+var dv={on:false,t0:0,lastDive:0,lastSurf:0,warned:false,iv:null}; window.AlkyonDive=dv;
 function spear(){ return B.prof()==='spear'; }
-function lim(){ var v=+ls.get('psaro-divelim',90); return v>=20&&v<=300?v:90; }
+function lim(){ var v=+ls.get('alkyon-divelim',90); return v>=20&&v<=300?v:90; }
 function fmt(s){ s=Math.max(0,Math.round(s)); return Math.floor(s/60)+':'+B.pad(s%60); }
-function buoyKey(){ return 'psaro-buoy-'+(st().start||0); }
+function buoyKey(){ return 'alkyon-buoy-'+(st().start||0); }
 function buoyOk(){ try{ return localStorage.getItem(buoyKey())==='1'; }catch(e){ return false; } }
 var dock=null, dBtn=null, bBtn=null;
 function dive(){ var now=Date.now();
-  if(!dv.on){ dv.on=true; dv.t0=now; dv.warned=false; try{ var k='psaro-dives-'+(st().start||0); localStorage.setItem(k,String((+localStorage.getItem(k)||0)+1)); }catch(e){} }
+  if(!dv.on){ dv.on=true; dv.t0=now; dv.warned=false; try{ var k='alkyon-dives-'+(st().start||0); localStorage.setItem(k,String((+localStorage.getItem(k)||0)+1)); }catch(e){} }
   else { dv.on=false; dv.lastDive=(now-dv.t0)/1000; dv.lastSurf=now; }
   try{ navigator.vibrate&&navigator.vibrate(30); }catch(e){} if(!dv.iv) dv.iv=setInterval(tickSp,500); tickSp(); }
 B.dive=dive;
@@ -142,10 +142,10 @@ function paintSp(){
   dock.hidden=!show; document.body.classList.toggle('spon',show); if(!show){ if(dv.iv){ clearInterval(dv.iv); dv.iv=null; } return; }
   var ok=buoyOk(); bBtn.classList.toggle('ok',ok); bBtn.setAttribute('aria-pressed',String(ok)); bBtn.textContent=ok?T('Σημαδούρα ✓','Float ✓'):T('Σημαδούρα;','Float?');
   if(!dv.iv) dv.iv=setInterval(tickSp,500); tickSp(); }
-B.on('trip',paintSp); B.on('store',function(k){ if(k==='psaro-fprof') paintSp(); }); setTimeout(paintSp,400);
+B.on('trip',paintSp); B.on('store',function(k){ if(k==='alkyon-fprof') paintSp(); }); setTimeout(paintSp,400);
 
 /* «Είσαι εντάξει;» */
-var WK='psaro-divewatch', ov=null, cd=null, asked=0;
+var WK='alkyon-divewatch', ov=null, cd=null, asked=0;
 function wOn(){ try{ return localStorage.getItem(WK)==='1'; }catch(e){ return false; } }
 function closeAsk(){ if(cd){ clearInterval(cd); cd=null; } if(ov){ ov.remove(); ov=null; } }
 function fire(){ if(B.trip&&B.trip.sos) B.trip.sos(); }
@@ -160,9 +160,9 @@ setInterval(function(){ if(!wOn()||!spear()||!dv.on||!on()){ asked=0; if(ov&&!dv
 
 /* ρυθμίσεις ψαροντούφεκου στο φύλλο της εξόδου */
 B.tripSheetExtras=function(){ if(!spear()) return null;
-  var l=h('input',{type:'number',min:'20',max:'300',step:'5',inputmode:'numeric',value:String(lim())}); l.addEventListener('change',function(){ var v=Math.max(20,Math.min(300,parseInt(l.value,10)||90)); l.value=v; ls.set('psaro-divelim',v); });
+  var l=h('input',{type:'number',min:'20',max:'300',step:'5',inputmode:'numeric',value:String(lim())}); l.addEventListener('change',function(){ var v=Math.max(20,Math.min(300,parseInt(l.value,10)||90)); l.value=v; ls.set('alkyon-divelim',v); });
   var w=h('input',{type:'checkbox',checked:wOn()}); w.addEventListener('change',function(){ try{ localStorage.setItem(WK,w.checked?'1':'0'); }catch(e){} });
-  var n=0; try{ n=+localStorage.getItem('psaro-dives-'+(st().start||0))||0; }catch(e){}
+  var n=0; try{ n=+localStorage.getItem('alkyon-dives-'+(st().start||0))||0; }catch(e){}
   return h('div',{class:'card',style:{margin:'0'}},h('h3',{class:'h3',style:{marginTop:'0'},text:T('Κατάδυση','Diving')+(n?' · '+n+(n===1?T(' κατάδυση',' dive'):T(' καταδύσεις',' dives')):'')}),
     h('label',{class:'fld'},h('span',{text:T('Όριο κατάδυσης (δευτ.)','Dive limit (s)')}),l),
     h('label',{class:'tg'},w,h('span',{text:T('«Είσαι εντάξει;» αν δεν ανέβεις','“Are you OK?” if you do not surface')})),
@@ -170,11 +170,11 @@ B.tripSheetExtras=function(){ if(!spear()) return null;
 })();
 
 /* ---------- v31z521: «Ψαρεύεις εδώ;» Κατά την έξοδο, όταν το σκάφος μένει ακίνητο ή κάνει drift ~10 λεπτά
-   σε σημείο που δεν έχεις αποθηκεύσει, προτείνει να το σώσεις. Ρύθμιση: psaro-v4-driftask (Ειδοποιήσεις). ---------- */
+   σε σημείο που δεν έχεις αποθηκεύσει, προτείνει να το σώσεις. Ρύθμιση: alkyon-v4-driftask (Ειδοποιήσεις). ---------- */
 (function(){
-var B=window.BC, ls=B.ls, T=B.T, buf=[], asked=[], tripId=null;
-function on(){ return ls.get('psaro-v4-driftask',true)!==false; }
-B.driftAsk={on:on,set:function(v){ ls.set('psaro-v4-driftask',!!v); }};
+var B=window.AK, ls=B.ls, T=B.T, buf=[], asked=[], tripId=null;
+function on(){ return ls.get('alkyon-v4-driftask',true)!==false; }
+B.driftAsk={on:on,set:function(v){ ls.set('alkyon-v4-driftask',!!v); }};
 function hav(a,b){ var R=6371000, r=Math.PI/180, dl=(b.lat-a.lat)*r, dn=(b.lon-a.lon)*r, x=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dn/2)*Math.sin(dn/2); return 2*R*Math.asin(Math.min(1,Math.sqrt(x))); }
 function spots(){ try{ return B.store.raw('spots').filter(function(s){ return !s.deleted&&s.lat!=null; }); }catch(e){ return []; } }
 function tick(){
@@ -206,23 +206,23 @@ function check(now){
 setInterval(function(){ try{ tick(); }catch(e){} },30000);
 })();
 
-/* ---------- v31z521: κουμπιά στην ειδοποίηση εξόδου (και στο ρολόι). Ρύθμιση psaro-v4-tripnotif ---------- */
+/* ---------- v31z521: κουμπιά στην ειδοποίηση εξόδου (και στο ρολόι). Ρύθμιση alkyon-v4-tripnotif ---------- */
 (function(){
-var B=window.BC, ls=B.ls, T=B.T;
-function on(){ return ls.get('psaro-v4-tripnotif',true)!==false; }
+var B=window.AK, ls=B.ls, T=B.T;
+function on(){ return ls.get('alkyon-v4-tripnotif',true)!==false; }
 function reg(){ return navigator.serviceWorker?navigator.serviceWorker.getRegistration().then(function(r){ return r||null; }).catch(function(){ return null; }):Promise.resolve(null); }
 function active(){ return !!(B.trip&&B.trip.active&&B.trip.active()); }
-function count(){ try{ var sf=ls.get('psaro-safe',{})||{}; return B.store.raw('bites').filter(function(b){ return b.trip===sf.id&&!b.miss&&!b.deleted&&!B.pest(b); }).length; }catch(e){ return 0; } }
+function count(){ try{ var sf=ls.get('alkyon-safe',{})||{}; return B.store.raw('bites').filter(function(b){ return b.trip===sf.id&&!b.miss&&!b.deleted&&!B.pest(b); }).length; }catch(e){ return 0; } }
 function show(){
   if(!on()||!active()||!('Notification' in window)) return;
   if(Notification.permission==='default'){ Notification.requestPermission().then(function(p){ if(p==='granted') show(); }); return; }
   if(Notification.permission!=='granted') return;
   var n=count();
   reg().then(function(r){ if(!r) return; r.showNotification(T('Έξοδος σε εξέλιξη','Trip in progress'),{body:(n?n+(n===1?T(' ψάρι · ',' catch · '):T(' ψάρια · ',' catches · ')):'')+T('Πάτα «Ψάρι εδώ» και από το ρολόι σου.','Tap “Fish here”, also from your watch.'),
-    tag:'psaro-trip',renotify:false,silent:false,vibrate:[60],requireInteraction:true,icon:'../icon-192.png',badge:'../icon-192.png',data:{bc4trip:1,lang:B.LANG},
+    tag:'alkyon-trip',renotify:false,silent:false,vibrate:[60],requireInteraction:true,icon:'../icon-192.png',badge:'../icon-192.png',data:{bc4trip:1,lang:B.LANG},
     actions:[{action:'fish',title:T('🐟 Ψάρι εδώ','🐟 Fish here')},{action:'lost',title:T('✕ Χάθηκε','✕ Lost')}]}).catch(function(){}); }); }
-function hide(){ reg().then(function(r){ if(!r||!r.getNotifications) return; r.getNotifications({tag:'psaro-trip'}).then(function(a){ a.forEach(function(x){ x.close(); }); }); }); }
-B.tripNotif={on:on,set:function(v){ ls.set('psaro-v4-tripnotif',!!v); if(v) show(); else hide(); },show:show};
+function hide(){ reg().then(function(r){ if(!r||!r.getNotifications) return; r.getNotifications({tag:'alkyon-trip'}).then(function(a){ a.forEach(function(x){ x.close(); }); }); }); }
+B.tripNotif={on:on,set:function(v){ ls.set('alkyon-v4-tripnotif',!!v); if(v) show(); else hide(); },show:show};
 /* ό,τι πατήθηκε στο ρολόι/ειδοποίηση → Ημερολόγιο */
 function qdb(){ return new Promise(function(res,rej){ var r=indexedDB.open('bc4q',1); r.onupgradeneeded=function(){ r.result.createObjectStore('q',{autoIncrement:true}); }; r.onsuccess=function(){ res(r.result); }; r.onerror=function(){ rej(r.error); }; }); }
 var draining=false;

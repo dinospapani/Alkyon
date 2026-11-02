@@ -1,13 +1,13 @@
-/* BiteCast 4 · «Πού ψαρεύεις σήμερα;»: ολόκληρη σελίδα που ανοίγει πρώτη (όπως η κλασική startpick.js, ίδια κλειδιά: psaro-fprof, psaro-fside, psaro-askfp).
+/* Alkyon 4 · «Πού ψαρεύεις σήμερα;»: ολόκληρη σελίδα που ανοίγει πρώτη (όπως η κλασική startpick.js, ίδια κλειδιά: alkyon-fprof, alkyon-fside, alkyon-askfp).
    Ακτή ή Σκάφος (κάρτες με φωτογραφία), μετά με τι ψαρεύεις. Δεν εμφανίζεται κατά την έξοδο ή αν διάλεξες «Να μη ρωτάει κάθε φορά».
-   Νέος χρήστης (χωρίς psaro-onboard και χωρίς δεδομένα): πρώτα το καλωσόρισμα, με την ίδια επιλογή μέσα. */
+   Νέος χρήστης (χωρίς alkyon-onboard και χωρίς δεδομένα): πρώτα το καλωσόρισμα, με την ίδια επιλογή μέσα. */
 (function(){
 'use strict';
-var B=window.BC, h=B.h, T=B.T, ls=B.ls;
+var B=window.AK, h=B.h, T=B.T, ls=B.ls;
 function raw(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
 function put(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
-var SIDE={shore:{n:T('Ακτή','Shore'),d:T('Παραλία · Μόλος · Βράχια · Φράγμα','Beach · Pier · Rocks · Dam'),img:'bc-card-shore.jpg'},
-  boat:{n:T('Σκάφος','Offshore'),d:T('Θάλασσα · Κύμα · MOB · SOS','Open sea · Waves · MOB · SOS'),img:'bc-card-boat.jpg'}};
+var SIDE={shore:{n:T('Ακτή','Shore'),d:T('Παραλία · Μόλος · Βράχια · Φράγμα','Beach · Pier · Rocks · Dam'),img:'alk-card-shore.jpg'},
+  boat:{n:T('Σκάφος','Offshore'),d:T('Θάλασσα · Κύμα · MOB · SOS','Open sea · Waves · MOB · SOS'),img:'alk-card-boat.jpg'}};
 /* εικονίδια γραμμής (ίδιο στυλ με την υπόλοιπη εφαρμογή) */
 var IC={rod:'<path d="M4 20L18.5 5.5"/><path d="M18.5 5.5c1.2-1.2 2.5-.4 2.5 1v5"/><circle cx="7.5" cy="16.5" r="2.2"/><path d="M21 11.5v2.5a1.5 1.5 0 0 1-3 0"/>',
   spear:'<path d="M2 14h13"/><path d="M15 12.5h3l4 1.5-4 1.5h-3z"/><path d="M5 14v3.5M8 14v2"/><path d="M2 11.5l2.5 2.5L2 16.5"/>',
@@ -15,10 +15,10 @@ var IC={rod:'<path d="M4 20L18.5 5.5"/><path d="M18.5 5.5c1.2-1.2 2.5-.4 2.5 1v5
   shore:'<path d="M3 17c2.2 0 2.2-1.5 4.5-1.5S9.8 17 12 17s2.2-1.5 4.5-1.5S19 17 21 17"/><path d="M5 13l5-8"/><path d="M10 5l8 4"/>',
   boat:'<path d="M3 15h18l-2.5 4.5h-13z"/><path d="M7 15V9h7l3 6"/><path d="M10 9V5"/>'};
 function svg(k){ return '<svg viewBox="0 0 24 24" aria-hidden="true">'+(IC[k]||'')+'</svg>'; }
-var METH={shore:[{p:'shore',n:T('Καλάμι από την ακτή','Rod from the shore'),d:T('Βυθός · Spinning · Surfcasting','Bottom · Spinning · Surfcasting'),i:'rod',th:'bc-th-shorerod.jpg'},{p:'spear',n:T('Ψαροντούφεκο από την ακτή','Spearfishing from the shore'),d:T('Βουτιά · Σημαδούρα · Ασφάλεια','Dive · Float · Safety'),i:'spear',th:'bc-th-spear.jpg'},{p:'lake',n:T('Φράγμα ή λίμνη','Dam or lake'),d:T('Γλυκό νερό · Χωρίς κύμα','Fresh water · No waves'),i:'lake',th:'bc-th-lake.jpg'}],
-  boat:[{p:'boat',n:T('Καλάμι','Rod'),d:T('Βυθός · Τρόλινγκ · Jigging · Casting','Bottom · Trolling · Jigging · Casting'),i:'rod',th:'bc-th-boatrod.jpg'},{p:'spear',n:T('Ψαροντούφεκο από σκάφος','Spearfishing from a boat'),d:T('Βουτιά · Ψαροντούφεκο · Σημαδούρα','Dive · Speargun · Float · Safety'),i:'spear',th:'bc-th-spear.jpg'}]};
+var METH={shore:[{p:'shore',n:T('Καλάμι από την ακτή','Rod from the shore'),d:T('Βυθός · Spinning · Surfcasting','Bottom · Spinning · Surfcasting'),i:'rod',th:'alk-th-shorerod.jpg'},{p:'spear',n:T('Ψαροντούφεκο από την ακτή','Spearfishing from the shore'),d:T('Βουτιά · Σημαδούρα · Ασφάλεια','Dive · Float · Safety'),i:'spear',th:'alk-th-spear.jpg'},{p:'lake',n:T('Φράγμα ή λίμνη','Dam or lake'),d:T('Γλυκό νερό · Χωρίς κύμα','Fresh water · No waves'),i:'lake',th:'alk-th-lake.jpg'}],
+  boat:[{p:'boat',n:T('Καλάμι','Rod'),d:T('Βυθός · Τρόλινγκ · Jigging · Casting','Bottom · Trolling · Jigging · Casting'),i:'rod',th:'alk-th-boatrod.jpg'},{p:'spear',n:T('Ψαροντούφεκο από σκάφος','Spearfishing from a boat'),d:T('Βουτιά · Ψαροντούφεκο · Σημαδούρα','Dive · Speargun · Float · Safety'),i:'spear',th:'alk-th-spear.jpg'}]};
 function cur(){ return B.prof(); }
-function side(){ var p=cur(), s=raw('psaro-fside'); if(p==='boat') return 'boat'; if(p==='shore'||p==='lake') return 'shore'; return s==='boat'?'boat':'shore'; }
+function side(){ var p=cur(), s=raw('alkyon-fside'); if(p==='boat') return 'boat'; if(p==='shore'||p==='lake') return 'shore'; return s==='boat'?'boat':'shore'; }
 function label(p,s){ return s==='boat'?(p==='boat'?T('Σκάφος, καλάμι','Offshore, rod'):T('Σκάφος, ψαροντούφεκο','Offshore, spearfishing')):(p==='lake'?T('Φράγμα ή λίμνη','Dam or lake'):p==='spear'?T('Ακτή, ψαροντούφεκο','Shore, spearfishing'):T('Ακτή, καλάμι','Shore, rod')); }
 B.fishSide=side;
 var CHK='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>', CHEV='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>';
@@ -39,19 +39,19 @@ function picker(st,onChange){
     box.append(g,h('h3',{class:'sph3',text:T('Με τι ψαρεύεις;','How are you fishing?')}),l); }
   paint(); return box;
 }
-function brand(){ return h('div',{class:'spbrand'},h('img',{src:'../icon-192.png',alt:'',width:'44',height:'44'}),h('span',null,h('b',{text:'BiteCast'}),h('small',{text:T('ΨΑΡΕΜΑ ΣΤΗΝ ΚΥΠΡΟ','FISHING IN CYPRUS')}))); }
+function brand(){ return h('div',{class:'spbrand'},h('img',{src:'../icon-192.png',alt:'',width:'44',height:'44'}),h('span',null,h('b',{text:'Alkyon'}),h('small',{text:T('ΨΑΡΕΜΑ ΣΤΗ ΣΩΣΤΗ ΣΤΙΓΜΗ','KNOW THE MOMENT')}))); }
 function cover(on){ document.documentElement.classList.toggle('pre-pick',!!on); document.documentElement.classList.toggle('pg-open',!!on); }
 
 B.startPick=function(){
   if(document.querySelector('.sppage')) return;
   var st={s:side(),p:cur()}, prev=document.activeElement;
-  var ask=h('input',{type:'checkbox',checked:raw('psaro-askfp')==='0'}), go=h('button',{class:'spgo',type:'button'});
+  var ask=h('input',{type:'checkbox',checked:raw('alkyon-askfp')==='0'}), go=h('button',{class:'spgo',type:'button'});
   function lab(){ go.replaceChildren(h('span',{text:T('Συνέχεια · ','Continue · ')+label(st.p,st.s)}),h('i',{html:CHEV})); }
   function close(){ pg.classList.add('out'); cover(false); document.removeEventListener('keydown',key); setTimeout(function(){ pg.remove(); },260); try{ prev&&prev.focus&&prev.focus(); }catch(e){} }
   function key(e){ if(e.key==='Escape') close(); }
-  go.addEventListener('click',function(){ put('psaro-fside',st.s); put('psaro-fprof',st.p); put('psaro-fprof-done','1'); put('psaro-askfp',ask.checked?'0':'1'); B.emit('store','psaro-fprof'); close(); });
+  go.addEventListener('click',function(){ put('alkyon-fside',st.s); put('alkyon-fprof',st.p); put('alkyon-fprof-done','1'); put('alkyon-askfp',ask.checked?'0':'1'); B.emit('store','alkyon-fprof'); close(); });
   var pg=h('div',{class:'sppage',role:'dialog','aria-modal':'true','aria-label':T('Πού ψαρεύεις σήμερα;','Where are you fishing today?')},
-    h('div',{class:'sphero',style:{backgroundImage:'url(bc-hero-boat.jpg)'}},h('span',{class:'spheroshade'}),
+    h('div',{class:'sphero',style:{backgroundImage:'url(alk-hero-boat.jpg)'}},h('span',{class:'spheroshade'}),
       h('button',{class:'spskip',type:'button',text:T('Αργότερα','Later'),onclick:close}),brand(),
       h('div',{class:'sptitle'},h('h1',{text:T('Πού ψαρεύεις σήμερα;','Where are you fishing today?')}),h('p',{text:T('Διάλεξε περιβάλλον και τρόπο ψαρέματος','Choose your setting and how you fish')}))),
     h('div',{class:'spbody'},picker(st,lab),
@@ -59,20 +59,20 @@ B.startPick=function(){
       go,h('p',{class:'spfoot',text:T('Αλλαγή αργότερα: Προφίλ › Τύπος ψαρέματος','Change later: Profile › Fishing type')})));
   lab(); cover(true); document.body.append(pg); document.addEventListener('keydown',key);
 };
-function wanted(){ if(!raw('psaro-onboard')) return false; if(raw('psaro-askfp')==='0'&&raw('psaro-fprof-done')) return false; var s=ls.get('psaro-safe',null); if(s&&s.active) return false; if(/#(new|trip|addfriend)/.test(location.hash)) return false; return true; }
+function wanted(){ if(!raw('alkyon-onboard')) return false; if(raw('alkyon-askfp')==='0'&&raw('alkyon-fprof-done')) return false; var s=ls.get('alkyon-safe',null); if(s&&s.active) return false; if(/#(new|trip|addfriend)/.test(location.hash)) return false; return true; }
 
-/* ---------- καλωσόρισμα πρώτου ανοίγματος (όπως η κλασική: psaro-onboard). Δεν εμφανίζεται αν υπάρχουν ήδη δεδομένα. ---------- */
+/* ---------- καλωσόρισμα πρώτου ανοίγματος (όπως η κλασική: alkyon-onboard). Δεν εμφανίζεται αν υπάρχουν ήδη δεδομένα. ---------- */
 function hasData(){ try{ return ['bites','trips','spots','tackle'].some(function(k){ return B.store.raw(k).length>0; }); }catch(e){ return false; } }
 B.tour=function(){
   if(document.querySelector('.sppage')) return;
   var st={s:side(),p:cur()}, step=0, pg, prev=document.activeElement;
-  var STEPS=[{img:'bc-hero-boat.jpg',t:T('Καλώς ήρθες στο BiteCast','Welcome to BiteCast'),b:T('Πρόγνωση, χάρτης και ημερολόγιο για ψάρεμα στην Κύπρο. Πέντε γρήγορα βήματα για να ξεκινήσεις.','Forecast, map and logbook for fishing in Cyprus. Five quick steps to get started.')},
-    {img:'bc-hero-boat.jpg',pick:true,t:T('Πού ψαρεύεις συνήθως;','Where do you usually fish?'),b:T('Προσαρμόζει τεχνικές, εξοπλισμό και κουμπιά ασφαλείας. Το αλλάζεις όποτε θες στο Προφίλ.','It adapts techniques, tackle and safety buttons. Change it any time in Profile.')},
-    {img:'bc-card-boat.jpg',t:T('Δες τη θάλασσα πριν φύγεις','Check the sea before you leave'),b:T('Η Πρόγνωση δείχνει βαθμό 0–100, τις καλύτερες ώρες, άνεμο, κύμα και πίεση για το μέρος που διαλέγεις. Πάτα «Θα βγω αυτή τη μέρα» και θα σου θυμίσει. Στον χάρτη βλέπεις κύμα, άνεμο, ρεύματα και βάθη.','Forecast shows a 0–100 score, the best hours, wind, waves and pressure for the place you choose. Tap “I’ll go out this day” for reminders. The map shows waves, wind, currents and depths.')},
-    {img:'bc-hero-spear.jpg',t:T('Κατέγραψε κάθε έξοδο','Log every outing'),b:T('Ξεκίνα έξοδο από το κεντρικό κουμπί και κατέγραψε ψάρια με ένα άγγιγμα (🐡 για λαγοκέφαλο) ή με τη φωνή: «τρία λαβράκια ενάμισι κιλό». Αν ορίσεις επαφή ασφαλείας, ειδοποιείται αυτόματα αν δεν γυρίσεις στην ώρα σου.','Start a trip from the centre button and log catches with one tap (🐡 for toadfish) or by voice: “three sea bass one and a half kilos”. If you set a safety contact, they are alerted automatically if you are not back on time.')},
-    {img:'bc-card-boat.jpg',t:T('Ειδοποιήσεις και ασφάλεια','Alerts and safety'),b:T('Άνοιξε τις ειδοποιήσεις για καλές μέρες, υπενθυμίσεις και προειδοποιήσεις καιρού στην έξοδο. Με σκάφος, βάλε μέγεθος σκάφους και λιμάνι για σωστά όρια και «ώρα να γυρίσεις».','Turn on alerts for good days, reminders and weather warnings on trips. With a boat, set its size and your home port for the right limits and “time to head back”.'),last:true,alerts:true}];
-  function save(){ put('psaro-fside',st.s); put('psaro-fprof',st.p); put('psaro-fprof-done','1'); B.emit('store','psaro-fprof'); }
-  function finish(){ put('psaro-onboard','1'); try{ var sm=ls.get('psaro-smart',{})||{}; if(!sm.weekly){ sm.weekly=Date.now(); ls.set('psaro-smart',sm); B.emit('store','psaro-smart'); } }catch(e){} if(!raw('psaro-fprof-done')) save();
+  var STEPS=[{img:'alk-hero.jpg',t:T('Καλώς ήρθες στο Alkyon','Welcome to Alkyon'),b:T('Πρόγνωση, χάρτης και ημερολόγιο για ψάρεμα στην Κύπρο. Πέντε γρήγορα βήματα για να ξεκινήσεις.','Forecast, map and logbook for fishing in Cyprus. Five quick steps to get started.')},
+    {img:'alk-hero-boat.jpg',pick:true,t:T('Πού ψαρεύεις συνήθως;','Where do you usually fish?'),b:T('Προσαρμόζει τεχνικές, εξοπλισμό και κουμπιά ασφαλείας. Το αλλάζεις όποτε θες στο Προφίλ.','It adapts techniques, tackle and safety buttons. Change it any time in Profile.')},
+    {img:'alk-card-boat.jpg',t:T('Δες τη θάλασσα πριν φύγεις','Check the sea before you leave'),b:T('Η Πρόγνωση δείχνει βαθμό 0–100, τις καλύτερες ώρες, άνεμο, κύμα και πίεση για το μέρος που διαλέγεις. Πάτα «Θα βγω αυτή τη μέρα» και θα σου θυμίσει. Στον χάρτη βλέπεις κύμα, άνεμο, ρεύματα και βάθη.','Forecast shows a 0–100 score, the best hours, wind, waves and pressure for the place you choose. Tap “I’ll go out this day” for reminders. The map shows waves, wind, currents and depths.')},
+    {img:'alk-hero-spear.jpg',t:T('Κατέγραψε κάθε έξοδο','Log every outing'),b:T('Ξεκίνα έξοδο από το κεντρικό κουμπί και κατέγραψε ψάρια με ένα άγγιγμα (🐡 για λαγοκέφαλο) ή με τη φωνή: «τρία λαβράκια ενάμισι κιλό». Αν ορίσεις επαφή ασφαλείας, ειδοποιείται αυτόματα αν δεν γυρίσεις στην ώρα σου.','Start a trip from the centre button and log catches with one tap (🐡 for toadfish) or by voice: “three sea bass one and a half kilos”. If you set a safety contact, they are alerted automatically if you are not back on time.')},
+    {img:'alk-card-boat.jpg',t:T('Ειδοποιήσεις και ασφάλεια','Alerts and safety'),b:T('Άνοιξε τις ειδοποιήσεις για καλές μέρες, υπενθυμίσεις και προειδοποιήσεις καιρού στην έξοδο. Με σκάφος, βάλε μέγεθος σκάφους και λιμάνι για σωστά όρια και «ώρα να γυρίσεις».','Turn on alerts for good days, reminders and weather warnings on trips. With a boat, set its size and your home port for the right limits and “time to head back”.'),last:true,alerts:true}];
+  function save(){ put('alkyon-fside',st.s); put('alkyon-fprof',st.p); put('alkyon-fprof-done','1'); B.emit('store','alkyon-fprof'); }
+  function finish(){ put('alkyon-onboard','1'); try{ var sm=ls.get('alkyon-smart',{})||{}; if(!sm.weekly){ sm.weekly=Date.now(); ls.set('alkyon-smart',sm); B.emit('store','alkyon-smart'); } }catch(e){} if(!raw('alkyon-fprof-done')) save();
     pg.classList.add('out'); cover(false); setTimeout(function(){ pg.remove(); },260); document.removeEventListener('keydown',key); try{ prev&&prev.focus&&prev.focus(); }catch(e){} }
   function key(e){ if(e.key==='Escape') finish(); }
   function paint(){ var x=STEPS[step]; pg.replaceChildren();
@@ -90,7 +90,7 @@ B.tour=function(){
 
 /* ανοίγει αμέσως, πριν φανεί η εφαρμογή από πίσω (η κλάση pre-pick μπαίνει ήδη από το index.html) */
 (function(){ var go=null;
-  if(!raw('psaro-onboard')){ if(hasData()) put('psaro-onboard','1'); else go=B.tour; }
+  if(!raw('alkyon-onboard')){ if(hasData()) put('alkyon-onboard','1'); else go=B.tour; }
   if(!go&&wanted()) go=B.startPick;
   if(go) go(); else cover(false);
 })();

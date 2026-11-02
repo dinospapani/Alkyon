@@ -1,7 +1,7 @@
-/* BiteCast 4 · Οδηγός (κοινός κώδικας με την κλασική έκδοση).
+/* Alkyon 4 · Οδηγός (κοινός κώδικας με την κλασική έκδοση).
    Το περιεχόμενο (είδη, τεχνικές, νόμοι, λίστα ασφαλείας, μαγαζιά) αντιγράφεται αυτούσιο από το app.js της κλασικής,
    ώστε οι δύο εκδόσεις να λένε ακριβώς τα ίδια. Τρέχει μία φορά, όταν ανοίξει πρώτη φορά ο Οδηγός. */
-window.PsaroGuideCore=function(){
+window.AlkyonGuideCore=function(){
 'use strict';
 const $=id=>document.getElementById(id);
 function h(tag,props,...kids){
@@ -18,7 +18,7 @@ function h(tag,props,...kids){
 }
 function lsGet(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v);}catch(e){return d;}}
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
-const toast=m=>window.BC.toast(m);
+const toast=m=>window.AK.toast(m);
 async function fetchJson(url){
   const ac=new AbortController(), t=setTimeout(()=>ac.abort(),9000);
   try{ const r=await fetch(url,{signal:ac.signal}); if(!r.ok) throw new Error('HTTP '+r.status); return await r.json(); }
@@ -132,7 +132,7 @@ let imgP=null;
 function loadFishImgs(){ if(window.FISH_IMG) return Promise.resolve(); if(!imgP) imgP=new Promise(r=>{const s=document.createElement('script');s.src='../fish-photos.js';s.onload=()=>r();s.onerror=()=>{imgP=null;r();};document.head.append(s);}); return imgP; }
 
 /* Φωτογραφίες ειδών που δεν είναι στο βιβλίο του Τμήματος Αλιείας: από Wikipedia/Wikimedia Commons, φορτώνονται online όταν ανοίγεις το είδος και αποθηκεύονται στο κινητό */
-const WP_KEY='psaro-wikipic';
+const WP_KEY='alkyon-wikipic';
 function wikiPic(la){
   const k=(la||'').trim(); if(!k) return Promise.resolve(null);
   let c={}; try{ c=JSON.parse(localStorage.getItem(WP_KEY)||'{}'); }catch(e){}
@@ -219,11 +219,11 @@ function renderTech(){
 }
 const CHECKS=['Σωσίβια για όλους στο σκάφος','VHF και φορτισμένο κινητό','Φάρμακα και κουτί πρώτων βοηθειών','Πυρσοί και σήμα κινδύνου','Άγκυρα και αρκετό σχοινί','Καύσιμο με εφεδρεία','Νερό και προστασία από τον ήλιο','Τσιμπίδα και γάντια για αγκάθια','Πρόγνωση καιρού ελεγμένη','Ενημέρωση κάποιου στη στεριά για τη διαδρομή'];
 function renderChecks(){
-  const saved=lsGet('psaro-checks',{}); const C=$('checks'); C.replaceChildren();
+  const saved=lsGet('alkyon-checks',{}); const C=$('checks'); C.replaceChildren();
   CHECKS.forEach((t,i)=>{
     const id='ck'+i, cb=h('input',{type:'checkbox',id:id});
     cb.checked=!!saved[i];
-    cb.addEventListener('change',()=>{const s2=lsGet('psaro-checks',{});s2[i]=cb.checked;lsSet('psaro-checks',s2);});
+    cb.addEventListener('change',()=>{const s2=lsGet('alkyon-checks',{});s2[i]=cb.checked;lsSet('alkyon-checks',s2);});
     C.append(h('div',{class:'chk'},cb,h('label',{for:id,text:t})));
   });
 }
@@ -302,7 +302,7 @@ function renderLaw(){
 /* μαγαζιά */
 $('sShops').addEventListener('click',()=>{
   const go=(la,lo,z)=>{ const q='fishing+tackle+store'; window.open('https://www.google.com/maps/search/'+q+(la!=null?'/@'+la.toFixed(5)+','+lo.toFixed(5)+','+z+'z':''),'_blank','noopener'); };
-  const fallback=()=>{ const c=window.BC&&BC.lastPos(); if(c) go(c.lat,c.lon,13); else go(null,null,0); };
+  const fallback=()=>{ const c=window.AK&&AK.lastPos(); if(c) go(c.lat,c.lon,13); else go(null,null,0); };
   if(!navigator.geolocation){ fallback(); return; }
   navigator.geolocation.getCurrentPosition(p=>go(p.coords.latitude,p.coords.longitude,14),fallback,{enableHighAccuracy:false,timeout:8000,maximumAge:300000});
 });

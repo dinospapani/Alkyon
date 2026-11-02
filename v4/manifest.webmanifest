@@ -1,6 +1,6 @@
 {
-  "name": "BiteCast",
-  "short_name": "BiteCast",
+  "name": "Alkyon",
+  "short_name": "Alkyon",
   "description": "Πρόγνωση ψαρέματος, σημεία και ημερολόγιο.",
   "lang": "el",
   "id": "./",
@@ -8,7 +8,7 @@
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#06171F",
+  "background_color": "#071431",
   "theme_color": "#06171F",
   "icons": [
     {

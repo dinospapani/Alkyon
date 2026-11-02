@@ -1,17 +1,17 @@
-/* BiteCast 4 · «Ευκαιρίες για τα σημεία σου» (v31z521)
+/* Alkyon 4 · «Ευκαιρίες για τα σημεία σου» (v31z521)
    Για τις τοποθεσίες που παρακολουθείς και τα σημεία όπου έχεις πιάσει ψάρια: η πρόγνωση των επόμενων ημερών
    (δείκτης, ασφαλές παράθυρο), μαζί με τα δικά σου μοτίβα εκεί (ψάρια την ίδια εποχή, ώρες που πιάνεις, είδη).
    Ειδοποίηση μία φορά τη μέρα για την καλύτερη ευκαιρία σήμερα ή αύριο. */
 (function(){
-var B=window.BC, h=B.h, T=B.T, EN=B.EN, ls=B.ls;
-var KEY='psaro-v4-opps', SENT='psaro-v4-opps-sent', busy=null;
+var B=window.AK, h=B.h, T=B.T, EN=B.EN, ls=B.ls;
+var KEY='alkyon-v4-opps', SENT='alkyon-v4-opps-sent', busy=null;
 function hav(a,b){ var R=6371000, r=Math.PI/180, dl=(b.lat-a.lat)*r, dn=(b.lon-a.lon)*r, x=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dn/2)*Math.sin(dn/2); return 2*R*Math.asin(Math.min(1,Math.sqrt(x))); }
 function bites(){ try{ return B.store.raw('bites').filter(function(b){ return !b.deleted&&!b.miss&&b.lat!=null&&b.date&&!B.pest(b); }); }catch(e){ return []; } }
 function spName(n){ return n&&window.spName?window.spName(n):n; }
 /* υποψήφια σημεία: πρώτα όσα παρακολουθείς, μετά τα σημεία με τα περισσότερα ψάρια */
 function cands(){
   var out=[], bs=bites();
-  (ls.get('psaro-places',[])||[]).forEach(function(p){ if(p&&p.lat!=null&&p.watch!==false) out.push({name:p.name||T('Τοποθεσία','Place'),lat:+p.lat,lon:+p.lon,w:2}); });
+  (ls.get('alkyon-places',[])||[]).forEach(function(p){ if(p&&p.lat!=null&&p.watch!==false) out.push({name:p.name||T('Τοποθεσία','Place'),lat:+p.lat,lon:+p.lon,w:2}); });
   var sp=[]; try{ sp=B.store.raw('spots').filter(function(s){ return !s.deleted&&s.lat!=null; }); }catch(e){}
   sp.forEach(function(s){ var n=bs.filter(function(b){ return hav(s,b)<1500; }).length; if(n) out.push({name:s.name||T('Σημείο','Spot'),lat:s.lat,lon:s.lon,w:1,n:n}); });
   out.sort(function(a,b){ return (b.w-a.w)||((b.n||0)-(a.n||0)); });
@@ -51,14 +51,14 @@ function whyTxt(it){ var m=it.m||{}, out=[];
   if(m.season) out.push(T('εδώ ','here ')+m.season+(m.season===1?T(' ψάρι',' catch'):T(' ψάρια',' catches'))+T(' αυτή την εποχή',' this season')+(m.sp?' ('+spName(m.sp)+')':''));
   else if(m.all) out.push(T('εδώ ','here ')+m.all+(m.all===1?T(' ψάρι συνολικά',' catch in total'):T(' ψάρια συνολικά',' catches in total')));
   if(m.h0!=null) out.push(T('συνήθως ','usually ')+B.pad(m.h0)+':00–'+B.pad((m.h1+1)%24)+':00');
-  var U=window.PsaroUnits; if(it.wind!=null) out.push((U?U.wind(it.wind):Math.round(it.wind)+' kn')+(it.wave!=null?' · '+(U?U.wave(it.wave):B.num(it.wave,1)+' m'):''));
+  var U=window.AlkyonUnits; if(it.wind!=null) out.push((U?U.wind(it.wind):Math.round(it.wind)+' kn')+(it.wave!=null?' · '+(U?U.wave(it.wave):B.num(it.wave,1)+' m'):''));
   return out.join(' · '); }
 function notifyBest(top){
   var best=top[0]; if(!best||best.score<70) return; var lbl=dayLbl(best.date); if(lbl!==T('Σήμερα','Today')&&lbl!==T('Αύριο','Tomorrow')) return;
   var today=new Date().toISOString().slice(0,10), sent=ls.get(SENT,null); if(sent===today) return; ls.set(SENT,today);
   var title=T('Καλή ευκαιρία: ','Good chance: ')+best.name, body=lbl+' '+B.pad(best.s)+':00–'+B.pad((best.e+1)%24)+':00 · '+T('δείκτης ','score ')+best.score+(whyTxt(best)?' · '+whyTxt(best):'');
   if(B.inboxAdd) B.inboxAdd(title,body,'good');
-  try{ if(document.hidden&&'Notification' in window&&Notification.permission==='granted'&&navigator.serviceWorker){ navigator.serviceWorker.getRegistration().then(function(r){ if(r) r.showNotification(title,{body:body,icon:'../icon-192.png',tag:'psaro-opps'}); }); return; } }catch(e){}
+  try{ if(document.hidden&&'Notification' in window&&Notification.permission==='granted'&&navigator.serviceWorker){ navigator.serviceWorker.getRegistration().then(function(r){ if(r) r.showNotification(title,{body:body,icon:'../icon-192.png',tag:'alkyon-opps'}); }); return; } }catch(e){}
   B.toast(title+' · '+body,9000);
 }
 /* κάρτα για την Πρόγνωση */

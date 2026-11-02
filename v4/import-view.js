@@ -1,12 +1,12 @@
-/* BiteCast 4 · Εισαγωγή από plotter, GPS και ρολόι κατάδυσης.
+/* Alkyon 4 · Εισαγωγή από plotter, GPS και ρολόι κατάδυσης.
    - GPX (Garmin, Lowrance, Simrad, Raymarine, Humminbird, Navionics, OpenCPN): waypoints → σημεία (με βάθος αν υπάρχει), tracks → έξοδοι με διαδρομή
    - KML (Google Earth / My Maps): Placemark σημεία → σημεία, γραμμές → διαδρομές
    - CSV: στήλες γεωγραφικό πλάτος / μήκος / όνομα / βάθος (αναγνωρίζονται αυτόματα)
-   - FIT / UDDF (Garmin Descent, Suunto, Shearwater κ.ά.): καταδύσεις, με τον κοινό κώδικα της κλασικής (../divelog.js, psaro-dives)
+   - FIT / UDDF (Garmin Descent, Suunto, Shearwater κ.ά.): καταδύσεις, με τον κοινό κώδικα της κλασικής (../divelog.js, alkyon-dives)
    Όλα γίνονται στο κινητό, τίποτα δεν στέλνεται. Πριν την αποθήκευση δείχνει προεπισκόπηση και παραλείπει διπλά. */
 (function(){
 'use strict';
-var B=window.BC, h=B.h, T=B.T, EN=B.EN, ls=B.ls;
+var B=window.AK, h=B.h, T=B.T, EN=B.EN, ls=B.ls;
 function S(){ return B.store; }
 function num(v){ v=parseFloat(String(v).replace(',','.')); return isFinite(v)?v:null; }
 function km(a,b,c,d){ var R=Math.PI/180, dl=(c-a)*R, dn=(d-b)*R, x=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(a*R)*Math.cos(c*R)*Math.sin(dn/2)*Math.sin(dn/2); return 12742*Math.asin(Math.min(1,Math.sqrt(x))); }
@@ -38,7 +38,7 @@ function parseCsv(text){ var lines=text.replace(/^﻿/,'').split(/\r?\n/).filter
   var hd=cells(lines[0]).map(function(s){ return s.toLowerCase(); }), find=function(re){ for(var i=0;i<hd.length;i++) if(re.test(hd[i])) return i; return -1; };
   var iLa=find(/^(lat|latitude|πλάτος|y)$|lat/), iLo=find(/^(lon|lng|long|longitude|μήκος|x)$|lon|lng/), iN=find(/name|όνομα|title|label|ident/), iD=find(/depth|βάθος/), iNo=find(/note|desc|comment|σημείωσ|σχόλ/), start=1;
   if(iLa<0||iLo<0){ iLa=0; iLo=1; iN=2; iD=-1; iNo=-1; start=num(cells(lines[0])[0])!=null?0:1; }
-  var out={wp:[],tr:[]}, P=window.PsaroCoord;
+  var out={wp:[],tr:[]}, P=window.AlkyonCoord;
   lines.slice(start).forEach(function(l){ var c=cells(l), la=num(c[iLa]), lo=num(c[iLo]);
     if((la==null||lo==null)&&P&&P.parse){ try{ var pp=P.parse((c[iLa]||'')+' '+(c[iLo]||'')); if(pp){ la=pp.lat; lo=pp.lon; } }catch(e){} }
     if(ok(la,lo)) out.wp.push({name:iN>=0?c[iN]||'':'',notes:iNo>=0?c[iNo]||'':'',lat:la,lon:lo,depth:iD>=0&&num(c[iD])!=null?Math.abs(num(c[iD])):null}); });
@@ -62,7 +62,7 @@ function preview(res,file,sh0){
   var go=h('button',{class:'btn pri full',type:'button'});
   function count(){ var a=sel.wp.filter(Boolean).length, b=sel.tr.filter(Boolean).length; go.textContent=T('Εισαγωγή ','Import ')+[a?a+' '+T(a===1?'σημείου':'σημείων',a===1?'spot':'spots'):'',b?b+' '+T(b===1?'διαδρομής':'διαδρομών',b===1?'track':'tracks'):''].filter(Boolean).join(T(' και ',' and ')); go.disabled=!a&&!b; }
   body.append(h('p',{class:'sub',text:file.name+' · '+res.wp.length+' '+T('σημεία','waypoints')+' · '+res.tr.length+' '+T('διαδρομές','tracks')+((dupW||dupT)?' · '+(dupW+dupT)+T(' υπάρχουν ήδη (δεν επιλέχθηκαν)',' already exist (not selected)'):'')}));
-  if(res.wp.length){ var l1=h('div',{class:'imlist'}); res.wp.slice(0,300).forEach(function(w,i){ l1.append(line(sel.wp[i],w.name||T('Σημείο ','Spot ')+(i+1),(window.PsaroCoord?PsaroCoord.fmt(w.lat,w.lon):w.lat.toFixed(5)+', '+w.lon.toFixed(5))+(w.depth!=null?' · '+w.depth+' m':'')+(sel.wp[i]?'':' · '+T('υπάρχει ήδη','already exists')),function(v){ sel.wp[i]=v; })); });
+  if(res.wp.length){ var l1=h('div',{class:'imlist'}); res.wp.slice(0,300).forEach(function(w,i){ l1.append(line(sel.wp[i],w.name||T('Σημείο ','Spot ')+(i+1),(window.AlkyonCoord?AlkyonCoord.fmt(w.lat,w.lon):w.lat.toFixed(5)+', '+w.lon.toFixed(5))+(w.depth!=null?' · '+w.depth+' m':'')+(sel.wp[i]?'':' · '+T('υπάρχει ήδη','already exists')),function(v){ sel.wp[i]=v; })); });
     body.append(h('h3',{class:'h3',text:T('Σημεία (waypoints)','Waypoints')}),l1); }
   if(res.tr.length){ var l2=h('div',{class:'imlist'}); res.tr.forEach(function(t,i){ l2.append(line(sel.tr[i],t.name||T('Διαδρομή ','Track ')+(i+1),(t.t0?new Date(t.t0).toLocaleString(EN?'en-GB':'el-GR',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})+' · ':'')+t.km+' km · '+t.n+T(' σημεία',' points'),function(v){ sel.tr[i]=v; })); });
     body.append(h('h3',{class:'h3',text:T('Διαδρομές → έξοδοι','Tracks → trips')}),l2); }
@@ -71,11 +71,11 @@ function preview(res,file,sh0){
 }
 function handle(file,msg,sh0){
   var n=(file.name||'').toLowerCase(); msg.textContent=T('Ανάγνωση…','Reading…');
-  if(/\.(fit|uddf|udcf|xml)$/.test(n)&&!/\.gpx$/.test(n)&&window.PsaroDiveLog&&(/\.fit$/.test(n)||/\.uddf$/.test(n))){
+  if(/\.(fit|uddf|udcf|xml)$/.test(n)&&!/\.gpx$/.test(n)&&window.AlkyonDiveLog&&(/\.fit$/.test(n)||/\.uddf$/.test(n))){
     var r=new FileReader(), fit=/\.fit$/.test(n); r.onerror=function(){ msg.textContent=T('Δεν διαβάστηκε το αρχείο.','Could not read the file.'); };
-    r.onload=function(){ try{ var res=fit?PsaroDiveLog.parseFit(r.result):PsaroDiveLog.parseUddf(r.result), a=ls.get('psaro-dives',[])||[], id=String(res.start)+'-'+res.dives.length;
+    r.onload=function(){ try{ var res=fit?AlkyonDiveLog.parseFit(r.result):AlkyonDiveLog.parseUddf(r.result), a=ls.get('alkyon-dives',[])||[], id=String(res.start)+'-'+res.dives.length;
         if(a.some(function(s){ return s.id===id; })){ msg.textContent=T('Αυτό το αρχείο έχει ήδη εισαχθεί.','This file was already imported.'); return; }
-        res.id=id; res.src=fit?'fit':'uddf'; res.name=(file.name||'').slice(0,60); a.push(res); ls.set('psaro-dives',a);
+        res.id=id; res.src=fit?'fit':'uddf'; res.name=(file.name||'').slice(0,60); a.push(res); ls.set('alkyon-dives',a);
         msg.textContent=T('Εισήχθησαν ','Imported ')+res.dives.length+T(' καταδύσεις. Φαίνονται στο Ημερολόγιο › Έξοδοι, με τύπο ψαρέματος «Ψαροντούφεκο».',' dives. They show in Logbook › Trips with the Spearfishing type.'); }
       catch(e){ msg.textContent=(e&&e.message==='nodives')?T('Δεν βρέθηκαν καταδύσεις (χρειάζονται δεδομένα βάθους). Αν είναι διαδρομή GPS από ρολόι, εξήγαγέ την ως GPX.','No dives found (depth data needed). If it is a GPS route from a watch, export it as GPX.'):T('Το αρχείο δεν αναγνωρίστηκε.','The file was not recognised.'); } };
     if(fit) r.readAsArrayBuffer(file); else r.readAsText(file); return; }

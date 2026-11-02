@@ -1,10 +1,10 @@
-/* BiteCast 4 · Κοινή έξοδος με φίλους (v31z545)
+/* Alkyon 4 · Κοινή έξοδος με φίλους (v31z545)
    Αν το επιλέξεις στην έναρξη εξόδου, η θέση σου και πόσα ψάρια έπιασες ανεβαίνουν κάθε ~2 λεπτά (πίνακας trip_live, βλ. trip-live.sql)
    και φαίνονται στον χάρτη των φίλων σου που μοιράζεσαι μαζί τους. Στον δικό σου χάρτη βλέπεις όσους φίλους είναι αυτή τη στιγμή σε έξοδο.
    Χωρίς τον πίνακα στη βάση, η λειτουργία μένει σιωπηλά ανενεργή. */
 (function(){
 'use strict';
-var B=window.BC, h=B.h, T=B.T, ls=B.ls, K='psaro-v4-live', up=null, poll=null, layer=null, missing=false, last=0;
+var B=window.AK, h=B.h, T=B.T, ls=B.ls, K='alkyon-v4-live', up=null, poll=null, layer=null, missing=false, last=0;
 function C(){ return B.cloud&&B.cloud.session&&B.cloud.session()?B.cloud:null; }
 function me(){ var s=C()&&C().session(); return s&&s.uid; }
 function tripOn(){ try{ return !!(B.trip&&B.trip.active()); }catch(e){ return false; } }
@@ -20,7 +20,7 @@ var wasTrip=tripOn();
 function sync(){ var t=tripOn(); if(t&&on()){ if(!up){ push(true); up=setInterval(function(){ if(!document.hidden) push(false); },30000); } } else { if(up){ clearInterval(up); up=null; } }
   if(wasTrip&&!t&&on()) end(); wasTrip=t; }
 /* ---------- οι φίλοι στον χάρτη ---------- */
-function mapRef(){ try{ return window.PsaroCore&&PsaroCore.map&&PsaroCore.map(); }catch(e){ return null; } }
+function mapRef(){ try{ return window.AlkyonCore&&AlkyonCore.map&&AlkyonCore.map(); }catch(e){ return null; } }
 function ago(ms){ var m=Math.round((Date.now()-ms)/60000); return m<1?T('τώρα','now'):m<60?m+'′':Math.floor(m/60)+T('ω','h'); }
 function draw(rows,tries){ var map=mapRef(); if(!map||!window.L){ if((tries||0)<10) setTimeout(function(){ draw(rows,(tries||0)+1); },1000); return; } if(layer&&layer._map!==map) layer=null; if(!layer) layer=L.layerGroup().addTo(map); layer.clearLayers();
   rows.forEach(function(r){ if(r.lat==null) return; var nm=r.name||T('Φίλος','Friend'), ini=nm.charAt(0).toUpperCase(), t=Date.parse(r.at);

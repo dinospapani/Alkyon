@@ -1,10 +1,10 @@
-/* BiteCast 4 · Νυχτερινή λειτουργία (κόκκινη οθόνη) (v31z545)
+/* Alkyon 4 · Νυχτερινή λειτουργία (κόκκινη οθόνη) (v31z545)
    Όλη η εφαρμογή σε σκούρο κόκκινο, για να μη χάνουν τα μάτια την προσαρμογή στο σκοτάδι (όπως στα plotters).
-   Ρύθμιση psaro-v4-night: 'auto' (προεπιλογή: μόνο κατά την έξοδο, από τη δύση ως την ανατολή), 'on' (πάντα), 'off'.
-   Το κουμπί 🌙 στον χάρτη την ανοίγει/κλείνει για την τρέχουσα έξοδο (psaro-v4-nightovr). */
+   Ρύθμιση alkyon-v4-night: 'auto' (προεπιλογή: μόνο κατά την έξοδο, από τη δύση ως την ανατολή), 'on' (πάντα), 'off'.
+   Το κουμπί 🌙 στον χάρτη την ανοίγει/κλείνει για την τρέχουσα έξοδο (alkyon-v4-nightovr). */
 (function(){
 'use strict';
-var B=window.BC, h=B.h, T=B.T, ls=B.ls, K='psaro-v4-night', OV='psaro-v4-nightovr', root=document.documentElement, prevTheme=null, active=false, btn=null;
+var B=window.AK, h=B.h, T=B.T, ls=B.ls, K='alkyon-v4-night', OV='alkyon-v4-nightovr', root=document.documentElement, prevTheme=null, active=false, btn=null;
 function mode(){ var m=ls.get(K,'auto'); return m==='on'||m==='off'?m:'auto'; }
 function tripId(){ try{ var s=B.trip&&B.trip.state(); return s&&s.active?s.id||'trip':''; }catch(e){ return ''; } }
 function today(){ var d=new Date(); return d.getFullYear()+'-'+B.pad(d.getMonth()+1)+'-'+B.pad(d.getDate()); }

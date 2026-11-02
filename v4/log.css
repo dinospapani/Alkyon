@@ -1,4 +1,4 @@
-/* BiteCast 4 · Ημερολόγιο, φόρμα ψαριού, Προφίλ */
+/* Alkyon 4 · Ημερολόγιο, φόρμα ψαριού, Προφίλ */
 .nav button.fab{border:0;padding:0;cursor:pointer}
 
 /* φόρμες */
@@ -352,7 +352,7 @@ input[list]::-webkit-calendar-picker-indicator{display:none!important;opacity:0}
 /* ===== v31z530 · νέα σελίδα Σκάφους ===== */
 .bpage .bedit svg,.bhedit svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .bhero{position:relative;border-radius:20px;overflow:hidden;box-shadow:var(--shadow);margin:0 0 12px;min-height:150px;display:flex;align-items:flex-end;background:#0e3446}
-.bcov{position:absolute;inset:0;background:url("bc-card-boat.jpg") center/cover no-repeat}
+.bcov{position:absolute;inset:0;background:url("alk-card-boat.jpg") center/cover no-repeat}
 .bcov::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(4,18,26,0) 25%,rgba(4,18,26,.82) 100%)}
 .bht{position:relative;padding:14px 16px;display:flex;flex-direction:column;gap:2px;color:#fff;min-width:0}
 .bht b{font:800 22px/1.15 var(--font)}

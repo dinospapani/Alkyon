@@ -1,10 +1,10 @@
-/* BiteCast 4 · Ρεκόρ και στόχοι σεζόν (v31z545)
+/* Alkyon 4 · Ρεκόρ και στόχοι σεζόν (v31z545)
    - Ρεκόρ ανά είδος (βάρος, μήκος) και «πρώτο της χρονιάς». Όταν καταγράφεις ψάρι που σπάει ρεκόρ ή είναι το πρώτο του είδους φέτος, βγαίνει μήνυμα.
    - Στόχοι που βάζεις εσύ (έξοδοι / ψάρια / είδη, ανά μήνα ή χρονιά), με πρόοδο. Οι λαγοκέφαλοι δεν μετράνε.
-   Κλειδί: psaro-v4-goals. */
+   Κλειδί: alkyon-v4-goals. */
 (function(){
 'use strict';
-var B=window.BC, h=B.h, T=B.T, ls=B.ls, GK='psaro-v4-goals', seen=null;
+var B=window.AK, h=B.h, T=B.T, ls=B.ls, GK='alkyon-v4-goals', seen=null;
 function bc(b){ return +b.cnt>1?+b.cnt:1; }
 function kgOf(b){ return +b.kg>0?(+b.kg)/bc(b):0; }
 function bites(){ try{ return B.store.bites().filter(function(b){ return !b.deleted&&!b.gear&&b.species; }); }catch(e){ return []; } }
@@ -59,6 +59,6 @@ B.recordsCards=function(page){
     c.append(h('div',{class:'rec'},h('b',{text:r.sp}),h('span',{text:[r.kg?B.num(r.kg.v,2)+' kg':'',r.len?Math.round(r.len.v)+' cm':''].filter(Boolean).join(' · ')}),h('small',{text:(r.kg||r.len).b.date?B.dateShort((r.kg||r.len).b.date)+((r.kg||r.len).b.place?' · '+(r.kg||r.len).b.place:''):''}))); });
   var fy=Object.keys(R).filter(function(k){ return R[k].first[y]; }).length; if(fy) c.append(h('p',{class:'foot',text:T('Φέτος: ','This year: ')+fy+T(' διαφορετικά είδη.',' different species.')}));
   page.append(c); };
-B.on('store',function(k){ if(k==='psaro-bites'||k==='psaro-trips') setTimeout(check,300); });
+B.on('store',function(k){ if(k==='alkyon-bites'||k==='alkyon-trips') setTimeout(check,300); });
 setTimeout(check,1500);
 })();

@@ -1,12 +1,12 @@
-/* BiteCast 4 · «Ξεκινάς ψάρεμα;» (v31z541)
+/* Alkyon 4 · «Ξεκινάς ψάρεμα;» (v31z541)
    Για ψάρεμα από ακτή (και λίμνη / ψαροντούφεκο από ακτή): όσο η εφαρμογή είναι ανοιχτή, αν σταθείς ~2 λεπτά σε απόσταση έως 150 m
    από σημείο σου (τα «Σημεία» ή μέρος όπου έχεις πιάσει ψάρια 2+ φορές), ρωτά αν ξεκινάς έξοδο, με το σημείο συμπληρωμένο.
    Μία ερώτηση ανά σημείο τη μέρα. Δεν ρωτά κατά την έξοδο. Η θέση παρακολουθείται μόνο όσο η εφαρμογή είναι στην οθόνη
-   (μια web εφαρμογή δεν μπορεί να το κάνει με κλειστή οθόνη). Ρύθμιση: psaro-v4-autostart (προεπιλογή ανοιχτό). */
+   (μια web εφαρμογή δεν μπορεί να το κάνει με κλειστή οθόνη). Ρύθμιση: alkyon-v4-autostart (προεπιλογή ανοιχτό). */
 (function(){
 'use strict';
-var B=window.BC, h=B.h, T=B.T, ls=B.ls;
-var R=150, DWELL=120000, MOVE=60, KEY='psaro-v4-autostart', ASK='psaro-v4-asked';
+var B=window.AK, h=B.h, T=B.T, ls=B.ls;
+var R=150, DWELL=120000, MOVE=60, KEY='alkyon-v4-autostart', ASK='alkyon-v4-asked';
 var watch=null, anchor=null, asking=false, last=null, tick=null;
 function on(){ return ls.get(KEY,true)!==false; }
 function eligible(){ var p=B.prof(); if(p==='shore'||p==='lake') return true; if(p==='spear') return (B.fishSide?B.fishSide():'shore')!=='boat'; return false; }

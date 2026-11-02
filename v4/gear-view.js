@@ -1,10 +1,10 @@
-/* BiteCast 4 · Εργαλεία: παραγάδια, δίχτυα, ζεμπίλια. Ίδια δεδομένα με την κλασική (psaro-gear, bite.gear).
+/* Alkyon 4 · Εργαλεία: παραγάδια, δίχτυα, ζεμπίλια. Ίδια δεδομένα με την κλασική (alkyon-gear, bite.gear).
    Ρίψη (διαδρομή) → στη θάλασσα → ανέβασμα (διαδρομή). Τα ψάρια που καταγράφονται στο ανέβασμα συνδέονται με το εργαλείο.
    Η νομιμότητα του εργαλείου είναι ευθύνη του χρήστη. */
 (function(){
 'use strict';
-var B=window.BC, h=B.h, T=B.T, EN=B.EN, ls=B.ls;
-var KEY='psaro-gear', sortK=ls.get('psaro-sort-gear','new');
+var B=window.AK, h=B.h, T=B.T, EN=B.EN, ls=B.ls;
+var KEY='alkyon-gear', sortK=ls.get('alkyon-sort-gear','new');
 var TYPES={ll:{el:'Παραγάδι',en:'Longline',pt:false,c:'#3aa0ff'},net:{el:'Δίχτυ',en:'Net',pt:false,c:'#35c9a7'},trap:{el:'Ζεμπίλι / παγίδα',en:'Trap / pot',pt:true,c:'#b98cff'}};
 function tn(t){ var x=TYPES[t]||TYPES.net; return EN?x.en:x.el; }
 function G(){ var g=ls.get(KEY,null); if(!g||!Array.isArray(g.items)) g={items:[],seq:{}}; if(!g.seq) g.seq={}; return g; }
@@ -106,7 +106,7 @@ B.gearLayers=function(L,onlyIds){
 
 /* ---------- Ημερολόγιο › Εργαλεία ---------- */
 /* ---------- στατιστικά εργαλείων (όπως η κλασική gearstats.js): απόδοση ανά ώρες μέσα, σελήνη στη ρίψη, καιρός όσο ήταν μέσα, μήνας ---------- */
-var WXK='psaro-gearwx', GSK='psaro-gearstat-type', HOUR=3600000, gsBusy=false, gsHost=null, gsRange=null;
+var WXK='alkyon-gearwx', GSK='alkyon-gearstat-type', HOUR=3600000, gsBusy=false, gsHost=null, gsRange=null;
 var MOON8=EN?['New moon','Waxing crescent','First quarter','Waxing gibbous','Full moon','Waning gibbous','Last quarter','Waning crescent']:['Νέα σελήνη','Αύξων μηνίσκος','Πρώτο τέταρτο','Αύξουσα κυρτή','Πανσέληνος','Φθίνουσα κυρτή','Τελευταίο τέταρτο','Φθίνων μηνίσκος'];
 var MON12=EN?['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']:['Ιαν','Φεβ','Μαρ','Απρ','Μάι','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
 function ldate(ms){ var d=new Date(ms); return d.getFullYear()+'-'+B.pad(d.getMonth()+1)+'-'+B.pad(d.getDate()); }
@@ -127,10 +127,10 @@ function gsSection(box,title,rows,lab){ if(!rows.length) return; var mx=Math.max
   box.append(c); }
 function gsFillWx(list){
   var w=ls.get(WXK,{})||{}, todo=list.filter(function(g){ var c=w[g.id]; return g.pos&&(!c||(c.x===0&&Date.now()-(c.at||0)>6*HOUR)); });
-  if(!todo.length||gsBusy||!window.PsaroHist||!PsaroHist.range||navigator.onLine===false) return;
+  if(!todo.length||gsBusy||!window.AlkyonHist||!AlkyonHist.range||navigator.onLine===false) return;
   gsBusy=true; var i=0;
   (function next(){ if(i>=todo.length||i>=12){ gsBusy=false; gsPaint(); return; } var g=todo[i++];
-    PsaroHist.range(g.pos[0],g.pos[1],g.t0,g.t1).then(function(r){ var ww=ls.get(WXK,{})||{}; ww[g.id]=r?{x:1,w:r.w,wm:r.wm,v:r.v,p:r.p,pd:r.pd}:{x:0,at:Date.now()}; ls.set(WXK,ww);
+    AlkyonHist.range(g.pos[0],g.pos[1],g.t0,g.t1).then(function(r){ var ww=ls.get(WXK,{})||{}; ww[g.id]=r?{x:1,w:r.w,wm:r.wm,v:r.v,p:r.p,pd:r.pd}:{x:0,at:Date.now()}; ls.set(WXK,ww);
       var n=gsHost&&gsHost.querySelector('.gsnote'); if(n) n.textContent=T('Φέρνω καιρό… ','Fetching weather… ')+i+'/'+Math.min(todo.length,12); }).catch(function(){}).then(function(){ setTimeout(next,250); }); })();
 }
 function gsPaint(first){
@@ -159,8 +159,8 @@ function gsPaint(first){
 B.gearStats=function(page,inRange){ gsHost=h('div',{class:'gstats'}); gsRange=inRange; page.append(gsHost); gsPaint(true); };
 
 B.gearLog=function(page,inRange){
-  var gv=ls.get('psaro-v4-gearview','list');
-  page.append(h('div',{style:{margin:'0 0 12px'}},B.seg([['list',T('Λίστα','List')],['stats',T('Στατιστικά','Statistics')]],gv,function(v){ ls.set('psaro-v4-gearview',v); B.emit('store',KEY); },T('Προβολή','View'))));
+  var gv=ls.get('alkyon-v4-gearview','list');
+  page.append(h('div',{style:{margin:'0 0 12px'}},B.seg([['list',T('Λίστα','List')],['stats',T('Στατιστικά','Statistics')]],gv,function(v){ ls.set('alkyon-v4-gearview',v); B.emit('store',KEY); },T('Προβολή','View'))));
   if(gv==='stats'){ B.gearStats(page,inRange); return; }
   gearList(page,inRange);
 };
@@ -174,7 +174,7 @@ function gearList(page,inRange){
   if(!items.length){ page.append(h('div',{class:'card empty'},h('h3',{text:T('Κανένα εργαλείο σε αυτό το διάστημα','No gear in this period')}),h('p',{text:T('Παραγάδια, δίχτυα και ζεμπίλια καταγράφονται από τον χάρτη, με το κουμπί «Εργαλεία».','Longlines, nets and pots are logged from the map, with the “Gear” button.')}),h('a',{class:'btn pri',href:'#map',text:T('Άνοιγμα χάρτη','Open map')}))); return; }
   var tn_=0, tk=0, done=items.filter(function(i){ return i.state==='done'; }); done.forEach(function(i){ var f=fishOf(i); tn_+=f.n; tk+=f.kg; });
   var so=h('select',{class:'select','aria-label':T('Ταξινόμηση','Sort by')}); [['new',T('Νεότερα πρώτα','Newest first')],['old',T('Παλαιότερα πρώτα','Oldest first')],['eff',T('Καλύτερη απόδοση (ψάρια/ώρα)','Best catch rate (catches/hour)')],['hrs',T('Περισσότερες ώρες μέσα','Most hours in water')]].forEach(function(o){ so.append(h('option',{value:o[0],text:o[1]})); });
-  so.value=sortK; so.addEventListener('change',function(){ sortK=so.value; ls.set('psaro-sort-gear',sortK); B.emit('store',KEY); });
+  so.value=sortK; so.addEventListener('change',function(){ sortK=so.value; ls.set('alkyon-sort-gear',sortK); B.emit('store',KEY); });
   page.append(h('p',{class:'sum',text:items.length+' '+T(items.length===1?'εργαλείο':'εργαλεία','gear')+', '+tn_+' '+T('ψάρια','catches')+(tk?', '+B.num(tk,1)+' kg':'')+T(' (ολοκληρωμένα)',' (completed)')}),so);
   var l=h('div',{class:'list',style:{marginTop:'10px'}});
   items.forEach(function(it){ var f=fishOf(it), t=tOf(it), sk=soak(it);
@@ -193,7 +193,7 @@ function detail(id){
   if(it.notes) body.append(h('div',{class:'card'},h('p',{class:'p',text:it.notes})));
   var bs=B.store.raw('bites').filter(function(b){ return b.gear===it.id&&!b.miss&&!B.pest(b); });
   if(bs.length){ var l=h('div',{class:'list'}); bs.forEach(function(b){ l.append(h('button',{class:'li',type:'button',onclick:function(){ sh.close(true); if(B.biteDetail) B.biteDetail(b); }},h('span',{class:'tx'},h('b',{text:(b.species||'')+(+b.cnt>1?' ×'+b.cnt:'')}),h('small',{text:[b.time,+b.kg?b.kg+' kg':''].filter(Boolean).join(' · ')})))); }); body.append(h('h3',{class:'listh',text:T('Αλιεύματα','Catches')}),l); }
-  body.append(h('div',{class:'acts'},h('button',{class:'btn pri',type:'button',text:T('+ Αλίευμα','+ Catch'),onclick:function(){ sh.close(true); B.biteForm(null,{gear:it}); }}),h('a',{class:'btn',href:'#map',onclick:function(){ ls.set('psaro-v4-gearshow',it.id); sh.close(true); },text:T('Στον χάρτη','On the map')})),
+  body.append(h('div',{class:'acts'},h('button',{class:'btn pri',type:'button',text:T('+ Αλίευμα','+ Catch'),onclick:function(){ sh.close(true); B.biteForm(null,{gear:it}); }}),h('a',{class:'btn',href:'#map',onclick:function(){ ls.set('alkyon-v4-gearshow',it.id); sh.close(true); },text:T('Στον χάρτη','On the map')})),
     h('div',{class:'acts'},h('button',{class:'btn',type:'button',text:T('Επεξεργασία','Edit'),onclick:function(){ sh.close(true); edit(it.id); }}),h('button',{class:'btn del',type:'button',text:T('Διαγραφή','Delete'),onclick:function(){ B.ask(T('Να διαγραφεί «','Delete “')+nm(it)+T('»; Τα ψάρια του μένουν.','”? Its catches stay.'),T('Διαγραφή','Delete'),true).then(function(y){ if(!y) return; var g=G(); g.items=g.items.filter(function(x){ return x.id!==it.id; }); put(g); sh.close(); B.toast(T('Διαγράφηκε.','Deleted.')); }); }})));
   sh=B.sheet({title:nm(it),body:body});
 }

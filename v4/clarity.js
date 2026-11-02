@@ -1,11 +1,11 @@
-/* BiteCast 4 · Ορατότητα νερού για ψαροντούφεκο (v31z531)
+/* Alkyon 4 · Ορατότητα νερού για ψαροντούφεκο (v31z531)
    1) Δορυφόρος: συνάρτηση Supabase «water-clarity» → Kd490 (Copernicus Marine, Μεσόγειος). Ορατότητα ≈ 1,5 / Kd490 (περίπου το βάθος Secchi).
       Όταν έχει σύννεφα (καμία τιμή) ή η τιμή είναι παλιά (> 2 ημέρες) ή η συνάρτηση δεν απαντά → πέφτει στο 2.
    2) Εκτίμηση από συνθήκες: κύμα τελευταίων 36 ωρών και βροχή τελευταίων 48 ωρών από την πρόγνωση,
       με διόρθωση από ό,τι έχεις γράψει εσύ κοντά (≥ 2 καταγραφές σε 3 km). Ενδεικτικό: όχι μέτρηση. */
 (function(){
-var B=window.BC, T=B.T, EN=B.EN, ls=B.ls, h=B.h;
-var SUPA='https://sgfohmqwdwtkhtrebnix.supabase.co', SKEY='sb_publishable_LGuwvrvLnAj1CF22Q6g9vg_4OImZYbA', BASE=20, CK='psaro-v4-clar';
+var B=window.AK, T=B.T, EN=B.EN, ls=B.ls, h=B.h;
+var SUPA='https://sgfohmqwdwtkhtrebnix.supabase.co', SKEY='sb_publishable_LGuwvrvLnAj1CF22Q6g9vg_4OImZYbA', BASE=20, CK='alkyon-v4-clar';
 function lerp(tab,x){ if(x<=tab[0][0]) return tab[0][1]; for(var i=1;i<tab.length;i++){ if(x<=tab[i][0]){ var a=tab[i-1], b=tab[i], t=(x-a[0])/(b[0]-a[0]); return a[1]+(b[1]-a[1])*t; } } return tab[tab.length-1][1]; }
 var WAVE=[[0.3,1],[0.6,0.85],[1.0,0.62],[1.5,0.45],[2.5,0.3],[4,0.2]], RAIN=[[2,1],[8,0.85],[20,0.65],[40,0.5],[80,0.4]];
 function km(a,b,c,d){ var r=Math.PI/180, x=(d-b)*r*Math.cos((a+c)/2*r), y=(c-a)*r; return Math.sqrt(x*x+y*y)*6371; }
@@ -50,7 +50,7 @@ B.clarityCard=function(fc,d,p,isToday,hr){ var est=estimate(fc,d.date,p&&p.lat,p
   if(p&&p.lat!=null&&dd>=0&&dd<=1) sat(+p.lat,+p.lon).then(function(v){ var s=fromSat(v,new Date().toISOString().slice(0,10)); if(s) paint(s,est?T('Από τις συνθήκες: ~','From conditions: ~')+est.m+' m':null); else paint(est,why(v)); });
   return box; };
 /* για καταγραφή: η εκτίμηση εκείνης της στιγμής (για να μαθαίνει από ό,τι γράφεις) */
-B.clarityEst=function(lat,lon,date,time){ var c=ls.get('psaro-fc7',null), fc=c&&c.fc; if(!fc) return null; var r=estimate(fc,date,lat,lon,parseInt((time||'10').slice(0,2),10)); return r?r.m:null; };
+B.clarityEst=function(lat,lon,date,time){ var c=ls.get('alkyon-fc7',null), fc=c&&c.fc; if(!fc) return null; var r=estimate(fc,date,lat,lon,parseInt((time||'10').slice(0,2),10)); return r?r.m:null; };
 B.clarity={estimate:estimate,sat:sat,fromSat:fromSat,level:level};
 /* v31z545: θερμοκρασία σε βάθος / θερμοκλινές (ίδια συνάρτηση Supabase, mode=profile, μοντέλο Copernicus Μεσογείου). Αν η συνάρτηση δεν απαντά, η κάρτα δεν εμφανίζεται. */
 function prof(lat,lon){ var key='p'+lat.toFixed(2)+','+lon.toFixed(2), c=ls.get(CK,{})||{}, hit=c[key];
@@ -63,7 +63,7 @@ function thermo(P){ if(!P||P.length<3) return null; var best=null;
   var a=best.i, b=best.i+1; while(a>0&&(P[a-1].t-P[a].t)/Math.max(0.5,P[a].d-P[a-1].d)>=best.g*0.5) a--; while(b<P.length-1&&(P[b].t-P[b+1].t)/Math.max(0.5,P[b+1].d-P[b].d)>=best.g*0.5) b++;
   return {top:P[a].d,bot:P[b].d,t1:P[a].t,t2:P[b].t}; }
 B.thermoCard=function(p){ if(!p||p.lat==null) return null; var box=h('section',{class:'card thermo',hidden:true});
-  prof(+p.lat,+p.lon).then(function(v){ if(!v||!v.prof||v.prof.length<3) return; var P=v.prof.filter(function(x){ return x.d<=110; }), th=thermo(P), U=window.PsaroUnits, f=function(t){ return U&&U.temp?U.temp(t,1):B.num(t,1)+'°'; };
+  prof(+p.lat,+p.lon).then(function(v){ if(!v||!v.prof||v.prof.length<3) return; var P=v.prof.filter(function(x){ return x.d<=110; }), th=thermo(P), U=window.AlkyonUnits, f=function(t){ return U&&U.temp?U.temp(t,1):B.num(t,1)+'°'; };
     var lo=Math.min.apply(null,P.map(function(x){ return x.t; })), hi=Math.max.apply(null,P.map(function(x){ return x.t; }));
     var rows=h('div',{class:'thrs'}); P.forEach(function(x){ var inT=th&&x.d>=th.top&&x.d<=th.bot; rows.append(h('div',{class:'thr'+(inT?' thx':'')},h('span',{text:Math.round(x.d)+' m'}),h('i',null,h('b',{style:{width:Math.round(25+75*(x.t-lo)/Math.max(0.1,hi-lo))+'%'}})),h('em',{text:f(x.t)}))); });
     box.replaceChildren(h('h2',{text:T('Θερμοκρασία σε βάθος','Temperature at depth')}),

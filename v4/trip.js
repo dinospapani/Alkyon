@@ -1,11 +1,11 @@
-/* BiteCast 4 · Έξοδος και ασφάλεια: έναρξη / τέλος εξόδου, ώρα επιστροφής, έλεγχος σιωπής, SOS, επαφή ασφαλείας,
+/* Alkyon 4 · Έξοδος και ασφάλεια: έναρξη / τέλος εξόδου, ώρα επιστροφής, έλεγχος σιωπής, SOS, επαφή ασφαλείας,
    διαδρομή GPS, συναγερμός άγκυρας, MOB. Ακριβής μεταφορά της κλασικής (extras.js, track.js, sea.js):
-   ίδια κλειδιά (psaro-safe, psaro-track, psaro-gps, psaro-anchor, psaro-mob), ίδιοι πίνακες στον server
+   ίδια κλειδιά (alkyon-safe, alkyon-track, alkyon-gps, alkyon-anchor, alkyon-mob), ίδιοι πίνακες στον server
    (safety_trips, safety_contacts) και ίδια κλήση στο quick-processor, ώστε ο server να ειδοποιεί την επαφή όπως πριν. */
 (function(){
 'use strict';
-var B=window.BC, h=B.h, T=B.T, EN=B.EN, ls=B.ls;
-var KEY='psaro-safe', BOT='BiteCastMaydaybot';
+var B=window.AK, h=B.h, T=B.T, EN=B.EN, ls=B.ls;
+var KEY='alkyon-safe', BOT='AlkyonMaydayBot';
 function load(){ return ls.get(KEY,null)||{}; }
 function save(s){ ls.set(KEY,s); B.emit('trip'); }
 function Cl(){ return B.cloud&&B.cloud.session()?B.cloud:null; }
@@ -23,7 +23,7 @@ function vib(p){ try{ navigator.vibrate&&navigator.vibrate(p); }catch(e){} }
 /* ---------- θέση ---------- */
 var fixP=null;
 function getPos(){ return new Promise(function(res,rej){ if(fixP&&Date.now()-fixP.t<60000){ res(fixP); return; }
-  if(!navigator.geolocation){ rej(); return; } navigator.geolocation.getCurrentPosition(function(p){ fixP={lat:p.coords.latitude,lon:p.coords.longitude,t:Date.now()}; ls.set('psaro-v4-pos',{lat:+fixP.lat.toFixed(5),lon:+fixP.lon.toFixed(5),t:fixP.t}); res(fixP); },rej,{enableHighAccuracy:true,timeout:15000,maximumAge:30000}); }); }
+  if(!navigator.geolocation){ rej(); return; } navigator.geolocation.getCurrentPosition(function(p){ fixP={lat:p.coords.latitude,lon:p.coords.longitude,t:Date.now()}; ls.set('alkyon-v4-pos',{lat:+fixP.lat.toFixed(5),lon:+fixP.lon.toFixed(5),t:fixP.t}); res(fixP); },rej,{enableHighAccuracy:true,timeout:15000,maximumAge:30000}); }); }
 
 /* ---------- server (ίδιο με την κλασική) ---------- */
 var extOK=true, srv='';
@@ -56,8 +56,8 @@ function fn(action,id,phase){ var s=B.cloud.session(); if(!s) return Promise.rej
 /* ---------- μηνύματα (WhatsApp / SMS) ---------- */
 function plan(s,kind){
   var link=mapLink(s.last), t;
-  if(kind==='sos') t=T('ΒΟΗΘΕΙΑ (BiteCast): δεν έχω επιστρέψει ακόμα και είχα δηλώσει επιστροφή στις ','HELP (BiteCast): I have not returned yet and I had declared my return at ')+hm(s.due)+(s.route?T(' (διαδρομή: ',' (route: ')+s.route+')':'')+'.';
-  else t=T('Σχέδιο εξόδου (BiteCast): ψαρεύω','Trip plan (BiteCast): fishing')+(s.route?' – '+s.route:'')+T('. Επιστροφή στις ','. Return at ')+hm(s.due)+'.';
+  if(kind==='sos') t=T('ΒΟΗΘΕΙΑ (Alkyon): δεν έχω επιστρέψει ακόμα και είχα δηλώσει επιστροφή στις ','HELP (Alkyon): I have not returned yet and I had declared my return at ')+hm(s.due)+(s.route?T(' (διαδρομή: ',' (route: ')+s.route+')':'')+'.';
+  else t=T('Σχέδιο εξόδου (Alkyon): ψαρεύω','Trip plan (Alkyon): fishing')+(s.route?' – '+s.route:'')+T('. Επιστροφή στις ','. Return at ')+hm(s.due)+'.';
   if(link) t+=T(' Τελευταία θέση',' Last position')+(s.last&&s.last.t?' ('+hm(s.last.t)+')':'')+': '+link;
   return t;
 }
@@ -70,22 +70,22 @@ function chooseSend(s,kind){ var body=h('div',{class:'bform'}), sh;
   body.append(h('button',{class:'btn pri full',type:'button',text:'WhatsApp',onclick:function(){ sh.close(); send(s,kind,'wa'); }}),h('button',{class:'btn full',type:'button',text:'SMS',onclick:function(){ sh.close(); send(s,kind,'sms'); }}),h('button',{class:'btn full',type:'button',text:T('Άλλος τρόπος','Other'),onclick:function(){ sh.close(); send(s,kind,''); }}));
   sh=B.sheet({title:kind==='sos'?'SOS':T('Σχέδιο εξόδου','Trip plan'),body:body}); }
 
-/* ---------- διαδρομή GPS (psaro-track, ίδια μορφή) ---------- */
+/* ---------- διαδρομή GPS (alkyon-track, ίδια μορφή) ---------- */
 var wid=null, wl=null;
-function gpsOn(){ return ls.raw('psaro-gps')!=='"0"'&&ls.get('psaro-gps','1')!=='0'; }
+function gpsOn(){ return ls.raw('alkyon-gps')!=='"0"'&&ls.get('alkyon-gps','1')!=='0'; }
 function dist(a,b){ var R=6371000, r=Math.PI/180, dLa=(b[0]-a[0])*r, dLo=(b[1]-a[1])*r, x=Math.sin(dLa/2)*Math.sin(dLa/2)+Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin(dLo/2)*Math.sin(dLo/2); return 2*R*Math.asin(Math.min(1,Math.sqrt(x))); }
-function track(){ var s=load(); if(!s.active) return null; var t=ls.get('psaro-track',null); if(!t||!Array.isArray(t.pts)||t.id!==s.id){ t={id:s.id,pts:[],m:0}; ls.set('psaro-track',t); } return t; }
+function track(){ var s=load(); if(!s.active) return null; var t=ls.get('alkyon-track',null); if(!t||!Array.isArray(t.pts)||t.id!==s.id){ t={id:s.id,pts:[],m:0}; ls.set('alkyon-track',t); } return t; }
 function onPos(p){ var c=p.coords; fixP={lat:c.latitude,lon:c.longitude,t:Date.now()}; onAnchor(c); var t=track(); if(!t) return; if(c.accuracy&&c.accuracy>60) return;
   var pt=[+c.latitude.toFixed(6),+c.longitude.toFixed(6),Date.now()], last=t.pts[t.pts.length-1];
   if(last){ var d=dist(last,pt); if(d<12){ B.emit('track'); return; } if(d>2000&&pt[2]-last[2]<20000) return; t.m+=d; }
   t.pts.push(pt); if(t.pts.length>3000) t.pts=t.pts.filter(function(_,i){ return i%2===0||i===t.pts.length-1; });
-  ls.set('psaro-track',t); B.emit('track'); }
+  ls.set('alkyon-track',t); B.emit('track'); }
 function watch(){
   var s=load(), need=(s.active&&gpsOn())||!!anc();
-  if(need&&wid==null&&navigator.geolocation){ try{ wid=navigator.geolocation.watchPosition(onPos,function(e){ if(e&&e.code===1){ ls.set('psaro-gps','0'); B.toast(T('Δεν δόθηκε άδεια θέσης. Η διαδρομή απενεργοποιήθηκε.','Location permission denied. Route recording is off.')); } },{enableHighAccuracy:true,maximumAge:5000,timeout:30000}); }catch(e){} }
+  if(need&&wid==null&&navigator.geolocation){ try{ wid=navigator.geolocation.watchPosition(onPos,function(e){ if(e&&e.code===1){ ls.set('alkyon-gps','0'); B.toast(T('Δεν δόθηκε άδεια θέσης. Η διαδρομή απενεργοποιήθηκε.','Location permission denied. Route recording is off.')); } },{enableHighAccuracy:true,maximumAge:5000,timeout:30000}); }catch(e){} }
   if(!need&&wid!=null){ try{ navigator.geolocation.clearWatch(wid); }catch(e){} wid=null; }
   /* οθόνη αναμμένη κατά την έξοδο και με συναγερμό άγκυρας */
-  var wake=(s.active||!!anc())&&ls.get('psaro-wake',true)!==false;
+  var wake=(s.active||!!anc())&&ls.get('alkyon-wake',true)!==false;
   if(wake&&!wl&&navigator.wakeLock&&!document.hidden){ try{ navigator.wakeLock.request('screen').then(function(l){ wl=l; l.addEventListener('release',function(){ wl=null; }); }).catch(function(){}); }catch(e){} }
   if(!wake&&wl){ try{ wl.release(); }catch(e){} wl=null; }
 }
@@ -94,10 +94,10 @@ function simplify(pts,eps){ if(pts.length<3) return pts; var r=Math.PI/180, k=11
     for(var i=q[0]+1;i<q[1];i++){ var p=xs[i], u=L2?((p[0]-a[0])*dx+(p[1]-a[1])*dy)/L2:0; u=Math.max(0,Math.min(1,u)); var d=Math.hypot(p[0]-(a[0]+u*dx),p[1]-(a[1]+u*dy)); if(d>mx){ mx=d; mi=i; } }
     if(mx>eps&&mi>0){ keep[mi]=true; stack.push([q[0],mi],[mi,q[1]]); } }
   return pts.filter(function(_,i){ return keep[i]; }); }
-function takeTrack(){ var s=load(), t=ls.get('psaro-track',null), out=null;
+function takeTrack(){ var s=load(), t=ls.get('alkyon-track',null), out=null;
   if(t&&t.id===s.id&&t.pts&&t.pts.length>1&&t.m>=100){ var eps=6, tr=simplify(t.pts.map(function(p){ return [p[0],p[1]]; }),eps); while(tr.length>400&&eps<400){ eps*=1.6; tr=simplify(tr,eps); }
     out={km:Math.round(t.m/100)/10,moving:(window.PP&&window.PP.movingFrom?window.PP.movingFrom(t.pts):undefined),track:tr.map(function(p){ return [+p[0].toFixed(5),+p[1].toFixed(5)]; })}; }
-  ls.set('psaro-track',null); return out; }
+  ls.set('alkyon-track',null); return out; }
 
 /* ---------- έξοδος ---------- */
 var timer=null, lastTrack=0, contSince=0, lastAct=0;
@@ -115,7 +115,7 @@ function startTimer(){ clearInterval(timer); timer=setInterval(tick,60000); }
 
 function start(o){
   var d=load(), s=Object.assign({},d,{active:true,id:'trip-'+Date.now().toString(36),route:o.route||'',due:o.due,autoExt:0,sosAt:0,pgStart:0,pgEnd:0,last:null,start:Date.now(),startDate:B.store?todayStr():'',cond0:cond0(),sil:o.sil||0,noAlert:!o.notify,synced:undefined});
-  save(s); ls.set('psaro-track',null); watch(); startTimer();
+  save(s); ls.set('alkyon-track',null); watch(); startTimer();
   /* v31z543: στέλνει στον server όρια και λιμάνι, για ειδοποιήσεις καιρού / επιστροφής με κλειστό κινητό */
   try{ if(B.pushSync) B.pushSync(); }catch(e){}
   pushContact().then(trackPos).then(pushTrip);
@@ -124,7 +124,7 @@ function start(o){
   else B.toast(hasContact(d)?T('Καλή έξοδος! Η επαφή σου ενημερώθηκε.','Have a good trip! Your contact has been notified.'):T('Καλή έξοδος! Δεν έχεις επαφή ασφαλείας, θα έχεις μόνο υπενθύμιση στο κινητό.','Have a good trip! You have no safety contact, so you only get a reminder on your phone.'));
 }
 function todayStr(){ var d=new Date(); return d.getFullYear()+'-'+B.pad(d.getMonth()+1)+'-'+B.pad(d.getDate()); }
-function cond0(){ var p=B.lastPos(); if(!p) return null; var fc=ls.get('psaro-fc7',null), o={lat:p.lat,lon:p.lon};
+function cond0(){ var p=B.lastPos(); if(!p) return null; var fc=ls.get('alkyon-fc7',null), o={lat:p.lat,lon:p.lon};
   try{ var d=fc.fc.days[0], q=d.hours.filter(function(x){ return x.hr===new Date().getHours(); })[0]; if(q){ o.press=q.pres; o.ptrend=q.ptrend; o.wind=q.wind; o.wave=q.wave; o.cloud=q.cloud; o.sst=q.sst; } }catch(e){} return o; }
 function bms(b){ if(!b.date||!b.time) return null; var p=b.date.split('-').map(Number), q=b.time.split(':').map(Number); if(p.length<3||q.length<2||isNaN(p[0])||isNaN(q[0])) return null; return new Date(p[0],p[1]-1,p[2],q[0],q[1]).getTime(); }
 function summary(s){
@@ -135,11 +135,11 @@ function summary(s){
   return {n:n,kg:Math.round(kg*10)/10,species:Object.keys(sp).sort(function(a,b){ return sp[b]-sp[a]; })[0]||'',miss:mi,pn:pn,pkg:Math.round(pkg*10)/10};
 }
 /* ολοκληρωμένα εργαλεία (δίχτυα κ.λπ.) μπαίνουν σύνοψη μέσα στην έξοδο, όπως στην κλασική */
-function gearCompact(tid){ var g=ls.get('psaro-gear',null); if(!g||!Array.isArray(g.items)) return null; var out=[];
+function gearCompact(tid){ var g=ls.get('alkyon-gear',null); if(!g||!Array.isArray(g.items)) return null; var out=[];
   g.items.forEach(function(it){ if(it.state!=='done'||it.att) return; var n=0,kg=0; B.store.raw('bites').forEach(function(b){ if(b.gear===it.id&&!b.miss&&!B.pest(b)){ n+=Math.max(1,Math.floor(+b.cnt)||1); kg+=b.rel?0:(+b.kg||0); } });
     var thin=function(p){ if(!p||p.length<=120) return p||[]; var k=Math.ceil(p.length/120); return p.filter(function(_,i){ return i%k===0||i===p.length-1; }); };
     out.push({id:it.id,type:it.type,name:it.name||it.type,set:{a:it.set.a||null,b:it.set.b,ta:it.set.ta,tb:it.set.tb,pts:thin(it.set.pts)},haul:it.haul?{a:it.haul.a,b:it.haul.b,ta:it.haul.ta,tb:it.haul.tb,pts:thin(it.haul.pts)}:null,n:n,kg:Math.round(kg*10)/10}); it.att=tid; });
-  if(out.length) ls.set('psaro-gear',g); return out.length?out:null; }
+  if(out.length) ls.set('alkyon-gear',g); return out.length?out:null; }
 function back(){
   var s=load(); if(!s.active) return; var d=Date.now()-s.start, sm=summary(s), tk=takeTrack();
   s.active=false; save(s); pushTrip(); clearInterval(timer); timer=null; watch();
@@ -153,10 +153,10 @@ function back(){
     B.emit('tripend',{id:id,startMs:s.start,endMs:Date.now()});
   } else { B.emit('tripend',{id:null,startMs:s.start,endMs:Date.now()}); B.toast(T('Καλωσόρισες πίσω. Η έξοδος ήταν κάτω από 20 λεπτά χωρίς ψάρια, οπότε δεν καταχωρήθηκε.','Welcome back. The trip was under 20 minutes with no catches, so it was not saved.')); }
 }
-/* «Πώς ήταν η θάλασσα;» (διορθώνει την πρόγνωση κύματος της περιοχής, psaro-seaobs) */
+/* «Πώς ήταν η θάλασσα;» (διορθώνει την πρόγνωση κύματος της περιοχής, alkyon-seaobs) */
 function seaQuestion(id,pos){ if(B.prof()==='lake'||!pos) return; var body=h('div',{class:'bform'}), sh;
   [[-1,T('Πιο ήρεμη','Calmer')],[0,T('Όπως έλεγε','As forecast')],[1,T('Πιο άγρια','Rougher')]].forEach(function(o){ body.append(h('button',{class:'btn full',type:'button',text:o[1],onclick:function(){
-    var a=(ls.get('psaro-seaobs',[])||[]).filter(function(x){ return x.trip!==id; }); a.push({t:Date.now(),lat:+pos.lat.toFixed(4),lon:+pos.lon.toFixed(4),f:o[0],trip:id}); ls.set('psaro-seaobs',a.slice(-200)); sh.close(); B.toast(T('Ευχαριστώ. Η πρόγνωση κύματος εδώ θα προσαρμόζεται.','Thanks. The wave forecast here will adapt.')); }})); });
+    var a=(ls.get('alkyon-seaobs',[])||[]).filter(function(x){ return x.trip!==id; }); a.push({t:Date.now(),lat:+pos.lat.toFixed(4),lon:+pos.lon.toFixed(4),f:o[0],trip:id}); ls.set('alkyon-seaobs',a.slice(-200)); sh.close(); B.toast(T('Ευχαριστώ. Η πρόγνωση κύματος εδώ θα προσαρμόζεται.','Thanks. The wave forecast here will adapt.')); }})); });
   sh=B.sheet({title:T('Πώς ήταν η θάλασσα σε σχέση με την πρόγνωση;','How was the sea compared with the forecast?'),body:body}); }
 function ext(){ var s=load(); s.due=Math.max(s.due,Date.now())+30*60000; save(s); pushTrip(); B.toast(T('Η ώρα επιστροφής έγινε ','Return time is now ')+hm(s.due)+'.'); }
 function sos(){
@@ -166,7 +166,7 @@ function sos(){
 }
 
 /* ---------- οθόνες ---------- */
-B.trip={state:load,active:function(){ return !!load().active; },back:back,ext:ext,sos:sos,srv:function(){ return srv; },fix:function(){ return fixP; },track:function(){ var t=ls.get('psaro-track',null), s=load(); return s.active&&t&&t.id===s.id?t:null; }};
+B.trip={state:load,active:function(){ return !!load().active; },back:back,ext:ext,sos:sos,srv:function(){ return srv; },fix:function(){ return fixP; },track:function(){ var t=ls.get('alkyon-track',null), s=load(); return s.active&&t&&t.id===s.id?t:null; }};
 B.tripStart=function(o){ o=o&&typeof o==='object'?o:null; /* v31z541: o.where = σημείο από την αυτόματη ερώτηση */
   var d=load();
   if(d.active){ B.tripSheet(); return; }
@@ -177,7 +177,7 @@ B.tripStart=function(o){ o=o&&typeof o==='object'?o:null; /* v31z541: o.where = 
   /* v31z530: χωρίς αυτόματη συμπλήρωση του browser (έβαζε το όνομα του χρήστη)· παλιά τιμή που είναι όνομα ανθρώπου αγνοείται */
   var rv=String((o&&o.where)||d.route||'').trim(), ses=(B.cloud&&B.cloud.session&&B.cloud.session())||{}, bad=[ses.name,ses.email,d.name,d.contactName,(d.contact&&d.contact.name)].filter(Boolean).map(function(x){ return String(x).trim().toLowerCase(); });
   if(rv&&bad.indexOf(rv.toLowerCase())>=0) rv='';
-  var rt=h('input',{type:'text',maxlength:'80',value:rv,placeholder:T('π.χ. Πωμός, ύφαλος','e.g. Pomos, reef'),autocomplete:'off',autocapitalize:'sentences',name:'bc-trip-where',enterkeyhint:'done',spellcheck:'false'});
+  var rt=h('input',{type:'text',maxlength:'80',value:rv,placeholder:T('π.χ. Πωμός, ύφαλος','e.g. Pomos, reef'),autocomplete:'off',autocapitalize:'sentences',name:'alk-trip-where',enterkeyhint:'done',spellcheck:'false'});
   var sil=h('select',{class:'select'}); [[0,T('Χωρίς','Off')],[30,T('Μετά από 30 λεπτά','After 30 minutes')],[60,T('Μετά από 60 λεπτά','After 60 minutes')],[90,T('Μετά από 90 λεπτά','After 90 minutes')]].forEach(function(o){ sil.append(h('option',{value:String(o[0]),text:o[1]})); }); sil.value=String(d.sil!=null?d.sil:60);
   var nt=h('input',{type:'checkbox',checked:true}), gp=h('input',{type:'checkbox',checked:gpsOn()});
   var c=hasContact(d), logged=!!Cl(), ex=B.tripStartExtras?B.tripStartExtras(rt):null;
@@ -191,7 +191,7 @@ B.tripStart=function(o){ o=o&&typeof o==='object'?o:null; /* v31z541: o.where = 
     h('label',{class:'fld'},h('span',{text:T('Αν χαθεί η επαφή με το κινητό','If contact with the phone is lost')}),sil,h('small',{text:T('Αν το κινητό σταματήσει να στέλνει σήμα για τόσο χρόνο, σε ρωτά στο Telegram και μετά ειδοποιεί την επαφή.','If the phone stops sending a signal this long, it asks you on Telegram, then alerts your contact.')})),
     h('label',{class:'tg'},gp,h('span',{text:T('Καταγραφή διαδρομής GPS (περισσότερη μπαταρία)','Record GPS route (uses more battery)')})),ex?ex.nodes:null);
   var go=h('button',{class:'btn pri full tgo',type:'button',text:'▶ '+T('Έναρξη εξόδου','Start trip'),onclick:function(){ if(!tm.value){ B.toast(T('Βάλε ώρα επιστροφής.','Set a return time.')); return; }
-    ls.set('psaro-gps',gp.checked?'1':'0'); if(ex&&ex.apply) ex.apply(); sh.close(); start({due:toMs(tm.value),route:rt.value.trim(),sil:+sil.value||0,notify:nt.checked}); }});
+    ls.set('alkyon-gps',gp.checked?'1':'0'); if(ex&&ex.apply) ex.apply(); sh.close(); start({due:toMs(tm.value),route:rt.value.trim(),sil:+sil.value||0,notify:nt.checked}); }});
   var body=h('div',{class:'bform tstart'},info,h('div',{class:'fld'},h('span',{text:T('Πόση ώρα θα λείψεις;','How long will you be out?')}),chips,tmRow),h('label',{class:'fld'},h('span',{text:T('Πού πας (προαιρετικό)','Where (optional)')}),rt),
     c?h('label',{class:'tg'},nt,h('span',{text:T('Ειδοποίηση της επαφής μου σε αυτή την έξοδο','Alert my contact on this trip')})):null,B.liveToggle?B.liveToggle():null,more,go);
   /* v31z542: συχνοί λαγοκέφαλοι εδώ; (από τα δικά σου τσιμπήματα σε 400 m) */
@@ -241,7 +241,7 @@ B.safetyCard=function(){
 };
 
 /* ---------- συναγερμός άγκυρας ---------- */
-function anc(){ var a=ls.get('psaro-anchor',null); return a&&typeof a.lat==='number'&&typeof a.r==='number'?a:null; }
+function anc(){ var a=ls.get('alkyon-anchor',null); return a&&typeof a.lat==='number'&&typeof a.r==='number'?a:null; }
 var over=0, alarmT=null, ac=null, lastAn=0, muted=0, abar=null;
 function audio(){ try{ if(!ac){ var A=window.AudioContext||window.webkitAudioContext; if(A) ac=new A(); } if(ac&&ac.state==='suspended') ac.resume(); }catch(e){} }
 function beep(){ if(!ac||Date.now()<muted) return; try{ var o=ac.createOscillator(), g=ac.createGain(); o.type='square'; o.frequency.value=(Math.floor(Date.now()/900)%2)?740:988; g.gain.value=.35; o.connect(g); g.connect(ac.destination); o.start(); o.stop(ac.currentTime+.35); }catch(e){} }
@@ -249,7 +249,7 @@ function alarm(txt,sub){
   if(!abar){ abar=h('div',{class:'ancalarm',role:'alert'}); document.body.appendChild(abar); }
   abar.replaceChildren(h('div',null,h('b',{text:txt}),h('span',{text:sub||''})),h('div',{class:'acts'},h('button',{class:'btn',type:'button',text:T('Σίγαση 2 λεπτά','Mute 2 min'),onclick:function(){ muted=Date.now()+120000; }}),h('button',{class:'btn pri',type:'button',text:T('Τέλος συναγερμού','Stop alarm'),onclick:function(){ silence(); B.anchorOff(); }})));
   abar.hidden=false; if(alarmT) return; alarmT=setInterval(function(){ beep(); if(Date.now()>=muted) vib([350,150,350]); },900); beep();
-  try{ if(document.hidden&&'Notification' in window&&Notification.permission==='granted'&&navigator.serviceWorker) navigator.serviceWorker.ready.then(function(r){ r.showNotification('⚓ '+txt,{body:sub||'',icon:'../icon-192.png',tag:'psaro-sea',vibrate:[200,100,200]}); }); }catch(e){}
+  try{ if(document.hidden&&'Notification' in window&&Notification.permission==='granted'&&navigator.serviceWorker) navigator.serviceWorker.ready.then(function(r){ r.showNotification('⚓ '+txt,{body:sub||'',icon:'../icon-192.png',tag:'alkyon-sea',vibrate:[200,100,200]}); }); }catch(e){}
 }
 function silence(){ if(alarmT){ clearInterval(alarmT); alarmT=null; } if(abar) abar.hidden=true; over=0; }
 function onAnchor(c){ var a=anc(); if(!a) return; lastAn=Date.now(); if(c.accuracy&&c.accuracy>Math.max(30,a.r*0.7)) return;
@@ -258,16 +258,16 @@ function onAnchor(c){ var a=anc(); if(!a) return; lastAn=Date.now(); if(c.accura
   B.emit('anchor',a); }
 setInterval(function(){ var a=anc(); if(a&&lastAn&&Date.now()-lastAn>120000&&!alarmT) alarm(T('Χάθηκε το GPS','GPS lost'),T('Ο συναγερμός άγκυρας δεν μπορεί να ελέγξει τη θέση.','The anchor alarm cannot check the position.')); },20000);
 B.anchor=anc;
-B.anchorOn=function(){ audio(); var r=h('input',{type:'number',min:'20',max:'500',step:'5',inputmode:'numeric',value:String(ls.get('psaro-anr',50))}), sh;
-  var go=h('button',{class:'btn pri full',type:'button',text:T('Ενεργοποίηση','Turn on'),onclick:function(){ var rr=Math.max(20,Math.min(500,parseInt(r.value,10)||50)); ls.set('psaro-anr',rr); sh.close(); audio();
-    getPos().then(function(p){ ls.set('psaro-anchor',{lat:p.lat,lon:p.lon,r:rr,t:Date.now()}); over=0; lastAn=Date.now(); watch(); B.emit('anchor'); B.toast(T('Συναγερμός άγκυρας ενεργός (','Anchor alarm on (')+rr+' m)'); try{ if('Notification' in window&&Notification.permission==='default') Notification.requestPermission(); }catch(e){} },function(){ B.toast(T('Δεν βρέθηκε θέση GPS.','No GPS fix.')); }); }});
+B.anchorOn=function(){ audio(); var r=h('input',{type:'number',min:'20',max:'500',step:'5',inputmode:'numeric',value:String(ls.get('alkyon-anr',50))}), sh;
+  var go=h('button',{class:'btn pri full',type:'button',text:T('Ενεργοποίηση','Turn on'),onclick:function(){ var rr=Math.max(20,Math.min(500,parseInt(r.value,10)||50)); ls.set('alkyon-anr',rr); sh.close(); audio();
+    getPos().then(function(p){ ls.set('alkyon-anchor',{lat:p.lat,lon:p.lon,r:rr,t:Date.now()}); over=0; lastAn=Date.now(); watch(); B.emit('anchor'); B.toast(T('Συναγερμός άγκυρας ενεργός (','Anchor alarm on (')+rr+' m)'); try{ if('Notification' in window&&Notification.permission==='default') Notification.requestPermission(); }catch(e){} },function(){ B.toast(T('Δεν βρέθηκε θέση GPS.','No GPS fix.')); }); }});
   sh=B.sheet({title:T('Συναγερμός άγκυρας','Anchor alarm'),body:h('div',{class:'bform'},h('p',{class:'sub',text:T('Η θέση της άγκυρας σημειώνεται τώρα. Ηχεί αν το σκάφος απομακρυνθεί περισσότερο από την ακτίνα. Η οθόνη μένει αναμμένη.','The anchor position is marked now. It sounds if the boat moves beyond the radius. The screen stays on.')}),h('label',{class:'fld'},h('span',{text:T('Ακτίνα (μέτρα)','Radius (metres)')}),r),go)}); };
-B.anchorOff=function(){ ls.set('psaro-anchor',null); silence(); watch(); B.emit('anchor'); B.toast(T('Ο συναγερμός άγκυρας σταμάτησε.','Anchor alarm off.')); };
+B.anchorOff=function(){ ls.set('alkyon-anchor',null); silence(); watch(); B.emit('anchor'); B.toast(T('Ο συναγερμός άγκυρας σταμάτησε.','Anchor alarm off.')); };
 
 /* ---------- MOB ---------- */
-B.mobs=function(){ var m=ls.get('psaro-mob',[]); return Array.isArray(m)?m:[]; };
-B.mob=function(){ vib([200,100,200]); getPos().then(function(p){ var m=B.mobs(); m.push({lat:p.lat,lon:p.lon,t:Date.now()}); ls.set('psaro-mob',m.slice(-10)); B.emit('mob',m[m.length-1]); B.toast(T('MOB σημειώθηκε: ','MOB marked: ')+hm(Date.now())); },function(){ B.toast(T('Δεν βρέθηκε θέση GPS.','No GPS fix.')); }); };
-B.mobDel=function(t){ ls.set('psaro-mob',B.mobs().filter(function(x){ return x.t!==t; })); B.emit('mob'); };
+B.mobs=function(){ var m=ls.get('alkyon-mob',[]); return Array.isArray(m)?m:[]; };
+B.mob=function(){ vib([200,100,200]); getPos().then(function(p){ var m=B.mobs(); m.push({lat:p.lat,lon:p.lon,t:Date.now()}); ls.set('alkyon-mob',m.slice(-10)); B.emit('mob',m[m.length-1]); B.toast(T('MOB σημειώθηκε: ','MOB marked: ')+hm(Date.now())); },function(){ B.toast(T('Δεν βρέθηκε θέση GPS.','No GPS fix.')); }); };
+B.mobDel=function(t){ ls.set('alkyon-mob',B.mobs().filter(function(x){ return x.t!==t; })); B.emit('mob'); };
 
 /* εκκίνηση: αν υπάρχει ενεργή έξοδος ή άγκυρα, συνεχίζει */
 if(load().active){ startTimer(); setTimeout(function(){ trackPos(); },2000); }

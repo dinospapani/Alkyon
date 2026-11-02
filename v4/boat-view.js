@@ -1,8 +1,8 @@
-/* BiteCast 4 · Σκάφος (#boat): στοιχεία, κινητήρας και ώρες, καύσιμο, λήξεις, αντιρρυπαντική, μπαταρίες.
-   Ίδια δεδομένα με την κλασική: psaro-boat και psaro-smart (ώρες κινητήρα, καύσιμο, άδεια ψαρέματος). */
+/* Alkyon 4 · Σκάφος (#boat): στοιχεία, κινητήρας και ώρες, καύσιμο, λήξεις, αντιρρυπαντική, μπαταρίες.
+   Ίδια δεδομένα με την κλασική: alkyon-boat και alkyon-smart (ώρες κινητήρα, καύσιμο, άδεια ψαρέματος). */
 (function(){
 'use strict';
-var B=window.BC, h=B.h, T=B.T, EN=B.EN, ls=B.ls, root=null, DAY=86400000;
+var B=window.AK, h=B.h, T=B.T, EN=B.EN, ls=B.ls, root=null, DAY=86400000;
 var EXP_DEF=[['insp',T('Επιθεώρηση σκάφους','Boat inspection'),30],['ext',T('Πυροσβεστήρας','Fire extinguisher'),30],['vhf',T('Άδεια ασυρμάτου (VHF)','Radio licence (VHF)'),30],['ins',T('Ασφάλεια σκάφους','Boat insurance'),30],['flare',T('Φωτοβολίδες','Flares'),30],['epirb',T('EPIRB / PLB (μπαταρία)','EPIRB / PLB (battery)'),60],['raft',T('Σωσίβια σχεδία (σέρβις)','Liferaft (service)'),30]];
 /* v31z549: προτεινόμενες λήξεις για «+ Νέα λήξη» [κλειδί, όνομα, ημέρες υπενθύμισης, συνήθης ισχύς σε μήνες] */
 var EXP_SUG=[['skip',T('Δίπλωμα χειριστή','Skipper’s licence'),60,0],['reg',T('Άδεια / νηολόγηση σκάφους','Boat licence / registration'),30,12],['lj',T('Φουσκωτά σωσίβια (σέρβις)','Inflatable lifejackets (service)'),30,12],
@@ -11,9 +11,9 @@ var EXP_SUG=[['skip',T('Δίπλωμα χειριστή','Skipper’s licence'),
   ['ttax',T('Τέλη κυκλοφορίας τρέιλερ','Trailer road tax'),30,12],['tmot',T('MOT τρέιλερ','Trailer MOT'),30,24],['tins',T('Ασφάλεια τρέιλερ','Trailer insurance'),30,12],
   ['hydro',T('Υδροστατικός έλεγχος πυροσβεστήρα','Extinguisher pressure test'),30,60],['eng',T('Ασφάλεια / εγγύηση μηχανής','Engine warranty / cover'),30,12]];
 var BAT_LIFE={lead:4,agm:5,gel:5,lith:10}, BTYP=[['lead',T('Μολύβδου (υγρή)','Lead-acid (flooded)')],['agm','AGM'],['gel','Gel'],['lith',T('Λιθίου (LiFePO4)','Lithium (LiFePO4)')]];
-function D(){ var b=ls.get('psaro-boat',null); if(!b||typeof b!=='object') b={}; b.boat=b.boat||{}; b.eng=b.eng||{}; b.log=Array.isArray(b.log)?b.log:[]; b.bat=Array.isArray(b.bat)?b.bat:[]; b.af=b.af||{mo:12};
+function D(){ var b=ls.get('alkyon-boat',null); if(!b||typeof b!=='object') b={}; b.boat=b.boat||{}; b.eng=b.eng||{}; b.log=Array.isArray(b.log)?b.log:[]; b.bat=Array.isArray(b.bat)?b.bat:[]; b.af=b.af||{mo:12};
   if(!Array.isArray(b.exp)) b.exp=EXP_DEF.map(function(x){ return {id:x[0],name:x[1],date:'',lead:x[2],std:1}; }); return b; }
-function Sm(){ var s=ls.get('psaro-smart',{}); if(!s||typeof s!=='object') s={}; s.eng=s.eng||{h:0,every:100,last:0}; if(!(+s.cruise>0)) s.cruise=15; if(s.reserve==null) s.reserve=20; return s; }
+function Sm(){ var s=ls.get('alkyon-smart',{}); if(!s||typeof s!=='object') s={}; s.eng=s.eng||{h:0,every:100,last:0}; if(!(+s.cruise>0)) s.cruise=15; if(s.reserve==null) s.reserve=20; return s; }
 function today(){ var d=new Date(); return d.getFullYear()+'-'+B.pad(d.getMonth()+1)+'-'+B.pad(d.getDate()); }
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,5); }
 function dP(s){ var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(s||''); return m?Date.UTC(+m[1],+m[2]-1,+m[3]):null; }
@@ -34,10 +34,10 @@ function dueList(b,s){ var out=[];
 function inp(type,val,ph,on){ var i=h('input',{type:type,value:val==null?'':val,placeholder:ph||null}); if(type==='number'){ i.inputMode='decimal'; i.step='any'; i.min='0'; }
   i.addEventListener('change',function(){ on(type==='number'?(i.value===''?null:+i.value):i.value.trim()); }); return i; }
 function fld(label,input){ return h('label',{class:'fld'},h('span',{text:label}),input); }
-function saveB(b){ ls.set('psaro-boat',b); }
-function saveS(s){ ls.set('psaro-smart',s); }
+function saveB(b){ ls.set('alkyon-boat',b); }
+function saveS(s){ ls.set('alkyon-smart',s); }
 
-/* λιμάνι, γραμμή επιστροφής, αυτονομία, αυτόματες προτάσεις, λίστα ελέγχου (κοινά με την κλασική: psaro-smart) */
+/* λιμάνι, γραμμή επιστροφής, αυτονομία, αυτόματες προτάσεις, λίστα ελέγχου (κοινά με την κλασική: alkyon-smart) */
 function portCard(){
   var M=B.smart, s=M.state(), c=h('section',{class:'card'},h('h2',{text:T('Λιμάνι και έξοδος','Port and trips')}));
   c.append(h('div',{class:'rows one'},h('div',{class:'row'},h('span',{text:T('Λιμάνι','Home port')}),h('b',{text:s.home?(s.home.name||T('Λιμάνι','Port')):T('Δεν έχει οριστεί','Not set')}))));
@@ -53,18 +53,18 @@ function portCard(){
     tg(T('Δαχτυλίδι αυτονομίας','Range ring'),T('Στον χάρτη, γύρω από το λιμάνι, με βάση το καύσιμο και την εφεδρεία.','On the map around the port, from fuel and reserve.'),s.ring!==false,function(x,v){ x.ring=v; }),
     tg(T('Προτάσεις έναρξης και λήξης','Start and end suggestions'),T('Ρωτά όταν φεύγεις από το λιμάνι ή γυρίζεις. Χρησιμοποιεί GPS όσο η εφαρμογή είναι ανοιχτή.','Asks when you leave or return to the port. Uses GPS while the app is open.'),s.auto!==false,function(x,v){ x.auto=v; if(v) setTimeout(M.autoStart,100); else M.autoStop(); }));
   var rs=h('select',{class:'select'}); [['0',T('Ευθεία γραμμή (χωρίς έλεγχο στεριάς)','Straight line (no land check)')],['100',T('100 μ. από στεριά','100 m from land')],['200',T('200 μ. από στεριά (προεπιλογή)','200 m from land (default)')],['500',T('500 μ. από στεριά','500 m from land')],['1852',T('1 ν.μ. από στεριά','1 nm from land')]].forEach(function(o){ rs.append(h('option',{value:o[0],text:o[1]})); });
-  rs.value=String(ls.get('psaro-route-clr',200)); if(rs.selectedIndex<0) rs.value='200'; rs.addEventListener('change',function(){ ls.set('psaro-route-clr',+rs.value); });
+  rs.value=String(ls.get('alkyon-route-clr',200)); if(rs.selectedIndex<0) rs.value='200'; rs.addEventListener('change',function(){ ls.set('alkyon-route-clr',+rs.value); });
   c.append(h('label',{class:'fld'},h('span',{text:T('«Πήγαινε εκεί»: διαδρομή γύρω από στεριά','“Go there”: route around land')}),rs,h('small',{class:'wn',text:T('Ενδεικτική διαδρομή που κρατά απόσταση από ακτές και νησιά. Δεν είναι ναυτικός χάρτης: δεν ξέρει ξέρες. Χρειάζεται σύνδεση.','Indicative route keeping a distance from coasts and islands. Not a nautical chart: it does not know shoals. Needs a connection.')})));
   c.append(h('button',{class:'btn full',type:'button',text:'✓ '+T('Λίστα ελέγχου πριν βγεις','Pre-departure checklist')+' ('+M.clCount()+'/'+s.cl.items.length+')',onclick:function(){ M.checklist(draw); }}));
   return c;
 }
 
-/* ---------- πρόγραμμα συντήρησης κινητήρα (ίδιο με την κλασική insights.js: psaro-maint) ---------- */
-function Mload(){ var M=ls.get('psaro-maint',null); if(!M||!Array.isArray(M.items)) M={items:null,sent:{}}; M.sent=M.sent||{};
+/* ---------- πρόγραμμα συντήρησης κινητήρα (ίδιο με την κλασική insights.js: alkyon-maint) ---------- */
+function Mload(){ var M=ls.get('alkyon-maint',null); if(!M||!Array.isArray(M.items)) M={items:null,sent:{}}; M.sent=M.sent||{};
   if(!M.items) M.items=(EN?[['Engine oil',100,12],['Fuel filter',100,12],['Gearcase oil',100,12],['Water impeller',200,24],['Anodes',0,6],['Propeller (inspect)',0,6],['Battery (inspect)',0,6],['Bilge pump (test)',0,3]]
     :[['Λάδι κινητήρα',100,12],['Φίλτρο καυσίμου',100,12],['Λάδι ποδιού (gearcase)',100,12],['Πτερωτή νερού (impeller)',200,24],['Ανόδια',0,6],['Προπέλα (έλεγχος)',0,6],['Μπαταρία (έλεγχος)',0,6],['Αντλία σεντίνας (δοκιμή)',0,3]]).map(function(x,i){ return {id:'m'+i,name:x[0],h:x[1],mo:x[2],last:null}; });
   return M; }
-function Msave(M){ ls.set('psaro-maint',M); }
+function Msave(M){ ls.set('alkyon-maint',M); }
 function engH(){ return +Sm().eng.h||0; }
 function mstat(it){
   if(!it.last) return {lv:'n',tx:T('Δεν έχει καταγραφεί','Not logged yet')};
@@ -97,7 +97,7 @@ setTimeout(function(){ if(B.prof()!=='boat') return; var M=Mload(), now=Date.now
 var PEN='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>', CAM='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
 function P(){ return B.store&&B.store.Photos; }
 function bar(frac,cls){ var f=Math.max(0,Math.min(1,frac||0)), c=cls||(frac>=1?'bad':frac>=0.9?'warn':'ok'); return h('span',{class:'bbar '+c},h('i',{style:{width:Math.round(f*100)+'%'}})); }
-function goTab(t){ ls.set('psaro-v4-btab',t); draw(); var sg=root&&root.querySelector('.bseg'); if(sg) try{ sg.scrollIntoView({behavior:'smooth',block:'start'}); }catch(e){} }
+function goTab(t){ ls.set('alkyon-v4-btab',t); draw(); var sg=root&&root.querySelector('.bseg'); if(sg) try{ sg.scrollIntoView({behavior:'smooth',block:'start'}); }catch(e){} }
 function sheetForm(title,nodes,onSave,extra){ var sh, f=h('form',{class:'bform',novalidate:true}); nodes.forEach(function(n){ if(n) f.append(n); });
   f.append(h('button',{class:'btn pri full',type:'submit',text:T('Αποθήκευση','Save')})); if(extra) f.append(extra(function(){ sh.close(); }));
   f.addEventListener('submit',function(ev){ ev.preventDefault(); if(onSave()!==false){ sh.close(); draw(); } }); sh=B.sheet({title:title,body:f}); return sh; }
@@ -160,7 +160,7 @@ function tile(lbl,big,sub,fr,cls,fn){ return h('button',{type:'button',class:'bg
 function checkBtn(lab,fn,due){ return h('button',{class:'mtdone'+(due?' due':''),type:'button','aria-label':lab,title:lab,html:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',onclick:fn}); }
 function draw(){
   if(!root) return;
-  var b=D(), s=Sm(), page=h('div',{class:'page bpage'}), y=window.scrollY, BT=ls.get('psaro-v4-btab','gen'); if(['gen','eng','exp','bat'].indexOf(BT)<0) BT='gen';
+  var b=D(), s=Sm(), page=h('div',{class:'page bpage'}), y=window.scrollY, BT=ls.get('alkyon-v4-btab','gen'); if(['gen','eng','exp','bat'].indexOf(BT)<0) BT='gen';
   page.append(h('div',{class:'top'},h('div',{style:{display:'flex',alignItems:'center',gap:'12px'}},h('a',{class:'iconbtn',href:'#profile','aria-label':T('Πίσω στο Προφίλ','Back to Profile'),html:B.iconSvg('back')}),h('h1',{class:'lt',text:T('Σκάφος','Boat')})),
     h('button',{class:'iconbtn bedit',type:'button','aria-label':T('Επεξεργασία στοιχείων','Edit details'),html:PEN,onclick:editBoat})));
   /* κάρτα σκάφους */
@@ -191,7 +191,7 @@ function draw(){
     att.slice(0,3).forEach(function(a){ ac.append(arow(a)); });
     if(att.length>3){ var more=h('details',{class:'bmore'},h('summary',{text:'+'+(att.length-3)+T(' ακόμα',' more')})); att.slice(3).forEach(function(a){ more.append(arow(a)); }); ac.append(more); }
     page.append(ac); }
-  page.append(h('div',{class:'bseg'},B.seg([['gen',T('Γενικά','General')],['eng',T('Μηχανή','Engine')],['exp',T('Λήξεις','Expiries')],['bat',T('Μπαταρίες','Batteries')]],BT,function(v){ ls.set('psaro-v4-btab',v); draw(); },T('Ενότητα σκάφους','Boat section'))));
+  page.append(h('div',{class:'bseg'},B.seg([['gen',T('Γενικά','General')],['eng',T('Μηχανή','Engine')],['exp',T('Λήξεις','Expiries')],['bat',T('Μπαταρίες','Batteries')]],BT,function(v){ ls.set('alkyon-v4-btab',v); draw(); },T('Ενότητα σκάφους','Boat section'))));
   if(BT==='gen'){
     var sumF=[s.tank>0?T('Ρεζερβουάρ ','Tank ')+Math.round(s.tank)+' L':null,s.burn>0?B.num(+s.burn,1)+' L/h':null,s.cruise>0?s.cruise+' kn':null,T('εφεδρεία ','reserve ')+(s.reserve==null?20:s.reserve)+'%'].filter(Boolean);
     var c3=h('section',{class:'card'},h('div',{class:'bch'},h('h2',{text:T('Καύσιμο και ταχύτητα','Fuel and speed')}),h('button',{type:'button',class:'iconbtn bsm','aria-label':T('Επεξεργασία','Edit'),html:PEN,onclick:fuelEdit})),

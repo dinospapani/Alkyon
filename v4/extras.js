@@ -1,9 +1,9 @@
-/* BiteCast 4 · v31z525
-   - Όρια ασφαλείας (psaro-limits): πότε μια ώρα θεωρείται «ασφαλής» στην Πρόγνωση, στις Ευκαιρίες και στις ειδοποιήσεις.
+/* Alkyon 4 · v31z525
+   - Όρια ασφαλείας (alkyon-limits): πότε μια ώρα θεωρείται «ασφαλής» στην Πρόγνωση, στις Ευκαιρίες και στις ειδοποιήσεις.
    - Ειδοποίηση απαγορευμένης περιοχής κατά την έξοδο (zones.js, Τμήμα Αλιείας).
    - Βάρος από το μήκος (σχέση W = a·L^b ανά είδος, ενδεικτικές τιμές βιβλιογραφίας). */
 (function(){
-var B=window.BC, h=B.h, T=B.T, EN=B.EN, ls=B.ls;
+var B=window.AK, h=B.h, T=B.T, EN=B.EN, ls=B.ls;
 
 /* ---------- όρια ασφαλείας ---------- */
 var LIMD={wind:14,wave:0.9,gust:24};
@@ -12,11 +12,11 @@ var PRE=[['small',T('Μικρό σκάφος (έως 6 m)','Small boat (up to 6 
   ['big',T('Μεγάλο (πάνω από 8 m)','Large (over 8 m)'),{wind:20,wave:1.6,gust:30}],
   ['shore',T('Από ακτή','From shore'),{wind:18,wave:1.3,gust:28}],
   ['spear',T('Ψαροντούφεκο','Spearfishing'),{wind:12,wave:0.5,gust:20}]];
-function getL(){ var o=ls.get('psaro-limits',null); return Object.assign({},LIMD,o&&typeof o==='object'?o:{}); }
-function setL(o){ ls.set('psaro-limits',o); if(navigator.onLine!==false){ ls.set('psaro-fc7',null); ls.set('psaro-v4-opps',null); } try{ window.dispatchEvent(new Event('psaro-limits')); }catch(e){} }
+function getL(){ var o=ls.get('alkyon-limits',null); return Object.assign({},LIMD,o&&typeof o==='object'?o:{}); }
+function setL(o){ ls.set('alkyon-limits',o); if(navigator.onLine!==false){ ls.set('alkyon-fc7',null); ls.set('alkyon-v4-opps',null); } try{ window.dispatchEvent(new Event('alkyon-limits')); }catch(e){} }
 B.limits=getL;
 B.limitsCard=function(){
-  var U=window.PsaroUnits, L=getL(), card=h('section',{class:'card limc'});
+  var U=window.AlkyonUnits, L=getL(), card=h('section',{class:'card limc'});
   function wtxt(kn){ var p=U&&U.windP?U.windP(kn):[String(Math.round(kn)),'kn']; return p[0]+' '+p[1]+(p[1]!=='kn'?' ('+Math.round(kn)+' kn)':''); }
   function row(lab,key,min,max,step,fmt){ var out=h('b',{text:fmt(L[key])}), r=h('input',{type:'range',min:String(min),max:String(max),step:String(step),value:String(L[key]),'aria-label':lab});
     r.addEventListener('input',function(){ L[key]=+r.value; out.textContent=fmt(L[key]); pre.value='custom'; });
@@ -27,7 +27,7 @@ B.limitsCard=function(){
   pre.value=(PRE.filter(function(p){ return p[2].wind===L.wind&&p[2].wave===L.wave&&p[2].gust===L.gust; })[0]||['custom'])[0];
   pre.addEventListener('change',function(){ var p=PRE.filter(function(x){ return x[0]===pre.value; })[0]; if(!p) return; setL(Object.assign({},p[2])); var nc=B.limitsCard(); card.replaceWith(nc); });
   /* v31z539: πρόταση από το μήκος του σκάφους (σελίδα Σκάφος) */
-  var bl=0; try{ var bb=ls.get('psaro-boat',null); bl=+(bb&&bb.boat&&bb.boat.len)||0; }catch(e){}
+  var bl=0; try{ var bb=ls.get('alkyon-boat',null); bl=+(bb&&bb.boat&&bb.boat.len)||0; }catch(e){}
   var sg=bl>0?(bl<6?'small':bl<=8?'mid':'big'):null, sgP=sg&&PRE.filter(function(x){ return x[0]===sg; })[0], sug=null;
   if(sgP&&pre.value!==sg&&B.prof()!=='shore'&&B.prof()!=='lake'&&B.prof()!=='spear')
     sug=h('div',{class:'limsug'},h('span',{text:T('Το σκάφος σου είναι ','Your boat is ')+B.num(bl,1).replace(/[.,]0$/,'')+' m. '+T('Ταιριάζει: ','Suggested: ')+sgP[1]+' ('+sgP[2].wind+' kn, '+B.num(sgP[2].wave,1)+' m, '+T('ριπές ','gusts ')+sgP[2].gust+' kn).'}),
@@ -50,11 +50,11 @@ B.zoneCheck=function(lat,lon){ var Z=window.ZONES||[], pt=[lat,lon], best=null;
     if(!inside) rs.forEach(function(r){ for(var i=0;i<r.length;i++){ var dd=segDist(pt,r[i],r[(i+1)%r.length]); if(dd<d) d=dd; } });
     var o={z:z,inside:inside,d:inside?0:d}; if(!best||o.d<best.d) best=o; });
   return best; };
-function zOn(){ return ls.get('psaro-v4-zonealert',true)!==false; }
-B.zoneAlert={on:zOn,set:function(v){ ls.set('psaro-v4-zonealert',!!v); }};
+function zOn(){ return ls.get('alkyon-v4-zonealert',true)!==false; }
+B.zoneAlert={on:zOn,set:function(v){ ls.set('alkyon-v4-zonealert',!!v); }};
 var zState={};
 function zNotify(title,body){ try{ navigator.vibrate&&navigator.vibrate([300,120,300]); }catch(e){} if(B.inboxAdd) B.inboxAdd(title,body,'zone');
-  try{ if(document.hidden&&'Notification' in window&&Notification.permission==='granted'&&navigator.serviceWorker) navigator.serviceWorker.getRegistration().then(function(r){ if(r) r.showNotification(title,{body:body,icon:'../icon-192.png',tag:'psaro-zone',renotify:true,vibrate:[300,120,300]}); }); }catch(e){}
+  try{ if(document.hidden&&'Notification' in window&&Notification.permission==='granted'&&navigator.serviceWorker) navigator.serviceWorker.getRegistration().then(function(r){ if(r) r.showNotification(title,{body:body,icon:'../icon-192.png',tag:'alkyon-zone',renotify:true,vibrate:[300,120,300]}); }); }catch(e){}
   B.toast('⚠ '+title+' · '+body,12000); }
 function loadZones(){ return window.ZONES?Promise.resolve():new Promise(function(res){ var s=document.createElement('script'); s.src='../zones.js'; s.onload=res; s.onerror=res; document.head.appendChild(s); }); }
 function zTick(){
@@ -90,7 +90,7 @@ B.profBadges={"boat": "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 6
 var bdN=0;
 /* κάθε αντίγραφο με δικά του id (αλλιώς, αν το πρώτο είναι κρυμμένο, τα gradient/clip χάνονται και στα υπόλοιπα) */
 /* v31z525d: φωτογραφίες της αρχικής οθόνης για βάρκα, ακτή, ψαροντούφεκο (η λίμνη μένει εικονογράφηση μέχρι να μπει φωτογραφία) */
-var PPH={boat:'bc-th-boatrod.jpg',shore:'bc-th-shorerod.jpg',spear:'bc-th-spear.jpg',lake:'bc-th-lake.jpg'};
+var PPH={boat:'alk-th-boatrod.jpg',shore:'alk-th-shorerod.jpg',spear:'alk-th-spear.jpg',lake:'alk-th-lake.jpg'};
 B.profPhoto=function(p){ return PPH[p]||null; };
 B.profBadge=function(p){ if(PPH[p]) return '<img class="pbph" src="'+PPH[p]+'" alt="" draggable="false">'; var svg=B.profBadges[p]||B.profBadges.boat, u='_'+(++bdN); return svg.replace(/id='([^']+)'/g,"id='$1"+u+"'").replace(/url\(#([^)]+)\)/g,'url(#$1'+u+')'); };
 B.profIcon=function(p){ return PIC[p]||PIC.boat; };

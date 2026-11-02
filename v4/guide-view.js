@@ -1,9 +1,9 @@
-/* BiteCast 4 · Οδηγός (#guide): είδη (τα 100 είδη της Κύπρου με φωτογραφίες, μαλάκια, καρκινοειδή, περιοχές, GBIF), τεχνικές, νόμοι,
+/* Alkyon 4 · Οδηγός (#guide): είδη (τα 100 είδη της Κύπρου με φωτογραφίες, μαλάκια, καρκινοειδή, περιοχές, GBIF), τεχνικές, νόμοι,
    λίστα ασφαλείας, μαγαζιά και κόμποι. Ίδιο περιεχόμενο με την κλασική: ο κώδικας είναι κοινός (guide-core.js, ../knots.js).
    Στα αγγλικά η μετάφραση γίνεται με το ίδιο λεξικό της κλασικής (../i18n.js), μόνο μέσα στον Οδηγό. */
 (function(){
 'use strict';
-var B=window.BC, h=B.h, T=B.T, EN=B.EN;
+var B=window.AK, h=B.h, T=B.T, EN=B.EN;
 var page=null, ready=null, core=null;
 function load(src){ return new Promise(function(res){ var s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=res; document.head.appendChild(s); }); }
 var HTML='<div class="seg gseg" role="group" aria-label="Ενότητα οδηγού">'+
@@ -23,11 +23,11 @@ function build(){
 }
 /* τα δεδομένα των ειδών, των περιοχών και των μεγεθών φορτώνονται μόνο όταν ανοίξει ο Οδηγός */
 function deps(){ var p=Promise.resolve(), L=['../cy100.js'].concat(window.SPECIES_REG?[]:['../regions.js']).concat(window.MIN_SIZES?[]:['../rules.js']);
-  if(EN&&!window.PsaroTrWatch){ window.PSARO_NO_DOMTR=true; L.unshift('../i18n.js'); }
+  if(EN&&!window.AlkyonTrWatch){ window.ALKYON_NO_DOMTR=true; L.unshift('../i18n.js'); }
   L.forEach(function(f){ p=p.then(function(){ return load(f); }); }); return p; }
 B.guideReady=function(){ if(ready) return ready;
-  ready=deps().then(function(){ var tmp=null; if(!page.isConnected){ tmp=h('div',{hidden:true}); tmp.append(page); document.body.append(tmp); } var sec=page.querySelector('#tab-guide'); if(EN&&window.PsaroTrWatch&&!window.PSARO_TRBODY) PsaroTrWatch(sec);
-    try{ core=window.PsaroGuideCore(); }catch(e){ console.error(e); }
+  ready=deps().then(function(){ var tmp=null; if(!page.isConnected){ tmp=h('div',{hidden:true}); tmp.append(page); document.body.append(tmp); } var sec=page.querySelector('#tab-guide'); if(EN&&window.AlkyonTrWatch&&!window.ALKYON_TRBODY) AlkyonTrWatch(sec);
+    try{ core=window.AlkyonGuideCore(); }catch(e){ console.error(e); }
     return load('../knots.js').then(function(){ if(tmp){ tmp.remove(); } }); }).then(function(){ return core; });
   return ready; };
 /* για τη φόρμα ψαριού: ελάχιστο μέγεθος από τους κανονισμούς (ίδιο με την κλασική) */

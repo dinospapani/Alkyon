@@ -1,8 +1,8 @@
-/* BiteCast 4 · Φίλοι (#friends): κωδικός πρόσκλησης, προσθήκη φίλου, ποιος βλέπει τι, τα ψάρια του φίλου.
+/* Alkyon 4 · Φίλοι (#friends): κωδικός πρόσκλησης, προσθήκη φίλου, ποιος βλέπει τι, τα ψάρια του φίλου.
    Ίδια βάση με την κλασική (πίνακες friends, friend_invites, συνάρτηση redeem_friend). Τα «ιδιωτικά» δεν φαίνονται ποτέ. */
 (function(){
 'use strict';
-var B=window.BC, h=B.h, T=B.T, EN=B.EN, ls=B.ls, root=null, list=null, err='', open=null, fdata={};
+var B=window.AK, h=B.h, T=B.T, EN=B.EN, ls=B.ls, root=null, list=null, err='', open=null, fdata={};
 function C(){ return B.cloud; }
 function me(){ var s=C().session(); return s&&s.uid; }
 function code(){ var A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789', s='', a=new Uint32Array(8); try{ crypto.getRandomValues(a); }catch(e){ for(var i=0;i<8;i++) a[i]=Math.random()*1e9; } for(var j=0;j<8;j++) s+=A[a[j]%A.length]; return s; }
@@ -20,8 +20,8 @@ function load(){
   }).catch(function(e){ list=[]; err=/42P01|PGRST205|relation/.test(String(e.message))?T('Οι φίλοι δεν έχουν ενεργοποιηθεί στη βάση (friends.sql).','Friends are not enabled in the database (friends.sql).'):C().errText(e); draw(); });
 }
 /* v31z537: κωδικός που ήρθε από σύνδεσμο (#addfriend=…), ισχύει 48 ώρες */
-function pend(){ var o=B.ls.get('bc-friend-code',null); if(!o||!o.c) return null; if(Date.now()-o.t>48*3600e3){ clearPend(); return null; } return o.c; }
-function clearPend(){ try{ localStorage.removeItem('bc-friend-code'); }catch(e){} }
+function pend(){ var o=B.ls.get('alk-friend-code',null); if(!o||!o.c) return null; if(Date.now()-o.t>48*3600e3){ clearPend(); return null; } return o.c; }
+function clearPend(){ try{ localStorage.removeItem('alk-friend-code'); }catch(e){} }
 function draw(){
   if(!root) return;
   var page=h('div',{class:'page'});
@@ -32,7 +32,7 @@ function draw(){
   var inv=h('div'), c=h('section',{class:'card'},h('h2',{text:T('Πρόσθεσε φίλο','Add a friend')}));
   var ib=h('button',{class:'btn pri full',type:'button',text:T('Φτιάξε κωδικό πρόσκλησης','Create an invite code'),onclick:function(){ var k=code(); ib.disabled=true; inv.replaceChildren(h('p',{class:'sub',text:T('Δημιουργία…','Creating…')}));
     var s=C().session(); C().rest('friend_invites',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({code:k,name:(s&&s.name)||''})}).then(function(){ ib.disabled=false;
-      var shown=k.slice(0,4)+'-'+k.slice(4), link=location.origin+location.pathname+'#addfriend='+shown, msg=T('Πρόσθεσέ με στο BiteCast με τον κωδικό ','Add me on BiteCast with the code ')+shown+'\n'+T('Πάτα εδώ: ','Tap here: ')+link;
+      var shown=k.slice(0,4)+'-'+k.slice(4), link=location.origin+location.pathname+'#addfriend='+shown, msg=T('Πρόσθεσέ με στο Alkyon με τον κωδικό ','Add me on Alkyon with the code ')+shown+'\n'+T('Πάτα εδώ: ','Tap here: ')+link;
       inv.replaceChildren(h('div',{class:'frcode',text:shown}),h('p',{class:'sub',text:T('Στείλε τον στον φίλο σου: πατά τον σύνδεσμο και ο κωδικός μπαίνει μόνος του. Ισχύει 48 ώρες και για μία σύνδεση.','Send it to your friend: they tap the link and the code fills in by itself. Valid for 48 hours and one connection.')}),
         h('div',{class:'acts'},h('button',{class:'btn',type:'button',text:T('Αποστολή','Share'),onclick:function(){ if(navigator.share) navigator.share({text:msg}).catch(function(){}); else { try{ navigator.clipboard.writeText(msg); B.toast(T('Αντιγράφηκε.','Copied.')); }catch(e){} } }}))); })
       .catch(function(e){ ib.disabled=false; inv.replaceChildren(h('p',{class:'err',text:C().errText(e)})); }); }});

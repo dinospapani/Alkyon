@@ -1,4 +1,4 @@
-/* BiteCast 4 · κατέβασμα χάρτη και πρόγνωσης πριν την έξοδο (v31z550).
+/* Alkyon 4 · κατέβασμα χάρτη και πρόγνωσης πριν την έξοδο (v31z550).
    Όταν πατάς «Θα βγω» για μια μέρα, και ξανά όταν ανοίγεις την εφαρμογή την προηγούμενη ή την ίδια μέρα, κατεβαίνουν:
    - ο δορυφορικός χάρτης με τα ναυτικά σήματα γύρω από το σημείο (πιο αναλυτικά κοντά, πιο αραιά μακριά, ~3–6 MB)
    - η πρόγνωση 7 ημερών (καιρός και θάλασσα) για το σημείο
@@ -6,7 +6,7 @@
    Το ίδιο κάνει και ο service worker όταν έρθει η βραδινή ειδοποίηση του πλάνου, ακόμα και με κλειστή εφαρμογή (sw.js). */
 (function(){
 'use strict';
-var B=window.BC, h=B.h, T=B.T, EN=B.EN, ls=B.ls, K='psaro-v4-pf', SK='psaro-v4-pfst', busy=false;
+var B=window.AK, h=B.h, T=B.T, EN=B.EN, ls=B.ls, K='alkyon-v4-pf', SK='alkyon-v4-pfst', busy=false;
 var ZR=[[9,35],[10,25],[11,15],[12,10],[13,6],[14,3.5],[15,2]];   /* ζουμ → ακτίνα σε km */
 function mode(){ var m=ls.get(K,'all'); return m==='wifi'||m==='off'?m:'all'; }
 function st(){ return ls.get(SK,{})||{}; }
@@ -26,16 +26,16 @@ function run(pl,force){
   var s=st(), key=pl.date+'|'+(+pl.lat).toFixed(3)+','+(+pl.lon).toFixed(3); if(!force&&s.key===key&&Date.now()-(s.at||0)<8*3600e3) return Promise.resolve(null);
   if(!('caches' in window)) return Promise.resolve(null);
   busy=true; var list=urls(+pl.lat,+pl.lon), ok=0, fail=0, i=0;
-  var tiles=caches.open('psaro-tiles').then(function(cache){
+  var tiles=caches.open('alkyon-tiles').then(function(cache){
     function worker(){ if(i>=list.length) return Promise.resolve(); var u=list[i++];
       return cache.match(u).then(function(hit){ if(hit){ ok++; return; } return fetch(u,{mode:'cors',credentials:'omit'}).then(function(r){ if(!r.ok) throw 0; ok++; return cache.put(u,r); }); }).catch(function(){ fail++; }).then(worker); }
     return Promise.all([worker(),worker(),worker(),worker()]); });
-  /* η πρόγνωση περνά από τον service worker και μένει στην αποθήκη psaro-offdata (ίδια διεύθυνση = διαθέσιμη χωρίς σήμα) */
-  var fc=(window.PF&&PF.getForecast?PF.getForecast(+pl.lat,+pl.lon,null,{days:7}).then(function(f){ ls.set('psaro-v4-planfc',{key:key,lat:+pl.lat,lon:+pl.lon,t:Date.now(),fc:f}); return true; }):Promise.resolve(false)).catch(function(){ return false; });
+  /* η πρόγνωση περνά από τον service worker και μένει στην αποθήκη alkyon-offdata (ίδια διεύθυνση = διαθέσιμη χωρίς σήμα) */
+  var fc=(window.PF&&PF.getForecast?PF.getForecast(+pl.lat,+pl.lon,null,{days:7}).then(function(f){ ls.set('alkyon-v4-planfc',{key:key,lat:+pl.lat,lon:+pl.lon,t:Date.now(),fc:f}); return true; }):Promise.resolve(false)).catch(function(){ return false; });
   return Promise.all([tiles,fc]).then(function(r){ busy=false;
     var o={key:key,date:pl.date,name:pl.name||'',at:Date.now(),tiles:ok,fail:fail,fc:!!r[1]}; ls.set(SK,o);
-    var rec=ls.get('psaro-offl',[])||[]; rec=rec.filter(function(x){ return x.plan!==key; }); var dLat=35/111, dLon=35/(111*Math.cos(pl.lat*Math.PI/180));
-    rec.push({t:Date.now(),n:ok,lay:'sat',plan:key,s:+pl.lat-dLat,w:+pl.lon-dLon,nn:+pl.lat+dLat,e:+pl.lon+dLon}); ls.set('psaro-offl',rec.slice(-20));
+    var rec=ls.get('alkyon-offl',[])||[]; rec=rec.filter(function(x){ return x.plan!==key; }); var dLat=35/111, dLon=35/(111*Math.cos(pl.lat*Math.PI/180));
+    rec.push({t:Date.now(),n:ok,lay:'sat',plan:key,s:+pl.lat-dLat,w:+pl.lon-dLon,nn:+pl.lat+dLat,e:+pl.lon+dLon}); ls.set('alkyon-offl',rec.slice(-20));
     return o; },function(){ busy=false; return null; }); }
 function due(){ var td=today(), tm=tomorrow(); return (B.plans?B.plans.list():[]).filter(function(p){ return p.date===td||p.date===tm; })[0]||null; }
 function auto(){ if(document.hidden) return; try{ if(B.trip&&B.trip.active&&B.trip.active()) return; }catch(e){} var pl=due(); if(pl) run(pl,false).then(function(o){ if(o&&o.tiles) B.toast(T('Κατέβηκαν χάρτης και πρόγνωση για ','Map and forecast downloaded for ')+(o.name||T('την έξοδό σου','your trip'))+T(' · δουλεύουν και χωρίς σήμα.',' · they work without signal.')); }); }

@@ -1,12 +1,13 @@
-/* BiteCast 4 · «Πώς δουλεύει» (#help) και «Τι νέο υπάρχει» (v31z547)
+/* Alkyon 4 · «Πώς δουλεύει» (#help) και «Τι νέο υπάρχει» (v31z547)
    ΚΑΝΟΝΑΣ: σε κάθε νέα λειτουργία ενημερώνονται (α) η ενότητα της στο HELP και (β) μια γραμμή στο NEWS με την έκδοση.
-   Το «Τι νέο» εμφανίζεται μία φορά στους χρήστες που είχαν ήδη την εφαρμογή (psaro-v4-news = τελευταία έκδοση που είδαν). */
+   Το «Τι νέο» εμφανίζεται μία φορά στους χρήστες που είχαν ήδη την εφαρμογή (alkyon-v4-news = τελευταία έκδοση που είδαν). */
 (function(){
 'use strict';
-var B=window.BC, h=B.h, T=B.T, ls=B.ls;
+var B=window.AK, h=B.h, T=B.T, ls=B.ls;
 /* [τίτλος, [[κείμενο, σύνδεσμος (προαιρετικό), κείμενο συνδέσμου]]] */
 var HELP=[
  [T('Πρώτα βήματα','First steps'),[
+  [T('Το Alkyon (αλκυόνη) σου δείχνει τη σωστή στιγμή για ψάρεμα: ήλιος, φεγγάρι, πίεση, άνεμος και κύμα σε έναν βαθμό 0–100. Για να το έχεις σαν εφαρμογή, πρόσθεσέ το στην αρχική οθόνη του κινητού.','Alkyon (the kingfisher) shows you the right moment to fish: sun, moon, pressure, wind and waves in one 0–100 score. To use it like an app, add it to your phone’s home screen.')],
   [T('Άνοιξε τις ειδοποιήσεις: χωρίς αυτές δεν έρχονται καλές μέρες, πλάνο εξόδου, καιρός στην έξοδο και «ώρα να γυρίσεις».','Turn on alerts: without them you get no good days, trip plans, weather on trips or “time to head back”.'),'#alerts',T('Ειδοποιήσεις','Alerts')],
   [T('Βάλε όρια ασφαλείας (ή μήκος σκάφους για αυτόματη πρόταση) και λιμάνι: από αυτά βγαίνουν οι ώρες «πάνω από τα όρια» και ο χρόνος επιστροφής.','Set safety limits (or boat length for a suggestion) and a home port: they drive “over your limits” hours and the time home.'),'#boat',T('Σκάφος','Boat')],
   [T('Όρισε επαφή ασφαλείας: ειδοποιείται αν δεν γυρίσεις στην ώρα σου.','Set a safety contact: they are alerted if you are not back on time.'),'#profile',T('Προφίλ','Profile')],
@@ -50,6 +51,8 @@ var HELP=[
 ];
 /* έκδοση → αλλαγές (νεότερες πρώτες). Προσθέτεις γραμμή εδώ σε κάθε νέα λειτουργία. */
 var NEWS=[
+ ['1.0.0',[T('Νέο όνομα και νέο logo: η εφαρμογή λέγεται πλέον Alkyon (αλκυόνη). Η αλκυόνη ξέρει ακριβώς τη στιγμή να βουτήξει, όπως η πρόγνωση σου λέει τη σωστή ώρα για ψάρεμα.','New name and logo: the app is now called Alkyon (the kingfisher). The kingfisher knows the exact moment to dive, just as the forecast tells you the right time to fish.'),T('Νέα διεύθυνση: dinospapani.github.io/Alkyon. Τα δεδομένα σου (ψάρια, σημεία, έξοδοι, φωτογραφίες, ρυθμίσεις) μεταφέρθηκαν αυτόματα. Πρόσθεσε τη νέα εφαρμογή στην αρχική οθόνη και σβήσε την παλιά.','New address: dinospapani.github.io/Alkyon. Your data (catches, spots, trips, photos, settings) moved over automatically. Add the new app to your home screen and remove the old one.'),T('Οι ειδοποιήσεις ξαναρυθμίζονται μόνες τους με τη νέα διεύθυνση. Αν δεν έρχονται, άνοιξε Προφίλ › Ειδοποιήσεις μία φορά.','Alerts set themselves up again at the new address. If they stop, open Profile › Alerts once.'),T('Νέο Telegram bot ασφαλείας: @AlkyonMaydayBot. Οι επαφές ασφαλείας πρέπει να ξανασυνδεθούν (Προφίλ › Επαφή ασφαλείας).','New safety Telegram bot: @AlkyonMaydayBot. Safety contacts need to link again (Profile › Safety contact).'),T('Οι εκδόσεις ξεκινούν από την αρχή: αυτή είναι η 1.0.0. Και η εφαρμογή του ρολογιού Garmin λέγεται πλέον Alkyon.','Versions start over: this is 1.0.0. The Garmin watch app is now called Alkyon too.')]],
+ ['v31z554',[T('Διόρθωση: το κουμπί ⓘ (πηγές χάρτη) στον χάρτη','Fix: the ⓘ (map sources) button on the map')]],
  ['v31z553',[T('Ρολόι Garmin: ειδοποίηση πριν την κορυφή ή τον πάτο της πίεσης, και όταν αρχίζει να πέφτει ή να ανεβαίνει','Garmin watch: alert before a pressure peak or low, and when it starts to fall or rise')]],
  ['v31z552',[T('Ρολόι Garmin: πρόγνωση, ειδοποίηση πίεσης και καταγραφή ψαριού από το ρολόι (Προφίλ › Ρολόι Garmin)','Garmin watch: forecast, pressure alert and catch logging from the watch (Profile › Garmin watch)')]],
  ['v31z551',[T('Θερμοκλινές: δουλεύει και κοντά στην ακτή (βρίσκει την πλησιέστερη θάλασσα)','Thermocline: works near the coast too (finds the nearest sea)'),T('Έλεγχος συστήματος: σωστός έλεγχος λογαριασμού','System check: correct account check')]],
@@ -62,7 +65,7 @@ var NEWS=[
    T('Στόχοι, ρεκόρ, σύγκριση χρονιών, εποχή ειδών','Goals, records, year comparison, species seasons'),T('Θερμοκλινές, μέτωπα θερμοκρασίας, «τι δούλεψε σε παρόμοιες μέρες»','Thermocline, temperature fronts, “what worked on similar days”'),
    T('Χάρτης: περιστροφή με δύο δάχτυλα, μέρες στη μπάρα ώρας, κοινή έξοδος με φίλους','Map: two-finger rotation, days on the time bar, shared trips with friends')]]
 ];
-function verN(v){ var m=/v(\d+)z(\d+)/.exec(v||''); return m?+m[1]*1000+(+m[2]):0; }
+function verN(v){ var s=/^v?(\d+)\.(\d+)(?:\.(\d+))?$/.exec(v||''); if(s) return 1e7+(+s[1])*1e4+(+s[2])*100+(+(s[3]||0)); var m=/v(\d+)z(\d+)/.exec(v||''); return m?+m[1]*1000+(+m[2]):0; }
 /* ---------- σελίδα ---------- */
 B.view('help',{title:T('Πώς δουλεύει','How it works'),mount:function(el){
   var page=h('div',{class:'page help'});
@@ -70,22 +73,22 @@ B.view('help',{title:T('Πώς δουλεύει','How it works'),mount:function(
   HELP.forEach(function(sec,si){ var d=h('details',{class:'card hsec',open:si===0}); d.append(h('summary',null,h('b',{text:sec[0]})));
     var ul=h('ul',{class:'hlist'}); sec[1].forEach(function(it){ ul.append(h('li',null,h('span',{text:it[0]}),it[1]?h('a',{href:it[1],class:'hgo',text:it[2]+' ›'}):null)); }); d.append(ul); page.append(d); });
   page.append(h('section',{class:'card'},h('h2',{text:T('Τι νέο υπάρχει','What’s new')}),NEWS.slice(0,3).map(function(n){ return h('div',{class:'hnews'},h('small',{text:n[0]}),h('ul',{class:'hlist'},n[1].map(function(x){ return h('li',{text:x}); }))); })));
-  page.append(h('p',{class:'foot',text:(window.PSARO_VERSION||'')}));
+  page.append(h('p',{class:'foot',text:(window.ALKYON_VERSION||'')}));
   el.replaceChildren(page); }});
 /* ---------- «Τι νέο» μία φορά μετά την ενημέρωση ---------- */
-function whatsNew(){ var seen=ls.get('psaro-v4-news',null), top=NEWS[0][0];
-  var onb=false; try{ onb=!!localStorage.getItem('psaro-onboard'); }catch(e){}
-  if(!seen){ ls.set('psaro-v4-news',onb&&hasHistory()?'v31z532':top); seen=ls.get('psaro-v4-news',top); }
+function whatsNew(){ var seen=ls.get('alkyon-v4-news',null), top=NEWS[0][0];
+  var onb=false; try{ onb=!!localStorage.getItem('alkyon-onboard'); }catch(e){}
+  if(!seen){ ls.set('alkyon-v4-news',onb&&hasHistory()?'v31z532':top); seen=ls.get('alkyon-v4-news',top); }
   var fresh=NEWS.filter(function(n){ return verN(n[0])>verN(seen); }); if(!fresh.length) return;
   if(document.querySelector('.sheet,.sppage,.bigtrip')){ setTimeout(whatsNew,4000); return; }
   /* v31z549: όχι στη μέση εξόδου· περιμένει να τελειώσει */
   var onTrip=false; try{ onTrip=document.body.classList.contains('ontrip')||!!(B.trip&&B.trip.active&&B.trip.active()); }catch(e){} if(onTrip){ setTimeout(whatsNew,120000); return; }
-  ls.set('psaro-v4-news',top);
+  ls.set('alkyon-v4-news',top);
   var items=[]; fresh.forEach(function(n){ items=items.concat(n[1]); }); items=items.slice(0,8);
   var sh=B.sheet({title:T('Τι νέο υπάρχει','What’s new'),body:h('div',{class:'bform'},h('ul',{class:'hlist hnew'},items.map(function(x){ return h('li',{text:x}); })),
     h('a',{class:'btn full',href:'#help',text:T('Όλα στο «Πώς δουλεύει»','All in “How it works”'),onclick:function(){ sh.close(); }}))}); }
 /* χρήστης που είχε ήδη δεδομένα πριν από αυτή τη σελίδα = παλιός χρήστης */
-function hasHistory(){ try{ return ['bites','trips','spots'].some(function(k){ return B.store.raw(k).length>0; })||!!localStorage.getItem('psaro-notify'); }catch(e){ return false; } }
+function hasHistory(){ try{ return ['bites','trips','spots'].some(function(k){ return B.store.raw(k).length>0; })||!!localStorage.getItem('alkyon-notify'); }catch(e){ return false; } }
 setTimeout(whatsNew,6000);
 B.help={news:NEWS};
 })();

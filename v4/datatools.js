@@ -1,16 +1,16 @@
-/* BiteCast 4 · εργαλεία δεδομένων (όπως η κλασική):
-   - αναγνώριση ψαριού από φωτογραφία με AI (δικό σου κλειδί API, psaro-akey, μένει μόνο στη συσκευή)
+/* Alkyon 4 · εργαλεία δεδομένων (όπως η κλασική):
+   - αναγνώριση ψαριού από φωτογραφία με AI (δικό σου κλειδί API, alkyon-akey, μένει μόνο στη συσκευή)
    - εξαγωγή CSV ψαριών και εξόδων
    - έλεγχος δεδομένων: ασυνέπειες σε ψάρια και εξόδους, με διόρθωση */
 (function(){
 'use strict';
-var B=window.BC, h=B.h, T=B.T, EN=B.EN, ls=B.ls;
+var B=window.AK, h=B.h, T=B.T, EN=B.EN, ls=B.ls;
 
 /* ---------- AI ---------- */
 var AI_PROMPT='You are helping an angler in Cyprus (eastern Mediterranean). Identify the fish in the photo. Reply with ONLY a JSON array of up to 3 candidates, best first: [{"el":"Greek common name or null","en":"English common name","latin":"Latin name","confidence":0.0-1.0}]. If the photo does not show a fish, reply []. Be honest about uncertainty.';
 function b64(blob){ return new Promise(function(res,rej){ var r=new FileReader(); r.onload=function(){ res(String(r.result).split(',')[1]); }; r.onerror=rej; r.readAsDataURL(blob); }); }
 function identify(blob){
-  var key=ls.get('psaro-akey',''); if(!key) return Promise.reject(new Error('nokey'));
+  var key=ls.get('alkyon-akey',''); if(!key) return Promise.reject(new Error('nokey'));
   return b64(blob).then(function(data){ var ac=new AbortController(), tm=setTimeout(function(){ ac.abort(); },45000);
     return fetch('https://api.anthropic.com/v1/messages',{method:'POST',signal:ac.signal,headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({model:'claude-sonnet-5-5',max_tokens:4000,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:blob.type||'image/jpeg',data:data}},{type:'text',text:AI_PROMPT}]}]})})
@@ -49,12 +49,12 @@ B.aiButton=function(getBlob,pick){
 };
 /* v31z521: ρύθμιση κλειδιού μέσα από τη φόρμα ψαριού */
 B.aiSetup=function(done,into){ if(into){ var cd=aiCard(); cd.classList.add('aiinline'); into.replaceChildren(cd); var iv2=setInterval(function(){ if(!document.body.contains(cd)){ clearInterval(iv2); return; } if(B.aiOn()){ clearInterval(iv2); if(done) done(); } },600); return; } var sh=B.sheet({title:T('Αναγνώριση ψαριού με AI','AI fish identification'),body:aiCard()}); var iv=setInterval(function(){ if(B.aiOn()){ clearInterval(iv); try{ sh.close(true); }catch(e){} if(done) done(); } if(!document.body.contains(sh.el||document.body)) clearInterval(iv); },700); setTimeout(function(){ clearInterval(iv); },300000); };
-B.aiOn=function(){ return !!ls.get('psaro-akey',''); };
+B.aiOn=function(){ return !!ls.get('alkyon-akey',''); };
 function aiCard(){
   var c=h('section',{class:'card'},h('h2',{text:T('Αναγνώριση ψαριού με AI','AI fish identification')}),h('p',{class:'sub',text:T('Με δικό σου κλειδί Anthropic API (sk-ant-…). Το κλειδί μένει μόνο σε αυτή τη συσκευή και η φωτογραφία στέλνεται απευθείας στο api.anthropic.com. Η χρέωση γίνεται στον λογαριασμό σου.','With your own Anthropic API key (sk-ant-…). The key stays on this device only and the photo goes straight to api.anthropic.com. Usage is billed to your account.')}));
-  var inp=h('input',{type:'password',autocomplete:'off',placeholder:'sk-ant-…','aria-label':T('Κλειδί API','API key')}), msg=h('p',{class:'sub',text:ls.get('psaro-akey','')?T('Υπάρχει αποθηκευμένο κλειδί.','A key is saved.'):''});
-  c.append(h('div',{class:'inrow'},inp,h('button',{class:'btn',type:'button',text:T('Αποθήκευση','Save'),onclick:function(){ var k=inp.value.trim(); if(!/^sk-ant-/.test(k)){ msg.textContent=T('Το κλειδί πρέπει να ξεκινά με sk-ant-.','The key must start with sk-ant-.'); return; } ls.set('psaro-akey',k); inp.value=''; msg.textContent=T('Το κλειδί αποθηκεύτηκε σε αυτή τη συσκευή.','The key was saved on this device.'); }})),
-    msg,ls.get('psaro-akey','')?h('button',{class:'btn full',type:'button',text:T('Διαγραφή κλειδιού','Delete key'),onclick:function(){ try{ localStorage.removeItem('psaro-akey'); }catch(e){} msg.textContent=T('Το κλειδί διαγράφηκε.','The key was deleted.'); }}):null);
+  var inp=h('input',{type:'password',autocomplete:'off',placeholder:'sk-ant-…','aria-label':T('Κλειδί API','API key')}), msg=h('p',{class:'sub',text:ls.get('alkyon-akey','')?T('Υπάρχει αποθηκευμένο κλειδί.','A key is saved.'):''});
+  c.append(h('div',{class:'inrow'},inp,h('button',{class:'btn',type:'button',text:T('Αποθήκευση','Save'),onclick:function(){ var k=inp.value.trim(); if(!/^sk-ant-/.test(k)){ msg.textContent=T('Το κλειδί πρέπει να ξεκινά με sk-ant-.','The key must start with sk-ant-.'); return; } ls.set('alkyon-akey',k); inp.value=''; msg.textContent=T('Το κλειδί αποθηκεύτηκε σε αυτή τη συσκευή.','The key was saved on this device.'); }})),
+    msg,ls.get('alkyon-akey','')?h('button',{class:'btn full',type:'button',text:T('Διαγραφή κλειδιού','Delete key'),onclick:function(){ try{ localStorage.removeItem('alkyon-akey'); }catch(e){} msg.textContent=T('Το κλειδί διαγράφηκε.','The key was deleted.'); }}):null);
   return c;
 }
 
@@ -69,10 +69,10 @@ function moonIdx(b){ var SYN=29.530588853, REF=Date.UTC(2000,0,6,18,14), a=((B.b
 function csv(name,head,rows){ var q=function(v){ v=v==null?'':String(v); return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
   var txt='﻿'+[head].concat(rows).map(function(r){ return r.map(q).join(';'); }).join('\r\n'), a=h('a',{href:URL.createObjectURL(new Blob([txt],{type:'text/csv;charset=utf-8'})),download:name}); document.body.append(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },1500); }
 B.csvBites=function(){ var L=B.store.raw('bites').filter(function(b){ return !b.deleted; }).sort(function(a,b){ return B.biteMs(a)-B.biteMs(b); });
-  csv('bitecast-bites-'+today()+'.csv',EN?['Date','Time','Species','Latin','Lost','Bait','Technique','Depth m','Count','Weight kg','Length cm','Pressure hPa','Pressure trend','Wind Bft','Wind dir','Wave m','Sea °C','Air °C','Moon','Location','Latitude','Longitude','Released','Notes']:['Ημερομηνία','Ώρα','Είδος','Λατινικό','Χάθηκε','Δόλωμα','Τεχνική','Βάθος m','Πλήθος','Βάρος kg','Μήκος cm','Πίεση hPa','Τάση πίεσης','Άνεμος Bft','Διεύθ. ανέμου','Κύμα m','Θάλασσα °C','Αέρας °C','Σελήνη','Τοποθεσία','Πλάτος','Μήκος','Ελευθερώθηκε','Σημειώσεις'],
+  csv('alkyon-bites-'+today()+'.csv',EN?['Date','Time','Species','Latin','Lost','Bait','Technique','Depth m','Count','Weight kg','Length cm','Pressure hPa','Pressure trend','Wind Bft','Wind dir','Wave m','Sea °C','Air °C','Moon','Location','Latitude','Longitude','Released','Notes']:['Ημερομηνία','Ώρα','Είδος','Λατινικό','Χάθηκε','Δόλωμα','Τεχνική','Βάθος m','Πλήθος','Βάρος kg','Μήκος cm','Πίεση hPa','Τάση πίεσης','Άνεμος Bft','Διεύθ. ανέμου','Κύμα m','Θάλασσα °C','Αέρας °C','Σελήνη','Τοποθεσία','Πλάτος','Μήκος','Ελευθερώθηκε','Σημειώσεις'],
     L.map(function(b){ return [b.date,b.time,b.species,b.latin,b.miss?'✓':'',b.bait,b.tech,b.depth,bc(b),b.kg,b.len,b.press,b.ptrend?PT[b.ptrend]:'',b.wind==null?'':bft(b.wind),b.wdeg==null?'':COMP[Math.round((((b.wdeg%360)+360)%360)/45)%8],b.wave,b.sst!=null?Math.round(b.sst*10)/10:'',b.temp!=null?Math.round(b.temp*10)/10:'',MOON[moonIdx(b)],b.place,b.lat,b.lon,b.rel?'✓':'',b.notes]; })); };
 B.csvTrips=function(){ var L=B.store.raw('trips').filter(function(t){ return !t.deleted; }).sort(function(a,b){ return (a.date||'').localeCompare(b.date||''); });
-  csv('bitecast-trips-'+today()+'.csv',EN?['Date','Spot','Hours','Species','Fish','Lost','Weight kg','Distance km','Cost €','Notes']:['Ημερομηνία','Σημείο','Ώρες','Είδος','Ψάρια','Χάθηκαν','Βάρος kg','Απόσταση km','Κόστος €','Σημειώσεις'],
+  csv('alkyon-trips-'+today()+'.csv',EN?['Date','Spot','Hours','Species','Fish','Lost','Weight kg','Distance km','Cost €','Notes']:['Ημερομηνία','Σημείο','Ώρες','Είδος','Ψάρια','Χάθηκαν','Βάρος kg','Απόσταση km','Κόστος €','Σημειώσεις'],
     L.map(function(t){ var c=t.cost?(+t.cost.fuel||0)+(+t.cost.bait||0)+(+t.cost.other||0):''; return [t.date,t.spot,t.startMs&&t.endMs?Math.round((t.endMs-t.startMs-(t.pauseMs||0))/360000)/10:'',t.species,t.count,t.miss,t.kg,t.km,c,t.notes]; })); };
 
 /* ---------- έλεγχος δεδομένων ---------- */
@@ -80,7 +80,7 @@ function issues(){
   var out=[], bites=B.store.raw('bites').filter(function(b){ return !b.deleted; }), trips=B.store.raw('trips').filter(function(t){ return !t.deleted; }), now=Date.now(), sids={};
   trips.forEach(function(t){ if(t.sid) sids[t.sid]=t; });
   bites.forEach(function(b){
-    if(b.trip&&!sids[b.trip]&&!(ls.get('psaro-safe',{})||{}).active) out.push({t:T('Ψάρι συνδεδεμένο με έξοδο που δεν υπάρχει','Catch linked to a missing trip'),b:b,fix:function(){ var x=Object.assign({},b); delete x.trip; delete x.n; B.store.save('bites',x); }});
+    if(b.trip&&!sids[b.trip]&&!(ls.get('alkyon-safe',{})||{}).active) out.push({t:T('Ψάρι συνδεδεμένο με έξοδο που δεν υπάρχει','Catch linked to a missing trip'),b:b,fix:function(){ var x=Object.assign({},b); delete x.trip; delete x.n; B.store.save('bites',x); }});
     if(b.date&&B.biteMs(b)>now+3600000) out.push({t:T('Ψάρι με ημερομηνία στο μέλλον','Catch dated in the future'),b:b});
     if(+b.kg>150) out.push({t:T('Πολύ μεγάλο βάρος (πάνω από 150 kg)','Very large weight (over 150 kg)'),b:b});
     if(+b.len>400) out.push({t:T('Πολύ μεγάλο μήκος (πάνω από 4 m)','Very large length (over 4 m)'),b:b});
@@ -132,7 +132,7 @@ B.speciesPick=function(cb){
 var SCAN_PROMPT='This photo shows a marine chartplotter / GPS screen, a waypoint list, or a paper note with geographic coordinates. '+
  'Read every coordinate pair exactly as printed. Reply with ONLY a JSON array: [{"name":"waypoint name or null","lat":"latitude exactly as shown, including N/S","lon":"longitude exactly as shown, including E/W","depth":number or null}]. '+
  'Copy digits, degree/minute symbols and decimals exactly; do not convert formats. If a hemisphere letter is missing, leave it out. If no coordinates are readable, reply [].';
-function scanRead(blob){ var key=ls.get('psaro-akey',''), P=window.PsaroCoord; if(!key) return Promise.reject(new Error('nokey'));
+function scanRead(blob){ var key=ls.get('alkyon-akey',''), P=window.AlkyonCoord; if(!key) return Promise.reject(new Error('nokey'));
   return b64(blob).then(function(data){ var ac=new AbortController(), tm=setTimeout(function(){ ac.abort(); },45000);
     return fetch('https://api.anthropic.com/v1/messages',{method:'POST',signal:ac.signal,headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({model:'claude-sonnet-5-5',max_tokens:2000,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:blob.type||'image/jpeg',data:data}},{type:'text',text:SCAN_PROMPT}]}]})})
@@ -142,9 +142,9 @@ function scanRead(blob){ var key=ls.get('psaro-akey',''), P=window.PsaroCoord; i
         return {name:o.name?String(o.name).slice(0,40):'',rawLat:String(o.lat||''),rawLon:String(o.lon||''),lat:la,lon:lo,depth:(typeof o.depth==='number'&&o.depth>0&&o.depth<3000)?Math.round(o.depth):null,ok:!isNaN(la)&&!isNaN(lo)&&Math.abs(la)<=90&&Math.abs(lo)<=180}; }); })
     .finally(function(){ clearTimeout(tm); }); }); }
 B.plotterScan=function(){
-  if(!window.PsaroCoord){ B.toast(T('Δεν φορτώθηκαν οι συντεταγμένες.','Coordinates module not loaded.')); return; }
+  if(!window.AlkyonCoord){ B.toast(T('Δεν φορτώθηκαν οι συντεταγμένες.','Coordinates module not loaded.')); return; }
   var file=h('input',{type:'file',accept:'image/*',capture:'environment',hidden:true}); document.body.append(file);
-  file.addEventListener('change',function(){ var f=file.files&&file.files[0]; file.remove(); if(!f) return; var P=window.PsaroCoord, thumb=URL.createObjectURL(f);
+  file.addEventListener('change',function(){ var f=file.files&&file.files[0]; file.remove(); if(!f) return; var P=window.AlkyonCoord, thumb=URL.createObjectURL(f);
     var wait=B.sheet({title:T('Διαβάζω τις συντεταγμένες…','Reading the coordinates…'),body:h('div',null,h('img',{class:'cdimg',src:thumb,alt:''}),h('div',{class:'sk',style:{height:'60px'}}))});
     (B.store.resize?B.store.resize(f):Promise.resolve(f)).catch(function(){ return f; }).then(scanRead).then(function(list){
       var body=h('div',{class:'bform'}), rows=[], d=new Date(), base=B.pad(d.getHours())+':'+B.pad(d.getMinutes());
@@ -158,7 +158,7 @@ B.plotterScan=function(){
           rows.forEach(function(r){ if(!r.cb.checked) return; var a=P.parse(r.la.value,'lat'), o=P.parse(r.lo.value,'lon'); if(isNaN(a)||isNaN(o)||Math.abs(a)>90||Math.abs(o)>180){ bad++; return; }
             B.store.save('spots',{name:r.nm.value.trim()||T('Σημείο','Spot'),type:'',lat:+a.toFixed(6),lon:+o.toFixed(6),depth:r.dp.value===''?null:+r.dp.value,notes:T('Από φωτογραφία plotter','From a plotter photo')}); n++; });
           if(bad){ B.toast(T('Κάποιες συντεταγμένες δεν διαβάζονται. Διόρθωσέ τες ή ξετσέκαρέ τες.','Some coordinates cannot be read. Fix or untick them.')); return; }
-          sh.close(); B.toast(n+T(' σημεία αποθηκεύτηκαν.',' spots saved.')); B.emit('store','psaro-spots'); var f0=rows.filter(function(r){ return r.cb.checked; })[0]; if(f0&&B.mapGo) B.mapGo(P.parse(f0.la.value,'lat'),P.parse(f0.lo.value,'lon'),13); }})); }
+          sh.close(); B.toast(n+T(' σημεία αποθηκεύτηκαν.',' spots saved.')); B.emit('store','alkyon-spots'); var f0=rows.filter(function(r){ return r.cb.checked; })[0]; if(f0&&B.mapGo) B.mapGo(P.parse(f0.la.value,'lat'),P.parse(f0.lo.value,'lon'),13); }})); }
       wait.close(true); var sh=B.sheet({title:T('Βρέθηκαν συντεταγμένες','Coordinates found'),body:body});
     }).catch(function(e){ wait.close(true); B.toast(aiErr(e)); }); });
   file.click();

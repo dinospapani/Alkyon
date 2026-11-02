@@ -1,7 +1,7 @@
-/* BiteCast 4 · Προφίλ: λογαριασμός, συγχρονισμός, τύπος ψαρέματος, γλώσσα, μονάδες */
+/* Alkyon 4 · Προφίλ: λογαριασμός, συγχρονισμός, τύπος ψαρέματος, γλώσσα, μονάδες */
 (function(){
 'use strict';
-var B=window.BC, h=B.h, T=B.T, EN=B.EN, ls=B.ls, U=window.PsaroUnits, root=null;
+var B=window.AK, h=B.h, T=B.T, EN=B.EN, ls=B.ls, U=window.AlkyonUnits, root=null;
 function C(){ return B.cloud; }
 
 /* διαγραφή λογαριασμού (ίδια ροή με την κλασική: έλεγχος ότι η υπηρεσία υπάρχει, σβήσιμο cloud, μετά λογαριασμός) */
@@ -11,9 +11,9 @@ function delAccount(){ var word=T('ΔΙΑΓΡΑΦΗ','DELETE'), cl=B.cloud, inp=
     go.disabled=true; msg.textContent=T('Διαγραφή…','Deleting…'); var J={'Content-Type':'application/json'};
     cl.rest('rpc/delete_my_account',{method:'POST',headers:J,body:JSON.stringify({dry:true})}).then(function(){
       var q=Promise.resolve(); ['records?id=not.is.null','safety_trips?id=not.is.null','safety_contacts?updated_at=not.is.null'].forEach(function(pth){ q=q.then(function(){ return cl.rest(pth,{method:'DELETE'}).catch(function(){}); }); });
-      var uid=(cl.session()||{}).uid, pup=ls.get('psaro-pup',{})||{}; Object.keys(pup).forEach(function(k){ q=q.then(function(){ return cl.storage('DELETE','photos/'+uid+'/'+k+'.jpg').catch(function(){}); }); });
+      var uid=(cl.session()||{}).uid, pup=ls.get('alkyon-pup',{})||{}; Object.keys(pup).forEach(function(k){ q=q.then(function(){ return cl.storage('DELETE','photos/'+uid+'/'+k+'.jpg').catch(function(){}); }); });
       return q.then(function(){ return cl.rest('rpc/delete_my_account',{method:'POST',headers:J,body:JSON.stringify({dry:false})}); }).then(function(){
-        ['psaro-sess','psaro-last','psaro-pup'].forEach(function(k){ try{ localStorage.removeItem(k); }catch(e){} }); sh.close(); B.toast(T('Ο λογαριασμός διαγράφηκε.','Your account was deleted.')); setTimeout(function(){ location.reload(); },1200); })
+        ['alkyon-sess','alkyon-last','alkyon-pup'].forEach(function(k){ try{ localStorage.removeItem(k); }catch(e){} }); sh.close(); B.toast(T('Ο λογαριασμός διαγράφηκε.','Your account was deleted.')); setTimeout(function(){ location.reload(); },1200); })
         .catch(function(){ go.disabled=false; msg.textContent=T('Η διαγραφή απέτυχε. Δοκίμασε ξανά.','Deletion failed. Try again.'); }); },
       function(){ go.disabled=false; msg.textContent=T('Η διαγραφή λογαριασμού δεν έχει ενεργοποιηθεί ακόμα στον server. Δεν διαγράφηκε τίποτα.','Account deletion is not enabled on the server yet. Nothing was deleted.'); }); }});
   sh=B.sheet({title:T('Διαγραφή λογαριασμού','Delete account'),body:h('div',{class:'bform'},h('p',{class:'sub',text:T('Θα διαγραφεί ο λογαριασμός σου και ό,τι έχει συγχρονιστεί στο cloud (ψάρια, σημεία, έξοδοι, φωτογραφίες, επαφή ασφαλείας). Δεν αναιρείται. Τα δεδομένα σε αυτό το κινητό μένουν.','Your account and everything synced to the cloud (catches, spots, trips, photos, safety contact) will be deleted. This cannot be undone. Data on this phone stays.')}),
@@ -30,7 +30,7 @@ var PI={watch:'<rect x="7" y="6" width="10" height="12" rx="3"/><path d="M9 6l1-
 function pic(k){ return h('span',{class:'ic pic',html:k==='type'&&B.profBadge?B.profBadge(B.prof()):'<svg viewBox="0 0 24 24" aria-hidden="true">'+(PI[k]||'')+'</svg>'}); }
 function row(k,title,sub,href,fn){ var a=h(href?'a':'button',{class:'li',href:href||null,type:href?null:'button',onclick:fn||null},pic(k),h('span',{class:'tx'},h('b',{text:title}),sub?h('small',{text:sub}):null),B.icon('chev')); return a; }
 function group(title,rows){ return h('div',{class:'pgrp'},title?h('h3',{class:'listh',text:title}):null,h('div',{class:'list'},rows.filter(Boolean))); }
-var tab=ls.get('psaro-v4-ptab','mine');
+var tab=ls.get('alkyon-v4-ptab','mine');
 /* κεφαλίδα: όνομα, συγχρονισμός, η χρονιά σου */
 function head(s){ var st=C().state(), nm=s?((s.name||'').trim()||s.email||''):'', y=String(new Date().getFullYear());
   var bs=B.store.raw('bites').filter(function(b){ return !b.deleted&&!b.miss&&!b.gear&&(b.date||'').slice(0,4)===y&&!B.pest(b); }), tr=B.store.raw('trips').filter(function(t){ return !t.deleted&&(t.date||'').slice(0,4)===y; });
@@ -40,42 +40,42 @@ function head(s){ var st=C().state(), nm=s?((s.name||'').trim()||s.email||''):''
   var top=Object.keys(pl).sort(function(a,b){ return pl[b]-pl[a]; })[0];
   var cls=!s?'off':st.err?'bad':(st.t&&Date.now()-st.t<86400000)?'ok':'warn', stx=!s?T('Χωρίς λογαριασμό · μόνο σε αυτό το κινητό','No account · this phone only'):st.err?T('Πρόβλημα συγχρονισμού','Sync problem'):st.t?T('Συγχρονίστηκε ','Synced ')+new Date(st.t).toLocaleString(EN?'en-GB':'el-GR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):T('Δεν έχει συγχρονιστεί ακόμα','Not synced yet');
   var c=h('section',{class:'card phead'});
-  c.append(h('button',{type:'button',class:'phid','aria-label':T('Λογαριασμός και συγχρονισμός','Account and sync'),onclick:function(){ tab='acc'; ls.set('psaro-v4-ptab',tab); draw(); setTimeout(function(){ var t=document.querySelector('.bseg,.seg'); if(t&&t.scrollIntoView) t.scrollIntoView({behavior:'smooth',block:'start'}); },60); }},h('span',{class:'av',text:(nm||'?').charAt(0).toUpperCase()}),h('span',{class:'tx'},h('b',{text:nm||T('Σύνδεση ή εγγραφή','Sign in or sign up')}),h('small',null,h('i',{class:'sdot '+cls}),stx)),tab==='acc'?null:B.icon('chev'))); /* v31z545: το βελάκι ανοίγει τον Λογαριασμό· όταν είσαι ήδη εκεί, δεν φαίνεται */
+  c.append(h('button',{type:'button',class:'phid','aria-label':T('Λογαριασμός και συγχρονισμός','Account and sync'),onclick:function(){ tab='acc'; ls.set('alkyon-v4-ptab',tab); draw(); setTimeout(function(){ var t=document.querySelector('.bseg,.seg'); if(t&&t.scrollIntoView) t.scrollIntoView({behavior:'smooth',block:'start'}); },60); }},h('span',{class:'av',text:(nm||'?').charAt(0).toUpperCase()}),h('span',{class:'tx'},h('b',{text:nm||T('Σύνδεση ή εγγραφή','Sign in or sign up')}),h('small',null,h('i',{class:'sdot '+cls}),stx)),tab==='acc'?null:B.icon('chev'))); /* v31z545: το βελάκι ανοίγει τον Λογαριασμό· όταν είσαι ήδη εκεί, δεν φαίνεται */
   var cells=[[String(tr.length),T('Έξοδοι ','Trips ')+y,'boat'],[String(n),T('Ψάρια','Fish'),'tackle'],[best?B.num(+best.kg,1)+' kg':'–',best?(best.species||T('Καλύτερο','Best')):T('Καλύτερο ψάρι','Best fish'),'stats'],[top||'–',T('Κορυφαίο σημείο','Top spot'),'spots']];
   c.append(h('div',{class:'pstats'},cells.map(function(x){ return h('div',{class:'pst'},h('span',{class:'psi',html:'<svg viewBox="0 0 24 24" aria-hidden="true">'+PI[x[2]]+'</svg>'}),h('b',{text:x[0]}),h('small',{text:x[1]})); })));
-  c.append(h('a',{class:'pall',href:'#log',onclick:function(){ ls.set('psaro-v4-logtab','stats'); },text:T('Όλα τα στατιστικά ›','All statistics ›')}));
+  c.append(h('a',{class:'pall',href:'#log',onclick:function(){ ls.set('alkyon-v4-logtab','stats'); },text:T('Όλα τα στατιστικά ›','All statistics ›')}));
   return c; }
 function draw(){
   if(!root) return;
   var s=C().session(), page=h('div',{class:'page'}), y=window.scrollY;
   page.append(h('div',{class:'top'},h('h1',{class:'lt',text:T('Προφίλ','Profile')})));
   page.append(head(s));
-  page.append(B.seg([['mine',T('Τα δικά μου','My stuff')],['set',T('Ρυθμίσεις','Settings')],['acc',T('Λογαριασμός','Account')]],tab,function(v){ tab=v; ls.set('psaro-v4-ptab',v); draw(); },T('Ενότητα προφίλ','Profile section')));
+  page.append(B.seg([['mine',T('Τα δικά μου','My stuff')],['set',T('Ρυθμίσεις','Settings')],['acc',T('Λογαριασμός','Account')]],tab,function(v){ tab=v; ls.set('alkyon-v4-ptab',v); draw(); },T('Ενότητα προφίλ','Profile section')));
   if(tab==='set') settingsTab(page); else if(tab==='acc') accountTab(page,s); else mineTab(page);
-  var EL=window.PsaroErrLog, ne=EL?EL.get().length:0;
-  page.append(h('p',{class:'foot'},'BiteCast · '+(window.PSARO_VERSION||'')+' · ',h('a',{href:B.classic(),text:T('Κλασική έκδοση','Classic version')}),
+  var EL=window.AlkyonErrLog, ne=EL?EL.get().length:0;
+  page.append(h('p',{class:'foot'},'Alkyon · '+(window.ALKYON_VERSION||'')+' · ',h('a',{href:B.classic(),text:T('Κλασική έκδοση','Classic version')}),
     ne?' · ':'',ne?h('button',{type:'button',class:'linkbtn errlk',text:T('Αναφορά σφαλμάτων','Error report')+' ('+ne+')',onclick:function(){ location.hash='#check'; }}):''));
   root.replaceChildren(page); if(y) try{ window.scrollTo(0,y); }catch(e){}
 }
 /* αναφορά σφαλμάτων: τι κόλλησε στο κινητό, για να σταλεί και να διορθωθεί */
-function errSheet(){ var EL=window.PsaroErrLog, a=EL?EL.get():[], sh;
-  function txt(){ return 'BiteCast '+(window.PSARO_VERSION||'')+' · '+navigator.userAgent+'\n'+a.map(function(e){ return new Date(e.t).toISOString().slice(0,16).replace('T',' ')+' '+(e.v||'')+' '+(e.p||'')+'\n  '+e.m+(e.n>1?' (x'+e.n+')':'')+(e.w?'\n  @ '+e.w:''); }).join('\n'); }
+function errSheet(){ var EL=window.AlkyonErrLog, a=EL?EL.get():[], sh;
+  function txt(){ return 'Alkyon '+(window.ALKYON_VERSION||'')+' · '+navigator.userAgent+'\n'+a.map(function(e){ return new Date(e.t).toISOString().slice(0,16).replace('T',' ')+' '+(e.v||'')+' '+(e.p||'')+'\n  '+e.m+(e.n>1?' (x'+e.n+')':'')+(e.w?'\n  @ '+e.w:''); }).join('\n'); }
   var list=h('div',{class:'errl'},a.slice().reverse().map(function(e){ return h('div',{class:'erri'},h('small',{text:new Date(e.t).toLocaleString(EN?'en-GB':'el-GR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+(e.n>1?' · ×'+e.n:'')+(e.p?' · '+e.p:'')}),h('code',{text:e.m}),e.w?h('small',{class:'erw',text:e.w}):''); }));
   var send=h('button',{type:'button',class:'btn pri full',text:navigator.share?T('Αποστολή','Send'):T('Αντιγραφή','Copy'),onclick:function(){ var t=txt();
-    if(navigator.share) navigator.share({title:'BiteCast errors',text:t}).catch(function(){});
+    if(navigator.share) navigator.share({title:'Alkyon errors',text:t}).catch(function(){});
     else if(navigator.clipboard) navigator.clipboard.writeText(t).then(function(){ B.toast(T('Αντιγράφηκε.','Copied.')); },function(){ B.toast(T('Δεν αντιγράφηκε.','Could not copy.')); }); }});
   var clr=h('button',{type:'button',class:'btn full',text:T('Καθάρισμα','Clear'),onclick:function(){ EL.clear(); sh.close(); draw(); }});
   sh=B.sheet({title:T('Αναφορά σφαλμάτων','Error report'),body:h('div',{class:'bform'},h('p',{class:'sub',text:T('Σφάλματα που έγιναν σε αυτό το κινητό. Στείλ’ τα για να διορθωθούν. Δεν περιέχουν ψάρια, σημεία ή στοιχεία λογαριασμού.','Errors that happened on this phone. Send them so they can be fixed. They contain no catches, spots or account details.')}),list,send,clr)}); }
 function mineTab(page){
   var n=B.store.raw('tackle').filter(function(x){ return !x.deleted; }).length, sp=B.store.raw('spots').filter(function(x){ return !x.deleted; }).length;
-  var bt=ls.get('psaro-boat',null), bn=bt&&bt.boat&&bt.boat.name, g=ls.get('psaro-gear',null), gn=g&&Array.isArray(g.items)?g.items.length:0;
+  var bt=ls.get('alkyon-boat',null), bn=bt&&bt.boat&&bt.boat.name, g=ls.get('alkyon-gear',null), gn=g&&Array.isArray(g.items)?g.items.length:0;
   page.append(group(T('Εξοπλισμός και σκάφος','Tackle and boat'),[
     row('tackle',T('Εξοπλισμός','Tackle'),n?n+' '+(n===1?T('κομμάτι','item'):T('κομμάτια','items')):T('Καλάμια, μουλινέ, τεχνητά, ψαροντούφεκα','Rods, reels, lures, spearguns'),'#tackle'),
-    row('gear',T('Παραγάδια, δίχτυα, ζεμπίλια','Longlines, nets, pots'),gn?gn+' '+(gn===1?T('καταγραφή','record'):T('καταγραφές','records')):T('Ρίψη και ανέβασμα εργαλείων','Set and haul gear'),null,function(){ ls.set('psaro-v4-logtab','gear'); location.hash='#log'; }),
+    row('gear',T('Παραγάδια, δίχτυα, ζεμπίλια','Longlines, nets, pots'),gn?gn+' '+(gn===1?T('καταγραφή','record'):T('καταγραφές','records')):T('Ρίψη και ανέβασμα εργαλείων','Set and haul gear'),null,function(){ ls.set('alkyon-v4-logtab','gear'); location.hash='#log'; }),
     row('boat',T('Σκάφος','Boat'),bn||T('Κινητήρας, συντήρηση, λήξεις, μπαταρίες','Engine, maintenance, expiries, batteries'),'#boat'),
     /* v31z552 */ B.garmin?row('watch',T('Ρολόι Garmin','Garmin watch'),B.garmin.code()?T('Συνδεδεμένο · κωδικός ','Linked · code ')+B.garmin.code():T('Πρόγνωση, πίεση και καταγραφή ψαριού στο ρολόι','Forecast, pressure and catch logging on the watch'),null,function(){ B.garmin.sheet(); }):null].filter(Boolean)));
   /* v31z525: η εισαγωγή είναι δεδομένα σου, όχι ρύθμιση λογαριασμού */
-  page.append(group(T('Σημεία και δεδομένα','Spots and data'),[row('spots',T('Τα σημεία μου','My spots'),sp?sp+' '+(sp===1?T('σημείο','spot'):T('σημεία','spots')):T('Δεν έχεις αποθηκεύσει σημεία','No saved spots yet'),null,function(){ ls.set('psaro-v4-logtab','spots'); location.hash='#log'; }),row('backup',T('Από plotter, GPS ή ρολόι κατάδυσης','From a plotter, GPS or dive watch'),'GPX · KML · CSV · FIT · UDDF',null,function(){ if(B.importSheet) B.importSheet(); })]));
+  page.append(group(T('Σημεία και δεδομένα','Spots and data'),[row('spots',T('Τα σημεία μου','My spots'),sp?sp+' '+(sp===1?T('σημείο','spot'):T('σημεία','spots')):T('Δεν έχεις αποθηκεύσει σημεία','No saved spots yet'),null,function(){ ls.set('alkyon-v4-logtab','spots'); location.hash='#log'; }),row('backup',T('Από plotter, GPS ή ρολόι κατάδυσης','From a plotter, GPS or dive watch'),'GPX · KML · CSV · FIT · UDDF',null,function(){ if(B.importSheet) B.importSheet(); })]));
   page.append(group(T('Φίλοι και κοινότητα','Friends and community'),[
     row('community',T('Κοινότητα','Community'),T('Ψάρια άλλων ψαράδων, χωρίς θέση','Other anglers’ catches, no locations'),'#community'),
     row('people',T('Φίλοι','Friends'),T('Κοινά ψάρια και σημεία με φίλους','Share catches and spots with friends'),'#friends')]));
@@ -86,18 +86,18 @@ function mineTab(page){
 }
 function sheetOf(title,body){ return B.sheet({title:title,body:body}); }
 function settingsTab(page){
-  var sf=ls.get('psaro-safe',null)||{}, n=Object.assign({on:false},ls.get('psaro-notify',{}));
+  var sf=ls.get('alkyon-safe',null)||{}, n=Object.assign({on:false},ls.get('alkyon-notify',{}));
   var uLab=function(k){ var v=U&&U.cfg&&U.cfg[k], o=U&&U.options&&U.options[k], m=o&&o.filter(function(x){ return x[0]===v; })[0]; return m?m[1]:v; }, uSum=U&&U.cfg?['wind','wave','temp'].map(uLab).filter(Boolean).join(' · '):'';
   page.append(group(T('Ψάρεμα','Fishing'),[
-    row('type',T('Τύπος ψαρέματος','Fishing type'),(B.PROF[B.prof()]||'')+(ls.raw&&ls.raw('psaro-askfp')==='"0"'?'':''),null,function(){ var body=h('div',{class:'bform'},
-        h('div',{class:'ptiles',role:'group','aria-label':T('Τύπος ψαρέματος','Fishing type')},Object.keys(B.PROF).map(function(k){ return h('button',{type:'button',class:'ptile','aria-pressed':String(B.prof()===k),onclick:function(){ try{ localStorage.setItem('psaro-fprof',k); }catch(e){} B.emit('store','psaro-fprof'); B.toast(T('Ο βαθμός και οι προτάσεις προσαρμόστηκαν.','The score and suggestions were adjusted.')); B.closeSheet(); draw(); }},h('span',{class:'pti',html:B.profBadge?B.profBadge(k):''}),h('b',{text:B.PROF[k]})); })),
+    row('type',T('Τύπος ψαρέματος','Fishing type'),(B.PROF[B.prof()]||'')+(ls.raw&&ls.raw('alkyon-askfp')==='"0"'?'':''),null,function(){ var body=h('div',{class:'bform'},
+        h('div',{class:'ptiles',role:'group','aria-label':T('Τύπος ψαρέματος','Fishing type')},Object.keys(B.PROF).map(function(k){ return h('button',{type:'button',class:'ptile','aria-pressed':String(B.prof()===k),onclick:function(){ try{ localStorage.setItem('alkyon-fprof',k); }catch(e){} B.emit('store','alkyon-fprof'); B.toast(T('Ο βαθμός και οι προτάσεις προσαρμόστηκαν.','The score and suggestions were adjusted.')); B.closeSheet(); draw(); }},h('span',{class:'pti',html:B.profBadge?B.profBadge(k):''}),h('b',{text:B.PROF[k]})); })),
         h('button',{class:'btn full',type:'button',text:T('Ακτή ή σκάφος, και ερώτηση στο άνοιγμα','Shore or offshore, and the question at start'),onclick:function(){ B.closeSheet(); setTimeout(B.startPick,250); }}));
       sheetOf(T('Τύπος ψαρέματος','Fishing type'),body); }),
     row('safety',T('Επαφή ασφαλείας','Safety contact'),sf.name||sf.phone||sf.email||(sf.tgLinked?'Telegram':T('Δεν έχει οριστεί','Not set')),null,function(){ if(B.safetyCard) sheetOf(T('Επαφή ασφαλείας','Safety contact'),B.safetyCard()); }),
     row('bell',T('Ρυθμίσεις ειδοποιήσεων','Notification settings'),n.on?T('Ενεργές','On'):T('Ανενεργές','Off'),'#alerts'),
     row('hist',T('Ιστορικό ειδοποιήσεων','Notification history'),T('Ό,τι σου στάλθηκε','Everything sent to you'),'#inbox')]));
   page.append(group(T('Εφαρμογή','App'),[
-    row('lang',T('Γλώσσα','Language'),B.LANG==='en'?'English':'Ελληνικά',null,function(){ sheetOf(T('Γλώσσα','Language'),h('div',{class:'bform'},B.seg([['el','Ελληνικά'],['en','English']],B.LANG,function(v){ try{ localStorage.setItem('psaro-lang',v); }catch(e){} location.reload(); },T('Γλώσσα','Language')))); }),
+    row('lang',T('Γλώσσα','Language'),B.LANG==='en'?'English':'Ελληνικά',null,function(){ sheetOf(T('Γλώσσα','Language'),h('div',{class:'bform'},B.seg([['el','Ελληνικά'],['en','English']],B.LANG,function(v){ try{ localStorage.setItem('alkyon-lang',v); }catch(e){} location.reload(); },T('Γλώσσα','Language')))); }),
     U&&U.options?row('units',T('Μονάδες','Units'),uSum,null,unitsSheet):null,
     B.night?row('night',T('Νυχτερινή λειτουργία','Night mode'),{auto:T('Αυτόματα στην έξοδο μετά τη δύση','Automatic on trips after sunset'),on:T('Πάντα','Always'),off:T('Ποτέ','Never')}[B.night.mode()],null,function(){ sheetOf(T('Νυχτερινή λειτουργία','Night mode'),h('div',{class:'bform'},
       h('p',{class:'sub',text:T('Κόκκινη οθόνη για το σκοτάδι: τα μάτια δεν χάνουν την προσαρμογή τους. Στον χάρτη, το κουμπί 🌙 την ανοίγει ή την κλείνει για την τρέχουσα έξοδο.','Red screen for the dark: your eyes keep their night vision. On the map, the 🌙 button turns it on or off for the current trip.')}),
@@ -114,7 +114,7 @@ function signOutSheet(){ var sh, msg=h('p',{class:'sub',role:'status'});
     h('button',{class:'btn full del',type:'button',text:T('Αποσύνδεση και διαγραφή από αυτό το κινητό','Sign out and remove from this phone'),onclick:function(){ go(true); }}),
     h('p',{class:'foot',text:T('Η διαγραφή γίνεται μόνο αν ο συγχρονισμός πετύχει. Όταν ξανασυνδεθείς, τα δεδομένα επιστρέφουν από τον λογαριασμό.','Removal only happens if the sync succeeds. When you sign in again, your data comes back from the account.')}),msg)}); }
 function unitsSheet(){ var body=h('div',{class:'bform'}), L={wind:T('Άνεμος','Wind'),wave:T('Κύμα','Waves'),temp:T('Θερμοκρασία','Temperature'),press:T('Πίεση','Pressure'),dist:T('Απόσταση','Distance'),coord:T('Συντεταγμένες','Coordinates')};
-  Object.keys(L).forEach(function(k){ if(!U.options[k]) return; body.append(h('h3',{class:'h3',text:L[k]}),B.seg(U.options[k].map(function(o){ return [o[0],o[1]]; }),U.cfg[k],function(v){ U.set(k,v); B.emit('store','psaro-units'); draw(); },L[k])); });
+  Object.keys(L).forEach(function(k){ if(!U.options[k]) return; body.append(h('h3',{class:'h3',text:L[k]}),B.seg(U.options[k].map(function(o){ return [o[0],o[1]]; }),U.cfg[k],function(v){ U.set(k,v); B.emit('store','alkyon-units'); draw(); },L[k])); });
   sheetOf(T('Μονάδες','Units'),body); }
 function accountTab(page,s){
   page.append(s?accountCard(s):signInCard());
@@ -157,11 +157,11 @@ function signInCard(){
 }
 
 /* συμπλήρωση δεδομένων παλιών ψαριών (ίδιες λειτουργίες με την κλασική: ιστορικός καιρός, πίεση και άνεμος ±30′) */
-function dataCard(){ var rows=(window.PsaroSeaRows||[]).map(function(f){ try{ return f(); }catch(e){ return null; } }).filter(Boolean); if(!rows.length) return null;
+function dataCard(){ var rows=(window.AlkyonSeaRows||[]).map(function(f){ try{ return f(); }catch(e){ return null; } }).filter(Boolean); if(!rows.length) return null;
   var c=h('section',{class:'card seafill'},h('h2',{text:T('Συμπλήρωση δεδομένων','Fill in missing data')}),h('p',{class:'sub',style:{margin:'-4px 0 6px'},text:T('Για ψάρια με θέση που καταγράφηκαν χωρίς καιρό. Εκτίμηση μοντέλου (Open-Meteo), όχι μέτρηση.','For catches with a position that were logged without weather. A model estimate (Open-Meteo), not a measurement.')}));
   rows.forEach(function(r){ c.append(r); }); return c; }
 function backupCard(){
-  var lb=ls.get('psaro-lastbackup',0), c=h('section',{class:'card'},h('h2',{text:T('Αντίγραφο ασφαλείας','Backup')}),
+  var lb=ls.get('alkyon-lastbackup',0), c=h('section',{class:'card'},h('h2',{text:T('Αντίγραφο ασφαλείας','Backup')}),
     h('p',{class:'sub',style:{margin:'-4px 0 12px'},text:T('Όλα τα δεδομένα σου με τις φωτογραφίες σε ένα αρχείο, για επαναφορά σε άλλο κινητό. ','All your data and photos in one file, to restore on another phone. ')+(lb?T('Τελευταίο: ','Last: ')+new Date(lb).toLocaleDateString(EN?'en-GB':'el-GR'):T('Δεν έχεις κάνει ακόμα.','You have not made one yet.'))}));
   var file=h('input',{type:'file',accept:'application/json,.json',class:'vh'});
   var ex=h('button',{class:'btn pri',type:'button',text:T('Δημιουργία αντιγράφου','Create backup'),onclick:function(){ ex.disabled=true; B.backup.exportAll().then(function(){ ex.disabled=false; B.toast(T('Το αντίγραφο κατέβηκε.','Backup downloaded.')); draw(); }).catch(function(){ ex.disabled=false; B.toast(T('Το αντίγραφο απέτυχε.','Backup failed.')); }); }});
@@ -175,5 +175,5 @@ B.view('profile',{title:T('Προφίλ','Profile'),mount:function(el){ root=el;
 B.on('sync',function(){ if(!root) return; var st=C().state(), busy=/…$/.test(st.msg||''), m=root.querySelector('.syncmsg');
   if(m){ m.hidden=!(busy||st.err); m.textContent=(busy||st.err)?st.msg:''; m.classList.toggle('bad',!!st.err); }
   if(!busy){ var hd=root.querySelector('.phead'); if(hd) try{ hd.replaceWith(head(C().session())); }catch(e){} } });
-B.on('store',function(k){ if(root&&k==='psaro-sess') draw(); });
+B.on('store',function(k){ if(root&&k==='alkyon-sess') draw(); });
 })();

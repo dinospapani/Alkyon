@@ -1,8 +1,8 @@
-/* BiteCast 4 · αναλύσεις (ίδιοι υπολογισμοί με την κλασική insights.js):
+/* Alkyon 4 · αναλύσεις (ίδιοι υπολογισμοί με την κλασική insights.js):
    ψάρια ανά φάση σελήνης, κόστος ανά σεζόν, «σήμερα σε σχέση με τις καλύτερες μέρες σου», τι έπιασες σε κάθε σημείο. */
 (function(){
 'use strict';
-var B=window.BC, h=B.h, T=B.T, EN=B.EN;
+var B=window.AK, h=B.h, T=B.T, EN=B.EN;
 var EMO=['🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘'], PHN=EN?['New moon','Waxing crescent','First quarter','Waxing gibbous','Full moon','Waning gibbous','Last quarter','Waning crescent']:['Νέα σελήνη','Αύξων μηνίσκος','Πρώτο τέταρτο','Αύξουσα','Πανσέληνος','Φθίνουσα','Τελευταίο τέταρτο','Φθίνων μηνίσκος'];
 function bites(){ return B.store.bites().filter(function(b){ return !b.deleted&&!b.gear; }); }
 function money(v){ return '€'+B.num(v,v%1?2:0); }

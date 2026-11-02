@@ -1,11 +1,11 @@
-/* BiteCast 4 · επιλογή θέσης με συντεταγμένες ή στον χάρτη (v31z521)
-   Ίδια πεδία με την κλασική (PsaroCoord: DD / DMS / DDM, επικόλληση συνδέσμου Google Maps),
+/* Alkyon 4 · επιλογή θέσης με συντεταγμένες ή στον χάρτη (v31z521)
+   Ίδια πεδία με την κλασική (AlkyonCoord: DD / DMS / DDM, επικόλληση συνδέσμου Google Maps),
    κουμπιά «Επικόλληση» και «Η θέση μου», και μικρός χάρτης με σταυρό για να το διαλέγεις με το δάχτυλο. */
 (function(){
-var B=window.BC, h=B.h, T=B.T;
+var B=window.AK, h=B.h, T=B.T;
 var SAT='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
 B.coordBox=function(lat,lon,opt){ opt=opt||{};
-  var PC=window.PsaroCoord, la=h('input',{type:'text',inputmode:'text','aria-label':T('Γεωγραφικό πλάτος','Latitude')}), lo=h('input',{type:'text',inputmode:'text','aria-label':T('Γεωγραφικό μήκος','Longitude')});
+  var PC=window.AlkyonCoord, la=h('input',{type:'text',inputmode:'text','aria-label':T('Γεωγραφικό πλάτος','Latitude')}), lo=h('input',{type:'text',inputmode:'text','aria-label':T('Γεωγραφικό μήκος','Longitude')});
   var mapBox=h('div',{class:'cpmap',hidden:!opt.map}), mm=null, mk=null, quiet=false, msg=h('small',{class:'wn cpmsg'});
   var row=h('div',{class:'cprow'},h('label',{class:'fld'},h('span',{text:T('Πλάτος','Latitude')}),la),h('label',{class:'fld'},h('span',{text:T('Μήκος','Longitude')}),lo));
   function get(){ if(PC&&PC.get) return PC.get(la,lo); var a=parseFloat(la.value), b=parseFloat(lo.value); return isNaN(a)||isNaN(b)?null:{lat:a,lon:b}; }

@@ -1,19 +1,19 @@
-/* BiteCast 4 · Σύγκριση χρονιών (v31z540)
+/* Alkyon 4 · Σύγκριση χρονιών (v31z540)
    Οι τελευταίες 30 μέρες σε σχέση με τις ίδιες μέρες των προηγούμενων 10 χρόνων, για την τοποθεσία της Πρόγνωσης:
    νερό, αέρας, άνεμος, κύμα, βροχή. Τι ακολούθησε τις επόμενες 30 μέρες εκείνες τις χρονιές, ποια χρονιά μοιάζει περισσότερο,
    τα ψάρια σου ανά χρονιά και προτάσεις (εκτιμήσεις, όχι βεβαιότητα).
    Πηγές: Open-Meteo archive (ERA5, ιστορικός καιρός), Open-Meteo marine (κύμα και νερό, όσο πίσω φτάνει), Open-Meteo forecast (πρόσφατες μέρες). */
 (function(){
 'use strict';
-var B=window.BC, h=B.h, T=B.T, EN=B.EN, ls=B.ls;
-var NY=10, WIN=30, CK='psaro-v4-years';
+var B=window.AK, h=B.h, T=B.T, EN=B.EN, ls=B.ls;
+var NY=10, WIN=30, CK='alkyon-v4-years';
 /* [κλειδί, όνομα, σύντομο όνομα για τα κουμπιά] · «μέρες ανέμου» = μέρες με μέγιστο άνεμο πάνω από το όριό σου */
 var MET=[['sst',T('Νερό','Water'),T('Νερό','Water')],['ta',T('Αέρας','Air'),T('Αέρας','Air')],['windy',T('Μέρες ανέμου','Windy days'),T('Άνεμος','Wind')],['wave',T('Κύμα (μέσο)','Waves (mean)'),T('Κύμα','Waves')],['rain',T('Βροχή','Rain'),T('Βροχή','Rain')]];
 function d2s(d){ return d.toISOString().slice(0,10); }
 function addD(s,n){ var d=new Date(s+'T12:00:00Z'); d.setUTCDate(d.getUTCDate()+n); return d2s(d); }
 function shiftY(s,k){ var d=new Date(s+'T12:00:00Z'); d.setUTCFullYear(d.getUTCFullYear()-k); return d2s(d); }
 function lim(){ try{ return window.PF.lims(); }catch(e){ return {wind:14,wave:0.9}; } }
-function place(){ var id=ls.get('psaro-fcsel','gps'), a=ls.get('psaro-places',[])||[], p=null;
+function place(){ var id=ls.get('alkyon-fcsel','gps'), a=ls.get('alkyon-places',[])||[], p=null;
   if(id!=='gps') p=a.filter(function(x){ return x.id===id; })[0]||null;
   if(!p){ var g=B.lastPos(); if(g) p={name:T('Η θέση μου','My location'),lat:g.lat,lon:g.lon}; }
   return p||a[0]||{name:'Πάφος',lat:34.75,lon:32.4}; }
@@ -78,7 +78,7 @@ function catches(from,to){ var bs=[], ts=[]; try{ bs=B.store.bites().filter(func
   var wk={}; bs.forEach(function(b){ var d=new Date(b.date+'T12:00:00Z'), k=Math.floor((d-new Date(from+'T12:00:00Z'))/(7*864e5)); wk[k]=(wk[k]||0)+bc(b); });
   var bw=Object.keys(wk).sort(function(a,b){ return wk[b]-wk[a]; })[0];
   return {n:bs.reduce(function(s,b){ return s+bc(b); },0),trips:ts.length,top:top.slice(0,2),bestWk:bw!=null&&wk[bw]>=2?[addD(from,7*bw),addD(from,7*bw+6),wk[bw]]:null}; }
-function fmt(k,x){ if(x==null) return '–'; var U=window.PsaroUnits;
+function fmt(k,x){ if(x==null) return '–'; var U=window.AlkyonUnits;
   if(k==='sst'||k==='ta') return U&&U.temp?U.temp(x,1):B.num(x,1)+'°'; if(k==='wave') return U&&U.wave?U.wave(x):B.num(x,1)+' m'; if(k==='rain') return Math.round(x)+' mm'; if(k==='windy') return String(Math.round(x)); return B.num(x,1); }
 function diff(k,a,b){ if(a==null||b==null) return ''; var d=a-b, s=d>0?'+':d<0?'−':'±', ad=Math.abs(d);
   if(k==='sst'||k==='ta') return s+B.num(ad,1)+'°'; if(k==='wave') return s+B.num(ad,1)+' m'; if(k==='rain') return s+Math.round(ad)+' mm'; return s+Math.round(ad); }
@@ -106,7 +106,7 @@ function advice(v,sim){ var now=v.yrs[0].cur, past=v.yrs.slice(1), out=[], avg={
 
 /* ---------- κάρτα ---------- */
 B.yearsCard=function(){
-  var p=place(), box=h('section',{class:'card yrs'}), met=ls.get('psaro-v4-yrsmet','sst');
+  var p=place(), box=h('section',{class:'card yrs'}), met=ls.get('alkyon-v4-yrsmet','sst');
   box.append(h('h2',{text:T('Σύγκριση χρονιών','Year comparison')}),h('div',{class:'sk',style:{height:'180px'}}));
   load(p).then(function(v){ paint(v); }).catch(function(e){ box.replaceChildren(h('h2',{text:T('Σύγκριση χρονιών','Year comparison')}),h('p',{class:'sub',text:T('Δεν φορτώθηκαν τα ιστορικά δεδομένα. Χρειάζεται σύνδεση.','Could not load historical data. A connection is needed.')})); });
   function paint(v){
@@ -117,7 +117,7 @@ B.yearsCard=function(){
     /* επιλογή μεγέθους και γράφημα ανά χρονιά */
     var has=MET.filter(function(m){ return v.yrs.some(function(y){ return y.cur[m[0]]!=null; }); }); if(!has.some(function(m){ return m[0]===met; })) met=has[0]?has[0][0]:'ta';
     var chips=h('div',{class:'chips yrchips'}), chart=h('div',{class:'yrch'}), cap=h('p',{class:'yrcap'});
-    has.forEach(function(m){ chips.append(h('button',{type:'button',class:'chip sm','aria-pressed':String(m[0]===met),text:m[2],onclick:function(){ met=m[0]; ls.set('psaro-v4-yrsmet',met); [].forEach.call(chips.children,function(c){ c.setAttribute('aria-pressed',String(c===this)); },this); draw(); }})); });
+    has.forEach(function(m){ chips.append(h('button',{type:'button',class:'chip sm','aria-pressed':String(m[0]===met),text:m[2],onclick:function(){ met=m[0]; ls.set('alkyon-v4-yrsmet',met); [].forEach.call(chips.children,function(c){ c.setAttribute('aria-pressed',String(c===this)); },this); draw(); }})); });
     function draw(){ var vals=v.yrs.slice().reverse().map(function(y){ return [y.y,y.cur[met]]; }), nums=vals.map(function(x){ return x[1]; }).filter(function(x){ return x!=null; });
       chart.replaceChildren(); if(!nums.length){ cap.textContent=''; return; }
       var lo=Math.min.apply(null,nums), hi=Math.max.apply(null,nums), base=(met==='windy'||met==='rain'||met==='wave')?0:lo-(hi-lo||1)*0.6, av=mean(past.map(function(y){ return y.cur[met]; }));

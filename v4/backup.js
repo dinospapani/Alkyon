@@ -1,11 +1,11 @@
-/* BiteCast 4 · αυτόματο αντίγραφο ασφαλείας στο cloud (v31z550).
+/* Alkyon 4 · αυτόματο αντίγραφο ασφαλείας στο cloud (v31z550).
    Μία φορά την εβδομάδα (όταν ανοίγεις την εφαρμογή, με σύνδεση και λογαριασμό) ανεβαίνει ένα πλήρες αντίγραφο
    (ψάρια, έξοδοι, σημεία, εξοπλισμός, εργαλεία, σκάφος, ρυθμίσεις· όχι φωτογραφίες, που συγχρονίζονται χωριστά)
    στο Supabase Storage, φάκελος backups/<user id>/ΕΕΕΕ-ΜΜ-ΗΗ.json. Κρατιούνται τα 8 τελευταία. Χρειάζεται το backups.sql.
    Επαναφορά: Προφίλ › Λογαριασμός › Αντίγραφο ασφαλείας › «Επαναφορά από το cloud». */
 (function(){
 'use strict';
-var B=window.BC, h=B.h, T=B.T, EN=B.EN, ls=B.ls, K='psaro-v4-cbk', WEEK=7*86400000, KEEP=8, busy=false;
+var B=window.AK, h=B.h, T=B.T, EN=B.EN, ls=B.ls, K='alkyon-v4-cbk', WEEK=7*86400000, KEEP=8, busy=false;
 function C(){ return B.cloud&&B.cloud.session&&B.cloud.session()?B.cloud:null; }
 function uid(){ var s=C()&&C().session(); return s&&s.uid; }
 function st(){ return ls.get(K,{})||{}; }
@@ -30,7 +30,7 @@ function run(force){
     .then(function(x){ busy=false; return x; },function(e){ busy=false; throw e; }); }
 function restore(item){
   return C().storage('GET','backups/'+item.path).then(function(r){ if(!r.ok) throw new Error('get '+r.status); return r.json(); })
-    .then(function(d){ if(!d||d.app!=='psarovarka') throw new Error('format'); return B.backup.apply(d); }); }
+    .then(function(d){ if(!d||(d.app!=='alkyon'&&d.app!=='psa'+'rovarka')) throw new Error('format'); return B.backup.apply(d); }); }
 function kb(n){ return n>1048576?B.num(n/1048576,1)+' MB':Math.max(1,Math.round(n/1024))+' KB'; }
 function when(t){ return t?new Date(t).toLocaleDateString(EN?'en-GB':'el-GR',{day:'numeric',month:'short',year:'numeric'}):'–'; }
 /* κάρτα στο Προφίλ (μέσα στην κάρτα «Αντίγραφο ασφαλείας») */

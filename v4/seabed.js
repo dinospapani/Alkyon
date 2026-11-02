@@ -1,15 +1,15 @@
-/* BiteCast 4 · Ευρετής δομής βυθού (v31z525)
+/* Alkyon 4 · Ευρετής δομής βυθού (v31z525)
    Από το πλέγμα βάθους EMODnet (ίδια πηγή με τις γραμμές βάθους, bathy-lines.js):
    - drop-offs: όπου το βάθος αλλάζει απότομα (κλίση σε m ανά 100 m), σε κίτρινο → πορτοκαλί → κόκκινο
    - υψώματα / κορυφές στον βυθό (ρηχότερα από τον γύρω βυθό), με ▲ και το βάθος της κορυφής
    Ενδεικτικό (ανάλυση ~115 m): δεν είναι βυθόμετρο. */
 (function(){
-var B=window.BC, h=B.h, T=B.T, EN=B.EN, ls=B.ls;
-var KEY='psaro-v4-seabed', on=!!ls.get(KEY,false), map=null, cv=null, grp=null, G=null, A=null, busy=false, key='', mt=0, legEl=null;
-function M(){ return window.PsaroCore&&window.PsaroCore.map&&window.PsaroCore.map(); }
+var B=window.AK, h=B.h, T=B.T, EN=B.EN, ls=B.ls;
+var KEY='alkyon-v4-seabed', on=!!ls.get(KEY,false), map=null, cv=null, grp=null, G=null, A=null, busy=false, key='', mt=0, legEl=null;
+function M(){ return window.AlkyonCore&&window.AlkyonCore.map&&window.AlkyonCore.map(); }
 function pane(){ var p=map.getPane('sbPane')||map.createPane('sbPane'); p.style.zIndex='339'; p.style.pointerEvents='none'; return p; }
 function pin(c){ try{ L.DomUtil.setPosition(c,map.containerPointToLayerPoint([0,0])); }catch(e){} }
-function loadBathy(){ return window.PsaroBathy?Promise.resolve():new Promise(function(res){ var s=document.createElement('script'); s.src='../bathy-lines.js'; s.onload=res; s.onerror=res; document.head.appendChild(s); }); }
+function loadBathy(){ return window.AlkyonBathy?Promise.resolve():new Promise(function(res){ var s=document.createElement('script'); s.src='../bathy-lines.js'; s.onload=res; s.onerror=res; document.head.appendChild(s); }); }
 function ensure(){ var m=M(); if(!m) return false; if(m!==map){ map=m; cv=null;
     map.on('movestart zoomstart',function(){ if(cv) cv.style.opacity='0'; });
     map.on('move',function(){ if(cv) pin(cv); });
@@ -59,9 +59,9 @@ function refresh(){
   var k=[bb.w,bb.s,bb.e,bb.n].map(function(v){ return v.toFixed(3); }).join(','); if(k===key&&G){ draw(); return; }
   if(busy) return; busy=true; msg(T('Φόρτωση βυθού…','Loading seabed…'));
   var res=Math.max(1/960,(bb.e-bb.w)/170);
-  loadBathy().then(function(){ if(!window.PsaroBathy) throw new Error('nobathy'); return window.PsaroBathy.fetchGrid(bb,res); }).then(function(g){ key=k; G=g; A=analyze(g); draw(); })
+  loadBathy().then(function(){ if(!window.AlkyonBathy) throw new Error('nobathy'); return window.AlkyonBathy.fetchGrid(bb,res); }).then(function(g){ key=k; G=g; A=analyze(g); draw(); })
     .catch(function(){ msg(T('Τα βάθη δεν φορτώθηκαν. Χρειάζεται σύνδεση.','Depths did not load. Needs a connection.')); }).then(function(){ busy=false; }); }
-B.seabed={on:function(){ return on; },set:function(v){ on=!!v; ls.set(KEY,on); if(on) refresh(); else draw(); try{ window.dispatchEvent(new Event('psaro-wxchange')); }catch(e){} },
+B.seabed={on:function(){ return on; },set:function(v){ on=!!v; ls.set(KEY,on); if(on) refresh(); else draw(); try{ window.dispatchEvent(new Event('alkyon-wxchange')); }catch(e){} },
   analyze:analyze,_inject:function(g){ key='inj'; G=g; A=analyze(g); draw(); }};
 B.seabedAt=function(lat,lon){ if(!on||!G||!A) return null; var x=Math.floor((lon-G.x0)/G.dx), y=Math.floor((lat-G.y0)/G.dy); if(x<1||y<1||x>=G.w-1||y>=G.h-1) return null; var dpt=G.data[y*G.w+x]; return dpt>0?{depth:dpt,slope:A.S[y*G.w+x]||0}:null; };
 new MutationObserver(function(){ if(on) setTimeout(refresh,300); }).observe(document.body,{attributes:true,attributeFilter:['class']});

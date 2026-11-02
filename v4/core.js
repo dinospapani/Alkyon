@@ -1,11 +1,11 @@
-/* BiteCast 4 · πυρήνας: γλώσσα, αποθήκευση, γεγονότα, δημιουργία στοιχείων, θέση.
+/* Alkyon 4 · πυρήνας: γλώσσα, αποθήκευση, γεγονότα, δημιουργία στοιχείων, θέση.
    Τα δεδομένα είναι κοινά με την κλασική έκδοση (ίδια κλειδιά localStorage, ίδια μορφή εγγραφών). */
 (function(){
 'use strict';
 
 /* ---------- γλώσσα ---------- */
 var LANG='el';
-try{ LANG=localStorage.getItem('psaro-lang')||((navigator.language||'el').slice(0,2)==='el'?'el':'en'); }catch(e){}
+try{ LANG=localStorage.getItem('alkyon-lang')||((navigator.language||'el').slice(0,2)==='el'?'el':'en'); }catch(e){}
 if(LANG!=='el'&&LANG!=='en') LANG='el';
 window.LANG=LANG;
 document.documentElement.lang=LANG;
@@ -20,7 +20,7 @@ var ls={
 };
 /* εγγραφές (ψάρια, έξοδοι, σημεία, εξοπλισμός): μόνο ανάγνωση σε αυτή τη φάση· η κλασική έκδοση κάνει τον συγχρονισμό */
 var KINDS=['bites','trips','spots','tackle'];
-function records(kind){ var a=ls.get('psaro-'+kind,[]); return Array.isArray(a)?a:[]; }
+function records(kind){ var a=ls.get('alkyon-'+kind,[]); return Array.isArray(a)?a:[]; }
 
 /* ---------- γεγονότα ---------- */
 var bus=document.createElement('i');
@@ -62,10 +62,10 @@ function dateShort(iso){ var p=dateParts(iso); return p.day+' '+MONTHS[p.mon]; }
 function num(v,d){ if(v==null||isNaN(v)) return '–'; var r=(+v).toFixed(d==null?0:d); return EN?r:r.replace('.',','); }
 
 /* ---------- θέση ---------- */
-/* η τελευταία γνωστή θέση: πρώτα από αυτή την έκδοση, μετά από την κλασική (psaro-cond) */
+/* η τελευταία γνωστή θέση: πρώτα από αυτή την έκδοση, μετά από την κλασική (alkyon-cond) */
 function lastPos(){
-  var a=ls.get('psaro-v4-pos',null); if(a&&typeof a.lat==='number') return a;
-  var c=ls.get('psaro-cond',null); if(c&&typeof c.lat==='number') return {lat:c.lat,lon:c.lon,t:0};
+  var a=ls.get('alkyon-v4-pos',null); if(a&&typeof a.lat==='number') return a;
+  var c=ls.get('alkyon-cond',null); if(c&&typeof c.lat==='number') return {lat:c.lat,lon:c.lon,t:0};
   return null;
 }
 function locate(timeout){
@@ -74,19 +74,19 @@ function locate(timeout){
     var done=false, fin=function(p){ if(done) return; done=true; res(p); };
     setTimeout(function(){ fin(lastPos()); },(timeout||9000)+500);
     navigator.geolocation.getCurrentPosition(function(p){
-      var v={lat:+p.coords.latitude.toFixed(5),lon:+p.coords.longitude.toFixed(5),t:Date.now()}; ls.set('psaro-v4-pos',v); fin(v);
+      var v={lat:+p.coords.latitude.toFixed(5),lon:+p.coords.longitude.toFixed(5),t:Date.now()}; ls.set('alkyon-v4-pos',v); fin(v);
     },function(){ fin(lastPos()); },{enableHighAccuracy:false,maximumAge:10*60000,timeout:timeout||9000});
   });
 }
 
 /* ---------- προφίλ ψαρέματος ---------- */
 var PROF={boat:T('Βάρκα','Offshore'),shore:T('Στεριά','Shore'),lake:T('Λίμνη','Lake'),spear:T('Ψαροντούφεκο','Spearfishing')};
-function prof(){ var p=ls.raw('psaro-fprof'); return PROF[p]?p:'boat'; }
+function prof(){ var p=ls.raw('alkyon-fprof'); return PROF[p]?p:'boat'; }
 
-window.BC={LANG:LANG,EN:EN,T:T,ls:ls,records:records,KINDS:KINDS,on:on,emit:emit,h:h,s:s,pad:pad,hm:hm,dayName:dayName,dateShort:dateShort,DAYS3:DAYS3,num:num,lastPos:lastPos,locate:locate,prof:prof,PROF:PROF,
+window.AK={LANG:LANG,EN:EN,T:T,ls:ls,records:records,KINDS:KINDS,on:on,emit:emit,h:h,s:s,pad:pad,hm:hm,dayName:dayName,dateShort:dateShort,DAYS3:DAYS3,num:num,lastPos:lastPos,locate:locate,prof:prof,PROF:PROF,
   classic:function(q){ return '../classic.html'+(q||''); }};
 /* v31z542: χωροκατακτητικά τοξικά (λαγοκέφαλοι) και «έφαγε το δόλωμα / έκοψε»: καταγράφονται, αλλά δεν μετράνε ως ψάρια */
 var PEST_L=['Lagocephalus sceleratus','Lagocephalus lagocephalus','Lagocephalus suezensis','Lagocephalus spadiceus','Torquigener flavimaculosus','Sphoeroides pachygaster'];
-window.BC.PEST_L=PEST_L;
-window.BC.pest=function(b){ if(!b) return false; if(b.pest) return true; if(b.latin&&PEST_L.indexOf(b.latin)>=0) return true; return /λαγοκ[εέ]φαλ|κουνελ[οό]ψαρ|toadfish|puffer ?fish|lagocephalus|torquigener/i.test(b.species||''); };
+window.AK.PEST_L=PEST_L;
+window.AK.pest=function(b){ if(!b) return false; if(b.pest) return true; if(b.latin&&PEST_L.indexOf(b.latin)>=0) return true; return /λαγοκ[εέ]φαλ|κουνελ[οό]ψαρ|toadfish|puffer ?fish|lagocephalus|torquigener/i.test(b.species||''); };
 })();
