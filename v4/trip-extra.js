@@ -212,7 +212,7 @@ var B=window.BC, ls=B.ls, T=B.T;
 function on(){ return ls.get('psaro-v4-tripnotif',true)!==false; }
 function reg(){ return navigator.serviceWorker?navigator.serviceWorker.getRegistration().then(function(r){ return r||null; }).catch(function(){ return null; }):Promise.resolve(null); }
 function active(){ return !!(B.trip&&B.trip.active&&B.trip.active()); }
-function count(){ try{ var sf=ls.get('psaro-safe',{})||{}; return B.store.raw('bites').filter(function(b){ return b.trip===sf.id&&!b.miss&&!b.deleted; }).length; }catch(e){ return 0; } }
+function count(){ try{ var sf=ls.get('psaro-safe',{})||{}; return B.store.raw('bites').filter(function(b){ return b.trip===sf.id&&!b.miss&&!b.deleted&&!B.pest(b); }).length; }catch(e){ return 0; } }
 function show(){
   if(!on()||!active()||!('Notification' in window)) return;
   if(Notification.permission==='default'){ Notification.requestPermission().then(function(p){ if(p==='granted') show(); }); return; }

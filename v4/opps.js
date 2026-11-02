@@ -6,7 +6,7 @@
 var B=window.BC, h=B.h, T=B.T, EN=B.EN, ls=B.ls;
 var KEY='psaro-v4-opps', SENT='psaro-v4-opps-sent', busy=null;
 function hav(a,b){ var R=6371000, r=Math.PI/180, dl=(b.lat-a.lat)*r, dn=(b.lon-a.lon)*r, x=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dn/2)*Math.sin(dn/2); return 2*R*Math.asin(Math.min(1,Math.sqrt(x))); }
-function bites(){ try{ return B.store.raw('bites').filter(function(b){ return !b.deleted&&!b.miss&&b.lat!=null&&b.date; }); }catch(e){ return []; } }
+function bites(){ try{ return B.store.raw('bites').filter(function(b){ return !b.deleted&&!b.miss&&b.lat!=null&&b.date&&!B.pest(b); }); }catch(e){ return []; } }
 function spName(n){ return n&&window.spName?window.spName(n):n; }
 /* υποψήφια σημεία: πρώτα όσα παρακολουθείς, μετά τα σημεία με τα περισσότερα ψάρια */
 function cands(){

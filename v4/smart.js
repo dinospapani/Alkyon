@@ -168,7 +168,14 @@ function weekly(){ S=load(); var now=Date.now(); if(S.weekly&&now-S.weekly<7*864
   var d=new Date(now-7*86400000), lo=d.getFullYear()+'-'+B.pad(d.getMonth()+1)+'-'+B.pad(d.getDate()), b=all.filter(function(x){ return (x.date||'')>=lo; }), t=tr.filter(function(x){ return (x.date||'')>=lo; });
   S.weekly=now; save(); if(!b.length&&!t.length) return;
   var kg=b.reduce(function(a,x){ return a+(+x.kg||0); },0), sp={}; b.forEach(function(x){ if(x.species) sp[x.species]=(sp[x.species]||0)+1; }); var top=Object.keys(sp).sort(function(a,c){ return sp[c]-sp[a]; })[0];
-  B.sheet({title:T('Η εβδομάδα σου','Your week'),body:h('div',{class:'card'},h('div',{class:'rows one'},[[T('Έξοδοι','Trips'),String(t.length)],[T('Ψάρια','Catches'),String(b.length)],[T('Κιλά','Kilos'),B.num(kg,1)],top?[T('Συχνότερο','Most frequent'),top]:null].filter(Boolean).map(function(r){ return h('div',{class:'row'},h('span',{text:r[0]}),h('b',{text:r[1]})); })))}); }
+  /* v31z542: και λαγοκέφαλοι (χωριστά), καλύτερη μέρα, επόμενη καλή μέρα από την πρόγνωση */
+  var nf=b.reduce(function(a2,x){ return a2+Math.max(1,Math.floor(+x.cnt)||1); },0), pc=(B.store.pests?B.store.pests():[]).filter(function(x){ return (x.date||'')>=lo; }).length;
+  var byD={}; b.forEach(function(x){ byD[x.date]=(byD[x.date]||0)+Math.max(1,Math.floor(+x.cnt)||1); }); var bd=Object.keys(byD).sort(function(a2,c){ return byD[c]-byD[a2]; })[0];
+  var ng=null; try{ var fc=(ls.get('psaro-fc7',null)||{}).fc, thr=(ls.get('psaro-notify',{})||{}).threshold||75; (fc&&fc.days||[]).forEach(function(dd){ if(!ng&&dd.date>today()&&dd.safe&&dd.win&&dd.best>=thr) ng=dd; }); }catch(e){}
+  var rows=[[T('Έξοδοι','Trips'),String(t.length)],[T('Ψάρια','Catches'),String(nf)],[T('Κιλά','Kilos'),B.num(kg,1)],top?[T('Συχνότερο','Most frequent'),top]:null,bd&&nf>1?[T('Καλύτερη μέρα','Best day'),B.dayName(bd)+' ('+byD[bd]+')']:null,pc?['🐡 '+T('Λαγοκέφαλοι','Toadfish'),pc+T(' (δεν μετράνε)',' (not counted)')]:null,
+    ng?[T('Επόμενη καλή μέρα','Next good day'),B.dayName(ng.date)+' '+B.pad(ng.win.s)+':00–'+B.pad((ng.win.e+1)%24)+':00 · '+ng.best]:null].filter(Boolean);
+  if(B.inboxAdd) try{ B.inboxAdd('📅 '+T('Η εβδομάδα σου','Your week'),rows.map(function(r){ return r[0]+': '+r[1]; }).join(' · '),'info'); }catch(e){}
+  B.sheet({title:T('Η εβδομάδα σου','Your week'),body:h('div',{class:'card'},h('div',{class:'rows one'},rows.map(function(r){ return h('div',{class:'row'},h('span',{text:r[0]}),h('b',{text:r[1]})); })))}); }
 setTimeout(licCheck,5000); setTimeout(weekly,8000);
 
 /* ---------- «Πέρσι τέτοια μέρα» (για την Πρόγνωση) ---------- */

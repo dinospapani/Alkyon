@@ -542,3 +542,7 @@ body:not(.mapon) .mo-n{display:none!important}
 /* v31z536 · κουμπί θέσης: τονισμένο όσο ο χάρτης σε ακολουθεί στην έξοδο */
 .mapbar .gpsb.fol{color:var(--accent)}
 .mapbar .gpsb.fol svg{stroke-width:2.4}
+/* v31z542 · λαγοκέφαλος / έφαγε το δόλωμα: μικρότερο κουμπί πάνω από τα δύο ψάρια */
+.fb.fbp{position:absolute;right:calc(100% + 12px);top:7px;width:50px;height:50px;background:#6c4fa3;color:#fff;border-width:2.5px}
+.fb.fbp .fbpi{font-size:24px;line-height:1}
+.fb.fbp b{top:-7px;right:-9px;min-width:21px;height:21px;font-size:11.5px;line-height:21px}

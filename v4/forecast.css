@@ -230,3 +230,8 @@ svg.pwc{width:100%;height:auto}
 .clar .clw,.clar .cln{display:block;margin-top:8px;font-size:12.5px;color:var(--ink-2);line-height:1.4}
 .clar .cln{margin-top:3px;color:var(--ink-3)}
 .li.pickmap{background:var(--surface);border-radius:var(--r-md);box-shadow:var(--shadow);margin:12px 0 4px;border-bottom:0;width:100%}
+/* v31z539 · γιατί μια ώρα είναι πάνω από τα όρια */
+.hcard .hover{margin:8px 0 2px;padding:9px 11px;border-radius:10px;background:var(--poor-bg);font-size:13.5px;line-height:1.4;color:var(--ink)}
+.hcard .hover[hidden]{display:none}
+.hcard .hover b{color:var(--poor)}
+.hcard .hover a{display:inline-block;margin-left:6px;color:var(--accent);font-weight:700;text-decoration:none}

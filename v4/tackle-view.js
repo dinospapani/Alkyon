@@ -22,7 +22,7 @@ var kname=function(k){ if(k&&k.indexOf('c:')===0) return k.slice(2); for(var i=0
 var tech=function(k){ for(var i=0;i<TECH.length;i++) if(TECH[i][0]===k) return TECH[i]; return null; };
 function items(){ return S().raw('tackle').filter(function(x){ return !x.deleted; }); }
 function byId(){ var m={}; items().forEach(function(x){ m[x.id]=x; }); return m; }
-function bites(){ return S().raw('bites').filter(function(b){ return !b.deleted; }); }
+function bites(){ return S().raw('bites').filter(function(b){ return !b.deleted&&!B.pest(b); }); }
 function bc(b){ return Math.max(1,Math.floor(+b.cnt)||1); }
 function today(){ var d=new Date(); return d.getFullYear()+'-'+B.pad(d.getMonth()+1)+'-'+B.pad(d.getDate()); }
 function days(a,b){ return Math.round((Date.parse(b)-Date.parse(a))/86400000); }

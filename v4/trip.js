@@ -134,7 +134,7 @@ function summary(s){
 }
 /* ολοκληρωμένα εργαλεία (δίχτυα κ.λπ.) μπαίνουν σύνοψη μέσα στην έξοδο, όπως στην κλασική */
 function gearCompact(tid){ var g=ls.get('psaro-gear',null); if(!g||!Array.isArray(g.items)) return null; var out=[];
-  g.items.forEach(function(it){ if(it.state!=='done'||it.att) return; var n=0,kg=0; B.store.raw('bites').forEach(function(b){ if(b.gear===it.id&&!b.miss){ n+=Math.max(1,Math.floor(+b.cnt)||1); kg+=b.rel?0:(+b.kg||0); } });
+  g.items.forEach(function(it){ if(it.state!=='done'||it.att) return; var n=0,kg=0; B.store.raw('bites').forEach(function(b){ if(b.gear===it.id&&!b.miss&&!B.pest(b)){ n+=Math.max(1,Math.floor(+b.cnt)||1); kg+=b.rel?0:(+b.kg||0); } });
     var thin=function(p){ if(!p||p.length<=120) return p||[]; var k=Math.ceil(p.length/120); return p.filter(function(_,i){ return i%k===0||i===p.length-1; }); };
     out.push({id:it.id,type:it.type,name:it.name||it.type,set:{a:it.set.a||null,b:it.set.b,ta:it.set.ta,tb:it.set.tb,pts:thin(it.set.pts)},haul:it.haul?{a:it.haul.a,b:it.haul.b,ta:it.haul.ta,tb:it.haul.tb,pts:thin(it.haul.pts)}:null,n:n,kg:Math.round(kg*10)/10}); it.att=tid; });
   if(out.length) ls.set('psaro-gear',g); return out.length?out:null; }
@@ -165,7 +165,7 @@ function sos(){
 
 /* ---------- οθόνες ---------- */
 B.trip={state:load,active:function(){ return !!load().active; },back:back,ext:ext,sos:sos,srv:function(){ return srv; },fix:function(){ return fixP; },track:function(){ var t=ls.get('psaro-track',null), s=load(); return s.active&&t&&t.id===s.id?t:null; }};
-B.tripStart=function(){
+B.tripStart=function(o){ o=o&&typeof o==='object'?o:null; /* v31z541: o.where = σημείο από την αυτόματη ερώτηση */
   var d=load();
   if(d.active){ B.tripSheet(); return; }
   var tm=h('input',{type:'time'}), chips=h('div',{class:'chips',style:{margin:'0'}});
@@ -173,7 +173,7 @@ B.tripStart=function(){
   [2,3,4,6,8].forEach(function(x){ chips.append(h('button',{type:'button',class:'chip',data:{h:x},text:x+T(' ώρες',' h'),onclick:function(){ setDur(x); }})); }); setDur(4);
   tm.addEventListener('input',function(){ [].forEach.call(chips.children,function(c){ c.setAttribute('aria-pressed','false'); }); });
   /* v31z530: χωρίς αυτόματη συμπλήρωση του browser (έβαζε το όνομα του χρήστη)· παλιά τιμή που είναι όνομα ανθρώπου αγνοείται */
-  var rv=String(d.route||'').trim(), ses=(B.cloud&&B.cloud.session&&B.cloud.session())||{}, bad=[ses.name,ses.email,d.name,d.contactName,(d.contact&&d.contact.name)].filter(Boolean).map(function(x){ return String(x).trim().toLowerCase(); });
+  var rv=String((o&&o.where)||d.route||'').trim(), ses=(B.cloud&&B.cloud.session&&B.cloud.session())||{}, bad=[ses.name,ses.email,d.name,d.contactName,(d.contact&&d.contact.name)].filter(Boolean).map(function(x){ return String(x).trim().toLowerCase(); });
   if(rv&&bad.indexOf(rv.toLowerCase())>=0) rv='';
   var rt=h('input',{type:'text',maxlength:'80',value:rv,placeholder:T('π.χ. Πωμός, ύφαλος','e.g. Pomos, reef'),autocomplete:'off',autocapitalize:'sentences',name:'bc-trip-where',enterkeyhint:'done',spellcheck:'false'});
   var sil=h('select',{class:'select'}); [[0,T('Χωρίς','Off')],[30,T('Μετά από 30 λεπτά','After 30 minutes')],[60,T('Μετά από 60 λεπτά','After 60 minutes')],[90,T('Μετά από 90 λεπτά','After 90 minutes')]].forEach(function(o){ sil.append(h('option',{value:String(o[0]),text:o[1]})); }); sil.value=String(d.sil!=null?d.sil:60);
@@ -192,6 +192,8 @@ B.tripStart=function(){
     ls.set('psaro-gps',gp.checked?'1':'0'); if(ex&&ex.apply) ex.apply(); sh.close(); start({due:toMs(tm.value),route:rt.value.trim(),sil:+sil.value||0,notify:nt.checked}); }});
   var body=h('div',{class:'bform tstart'},info,h('div',{class:'fld'},h('span',{text:T('Πόση ώρα θα λείψεις;','How long will you be out?')}),chips,tmRow),h('label',{class:'fld'},h('span',{text:T('Πού πας (προαιρετικό)','Where (optional)')}),rt),
     c?h('label',{class:'tg'},nt,h('span',{text:T('Ειδοποίηση της επαφής μου σε αυτή την έξοδο','Alert my contact on this trip')})):null,more,go);
+  /* v31z542: συχνοί λαγοκέφαλοι εδώ; (από τα δικά σου τσιμπήματα σε 400 m) */
+  try{ var me=B.lastPos(), pn=B.pestHere&&me?B.pestHere(me.lat,me.lon):null; if(pn) body.insertBefore(h('p',{class:'pesthint',text:'🐡 '+T('Συχνοί λαγοκέφαλοι εδώ (','Toadfish are common here (')+pn[0]+T(' στα ',' of ')+pn[1]+T(' τσιμπήματά σου). Πάρε συρματόλινα ή χοντρό παράμαλλο και προτίμησε τεχνητά από μαλακό δόλωμα.',' of your bites). Bring wire or a heavy leader and prefer lures to soft bait.')}),go); }catch(e){}
   var sh=B.sheet({title:T('Έξοδος για ψάρεμα','Fishing trip'),body:body});
 };
 B.tripSheet=function(){

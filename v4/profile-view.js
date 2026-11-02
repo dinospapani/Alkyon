@@ -33,7 +33,7 @@ function group(title,rows){ return h('div',{class:'pgrp'},title?h('h3',{class:'l
 var tab=ls.get('psaro-v4-ptab','mine');
 /* κεφαλίδα: όνομα, συγχρονισμός, η χρονιά σου */
 function head(s){ var st=C().state(), nm=s?((s.name||'').trim()||s.email||''):'', y=String(new Date().getFullYear());
-  var bs=B.store.raw('bites').filter(function(b){ return !b.deleted&&!b.miss&&!b.gear&&(b.date||'').slice(0,4)===y; }), tr=B.store.raw('trips').filter(function(t){ return !t.deleted&&(t.date||'').slice(0,4)===y; });
+  var bs=B.store.raw('bites').filter(function(b){ return !b.deleted&&!b.miss&&!b.gear&&(b.date||'').slice(0,4)===y&&!B.pest(b); }), tr=B.store.raw('trips').filter(function(t){ return !t.deleted&&(t.date||'').slice(0,4)===y; });
   var n=bs.reduce(function(a,b){ return a+Math.max(1,Math.floor(+b.cnt)||1); },0), best=null, pl={}; var sps=B.store.raw('spots').filter(function(x){ return !x.deleted&&typeof x.lat==='number'; });
   function nearSpot(b){ if(typeof b.lat!=='number'||!sps.length) return ''; var bn='', bd=1500; sps.forEach(function(x){ var dy=(x.lat-b.lat)*111320, dx=(x.lon-b.lon)*111320*Math.cos(b.lat*Math.PI/180), d=Math.sqrt(dx*dx+dy*dy); if(d<bd){ bd=d; bn=x.name||''; } }); return bn; }
   bs.forEach(function(b){ if(+b.kg>0&&(!best||+b.kg>+best.kg)) best=b; var pn=(b.place||'').trim()||nearSpot(b); if(pn) pl[pn]=(pl[pn]||0)+Math.max(1,Math.floor(+b.cnt)||1); });

@@ -19,7 +19,7 @@ function clock(ms){ var d=new Date(ms); return B.pad(d.getHours())+':'+B.pad(d.g
 function day(ms){ var d=new Date(ms); return B.dateShort(d.getFullYear()+'-'+B.pad(d.getMonth()+1)+'-'+B.pad(d.getDate())); }
 function active(g){ return (g||G()).items.filter(function(i){ return i.state==='setting'||i.state==='hauling'; })[0]||null; }
 function hauling(){ return G().items.filter(function(i){ return i.state==='hauling'; })[0]||null; }
-function fishOf(it){ var n=0,kg=0; B.store.raw('bites').forEach(function(b){ if(b.gear===it.id&&!b.miss){ n+=Math.max(1,Math.floor(+b.cnt)||1); kg+=b.rel?0:(+b.kg||0); } }); return {n:n,kg:Math.round(kg*10)/10}; }
+function fishOf(it){ var n=0,kg=0; B.store.raw('bites').forEach(function(b){ if(b.gear===it.id&&!b.miss&&!B.pest(b)){ n+=Math.max(1,Math.floor(+b.cnt)||1); kg+=b.rel?0:(+b.kg||0); } }); return {n:n,kg:Math.round(kg*10)/10}; }
 function state(it){ return it.state==='done'?T('Ολοκληρώθηκε','Completed'):it.state==='out'?T('Στη θάλασσα','At sea'):it.state==='setting'?T('Σε ρίψη','Setting'):T('Σε ανέβασμα','Hauling'); }
 function soak(it){ var s=it.set||{}, hh=it.haul; return (s.ta&&hh&&hh.ta)?hh.ta-s.ta:0; }
 
@@ -187,7 +187,7 @@ function detail(id){
   if(sk&&f.n) rows.push([T('Απόδοση','Catch rate'),B.num(f.n/(sk/3600000),1)+T(' ψάρια/ώρα',' catches/hour')]);
   body.append(h('div',{class:'card'},h('div',{class:'rows one'},rows.map(function(r){ return h('div',{class:'row'},h('span',{text:r[0]}),h('b',{text:r[1]})); }))));
   if(it.notes) body.append(h('div',{class:'card'},h('p',{class:'p',text:it.notes})));
-  var bs=B.store.raw('bites').filter(function(b){ return b.gear===it.id&&!b.miss; });
+  var bs=B.store.raw('bites').filter(function(b){ return b.gear===it.id&&!b.miss&&!B.pest(b); });
   if(bs.length){ var l=h('div',{class:'list'}); bs.forEach(function(b){ l.append(h('button',{class:'li',type:'button',onclick:function(){ sh.close(true); if(B.biteDetail) B.biteDetail(b); }},h('span',{class:'tx'},h('b',{text:(b.species||'')+(+b.cnt>1?' ×'+b.cnt:'')}),h('small',{text:[b.time,+b.kg?b.kg+' kg':''].filter(Boolean).join(' · ')})))); }); body.append(h('h3',{class:'listh',text:T('Αλιεύματα','Catches')}),l); }
   body.append(h('div',{class:'acts'},h('button',{class:'btn pri',type:'button',text:T('+ Αλίευμα','+ Catch'),onclick:function(){ sh.close(true); B.biteForm(null,{gear:it}); }}),h('a',{class:'btn',href:'#map',onclick:function(){ ls.set('psaro-v4-gearshow',it.id); sh.close(true); },text:T('Στον χάρτη','On the map')})),
     h('div',{class:'acts'},h('button',{class:'btn',type:'button',text:T('Επεξεργασία','Edit'),onclick:function(){ sh.close(true); edit(it.id); }}),h('button',{class:'btn del',type:'button',text:T('Διαγραφή','Delete'),onclick:function(){ B.ask(T('Να διαγραφεί «','Delete “')+nm(it)+T('»; Τα ψάρια του μένουν.','”? Its catches stay.'),T('Διαγραφή','Delete'),true).then(function(y){ if(!y) return; var g=G(); g.items=g.items.filter(function(x){ return x.id!==it.id; }); put(g); sh.close(); B.toast(T('Διαγράφηκε.','Deleted.')); }); }})));

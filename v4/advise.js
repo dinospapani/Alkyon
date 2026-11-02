@@ -14,7 +14,7 @@ function sName(e){ return EN&&e.en?e.en:e.n; }
 function utcMin(){ return -new Date().getTimezoneOffset(); }
 
 /* εγγραφές όπως στην κλασική: act = ψάρια (όχι χαμένα, όχι δίχτυα), misses = χαμένα */
-function bitesAll(){ return B.records('bites').filter(function(b){ return !b.deleted; }); }
+function bitesAll(){ return B.records('bites').filter(function(b){ return !b.deleted&&!B.pest(b); }); }
 function act(){ return bitesAll().filter(function(b){ return !b.miss&&!b.gear; }); }
 function misses(){ return bitesAll().filter(function(b){ return b.miss; }); }
 function trips(){ return B.records('trips').filter(function(t){ return !t.deleted; }); }

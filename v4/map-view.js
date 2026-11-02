@@ -38,7 +38,7 @@ function drawBase(){ if(base) map.removeLayer(base); base=L.tileLayer(TILES[cfg.
 var gHeat=null, heatPill=null;
 function hf(){ var f=ls.get('psaro-v4-heatf',{})||{}; return {m:f.m==null?'all':f.m,sp:f.sp||''}; }
 function heatList(){ var f=hf(), cm=new Date().getMonth()+1;
-  return S().raw('bites').filter(function(b){ if(b.deleted||b.miss||typeof b.lat!=='number'||!b.date) return false; var m=+b.date.slice(5,7);
+  return S().raw('bites').filter(function(b){ if(b.deleted||b.miss||B.pest(b)||typeof b.lat!=='number'||!b.date) return false; var m=+b.date.slice(5,7);
     if(f.m==='near'){ var d=Math.abs(m-cm); if(Math.min(d,12-d)>1) return false; } else if(f.m!=='all'&&+f.m!==m) return false;
     if(f.sp&&(b.species||'')!==f.sp) return false; return true; }); }
 var MONS=EN?['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']:['Ιαν','Φεβ','Μάρ','Απρ','Μάι','Ιούν','Ιούλ','Αύγ','Σεπ','Οκτ','Νοέ','Δεκ'];
@@ -52,7 +52,7 @@ function drawHeat(){ if(gHeat&&map){ map.removeLayer(gHeat); gHeat=null; } if(he
   if(heatPill){ heatPill.querySelector('b').textContent=heatLabel(); heatPill.querySelector('small').textContent=a.length+' '+T(a.length===1?'ψάρι':'ψάρια',a.length===1?'catch':'catches'); } }
 function heatSheet(){ var f=hf(), body=h('div',{class:'bform'});
   var ms=h('select',{class:'select'}); [['all',T('Όλοι οι μήνες','All months')],['near',T('Αυτή την εποχή (±1 μήνας)','This season (±1 month)')]].concat(MONS.map(function(m,i){ return [String(i+1),m]; })).forEach(function(o){ ms.append(h('option',{value:o[0],text:o[1]})); }); ms.value=String(f.m);
-  var cnt={}; S().raw('bites').forEach(function(b){ if(!b.deleted&&!b.miss&&b.species&&typeof b.lat==='number') cnt[b.species]=(cnt[b.species]||0)+1; });
+  var cnt={}; S().raw('bites').forEach(function(b){ if(!b.deleted&&!b.miss&&!B.pest(b)&&b.species&&typeof b.lat==='number') cnt[b.species]=(cnt[b.species]||0)+1; });
   var ss=h('select',{class:'select'}); ss.append(h('option',{value:'',text:T('Όλα τα είδη','All species')})); Object.keys(cnt).sort(function(a,b){ return cnt[b]-cnt[a]; }).forEach(function(k){ ss.append(h('option',{value:k,text:k+' ('+cnt[k]+')'})); }); ss.value=f.sp;
   function upd(){ ls.set('psaro-v4-heatf',{m:ms.value,sp:ss.value}); drawHeat(); } ms.addEventListener('change',upd); ss.addEventListener('change',upd);
   body.append(h('p',{class:'sub',text:T('Χρώμα από τα δικά σου ψάρια: κίτρινο λίγα, πορτοκαλί αρκετά, κόκκινο τα περισσότερα.','Coloured from your own catches: yellow few, orange more, red the most.')}),h('label',{class:'fld'},h('span',{text:T('Μήνας','Month')}),ms),h('label',{class:'fld'},h('span',{text:T('Είδος','Species')}),ss),
@@ -385,7 +385,7 @@ function fishSheet(a){
 function spotList(a){ var l=h('div',{class:'list'}), sh; a.forEach(function(sp){ l.append(h('button',{class:'li',type:'button',onclick:function(){ sh.close(true); spotSheet(sp); }},h('span',{class:'ic'},B.icon('pin')),h('span',{class:'tx'},h('b',{text:sp.name||T('Σημείο','Spot')}),h('small',{text:[sp.type,sp.depth!=null&&sp.depth!==''?sp.depth+' m':''].filter(Boolean).join(' · ')||' '})),B.icon('chev'))); });
   sh=B.sheet({title:a.length+' '+T('σημεία εδώ','spots here'),body:l}); }
 function spotSheet(sp){
-  var n=S().raw('bites').filter(function(b){ return !b.miss&&typeof b.lat==='number'&&Math.abs(b.lat-sp.lat)<0.0008&&Math.abs(b.lon-sp.lon)<0.001; }).length;
+  var n=S().raw('bites').filter(function(b){ return !b.miss&&!B.pest(b)&&typeof b.lat==='number'&&Math.abs(b.lat-sp.lat)<0.0008&&Math.abs(b.lon-sp.lon)<0.001; }).length;
   var body=h('div',{class:'det'},h('div',{class:'card'},h('div',{class:'rows one'},[[T('Τύπος','Type'),sp.type||'–'],[T('Βάθος','Depth'),sp.depth!=null&&sp.depth!==''?sp.depth+' m':'–'],[T('Ψάρια εδώ','Catches here'),String(n)],[T('Συντεταγμένες','Coordinates'),window.PsaroCoord?PsaroCoord.fmt(sp.lat,sp.lon):sp.lat.toFixed(5)+', '+sp.lon.toFixed(5)]].map(function(r){ return h('div',{class:'row'},h('span',{text:r[0]}),h('b',{text:r[1]})); }))));
   if(sp.notes) body.append(h('div',{class:'card'},h('p',{class:'p',text:sp.notes})));
   var sum=B.spotSummary&&B.spotSummary(sp); if(sum) body.append(h('div',{class:'card'},h('h2',{text:T('Τι έπιασες εδώ','What you caught here')}),h('div',{class:'rows one'},sum.map(function(r){ return h('div',{class:'row'},h('span',{text:r[0]}),h('b',{text:r[1]})); }))));
@@ -549,7 +549,7 @@ function layersSheet(){
 
 /* ---------- σελίδα ---------- */
 var box=null, lmEl=null, fishb=null, mapBell=null;
-function fishCounts(){ if(!fishb||!B.tripCounts) return; var c=B.tripCounts(), b=fishb.querySelectorAll('b'); b[0].textContent=c.miss; b[1].textContent=c.n; }
+function fishCounts(){ if(!fishb||!B.tripCounts) return; var c=B.tripCounts(), b=fishb.querySelectorAll('b'); b[0].textContent=c.pest||0; b[1].textContent=c.miss; b[2].textContent=c.n; }
 function mount(el){
   root=el; document.body.classList.add('mapon'); cfg=Object.assign({base:'sat',sea:true,spots:true,fish:true,zones:true,mpa:false,dams:B.prof()==='lake',wind:false,seast:false},ls.get('psaro-v4-map',{}));
   if(!box){ lmEl=h('div',{class:'lmap',id:'lmap'}); box=h('div',{class:'mapbox',id:'v4map'},lmEl); }
@@ -594,7 +594,9 @@ function mount(el){
     ['pointerup','pointerleave','pointercancel'].forEach(function(ev){ btn.addEventListener(ev,function(){ clearTimeout(t); }); }); btn.addEventListener('contextmenu',function(e){ e.preventDefault(); });
     btn.addEventListener('click',function(){ if(held){ held=false; return; } if(miss) B.quickRec(true); else B.biteForm(); }); }
   hold(bCatch,false); hold(bMiss,true);
-  fishb=h('div',{class:'fishbtns'},bMiss,bCatch); fishCounts();
+  /* v31z542: λαγοκέφαλος / έφαγε το δόλωμα (δεν μετράει στα ψάρια) */
+  var bPest=h('button',{class:'fb fbp',type:'button','aria-label':T('Λαγοκέφαλος ή έφαγε το δόλωμα','Toadfish or bait taken'),onclick:function(){ if(B.pestSheet) B.pestSheet(); }},h('span',{class:'fbpi',text:'🐡'}),h('b',{text:'0'}));
+  fishb=h('div',{class:'fishbtns'},bPest,bMiss,bCatch); fishCounts();
   el.replaceChildren(box,cross,bar,qc,heatPill,trip,seab,dtBarEl(),fishb,mwBox());
   if(B.smartChip){ var rc=h('div',{class:'rtwrap'}); B.smartChip().forEach(function(n){ rc.append(n); }); el.append(rc); }
   if(map){ setTimeout(function(){ if(!map) return; map.invalidateSize(); drawData(); applyPend(); drawDirect(); },30); locate(false); return; }

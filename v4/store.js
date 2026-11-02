@@ -127,10 +127,12 @@ setTimeout(function(){ if(S()) sync(false); },1500);
 
 B.store={raw:raw,get:get,save:save,remove:remove,tombs:tombs,Photos:Photos,phKeys:phKeys,resize:resize,
 
-  bites:function(){ return raw('bites').filter(function(b){ return !b.miss; }); }, misses:function(){ return raw('bites').filter(function(b){ return b.miss; }); }};
+  /* v31z542: τα ψάρια χωρίς τους λαγοκέφαλους· αυτοί χωριστά στο pests() */
+  bites:function(){ return raw('bites').filter(function(b){ return !b.miss&&!B.pest(b); }); }, misses:function(){ return raw('bites').filter(function(b){ return b.miss&&!B.pest(b); }); },
+  pests:function(){ return raw('bites').filter(function(b){ return !b.deleted&&B.pest(b); }); }};
 /* διαγραφή με «Αναίρεση» (σύρσιμο στις λίστες): οι φωτογραφίες στο κινητό σβήνουν μόνο αφού περάσει η ευκαιρία αναίρεσης */
 function recountTrip(sid){ if(!sid) return; var t=raw('trips').filter(function(x){ return x.sid===sid; })[0]; if(!t) return;
-  var bs=raw('bites').filter(function(b){ return b.trip===sid&&!b.miss; }); save('trips',Object.assign({},t,{count:bs.reduce(function(s,b){ return s+Math.max(1,Math.floor(+b.cnt)||1); },0),kg:Math.round(bs.reduce(function(s,b){ return s+(b.rel?0:(+b.kg||0)); },0)*10)/10})); }
+  var bs=raw('bites').filter(function(b){ return b.trip===sid&&!b.miss&&!B.pest(b); }); save('trips',Object.assign({},t,{count:bs.reduce(function(s,b){ return s+Math.max(1,Math.floor(+b.cnt)||1); },0),kg:Math.round(bs.reduce(function(s,b){ return s+(b.rel?0:(+b.kg||0)); },0)*10)/10})); }
 B.store.delUndo=function(k,rec,msg){
   if(!rec||!rec.id) return; var undone=false, keys=k==='bites'?phKeys(rec):k==='tackle'&&rec.photo?['tk-'+rec.id]:[];
   remove(k,rec.id); if(k==='bites') recountTrip(rec.trip);

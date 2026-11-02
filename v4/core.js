@@ -85,4 +85,8 @@ function prof(){ var p=ls.raw('psaro-fprof'); return PROF[p]?p:'boat'; }
 
 window.BC={LANG:LANG,EN:EN,T:T,ls:ls,records:records,KINDS:KINDS,on:on,emit:emit,h:h,s:s,pad:pad,hm:hm,dayName:dayName,dateShort:dateShort,DAYS3:DAYS3,num:num,lastPos:lastPos,locate:locate,prof:prof,PROF:PROF,
   classic:function(q){ return '../classic.html'+(q||''); }};
+/* v31z542: χωροκατακτητικά τοξικά (λαγοκέφαλοι) και «έφαγε το δόλωμα / έκοψε»: καταγράφονται, αλλά δεν μετράνε ως ψάρια */
+var PEST_L=['Lagocephalus sceleratus','Lagocephalus lagocephalus','Lagocephalus suezensis','Lagocephalus spadiceus','Torquigener flavimaculosus','Sphoeroides pachygaster'];
+window.BC.PEST_L=PEST_L;
+window.BC.pest=function(b){ if(!b) return false; if(b.pest) return true; if(b.latin&&PEST_L.indexOf(b.latin)>=0) return true; return /λαγοκ[εέ]φαλ|κουνελ[οό]ψαρ|toadfish|puffer ?fish|lagocephalus|torquigener/i.test(b.species||''); };
 })();

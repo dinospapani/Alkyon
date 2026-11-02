@@ -26,7 +26,13 @@ B.limitsCard=function(){
   PRE.forEach(function(p){ pre.append(h('option',{value:p[0],text:p[1]})); });
   pre.value=(PRE.filter(function(p){ return p[2].wind===L.wind&&p[2].wave===L.wave&&p[2].gust===L.gust; })[0]||['custom'])[0];
   pre.addEventListener('change',function(){ var p=PRE.filter(function(x){ return x[0]===pre.value; })[0]; if(!p) return; setL(Object.assign({},p[2])); var nc=B.limitsCard(); card.replaceWith(nc); });
-  card.append(h('h2',{text:T('Όρια ασφαλείας','Safety limits')}),
+  /* v31z539: πρόταση από το μήκος του σκάφους (σελίδα Σκάφος) */
+  var bl=0; try{ var bb=ls.get('psaro-boat',null); bl=+(bb&&bb.boat&&bb.boat.len)||0; }catch(e){}
+  var sg=bl>0?(bl<6?'small':bl<=8?'mid':'big'):null, sgP=sg&&PRE.filter(function(x){ return x[0]===sg; })[0], sug=null;
+  if(sgP&&pre.value!==sg&&B.prof()!=='shore'&&B.prof()!=='lake'&&B.prof()!=='spear')
+    sug=h('div',{class:'limsug'},h('span',{text:T('Το σκάφος σου είναι ','Your boat is ')+B.num(bl,1).replace(/[.,]0$/,'')+' m. '+T('Ταιριάζει: ','Suggested: ')+sgP[1]+' ('+sgP[2].wind+' kn, '+B.num(sgP[2].wave,1)+' m, '+T('ριπές ','gusts ')+sgP[2].gust+' kn).'}),
+      h('button',{class:'btn sm pri',type:'button',text:T('Εφαρμογή','Apply'),onclick:function(){ setL(Object.assign({},sgP[2])); B.toast(T('Τα όρια άλλαξαν σε «','Limits set to “')+sgP[1]+T('».','”.')); var nc=B.limitsCard(); card.replaceWith(nc); }}));
+  card.append(h('h2',{text:T('Όρια ασφαλείας','Safety limits')}),sug,
     h('p',{class:'sub',text:T('Πάνω από αυτά η ώρα δεν θεωρείται ασφαλής: στην Πρόγνωση, στις Ευκαιρίες και στις ειδοποιήσεις καιρού.','Above these an hour is not considered safe: in the Forecast, the Chances and the weather alerts.')}),
     pre,
     row(T('Άνεμος έως','Wind up to'),'wind',6,30,1,wtxt),

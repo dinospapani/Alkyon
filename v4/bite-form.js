@@ -162,7 +162,7 @@ B.biteForm=function(edit,opt){
   function minOf(la){ var M=window.MIN_SIZES||{}; if(!la) return 0; if(M[la]) return M[la]; var g=la.split(' ')[0]; if(g==='Chelon'||g==='Liza'||g==='Oedalechilus') return M['Mugil spp.']||0; return M[g+' spp.']||M[g+' sp.']||0; }
   function law(){ var la=pickLa||latinOf(sp.value), L=+len.value||0, mn=minOf(la), t='', warn=false;
     if(la==='Thunnus thynnus'||la==='Xiphias gladius'){ t=T('Απαγορεύεται η κράτηση (ερασιτεχνική αλιεία).','Not allowed to keep (recreational).'); warn=true; }
-    else if(la==='Lagocephalus sceleratus'){ t=T('⚠ Τοξικός. Μην τον φας και μην τον δώσεις.','⚠ Toxic. Do not eat it or give it away.'); warn=true; }
+    else if((B.PEST_L||[]).indexOf(la)>=0||B.pest({species:sp.value})){ t=(B.pestWarn?B.pestWarn():T('⚠ Τοξικός. Μην τον φας και μην τον δώσεις.','⚠ Toxic. Do not eat it or give it away.'))+' '+T('Δεν μετράει στα ψάρια σου. Αν έκοψε αγκίστρι ή τεχνητό, πάτα το παρακάτω.','It does not count in your catches. If it cut a hook or lure, tap it below.'); warn=true; }
     else if(mn){ t=T('Ελάχιστο επιτρεπόμενο μέγεθος: ','Minimum legal size: ')+mn+' cm'; if(L&&L<mn){ t='⚠ '+t+T(' – κάτω από το όριο, ελευθέρωσέ το.',' – under the limit, release it.'); warn=true; } }
     if(/καρχαρ|γαλεο|σκυλοψαρ|σαλαχ|τρυγον|βατοσ|βατος|shark|\bray\b|skate|stingray/i.test(sp.value||'')){ t=T('⚠ Καρχαρίες και σαλάχια δεν επιτρέπονται ως ερασιτεχνικό αλίευμα: ελευθέρωσέ τα (δευτερογενής πηγή).','⚠ Sharks and rays are not allowed as recreational catch: release them (secondary source).'); warn=true; }
     lawNote.textContent=t; lawNote.hidden=!t||miss.checked; lawNote.classList.toggle('warn',warn); }
@@ -210,7 +210,7 @@ B.biteForm=function(edit,opt){
       S.phKeys(e).forEach(function(k){ S.Photos.del(k).catch(function(){}); }); adjLost(e.tkLost||[],1,null); S.remove('bites',e.id); recount(e.trip); sh.close(); B.toast(T('Το ψάρι διαγράφηκε.','Catch deleted.')); }); }}):null);
   form.addEventListener('submit',function(ev){ ev.preventDefault(); submit(); });
   function recount(sid){ if(!sid) return; var t=S.raw('trips').filter(function(x){ return x.sid===sid; })[0]; if(!t) return;
-    var bs=S.raw('bites').filter(function(b){ return b.trip===sid&&!b.miss; }); S.save('trips',Object.assign({},t,{count:bs.reduce(function(s,b){ return s+Math.max(1,Math.floor(+b.cnt)||1); },0),kg:Math.round(bs.reduce(function(s,b){ return s+(b.rel?0:(+b.kg||0)); },0)*10)/10})); }
+    var bs=S.raw('bites').filter(function(b){ return b.trip===sid&&!b.miss&&!B.pest(b); }); S.save('trips',Object.assign({},t,{count:bs.reduce(function(s,b){ return s+Math.max(1,Math.floor(+b.cnt)||1); },0),kg:Math.round(bs.reduce(function(s,b){ return s+(b.rel?0:(+b.kg||0)); },0)*10)/10})); }
   function num(i){ return i.value===''?null:+i.value; }
   var rec=null;
   function submit(){
@@ -295,7 +295,7 @@ B.quickRec=function(miss,at,tms,quiet){
   if(!miss&&B.gearTag) B.gearTag(rec);
   var id=S.save('bites',rec); rec.id=id;
   try{ if(window.PsaroBiteWx) PsaroBiteWx.ensure(Object.assign({},rec,{id:id})); }catch(e){}
-  if(rec.trip){ var t=S.raw('trips').filter(function(x){ return x.sid===rec.trip; })[0]; if(t){ var bs=S.raw('bites').filter(function(b){ return b.trip===rec.trip&&!b.miss&&!b.deleted; }); S.save('trips',Object.assign({},t,{count:bs.reduce(function(s2,b){ return s2+Math.max(1,Math.floor(+b.cnt)||1); },0)})); } }
+  if(rec.trip){ var t=S.raw('trips').filter(function(x){ return x.sid===rec.trip; })[0]; if(t){ var bs=S.raw('bites').filter(function(b){ return b.trip===rec.trip&&!b.miss&&!b.deleted&&!B.pest(b); }); S.save('trips',Object.assign({},t,{count:bs.reduce(function(s2,b){ return s2+Math.max(1,Math.floor(+b.cnt)||1); },0)})); } }
   B.emit('store','psaro-bites'); B.emit('trip');
   try{ navigator.vibrate&&navigator.vibrate(25); }catch(e){}
   if(!quiet) B.toast(miss?T('Καταγράφηκε αστοχία ✕','Miss logged ✕'):T('Ψάρι καταγράφηκε 🐟 Πρόσθεσε το είδος αργότερα από το Ημερολόγιο.','Catch logged 🐟 Add the species later from the Logbook.'));
@@ -305,6 +305,29 @@ B.quickRec=function(miss,at,tms,quiet){
   if(B.cloud&&B.cloud.session()) B.cloud.sync(false);
   return id;
 };
+/* v31z542: λαγοκέφαλος με ένα πάτημα: kind 'fish' = τον έβγαλα, 'stolen' = έφαγε το δόλωμα / έκοψε (δεν τον είδα). cut = έκοψε αγκίστρι/τεχνητό (−1). */
+B.quickPest=function(kind,cutId){
+  var S=st(), id=B.quickRec(false,null,null,true), r=S.get('bites',id); if(!r) return;
+  var o=Object.assign({},r,kind==='stolen'?{species:T('Έφαγε το δόλωμα / έκοψε','Bait taken / cut'),latin:'',pest:'stolen'}:{species:T('Λαγοκέφαλος','Silver-cheeked toadfish'),latin:'Lagocephalus sceleratus',pest:true}), msg=[];
+  if(cutId){ adjLost([cutId],-1,msg); o.tkLost=[cutId]; }
+  S.save('bites',o); B.emit('store','psaro-bites'); B.emit('trip');
+  B.toast('🐡 '+(kind==='stolen'?T('Καταγράφηκε: έφαγε το δόλωμα','Logged: bait taken'):T('Λαγοκέφαλος καταγράφηκε (δεν μετράει στα ψάρια)','Toadfish logged (not counted as a catch)'))+(msg.length?' · '+msg.join(', '):''),5000);
+  return id; };
+/* αγκίστρια και τεχνητά που έχεις (για «έκοψε»): πρώτα όσα χρησιμοποίησες τελευταία */
+function cutChoices(){ var S=st(), tk=S.raw('tackle').filter(function(x){ return !x.deleted; }), byId={}, last=[], out=[]; tk.forEach(function(x){ byId[x.id]=x; });
+  lastTk(B.prof()).forEach(function(i){ var x=byId[i]; if(!x) return; (x.type==='set'?(x.members||[]):[i]).forEach(function(m){ var y=byId[m]; if(y&&(y.type==='hook'||y.type==='lure')&&last.indexOf(m)<0) last.push(m); }); });
+  last.forEach(function(i){ out.push(byId[i]); }); tk.forEach(function(x){ if((x.type==='hook'||x.type==='lure')&&last.indexOf(x.id)<0) out.push(x); }); return out; }
+/* συχνότητα λαγοκέφαλων γύρω από ένα σημείο: [λαγοκέφαλοι, όλα τα τσιμπήματα] αν είναι ≥3 και ≥30% */
+B.pestHere=function(lat,lon){ var n=0, p=0; st().raw('bites').forEach(function(b){ if(b.deleted||b.gear||typeof b.lat!=='number') return; var dy=(b.lat-lat)*111000, dx=(b.lon-lon)*111000*Math.cos(lat*Math.PI/180); if(dx*dx+dy*dy>400*400) return; n++; if(B.pest(b)) p++; });
+  return p>=3&&p/n>=0.3?[p,n]:null; };
+B.pestSheet=function(){ var cut=h('input',{type:'checkbox'}), ch=cutChoices(), sel=h('select',{class:'select',hidden:true,'aria-label':T('Τι έκοψε','What was cut')}), sh;
+  ch.forEach(function(x){ sel.append(h('option',{value:x.id,text:(x.name||'')+(x.qty!=null?' ('+x.qty+')':'')})); });
+  cut.addEventListener('change',function(){ sel.hidden=!cut.checked||!ch.length; });
+  var b=function(k,t,sub){ return h('button',{class:'li',type:'button',onclick:function(){ sh.close(); B.quickPest(k,cut.checked&&ch.length?sel.value:null); }},h('span',{class:'ic',text:'🐡'}),h('span',{class:'tx'},h('b',{text:t}),h('small',{text:sub}))); };
+  sh=B.sheet({title:T('Λαγοκέφαλος','Toadfish'),body:h('div',null,
+    h('label',{class:'tg',style:{margin:'0 0 8px'}},cut,h('span',{text:T('Έκοψε αγκίστρι ή τεχνητό (−1 από τον εξοπλισμό)','It cut a hook or lure (−1 from your tackle)')})),sel,
+    h('div',{class:'list',style:{marginTop:'10px'}},b('fish',T('Τον έβγαλα','I landed one'),T('Τοξικός: πένσα, προσοχή στα δόντια','Toxic: use pliers, mind the teeth')),b('stolen',T('Έφαγε το δόλωμα / έκοψε','Bait taken / cut'),T('Δεν τον είδα, αλλά το αράθι γύρισε άδειο ή κομμένο','Did not see it, but the rig came back empty or cut'))),
+    h('p',{class:'foot',text:T('Δεν μετράνε στα ψάρια σου. Φαίνονται χωριστά στα Στατιστικά.','Not counted in your catches. Shown separately in Stats.')}))}); };
 /* η τελευταία καταγραφή αυτής της εξόδου (για διαγραφή με παρατεταμένο πάτημα) */
 B.quickUndo=function(miss){
   var S=st(), sf=ls.get('psaro-safe',{})||{}; if(!sf.active) return;
@@ -313,5 +336,5 @@ B.quickUndo=function(miss){
   B.ask(miss?T('Να διαγραφεί η τελευταία αστοχία;','Delete the last miss?'):T('Να διαγραφεί το τελευταίο ψάρι','Delete the last catch')+(b.species?' ('+b.species+(b.kg?' '+b.kg+' kg':'')+')':'')+'?',T('Διαγραφή','Delete'),true).then(function(y){ if(!y) return;
     S.phKeys(b).forEach(function(k){ S.Photos.del(k).catch(function(){}); }); adjLost(b.tkLost||[],1,null); S.remove('bites',b.id); B.emit('store','psaro-bites'); B.emit('trip'); B.toast(T('Διαγράφηκε.','Deleted.')); });
 };
-B.tripCounts=function(){ var sf=ls.get('psaro-safe',{})||{}, n=0, m=0; if(!sf.active) return {n:0,miss:0}; st().raw('bites').forEach(function(b){ if(b.deleted||!(sf.id&&b.trip===sf.id)) return; if(b.miss) m++; else n+=Math.max(1,Math.floor(+b.cnt)||1); }); return {n:n,miss:m}; };
+B.tripCounts=function(){ var sf=ls.get('psaro-safe',{})||{}, n=0, m=0, pc=0; if(!sf.active) return {n:0,miss:0}; st().raw('bites').forEach(function(b){ if(b.deleted||!(sf.id&&b.trip===sf.id)) return; if(B.pest(b)) pc++; else if(b.miss) m++; else n+=Math.max(1,Math.floor(+b.cnt)||1); }); return {n:n,miss:m,pest:pc}; };
 })();

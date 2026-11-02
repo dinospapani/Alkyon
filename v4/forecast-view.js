@@ -65,11 +65,22 @@ function verdict(d){
   if(!d.safe) return d.why==='night'?T('Δεν μένει φως σήμερα','No daylight left today'):T('Δεν συνιστάται έξοδος','Not a day to go out');
   return d.best>=80?T('Εξαιρετική μέρα για ψάρεμα','Excellent day for fishing'):d.best>=70?T('Καλή μέρα για ψάρεμα','Good day for fishing'):d.best>=50?T('Μέτρια μέρα','Fair day'):T('Δύσκολη μέρα','Tough day');
 }
+/* v31z539: τα όρια ασφαλείας του χρήστη (όχι σταθερά 14 kn / 0,9 m / 24 kn) */
+function LIM(){ try{ return PF.lims(); }catch(e){ return {wind:14,wave:0.9,gust:24}; } }
+/* γιατί μια ώρα είναι πάνω από τα όρια: «άνεμος 15 kn (όριό σου 14)» */
+function overWhy(q){ var L=LIM(), r=[];
+  if(q.code!=null&&q.code>=95) r.push(T('καταιγίδα','thunderstorm'));
+  /* αν στρογγυλεμένα βγαίνουν ίδια (π.χ. 0,92 και 0,9 m), γράφει «λίγο πάνω από το όριό σου» */
+  function one(lab,v,lim,f){ var a=f(v), b=f(lim); r.push(lab+(a===b?T('λίγο πάνω από το όριο (',' just over the limit (')+b+')':a+T(' (όριό σου ',' (your limit ')+b+')')); }
+  if(q.wind!=null&&q.wind>L.wind) one(T('άνεμος ','wind '),q.wind,L.wind,U.wind);
+  if(q.gust!=null&&q.gust>L.gust) one(T('ριπές ','gusts '),q.gust,L.gust,U.wind);
+  if(q.wave!=null&&q.wave>L.wave&&B.prof()!=='lake') one(T('κύμα ','waves '),q.wave,L.wave,U.wave);
+  return r.join(', '); }
 function unsafeWhy(d){
-  var w=d.wx||{}, r=[];
-  if(w.windMax!=null&&w.windMax>14) r.push(T('άνεμος έως ','wind up to ')+U.wind(w.windMax));
-  if(w.waveMax!=null&&w.waveMax>0.9&&B.prof()!=='lake') r.push(T('κύμα έως ','waves up to ')+U.wave(w.waveMax));
-  if(w.gustMax!=null&&w.gustMax>24) r.push(T('ριπές έως ','gusts up to ')+U.wind(w.gustMax));
+  var w=d.wx||{}, r=[], L=LIM();
+  if(w.windMax!=null&&w.windMax>L.wind) r.push(T('άνεμος έως ','wind up to ')+U.wind(w.windMax));
+  if(w.waveMax!=null&&w.waveMax>L.wave&&B.prof()!=='lake') r.push(T('κύμα έως ','waves up to ')+U.wave(w.waveMax));
+  if(w.gustMax!=null&&w.gustMax>L.gust) r.push(T('ριπές έως ','gusts up to ')+U.wind(w.gustMax));
   if(w.code!=null&&w.code>=95) r.push(T('καταιγίδα','thunderstorm'));
   return r.join(', ');
 }
@@ -262,19 +273,20 @@ function hourCard(fc,d,selH,nh){
     var b=h('i',{role:'option',class:'hb'+(k?' '+k:'')+(nh!=null&&q.hr<nh?' past':''),'aria-label':B.pad(q.hr)+':00, '+T('δείκτης ','index ')+q.score,style:{height:Math.round(10+100*Math.max(0,(q.score-lo)/Math.max(1,hi-lo)))+'px'}});
     box.append(b); return b;
   });
-  var head=h('div',{class:'hsel'}), rows=h('div',{class:'rows'}), cur=-1;
+  var head=h('div',{class:'hsel'}), huLine=h('p',{class:'hover',hidden:true}), rows=h('div',{class:'rows'}), cur=-1;
   function set(i){
     i=Math.max(0,Math.min(hs.length-1,i)); if(i===cur) return; cur=i; var q=hs[i]; st.hour=q.hr;
     bars.forEach(function(b,j){ b.classList.toggle('sel',j===i); b.setAttribute('aria-selected',String(j===i)); });
     head.className='hsel lv-'+(q.safe?lvl(q.score):'poor');
-    head.replaceChildren.apply(head,[h('b',{text:(nh!=null&&q.hr===nh?T('Τώρα','Now')+', ':'')+B.pad(q.hr)+':00'}),h('span',{class:'hs',text:T('δείκτης ','index ')+q.score}),q.safe?null:h('span',{class:'hu',text:T('όχι ασφαλής ώρα','not a safe hour')})].filter(Boolean));
+    head.replaceChildren.apply(head,[h('b',{text:(nh!=null&&q.hr===nh?T('Τώρα','Now')+', ':'')+B.pad(q.hr)+':00'}),h('span',{class:'hs',text:T('δείκτης ','index ')+q.score}),].filter(Boolean)); var ow=q.safe?'':overWhy(q);
+    huLine.hidden=q.safe; huLine.replaceChildren(h('b',{text:T('Πάνω από τα όριά σου','Over your limits')}),h('span',{text:ow?': '+ow:''}),h('a',{href:'#',text:T('Αλλαγή ορίων','Change limits'),onclick:function(e){ e.preventDefault(); limSheet(); }}));
     rows.replaceChildren.apply(rows,hourRows(q).map(function(r){ return h('div',{class:'row'},h('span',{text:r[0]}),h('b',null,r[1])); }));
   }
   scrub(box,function(fx){ set(Math.floor(fx*hs.length)); });
   box.addEventListener('keydown',function(e){ if(e.key==='ArrowLeft'){ set(cur-1); e.preventDefault(); } else if(e.key==='ArrowRight'){ set(cur+1); e.preventDefault(); } });
   var si=0; hs.forEach(function(q,j){ if(q.hr===selH) si=j; }); set(si);
   c.append(h('div',{class:'hbw'},box,h('div',{class:'axis'},['00','06','12','18','23'].map(function(t){ return h('span',{text:t}); }))),
-    h('div',{class:'hleg'},h('span',{class:'k best',text:T('καλύτερες ώρες','best hours')}),h('span',{class:'k moon',text:T('σελήνη','moon')}),h('span',{class:'k bad',text:T('μη ασφαλείς','unsafe')})),head,rows);
+    h('div',{class:'hleg'},h('span',{class:'k best',text:T('καλύτερες ώρες','best hours')}),h('span',{class:'k moon',text:T('σελήνη','moon')}),h('span',{class:'k bad',text:T('πάνω από τα όρια','over your limits')})),head,huLine,rows);
   return c;
 }
 /* σύρσιμο οριζόντια πάνω σε ένα στοιχείο: fn(θέση 0–1). Η κάθετη κύλιση της σελίδας δουλεύει κανονικά. */
@@ -286,10 +298,13 @@ function scrub(el,fn){
   el.addEventListener('pointermove',function(e){ if(on) at(e); });
   ['pointerup','pointercancel','lostpointercapture'].forEach(function(n){ el.addEventListener(n,function(){ on=false; }); });
 }
+/* όρια ασφαλείας σε παράθυρο, από την Πρόγνωση */
+function limSheet(){ if(!B.limitsCard) return; var ch=false, on=function(){ ch=true; }; window.addEventListener('psaro-limits',on);
+  B.sheet({title:T('Όρια ασφαλείας','Safety limits'),body:h('div',null,B.limitsCard()),onclose:function(){ window.removeEventListener('psaro-limits',on); if(ch) load(true); }}); }
 function hourLine(hr,d){
   var bits=[B.pad(hr.hr)+':00', T('δείκτης ','index ')+hr.score];
   if(hr.wind!=null) bits.push(U.wind(hr.wind)); if(hr.wave!=null&&B.prof()!=='lake') bits.push(U.wave(hr.wave));
-  return h('p',{class:'hline'+(hr.safe?'':' unsafe')},bits.join(' · ')+(hr.safe?'':' · '+T('όχι ασφαλής ώρα','not a safe hour')));
+  return h('p',{class:'hline'+(hr.safe?'':' unsafe')},bits.join(' · ')+(hr.safe?'':' · '+T('πάνω από τα όρια','over your limits')));
 }
 /* τι βοηθά και τι δυσκολεύει, στις ώρες του καλύτερου παραθύρου */
 function reasons(d){
@@ -439,12 +454,12 @@ function pwFill(body,v,p,fc,rk){
   body.replaceChildren.apply(body,out);
 }
 /* σύντομος λόγος για μη ασφαλή μέρα: το πιο σοβαρό */
-function shortWhy(d){ var w=d.wx||{};
+function shortWhy(d){ var w=d.wx||{}, L=LIM();
   if(w.code!=null&&w.code>=95) return T('καταιγίδα','storm');
-  if(w.waveMax!=null&&w.waveMax>0.9&&B.prof()!=='lake') return T('κύμα ','waves ')+U.wave(w.waveMax);
-  if(w.windMax!=null&&w.windMax>14) return T('άνεμος ','wind ')+U.wind(w.windMax);
-  if(w.gustMax!=null&&w.gustMax>24) return T('ριπές ','gusts ')+U.wind(w.gustMax);
-  return T('μη ασφαλής','unsafe'); }
+  if(w.waveMax!=null&&w.waveMax>L.wave&&B.prof()!=='lake') return T('κύμα ','waves ')+U.wave(w.waveMax);
+  if(w.windMax!=null&&w.windMax>L.wind) return T('άνεμος ','wind ')+U.wind(w.windMax);
+  if(w.gustMax!=null&&w.gustMax>L.gust) return T('ριπές ','gusts ')+U.wind(w.gustMax);
+  return T('πάνω από τα όρια','over your limits'); }
 /* ---------- 7 ημέρες ---------- */
 function week(page,fc){
   var all=[]; (fc.days||[]).forEach(function(d){ (d.hours||[]).forEach(function(q){ all.push(q.score); }); });
