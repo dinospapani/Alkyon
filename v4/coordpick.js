@@ -24,7 +24,7 @@ B.coordBox=function(lat,lon,opt){ opt=opt||{};
     h('button',{type:'button',class:'chip sm',text:'📋 '+T('Επικόλληση','Paste'),onclick:function(){ if(!navigator.clipboard||!navigator.clipboard.readText){ msg.textContent=T('Κράτα πατημένο το πεδίο «Πλάτος» και επικόλλησε εκεί.','Long-press the Latitude field and paste there.'); return; }
       navigator.clipboard.readText().then(function(t){ var p=PC&&PC.parsePair?PC.parsePair(t):null; if(p){ set(p[0],p[1]); msg.textContent=''; } else msg.textContent=T('Δεν βρήκα συντεταγμένες στο πρόχειρο.','No coordinates found on the clipboard.'); }).catch(function(){ msg.textContent=T('Δεν δόθηκε πρόσβαση στο πρόχειρο. Επικόλλησε στο πεδίο «Πλάτος».','No clipboard access. Paste into the Latitude field.'); }); }}),
     h('button',{type:'button',class:'chip sm',text:'📍 '+T('Η θέση μου','My position'),onclick:function(){ msg.textContent=T('Βρίσκω τη θέση σου…','Finding your position…'); B.locate(8000).then(function(p){ if(p){ set(+p.lat.toFixed(5),+p.lon.toFixed(5)); msg.textContent=''; } else msg.textContent=T('Δεν βρέθηκε θέση.','No position found.'); }); }}),
-    mb);
+    opt.noMap?null:mb);
   var el=h('div',{class:'cpbox'},row,tools,h('small',{class:'note cpnote',text:T('Διάλεξε μορφή (όπως στο plotter σου) ή πάτα «Επικόλληση» για συντεταγμένες ή σύνδεσμο Google Maps από το πρόχειρο.','Pick the format (as on your plotter), or tap “Paste” for coordinates or a Google Maps link from the clipboard.')}),msg,mapBox);
   if(typeof lat==='number'&&typeof lon==='number') setTimeout(function(){ set(lat,lon); },0);
   if(opt.map) setTimeout(openMap,0);

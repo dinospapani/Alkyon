@@ -193,7 +193,7 @@ B.tripStart=function(o){ o=o&&typeof o==='object'?o:null; /* v31z541: o.where = 
   var go=h('button',{class:'btn pri full tgo',type:'button',text:'▶ '+T('Έναρξη εξόδου','Start trip'),onclick:function(){ if(!tm.value){ B.toast(T('Βάλε ώρα επιστροφής.','Set a return time.')); return; }
     ls.set('psaro-gps',gp.checked?'1':'0'); if(ex&&ex.apply) ex.apply(); sh.close(); start({due:toMs(tm.value),route:rt.value.trim(),sil:+sil.value||0,notify:nt.checked}); }});
   var body=h('div',{class:'bform tstart'},info,h('div',{class:'fld'},h('span',{text:T('Πόση ώρα θα λείψεις;','How long will you be out?')}),chips,tmRow),h('label',{class:'fld'},h('span',{text:T('Πού πας (προαιρετικό)','Where (optional)')}),rt),
-    c?h('label',{class:'tg'},nt,h('span',{text:T('Ειδοποίηση της επαφής μου σε αυτή την έξοδο','Alert my contact on this trip')})):null,more,go);
+    c?h('label',{class:'tg'},nt,h('span',{text:T('Ειδοποίηση της επαφής μου σε αυτή την έξοδο','Alert my contact on this trip')})):null,B.liveToggle?B.liveToggle():null,more,go);
   /* v31z542: συχνοί λαγοκέφαλοι εδώ; (από τα δικά σου τσιμπήματα σε 400 m) */
   try{ var me=B.lastPos(), pn=B.pestHere&&me?B.pestHere(me.lat,me.lon):null; if(pn) body.insertBefore(h('p',{class:'pesthint',text:'🐡 '+T('Συχνοί λαγοκέφαλοι εδώ (','Toadfish are common here (')+pn[0]+T(' στα ',' of ')+pn[1]+T(' τσιμπήματά σου). Πάρε συρματόλινα ή χοντρό παράμαλλο και προτίμησε τεχνητά από μαλακό δόλωμα.',' of your bites). Bring wire or a heavy leader and prefer lures to soft bait.')}),go); }catch(e){}
   var sh=B.sheet({title:T('Έξοδος για ψάρεμα','Fishing trip'),body:body});

@@ -242,3 +242,34 @@ svg.pwc{width:100%;height:auto}
 .hero .planbtn.on{border-style:solid;border-color:var(--good);background:var(--good-bg)}
 .hero .planbtn.on .pli{background:var(--good);color:#fff;font-weight:800}
 .dtile{position:relative}.dtile .dpl{position:absolute;top:-5px;right:-4px;width:20px;height:20px;border-radius:50%;background:var(--good);color:#fff;font:800 12px/20px var(--font);font-style:normal;text-align:center;box-shadow:0 0 0 2px var(--bg)}
+/* v31z545 · εποχή ειδών */
+.season .ssl{margin:6px 0;font-size:13.5px;line-height:1.45}.season .ssl b{font-weight:700}.season .ssl.pk b{color:var(--good)}.season .ssl.up b{color:var(--sea)}.season .ssl.dn b{color:var(--ink-3)}
+.ssg{display:grid;grid-template-columns:minmax(78px,auto) 1fr;gap:3px 8px;align-items:center;margin-top:12px}
+.ssg .ssn{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ssm{display:grid;grid-template-columns:repeat(12,1fr);gap:2px}
+.ssm i{position:relative;height:18px;border-radius:4px;font-style:normal;font-size:10px;font-weight:700;text-align:center;line-height:18px;color:var(--ink-3)}
+.ssg>div:first-of-type i{height:auto;background:none!important}.ssg>div:first-of-type i.cur{color:var(--accent);font-weight:800}
+.ssm i.l0{background:var(--surface-2)}.ssm i.l1{background:color-mix(in srgb,var(--sea) 25%,var(--surface-2))}.ssm i.l2{background:color-mix(in srgb,var(--sea) 55%,var(--surface-2))}.ssm i.l3{background:var(--sea)}
+.ssm i.cur{outline:2px solid var(--accent);outline-offset:-1px}
+.ssm i b{position:absolute;inset:0;display:grid;place-items:center;font-size:10px;color:#fff;font-weight:800;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+/* v31z545 · θερμοκρασία σε βάθος */
+.thermo .thsum{margin:0 0 10px;font-weight:700;font-size:14.5px}
+.thrs{display:grid;gap:4px}.thr{display:grid;grid-template-columns:48px 1fr 56px;align-items:center;gap:8px;font-size:12.5px}
+.thr span{color:var(--ink-2);text-align:right;font-variant-numeric:tabular-nums}.thr em{font-style:normal;font-weight:700;font-variant-numeric:tabular-nums}
+.thr i{height:12px;border-radius:6px;background:var(--surface-2);overflow:hidden}.thr i b{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,#4f8fc0,#e0904a)}
+.thr.thx span,.thr.thx em{color:var(--accent)}.thr.thx i{outline:2px solid var(--accent);outline-offset:1px}
+/* v31z545 · επιλογή σημείου από τον χάρτη */
+.mpick{display:flex;flex-direction:column;gap:10px}
+.mpwrap{position:relative;height:min(52vh,440px);border-radius:16px;overflow:hidden;border:1px solid var(--line);background:#0b2230}
+.mpmap{position:absolute;inset:0}
+.mpx{position:absolute;left:50%;top:50%;width:44px;height:44px;margin:-22px 0 0 -22px;z-index:500;pointer-events:none;
+  background:linear-gradient(#fff,#fff) center/2px 100% no-repeat,linear-gradient(#fff,#fff) center/100% 2px no-repeat;filter:drop-shadow(0 0 2px rgba(0,0,0,.8))}
+.mpx::after{content:'';position:absolute;left:50%;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;border:2px solid #E4572E;background:rgba(228,87,46,.25)}
+.mpzoom{position:absolute;right:10px;top:10px;z-index:600;display:flex;flex-direction:column;gap:6px}
+.mpzoom button,.mpme{width:42px;height:42px;border-radius:12px;border:0;background:var(--surface);color:var(--ink);font:700 22px/1 var(--font);box-shadow:var(--shadow);display:grid;place-items:center}
+.mpme{position:absolute;right:10px;bottom:10px;z-index:600;border-radius:50%}.mpme svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2}
+.mprow{display:flex;align-items:baseline;gap:10px;padding:0 2px}.mprow small{color:var(--ink-3);font-weight:700;font-size:12px}
+.mpcoord{font-size:17px;font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.mpdet summary{cursor:pointer;color:var(--accent);font-weight:700;font-size:14px;padding:4px 2px}
+.mpdet[open] summary{margin-bottom:8px}
+.mpsave{position:sticky;bottom:0;padding:8px 0 2px;background:linear-gradient(transparent,var(--bg) 30%)}

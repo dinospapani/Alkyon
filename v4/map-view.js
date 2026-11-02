@@ -596,7 +596,9 @@ function mount(el){
   hold(bCatch,false); hold(bMiss,true);
   /* v31z542: λαγοκέφαλος / έφαγε το δόλωμα (δεν μετράει στα ψάρια) */
   var bPest=h('button',{class:'fb fbp',type:'button','aria-label':T('Λαγοκέφαλος ή έφαγε το δόλωμα','Toadfish or bait taken'),onclick:function(){ if(B.pestSheet) B.pestSheet(); }},h('span',{class:'fbpi',text:'🐡'}),h('b',{text:'0'}));
-  fishb=h('div',{class:'fishbtns'},bPest,bMiss,bCatch); fishCounts();
+  /* v31z545: μεγάλα κουμπιά (βρεγμένα χέρια, γάντια, κύμα) */
+  var bBig=h('button',{class:'fb fbx',type:'button','aria-label':T('Μεγάλα κουμπιά','Big buttons'),html:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>',onclick:function(){ if(B.bigTrip) B.bigTrip.open(); }});
+  fishb=h('div',{class:'fishbtns'},bPest,bMiss,bCatch,bBig); fishCounts();
   el.replaceChildren(box,cross,bar,qc,heatPill,trip,seab,dtBarEl(),fishb,mwBox());
   if(B.smartChip){ var rc=h('div',{class:'rtwrap'}); B.smartChip().forEach(function(n){ rc.append(n); }); el.append(rc); }
   if(map){ setTimeout(function(){ if(!map) return; map.invalidateSize(); drawData(); applyPend(); drawDirect(); },30); locate(false); return; }

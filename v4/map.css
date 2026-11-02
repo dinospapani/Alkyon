@@ -546,3 +546,32 @@ body:not(.mapon) .mo-n{display:none!important}
 .fb.fbp{position:absolute;right:calc(100% + 12px);top:7px;width:50px;height:50px;background:#6c4fa3;color:#fff;border-width:2.5px}
 .fb.fbp .fbpi{font-size:24px;line-height:1}
 .fb.fbp b{top:-7px;right:-9px;min-width:21px;height:21px;font-size:11.5px;line-height:21px}
+body:has(.mapbar .nightb:not([hidden])) .attrbtn{top:calc(var(--safe-t) + 298px)}
+body:has(.mapbar .nightb:not([hidden])):has(.mapbar .gearbtn:not([hidden])) .attrbtn{top:calc(var(--safe-t) + 354px)}
+/* v31z545 · κουμπί «μεγάλα κουμπιά» αριστερά από το πράσινο ψάρι */
+.fb.fbx{position:absolute;right:calc(100% + 12px);bottom:7px;width:50px;height:50px;background:var(--surface);color:var(--ink);border-width:2.5px}
+.fb.fbx svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2}
+/* οθόνη μεγάλων κουμπιών */
+.bigtrip{position:fixed;inset:0;z-index:3000;background:var(--bg);display:flex;flex-direction:column;padding:calc(var(--safe-t) + 12px) 14px calc(var(--safe-b) + 14px);gap:12px}
+.bthead{display:flex;align-items:center;justify-content:space-between}.bthead b{font-size:22px;font-weight:800}
+.btx{width:52px;height:52px;border-radius:50%;border:0;background:var(--surface);color:var(--ink);box-shadow:var(--shadow);display:grid;place-items:center}
+.btx svg{width:24px;height:24px;stroke:currentColor;stroke-width:2.4;fill:none;stroke-linecap:round}
+.btinfo{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btinfo div{background:var(--surface);border-radius:14px;padding:10px 10px 8px;box-shadow:var(--shadow);min-width:0}
+.btinfo b{display:block;font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btinfo small{display:block;font-size:12px;color:var(--ink-2);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btgrid{flex:1;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:12px;min-height:0}
+.btb{position:relative;border:0;border-radius:24px;color:#fff;font:800 20px/1.1 var(--font);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;touch-action:manipulation;-webkit-user-select:none;user-select:none;box-shadow:0 6px 16px rgba(0,0,0,.25);transition:transform .12s}
+.btb:active{transform:scale(.97)}
+.btb .bti{font-size:52px;line-height:1}
+.btb b{position:absolute;top:10px;right:12px;min-width:34px;height:34px;padding:0 8px;border-radius:17px;background:rgba(255,255,255,.95);color:#0A2633;font:800 18px/34px var(--font)}
+.bt-fish{background:#1f9d6b}.bt-miss{background:#d64532}.bt-pest{background:#6c4fa3}
+.bt-mob{background:#0A2633;border:3px solid #f2c94c}.bt-mob .bti{font-size:40px;letter-spacing:.04em;color:#f2c94c}
+.bt-mob.hold{background:#7a1d10}
+.btb.ok::after{content:'✓';position:absolute;inset:0;display:grid;place-items:center;font-size:90px;background:rgba(0,0,0,.25);border-radius:24px}
+.btfoot{margin:0;font-size:12.5px;color:var(--ink-2);text-align:center}
+/* v31z545 · φίλοι σε έξοδο */
+.mk.frlive{display:flex;align-items:center;gap:4px;transform:translate(-17px,-17px)}
+.mk.frlive i{width:34px;height:34px;border-radius:50%;background:#6c4fa3;color:#fff;border:3px solid #fff;display:grid;place-items:center;font:800 15px/1 var(--font);font-style:normal;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.mk.frlive b{padding:2px 7px;border-radius:9px;background:rgba(10,20,30,.78);color:#fff;font:700 11.5px/1.4 var(--font);white-space:nowrap}
+.frpop b{display:block;font-size:14px}.frpop small{color:#666}

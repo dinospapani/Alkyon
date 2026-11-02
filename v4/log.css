@@ -476,3 +476,11 @@ input[list]::-webkit-calendar-picker-indicator{display:none!important;opacity:0}
 @media (prefers-color-scheme:dark){:root:not([data-theme=light]) .fishrow.pest .tx b,:root:not([data-theme=light]) .pestc .kpis.k6 .kpi b{color:#b39ae8}}
 :root[data-theme=dark] .fishrow.pest .tx b,:root[data-theme=dark] .pestc .kpis.k6 .kpi b{color:#b39ae8}
 .pesthint{margin:0;padding:10px 12px;border-radius:12px;background:var(--fair-bg);font-size:13.5px;line-height:1.4;color:var(--ink)}
+/* v31z545 · στόχοι και ρεκόρ */
+.goals .gh{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}.goals .gh h2{margin:0}
+.goal{margin:10px 0 0}.goal .gt{display:flex;align-items:baseline;gap:8px;font-size:14px}.goal .gt span{flex:1;color:var(--ink-2)}.goal .gt b{font-variant-numeric:tabular-nums}
+.goal .gx{border:0;background:none;color:var(--ink-3);font-size:20px;line-height:1;padding:0 2px;cursor:pointer}
+.gbar{height:8px;border-radius:4px;background:var(--surface-2);margin-top:5px;overflow:hidden}.gbar i{display:block;height:100%;background:var(--sea);border-radius:4px}
+.goal.done .gbar i{background:var(--good)}.goal.done .gt b{color:var(--good)}
+.recs .rec{display:grid;grid-template-columns:1fr auto;gap:0 10px;padding:8px 0;border-bottom:1px solid var(--line)}.recs .rec:last-of-type{border-bottom:0}
+.recs .rec b{font-size:14.5px}.recs .rec span{font-weight:800;font-variant-numeric:tabular-nums;text-align:right}.recs .rec small{grid-column:1/-1;color:var(--ink-3);font-size:12px}

@@ -45,7 +45,9 @@ function resize(file){
 
 /* ---------- λογαριασμός ---------- */
 function S(){ var s=ls.get('psaro-sess',null); return s&&s.access_token?s:null; }
+var outing=false; /* v31z545: κατά την αποσύνδεση δεν ξαναγράφεται συνεδρία από ανανέωση που ήταν ήδη σε εξέλιξη */
 function setSess(j,prev){
+  if(outing) return prev;
   var s={access_token:j.access_token,refresh_token:j.refresh_token,exp:Date.now()+((j.expires_in||3600)-60)*1000,uid:(j.user&&j.user.id)||(prev&&prev.uid),email:(j.user&&j.user.email)||(prev&&prev.email),
     name:(j.user&&j.user.user_metadata&&j.user.user_metadata.name)||(prev&&prev.name)||''};
   ls.set('psaro-sess',s); B.emit('store','psaro-sess'); return s;
@@ -71,8 +73,15 @@ function errText(e){
 }
 function signIn(email,pw){ return auth('token?grant_type=password',{email:email,password:pw}).then(function(j){ setSess(j,null); return sync(true); }); }
 function signUp(email,pw){ return auth('signup',{email:email,password:pw,options:{email_redirect_to:location.origin+location.pathname.replace(/v4\/.*$/,'')}}).then(function(j){ if(j.access_token){ setSess(j,null); return sync(true).then(function(){ return 'in'; }); } return 'confirm'; }); }
-function signOut(){ var s=S(); var done=function(){ ls.set('psaro-sess',null); try{ localStorage.removeItem('psaro-sess'); localStorage.removeItem('psaro-last'); }catch(e){} B.emit('store','psaro-sess'); };
-  return sync(true).catch(function(){}).then(function(){ if(!s) return; return fetch(URL_+'/auth/v1/logout',{method:'POST',headers:H(s)}).catch(function(){}); }).then(done); }
+/* v31z545: αποσύνδεση που ολοκληρώνεται πάντα: συγχρονισμός (έως 12″), αποσύνδεση στον server (έως 5″), μετά καθαρισμός.
+   opt.wipe: σβήνει και τα δεδομένα από αυτό το κινητό, ΜΟΝΟ αν ο συγχρονισμός πέτυχε (μένουν στον λογαριασμό). Επιστρέφει {wiped, synced}. */
+function within(p,ms){ return Promise.race([p,new Promise(function(_,rej){ setTimeout(function(){ rej(new Error('timeout')); },ms); })]); }
+function signOut(opt){ opt=opt||{}; var s=S(), ok=false;
+  var done=function(){ outing=true; clearTimeout(timer); ls.set('psaro-sess',null); try{ localStorage.removeItem('psaro-sess'); localStorage.removeItem('psaro-last'); }catch(e){}
+    var wiped=false; if(opt.wipe&&ok){ try{ KINDS.forEach(function(k){ localStorage.removeItem('psaro-'+k); }); ['psaro-tomb','psaro-pup','psaro-v4-plans','psaro-v4-goals'].forEach(function(k){ localStorage.removeItem(k); }); wiped=true; }catch(e){} }
+    state={t:0,msg:'',err:false}; B.emit('store','psaro-sess'); B.emit('sync',state); setTimeout(function(){ outing=false; },15000); return {wiped:wiped,synced:ok}; };
+  return within(sync(true),12000).then(function(){ ok=!state.err; },function(){ ok=false; })
+    .then(function(){ if(!s) return; return within(fetch(URL_+'/auth/v1/logout',{method:'POST',headers:H(s)}),5000).catch(function(){}); }).then(done,done); }
 function setName(n){ return ensure().then(function(s){ return fetch(URL_+'/auth/v1/user',{method:'PUT',headers:H(s),body:JSON.stringify({data:{name:n}})}).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); s.name=n; ls.set('psaro-sess',s); B.emit('store','psaro-sess'); }); }); }
 
 /* ---------- συγχρονισμός ---------- */

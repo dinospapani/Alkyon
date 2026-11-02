@@ -26,7 +26,7 @@ var PI={tackle:'<path d="M4 20L18.5 5.5"/><path d="M18.5 5.5c1.2-1.2 2.5-.4 2.5 
   type:'<path d="M3 17c2.2 0 2.2-1.5 4.5-1.5S9.8 17 12 17s2.2-1.5 4.5-1.5S19 17 21 17"/><path d="M12 3v10M8 7l4-4 4 4"/>',lang:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/>',
   units:'<path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/>',safety:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
   ai:'<path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',cloud:'<path d="M7 18h10a4 4 0 0 0 .5-8 6 6 0 0 0-11.5 2A3 3 0 0 0 7 18z"/>',
-  backup:'<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v3h16v-3"/>',hist:'<path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4h4"/><path d="M12 8v4l3 2"/>',stats:'<path d="M5 20V10M12 20V4M19 20v-7"/>'};
+  backup:'<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v3h16v-3"/>',hist:'<path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4h4"/><path d="M12 8v4l3 2"/>',stats:'<path d="M5 20V10M12 20V4M19 20v-7"/>',night:'<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',help:'<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6"/><path d="M12 17.2v.3"/>'};
 function pic(k){ return h('span',{class:'ic pic',html:k==='type'&&B.profBadge?B.profBadge(B.prof()):'<svg viewBox="0 0 24 24" aria-hidden="true">'+(PI[k]||'')+'</svg>'}); }
 function row(k,title,sub,href,fn){ var a=h(href?'a':'button',{class:'li',href:href||null,type:href?null:'button',onclick:fn||null},pic(k),h('span',{class:'tx'},h('b',{text:title}),sub?h('small',{text:sub}):null),B.icon('chev')); return a; }
 function group(title,rows){ return h('div',{class:'pgrp'},title?h('h3',{class:'listh',text:title}):null,h('div',{class:'list'},rows.filter(Boolean))); }
@@ -40,7 +40,7 @@ function head(s){ var st=C().state(), nm=s?((s.name||'').trim()||s.email||''):''
   var top=Object.keys(pl).sort(function(a,b){ return pl[b]-pl[a]; })[0];
   var cls=!s?'off':st.err?'bad':(st.t&&Date.now()-st.t<86400000)?'ok':'warn', stx=!s?T('Χωρίς λογαριασμό · μόνο σε αυτό το κινητό','No account · this phone only'):st.err?T('Πρόβλημα συγχρονισμού','Sync problem'):st.t?T('Συγχρονίστηκε ','Synced ')+new Date(st.t).toLocaleString(EN?'en-GB':'el-GR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):T('Δεν έχει συγχρονιστεί ακόμα','Not synced yet');
   var c=h('section',{class:'card phead'});
-  c.append(h('button',{type:'button',class:'phid',onclick:function(){ tab='acc'; ls.set('psaro-v4-ptab',tab); draw(); }},h('span',{class:'av',text:(nm||'?').charAt(0).toUpperCase()}),h('span',{class:'tx'},h('b',{text:nm||T('Σύνδεση ή εγγραφή','Sign in or sign up')}),h('small',null,h('i',{class:'sdot '+cls}),stx)),B.icon('chev')));
+  c.append(h('button',{type:'button',class:'phid','aria-label':T('Λογαριασμός και συγχρονισμός','Account and sync'),onclick:function(){ tab='acc'; ls.set('psaro-v4-ptab',tab); draw(); setTimeout(function(){ var t=document.querySelector('.bseg,.seg'); if(t&&t.scrollIntoView) t.scrollIntoView({behavior:'smooth',block:'start'}); },60); }},h('span',{class:'av',text:(nm||'?').charAt(0).toUpperCase()}),h('span',{class:'tx'},h('b',{text:nm||T('Σύνδεση ή εγγραφή','Sign in or sign up')}),h('small',null,h('i',{class:'sdot '+cls}),stx)),tab==='acc'?null:B.icon('chev'))); /* v31z545: το βελάκι ανοίγει τον Λογαριασμό· όταν είσαι ήδη εκεί, δεν φαίνεται */
   var cells=[[String(tr.length),T('Έξοδοι ','Trips ')+y,'boat'],[String(n),T('Ψάρια','Fish'),'tackle'],[best?B.num(+best.kg,1)+' kg':'–',best?(best.species||T('Καλύτερο','Best')):T('Καλύτερο ψάρι','Best fish'),'stats'],[top||'–',T('Κορυφαίο σημείο','Top spot'),'spots']];
   c.append(h('div',{class:'pstats'},cells.map(function(x){ return h('div',{class:'pst'},h('span',{class:'psi',html:'<svg viewBox="0 0 24 24" aria-hidden="true">'+PI[x[2]]+'</svg>'}),h('b',{text:x[0]}),h('small',{text:x[1]})); })));
   c.append(h('a',{class:'pall',href:'#log',onclick:function(){ ls.set('psaro-v4-logtab','stats'); },text:T('Όλα τα στατιστικά ›','All statistics ›')}));
@@ -79,6 +79,7 @@ function mineTab(page){
     row('community',T('Κοινότητα','Community'),T('Ψάρια άλλων ψαράδων, χωρίς θέση','Other anglers’ catches, no locations'),'#community'),
     row('people',T('Φίλοι','Friends'),T('Κοινά ψάρια και σημεία με φίλους','Share catches and spots with friends'),'#friends')]));
   page.append(group(T('Γνώση','Knowledge'),[
+    row('help',T('Πώς δουλεύει','How it works'),T('Όλες οι λειτουργίες με λίγα λόγια','Every feature in a few words'),'#help'),
     row('guide',T('Οδηγός','Guide'),T('Είδη, μεγέθη, νόμοι, κόμποι','Species, sizes, laws, knots'),'#guide')]));
 }
 function sheetOf(title,body){ return B.sheet({title:title,body:body}); }
@@ -96,8 +97,20 @@ function settingsTab(page){
   page.append(group(T('Εφαρμογή','App'),[
     row('lang',T('Γλώσσα','Language'),B.LANG==='en'?'English':'Ελληνικά',null,function(){ sheetOf(T('Γλώσσα','Language'),h('div',{class:'bform'},B.seg([['el','Ελληνικά'],['en','English']],B.LANG,function(v){ try{ localStorage.setItem('psaro-lang',v); }catch(e){} location.reload(); },T('Γλώσσα','Language')))); }),
     U&&U.options?row('units',T('Μονάδες','Units'),uSum,null,unitsSheet):null,
+    B.night?row('night',T('Νυχτερινή λειτουργία','Night mode'),{auto:T('Αυτόματα στην έξοδο μετά τη δύση','Automatic on trips after sunset'),on:T('Πάντα','Always'),off:T('Ποτέ','Never')}[B.night.mode()],null,function(){ sheetOf(T('Νυχτερινή λειτουργία','Night mode'),h('div',{class:'bform'},
+      h('p',{class:'sub',text:T('Κόκκινη οθόνη για το σκοτάδι: τα μάτια δεν χάνουν την προσαρμογή τους. Στον χάρτη, το κουμπί 🌙 την ανοίγει ή την κλείνει για την τρέχουσα έξοδο.','Red screen for the dark: your eyes keep their night vision. On the map, the 🌙 button turns it on or off for the current trip.')}),
+      B.seg([['auto',T('Αυτόματα','Automatic')],['on',T('Πάντα','Always')],['off',T('Ποτέ','Never')]],B.night.mode(),function(v){ B.night.set(v); draw(); },T('Νυχτερινή λειτουργία','Night mode')))); }):null,
     B.dataCards?row('ai',T('Αναγνώριση ψαριού (AI)','Fish recognition (AI)'),T('Κλειδί και ρυθμίσεις','Key and settings'),null,function(){ sheetOf(T('Αναγνώριση ψαριού (AI)','Fish recognition (AI)'),B.dataCards()[1]); }):null]));
 }
+/* v31z545: αποσύνδεση με επιλογή: να μείνουν ή να σβηστούν τα δεδομένα από αυτό το κινητό (μένουν πάντα στον λογαριασμό) */
+function signOutSheet(){ var sh, msg=h('p',{class:'sub',role:'status'});
+  function go(wipe){ [].forEach.call(sh.el.querySelectorAll('button.btn'),function(b){ b.disabled=true; }); msg.textContent=T('Συγχρονισμός και αποσύνδεση…','Syncing and signing out…');
+    C().signOut({wipe:wipe}).then(function(r){ sh.close(); B.toast(wipe&&!r.wiped?T('Αποσυνδέθηκες. Ο συγχρονισμός δεν ολοκληρώθηκε, οπότε τα δεδομένα έμειναν στο κινητό για να μη χαθούν.','Signed out. Sync did not finish, so your data stayed on this phone so nothing is lost.'):wipe?T('Αποσυνδέθηκες και τα δεδομένα σβήστηκαν από αυτό το κινητό. Είναι στον λογαριασμό σου.','Signed out and your data was removed from this phone. It is in your account.'):T('Αποσυνδέθηκες. Τα δεδομένα έμειναν σε αυτό το κινητό.','Signed out. Your data stayed on this phone.'),7000); draw(); }); }
+  sh=B.sheet({title:T('Αποσύνδεση','Sign out'),body:h('div',{class:'bform'},
+    h('p',{class:'sub',text:T('Πρώτα συγχρονίζονται όλα στον λογαριασμό σου. Μετά διάλεξε τι γίνεται σε αυτό το κινητό:','Everything is synced to your account first. Then choose what happens on this phone:')}),
+    h('button',{class:'btn full',type:'button',text:T('Αποσύνδεση · κράτα τα δεδομένα εδώ','Sign out · keep data here'),onclick:function(){ go(false); }}),
+    h('button',{class:'btn full del',type:'button',text:T('Αποσύνδεση και διαγραφή από αυτό το κινητό','Sign out and remove from this phone'),onclick:function(){ go(true); }}),
+    h('p',{class:'foot',text:T('Η διαγραφή γίνεται μόνο αν ο συγχρονισμός πετύχει. Όταν ξανασυνδεθείς, τα δεδομένα επιστρέφουν από τον λογαριασμό.','Removal only happens if the sync succeeds. When you sign in again, your data comes back from the account.')}),msg)}); }
 function unitsSheet(){ var body=h('div',{class:'bform'}), L={wind:T('Άνεμος','Wind'),wave:T('Κύμα','Waves'),temp:T('Θερμοκρασία','Temperature'),press:T('Πίεση','Pressure'),dist:T('Απόσταση','Distance'),coord:T('Συντεταγμένες','Coordinates')};
   Object.keys(L).forEach(function(k){ if(!U.options[k]) return; body.append(h('h3',{class:'h3',text:L[k]}),B.seg(U.options[k].map(function(o){ return [o[0],o[1]]; }),U.cfg[k],function(v){ U.set(k,v); B.emit('store','psaro-units'); draw(); },L[k])); });
   sheetOf(T('Μονάδες','Units'),body); }
@@ -123,7 +136,7 @@ function accountCard(s){
 }
 /* αποσύνδεση και διαγραφή: χωριστά, στο τέλος της καρτέλας */
 function dangerCard(){ var c=h('section',{class:'card accx'});
-  c.append(h('button',{class:'btn full out',type:'button',text:T('Αποσύνδεση','Sign out'),onclick:function(){ B.ask(T('Αποσύνδεση από τον λογαριασμό; Τα δεδομένα σου μένουν στο κινητό και στον λογαριασμό.','Sign out? Your data stays on this phone and in your account.'),T('Αποσύνδεση','Sign out'),true).then(function(y){ if(y) C().signOut().then(function(){ B.toast(T('Αποσυνδέθηκες.','Signed out.')); draw(); }); }); }}));
+  c.append(h('button',{class:'btn full out',type:'button',text:T('Αποσύνδεση','Sign out'),onclick:signOutSheet}));
   c.append(h('button',{class:'linkbtn danger',type:'button',text:T('Διαγραφή λογαριασμού','Delete account'),onclick:delAccount}));
   return c;
 }
