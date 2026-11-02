@@ -1,8 +1,8 @@
 /* Επιλογή εργαλείων χάρτη: το ⚙ στο τέλος της δεξιάς στήλης δείχνει/κρύβει κάθε κουμπί. */
 (function(){
 'use strict';
-var C=window.PsaroCore, mb=document.querySelector('.mapbtns'); if(!C||!mb) return;
-var EN=window.LANG==='en', T=function(el,en){ return EN?en:el; }, KEY='psaro-toolsoff';
+var C=window.AlkyonCore, mb=document.querySelector('.mapbtns'); if(!C||!mb) return;
+var EN=window.LANG==='en', T=function(el,en){ return EN?en:el; }, KEY='alkyon-toolsoff';
 var off=C.lsGet(KEY,[]); if(!Array.isArray(off)) off=[];
 var GEAR='⚙';
 var CHECK='✓';

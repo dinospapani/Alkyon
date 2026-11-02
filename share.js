@@ -1,7 +1,7 @@
 /* Κοινοποίηση εξόδου: δημιουργεί εικόνα (κάρτα) με τα αποτελέσματα και την στέλνει μέσω του μενού κοινοποίησης του κινητού. */
 (function(){
 'use strict';
-var C=window.PsaroCore; if(!C) return;
+var C=window.AlkyonCore; if(!C) return;
 var EN=window.LANG==='en', T=function(el,en){ return EN?en:el; };
 var W=1080, H=1350, FONT='-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif';
 function rr(x,a,b,w,h,r){ x.beginPath(); x.moveTo(a+r,b); x.arcTo(a+w,b,a+w,b+h,r); x.arcTo(a+w,b+h,a,b+h,r); x.arcTo(a,b+h,a,b,r); x.arcTo(a,b,a+w,b,r); x.closePath(); }
@@ -29,7 +29,7 @@ async function draw(t,e){
   for(var k=0;k<9;k++){ x.beginPath(); for(var px=0;px<=W;px+=20){ var py=H-330+k*46+Math.sin(px/90+k)*14; if(px===0) x.moveTo(px,py); else x.lineTo(px,py); } x.stroke(); }
   x.globalAlpha=1;
   var ph=await bestPhoto(t), top=60;
-  x.fillStyle='#fff'; x.font='700 52px '+FONT; x.textBaseline='top'; x.fillText('BiteCast',60,top);
+  x.fillStyle='#fff'; x.font='700 52px '+FONT; x.textBaseline='top'; x.fillText('Alkyon',60,top);
   x.font='400 30px '+FONT; x.globalAlpha=.8; x.textAlign='right'; x.fillText(t.date?t.date.split('-').reverse().join('/'):'',W-60,top+12); x.textAlign='left'; x.globalAlpha=1;
   var y=top+100;
   if(ph){
@@ -49,7 +49,7 @@ async function draw(t,e){
   var tot=e.count+(e.miss||0), succ=e.miss>0?Math.round(e.count/tot*100)+'%':'';
   /* v31z375: έξοδος με ψαροντούφεκο: ψάρια, χαμένες βολές, «είδα», χρόνος στο νερό, βουτιές, σημαδούρα */
   var spear=t.prof==='spear', seenN=0, dives=0, buoy=false;
-  if(spear){ try{ seenN=((window.PsaroSeen&&window.PsaroSeen.all())||[]).filter(function(q){ return q.start===t.startMs; }).length; dives=+localStorage.getItem('psaro-dives-'+t.startMs)||0; buoy=localStorage.getItem('psaro-buoy-'+t.startMs)==='1'; }catch(er){} }
+  if(spear){ try{ seenN=((window.AlkyonSeen&&window.AlkyonSeen.all())||[]).filter(function(q){ return q.start===t.startMs; }).length; dives=+localStorage.getItem('alkyon-dives-'+t.startMs)||0; buoy=localStorage.getItem('alkyon-buoy-'+t.startMs)==='1'; }catch(er){} }
   var cells=spear?[[String(e.count),T('Ψάρια','Fish')],[String(e.miss||0),T('Χαμένες βολές','Missed shots')],[String(seenN),T('Είδα','Seen')],[dur||'–',T('Στο νερό','In water')]]
     :[[String(e.count),T('Ψάρια','Catches')],[String(e.miss||0),'Miss'],[(e.kg||0).toFixed(1),'kg'],[dur||'–',T('Χρόνος','Time')]];
   var cw=(W-120-3*20)/4, spl=await speciesLines(t);
@@ -62,7 +62,7 @@ async function draw(t,e){
   if(line2){ x.fillStyle='#fff'; x.font='500 34px '+FONT; x.fillText(fit(x,line2,W-120),60,y); y+=56; }
   var c0=t.cond0||{}, cd=[c0.wind!=null?c0.wind+' kn':'',c0.wave!=null?(+c0.wave).toFixed(1)+' m '+T('κύμα','wave'):'',c0.press!=null?c0.press+' hPa':'',c0.sst!=null?Math.round(c0.sst)+'°C '+T('θάλασσα','sea'):''].filter(Boolean).join('  ·  ');
   if(cd){ x.fillStyle='rgba(255,255,255,.78)'; x.font='400 30px '+FONT; x.fillText(fit(x,cd,W-120),60,y); }
-  x.fillStyle='rgba(255,255,255,.55)'; x.font='400 26px '+FONT; x.textAlign='center'; x.fillText('BiteCast · '+T('το ημερολόγιο του ψαρά','the angler\'s logbook'),W/2,H-62); x.textAlign='left';
+  x.fillStyle='rgba(255,255,255,.55)'; x.font='400 26px '+FONT; x.textAlign='center'; x.fillText('Alkyon · '+T('το ημερολόγιο του ψαρά','the angler\'s logbook'),W/2,H-62); x.textAlign='left';
   return cv;
 }
 function blobOf(cv){ return new Promise(function(res){ cv.toBlob(function(b){ res(b); },'image/png'); }); }
@@ -71,12 +71,12 @@ async function trip(t,e){
     C.toast(T('Δημιουργία εικόνας…','Creating image…'));
     var cv=await draw(t,e||{count:+t.count||0,kg:+t.kg||0,species:t.species||'',miss:+t.miss||0}), bl=await blobOf(cv);
     if(!bl) throw new Error('blob');
-    var f=new File([bl],'bitecast-'+(t.date||'trip')+'.png',{type:'image/png'});
-    var txt=T('Η έξοδός μου με το BiteCast','My trip with BiteCast');
+    var f=new File([bl],'alkyon-'+(t.date||'trip')+'.png',{type:'image/png'});
+    var txt=T('Η έξοδός μου με το Alkyon','My trip with Alkyon');
     if(navigator.canShare&&navigator.canShare({files:[f]})){ await navigator.share({files:[f],text:txt}); return; }
     var a=document.createElement('a'); a.href=URL.createObjectURL(bl); a.download=f.name; document.body.append(a); a.click(); a.remove();
     C.toast(T('Η εικόνα κατέβηκε.','Image downloaded.'));
   }catch(err){ if(err&&err.name==='AbortError') return; C.toast(T('Δεν δημιουργήθηκε η εικόνα.','Could not create the image.')); }
 }
-window.PsaroShare={trip:trip,draw:draw};
+window.AlkyonShare={trip:trip,draw:draw};
 })();

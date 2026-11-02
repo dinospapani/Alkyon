@@ -1,4 +1,4 @@
-/* BiteCast: ενημέρωση του navigator-mpa.json από το ProtectedSeas Navigator API (CC BY 4.0).
+/* Alkyon: ενημέρωση του navigator-mpa.json από το ProtectedSeas Navigator API (CC BY 4.0).
    Τρέχει μηνιαία από GitHub Actions (navigator-sync.yml). Δεν χρειάζεται κλειδί: το API είναι ανοιχτό για ανάγνωση.
    Διαδικασία (data-synchronization της τεκμηρίωσης):
      1. type=sites_updated&changed_since=<ημερομηνία>&include_inactive=true
@@ -10,7 +10,7 @@ import fs from 'node:fs';
 
 export const BASE = 'https://map.navigatormap.org';
 export const KEEP = new Set(['Cyprus', 'Greece', 'Turkey', 'Israel', 'Lebanon', 'Egypt', 'Syria', 'Libya', 'Palestine']);
-const UA = 'BiteCast-sync/1.0 (fishing app, contact: dinospapanicolaou@gmail.com)';
+const UA = 'Alkyon-sync/1.0 (fishing app, contact: dinospapanicolaou@gmail.com)';
 const PAGE = 200;
 const MAX_REMOVE_FRAC = 0.1;   /* πάνω από 10% διαγραφές: σταμάτα */
 const MAX_SHRINK_FRAC = 0.1;

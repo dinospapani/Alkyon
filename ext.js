@@ -3,9 +3,9 @@
    (εκτίμηση μοντέλου, όχι μέτρηση στο σημείο). Χρησιμοποιούνται μόνο ως εποχιακή ένδειξη στο «Τι να ψαρέψω», με μικρό βάρος, επειδή ο φίλος καταγράφει μόνο ό,τι έπιασε και όχι τις μέρες χωρίς ψάρια. */
 (function(){
 'use strict';
-var C=window.PsaroCore; if(!C) return;
+var C=window.AlkyonCore; if(!C) return;
 var h=C.h, EN=window.LANG==='en', T=function(el,en){ return EN?en:el; };
-var KEY='psaro-ext', LAND='psaro-ext-land';
+var KEY='alkyon-ext', LAND='alkyon-ext-land';
 var DEF={lat:34.748,lon:32.402}; /* λίγο έξω από το λιμάνι της Πάφου */
 var busy=false;
 
@@ -80,7 +80,7 @@ async function enrich(rec,cache){
   var ms=toMs(rec.date,rec.time), lat=rec.lat!=null?rec.lat:DEF.lat, lon=rec.lon!=null?rec.lon:DEF.lon;
   var PP=window.PP; rec.moon=(PP&&PP.moonOf)?PP.moonOf(ms):null;
   rec.month=+rec.date.slice(5,7)-1; rec.hr=rec.time?+rec.time.slice(0,2):null; rec.nt=!rec.time;
-  var H=window.PsaroHist; if(!H||!H.fetch) return rec;
+  var H=window.AlkyonHist; if(!H||!H.fetch) return rec;
   var ck=Math.round(ms/3600000)+'|'+lat.toFixed(2)+'|'+lon.toFixed(2), w=cache[ck];
   if(w===undefined){ try{ w=await H.fetch(lat,lon,ms); }catch(e){ w=null; } cache[ck]=w; await sleep(700); }
   if(w){ rec.wind=w.wind; rec.ptrend=w.ptrend; rec.sst=w.sst; rec.wave=w.wave; rec.tide=w.tide||null; rec.wx=true; }
@@ -140,7 +140,7 @@ function card(onChange){
   if(S.n){
     var del=h('button',{class:'btn sm ghost',type:'button',text:T('Διαγραφή όλων','Delete all')});
     del.addEventListener('click',async function(){
-      var ok=window.PsaroAsk?await window.PsaroAsk(T('Διαγραφή των ψαριών του φίλου από αυτή τη συσκευή;','Delete the friend’s catches from this device?'),{ok:T('Διαγραφή','Delete'),cancel:T('Άκυρο','Cancel'),danger:true}):false;
+      var ok=window.AlkyonAsk?await window.AlkyonAsk(T('Διαγραφή των ψαριών του φίλου από αυτή τη συσκευή;','Delete the friend’s catches from this device?'),{ok:T('Διαγραφή','Delete'),cancel:T('Άκυρο','Cancel'),danger:true}):false;
       if(ok){ save([]); if(onChange) onChange(); }
     });
     row.append(del);
@@ -149,5 +149,5 @@ function card(onChange){
   c.append(h('p',{class:'note',style:'margin-top:8px',text:T('Στήλες: ημερομηνία (ΕΕΕΕ-ΜΜ-ΗΗ ή ΗΗ/ΜΜ/ΕΕΕΕ), είδος, ώρα (ΩΩ:ΛΛ), τρόπος (στεριά/σκάφος), πλάτος, μήκος, σχόλιο. Χωρίς συντεταγμένες χρησιμοποιείται το λιμάνι της Πάφου. Ο καιρός είναι εκτίμηση μοντέλου.','Columns: date (YYYY-MM-DD or DD/MM/YYYY), species, time (HH:MM), mode (shore/boat), latitude, longitude, note. Without coordinates, Paphos harbour is used. Weather is a model estimate.')}));
   return c;
 }
-window.PsaroExt={list:load,use:use,card:card,parse:parse,importText:importText,summary:summary,toMs:toMs,useLand:useLand};
+window.AlkyonExt={list:load,use:use,card:card,parse:parse,importText:importText,summary:summary,toMs:toMs,useLand:useLand};
 })();

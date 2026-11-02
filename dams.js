@@ -2,7 +2,7 @@
    Όροι: «Conditions for recreational fishing licences in reservoirs» (2023, cyprusfaa.com, βάσει ΚΕΦ. 135). Η κατάσταση ανοιχτό/κλειστό αλλάζει: επιβεβαίωσε στο Τμήμα Αλιείας. */
 (function(){
 'use strict';
-var C=window.PsaroCore, mb=document.querySelector('.mapbtns'); if(!C||!mb||typeof L==='undefined') return;
+var C=window.AlkyonCore, mb=document.querySelector('.mapbtns'); if(!C||!mb||typeof L==='undefined') return;
 var map=C.map&&C.map(); if(!map) return;
 var EN=window.LANG==='en', T=function(el,en){ return EN?en:el; };
 /* st: closed = κλειστό, seasonal = εποχιακό, cr = μόνο ελευθέρωση, check = άγνωστη κατάσταση */
@@ -16,7 +16,7 @@ var D=[
 ['Ξυλιάτος','Xyliatos',35.0089,33.0372,'closed',42],['Καλοπαναγιώτης','Kalopanagiotis',35.0061,32.8254,'closed',40],['Λύμπια','Lympia',34.97518,33.41907,'closed',12],['Κλήρου-Μαλούντα','Klirou-Malounta',35.0318,33.1727,'check',38],
 ['Σολέα','Solea',35.06836,32.90120,'check',0]
 ];
-var layer=L.layerGroup(), on=C.lsGet('psaro-dams',true)!==false;
+var layer=L.layerGroup(), on=C.lsGet('alkyon-dams',true)!==false;
 var ST={
   closed:[T('Κλειστό για ψάρεμα','Closed to fishing'),'bad'],
   seasonal:[T('Κλειστό 1 Ιαν – 30 Ιουν. Μετά, μόνο ελευθέρωση των ψαριών ζωντανών.','Closed 1 Jan – 30 Jun. Otherwise catch and release only.'),'warn'],
@@ -31,10 +31,10 @@ function dmy(iso){ var m=/^(\d{4})-(\d\d)-(\d\d)/.exec(iso||''); return m?(+m[3]
 function n2(v,dg){ return v==null?'–':(+v).toFixed(dg==null?(v<10?2:1):dg).replace('.',EN?'.':','); }
 function lvLoad(){
   fetch('dams_levels.json',{cache:'no-cache'}).then(function(r){ return r.ok?r.json():null; }).then(function(j){
-    if(!j||!j.dams) return; LV=j; window.PsaroDams.data=j;
+    if(!j||!j.dams) return; LV=j; window.AlkyonDams.data=j;
     markers.forEach(function(x){ var l=lvOf(x.d); if(l) x.m.setTooltipContent((EN?x.d[1]:x.d[0])+' · '+Math.round(l.pct)+'%'); badge(x.m,l); });
     var w=lvWait; lvWait=[]; w.forEach(function(f){ try{ f(); }catch(e){} });
-    try{ window.dispatchEvent(new CustomEvent('psaro-dams')); }catch(e){}
+    try{ window.dispatchEvent(new CustomEvent('alkyon-dams')); }catch(e){}
   }).catch(function(){});
 }
 function badge(m,l){ var el=m.getElement&&m.getElement(), b=el&&el.querySelector('.mk-dam'); if(!b||!l) return; var t=b.querySelector('.mk-dpct'); if(!t){ t=document.createElement('small'); t.className='mk-dpct'; b.appendChild(t); } t.textContent=Math.round(l.pct)+'%'; }
@@ -81,7 +81,7 @@ var cfg=document.getElementById('bToolsCfg'); if(cfg) mb.insertBefore(b,cfg); el
 if(on) layer.addTo(map);
 b.addEventListener('click',function(){
   var v=!map.hasLayer(layer); if(v) layer.addTo(map); else { map.closePopup(); map.removeLayer(layer); }
-  b.setAttribute('aria-pressed',String(v)); C.lsSet('psaro-dams',v);
+  b.setAttribute('aria-pressed',String(v)); C.lsSet('alkyon-dams',v);
 });
 /* κοντινότερο φράγμα με δεδομένα (για την Πρόγνωση σε λίμνη) */
 function near(lat,lon,maxKm){
@@ -89,7 +89,7 @@ function near(lat,lon,maxKm){
     if(k<=(maxKm||5)&&(!best||k<best.km)) best={name:EN?d[1]:d[0],km:k,lv:l,date:LV.date,st:d[4],H:d[5]}; });
   return best;
 }
-window.PsaroDams={list:D,data:null,near:near,box:function(l,Hm){ return lvBox(l,Hm); },ready:function(f){ if(LV) f(); else lvWait.push(f); }};
+window.AlkyonDams={list:D,data:null,near:near,box:function(l,Hm){ return lvBox(l,Hm); },ready:function(f){ if(LV) f(); else lvWait.push(f); }};
 function zc(){ var c=map.getContainer(); if(c) c.classList.toggle('dam-z',map.getZoom()>=10); } map.on('zoomend',zc); zc();
 lvLoad(); if(window.ndEvery) window.ndEvery(lvLoad,3*3600*1000);
 })();

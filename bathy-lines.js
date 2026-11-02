@@ -3,10 +3,10 @@
    Το πλέγμα είναι μέσος όρος ~125 m, άρα οι γραμμές είναι γενικευμένες και μπορεί να λείπουν μικρά ύφαλα. */
 (function(){
 'use strict';
-var C=window.PsaroCore, map=C&&C.map&&C.map();
+var C=window.AlkyonCore, map=C&&C.map&&C.map();
 if(!C||!map||typeof L==='undefined') return;
 var EN=window.LANG==='en', T=function(el,en){ return EN?en:el; };
-var KEY='psaro-dl', WCS='https://ows.emodnet-bathymetry.eu/wcs', CELL=1/960, MAXCELLS=520, MINZOOM=11, MAXLEVELS=60;
+var KEY='alkyon-dl', WCS='https://ows.emodnet-bathymetry.eu/wcs', CELL=1/960, MAXCELLS=520, MINZOOM=11, MAXLEVELS=60;
 var mode=String(C.lsGet(KEY,'std')); if(['std','5','10','20'].indexOf(mode)<0) mode='std';
 var dm=0, group=L.layerGroup(), rend=L.canvas({padding:.2}), grid=null, cache=[], timer=null, ctl=null, seq=0, failedToast=0;
 
@@ -119,18 +119,18 @@ function fetchGrid(b,res,sig){
    Ελέγχουμε ένα σημείο που είναι σίγουρα βαθιά θάλασσα (νότια της Κύπρου) και κανονικοποιούμε: θάλασσα = θετικό. */
 var signP=null;
 function ensureSign(){
-  var st=+C.lsGet('psaro-dsign',0); if(st===1||st===-1) return Promise.resolve(st);
+  var st=+C.lsGet('alkyon-dsign',0); if(st===1||st===-1) return Promise.resolve(st);
   if(signP) return signP;
   var u=WCS+'?service=wcs&version=1.0.0&request=getcoverage&coverage=emodnet:mean&crs=EPSG:4326&bbox=33.19,34.19,33.21,34.21&format=image/tiff&interpolation=nearest&resx=0.00104166667&resy=0.00104166667';
   signP=fetch(u).then(function(r){ if(!r.ok) throw new Error('http'); return r.arrayBuffer(); }).then(function(b){
     var g=parseTiff(b), sum=0; for(var i=0;i<g.data.length;i++) sum+=g.data[i];
-    var sg=sum<0?-1:1; C.lsSet('psaro-dsign',sg); signP=null; return sg;
+    var sg=sum<0?-1:1; C.lsSet('alkyon-dsign',sg); signP=null; return sg;
   }).catch(function(e){ signP=null; throw e; });
   return signP;
 }
 
 /* ---------- σχεδίαση ---------- */
-function satBase(){ var l=C.lsGet('psaro-layer','osm'); return l==='sat'||l==='satellite'||l==='esri'; }
+function satBase(){ var l=C.lsGet('alkyon-layer','osm'); return l==='sat'||l==='satellite'||l==='esri'; }
 function draw(g,step){
   group.clearLayers();
   var w=g.w,h=g.h, mx=0, mn=1e9;
@@ -212,15 +212,15 @@ function sync(){
 }
 function setMode(m){
   mode=m; C.lsSet(KEY,m); sync();
-  if(window.PsaroDepthRefresh) window.PsaroDepthRefresh(); else update();
+  if(window.AlkyonDepthRefresh) window.AlkyonDepthRefresh(); else update();
 }
-window.addEventListener('psaro-depthmode',function(e){ dm=e&&e.detail?e.detail.dm:0; sync(); update(); });
+window.addEventListener('alkyon-depthmode',function(e){ dm=e&&e.detail?e.detail.dm:0; sync(); update(); });
 map.on('moveend',function(){ if(active()) refresh(); });
 var bl=document.getElementById('bLayer'); if(bl) bl.addEventListener('click',function(){ setTimeout(function(){ if(active()&&cache.length) update(); },200); });
-window.PsaroBathy={fetchGrid:fetchGrid};
-window.PsaroDense={setMode:setMode,on:active,parse:parseTiff,contour:contour,mode:function(){ return mode; },update:update};
-dm=window.PsaroDepthMode?window.PsaroDepthMode():(+C.lsGet('psaro-depth',0)||0);
+window.AlkyonBathy={fetchGrid:fetchGrid};
+window.AlkyonDense={setMode:setMode,on:active,parse:parseTiff,contour:contour,mode:function(){ return mode; },update:update};
+dm=window.AlkyonDepthMode?window.AlkyonDepthMode():(+C.lsGet('alkyon-depth',0)||0);
 sync();
-if(dm===2&&mode!=='std'&&window.PsaroDepthRefresh) window.PsaroDepthRefresh();
+if(dm===2&&mode!=='std'&&window.AlkyonDepthRefresh) window.AlkyonDepthRefresh();
 update();
 })();

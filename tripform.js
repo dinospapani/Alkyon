@@ -9,17 +9,17 @@ function $(i){ return document.getElementById(i); }
 function el(t,c,x){ var e=document.createElement(t); if(c) e.className=c; if(x!=null) e.textContent=x; return e; }
 function ls(k,d){ try{ var v=localStorage.getItem(k); return v==null?d:JSON.parse(v); }catch(e){ return d; } }
 function lss(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
-var RK='psaro-routes', built=false;
+var RK='alkyon-routes', built=false;
 
 function recents(){
   var out=[], seen={};
   function add(n){ n=(n||'').trim(); var k=n.toLowerCase(); if(!n||seen[k]||n.length>40) return; seen[k]=1; out.push(n); }
   (ls(RK,[])||[]).forEach(add);
-  try{ var C=window.PsaroCore; (C.Store.get('trips')||[]).slice().sort(function(a,b){ return (b.startMs||0)-(a.startMs||0)||String(b.date).localeCompare(String(a.date)); }).forEach(function(t){ add(t.spot); }); }catch(e){}
+  try{ var C=window.AlkyonCore; (C.Store.get('trips')||[]).slice().sort(function(a,b){ return (b.startMs||0)-(a.startMs||0)||String(b.date).localeCompare(String(a.date)); }).forEach(function(t){ add(t.spot); }); }catch(e){}
   return out.slice(0,6);
 }
 function remember(n){ n=(n||'').trim(); if(!n) return; var l=(ls(RK,[])||[]).filter(function(x){ return x.toLowerCase()!==n.toLowerCase(); }); l.unshift(n); lss(RK,l.slice(0,10)); }
-function contact(){ try{ var C=window.PsaroCore; if(C&&C.lsGet) return C.lsGet('psaro-safe',{})||{}; }catch(e){} return ls('psaro-safe',{})||{}; }
+function contact(){ try{ var C=window.AlkyonCore; if(C&&C.lsGet) return C.lsGet('alkyon-safe',{})||{}; }catch(e){} return ls('alkyon-safe',{})||{}; }
 
 function build(){
   var form=$('sfForm'), route=$('sfRoute'), go=$('sfStart'), time=$('sfTime'), dur=$('sfDur'), sil=$('sfSil');

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""BiteCast: φτιάχνει το index.ts της Supabase Edge Function «quick-processor»
+"""Alkyon: φτιάχνει το index.ts της Supabase Edge Function «quick-processor»
 από τα forecast.js + safety-job.mjs του repo, ώστε η συνάρτηση να τρέχει ακριβώς τον ίδιο κώδικα με την εφαρμογή.
 Χρήση: python3 build_edge.py  -> γράφει quick-processor-index.ts
 Μετά: Supabase → Edge Functions → quick-processor → Code → αντικατάσταση όλου του index.ts → Deploy."""
@@ -42,13 +42,13 @@ Deno.serve(async (req) => {
         if (!u.ok) return J({ ok: false, error: 'unauthorized' }, 401);
         const uid = (await u.json()).id; if (!uid) return J({ ok: false, error: 'unauthorized' }, 401);
         if (!(E('VAPID_PUBLIC') && E('VAPID_PRIVATE'))) return J({ ok: false, error: 'VAPID secrets missing' });
-        if (!vapidSet) { webpush.setVapidDetails('https://dinospapani.github.io/Pasrovarka/', E('VAPID_PUBLIC'), E('VAPID_PRIVATE')); vapidSet = true; }
+        if (!vapidSet) { webpush.setVapidDetails('https://dinospapani.github.io/Alkyon/', E('VAPID_PUBLIC'), E('VAPID_PRIVATE')); vapidSet = true; }
         const sr = await fetch(env.SUPABASE_URL + '/rest/v1/push_subs?user_id=eq.' + encodeURIComponent(uid) + '&select=id,sub,checked_at,turn', { headers: { apikey: env.SUPABASE_SERVICE_KEY, Authorization: 'Bearer ' + env.SUPABASE_SERVICE_KEY } });
         const subs = sr.ok ? await sr.json() : [];
         let sent = 0, gone = 0, err = '';
         const at = new Date().toISOString();
         for (const r of subs || []) {
-          try { await webpush.sendNotification(r.sub, JSON.stringify({ title: 'BiteCast ✓', body: body.lang === 'en' ? 'Test notification from the server. Alerts reach this phone.' : 'Δοκιμαστική ειδοποίηση από τον server. Οι ειδοποιήσεις φτάνουν σε αυτό το κινητό.', kind: 'test', id: 'test-' + at, tag: 'bc-test', at }), { TTL: 600 }); sent++; }
+          try { await webpush.sendNotification(r.sub, JSON.stringify({ title: 'Alkyon ✓', body: body.lang === 'en' ? 'Test notification from the server. Alerts reach this phone.' : 'Δοκιμαστική ειδοποίηση από τον server. Οι ειδοποιήσεις φτάνουν σε αυτό το κινητό.', kind: 'test', id: 'test-' + at, tag: 'alk-test', at }), { TTL: 600 }); sent++; }
           catch (e) { if (e.statusCode === 404 || e.statusCode === 410) { gone++; await fetch(env.SUPABASE_URL + '/rest/v1/push_subs?id=eq.' + encodeURIComponent(r.id), { method: 'DELETE', headers: { apikey: env.SUPABASE_SERVICE_KEY, Authorization: 'Bearer ' + env.SUPABASE_SERVICE_KEY } }); } else err = String(e.statusCode || '') + ' ' + e.message; }
         }
         const last = (subs || []).map(r => r.checked_at).filter(Boolean).sort().pop() || null;
@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
   let wp = null;
   if (E('VAPID_PUBLIC') && E('VAPID_PRIVATE')) {
     try {
-      if (!vapidSet) { webpush.setVapidDetails('https://dinospapani.github.io/Pasrovarka/', E('VAPID_PUBLIC'), E('VAPID_PRIVATE')); vapidSet = true; }
+      if (!vapidSet) { webpush.setVapidDetails('https://dinospapani.github.io/Alkyon/', E('VAPID_PUBLIC'), E('VAPID_PRIVATE')); vapidSet = true; }
       wp = webpush;
     } catch (e) { console.log('VAPID: ' + e.message); }
   }
@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
 
 out = (
     "// @ts-nocheck\n"
-    "// BiteCast cron: forecast push, ασφάλεια εξόδων (Telegram), πτώση πίεσης. Παράγεται από build_edge.py. Μην το επεξεργάζεσαι στο χέρι.\n"
+    "// Alkyon cron: forecast push, ασφάλεια εξόδων (Telegram), πτώση πίεσης. Παράγεται από build_edge.py. Μην το επεξεργάζεσαι στο χέρι.\n"
     "import webpush from 'npm:web-push@3.6.7';\n\n"
     "globalThis.self = globalThis.self || globalThis;\n"
     "// ---- forecast.js ----\n" + fc.rstrip() + "\n\nconst PF = self.PF;\n\n"

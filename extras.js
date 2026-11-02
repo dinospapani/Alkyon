@@ -1,12 +1,12 @@
 /* Έξοδος και ασφάλεια: Έναρξη/Τέλος εξόδου, ώρα επιστροφής, έλεγχος σιωπής, SOS, επαφή ασφαλείας (στο προφίλ). */
 (function(){
 'use strict';
-var C=window.PsaroCore; if(!C||!document.getElementById('safeCard')) return;
+var C=window.AlkyonCore; if(!C||!document.getElementById('safeCard')) return;
 var $=C.$, h=C.h, toast=C.toast;
-var KEY='psaro-safe';
+var KEY='alkyon-safe';
 var EN=window.LANG==='en', T=function(el,en){ return EN?en:el; };
-var BOT='BiteCastMaydaybot';   /* όνομα του Telegram bot, χωρίς @ */
-var Cl=function(){ return window.PsaroCloud&&window.PsaroCloud.logged()?window.PsaroCloud:null; };
+var BOT='AlkyonMaydayBot';   /* όνομα του Telegram bot, χωρίς @ */
+var Cl=function(){ return window.AlkyonCloud&&window.AlkyonCloud.logged()?window.AlkyonCloud:null; };
 function load(){ return C.lsGet(KEY,null)||{}; }
 function save(s){ C.lsSet(KEY,s); }
 function srvMsg(m){ var x=$('sfSrv'); if(x) x.textContent=m||''; }
@@ -84,8 +84,8 @@ async function pushTrip(){
 /* ---------- μηνύματα ---------- */
 function plan(s,kind){
   var link=mapLink(s.last), t;
-  if(kind==='sos') t=T('ΒΟΗΘΕΙΑ (BiteCast): δεν έχω επιστρέψει ακόμα και είχα δηλώσει επιστροφή στις ','HELP (BiteCast): I have not returned yet and I had declared my return at ')+hm(s.due)+(s.route?T(' (διαδρομή: ',' (route: ')+s.route+')':'')+'.';
-  else t=T('Σχέδιο εξόδου (BiteCast): ψαρεύω με το σκάφος','Trip plan (BiteCast): fishing by boat')+(s.route?' – '+s.route:'')+T('. Επιστροφή στις ','. Return at ')+hm(s.due)+'.';
+  if(kind==='sos') t=T('ΒΟΗΘΕΙΑ (Alkyon): δεν έχω επιστρέψει ακόμα και είχα δηλώσει επιστροφή στις ','HELP (Alkyon): I have not returned yet and I had declared my return at ')+hm(s.due)+(s.route?T(' (διαδρομή: ',' (route: ')+s.route+')':'')+'.';
+  else t=T('Σχέδιο εξόδου (Alkyon): ψαρεύω με το σκάφος','Trip plan (Alkyon): fishing by boat')+(s.route?' – '+s.route:'')+T('. Επιστροφή στις ','. Return at ')+hm(s.due)+'.';
   if(link) t+=T(' Τελευταία θέση',' Last position')+(s.last&&s.last.t?' ('+hm(s.last.t)+')':'')+': '+link;
   return t;
 }
@@ -141,7 +141,7 @@ function sessBar(s){
     $('sessTxt').addEventListener('click',openSheet);
     $('sessEnd').addEventListener('click',back);
     $('sessBite').addEventListener('click',function(){ var q=$('bQuick'); if(q&&!q.disabled) q.click(); });
-    $('sessSos').addEventListener('click',function(){ window.PsaroAsk(window.LANG==='en'?'Send an SOS with your location to your safety contact?':'Να σταλεί SOS με τη θέση σου στην επαφή ασφαλείας;',{title:'SOS',ok:'SOS',danger:true}).then(function(y){ if(y) trackPos().then(function(){ sos(); }); }); });
+    $('sessSos').addEventListener('click',function(){ window.AlkyonAsk(window.LANG==='en'?'Send an SOS with your location to your safety contact?':'Να σταλεί SOS με τη θέση σου στην επαφή ασφαλείας;',{title:'SOS',ok:'SOS',danger:true}).then(function(y){ if(y) trackPos().then(function(){ sos(); }); }); });
   }
   $('sessTxt').textContent='● Σε έξοδο '+dur(Date.now()-s.start)+' · επιστροφή '+hm(s.due);
 }
@@ -149,14 +149,14 @@ function wxWarn(s){
   var el=$('sfWx'), c=C.getCond()||{}, msg='';
   if(s.active){
     var w=c.wind, v=c.wave;
-    if((w!=null&&w>=27)||(v!=null&&v>=2.5)) msg=T('Επικίνδυνες συνθήκες (','Dangerous conditions (')+(w!=null?window.PsaroUnits.wind(w)+T(' άνεμος',' wind'):'')+(v!=null?(w!=null?', ':'')+window.PsaroUnits.wave(v)+T(' κύμα',' waves'):'')+T('). Σκέψου να γυρίσεις.','). Consider heading back.');
-    else if((w!=null&&w>=20)||(v!=null&&v>=1.5)) msg=T('Προσοχή: δυναμώνει ο καιρός (','Caution: weather is getting rougher (')+(w!=null?window.PsaroUnits.wind(w)+T(' άνεμος',' wind'):'')+(v!=null?(w!=null?', ':'')+window.PsaroUnits.wave(v)+T(' κύμα',' waves'):'')+').';
+    if((w!=null&&w>=27)||(v!=null&&v>=2.5)) msg=T('Επικίνδυνες συνθήκες (','Dangerous conditions (')+(w!=null?window.AlkyonUnits.wind(w)+T(' άνεμος',' wind'):'')+(v!=null?(w!=null?', ':'')+window.AlkyonUnits.wave(v)+T(' κύμα',' waves'):'')+T('). Σκέψου να γυρίσεις.','). Consider heading back.');
+    else if((w!=null&&w>=20)||(v!=null&&v>=1.5)) msg=T('Προσοχή: δυναμώνει ο καιρός (','Caution: weather is getting rougher (')+(w!=null?window.AlkyonUnits.wind(w)+T(' άνεμος',' wind'):'')+(v!=null?(w!=null?', ':'')+window.AlkyonUnits.wave(v)+T(' κύμα',' waves'):'')+').';
   }
   el.textContent=msg; el.hidden=!msg;
 }
 function silNote(d){
   var sel=$('sfSil'), n=$('sfSilNote'); if(!sel) return;
-  if(!d.selfLinked){ sel.value='0'; sel.disabled=true; n.textContent=BOT?'Για να ενεργοποιηθεί, σύνδεσε το δικό σου Telegram στο προφίλ. Το BiteCast θα σε ρωτάει «είσαι καλά;» πριν ειδοποιήσει την επαφή σου.':''; }
+  if(!d.selfLinked){ sel.value='0'; sel.disabled=true; n.textContent=BOT?'Για να ενεργοποιηθεί, σύνδεσε το δικό σου Telegram στο προφίλ. Το Alkyon θα σε ρωτάει «είσαι καλά;» πριν ειδοποιήσει την επαφή σου.':''; }
   else { sel.disabled=false; if(sel.value==='0'&&!sel.dataset.touched) sel.value='60'; n.textContent='Αν δεν υπάρχει σήμα από το κινητό για τόσο, σε ρωτάμε στο Telegram. Αν δεν απαντήσεις σε 15 λεπτά, ειδοποιείται η επαφή σου.'; }
 }
 function render(){
@@ -166,7 +166,7 @@ function render(){
   var bd=$('sfBadge'); bd.hidden=!on; bd.className='pill '+(late(s)?'bad':'good'); bd.textContent=late(s)?'Καθυστερείς':'Σε έξοδο';
   if(on){
     $('sfInfo').textContent=(late(s)?'Η επιστροφή ήταν στις ':'Επιστροφή στις ')+hm(s.due)+' · διάρκεια '+dur(Date.now()-s.start);
-    $('sfLast').textContent=s.last?('Τελευταία γνωστή θέση: '+hm(s.last.t)+' · '+PsaroCoord.fmt(s.last.lat,s.last.lon)):'Δεν έχει καταγραφεί θέση ακόμα.';
+    $('sfLast').textContent=s.last?('Τελευταία γνωστή θέση: '+hm(s.last.t)+' · '+AlkyonCoord.fmt(s.last.lat,s.last.lon)):'Δεν έχει καταγραφεί θέση ακόμα.';
     $('sfMon').textContent=s.noAlert?(window.LANG==='en'?'Your safety contact is not notified on this trip. The SOS button still sends your position.':'Η επαφή ασφαλείας δεν ειδοποιείται σε αυτή την έξοδο. Το SOS στέλνει κανονικά τη θέση σου.'):'Παρακολούθηση: '+(s.sil?'έλεγχος αν χαθεί το σήμα μετά από '+s.sil+' λεπτά, ':'')+'ειδοποίηση επαφής αν περάσει η ώρα επιστροφής, και αν η μπαταρία πέσει κάτω από 10%.';
   } else {
     var d=load(); $('sfNoC').hidden=hasContact(d); silNote(d);
@@ -175,7 +175,7 @@ function render(){
   document.body.classList.toggle('ontrip',!!on);
   var tb=$('tripBtn'); tb.textContent=!on?'▶ Έξοδος':(late(s)?'⚠ Τέλος εξόδου':'■ Τέλος εξόδου'); var sb=$('sosBtn'); if(sb) sb.hidden=!on; tb.classList.toggle('on',!!on); tb.classList.toggle('late',!!late(s));
   wxWarn(s); bar(); sessBar(s);
-  try{ window.dispatchEvent(new Event('psaro-sess')); }catch(x){}
+  try{ window.dispatchEvent(new Event('alkyon-sess')); }catch(x){}
 }
 function openSheet(){ render(); $('tripSheet').hidden=false; }
 function closeSheet(){ $('tripSheet').hidden=true; }
@@ -221,21 +221,21 @@ function summary(s){
 function back(){
   var s=load(); if(!s.active) return;
   var d=Date.now()-s.start, sm=summary(s), en=window.LANG==='en';
-  var tk=window.PsaroTrack?window.PsaroTrack.take():null;
+  var tk=window.AlkyonTrack?window.AlkyonTrack.take():null;
   s.active=false; save(s); pushTrip(); clearInterval(timer);
   $('sfMsg').textContent=en?'Welcome back.':'Καλωσόρισες πίσω.'; render(); closeSheet();
   if(d>=20*60000||sm.n>0||sm.miss>0){
     var pos=s.last||(s.cond0&&s.cond0.lat!=null?{lat:s.cond0.lat,lon:s.cond0.lon}:null);
-    C.Store.save('trips',{sid:s.id,date:s.startDate||C.nicosiaToday(),spot:s.route||'',tech:'',species:sm.species,count:sm.n,miss:sm.miss,kg:sm.kg,pn:sm.pn||0,pkg:sm.pkg||0,startMs:s.start,endMs:Date.now(),cond0:s.cond0||null,km:tk?tk.km:undefined,track:tk?tk.track:undefined,moving:tk&&tk.moving&&tk.moving.length?tk.moving:undefined,lat:pos?pos.lat:null,lon:pos?pos.lon:null,notes:(en?'Recorded from Start/End trip (':'Καταγραφή από Έναρξη/Τέλος εξόδου (')+dur(d)+')'}).then(function(id){ try{ window.dispatchEvent(new CustomEvent('psaro-tripend',{detail:{id:id}})); }catch(x){} }).catch(function(){});
+    C.Store.save('trips',{sid:s.id,date:s.startDate||C.nicosiaToday(),spot:s.route||'',tech:'',species:sm.species,count:sm.n,miss:sm.miss,kg:sm.kg,pn:sm.pn||0,pkg:sm.pkg||0,startMs:s.start,endMs:Date.now(),cond0:s.cond0||null,km:tk?tk.km:undefined,track:tk?tk.track:undefined,moving:tk&&tk.moving&&tk.moving.length?tk.moving:undefined,lat:pos?pos.lat:null,lon:pos?pos.lon:null,notes:(en?'Recorded from Start/End trip (':'Καταγραφή από Έναρξη/Τέλος εξόδου (')+dur(d)+')'}).then(function(id){ try{ window.dispatchEvent(new CustomEvent('alkyon-tripend',{detail:{id:id}})); }catch(x){} }).catch(function(){});
     toast((en?'Trip saved: ':'Η έξοδος καταχωρήθηκε: ')+dur(d)+' · '+(sm.n?sm.n+(en?' bites':' τσιμπήματα'):(en?'no bites (kept too: it helps your personal forecast learn)':'χωρίς τσιμπήματα (κρατήθηκε κι αυτή: βοηθά την προσωπική πρόγνωση να μάθει)')));
   } else toast(en?'Welcome back. The trip was under 20 minutes with no bites, so it was not saved.':'Καλωσόρισες πίσω. Η έξοδος ήταν κάτω από 20 λεπτά χωρίς τσιμπήματα, οπότε δεν καταχωρήθηκε.');
 }
-window.PsaroTrip={back:back,sosNow:function(){ sos(); },sheet:function(){ openSheet(); },sos:function(){ var en=window.LANG==='en'; window.PsaroAsk(en?'Send an SOS with your location to your safety contact?':'Να σταλεί SOS με τη θέση σου στην επαφή ασφαλείας;',{title:'SOS',ok:en?'Send SOS':'Αποστολή SOS',cancel:en?'Cancel':'Άκυρο',danger:true}).then(function(ok){ if(ok) trackPos().then(function(){ sos(); }); }); },counts:function(){ var s=load(); return s.active?summary(s):{n:0,kg:0,species:'',miss:0}; },endSilent:function(){ var s=load(); if(!s.active) return false; if(window.PsaroTrack) window.PsaroTrack.take(); s.active=false; save(s); pushTrip(); clearInterval(timer); render(); return true; },state:load};
+window.AlkyonTrip={back:back,sosNow:function(){ sos(); },sheet:function(){ openSheet(); },sos:function(){ var en=window.LANG==='en'; window.AlkyonAsk(en?'Send an SOS with your location to your safety contact?':'Να σταλεί SOS με τη θέση σου στην επαφή ασφαλείας;',{title:'SOS',ok:en?'Send SOS':'Αποστολή SOS',cancel:en?'Cancel':'Άκυρο',danger:true}).then(function(ok){ if(ok) trackPos().then(function(){ sos(); }); }); },counts:function(){ var s=load(); return s.active?summary(s):{n:0,kg:0,species:'',miss:0}; },endSilent:function(){ var s=load(); if(!s.active) return false; if(window.AlkyonTrack) window.AlkyonTrack.take(); s.active=false; save(s); pushTrip(); clearInterval(timer); render(); return true; },state:load};
 function ext(){ var s=load(); s.due=Math.max(s.due,Date.now())+30*60000; save(s); render(); pushTrip(); }
 function sos(){
   var s=load(); s.due=Date.now()-60000; s.sosAt=Date.now(); save(s);
   function manual(){
-    window.PsaroAsk(window.LANG==='en'?'Send a help message with your last position. Choose how to send it.':'Στείλε μήνυμα βοήθειας με την τελευταία σου θέση. Διάλεξε πώς θα σταλεί.',{title:'SOS',ok:'WhatsApp',cancel:'SMS',danger:false}).then(function(ok){ send(s,'sos',ok?'wa':'sms'); });
+    window.AlkyonAsk(window.LANG==='en'?'Send a help message with your last position. Choose how to send it.':'Στείλε μήνυμα βοήθειας με την τελευταία σου θέση. Διάλεξε πώς θα σταλεί.',{title:'SOS',ok:'WhatsApp',cancel:'SMS',danger:false}).then(function(ok){ send(s,'sos',ok?'wa':'sms'); });
   }
   /* v31z70: αν η επαφή είναι συνδεδεμένη στο Telegram, το SOS φεύγει αυτόματα από τον server, χωρίς ερώτηση και χωρίς «Αποστολή». Αλλιώς (ή αν δεν έφτασε στον server) μένει η χειροκίνητη αποστολή SMS/WhatsApp. */
   Promise.resolve(pushTrip()).then(function(){
@@ -282,7 +282,7 @@ window.addEventListener('online',function(){ if(load().active) pushTrip(); });
 $('sfStart').addEventListener('click',start);
 $('sfBack').addEventListener('click',back);
 $('sfExt').addEventListener('click',ext);
-$('sfShare').addEventListener('click',function(){ var s=load(); (s.phone?window.PsaroAsk(window.LANG==='en'?'Send your trip plan to your contact. Choose how to send it.':'Στείλε το σχέδιο στην επαφή σου. Διάλεξε πώς θα σταλεί.',{title:window.LANG==='en'?'Trip plan':'Σχέδιο εξόδου',ok:'WhatsApp',cancel:'SMS'}):Promise.resolve(false)).then(function(ok){ send(s,'plan',ok?'wa':'sms'); }); });
+$('sfShare').addEventListener('click',function(){ var s=load(); (s.phone?window.AlkyonAsk(window.LANG==='en'?'Send your trip plan to your contact. Choose how to send it.':'Στείλε το σχέδιο στην επαφή σου. Διάλεξε πώς θα σταλεί.',{title:window.LANG==='en'?'Trip plan':'Σχέδιο εξόδου',ok:'WhatsApp',cancel:'SMS'}):Promise.resolve(false)).then(function(ok){ send(s,'plan',ok?'wa':'sms'); }); });
 $('sfSos').addEventListener('click',function(){ trackPos().then(sos); });
 document.addEventListener('visibilitychange',function(){ if(!document.hidden){ render(); if(load().active) trackPos(); } });
 /* Όταν χρησιμοποιείς την εφαρμογή (πάτημα, γράψιμο), ανανεώνεται το σήμα ζωής στον server: δεν σε ρωτάει «είσαι καλά;» όσο είσαι ενεργός */

@@ -1,4 +1,4 @@
--- BiteCast v31z74: επιτρέπει τον εξοπλισμό (kind = 'tackle') στον πίνακα records.
+-- Alkyon v31z74: επιτρέπει τον εξοπλισμό (kind = 'tackle') στον πίνακα records.
 -- Τρέξε το μία φορά στο Supabase → SQL Editor. Είναι ασφαλές να τρέξει και ξανά.
 do $$
 declare c text;

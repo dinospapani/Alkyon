@@ -20,9 +20,9 @@ var PROFILES={
   lake:function(a){ return [LAKE]; },
   spear:function(a){ return [SPEAR]; }
 };
-function prof(){ try{ var p=localStorage.getItem('psaro-fprof'); return PROFILES[p]?p:'boat'; }catch(e){ return 'boat'; } }
+function prof(){ try{ var p=localStorage.getItem('alkyon-fprof'); return PROFILES[p]?p:'boat'; }catch(e){ return 'boat'; } }
 var PAS=[['Δίχτυ','Net'],['Παραγάδι','Longline'],['Ζεμπίλι / παγίδα','Pot / trap']];
-var KEY='psaro-customtech', NEW='__new__';
+var KEY='alkyon-customtech', NEW='__new__';
 function load(){ try{ var a=JSON.parse(localStorage.getItem(KEY)||'[]'); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
 function save(a){ try{ localStorage.setItem(KEY,JSON.stringify(a)); }catch(e){} }
 function opt(v,t){ var o=document.createElement('option'); o.value=v; o.textContent=t||v; return o; }
@@ -79,6 +79,6 @@ function rebuildAll(){ [['bTech',false],['tTech',true]].forEach(function(p){ var
   var mine=[]; PROFILES[prof()](ANG).forEach(function(g){ g[1].forEach(function(x){ mine.push(x[0]); }); }); mine=mine.concat(load()); if(p[1]) PAS.forEach(function(x){ mine.push(x[0]); });
   if(c&&mine.indexOf(c)>=0) d.set.call(s,c);
   else { Array.prototype.slice.call(s.options).forEach(function(o){ if(o.value===c&&mine.indexOf(c)<0&&c!=='Άλλο') o.remove(); }); s.selectedIndex=0; } }); }
-window.addEventListener('psaro-fprof',rebuildAll);
-window.PsaroTechs={custom:load,rebuild:rebuildAll};
+window.addEventListener('alkyon-fprof',rebuildAll);
+window.AlkyonTechs={custom:load,rebuild:rebuildAll};
 })();

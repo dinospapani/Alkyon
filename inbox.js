@@ -1,5 +1,5 @@
 /* Ιστορικό ειδοποιήσεων: ό,τι στάλθηκε (server ή τοπικός έλεγχος της εφαρμογής) με όλο το κείμενο.
-   Πηγές: 1) ο service worker αποθηκεύει κάθε push στη συσκευή (cache «psaro-cfg», __inbox)
+   Πηγές: 1) ο service worker αποθηκεύει κάθε push στη συσκευή (cache «alkyon-cfg», __inbox)
           2) οι ειδοποιήσεις που δείχνει η ίδια η σελίδα (τοπικός έλεγχος) — πιάνονται εδώ
           3) ο πίνακας notif_log στο Supabase (ό,τι έστειλε ο server, ακόμα κι αν δεν έφτασε στο κινητό).
    Άνοιγμα: πάτημα στην ειδοποίηση (#inbox=…), κουμπί στην κάρτα ειδοποιήσεων της Πρόγνωσης, «Ενέργειες» του χάρτη,
@@ -7,7 +7,7 @@
 (function(){
 'use strict';
 var EN=window.LANG==='en', T=function(a,b){ return EN?b:a; };
-var CFG='psaro-cfg', LIST=[], SERVER=[], loaded=false, loading=null, sheet=null, filt='all', focusId=null;
+var CFG='alkyon-cfg', LIST=[], SERVER=[], loaded=false, loading=null, sheet=null, filt='all', focusId=null;
 function scopeUrl(){ try{ return new URL('__inbox',(navigator.serviceWorker&&navigator.serviceWorker.controller)?navigator.serviceWorker.controller.scriptURL:location.href).href; }catch(e){ return new URL('__inbox',location.href).href; } }
 function keyOf(id){ id=String(id||''); var i=id.indexOf('|'); return i>=0?id.slice(i+1):id; }
 function dayOf(iso){ try{ return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Nicosia',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(iso)); }catch(e){ return String(iso||'').slice(0,10); } }
@@ -18,7 +18,7 @@ async function readLocal(){
 async function writeLocal(a){ try{ var c=await caches.open(CFG); await c.put(scopeUrl(),new Response(JSON.stringify(a.slice(0,400)))); }catch(e){} }
 async function addLocal(it){ var a=await readLocal(); if(it.id&&a.some(function(x){ return x.id===it.id; })) return; a.unshift(it); await writeLocal(a); }
 async function readServer(){
-  var cl=window.PsaroCloud; if(!cl||!cl.logged||!cl.logged()) return [];
+  var cl=window.AlkyonCloud; if(!cl||!cl.logged||!cl.logged()) return [];
   try{ var r=await cl.rest('notif_log?select=id,at,kind,title,body,details,place,t&order=at.desc&limit=400'); var a=await r.json(); return Array.isArray(a)?a.map(function(x){ x.src='server'; x.full=x.details||x.body; return x; }):[]; }catch(e){ return []; }
 }
 function merge(loc,srv){
@@ -33,7 +33,7 @@ function load(){
   return loading;
 }
 function forDay(d){ return LIST.filter(function(x){ return dayOf(x.at)===d; }); }
-window.PsaroInbox={load:load,list:function(){ return LIST; },forDay:forDay,open:function(id){ open(id); }};
+window.AlkyonInbox={load:load,list:function(){ return LIST; },forDay:forDay,open:function(id){ open(id); }};
 
 /* ειδοποιήσεις που δείχνει η ίδια η σελίδα: αποθήκευση και άνοιγμα με πάτημα */
 try{
@@ -42,8 +42,8 @@ try{
     P.showNotification=function(title,opt){
       opt=Object.assign({},opt||{}); var bc=(opt.data&&opt.data.bc)||{}, id=bc.id||('a'+Date.now()+Math.random().toString(36).slice(2,6));
       var kind=bc.kind||(String(opt.tag||'').indexOf('wind')>=0?'wind':String(opt.tag||'').indexOf('sea')>=0?'safety':/πίεσ|pressure/i.test(title)?'pressure':'info');
-      addLocal({id:id,at:new Date().toISOString(),kind:kind,title:String(title||'BiteCast'),body:opt.body||'',full:bc.full||opt.body||'',place:bc.place||null,t:bc.t||null,src:'app'}).then(function(){ loaded=false; load(); });  /* v31z360: η ένδειξη ενημερώνεται αμέσως (και κατά την έξοδο) */
-      if(!opt.tag||opt.tag==='psaro-ideal') opt.tag='bc-'+id; opt.renotify=true;
+      addLocal({id:id,at:new Date().toISOString(),kind:kind,title:String(title||'Alkyon'),body:opt.body||'',full:bc.full||opt.body||'',place:bc.place||null,t:bc.t||null,src:'app'}).then(function(){ loaded=false; load(); });  /* v31z360: η ένδειξη ενημερώνεται αμέσως (και κατά την έξοδο) */
+      if(!opt.tag||opt.tag==='alkyon-ideal') opt.tag='alk-'+id; opt.renotify=true;
       opt.data=Object.assign({},opt.data||{},{url:(this.scope||location.href.split('#')[0])+'#inbox='+encodeURIComponent(id)});
       return orig.call(this,title,opt);
     };
@@ -101,7 +101,7 @@ function render(){
     var tx=el('div','itx'); tx.append(el('div','itt',String(x.title||'').replace(/^[^\p{L}\p{N}]+/u,'')),el('div','ibd',x.body||''));
     bt.append(el('span','iic',k[0]),tx,el('span','itm',hmOf(x.at)));
     var fu=el('div','ifu'); fu.hidden=true; fu.append(document.createTextNode(x.full||x.body||''));
-    if(x.place&&x.place.lat!=null&&window.PsaroCoord&&window.PsaroCoord.fmt){ try{ fu.append(el('div','note',T('Σημείο: ','Location: ')+(x.place.name?x.place.name+' · ':'')+window.PsaroCoord.fmt(+x.place.lat,+x.place.lon))); }catch(e){} }
+    if(x.place&&x.place.lat!=null&&window.AlkyonCoord&&window.AlkyonCoord.fmt){ try{ fu.append(el('div','note',T('Σημείο: ','Location: ')+(x.place.name?x.place.name+' · ':'')+window.AlkyonCoord.fmt(+x.place.lat,+x.place.lon))); }catch(e){} }
     if(Array.isArray(x.locs)&&x.locs.length){ /* v31z397: όλα τα σημεία μαζί στον χάρτη, με λεπτομέρειες ανά σημείο */
       var lw=el('div','ilocs'), locs=x.locs.filter(function(q){ return q&&q.lat!=null; }), ttl=String(x.title||'').replace(/^[^:]*:\s*/,'');
       var all=el('button','iloc iloc-all','🗺 '+T('Δες τα όλα στον χάρτη','Show them all on the map')+' ('+locs.length+')'); all.type='button';
@@ -117,7 +117,7 @@ function render(){
   if(target) setTimeout(function(){ try{ target.scrollIntoView({block:'center'}); }catch(e){} },50);
 }
 var locLayer=null, locCtl=null;
-function clearLocs(){ try{ var m=window.PsaroCore.map(); if(locLayer) m.removeLayer(locLayer); if(locCtl) m.removeControl(locCtl); }catch(e){} locLayer=null; locCtl=null; }
+function clearLocs(){ try{ var m=window.AlkyonCore.map(); if(locLayer) m.removeLayer(locLayer); if(locCtl) m.removeControl(locCtl); }catch(e){} locLayer=null; locCtl=null; }
 function locPop(q,ttl){
   var d=el('div','pop ilpop'); d.append(el('b','',q.name||T('Σημείο','Spot')));
   if(ttl) d.append(el('div','meta',ttl));
@@ -129,7 +129,7 @@ function showLocs(locs,focus,ttl){
   close();
   try{ var tb=document.querySelector('[data-tab=map]'); if(tb) tb.click(); }catch(e){}
   setTimeout(function(){ try{
-    var C=window.PsaroCore, m=C&&C.map&&C.map(); if(!m||typeof L==='undefined') return;
+    var C=window.AlkyonCore, m=C&&C.map&&C.map(); if(!m||typeof L==='undefined') return;
     clearLocs(); locLayer=L.layerGroup().addTo(m); var mks=[];
     locs.forEach(function(q,i){
       var ic=L.divIcon({className:'',html:'<div class="ilpin"><span>'+(i+1)+'</span></div>',iconSize:[30,38],iconAnchor:[15,36],popupAnchor:[0,-32]});
@@ -151,7 +151,7 @@ function close(){ if(sheet) sheet.hidden=true; focusId=null; if(/^#inbox/.test(l
 function refreshUI(){ if(sheet&&!sheet.hidden){ render(); markSeen(); } fcButton(); decorateTrips(); badges(); }
 
 /* v31z358: αδιάβαστες ειδοποιήσεις: ένδειξη στο καμπανάκι (γραμμή αναζήτησης), στο κουμπί «Ενέργειες», στη λαβή της μπάρας και στο εικονίδιο της εφαρμογής */
-var SEEN='psaro-inbox-seen';
+var SEEN='alkyon-inbox-seen';
 function seenAt(){ try{ var v=localStorage.getItem(SEEN); if(v) return v; var now=new Date().toISOString(); localStorage.setItem(SEEN,now); return now; }catch(e){ return ''; } }
 function unread(){ var s=seenAt(); return LIST.filter(function(x){ return x.at&&x.at>s; }).length; }
 function markSeen(){ try{ var top=LIST[0]&&LIST[0].at, now=new Date().toISOString(); localStorage.setItem(SEEN,top&&top>now?top:now); }catch(e){} badges(); }
@@ -195,7 +195,7 @@ function fcButton(){
   b.addEventListener('click',function(){ open(); }); mb.appendChild(b); })();
 /* ειδοποιήσεις της ημέρας μέσα σε κάθε έξοδο του Ημερολογίου */
 function decorateTrips(){
-  var L=document.getElementById('tripList'), C=window.PsaroCore; if(!L||!C||!C.Store||!LIST.length) return;
+  var L=document.getElementById('tripList'), C=window.AlkyonCore; if(!L||!C||!C.Store||!LIST.length) return;
   var trips; try{ trips=C.Store.get('trips'); }catch(e){ return; }
   Array.prototype.forEach.call(L.querySelectorAll('.item[data-tid]'),function(item){
     var old=item.querySelector('.nbxd'); if(old&&old.closest('.ndth')){ old.remove(); old=null; } var tr=trips.find(function(t){ return t.id===item.dataset.tid; }); if(!tr||!tr.date) return;

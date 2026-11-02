@@ -2,7 +2,7 @@
    και προτεινόμενα είδη για την τοποθεσία σου. Οι περιοχές είναι ενδεικτικές: δείχνουν πού συνήθως ζει ένα είδος, όχι ότι επιτρέπεται η αλιεία του. */
 (function(){
 'use strict';
-var C=window.PsaroCore; if(!C||!C.speciesDB||!window.SPECIES_REG) return;
+var C=window.AlkyonCore; if(!C||!C.speciesDB||!window.SPECIES_REG) return;
 var EN=window.LANG==='en', T=function(el,en){ return EN?en:el; };
 var $=function(i){ return document.getElementById(i); };
 var REG=window.SPECIES_REG, REGS=window.SPECIES_REGIONS;
@@ -66,7 +66,7 @@ function render(){
   }
   q.addEventListener('input',function(){ query=q.value; fill(); }); fill();
 }
-function open(cb){ onPick=cb||null; if(!manual){ var fpL=''; try{ fpL=localStorage.getItem('psaro-fprof')||''; }catch(e){} cur=fpL==='lake'?'f':autoRegion(); } query=''; render(); P.hidden=false; }
+function open(cb){ onPick=cb||null; if(!manual){ var fpL=''; try{ fpL=localStorage.getItem('alkyon-fprof')||''; }catch(e){} cur=fpL==='lake'?'f':autoRegion(); } query=''; render(); P.hidden=false; }
 
-window.PsaroSpecies={open:open,suggestions:suggestions,autoRegion:autoRegion,tagsOf:tagsOf};
+window.AlkyonSpecies={open:open,suggestions:suggestions,autoRegion:autoRegion,tagsOf:tagsOf};
 })();

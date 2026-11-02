@@ -3,10 +3,10 @@
    Ενδεικτικά δεδομένα, όχι νομική πληροφορία: ισχύει ο επίσημος κανονισμός. Τα όρια είναι απλοποιημένα. */
 (function(){
 'use strict';
-var C=window.PsaroCore, bz=document.getElementById('bZones'), map=C&&C.map&&C.map();
+var C=window.AlkyonCore, bz=document.getElementById('bZones'), map=C&&C.map&&C.map();
 if(!C||!bz||!map||typeof L==='undefined') return;
 var EN=window.LANG==='en', T=function(el,en){ return EN?en:el; };
-var KEY='psaro-nav', FILE='navigator-mpa.json', MAIL='support@protectedseas.net';
+var KEY='alkyon-nav', FILE='navigator-mpa.json', MAIL='support@protectedseas.net';
 var ATTR='Protected areas: <a href="https://map.navigatormap.org/" target="_blank" rel="noopener">ProtectedSeas Navigator</a> (CC BY 4.0)';
 var DATA=null, loading=null, group=null, rend=null, on=!!C.lsGet(KEY,false), inside={}, lastAlert={}, hideT=null, firstFix=true;
 
@@ -14,7 +14,7 @@ var DATA=null, loading=null, group=null, rend=null, on=!!C.lsGet(KEY,false), ins
 function load(){
   if(DATA) return Promise.resolve(DATA);
   if(loading) return loading;
-  loading=fetch((window.PSARO_BASE||'')+FILE).then(function(r){ if(!r.ok) throw new Error('http'); return r.json(); }).then(function(j){
+  loading=fetch((window.ALKYON_BASE||'')+FILE).then(function(r){ if(!r.ok) throw new Error('http'); return r.json(); }).then(function(j){
     DATA=((j&&j.f)||[]).filter(relevant); DATA.forEach(function(f){ f._s=sev(f); }); return DATA;
   }).catch(function(e){ loading=null; throw e; });
   return loading;
@@ -136,7 +136,7 @@ b.setAttribute('aria-pressed',String(on));
 if(on) set(true);
 
 /* ---------- πληροφορίες στο popup του χάρτη ---------- */
-window.PsaroNavInfo=function(lat,lon,closeFn){
+window.AlkyonNavInfo=function(lat,lon,closeFn){
   if(!on||!DATA) return null;
   var hs=hits(lat,lon).filter(function(f){ return true; }); if(!hs.length) return null;
   hs.sort(function(a,c){ return c._s-a._s; });
@@ -182,6 +182,6 @@ function onPos(lat,lon){
     if(worst) say(worst);
   }).catch(function(){});
 }
-window.addEventListener('psaro-pos',function(e){ var d=e&&e.detail; if(d) onPos(d.lat,d.lon); });
-window.PsaroNav={hits:hits,load:load,on:function(){ return on; },data:function(){ return DATA; }};
+window.addEventListener('alkyon-pos',function(e){ var d=e&&e.detail; if(d) onPos(d.lat,d.lon); });
+window.AlkyonNav={hits:hits,load:load,on:function(){ return on; },data:function(){ return DATA; }};
 })();

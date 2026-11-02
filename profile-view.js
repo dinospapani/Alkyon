@@ -1,15 +1,15 @@
 /* Προφίλ: κύρια όψη με στατιστικά (28 ημέρες / έτος / όλα) και κουμπί ρυθμίσεων (⚙) που ανοίγει τις παλιές ρυθμίσεις. */
 (function(){
 'use strict';
-var C=window.PsaroCore, $=function(i){ return document.getElementById(i); }; if(!C||!$('pMain')) return;
+var C=window.AlkyonCore, $=function(i){ return document.getElementById(i); }; if(!C||!$('pMain')) return;
 var EN=window.LANG==='en', T=function(el,en){ return EN?en:el; };
-var range=C.lsGet('psaro-prange','28');
+var range=C.lsGet('alkyon-prange','28');
 var view='stats';
 function setView(v){ view=v; $('pMain').hidden=v!=='stats'; $('pSettings').hidden=v!=='set'; var pt=$('pTackle'); if(pt) pt.hidden=v!=='tackle'; var gd=$('tab-guide'); if(gd){ var pg=$('pGuide'); if(pg&&gd.parentNode!==pg) pg.appendChild(gd); gd.hidden=v!=='guide'; if(pg) pg.hidden=v!=='guide'; }
   Array.prototype.forEach.call(document.querySelectorAll('#pSeg button'),function(b){ b.setAttribute('aria-pressed',String(b.dataset.p===v)); });
-  try{ $('profile').scrollTop=0; }catch(e){} try{ window.dispatchEvent(new CustomEvent('psaro-pview',{detail:v})); }catch(e){} }
+  try{ $('profile').scrollTop=0; }catch(e){} try{ window.dispatchEvent(new CustomEvent('alkyon-pview',{detail:v})); }catch(e){} }
 function showSet(on){ setView(on?'set':'stats'); }
-window.PsaroProfView={get:function(){ return view; },set:setView};
+window.AlkyonProfView={get:function(){ return view; },set:setView};
 (function(){ var ph=document.querySelector('#profile .phead'); if(!ph||$('pSeg')) return;
   var sg=document.createElement('div'); sg.className='seg'; sg.id='pSeg'; sg.setAttribute('role','group'); sg.style.margin='8px 0';
   [['stats',T('Στατιστικά','Stats')],['tackle',T('Εξοπλισμός','Tackle')],['guide',T('Οδηγός','Guide')],['set',T('Ρυθμίσεις','Settings')]].forEach(function(x){ var b=document.createElement('button'); b.type='button'; b.dataset.p=x[0]; b.textContent=x[1]; b.setAttribute('aria-pressed',String(x[0]==='stats')); b.addEventListener('click',function(){ setView(x[0]); if(x[0]==='stats') draw(); }); sg.append(b); });
@@ -25,7 +25,7 @@ function draw(){
   var now=C.nicosiaToday(), y=+now.slice(0,4), lim=null;
   if(range==='28'){ var d=new Date(Date.now()-27*86400000+C.utcMin()*60000); lim=d.toISOString().slice(0,10); }
   else if(range==='year') lim=y+'-01-01';
-  var R=window.PsaroRange, cust=R&&R.active('prof');
+  var R=window.AlkyonRange, cust=R&&R.active('prof');
   if(cust) Array.prototype.forEach.call(document.querySelectorAll('#pRange button'),function(b){ b.setAttribute('aria-pressed','false'); });
   var inR=cust?function(x){ return R.inR('prof',x); }:function(x){ return !lim||((x.date||'')>=lim); };
   var bites=(C.Store.act?C.Store.act():(C.Store.get('bites')||[])).filter(inR), pbites=(C.Store.pas?C.Store.pas():[]).filter(inR), trips=(C.Store.get('trips')||[]).filter(inR);
@@ -39,14 +39,14 @@ var SV=function(d){ return '<svg viewBox="0 0 24 24" width="22" height="22" fill
   var tiles=[
     ['🐟',nf,T('Ψάρια που έπιασα','Fish caught')],['✕',miss,T('Τσίμπησαν και χάθηκαν','Bites lost')],['🎯',succ,T('Ποσοστό επιτυχίας','Catch rate')],
     ['🎣',trips.length,T('Έξοδοι','Trips')],['📅',Object.keys(days).length,T('Μέρες ψαρέματος','Days fishing')],['⏱',ms?hrs(ms)+' h':'–',T('Ώρες στη θάλασσα','Hours at sea')],
-    ['↔',km?PsaroUnits.dist(km):'–',T('Απόσταση','Distance')],['⚖',Math.round(kg*10)/10+' kg',T('Συνολικό βάρος','Total weight')]
+    ['↔',km?AlkyonUnits.dist(km):'–',T('Απόσταση','Distance')],['⚖',Math.round(kg*10)/10+' kg',T('Συνολικό βάρος','Total weight')]
   ];
   tiles.forEach(function(t){ var d=document.createElement('div'); d.className='pst'; var i=document.createElement('i'); i.innerHTML=ICO[t[0]]||''; var b=document.createElement('b'); b.textContent=String(t[1]); var s=document.createElement('span'); s.textContent=t[2]; d.append(i,b,s); box.append(d); });
   if(pbites.length){ var pk=0, pn=0; pbites.forEach(function(b){ pn+=C.bc(b); pk+=b.rel?0:(+b.kg||0); }); var g=document.createElement('div'); g.className='pst pwide'; g.innerHTML='<i>'+SV('<path d="M4 4h16v16H4zM4 9.3h16M4 14.7h16M9.3 4v16M14.7 4v16"/>')+'</i>'; g.append(document.createTextNode(T('Εργαλεία (δίχτυ, παραγάδι): ','Gear (net, longline): ')+pn+T(pn===1?' ψάρι · ':' ψάρια · ',' fish · ')+Math.round(pk*10)/10+' kg')); box.append(g); }
   if(big>0){ var r=document.createElement('div'); r.className='pst pwide'; r.innerHTML='<i>'+SV('<path d="M8 4h8v5a4 4 0 01-8 0zM8 6H4v1a3 3 0 003 3M16 6h4v1a3 3 0 01-3 3M12 13v4M8 20h8"/>')+'</i>'; r.append(document.createTextNode(T('Μεγαλύτερο ψάρι: ','Biggest fish: ')+big+' kg'+(bigS?' · '+bigS:'')+' · '+Object.keys(sp).length+T(' είδη',' species'))); box.append(r); }
 }
-document.querySelectorAll('#pRange button').forEach(function(b){ b.addEventListener('click',function(){ range=b.dataset.r; C.lsSet('psaro-prange',range); if(window.PsaroRange&&PsaroRange.active('prof')) PsaroRange.set('prof','',''); else draw(); }); });
-if(window.PsaroRange){ PsaroRange.ui('prof',$('pRng'),false); window.addEventListener('psaro-range',function(e){ if(e.detail&&e.detail.key==='prof') draw(); }); }
+document.querySelectorAll('#pRange button').forEach(function(b){ b.addEventListener('click',function(){ range=b.dataset.r; C.lsSet('alkyon-prange',range); if(window.AlkyonRange&&AlkyonRange.active('prof')) AlkyonRange.set('prof','',''); else draw(); }); });
+if(window.AlkyonRange){ AlkyonRange.ui('prof',$('pRng'),false); window.addEventListener('alkyon-range',function(e){ if(e.detail&&e.detail.key==='prof') draw(); }); }
 $('pBackMain').addEventListener('click',function(){ showSet(false); draw(); });
 var gear=document.createElement('button'); gear.type='button'; gear.className='btn ghost sm'; gear.id='pGear'; gear.textContent='⚙'; gear.setAttribute('aria-label',T('Ρυθμίσεις','Settings'));
 gear.addEventListener('click',function(){ showSet(true); }); gear.style.display='none';
@@ -73,8 +73,8 @@ gc.innerHTML='<label class="chk"><input type="checkbox" id="pGpsChk"><span><b></
 gc.querySelector('b').textContent=T('Καταγραφή διαδρομής GPS στις εξόδους','Record GPS route during trips');
 gc.querySelector('.note').textContent=T('Αποθηκεύει απόσταση και διαδρομή στο παρασκήνιο, χωρίς να φαίνονται κατά την έξοδο. Καταναλώνει περισσότερη μπαταρία και δουλεύει μόνο όσο η εφαρμογή είναι ανοιχτή.','Saves distance and route in the background, hidden during the trip. Uses more battery and only works while the app is open.');
 var sc=$('pSettings'), dg=$('dgCard'); sc.insertBefore(gc,dg||sc.children[1]);
-var chk=gc.querySelector('input'); chk.checked=!window.PsaroTrack||window.PsaroTrack.enabled();
-chk.addEventListener('change',function(){ if(window.PsaroTrack) window.PsaroTrack.setEnabled(chk.checked); });
+var chk=gc.querySelector('input'); chk.checked=!window.AlkyonTrack||window.AlkyonTrack.enabled();
+chk.addEventListener('change',function(){ if(window.AlkyonTrack) window.AlkyonTrack.setEnabled(chk.checked); });
 var uc=document.createElement('div'); uc.className='card setcard'; uc.id='unitsCard';
 var uh=document.createElement('b'); uh.textContent=T('Μονάδες μέτρησης','Units'); uc.append(uh);
 var UL={wind:T('Άνεμος','Wind'),temp:T('Θερμοκρασία','Temperature'),press:T('Πίεση','Pressure'),wave:T('Κύμα','Waves'),dist:T('Απόσταση','Distance'),coord:T('Συντεταγμένες','Coordinates')};
@@ -82,20 +82,20 @@ Object.keys(UL).forEach(function(k){
   var row=document.createElement('div'); row.className='unrow';
   var l=document.createElement('span'); l.textContent=UL[k]; row.append(l);
   var seg=document.createElement('div'); seg.className='unseg';
-  PsaroUnits.options[k].forEach(function(o){
-    var b=document.createElement('button'); b.type='button'; b.textContent=o[1]; b.setAttribute('aria-pressed',String(PsaroUnits.cfg[k]===o[0]));
-    b.addEventListener('click',function(){ PsaroUnits.set(k,o[0]); seg.querySelectorAll('button').forEach(function(x){ x.setAttribute('aria-pressed','false'); }); b.setAttribute('aria-pressed','true'); setTimeout(function(){ location.reload(); },350); });
+  AlkyonUnits.options[k].forEach(function(o){
+    var b=document.createElement('button'); b.type='button'; b.textContent=o[1]; b.setAttribute('aria-pressed',String(AlkyonUnits.cfg[k]===o[0]));
+    b.addEventListener('click',function(){ AlkyonUnits.set(k,o[0]); seg.querySelectorAll('button').forEach(function(x){ x.setAttribute('aria-pressed','false'); }); b.setAttribute('aria-pressed','true'); setTimeout(function(){ location.reload(); },350); });
     seg.append(b);
   });
   row.append(seg); uc.append(row);
 });
 /* v31z413: οι μονάδες εξοπλισμού (πριν ήταν ξεχωριστά στον Εξοπλισμό) */
-(function(){ var get=function(){ var v=String(C.lsGet('psaro-tk-units','g|kg|m')||'').split('|'); return {w:v[0]==='oz'?'oz':'g',d:v[1]==='lb'?'lb':'kg',l:v[2]==='yd'?'yd':'m'}; };
+(function(){ var get=function(){ var v=String(C.lsGet('alkyon-tk-units','g|kg|m')||'').split('|'); return {w:v[0]==='oz'?'oz':'g',d:v[1]==='lb'?'lb':'kg',l:v[2]==='yd'?'yd':'m'}; };
   var hh=document.createElement('div'); hh.className='unsub'; hh.textContent=T('Εξοπλισμός','Tackle'); uc.append(hh);
   [['w',T('Βάρος (ζόκες, καλάμια)','Weight (lures, rods)'),[['g','g'],['oz','oz']]],['d',T('Drag μουλινέ','Reel drag'),[['kg','kg'],['lb','lb']]],['l',T('Μήκος νήματος','Line length'),[['m','m'],['yd','yd']]]].forEach(function(q){
     var row=document.createElement('div'); row.className='unrow'; var l=document.createElement('span'); l.textContent=q[1]; row.append(l); var seg=document.createElement('div'); seg.className='unseg';
     q[2].forEach(function(o){ var b=document.createElement('button'); b.type='button'; b.textContent=o[1]; b.setAttribute('aria-pressed',String(get()[q[0]]===o[0]));
-      b.addEventListener('click',function(){ var u=get(); u[q[0]]=o[0]; C.lsSet('psaro-tk-units',u.w+'|'+u.d+'|'+u.l); seg.querySelectorAll('button').forEach(function(x){ x.setAttribute('aria-pressed','false'); }); b.setAttribute('aria-pressed','true'); }); seg.append(b); });
+      b.addEventListener('click',function(){ var u=get(); u[q[0]]=o[0]; C.lsSet('alkyon-tk-units',u.w+'|'+u.d+'|'+u.l); seg.querySelectorAll('button').forEach(function(x){ x.setAttribute('aria-pressed','false'); }); b.setAttribute('aria-pressed','true'); }); seg.append(b); });
     row.append(seg); uc.append(row); }); })();
 sc.insertBefore(uc,gc.nextSibling);
 var wantSet=false;

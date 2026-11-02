@@ -2,9 +2,9 @@
    Αρχίζει από γενική γνώση (knowledge.js) και περνά σταδιακά στα δικά σου ψάρια, όσο μαζεύονται. Τρέχει στη συσκευή, χωρίς AI υπηρεσία. */
 (function(){
 'use strict';
-var C=window.PsaroCore, PP=window.PP, KB=window.SPKB||[]; var root=document.getElementById('fcAdv'); if(!C||!PP||!root) return;
+var C=window.AlkyonCore, PP=window.PP, KB=window.SPKB||[]; var root=document.getElementById('fcAdv'); if(!C||!PP||!root) return;
 var h=C.h, $=C.$, pad=C.pad, EN=window.LANG==='en', T=function(el,en){ return EN?en:el; };
-var last={place:null,fc:null}, sel={day:0,hr:null}, spSel=C.lsGet('psaro-advsp','');
+var last={place:null,fc:null}, sel={day:0,hr:null}, spSel=C.lsGet('alkyon-advsp','');
 var DAYS=EN?['Sun','Mon','Tue','Wed','Thu','Fri','Sat']:['Κυρ','Δευ','Τρί','Τετ','Πέμ','Παρ','Σάβ'];
 var MOON=[T('Νέα σελήνη','New moon'),T('Α΄ τέταρτο','First quarter'),T('Πανσέληνος','Full moon'),T('Δ΄ τέταρτο','Last quarter')];
 var PTL={fast:T('πέφτει απότομα','falling fast'),slow:T('πέφτει αργά','falling slowly'),stable:T('σταθερή','steady'),rise:T('ανεβαίνει','rising')};
@@ -29,7 +29,7 @@ function collect(){
     o.bites.push({depth:b.depth,b:b,ph:(ms!=null?PP.phaseAt(ms,b.lat,b.lon,utc):null),hr:b.time?+b.time.slice(0,2):null,moon:ms!=null?PP.moonOf(ms):null,month:b.date?+b.date.slice(5,7)-1:null,pt:PTS.indexOf(b.ptrend),w:windCls(b.wind),tide:b.tide||null,sst:b.sst,tech:b.tech||'',bait:b.bait||'',depth:b.depth,lat:b.lat,lon:b.lon,kg:+b.kg||0});
   });
   /* Δεδομένα φίλου: ξεχωριστά, χωρίς χρόνο προσπάθειας, μόνο ως εποχιακή ένδειξη. */
-  var ext={}; try{ ((window.PsaroExt&&window.PsaroExt.use())||[]).forEach(function(r){ if(!r.sp) return; var e=kbOf(r.sp,''), key=e?e.n:norm(r.sp).replace(/\s*\(.*$/,''); var o=ext[key]||(ext[key]={n:0,m:[0,0,0,0,0,0,0,0,0,0,0,0]}); o.n++; if(r.month!=null) o.m[r.month]++; }); }catch(e){}
+  var ext={}; try{ ((window.AlkyonExt&&window.AlkyonExt.use())||[]).forEach(function(r){ if(!r.sp) return; var e=kbOf(r.sp,''), key=e?e.n:norm(r.sp).replace(/\s*\(.*$/,''); var o=ext[key]||(ext[key]={n:0,m:[0,0,0,0,0,0,0,0,0,0,0,0]}); o.n++; if(r.month!=null) o.m[r.month]++; }); }catch(e){}
   return {model:model,by:by,ext:ext,total:total,H:model.H||0};
 }
 /* ---------- μοντέλο ---------- */
@@ -64,7 +64,7 @@ function extL(xo,mo){
   return clamp(Math.log(ratio),-1,1)*N/(N+NEED_A);
 }
 /* προφίλ ψαρέματος: ποια είδη της γενικής γνώσης έχουν νόημα (εκτίμηση, όχι επικυρωμένη). Τα δικά σου ψάρια μένουν πάντα. */
-function profOf(){ try{ var v=localStorage.getItem('psaro-fprof'); return v==='shore'||v==='lake'||v==='spear'?v:'boat'; }catch(e){ return 'boat'; } }
+function profOf(){ try{ var v=localStorage.getItem('alkyon-fprof'); return v==='shore'||v==='lake'||v==='spear'?v:'boat'; }catch(e){ return 'boat'; } }
 function kbFits(e,p){
   if(p==='boat') return true;
   if(p==='lake') return false;                                  /* η γενική γνώση είναι για θάλασσα */
@@ -178,7 +178,7 @@ function whenWhere(D){
   var c=h('div',{class:'card'}); c.append(h('h3',{text:T('Πότε και πού για ένα είδος','When and where for a species')}));
   var opts=speciesOptions(D), s=h('select',{'aria-label':T('Είδος','Species')},h('option',{value:'',text:T('— διάλεξε είδος —','— choose a species —')}));
   opts.forEach(function(o){ s.append(h('option',{value:o.v,text:o.t+(D.by[o.v]?' ('+D.by[o.v].n+')':'')})); });
-  s.value=spSel; s.addEventListener('change',function(){ spSel=s.value; C.lsSet('psaro-advsp',spSel); render(); try{ window.dispatchEvent(new Event('psaro-advsp')); }catch(e){} });
+  s.value=spSel; s.addEventListener('change',function(){ spSel=s.value; C.lsSet('alkyon-advsp',spSel); render(); try{ window.dispatchEvent(new Event('alkyon-advsp')); }catch(e){} });
   c.append(s);
   if(!spSel) { c.append(h('p',{class:'note',text:T('Διάλεξε είδος για να δεις τις καλύτερες μέρες και ώρες της εβδομάδας και τα σημεία όπου το έπιασες.','Choose a species to see the best days and hours this week and where you caught it.')})); return c; }
   var e=KB.filter(function(k){ return k.n===spSel; })[0]||null, o=D.by[spSel]||null, f=last.fc;
@@ -223,8 +223,8 @@ function whenWhere(D){
   if(!cl.length) c.append(h('p',{class:'note',text:T('Δεν έχεις ακόμα ψάρι αυτού του είδους με θέση. Μόλις προστεθεί, θα φανούν εδώ.','No catches of this species with a position yet. They will show here once added.')}));
   cl.forEach(function(z){
     var go=h('button',{class:'btn ghost sm',type:'button',text:T('Χάρτης','Map'),onclick:function(){ C.switchTab('map'); setTimeout(function(){ var m=C.map(); if(m) m.flyTo([z.lat,z.lon],14); },350); }});
-    var dir=window.PsaroDirect?h('button',{class:'btn ghost sm',type:'button',text:T('Πηγαίνω εκεί','Go there'),onclick:function(){ C.switchTab('map'); setTimeout(function(){ window.PsaroDirect.go(z.lat,z.lon,(e?sName(e):spSel)); var m=C.map(); if(m) m.flyTo([z.lat,z.lon],13); },350); }}):null;
-    c.append(h('div',{class:'item advspot'},h('div',{},h('b',{text:z.n+' '+T('ψάρια','fish')+(z.kg?' · '+Math.round(z.kg*10)/10+' kg':'')}),h('div',{class:'meta mono',text:PsaroCoord.fmt(z.lat,z.lon)}),(window.PsaroRest?window.PsaroRest.node(z.lat,z.lon):null)),h('div',{class:'acts'},go,dir)));
+    var dir=window.AlkyonDirect?h('button',{class:'btn ghost sm',type:'button',text:T('Πηγαίνω εκεί','Go there'),onclick:function(){ C.switchTab('map'); setTimeout(function(){ window.AlkyonDirect.go(z.lat,z.lon,(e?sName(e):spSel)); var m=C.map(); if(m) m.flyTo([z.lat,z.lon],13); },350); }}):null;
+    c.append(h('div',{class:'item advspot'},h('div',{},h('b',{text:z.n+' '+T('ψάρια','fish')+(z.kg?' · '+Math.round(z.kg*10)/10+' kg':'')}),h('div',{class:'meta mono',text:AlkyonCoord.fmt(z.lat,z.lon)}),(window.AlkyonRest?window.AlkyonRest.node(z.lat,z.lon):null)),h('div',{class:'acts'},go,dir)));
   });
   return c;
 }
@@ -237,9 +237,9 @@ function statusCard(D){
 }
 function render(){
   root.replaceChildren(); var D=collect();
-  root.append(whatCard(D),whenWhere(D),statusCard(D)); try{ if(window.PsaroExt) root.append(window.PsaroExt.card(render)); }catch(e){}
+  root.append(whatCard(D),whenWhere(D),statusCard(D)); try{ if(window.AlkyonExt) root.append(window.AlkyonExt.card(render)); }catch(e){}
 }
-window.PsaroAdv={render:function(){ if(!root.hidden) render(); }};
-window.addEventListener('psaro-fcloaded',function(e){ last=e.detail||last; if(!root.hidden&&!document.activeElement.closest('#fcAdv')) render(); });
+window.AlkyonAdv={render:function(){ if(!root.hidden) render(); }};
+window.addEventListener('alkyon-fcloaded',function(e){ last=e.detail||last; if(!root.hidden&&!document.activeElement.closest('#fcAdv')) render(); });
 ['trips','bites'].forEach(function(k){ C.Store.on(k,function(){ if(!root.hidden&&!document.activeElement.closest('#fcAdv')) render(); }); });
 })();

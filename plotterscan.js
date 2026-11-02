@@ -1,10 +1,10 @@
 /* v31z354: Συντεταγμένες από φωτογραφία της οθόνης του plotter (ή χαρτιού) → σημεία (waypoints).
    Η φωτογραφία διαβάζεται από το Claude με το δικό σου κλειδί (όπως η αναγνώριση ψαριού). Οι συντεταγμένες
-   ελέγχονται από την εφαρμογή (PsaroCoord.parse) και εμφανίζονται για επιβεβαίωση πριν αποθηκευτούν. */
+   ελέγχονται από την εφαρμογή (AlkyonCoord.parse) και εμφανίζονται για επιβεβαίωση πριν αποθηκευτούν. */
 (function(){
 'use strict';
-var C=window.PsaroCore, mb=document.querySelector('.mapbtns'); if(!C||!mb||!window.PsaroCoord) return;
-var EN=window.LANG==='en', T=function(a,b){ return EN?b:a; }, P=window.PsaroCoord;
+var C=window.AlkyonCore, mb=document.querySelector('.mapbtns'); if(!C||!mb||!window.AlkyonCoord) return;
+var EN=window.LANG==='en', T=function(a,b){ return EN?b:a; }, P=window.AlkyonCoord;
 function el(t,c,x){ var e=document.createElement(t); if(c) e.className=c; if(x!=null) e.textContent=x; return e; }
 var PROMPT='This photo shows a marine chartplotter / GPS screen, a waypoint list, or a paper note with geographic coordinates. '+
  'Read every coordinate pair exactly as printed. Reply with ONLY a JSON array: [{"name":"waypoint name or null","lat":"latitude exactly as shown, including N/S","lon":"longitude exactly as shown, including E/W","depth":number or null}]. '+
@@ -28,7 +28,7 @@ function sheet(title){
 function blobB64(b){ return new Promise(function(res,rej){ var r=new FileReader(); r.onload=function(){ res(String(r.result).split(',')[1]); }; r.onerror=rej; r.readAsDataURL(b); }); }
 
 async function read(blob){
-  var key=C.lsGet('psaro-akey',''); if(!key) throw new Error('nokey');
+  var key=C.lsGet('alkyon-akey',''); if(!key) throw new Error('nokey');
   var b64=await blobB64(blob), ac=new AbortController(), tm=setTimeout(function(){ ac.abort(); },45000);
   try{
     var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',signal:ac.signal,
@@ -91,7 +91,7 @@ function results(list,thumb){
   act.append(sv,ag); b.append(act);
 }
 
-btn.addEventListener('click',function(){ if(!C.lsGet('psaro-akey','')){ noKey(); return; } file.value=''; file.click(); });
+btn.addEventListener('click',function(){ if(!C.lsGet('alkyon-akey','')){ noKey(); return; } file.value=''; file.click(); });
 file.addEventListener('change',async function(){
   var f=file.files&&file.files[0]; if(!f) return;
   var b=sheet(T('Ανάγνωση συντεταγμένων…','Reading coordinates…')); b.append(el('p','note',T('Διαβάζω τη φωτογραφία. Χρειάζεται σύνδεση στο ίντερνετ.','Reading the photo. This needs an internet connection.')));
@@ -104,5 +104,5 @@ file.addEventListener('change',async function(){
     bb.append(el('p','note',msg)); var a=el('button','btn acc',T('Δοκίμασε ξανά','Try again')); a.type='button'; a.addEventListener('click',function(){ close(); file.click(); }); bb.append(a);
   }
 });
-window.PsaroScan={open:function(){ btn.click(); },_results:results};
+window.AlkyonScan={open:function(){ btn.click(); },_results:results};
 })();

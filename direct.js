@@ -1,10 +1,10 @@
 /* «Πηγαίνω εκεί» (Direct to): γραμμή, απόσταση, πορεία, ταχύτητα και ώρα άφιξης προς ένα σημείο ή ψάρι. Δεν είναι ναυτικός χάρτης. */
 (function(){
 'use strict';
-var C=window.PsaroCore, box=document.querySelector('.mapbox'); if(!C||!box||typeof L==='undefined') return;
+var C=window.AlkyonCore, box=document.querySelector('.mapbox'); if(!C||!box||typeof L==='undefined') return;
 var map=C.map&&C.map(); if(!map) return;
-var EN=window.LANG==='en', T=function(el,en){ return EN?en:el; }, U=window.PsaroUnits;
-var KEY='psaro-direct';
+var EN=window.LANG==='en', T=function(el,en){ return EN?en:el; }, U=window.AlkyonUnits;
+var KEY='alkyon-direct';
 var tgt=C.lsGet(KEY,null); if(tgt&&(typeof tgt.lat!=='number'||typeof tgt.lon!=='number')) tgt=null;
 var pos=null, prev=null, spd=null, wid=null, lastZ=0, zNames=[], arrived=false;
 var layer=L.layerGroup().addTo(map), line=null, tm=null;
@@ -31,10 +31,10 @@ function crossed(a,b,c,d){
 function fmtEta(min){ if(min>=600) return '>10'+T('ω','h'); var h=Math.floor(min/60), m=Math.round(min%60); return h?h+T('ω ','h ')+m+T('λ','m'):Math.max(1,m)+T('λ','m'); }
 
 function replan(){
-  if(!tgt||!pos||planning||!window.PsaroRoute) return;
-  var clr=+C.lsGet('psaro-route-clr',200); if(!clr){ rt=null; return; }
+  if(!tgt||!pos||planning||!window.AlkyonRoute) return;
+  var clr=+C.lsGet('alkyon-route-clr',200); if(!clr){ rt=null; return; }
   planning=true; var key=tgt.lat+','+tgt.lon, t0=Date.now();
-  window.PsaroRoute.plan({lat:pos.lat,lon:pos.lon},{lat:tgt.lat,lon:tgt.lon},clr).then(function(r){
+  window.AlkyonRoute.plan({lat:pos.lat,lon:pos.lon},{lat:tgt.lat,lon:tgt.lon},clr).then(function(r){
     if(!tgt||key!==tgt.lat+','+tgt.lon) return;
     rt=r.straight?{straight:1,t:t0}:r.err?{err:r.err,which:r.which,t:t0,clr:clr}:{pts:r.pts,len:r.len,direct:r.direct,k:0,t:t0,clr:clr};
   }).catch(function(){ if(tgt) rt={off:1,t:t0}; }).then(function(){ planning=false; render(); });
@@ -47,11 +47,11 @@ function setH(){ document.documentElement.style.setProperty('--dth',(tgt&&docume
 function keysNow(){ var o={}; if(zNames&&!warnEl.hidden) zNames.forEach(function(n){ o['z:'+n]=1; }); if(lk) o['l:'+lk]=1; return o; }
 function render(){
   layer.clearLayers(); line=null; tm=null;
-  if(!tgt){ window.PsaroDirectInfo=null; bar.hidden=true; pill.hidden=true; dmin=false; dseen={}; document.body.classList.remove('hasdt','hasland','dtmin'); setH(); return; }
+  if(!tgt){ window.AlkyonDirectInfo=null; bar.hidden=true; pill.hidden=true; dmin=false; dseen={}; document.body.classList.remove('hasdt','hasland','dtmin'); setH(); return; }
   bar.hidden=false; applyMin();
   tm=L.circleMarker([tgt.lat,tgt.lon],{radius:9,color:'#fff',weight:3,fillColor:'#e8541e',fillOpacity:1}).addTo(layer);
   nameEl.textContent='➤ '+(tgt.name||T('Σημείο','Point'));
-  if(!pos){ window.PsaroDirectInfo={wait:1,t:Date.now()}; warnEl.hidden=true; return; }
+  if(!pos){ window.AlkyonDirectInfo={wait:1,t:Date.now()}; warnEl.hidden=true; return; }
   var d=distKm(pos.lat,pos.lon,tgt.lat,tgt.lon), b=bearing(pos.lat,pos.lon,tgt.lat,tgt.lon), landTxt='';
   if(!planning&&(!rt||Date.now()-rt.t>60000)) setTimeout(replan,0);
   if(rt&&rt.pts){
@@ -72,7 +72,7 @@ function render(){
   var nm=d/1.852, kn=spd!=null?spd*1.94384:null;
   var cells=[[U?U.dist(d,d<10?(d<1?2:1):0):d.toFixed(1)+' km',T('Απόσταση','Distance')],[('00'+Math.round(b)).slice(-3)+'° '+card(b),T('Πορεία','Course')]];
   if(kn!=null&&kn>=0.8){ cells.push([kn.toFixed(1)+' kn',T('Ταχύτητα','Speed')]); cells.push([fmtEta(nm/kn*60).replace(/ /g,''),'ETA']); }
-  infoEl.textContent=cells.map(function(c){ return c[0]; }).join(' · '); window.PsaroDirectInfo={d:cells[0][0],b:cells[1][0],spd:cells[2]?cells[2][0]:null,eta:cells[3]?cells[3][0]:null,t:Date.now()};
+  infoEl.textContent=cells.map(function(c){ return c[0]; }).join(' · '); window.AlkyonDirectInfo={d:cells[0][0],b:cells[1][0],spd:cells[2]?cells[2][0]:null,eta:cells[3]?cells[3][0]:null,t:Date.now()};
   bar.classList.toggle('nomsg',warnEl.hidden&&landEl.hidden);
   var now=Date.now();
   if(now-lastZ>4000){ lastZ=now; zNames=crossed(pos.lat,pos.lon,tgt.lat,tgt.lon); }
@@ -124,6 +124,6 @@ map.on('popupopen',function(e){
 });
 try{ if(window.ResizeObserver) new ResizeObserver(setH).observe(bar); new MutationObserver(setH).observe(document.body,{attributes:true,attributeFilter:['class']}); }catch(e){}
 try{ new MutationObserver(function(){ var on=document.body.classList.contains('ontrip'); if(wasTrip&&!on&&tgt) clear(); wasTrip=on; }).observe(document.body,{attributes:true,attributeFilter:['class']}); }catch(e){}
-window.PsaroDirect={navExt:navExt,go:go,clear:clear,target:function(){ return tgt; }};
+window.AlkyonDirect={navExt:navExt,go:go,clear:clear,target:function(){ return tgt; }};
 if(tgt){ begin(); render(); }
 })();

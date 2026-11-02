@@ -2,13 +2,13 @@
 (function(){
 'use strict';
 var URL_='https://sgfohmqwdwtkhtrebnix.supabase.co', KEY='sb_publishable_LGuwvrvLnAj1CF22Q6g9vg_4OImZYbA';
-var C=window.PsaroCore; if(!C) return;
+var C=window.AlkyonCore; if(!C) return;
 var Store=C.Store, Photos=C.Photos, toast=function(m){ if(C.toast) C.toast(m); };
 var $=function(id){return document.getElementById(id);};
 var KINDS=['spots','trips','bites','tackle'];
 var sess=null, busy=false, timer=null, again=false;
 function ls(k,v){ try{ if(v===undefined) return JSON.parse(localStorage.getItem(k)); if(v===null) localStorage.removeItem(k); else localStorage.setItem(k,JSON.stringify(v)); }catch(e){ return null; } }
-sess=ls('psaro-sess');
+sess=ls('alkyon-sess');
 
 function H(extra){ var h={apikey:KEY,'Content-Type':'application/json'}; if(sess&&sess.access_token) h.Authorization='Bearer '+sess.access_token; else h.Authorization='Bearer '+KEY; for(var k in (extra||{})) h[k]=extra[k]; return h; }
 async function auth(path,body){
@@ -19,7 +19,7 @@ async function auth(path,body){
 }
 function setSess(j){
   sess={access_token:j.access_token,refresh_token:j.refresh_token,exp:Date.now()+((j.expires_in||3600)-60)*1000,uid:(j.user&&j.user.id)||(sess&&sess.uid),email:(j.user&&j.user.email)||(sess&&sess.email),name:(j.user&&j.user.user_metadata&&j.user.user_metadata.name)||(sess&&sess.name)||''};
-  ls('psaro-sess',sess);
+  ls('alkyon-sess',sess);
 }
 async function ensure(){
   if(!sess) throw new Error('no session');
@@ -58,8 +58,8 @@ async function fn(name,body){
   if(!r.ok) throw new Error('HTTP '+r.status);
   return r.json();
 }
-window.PsaroCloud={logged:function(){return !!sess;},rest:function(p,o){return rest(p,o);},fn:fn,name:function(){return sess&&sess.name||'';},uid:function(){return sess&&sess.uid||'';},url:URL_,storage:async function(m,p,b,t){ return storage(m,p,b,t); }};
-var pup=ls('psaro-pup')||{};
+window.AlkyonCloud={logged:function(){return !!sess;},rest:function(p,o){return rest(p,o);},fn:fn,name:function(){return sess&&sess.name||'';},uid:function(){return sess&&sess.uid||'';},url:URL_,storage:async function(m,p,b,t){ return storage(m,p,b,t); }};
+var pup=ls('alkyon-pup')||{};
 async function storage(method,path,body,type){
   await ensure(); var h={apikey:KEY,Authorization:'Bearer '+sess.access_token}; if(type){ h['Content-Type']=type; h['x-upsert']='true'; }
   return fetch(URL_+'/storage/v1/object/'+path,{method:method,headers:h,body:body});
@@ -73,7 +73,7 @@ async function sync(manual){
     // 1) λήψη
     /* v31z401: μόνο τα δικά μου (με τους φίλους η βάση επιτρέπει να διαβάζω και δικά τους). Αν λείπει η στήλη user_id, χωρίς φίλτρο όπως πριν. */
     var r; try{ r=await rest('records?select=kind,id,data,deleted,updated_at&user_id=eq.'+encodeURIComponent(sess.uid)+'&order=updated_at.asc&limit=10000'); }
-    catch(eu){ if(/HTTP 400|42703|PGRST/.test(String(eu.message))&&!ls('psaro-fr-on')) r=await rest('records?select=kind,id,data,deleted,updated_at&order=updated_at.asc&limit=10000'); else throw eu; }
+    catch(eu){ if(/HTTP 400|42703|PGRST/.test(String(eu.message))&&!ls('alkyon-fr-on')) r=await rest('records?select=kind,id,data,deleted,updated_at&order=updated_at.asc&limit=10000'); else throw eu; }
     var rows=await r.json(), remote={}, got=0, needPh=[];
     rows.forEach(function(x){ remote[x.kind+'/'+x.id]=x; var u=Date.parse(x.updated_at)||0; if(Store.mergeIn(x.kind,x.id,x.data||{},x.deleted,(x.data&&x.data._u)||u)){ got++; if(!x.deleted&&x.data&&x.data.photo){ if(x.kind==='bites'){ needPh.push(x.id); for(var xi=1;xi<=(+x.data.xph||0);xi++) needPh.push(x.id+'~'+xi); } else if(x.kind==='tackle') needPh.push('tk-'+x.id); } } });
     if(got) Store.flush();
@@ -86,17 +86,17 @@ async function sync(manual){
     var up=0;
     var pl=[]; Store.raw('bites').forEach(function(b){ if(b.photo) pl.push(b.id); for(var xi=1;xi<=(+b.xph||0);xi++) pl.push(b.id+'~'+xi); }); pl=pl.concat(Store.raw('tackle').filter(function(b){ return b.photo; }).map(function(b){ return 'tk-'+b.id; }));
     for(var bi=0;bi<pl.length;bi++){ var pk=pl[bi]; if(pup[pk]) continue; var bl=null; try{ bl=await Photos.get(pk); }catch(e){} if(!bl) continue; var rr=await storage('POST','photos/'+sess.uid+'/'+pk+'.jpg',bl,'image/jpeg'); if(rr.ok){ pup[pk]=1; up++; } }
-    ls('psaro-pup',pup);
+    ls('alkyon-pup',pup);
     var dl=0;
     for(var j=0;j<needPh.length;j++){ var id=needPh[j]; var have=null; try{ have=await Photos.get(id); }catch(e){} if(have){ pup[id]=1; continue; } var rs=await storage('GET','authenticated/photos/'+sess.uid+'/'+id+'.jpg'); if(rs.ok){ await Photos.put(id,await rs.blob()); pup[id]=1; dl++; } }
-    ls('psaro-pup',pup);
+    ls('alkyon-pup',pup);
     if(dl) Store.flush();
-    ls('psaro-last',Date.now());
+    ls('alkyon-last',Date.now());
     status('Συγχρονίστηκε '+new Date().toLocaleTimeString(window.LANG==='en'?'en-GB':'el-GR',{hour:'2-digit',minute:'2-digit'})+(got?' · ήρθαν '+got:'')+(out.length?' · στάλθηκαν '+out.length:''));
   }catch(e){
     if(/HTTP 4(01|03)|JWT|refresh_token|Refresh Token|invalid_grant/i.test(String(e.message))){ signedOut(); msg('Η σύνδεση έληξε. Συνδέσου ξανά.',true); }
     else if(/relation .*records|PGRST205|HTTP 404/.test(String(e.message))) status('Λείπει η βάση δεδομένων στο Supabase (πίνακας records).');
-    else { var lastOk=ls('psaro-last'); status(errText(e)+(lastOk?' '+(window.LANG==='en'?'Last successful sync: ':'Τελευταίος επιτυχής συγχρονισμός: ')+new Date(lastOk).toLocaleString(window.LANG==='en'?'en-GB':'el-GR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'.':'')); try{ window.dispatchEvent(new CustomEvent('psaro-syncfail')); }catch(x){} }
+    else { var lastOk=ls('alkyon-last'); status(errText(e)+(lastOk?' '+(window.LANG==='en'?'Last successful sync: ':'Τελευταίος επιτυχής συγχρονισμός: ')+new Date(lastOk).toLocaleString(window.LANG==='en'?'en-GB':'el-GR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'.':'')); try{ window.dispatchEvent(new CustomEvent('alkyon-syncfail')); }catch(x){} }
   }
   busy=false;
   if(again){ again=false; sched(); }
@@ -104,8 +104,8 @@ async function sync(manual){
 function sched(){ if(!sess) return; clearTimeout(timer); timer=setTimeout(function(){ sync(false); },2500); }
 Store.hook(function(k,id){
   if(!sess) return;
-  if(k==='bites'){ var still=Store.raw('bites').some(function(b){return b.id===id;}); if(!still&&sess){ storage('DELETE','photos/'+sess.uid+'/'+id+'.jpg').catch(function(){}); delete pup[id]; ls('psaro-pup',pup); } }
-  if(k==='tackle'){ var st2=Store.raw('tackle').some(function(b){return b.id===id;}); if(!st2&&sess){ storage('DELETE','photos/'+sess.uid+'/tk-'+id+'.jpg').catch(function(){}); delete pup['tk-'+id]; ls('psaro-pup',pup); } }
+  if(k==='bites'){ var still=Store.raw('bites').some(function(b){return b.id===id;}); if(!still&&sess){ storage('DELETE','photos/'+sess.uid+'/'+id+'.jpg').catch(function(){}); delete pup[id]; ls('alkyon-pup',pup); } }
+  if(k==='tackle'){ var st2=Store.raw('tackle').some(function(b){return b.id===id;}); if(!st2&&sess){ storage('DELETE','photos/'+sess.uid+'/tk-'+id+'.jpg').catch(function(){}); delete pup['tk-'+id]; ls('alkyon-pup',pup); } }
   sched();
 });
 window.addEventListener('online',function(){ sched(); });
@@ -124,15 +124,15 @@ function render(){
   if($('pNameShow')) $('pNameShow').textContent=nm||em;
   if($('pName')&&document.activeElement!==$('pName')) $('pName').value=nm;
   if($('pName')) $('pName').placeholder=window.LANG==='en'?'Your name':'Το όνομά σου';
-  if(sess&&$('acStatus')&&!$('acStatus').textContent){ var l=ls('psaro-last'); if(l) $('acStatus').textContent='Τελευταίος συγχρονισμός '+new Date(l).toLocaleString(window.LANG==='en'?'en-GB':'el-GR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }
+  if(sess&&$('acStatus')&&!$('acStatus').textContent){ var l=ls('alkyon-last'); if(l) $('acStatus').textContent='Τελευταίος συγχρονισμός '+new Date(l).toLocaleString(window.LANG==='en'?'en-GB':'el-GR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }
 }
 function localCount(){ return Store.raw('spots').length+Store.raw('trips').length+Store.raw('bites').length; }
 async function afterLogin(j){
-  var prev=ls('psaro-uid'); setSess(j);
+  var prev=ls('alkyon-uid'); setSess(j);
   if(prev&&prev!==sess.uid&&localCount()>0){
-    if(await window.PsaroAsk(window.LANG==='en'?'This device holds data from another account. Delete it, or keep it and add it to the new account?':'Σε αυτή τη συσκευή υπάρχουν δεδομένα άλλου λογαριασμού. Να σβηστούν ή να προστεθούν και στον νέο λογαριασμό;',{title:window.LANG==='en'?'Another account':'Άλλος λογαριασμός',ok:window.LANG==='en'?'Delete data':'Σβήσιμο',cancel:window.LANG==='en'?'Keep and add':'Κράτα και πρόσθεσε',danger:true})){ Store.wipe(); pup={}; ls('psaro-pup',pup); }
+    if(await window.AlkyonAsk(window.LANG==='en'?'This device holds data from another account. Delete it, or keep it and add it to the new account?':'Σε αυτή τη συσκευή υπάρχουν δεδομένα άλλου λογαριασμού. Να σβηστούν ή να προστεθούν και στον νέο λογαριασμό;',{title:window.LANG==='en'?'Another account':'Άλλος λογαριασμός',ok:window.LANG==='en'?'Delete data':'Σβήσιμο',cancel:window.LANG==='en'?'Keep and add':'Κράτα και πρόσθεσε',danger:true})){ Store.wipe(); pup={}; ls('alkyon-pup',pup); }
   }
-  ls('psaro-uid',sess.uid); msg(''); $('gPass').value=''; render();
+  ls('alkyon-uid',sess.uid); msg(''); $('gPass').value=''; render();
   await sync(true);
 }
 async function doLogin(signup){
@@ -150,9 +150,9 @@ async function doLogin(signup){
   }catch(e){ if(/Email not confirmed/i.test(String(e&&e.message))){ showCode('signup',em); msg(errText(e),true); } else msg(errText(e),true); }
   $('gLogin').disabled=$('gSignup').disabled=false;
 }
-function signedOut(){ sess=null; ls('psaro-sess',null); ls('psaro-last',null); if($('acStatus')) $('acStatus').textContent=''; render(); }
+function signedOut(){ sess=null; ls('alkyon-sess',null); ls('alkyon-last',null); if($('acStatus')) $('acStatus').textContent=''; render(); }
 
-function siteUrl(){ try{ return location.origin+location.pathname; }catch(e){ return 'https://dinospapani.github.io/Pasrovarka/'; } }
+function siteUrl(){ try{ return location.origin+location.pathname; }catch(e){ return 'https://dinospapani.github.io/Alkyon/'; } }
 /* Σύνδεσμοι από email (επιβεβαίωση εγγραφής, επαναφορά κωδικού): #access_token=...&type=signup|recovery */
 function newPassDialog(){
   var EN=window.LANG==='en', T=function(a,b){ return EN?b:a; };
@@ -254,7 +254,7 @@ function wire(){
   if($('profile')) $('profile').addEventListener('click',function(e){ if(e.target===$('profile')) openP(false); });
   if($('pNameSave')) $('pNameSave').addEventListener('click',async function(){
     var n=$('pName').value.trim();
-    try{ await ensure(); var r=await fetch(URL_+'/auth/v1/user',{method:'PUT',headers:H(),body:JSON.stringify({data:{name:n}})}); if(!r.ok) throw new Error('HTTP '+r.status); sess.name=n; ls('psaro-sess',sess); render(); pmsg('Το όνομα αποθηκεύτηκε.'); }catch(e){ pmsg(errText(e),true); }
+    try{ await ensure(); var r=await fetch(URL_+'/auth/v1/user',{method:'PUT',headers:H(),body:JSON.stringify({data:{name:n}})}); if(!r.ok) throw new Error('HTTP '+r.status); sess.name=n; ls('alkyon-sess',sess); render(); pmsg('Το όνομα αποθηκεύτηκε.'); }catch(e){ pmsg(errText(e),true); }
   });
   if($('pPassSave')) $('pPassSave').addEventListener('click',async function(){
     var pw=$('pPass').value; if(pw.length<6){ pmsg('Ο κωδικός πρέπει να έχει τουλάχιστον 6 χαρακτήρες.',true); return; }
@@ -265,7 +265,7 @@ function wire(){
     if(busy) return;
     await sync(true);
     var en=window.LANG==='en';
-    var okk=await window.PsaroAsk(en?'Sign out of your account? Your data stays on this phone and in your account.':'Αποσύνδεση από τον λογαριασμό; Τα δεδομένα σου μένουν στο κινητό και στον λογαριασμό σου.',{title:en?'Sign out':'Αποσύνδεση',ok:en?'Sign out':'Αποσύνδεση',cancel:en?'Cancel':'Άκυρο'});
+    var okk=await window.AlkyonAsk(en?'Sign out of your account? Your data stays on this phone and in your account.':'Αποσύνδεση από τον λογαριασμό; Τα δεδομένα σου μένουν στο κινητό και στον λογαριασμό σου.',{title:en?'Sign out':'Αποσύνδεση',ok:en?'Sign out':'Αποσύνδεση',cancel:en?'Cancel':'Άκυρο'});
     if(!okk) return;
     try{ await fetch(URL_+'/auth/v1/logout',{method:'POST',headers:H()}); }catch(e){}
     openP(false); signedOut();

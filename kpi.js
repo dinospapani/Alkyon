@@ -1,8 +1,8 @@
 /* Στατιστικά προφίλ: 28 ημέρες / φέτος / όλα. Ψάρια, miss, ποσοστό επιτυχίας, χρόνος ψαρέματος, ημέρες, είδη, kg, μεγαλύτερο ψάρι. */
 (function(){
 'use strict';
-var C=window.PsaroCore; if(!C||!document.getElementById('kpiCard')) return;
-var $=C.$, h=C.h, EN=window.LANG==='en', T=function(el,en){ return EN?en:el; }, KEY='psaro-kpi';
+var C=window.AlkyonCore; if(!C||!document.getElementById('kpiCard')) return;
+var $=C.$, h=C.h, EN=window.LANG==='en', T=function(el,en){ return EN?en:el; }, KEY='alkyon-kpi';
 var range='all'; try{ range=localStorage.getItem(KEY)||'all'; }catch(e){}
 if(['28','year','all'].indexOf(range)<0) range='all';
 function cutoff(){

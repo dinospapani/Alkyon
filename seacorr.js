@@ -5,9 +5,9 @@
    Ο χάρτης κατάστασης θάλασσας μένει όπως τον δίνουν τα μοντέλα. */
 (function(){
 'use strict';
-var C=window.PsaroCore; if(!C) return;
+var C=window.AlkyonCore; if(!C) return;
 var EN=window.LANG==='en', T=function(a,b){ return EN?b:a; };
-var KEY='psaro-seaobs', V={'-1':0.75,'0':1,'1':1.3};
+var KEY='alkyon-seaobs', V={'-1':0.75,'0':1,'1':1.3};
 function obs(){ var a=C.lsGet(KEY,[]); return Array.isArray(a)?a:[]; }
 function km(a,b,c,d){ var dy=(a-c)*111.2, dx=(b-d)*111.2*Math.cos(a*Math.PI/180); return Math.sqrt(dx*dx+dy*dy); }
 function factor(lat,lon){
@@ -42,7 +42,7 @@ function tripPos(t){
   var c=C.getCond&&C.getCond(); return c&&c.lat!=null?{lat:c.lat,lon:c.lon}:null;
 }
 function ask(id){
-  var prof=''; try{ prof=localStorage.getItem('psaro-fprof')||'boat'; }catch(e){} if(prof==='lake') return;
+  var prof=''; try{ prof=localStorage.getItem('alkyon-fprof')||'boat'; }catch(e){} if(prof==='lake') return;
   var t=(C.Store.raw('trips')||[]).find(function(x){ return x.id===id; }); if(!t) return;
   var pos=tripPos(t); if(!pos) return;
   var card=document.querySelector('.sumcard'), bt=card&&card.querySelector('.cdbtn'); if(!card||!bt||card.querySelector('.seaq')) return;
@@ -63,9 +63,9 @@ function ask(id){
   });
   w.append(lab,row,note); card.insertBefore(w,bt);
 }
-window.addEventListener('psaro-tripend',function(e){ var id=e.detail&&e.detail.id; if(!id) return; [900,1600,2600].forEach(function(ms){ setTimeout(function(){ ask(id); },ms); }); });
+window.addEventListener('alkyon-tripend',function(e){ var id=e.detail&&e.detail.id; if(!id) return; [900,1600,2600].forEach(function(ms){ setTimeout(function(){ ask(id); },ms); }); });
 var st=document.createElement('style');
 st.textContent='.seaq{margin:8px 0}.seaqb{display:flex;gap:6px}.seaqb button{flex:1;min-height:40px;border-radius:10px;border:1px solid rgba(127,127,127,.4);background:transparent;color:inherit;font:600 13px system-ui,sans-serif;cursor:pointer}.seaqb button[aria-pressed=true]{background:var(--accent,#c4401c);border-color:transparent;color:#fff}';
 document.head.appendChild(st);
-window.PsaroSeaCorr={factor:factor,list:obs,clear:function(){ C.lsSet(KEY,[]); }};
+window.AlkyonSeaCorr={factor:factor,list:obs,clear:function(){ C.lsSet(KEY,[]); }};
 })();

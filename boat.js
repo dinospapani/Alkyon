@@ -1,12 +1,12 @@
 /* v31z354: Καρτέλα «Βάρκα» στο Προφίλ.
    Στοιχεία σκάφους και κινητήρα, καύσιμο, ημερολόγιο ωρών μηχανής, λήξεις εγγράφων και εξοπλισμού με υπενθυμίσεις,
-   αντιρρυπαντική, μπαταρίες και συντήρηση κινητήρα. Αποθηκεύονται στο κινητό (psaro-boat) και μπαίνουν στο αντίγραφο ασφαλείας.
+   αντιρρυπαντική, μπαταρίες και συντήρηση κινητήρα. Αποθηκεύονται στο κινητό (alkyon-boat) και μπαίνουν στο αντίγραφο ασφαλείας.
    Ώρες κινητήρα, καύσιμο και λήξη άδειας ψαρέματος είναι κοινά με το smart.js (ίδια δεδομένα, όχι αντίγραφο). */
 (function(){
 'use strict';
-var C=window.PsaroCore; if(!C) return;
+var C=window.AlkyonCore; if(!C) return;
 var EN=window.LANG==='en', T=function(a,b){ return EN?b:a; };
-var KEY='psaro-boat', SENT='psaro-boat-sent', DAY=86400000;
+var KEY='alkyon-boat', SENT='alkyon-boat-sent', DAY=86400000;
 function $(i){ return document.getElementById(i); }
 function el(t,c,x){ var e=document.createElement(t); if(c) e.className=c; if(x!=null) e.textContent=x; return e; }
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,5); }
@@ -31,8 +31,8 @@ var B=C.lsGet(KEY,null); if(!B||typeof B!=='object') B={};
 B.boat=B.boat||{}; B.eng=B.eng||{}; B.log=Array.isArray(B.log)?B.log:[]; B.bat=Array.isArray(B.bat)?B.bat:[]; B.af=B.af||{mo:12};
 if(!Array.isArray(B.exp)) B.exp=EXP_DEF.map(function(x){ return {id:x[0],name:x[1],date:'',lead:x[2],std:1}; });
 function save(){ C.lsSet(KEY,B); }
-function S(){ var s=window.PsaroSmart&&window.PsaroSmart.state&&window.PsaroSmart.state(); return s||null; }
-function sSave(){ try{ if(window.PsaroSmart&&window.PsaroSmart.save) window.PsaroSmart.save(); }catch(e){} }
+function S(){ var s=window.AlkyonSmart&&window.AlkyonSmart.state&&window.AlkyonSmart.state(); return s||null; }
+function sSave(){ try{ if(window.AlkyonSmart&&window.AlkyonSmart.save) window.AlkyonSmart.save(); }catch(e){} }
 function engH(){ var s=S(); return s&&s.eng?(+s.eng.h||0):0; }
 
 /* λίστα όλων όσων έχουν ημερομηνία λήξης: έγγραφα, αντιρρυπαντική, μπαταρίες, άδεια ψαρέματος */
@@ -57,7 +57,7 @@ function remind(){
     if(o.lv!=='warn'&&o.lv!=='bad') return;
     var k=o.k+':'+o.date, gap=o.lv==='bad'?7*DAY:14*DAY; if(sent[k]&&now-sent[k]<gap) return; sent[k]=now; ch=true;
     var t='🛥 '+o.name, b=(o.lv==='bad'?T('Έληξε: ','Expired: '):T('Λήγει: ','Due: '))+dFmt(o.date)+' ('+lvTxt(o)+')';
-    try{ if(window.PsaroSea&&window.PsaroSea.notify) window.PsaroSea.notify(t,b); else C.toast(t+' · '+b); }catch(e){}
+    try{ if(window.AlkyonSea&&window.AlkyonSea.notify) window.AlkyonSea.notify(t,b); else C.toast(t+' · '+b); }catch(e){}
   });
   if(ch) C.lsSet(SENT,sent);
   paintBadge();
@@ -90,9 +90,9 @@ function render(){
   host.append(sum);
 
   /* v31z415: λιμάνι, καύσιμο, αυτόματη έναρξη/λήξη και πλοήγηση (πριν ήταν στις Ειδοποιήσεις) */
-  if(window.PsaroSmart&&window.PsaroSmart.openPanel){ var SS=window.PsaroSmart.state()||{}, cp=card(T('Λιμάνι, καύσιμο και πλοήγηση','Port, fuel and navigation'));
+  if(window.AlkyonSmart&&window.AlkyonSmart.openPanel){ var SS=window.AlkyonSmart.state()||{}, cp=card(T('Λιμάνι, καύσιμο και πλοήγηση','Port, fuel and navigation'));
     var pr=el('div','btrow'); pr.append(el('span','note',SS.home?((SS.home.name||T('Λιμάνι ορισμένο','Port set'))+(SS.tank?' · '+T('δεξαμενή ','tank ')+SS.tank+' L':'')):T('Όρισε λιμάνι, καύσιμο, αυτόματη έναρξη/λήξη εξόδου και διαδρομή γύρω από στεριά.','Set your port, fuel, automatic trip start/end and route around land.')),
-      btn(T('Ρυθμίσεις','Settings'),'acc',function(){ window.PsaroSmart.openPanel(); })); cp.append(pr); }
+      btn(T('Ρυθμίσεις','Settings'),'acc',function(){ window.AlkyonSmart.openPanel(); })); cp.append(pr); }
 
   /* σκάφος */
   var c1=card(T('Σκάφος','Boat')), g1=grid(c1);
@@ -138,8 +138,8 @@ function render(){
     if(!x.std) r.append(btn(T('Διαγραφή','Delete'),'ghost btdel',function(){ B.exp=B.exp.filter(function(q){ return q!==x; }); save(); render(); }));
     c5.append(r);
   });
-  if(s){ var lo={d:daysTo(s.lic),lead:14}; lo.lv=!s.lic?'n':lo.d<0?'bad':lo.d<=14?'warn':'ok'; var lr=el('div','btexp '+lo.lv), lt=el('div','btexph'); lt.append(el('b',null,T('Άδεια ψαρέματος','Fishing licence')),pill(lo)); lr.append(lt); var lg2=el('div','btexpg'); field(lg2,T('Λήξη','Expiry'),inp('date',s.lic||'','',function(v){ s.lic=v||null; sSave(); var ss=C.lsGet('psaro-smart-sent',{}); delete ss.lic; C.lsSet('psaro-smart-sent',ss); render(); })); lr.append(lg2); c5.append(lr); }
-  c5.append(btn(T('+ Νέα λήξη','+ New expiry item'),'',function(){ var go=function(v){ v=(v||'').trim(); if(!v) return; B.exp.push({id:uid(),name:v.slice(0,50),date:'',lead:30}); save(); render(); }; if(window.PsaroAsk&&window.PsaroAsk.prompt) window.PsaroAsk.prompt(T('Τι λήγει; (π.χ. φαρμακείο, σωσίβια)','What expires? (e.g. first aid kit, lifejackets)'),{title:T('Νέα λήξη','New expiry item'),ok:T('Προσθήκη','Add'),max:50}).then(go); else go(window.prompt(T('Όνομα','Name'))); }));
+  if(s){ var lo={d:daysTo(s.lic),lead:14}; lo.lv=!s.lic?'n':lo.d<0?'bad':lo.d<=14?'warn':'ok'; var lr=el('div','btexp '+lo.lv), lt=el('div','btexph'); lt.append(el('b',null,T('Άδεια ψαρέματος','Fishing licence')),pill(lo)); lr.append(lt); var lg2=el('div','btexpg'); field(lg2,T('Λήξη','Expiry'),inp('date',s.lic||'','',function(v){ s.lic=v||null; sSave(); var ss=C.lsGet('alkyon-smart-sent',{}); delete ss.lic; C.lsSet('alkyon-smart-sent',ss); render(); })); lr.append(lg2); c5.append(lr); }
+  c5.append(btn(T('+ Νέα λήξη','+ New expiry item'),'',function(){ var go=function(v){ v=(v||'').trim(); if(!v) return; B.exp.push({id:uid(),name:v.slice(0,50),date:'',lead:30}); save(); render(); }; if(window.AlkyonAsk&&window.AlkyonAsk.prompt) window.AlkyonAsk.prompt(T('Τι λήγει; (π.χ. φαρμακείο, σωσίβια)','What expires? (e.g. first aid kit, lifejackets)'),{title:T('Νέα λήξη','New expiry item'),ok:T('Προσθήκη','Add'),max:50}).then(go); else go(window.prompt(T('Όνομα','Name'))); }));
 
   /* αντιρρυπαντική */
   var c6=card(T('Αντιρρυπαντική (μουράβια)','Antifouling'),T('Η προτεινόμενη επανάληψη βγαίνει από την ημερομηνία εφαρμογής και το διάστημα του προϊόντος.','The reapply date comes from the date applied and the product interval.')), g6=grid(c6);
@@ -170,7 +170,7 @@ function render(){
   c7.append(btn(T('+ Μπαταρία','+ Battery'),'',function(){ B.bat.push({id:uid(),name:'',type:'agm',inst:today()}); save(); render(); }));
 
   /* συντήρηση κινητήρα (από το insights.js) */
-  if(window.PsaroMaint&&window.PsaroMaint.ui){ var c8=card(T('Συντήρηση κινητήρα','Engine maintenance'),T('Πάτα «Έγινε» όταν κάνεις κάτι. Ειδοποίηση όταν πλησιάζει με βάση ώρες ή μήνες.','Tap Done when you do a job. You get a reminder by hours or months.')); var mb=el('div','btmaint'); c8.append(mb); try{ window.PsaroMaint.ui(mb,render); var h0=mb.querySelector('.smsec'); if(h0) h0.remove(); }catch(e){} }
+  if(window.AlkyonMaint&&window.AlkyonMaint.ui){ var c8=card(T('Συντήρηση κινητήρα','Engine maintenance'),T('Πάτα «Έγινε» όταν κάνεις κάτι. Ειδοποίηση όταν πλησιάζει με βάση ώρες ή μήνες.','Tap Done when you do a job. You get a reminder by hours or months.')); var mb=el('div','btmaint'); c8.append(mb); try{ window.AlkyonMaint.ui(mb,render); var h0=mb.querySelector('.smsec'); if(h0) h0.remove(); }catch(e){} }
 
   host.append(el('p','note btfoot',T('Τα στοιχεία της βάρκας μένουν σε αυτό το κινητό και μπαίνουν στο αντίγραφο ασφαλείας (Ρυθμίσεις › Αντίγραφο). Οι υπενθυμίσεις έρχονται όταν ανοίγεις την εφαρμογή.','Boat details stay on this phone and are included in the backup (Settings › Backup). Reminders appear when you open the app.')));
   try{ $('profile').scrollTop=y; }catch(e){}
@@ -181,17 +181,17 @@ function render(){
 var segBtn=null;
 function paintBadge(){ if(!segBtn) return; var n=dueList().filter(function(o){ return o.lv==='bad'||o.lv==='warn'; }).length; segBtn.dataset.badge=n?String(n):''; }
 function setup(){
-  var seg=$('pSeg'), pv=window.PsaroProfView; if(!seg||!pv||!$('pTackle')) return false;
+  var seg=$('pSeg'), pv=window.AlkyonProfView; if(!seg||!pv||!$('pTackle')) return false;
   if($('pBoat')) return true;
   host=el('div'); host.id='pBoat'; host.hidden=true; $('pTackle').parentNode.insertBefore(host,$('pTackle').nextSibling);
   segBtn=el('button',null,T('Βάρκα','Boat')); segBtn.type='button'; segBtn.dataset.p='boat'; segBtn.setAttribute('aria-pressed','false');
   var tk=seg.querySelector('[data-p=tackle]'); if(tk&&tk.nextSibling) seg.insertBefore(segBtn,tk.nextSibling); else seg.append(segBtn);
   segBtn.addEventListener('click',function(){ pv.set('boat'); });
-  window.addEventListener('psaro-pview',function(e){ var on=e.detail==='boat'; host.hidden=!on; segBtn.setAttribute('aria-pressed',String(on)); if(on){ ['pMain','pSettings','pTackle','pGuide'].forEach(function(i){ var x=$(i); if(x) x.hidden=true; }); render(); } });
+  window.addEventListener('alkyon-pview',function(e){ var on=e.detail==='boat'; host.hidden=!on; segBtn.setAttribute('aria-pressed',String(on)); if(on){ ['pMain','pSettings','pTackle','pGuide'].forEach(function(i){ var x=$(i); if(x) x.hidden=true; }); render(); } });
   paintBadge(); return true;
 }
 var n=0, iv=setInterval(function(){ n++; if(setup()||n>40) clearInterval(iv); },500);
 setTimeout(remind,15000); setInterval(function(){ if(!document.hidden) remind(); },6*3600000);
 document.addEventListener('visibilitychange',function(){ if(!document.hidden) setTimeout(remind,4000); });
-window.PsaroBoat={open:function(){ var p=$('profile'), nb=$('navProf'); if(p&&p.hidden&&nb) nb.click(); setTimeout(function(){ if(window.PsaroProfView) window.PsaroProfView.set('boat'); },150); },data:function(){ return B; },load:function(d){ if(d&&typeof d==='object'){ B=d; B.boat=B.boat||{}; B.eng=B.eng||{}; B.log=B.log||[]; B.bat=B.bat||[]; B.af=B.af||{mo:12}; if(!Array.isArray(B.exp)) B.exp=[]; save(); render(); } },due:dueList};
+window.AlkyonBoat={open:function(){ var p=$('profile'), nb=$('navProf'); if(p&&p.hidden&&nb) nb.click(); setTimeout(function(){ if(window.AlkyonProfView) window.AlkyonProfView.set('boat'); },150); },data:function(){ return B; },load:function(d){ if(d&&typeof d==='object'){ B=d; B.boat=B.boat||{}; B.eng=B.eng||{}; B.log=B.log||[]; B.bat=B.bat||[]; B.af=B.af||{mo:12}; if(!Array.isArray(B.exp)) B.exp=[]; save(); render(); } },due:dueList};
 })();

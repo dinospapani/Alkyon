@@ -1,7 +1,7 @@
 /* Έλεγχος δεδομένων: βρίσκει ασυνέπειες στα τσιμπήματα και στις εξόδους και προσφέρει διόρθωση με ένα πάτημα. */
 (function(){
 'use strict';
-var C=window.PsaroCore, out=document.getElementById('dgOut'); if(!C||!out) return;
+var C=window.AlkyonCore, out=document.getElementById('dgOut'); if(!C||!out) return;
 var h=C.h, $=C.$, EN=window.LANG==='en', T=function(el,en){ return EN?en:el; };
 var LEGACY=/Έναρξη\/Τέλος εξόδου|Start\/End trip/;
 function bMs(b){ if(!b.date||!b.time) return null; var p=b.date.split('-').map(Number), q=b.time.split(':').map(Number); return Date.UTC(p[0],p[1]-1,p[2],q[0],q[1])-C.utcMin()*60000; }
@@ -14,8 +14,8 @@ function scan(){
     if(seen[k]){ issues.push({txt:T('Διπλό τσίμπημα: ','Duplicate bite: ')+(b.date||'')+' '+(b.time||'')+' '+(b.species||'')+(b.kg?' '+b.kg+' kg':''),fix:T('Διαγραφή','Delete'),run:function(){ return C.Store.remove('bites',b.id); }}); } else seen[k]=1;
   });
   // 2. ενεργή έξοδος που ξεχάστηκε
-  var st=window.PsaroTrip&&window.PsaroTrip.state(); 
-  if(st&&st.active&&Date.now()-st.start>20*3600000) issues.push({txt:T('Η έξοδος είναι ενεργή εδώ και πάνω από 20 ώρες.','The trip has been active for over 20 hours.'),fix:T('Τέλος εξόδου','End trip'),run:function(){ return window.PsaroTrip.endSilent(); }});
+  var st=window.AlkyonTrip&&window.AlkyonTrip.state(); 
+  if(st&&st.active&&Date.now()-st.start>20*3600000) issues.push({txt:T('Η έξοδος είναι ενεργή εδώ και πάνω από 20 ώρες.','The trip has been active for over 20 hours.'),fix:T('Τέλος εξόδου','End trip'),run:function(){ return window.AlkyonTrip.endSilent(); }});
   // 3. έξοδοι με ώρες: υπερβολική διάρκεια ή επικάλυψη
   var S=trips.filter(function(t){ return t.startMs&&t.endMs; }).sort(function(a,b){ return a.startMs-b.startMs; });
   S.forEach(function(t,i){
@@ -44,11 +44,11 @@ function render(issues,ran){
     out.append(h('div',{class:'dgrow'},h('span',{text:it.txt}),b));
   });
   if(issues.length>1){ var all=h('button',{class:'btn sm',type:'button',style:'margin-top:8px',text:T('Διόρθωση όλων','Fix all')});
-    all.addEventListener('click',async function(){ if(!(await window.PsaroAsk(T('Να εφαρμοστούν όλες οι διορθώσεις;','Apply all fixes?'),{title:T('Διόρθωση όλων','Fix all'),ok:T('Εφαρμογή','Apply')}))) return; all.disabled=true;
+    all.addEventListener('click',async function(){ if(!(await window.AlkyonAsk(T('Να εφαρμοστούν όλες οι διορθώσεις;','Apply all fixes?'),{title:T('Διόρθωση όλων','Fix all'),ok:T('Εφαρμογή','Apply')}))) return; all.disabled=true;
       var pass=function(n){ var L=scan(); if(!L.length||n>3) return render(scan(),true); var chain=Promise.resolve(); L.forEach(function(it){ chain=chain.then(function(){ return it.run(); }); }); return chain.then(function(){ return pass(n+1); }); };
       pass(0); });
     out.append(all); }
 }
 $('dgRun').addEventListener('click',function(){ render(scan(),true); });
-window.PsaroDiag={scan:scan};
+window.AlkyonDiag={scan:scan};
 })();

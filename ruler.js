@@ -2,10 +2,10 @@
    Βάθη: EMODnet (πλέγμα ~100 m, ενδεικτικά κοντά στην ακτή). Όχι ναυτικό όργανο. */
 (function(){
 'use strict';
-var C=window.PsaroCore, mb=document.querySelector('.mapbtns'), L=window.L; if(!C||!mb||!L) return;
+var C=window.AlkyonCore, mb=document.querySelector('.mapbtns'), L=window.L; if(!C||!mb||!L) return;
 var map=C.map&&C.map(); if(!map) return;
 var EN=window.LANG==='en', T=function(a,b){ return EN?b:a; };
-var PU=window.PsaroUnits;
+var PU=window.AlkyonUnits;
 var btn=document.createElement('button'); btn.type='button'; btn.id='bRuler'; btn.className='mbtn'; btn.setAttribute('aria-pressed','false');
 btn.setAttribute('aria-label',T('Χάρακας (απόσταση και βάθος)','Ruler (distance and depth)')); btn.title=btn.getAttribute('aria-label');
 btn.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/></svg>';
@@ -95,5 +95,5 @@ function stop(){
   if(cross) cross.style.display='none'; if(panel){ panel.remove(); panel=null; }
 }
 btn.addEventListener('click',function(){ if(on) stop(); else start(); });
-window.PsaroRuler={start:start,stop:stop};
+window.AlkyonRuler={start:start,stop:stop};
 })();

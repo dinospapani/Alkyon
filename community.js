@@ -2,11 +2,11 @@
    Ποτέ δεν αποστέλλονται συντεταγμένες ή όνομα σημείου. Η φωτογραφία ξαναδημιουργείται από την αρχή (χωρίς EXIF/GPS). */
 (function(){
 'use strict';
-var C=window.PsaroCore; if(!C) return;
+var C=window.AlkyonCore; if(!C) return;
 var EN=window.LANG==='en', T=function(el,en){ return EN?en:el; };
 var $=function(i){ return document.getElementById(i); };
 function el(tag,cls,txt){ var e=document.createElement(tag); if(cls) e.className=cls; if(txt!=null) e.textContent=txt; return e; }
-function cloud(){ return window.PsaroCloud; }
+function cloud(){ return window.AlkyonCloud; }
 function logged(){ return cloud()&&cloud().logged(); }
 var seg=$('logSeg'), tabLog=$('tab-log'); if(!seg||!tabLog) return;
 var PAGE=15;
@@ -20,7 +20,7 @@ Array.prototype.forEach.call(seg.querySelectorAll('button'),function(b){ b.addEv
 
 /* ---------- δίκτυο ---------- */
 async function rest(path,opt){ return cloud().rest(path,opt); }
-function blocked(){ return C.lsGet('psaro-comm-block',[])||[]; }
+function blocked(){ return C.lsGet('alkyon-comm-block',[])||[]; }
 function esc(s){ return encodeURIComponent(s); }
 async function load(reset){
   if(!logged()||feedState.loading) return; if(reset){ feedState.items=[]; feedState.offset=0; feedState.end=false; }
@@ -52,14 +52,14 @@ async function sendComment(p,text){
 }
 function authorName(){ var n=(cloud().name()||'').trim(); return (n||T('Ψαράς','Angler')).slice(0,40); }
 async function report(kind,id){
-  var ok=await window.PsaroAsk(T('Να αναφερθεί αυτό το περιεχόμενο ως ακατάλληλο;','Report this content as inappropriate?'),{title:T('Αναφορά','Report'),ok:T('Αναφορά','Report'),cancel:T('Άκυρο','Cancel')}); if(!ok) return;
+  var ok=await window.AlkyonAsk(T('Να αναφερθεί αυτό το περιεχόμενο ως ακατάλληλο;','Report this content as inappropriate?'),{title:T('Αναφορά','Report'),ok:T('Αναφορά','Report'),cancel:T('Άκυρο','Cancel')}); if(!ok) return;
   var body=kind==='post'?{post_id:id}:{comment_id:id};
   try{ await rest('community_reports',{method:'POST',body:JSON.stringify(body),headers:{Prefer:'return=minimal'}}); C.toast(T('Ευχαριστούμε. Θα ελεγχθεί.','Thanks. It will be reviewed.')); }catch(e){ C.toast(T('Δεν στάλθηκε η αναφορά.','Report not sent.')); }
 }
 async function delPost(p){
-  var ok=await window.PsaroAsk(T('Να διαγραφεί η ανάρτηση από την κοινότητα;','Delete this post from the community?'),{title:T('Διαγραφή','Delete'),ok:T('Διαγραφή','Delete'),cancel:T('Άκυρο','Cancel'),danger:true}); if(!ok) return;
+  var ok=await window.AlkyonAsk(T('Να διαγραφεί η ανάρτηση από την κοινότητα;','Delete this post from the community?'),{title:T('Διαγραφή','Delete'),ok:T('Διαγραφή','Delete'),cancel:T('Άκυρο','Cancel'),danger:true}); if(!ok) return;
   try{ await rest('community_posts?id=eq.'+p.id,{method:'DELETE'}); if(p.photo){ try{ await cloud().storage('DELETE','community/'+p.photo); }catch(e){} }
-    feedState.items=feedState.items.filter(function(x){ return x!==p; }); var shared=C.lsGet('psaro-comm-shared',{})||{}; Object.keys(shared).forEach(function(k){ if(shared[k]===p.id) delete shared[k]; }); C.lsSet('psaro-comm-shared',shared); render(); decorate(); }
+    feedState.items=feedState.items.filter(function(x){ return x!==p; }); var shared=C.lsGet('alkyon-comm-shared',{})||{}; Object.keys(shared).forEach(function(k){ if(shared[k]===p.id) delete shared[k]; }); C.lsSet('alkyon-comm-shared',shared); render(); decorate(); }
   catch(e){ C.toast(T('Δεν διαγράφηκε.','Not deleted.')); }
 }
 async function delComment(p,c){ try{ await rest('community_comments?id=eq.'+c.id,{method:'DELETE'}); p._c=(p._c||[]).filter(function(x){ return x!==c; }); p.comments=[{count:Math.max(0,((p.comments&&p.comments[0]&&p.comments[0].count)||1)-1)}]; render(); }catch(e){ C.toast(T('Δεν διαγράφηκε.','Not deleted.')); } }
@@ -76,7 +76,7 @@ function postEl(p){
   var mine=p.user_id===cloud().uid(), card=el('div','card cmpost');
   var hd=el('div','cmhd'); hd.append(el('b','',p.author||T('Ψαράς','Angler')),el('span','cmago',ago(p.created_at)));
   var menu=el('button','cmmore','⋯'); menu.type='button'; menu.setAttribute('aria-label',T('Περισσότερα','More')); menu.addEventListener('click',function(){
-    var mi=el('div','cmmenu'); if(mine) mi.append(btn(T('Διαγραφή','Delete'),function(){ mi.remove(); delPost(p); })); else { mi.append(btn(T('Αναφορά','Report'),function(){ mi.remove(); report('post',p.id); })); mi.append(btn(T('Απόκρυψη χρήστη','Hide user'),function(){ mi.remove(); var b=blocked(); b.push(p.user_id); C.lsSet('psaro-comm-block',b); render(); })); }
+    var mi=el('div','cmmenu'); if(mine) mi.append(btn(T('Διαγραφή','Delete'),function(){ mi.remove(); delPost(p); })); else { mi.append(btn(T('Αναφορά','Report'),function(){ mi.remove(); report('post',p.id); })); mi.append(btn(T('Απόκρυψη χρήστη','Hide user'),function(){ mi.remove(); var b=blocked(); b.push(p.user_id); C.lsSet('alkyon-comm-block',b); render(); })); }
     card.appendChild(mi); }); hd.append(menu); card.append(hd);
   if(p.photo){ var im=el('img','cmimg'); im.loading='lazy'; im.alt=p.species; im.src=photoUrl(p); card.append(im); }
   var t=el('div','cmtitle'); t.append(el('b','',p.species)); var sz=[]; if(p.kg!=null) sz.push(+p.kg+' kg'); if(p.len!=null) sz.push(+p.len+' cm'); if(sz.length) t.append(el('span','cmsz',sz.join(' · '))); card.append(t);
@@ -117,12 +117,12 @@ function jpeg(blob){
     var u=URL.createObjectURL(blob), im=new Image(); im.onload=function(){ var s=Math.min(1,1280/Math.max(im.width,im.height)), cv=document.createElement('canvas'); cv.width=Math.round(im.width*s); cv.height=Math.round(im.height*s);
       cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height); URL.revokeObjectURL(u); cv.toBlob(function(b){ b?res(b):rej(new Error('jpeg')); },'image/jpeg',0.82); }; im.onerror=function(){ URL.revokeObjectURL(u); rej(new Error('img')); }; im.src=u; });
 }
-function moonIdx(b){ try{ var ms=Date.parse((b.date||'')+'T'+(b.time||'12:00')+':00Z'); return window.PsaroInsights?window.PsaroInsights.phaseAt(ms).idx:null; }catch(e){ return null; } }
+function moonIdx(b){ try{ var ms=Date.parse((b.date||'')+'T'+(b.time||'12:00')+':00Z'); return window.AlkyonInsights?window.AlkyonInsights.phaseAt(ms).idx:null; }catch(e){ return null; } }
 function uuid(){ return (window.crypto&&crypto.randomUUID)?crypto.randomUUID():'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
 var ov=el('div'); ov.id='cmShare'; ov.hidden=true; document.body.appendChild(ov); ov.addEventListener('click',function(e){ if(e.target===ov) ov.hidden=true; });
 async function openShare(b){
   if(!logged()){ C.toast(T('Συνδέσου πρώτα στον λογαριασμό σου.','Sign in first.')); return; }
-  var shared=C.lsGet('psaro-comm-shared',{})||{}; if(shared[b.id]){ C.toast(T('Έχει ήδη μοιραστεί.','Already shared.')); return; }
+  var shared=C.lsGet('alkyon-comm-shared',{})||{}; if(shared[b.id]){ C.toast(T('Έχει ήδη μοιραστεί.','Already shared.')); return; }
   var blob=null; if(b.photo){ try{ blob=await C.Photos.get(b.id); }catch(e){} }
   ov.replaceChildren(); var card=el('div','spcard'); var hd=el('div','sphead'); hd.append(el('b','',T('Μοίρασμα στην κοινότητα','Share to community')),(function(){ var x=el('button','spx','✕'); x.type='button'; x.addEventListener('click',function(){ ov.hidden=true; }); return x; })()); card.append(hd);
   var bd=el('div','spbody'); var inc=true;
@@ -136,7 +136,7 @@ async function openShare(b){
   var row=el('div','sprow'); var go=el('button','spb acc',T('Δημοσίευση','Publish')); go.type='button'; row.append(go); bd.append(row); card.append(bd); ov.append(card); ov.hidden=false;
   go.addEventListener('click',async function(){
     if(!b.species){ C.toast(T('Λείπει το είδος.','Species is missing.')); return; }
-    if(!C.lsGet('psaro-comm-ok',false)){ var ok=await window.PsaroAsk(T('Η ανάρτηση θα είναι ορατή σε όλους τους χρήστες του BiteCast. Δεν περιλαμβάνει θέση. Μπορείς να τη διαγράψεις όποτε θέλεις. Συνέχεια;','The post will be visible to all BiteCast users. It does not include a location. You can delete it any time. Continue?'),{title:T('Δημόσια ανάρτηση','Public post'),ok:T('Συνέχεια','Continue'),cancel:T('Άκυρο','Cancel')}); if(!ok) return; C.lsSet('psaro-comm-ok',true); }
+    if(!C.lsGet('alkyon-comm-ok',false)){ var ok=await window.AlkyonAsk(T('Η ανάρτηση θα είναι ορατή σε όλους τους χρήστες του Alkyon. Δεν περιλαμβάνει θέση. Μπορείς να τη διαγράψεις όποτε θέλεις. Συνέχεια;','The post will be visible to all Alkyon users. It does not include a location. You can delete it any time. Continue?'),{title:T('Δημόσια ανάρτηση','Public post'),ok:T('Συνέχεια','Continue'),cancel:T('Άκυρο','Cancel')}); if(!ok) return; C.lsSet('alkyon-comm-ok',true); }
     go.disabled=true; go.textContent=T('Αποστολή…','Sending…'); var path=null;
     try{
       await rest('community_posts?select=id&limit=1');
@@ -144,7 +144,7 @@ async function openShare(b){
       var cond=withCond?{wind:b.wind,wave:b.wave,press:b.press,ptrend:b.ptrend,sst:b.sst,temp:b.temp,moon:moonIdx(b)}:{}; Object.keys(cond).forEach(function(k){ if(cond[k]==null||cond[k]==='') delete cond[k]; else if(typeof cond[k]==='number') cond[k]=Math.round(cond[k]*10)/10; });
       var body={src:b.id,author:authorName(),species:b.species,latin:b.latin||null,kg:b.kg!=null?b.kg:null,len:b.len!=null?b.len:null,bait:b.bait||null,tech:b.tech||null,day:b.date||null,cond:cond,photo:path};
       var pr=await rest('community_posts',{method:'POST',body:JSON.stringify(body),headers:{Prefer:'return=representation'}}), rows=await pr.json();
-      shared[b.id]=(rows[0]&&rows[0].id)||1; C.lsSet('psaro-comm-shared',shared); ov.hidden=true; C.toast(T('Δημοσιεύτηκε στην κοινότητα.','Shared to the community.')); decorate(); if(!box.hidden) load(true);
+      shared[b.id]=(rows[0]&&rows[0].id)||1; C.lsSet('alkyon-comm-shared',shared); ov.hidden=true; C.toast(T('Δημοσιεύτηκε στην κοινότητα.','Shared to the community.')); decorate(); if(!box.hidden) load(true);
     }catch(e){
       if(path){ try{ await cloud().storage('DELETE','community/'+path); }catch(x){} }
       var m=String(e.message||e); go.disabled=false; go.textContent=T('Δημοσίευση','Publish');
@@ -153,7 +153,7 @@ async function openShare(b){
   });
 }
 function decorate(){
-  var shared=C.lsGet('psaro-comm-shared',{})||{};
+  var shared=C.lsGet('alkyon-comm-shared',{})||{};
   Array.prototype.forEach.call(document.querySelectorAll('#biteList .item[data-bid]'),function(it){
     var a=it.querySelector('.acts'); if(!a) return; var id=it.getAttribute('data-bid'), old=a.querySelector('.cmshare'); if(old) old.remove();
     var b=el('button','btn ghost sm cmshare',shared[id]?T('✓ Στην κοινότητα','✓ Shared'):T('Κοινότητα','Community')); b.type='button'; if(shared[id]) b.disabled=true;
@@ -162,5 +162,5 @@ function decorate(){
 }
 var dt=null; function later(){ clearTimeout(dt); dt=setTimeout(decorate,90); }
 (function(){ var n=$('biteList'); if(n) new MutationObserver(function(){ if(!n.querySelector('.cmshare')||n.querySelector('.item[data-bid] .acts:not(:has(.cmshare))')) later(); }).observe(n,{childList:true}); later(); })();
-window.PsaroCommunity={load:load,render:render,openShare:openShare};
+window.AlkyonCommunity={load:load,render:render,openShare:openShare};
 })();

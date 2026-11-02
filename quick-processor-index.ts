@@ -1,5 +1,5 @@
 // @ts-nocheck
-// BiteCast cron: forecast push, ασφάλεια εξόδων (Telegram), πτώση πίεσης. Παράγεται από build_edge.py. Μην το επεξεργάζεσαι στο χέρι.
+// Alkyon cron: forecast push, ασφάλεια εξόδων (Telegram), πτώση πίεσης. Παράγεται από build_edge.py. Μην το επεξεργάζεσαι στο χέρι.
 import webpush from 'npm:web-push@3.6.7';
 
 globalThis.self = globalThis.self || globalThis;
@@ -67,11 +67,11 @@ function sunMoon(dateStr,lat,lon,tz){
 }
 /* απόσταση (λεπτά) της ώρας t από την πιο κοντινή περίοδο μιας λίστας */
 const nearMin=(t,arr)=>{ let b=1e9; for(const x of arr||[]) b=Math.min(b,Math.abs(t-x)); return b; };
-/* v31z363: είδος-στόχος για τον βαθμό. Στη σελίδα έρχεται από «Τι να ψαρέψω» (psaro-advsp + knowledge.js),
+/* v31z363: είδος-στόχος για τον βαθμό. Στη σελίδα έρχεται από «Τι να ψαρέψω» (alkyon-advsp + knowledge.js),
    στον server και στο service worker από τη ρύθμιση (cfg.sp = {n, l, sst}). */
 function targetSp(w){
   if(w&&w.sp) return w.sp;
-  try{ if(typeof localStorage==='undefined') return null; const n=localStorage.getItem('psaro-advsp'); if(!n) return null; let v=n; try{ v=JSON.parse(n); }catch(x){} if(!v) return null;
+  try{ if(typeof localStorage==='undefined') return null; const n=localStorage.getItem('alkyon-advsp'); if(!n) return null; let v=n; try{ v=JSON.parse(n); }catch(x){} if(!v) return null;
     const kb=(typeof self!=='undefined'&&self.SPKB)||[], e=kb.find(k=>k.n===v); return e?{n:e.n,l:e.l,sst:e.sst}:{n:v}; }catch(e){ return null; }
 }
 /* ειδικοί κανόνες από μελέτες: καλαμάρι (Cabanellas-Reboredo κ.ά. 2012, Μαγιόρκα), ξιφίας (Ceyhan κ.ά. 2018, Αν. Μεσόγειος) */
@@ -79,7 +79,7 @@ function spKind(sp){ const s=((sp&&(sp.l||''))+' '+(sp&&sp.n||'')).toLowerCase()
 function hourScore(sm,hr,w){
   const wind=w.wind, wave=w.wave==null?0.5:w.wave, sp=targetSp(w), kind=spKind(sp);
   /* προφίλ ψαρέματος: προσαρμογή βαρών (εκτίμηση, όχι επικυρωμένη). Στο service worker δεν υπάρχει localStorage, άρα ισχύει «βάρκα». */
-  let prof=w.prof; if(!prof){ try{ prof=typeof localStorage!=='undefined'?localStorage.getItem('psaro-fprof'):null; }catch(e){ prof=null; } }
+  let prof=w.prof; if(!prof){ try{ prof=typeof localStorage!=='undefined'?localStorage.getItem('alkyon-fprof'):null; }catch(e){ prof=null; } }
   /* v31z361: η σελήνη μετρά λιγότερο (μελέτες: επίδραση 5–10% σε κάποια είδη, καμία σε άλλα) */
   let base=50+(kind==='sword'?0:kind==='squid'?Math.round(Math.cos(2*Math.PI*sm.f)*5):Math.round(Math.cos(4*Math.PI*sm.f)*4)); /* καλαμάρι: καλύτερα κοντά στη νέα σελήνη· ξιφίας: καμία επίδραση */
   /* v31z362: η πίεση μετρά ελάχιστα. Οι μελέτες δεν βρίσκουν σταθερή επίδραση στο τσίμπημα (πέρκα: καμία· ανασκόπηση Stoner 2004:
@@ -482,13 +482,13 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
         const byTg = await sb(`safety_contacts?tg_code=eq.${encodeURIComponent(mm[1])}&select=user_id`);
         if (byTg && byTg[0]) {
           await sb(`safety_contacts?user_id=eq.${byTg[0].user_id}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ tg_chat_id: m.chat.id, tg_name: name }) });
-          await tg('sendMessage', { chat_id: m.chat.id, text: 'Συνδέθηκες ως επαφή ασφαλείας στο BiteCast. Θα λαμβάνεις ειδοποίηση αν κάποιος που ψαρεύει δεν γυρίσει στην ώρα του ή χαθεί η επαφή μαζί του.' });
+          await tg('sendMessage', { chat_id: m.chat.id, text: 'Συνδέθηκες ως επαφή ασφαλείας στο Alkyon. Θα λαμβάνεις ειδοποίηση αν κάποιος που ψαρεύει δεν γυρίσει στην ώρα του ή χαθεί η επαφή μαζί του.' });
           stats.linked++; continue;
         }
         const bySelf = await sb(`safety_contacts?self_code=eq.${encodeURIComponent(mm[1])}&select=user_id`).catch(() => null);
         if (bySelf && bySelf[0]) {
           await sb(`safety_contacts?user_id=eq.${bySelf[0].user_id}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ self_chat_id: m.chat.id }) });
-          await tg('sendMessage', { chat_id: m.chat.id, text: 'Το Telegram σου συνδέθηκε με το BiteCast. Όταν είσαι σε έξοδο και χαθεί η επαφή με το κινητό σου, θα σε ρωτάω εδώ «είσαι καλά;» πριν ειδοποιήσω την επαφή ασφαλείας σου.' });
+          await tg('sendMessage', { chat_id: m.chat.id, text: 'Το Telegram σου συνδέθηκε με το Alkyon. Όταν είσαι σε έξοδο και χαθεί η επαφή με το κινητό σου, θα σε ρωτάω εδώ «είσαι καλά;» πριν ειδοποιήσω την επαφή ασφαλείας σου.' });
           stats.linked++; continue;
         }
         await tg('sendMessage', { chat_id: m.chat.id, text: 'Ο σύνδεσμος δεν είναι έγκυρος. Ζήτα νέο από τον φίλο σου.' });
@@ -644,7 +644,7 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
           const at = new Date().toISOString();
           // v31z358: ίδιο μήνυμα την ίδια μέρα στον ίδιο χρήστη = μία φορά, ακόμα κι αν ο χρήστης έχει πολλές εγγραφές push (π.χ. παλιά συνδρομή)
           const ck = 'c' + m.kind + ':' + hash32(m.title + '|' + m.body) + ':' + at.slice(0, 10);
-          const payload = { title: m.title, body: m.body, full: m.full, kind: m.kind, id: ck, tag: 'bc-' + ck, at, place: m.place || null, t: m.t || null };
+          const payload = { title: m.title, body: m.body, full: m.full, kind: m.kind, id: ck, tag: 'alk-' + ck, at, place: m.place || null, t: m.t || null };
           // ιστορικό στη βάση (για να φαίνεται στην εφαρμογή ακόμα κι αν δεν φτάσει το push)· αν υπάρχει ήδη, δεν ξαναστέλνεται
           let dup = false;
           try { const ins = await sb('notif_log', { method: 'POST', headers: { Prefer: 'return=representation,resolution=ignore-duplicates' }, body: JSON.stringify({ id: (r.user_id + '|' + ck).slice(0, 250), user_id: r.user_id, at, kind: m.kind, title: m.title, body: m.body, details: m.full, place: m.place || null, t: m.t || null }) }); dup = Array.isArray(ins) && ins.length === 0; }
@@ -684,12 +684,12 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
       const body = `Η πίεση πέφτει γρήγορα: ${drop.toFixed(1)} hPa σε 3 ώρες (τώρα ${Math.round(now_)} hPa). Συχνά σημαίνει αλλαγή καιρού. Κοίταξε τον ορίζοντα και την πρόγνωση. Ενδεικτικό, από μοντέλο.`;
       const c = await contactOf(t.user_id).catch(() => null);
       let sent = 0;
-      if (c && c.self_chat_id != null && TG) { try { await tg('sendMessage', { chat_id: c.self_chat_id, text: '⚠ BiteCast: ' + body }); sent++; } catch (e) { log('Πίεση Telegram: ' + e.message); } }
+      if (c && c.self_chat_id != null && TG) { try { await tg('sendMessage', { chat_id: c.self_chat_id, text: '⚠ Alkyon: ' + body }); sent++; } catch (e) { log('Πίεση Telegram: ' + e.message); } }
       if (webpush) {
         const subs = await sb(`push_subs?user_id=eq.${t.user_id}&select=*`).catch(() => []);
         const at = new Date().toISOString(), key = 'trip-pa:' + t.id + ':' + at.slice(0, 13);
         try { await sb('notif_log', { method: 'POST', headers: { Prefer: 'return=minimal,resolution=ignore-duplicates' }, body: JSON.stringify({ id: (t.user_id + '|' + key).slice(0, 250), user_id: t.user_id, at, kind: 'pressure', title: '📉 Πτώση πίεσης στην έξοδο', body, details: body, place: { name: 'Έξοδος', lat: +t.last_lat, lon: +t.last_lon }, t: at }) }); } catch (e) { /* χωρίς ιστορικό */ }
-        for (const r of subs || []) { try { await webpush.sendNotification(r.sub, JSON.stringify({ title: '📉 Πτώση πίεσης στην έξοδο', body, full: body, kind: 'pressure', id: key, tag: 'bc-trip-pa-' + at.slice(0, 13), at, place: { name: 'Έξοδος', lat: +t.last_lat, lon: +t.last_lon } }), { TTL: 3600 }); sent++; } catch (e) { if (e.statusCode === 404 || e.statusCode === 410) await sb(`push_subs?id=eq.${encodeURIComponent(r.id)}`, { method: 'DELETE' }).catch(() => {}); } }
+        for (const r of subs || []) { try { await webpush.sendNotification(r.sub, JSON.stringify({ title: '📉 Πτώση πίεσης στην έξοδο', body, full: body, kind: 'pressure', id: key, tag: 'alk-trip-pa-' + at.slice(0, 13), at, place: { name: 'Έξοδος', lat: +t.last_lat, lon: +t.last_lon } }), { TTL: 3600 }); sent++; } catch (e) { if (e.statusCode === 404 || e.statusCode === 410) await sb(`push_subs?id=eq.${encodeURIComponent(r.id)}`, { method: 'DELETE' }).catch(() => {}); } }
       }
       await patch(t.id, { pa_at: new Date().toISOString() });
       if (sent) stats.pa++;
@@ -726,13 +726,13 @@ Deno.serve(async (req) => {
         if (!u.ok) return J({ ok: false, error: 'unauthorized' }, 401);
         const uid = (await u.json()).id; if (!uid) return J({ ok: false, error: 'unauthorized' }, 401);
         if (!(E('VAPID_PUBLIC') && E('VAPID_PRIVATE'))) return J({ ok: false, error: 'VAPID secrets missing' });
-        if (!vapidSet) { webpush.setVapidDetails('https://dinospapani.github.io/Pasrovarka/', E('VAPID_PUBLIC'), E('VAPID_PRIVATE')); vapidSet = true; }
+        if (!vapidSet) { webpush.setVapidDetails('https://dinospapani.github.io/Alkyon/', E('VAPID_PUBLIC'), E('VAPID_PRIVATE')); vapidSet = true; }
         const sr = await fetch(env.SUPABASE_URL + '/rest/v1/push_subs?user_id=eq.' + encodeURIComponent(uid) + '&select=id,sub,checked_at,turn', { headers: { apikey: env.SUPABASE_SERVICE_KEY, Authorization: 'Bearer ' + env.SUPABASE_SERVICE_KEY } });
         const subs = sr.ok ? await sr.json() : [];
         let sent = 0, gone = 0, err = '';
         const at = new Date().toISOString();
         for (const r of subs || []) {
-          try { await webpush.sendNotification(r.sub, JSON.stringify({ title: 'BiteCast ✓', body: body.lang === 'en' ? 'Test notification from the server. Alerts reach this phone.' : 'Δοκιμαστική ειδοποίηση από τον server. Οι ειδοποιήσεις φτάνουν σε αυτό το κινητό.', kind: 'test', id: 'test-' + at, tag: 'bc-test', at }), { TTL: 600 }); sent++; }
+          try { await webpush.sendNotification(r.sub, JSON.stringify({ title: 'Alkyon ✓', body: body.lang === 'en' ? 'Test notification from the server. Alerts reach this phone.' : 'Δοκιμαστική ειδοποίηση από τον server. Οι ειδοποιήσεις φτάνουν σε αυτό το κινητό.', kind: 'test', id: 'test-' + at, tag: 'alk-test', at }), { TTL: 600 }); sent++; }
           catch (e) { if (e.statusCode === 404 || e.statusCode === 410) { gone++; await fetch(env.SUPABASE_URL + '/rest/v1/push_subs?id=eq.' + encodeURIComponent(r.id), { method: 'DELETE', headers: { apikey: env.SUPABASE_SERVICE_KEY, Authorization: 'Bearer ' + env.SUPABASE_SERVICE_KEY } }); } else err = String(e.statusCode || '') + ' ' + e.message; }
         }
         const last = (subs || []).map(r => r.checked_at).filter(Boolean).sort().pop() || null;
@@ -751,7 +751,7 @@ Deno.serve(async (req) => {
   let wp = null;
   if (E('VAPID_PUBLIC') && E('VAPID_PRIVATE')) {
     try {
-      if (!vapidSet) { webpush.setVapidDetails('https://dinospapani.github.io/Pasrovarka/', E('VAPID_PUBLIC'), E('VAPID_PRIVATE')); vapidSet = true; }
+      if (!vapidSet) { webpush.setVapidDetails('https://dinospapani.github.io/Alkyon/', E('VAPID_PUBLIC'), E('VAPID_PRIVATE')); vapidSet = true; }
       wp = webpush;
     } catch (e) { console.log('VAPID: ' + e.message); }
   }

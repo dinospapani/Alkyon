@@ -2,10 +2,10 @@
    Δέχεται επίσης: 35 03.602 N · 35°03'36"N · 35.06715 · 3503.602 (NMEA) · ολόκληρο ζεύγος σε ένα πεδίο. */
 (function(){
 'use strict';
-var P=window.PsaroCoord={};
+var P=window.AlkyonCoord={};
 function hemi(v,axis){ return axis==='lat'?(v<0?'S':'N'):(v<0?'W':'E'); }
 /* τιμή → «N 35°03.602′» */
-var mode=function(){ return (window.PsaroUnits&&window.PsaroUnits.cfg&&window.PsaroUnits.cfg.coord)||'dm'; };
+var mode=function(){ return (window.AlkyonUnits&&window.AlkyonUnits.cfg&&window.AlkyonUnits.cfg.coord)||'dm'; };
 var isDD=function(){ return mode()==='dd'; };
 P.isDD=isDD; P.mode=mode;
 P.fmtOne=function(v,axis){
@@ -209,7 +209,7 @@ function paintSwitch(pr){
 P.setMode=function(m){
   if(!MODES.some(function(x){ return x[0]===m; })) return;
   var vals=PAIRS.map(function(pr){ return [P.parse(pr.la.value,'lat'),P.parse(pr.lo.value,'lon')]; });
-  if(window.PsaroUnits&&window.PsaroUnits.set) window.PsaroUnits.set('coord',m);
+  if(window.AlkyonUnits&&window.AlkyonUnits.set) window.AlkyonUnits.set('coord',m);
   PAIRS.forEach(function(pr,i){
     [pr.la,pr.lo].forEach(function(el){ if(el._cf){ el._cf.remove(); el._cf=null; } el.style.display=''; });
     upgrade(pr.la,'lat'); upgrade(pr.lo,'lon');

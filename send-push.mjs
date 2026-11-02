@@ -14,7 +14,7 @@ try { subs = JSON.parse(process.env.PUSH_SUBS || '[]'); } catch (e) { console.lo
 if (!Array.isArray(subs)) subs = [subs];
 if (!subs.length) { console.log('Δεν υπάρχουν συσκευές στο PUSH_SUBS.'); process.exit(0); }
 if (!pub || !priv) { console.log('Λείπει το VAPID_PRIVATE.'); process.exit(1); }
-webpush.setVapidDetails('https://dinospapani.github.io/psarovarka/', pub, priv);
+webpush.setVapidDetails('https://dinospapani.github.io/Alkyon/', pub, priv);
 
 let state = {};
 try { state = JSON.parse(fs.readFileSync('push-state.json', 'utf8')); } catch (e) {}
@@ -26,7 +26,7 @@ for (const s of subs) {
   const k = id(s);
   try {
     let payload = null;
-    if (test) payload = { title: 'Δοκιμή push', body: 'Οι ειδοποιήσεις του BiteCast δουλεύουν από τον server.' };
+    if (test) payload = { title: 'Δοκιμή push', body: 'Οι ειδοποιήσεις του Alkyon δουλεύουν από τον server.' };
     else {
       const fc = await PF.getForecast(s.lat, s.lon);
       const f = PF.findIdeal(fc, s.threshold || 75);

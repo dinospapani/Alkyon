@@ -2,14 +2,14 @@
    και ειδοποιεί όταν αλλάζει η διεύθυνση ή η ένταση. Δεν τρέχει με κλειστή εφαρμογή (χρειάζεται server). */
 (function(){
 'use strict';
-var C=window.PsaroCore; if(!C||!window.PF) return;
+var C=window.AlkyonCore; if(!C||!window.PF) return;
 var T=function(a,b){ return window.LANG==='en'?b:a; };
-var KEY='psaro-wwatch', SEEN='psaro-wwatch-seen';
+var KEY='alkyon-wwatch', SEEN='alkyon-wwatch-seen';
 var cfg=Object.assign({on:false,deg:60,kn:6,hours:6},C.lsGet(KEY,{})||{});
 var COMP=window.LANG==='en'?['N','NE','E','SE','S','SW','W','NW']:['Β','ΒΑ','Α','ΝΑ','Ν','ΝΔ','Δ','ΒΔ'];
 function dn(d){ return COMP[Math.round((((d%360)+360)%360)/45)%8]; }
 function adiff(a,b){ var d=Math.abs(a-b)%360; return d>180?360-d:d; }
-function save(){ C.lsSet(KEY,cfg); try{ window.dispatchEvent(new Event('psaro-wwatch')); }catch(e){} }
+function save(){ C.lsSet(KEY,cfg); try{ window.dispatchEvent(new Event('alkyon-wwatch')); }catch(e){} }
 function place(){ var c=(C.getViewCond&&C.getViewCond())||(C.getCond&&C.getCond()); return c&&c.lat!=null?{lat:+c.lat,lon:+c.lon,name:c.name||''}:null; }
 /* Βρίσκει την πρώτη ώρα στο παράθυρο όπου ο άνεμος διαφέρει αρκετά από τον τωρινό. Επιστρέφει null αν δεν υπάρχει. */
 function detect(fc,deg,kn,hours){
@@ -27,7 +27,7 @@ function detect(fc,deg,kn,hours){
   return null;
 }
 function describe(r){
-  var f=r.from, t=r.to, PU=window.PsaroUnits, W=function(v){ try{ return PU.wind(v); }catch(e){ return Math.round(v)+' kn'; } };
+  var f=r.from, t=r.to, PU=window.AlkyonUnits, W=function(v){ try{ return PU.wind(v); }catch(e){ return Math.round(v)+' kn'; } };
   var a=(f.dir!=null?dn(f.dir)+' ':'')+W(f.wind), b=(t.dir!=null?dn(t.dir)+' ':'')+W(t.wind);
   var kind=r.dd>=1&&r.dd>=cfg.deg?(r.ds>=cfg.kn?T('Αλλαγή διεύθυνσης και έντασης','Wind direction and speed change'):T('Αλλαγή διεύθυνσης ανέμου','Wind direction change')):(t.wind>f.wind?T('Δυναμώνει ο άνεμος','Wind picking up'):T('Εξασθενεί ο άνεμος','Wind easing'));
   return {title:kind,body:T('Τώρα ','Now ')+a+' → '+t.t.slice(11,16)+' '+b+(t.gust!=null&&t.gust>=t.wind+6?' · '+T('ριπές ','gusts ')+W(t.gust):'')};
@@ -37,7 +37,7 @@ async function notify(title,body){
   try{
     if(!('Notification' in window)||Notification.permission!=='granted') return;
     var reg=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration();
-    if(reg) await reg.showNotification(title,{body:body,tag:'psaro-wind',icon:'icon-192.png',badge:'icon-192.png',data:{url:reg.scope}});
+    if(reg) await reg.showNotification(title,{body:body,tag:'alkyon-wind',icon:'icon-192.png',badge:'icon-192.png',data:{url:reg.scope}});
     else new Notification(title,{body:body});
   }catch(e){}
 }
@@ -99,5 +99,5 @@ var n=0, iv=setInterval(function(){ n++; if(document.getElementById('ntCard')){ 
 setInterval(function(){ if(!document.hidden) check(false); },20*60000);
 document.addEventListener('visibilitychange',function(){ if(!document.hidden) setTimeout(function(){ check(false); },3000); });
 setTimeout(function(){ check(false); },12000);
-window.PsaroWindWatch={check:check,detect:detect};
+window.AlkyonWindWatch={check:check,detect:detect};
 })();

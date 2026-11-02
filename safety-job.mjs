@@ -52,13 +52,13 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
         const byTg = await sb(`safety_contacts?tg_code=eq.${encodeURIComponent(mm[1])}&select=user_id`);
         if (byTg && byTg[0]) {
           await sb(`safety_contacts?user_id=eq.${byTg[0].user_id}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ tg_chat_id: m.chat.id, tg_name: name }) });
-          await tg('sendMessage', { chat_id: m.chat.id, text: 'Συνδέθηκες ως επαφή ασφαλείας στο BiteCast. Θα λαμβάνεις ειδοποίηση αν κάποιος που ψαρεύει δεν γυρίσει στην ώρα του ή χαθεί η επαφή μαζί του.' });
+          await tg('sendMessage', { chat_id: m.chat.id, text: 'Συνδέθηκες ως επαφή ασφαλείας στο Alkyon. Θα λαμβάνεις ειδοποίηση αν κάποιος που ψαρεύει δεν γυρίσει στην ώρα του ή χαθεί η επαφή μαζί του.' });
           stats.linked++; continue;
         }
         const bySelf = await sb(`safety_contacts?self_code=eq.${encodeURIComponent(mm[1])}&select=user_id`).catch(() => null);
         if (bySelf && bySelf[0]) {
           await sb(`safety_contacts?user_id=eq.${bySelf[0].user_id}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ self_chat_id: m.chat.id }) });
-          await tg('sendMessage', { chat_id: m.chat.id, text: 'Το Telegram σου συνδέθηκε με το BiteCast. Όταν είσαι σε έξοδο και χαθεί η επαφή με το κινητό σου, θα σε ρωτάω εδώ «είσαι καλά;» πριν ειδοποιήσω την επαφή ασφαλείας σου.' });
+          await tg('sendMessage', { chat_id: m.chat.id, text: 'Το Telegram σου συνδέθηκε με το Alkyon. Όταν είσαι σε έξοδο και χαθεί η επαφή με το κινητό σου, θα σε ρωτάω εδώ «είσαι καλά;» πριν ειδοποιήσω την επαφή ασφαλείας σου.' });
           stats.linked++; continue;
         }
         await tg('sendMessage', { chat_id: m.chat.id, text: 'Ο σύνδεσμος δεν είναι έγκυρος. Ζήτα νέο από τον φίλο σου.' });
@@ -247,7 +247,7 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
           const at = new Date().toISOString();
           // v31z358: ίδιο μήνυμα την ίδια μέρα στον ίδιο χρήστη = μία φορά, ακόμα κι αν ο χρήστης έχει πολλές εγγραφές push (π.χ. παλιά συνδρομή)
           const ck = 'c' + m.kind + ':' + hash32(m.title + '|' + m.body) + ':' + at.slice(0, 10);
-          const payload = { title: m.title, body: m.body, full: m.full, kind: m.kind, id: ck, tag: 'bc-' + ck, at, place: m.place || null, t: m.t || null };
+          const payload = { title: m.title, body: m.body, full: m.full, kind: m.kind, id: ck, tag: 'alk-' + ck, at, place: m.place || null, t: m.t || null };
           // ιστορικό στη βάση (για να φαίνεται στην εφαρμογή ακόμα κι αν δεν φτάσει το push)· αν υπάρχει ήδη, δεν ξαναστέλνεται
           let dup = false;
           try { const ins = await sb('notif_log', { method: 'POST', headers: { Prefer: 'return=representation,resolution=ignore-duplicates' }, body: JSON.stringify({ id: (r.user_id + '|' + ck).slice(0, 250), user_id: r.user_id, at, kind: m.kind, title: m.title, body: m.body, details: m.full, place: m.place || null, t: m.t || null }) }); dup = Array.isArray(ins) && ins.length === 0; }
@@ -289,12 +289,12 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
       const body = `Η πίεση πέφτει γρήγορα: ${drop.toFixed(1)} hPa σε 3 ώρες (τώρα ${Math.round(now_)} hPa). Συχνά σημαίνει αλλαγή καιρού. Κοίταξε τον ορίζοντα και την πρόγνωση. Ενδεικτικό, από μοντέλο.`;
       const c = await contactOf(t.user_id).catch(() => null);
       let sent = 0;
-      if (c && c.self_chat_id != null && TG) { try { await tg('sendMessage', { chat_id: c.self_chat_id, text: '⚠ BiteCast: ' + body }); sent++; } catch (e) { log('Πίεση Telegram: ' + e.message); } }
+      if (c && c.self_chat_id != null && TG) { try { await tg('sendMessage', { chat_id: c.self_chat_id, text: '⚠ Alkyon: ' + body }); sent++; } catch (e) { log('Πίεση Telegram: ' + e.message); } }
       if (webpush) {
         const subs = await sb(`push_subs?user_id=eq.${t.user_id}&select=*`).catch(() => []);
         const at = new Date().toISOString(), key = 'trip-pa:' + t.id + ':' + at.slice(0, 13);
         try { await sb('notif_log', { method: 'POST', headers: { Prefer: 'return=minimal,resolution=ignore-duplicates' }, body: JSON.stringify({ id: (t.user_id + '|' + key).slice(0, 250), user_id: t.user_id, at, kind: 'pressure', title: '📉 Πτώση πίεσης στην έξοδο', body, details: body, place: { name: 'Έξοδος', lat: +t.last_lat, lon: +t.last_lon }, t: at }) }); } catch (e) { /* χωρίς ιστορικό */ }
-        for (const r of subs || []) { try { await webpush.sendNotification(r.sub, JSON.stringify({ title: '📉 Πτώση πίεσης στην έξοδο', body, full: body, kind: 'pressure', id: key, tag: 'bc-trip-pa-' + at.slice(0, 13), at, place: { name: 'Έξοδος', lat: +t.last_lat, lon: +t.last_lon } }), { TTL: 3600 }); sent++; } catch (e) { if (e.statusCode === 404 || e.statusCode === 410) await sb(`push_subs?id=eq.${encodeURIComponent(r.id)}`, { method: 'DELETE' }).catch(() => {}); } }
+        for (const r of subs || []) { try { await webpush.sendNotification(r.sub, JSON.stringify({ title: '📉 Πτώση πίεσης στην έξοδο', body, full: body, kind: 'pressure', id: key, tag: 'alk-trip-pa-' + at.slice(0, 13), at, place: { name: 'Έξοδος', lat: +t.last_lat, lon: +t.last_lon } }), { TTL: 3600 }); sent++; } catch (e) { if (e.statusCode === 404 || e.statusCode === 410) await sb(`push_subs?id=eq.${encodeURIComponent(r.id)}`, { method: 'DELETE' }).catch(() => {}); } }
       }
       await patch(t.id, { pa_at: new Date().toISOString() });
       if (sent) stats.pa++;
@@ -342,7 +342,7 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
           const at = new Date().toISOString(), key = 'trip-wx:' + t.id + ':' + m.k;
           let ins = null; try { ins = await sb('notif_log', { method: 'POST', headers: { Prefer: 'return=representation,resolution=ignore-duplicates' }, body: JSON.stringify({ id: (t.user_id + '|' + key).slice(0, 250), user_id: t.user_id, at, kind: 'info', title: m.title, body: m.body, details: m.body, place: { name: tx('Έξοδος', 'Trip'), lat, lon }, t: at }) }); } catch (e) { ins = [1]; }
           if (Array.isArray(ins) && !ins.length) continue; /* στάλθηκε ήδη */
-          for (const r of subs) { try { await webpush.sendNotification(r.sub, JSON.stringify({ title: m.title, body: m.body, full: m.body, kind: 'info', id: key, tag: 'bc-' + key.slice(-40), at, place: { name: tx('Έξοδος', 'Trip'), lat, lon } }), { TTL: 1800 }); stats.tripwx = (stats.tripwx || 0) + 1; } catch (e) { /* συνδρομή που έληξε: καθαρίζεται στο 6 */ } }
+          for (const r of subs) { try { await webpush.sendNotification(r.sub, JSON.stringify({ title: m.title, body: m.body, full: m.body, kind: 'info', id: key, tag: 'alk-' + key.slice(-40), at, place: { name: tx('Έξοδος', 'Trip'), lat, lon } }), { TTL: 1800 }); stats.tripwx = (stats.tripwx || 0) + 1; } catch (e) { /* συνδρομή που έληξε: καθαρίζεται στο 6 */ } }
         }
       }
     }
@@ -356,7 +356,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {
   if (process.env.SMTP_USER && process.env.SMTP_PASS) {
     const nm = (await import('nodemailer')).default;
     const tr = nm.createTransport({ service: 'gmail', auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } });
-    sendMail = o => tr.sendMail({ from: `BiteCast <${process.env.SMTP_USER}>`, ...o });
+    sendMail = o => tr.sendMail({ from: `Alkyon <${process.env.SMTP_USER}>`, ...o });
   }
   let PF = null, webpush = null;
   try {
@@ -364,7 +364,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {
     new Function('self', fs.readFileSync('forecast.js', 'utf8'))(g); PF = g.PF;
     if (process.env.VAPID_PUBLIC && process.env.VAPID_PRIVATE) {
       webpush = (await import('web-push')).default;
-      webpush.setVapidDetails('https://dinospapani.github.io/psarovarka/', process.env.VAPID_PUBLIC, process.env.VAPID_PRIVATE);
+      webpush.setVapidDetails('https://dinospapani.github.io/Alkyon/', process.env.VAPID_PUBLIC, process.env.VAPID_PRIVATE);
     }
   } catch (e) { console.log('Πρόγνωση (push) ανενεργή: ' + e.message); PF = null; webpush = null; }
   const r = await run({ env: process.env, sendMail, PF, webpush });

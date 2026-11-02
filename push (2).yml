@@ -1,0 +1,35 @@
+name: Alkyon push
+on:
+  schedule:
+    - cron: '17 */3 * * *'
+  workflow_dispatch:
+    inputs:
+      test:
+        description: 'Στείλε δοκιμαστική ειδοποίηση τώρα'
+        type: boolean
+        default: false
+permissions:
+  contents: write
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install web-push@3.6.7 --no-save
+      - run: node send-push.mjs
+        env:
+          PUSH_SUBS: ${{ secrets.PUSH_SUBS }}
+          VAPID_PUBLIC: BIjAK4nbFMRkUEPqIqCcsbFDDx7pkygkJ_XxCy-guhrJ0t2tX3NgkeeRvPcC_MRwAvtdiV3No0KXKqLhCwI9IwM
+          VAPID_PRIVATE: ${{ secrets.VAPID_PRIVATE }}
+          TEST: ${{ inputs.test }}
+      - name: Save state
+        run: |
+          if [ -f push-state.json ]; then
+            git config user.name "alkyon-bot"
+            git config user.email "bot@users.noreply.github.com"
+            git add push-state.json
+            git diff --cached --quiet || (git commit -m "push state" && git push)
+          fi

@@ -1,20 +1,30 @@
 // Network first for the app's own files so updates arrive at once; cache is the offline fallback.
 // Weather APIs and fonts are cross-origin and always go straight to the network.
 importScripts('forecast.js');
-const V = 'psarovarka-v31z554';
-const CFG = 'psaro-cfg';
-const SHELL = ['./', 'classic.html', 'apple-touch-icon.png', 'push-config.js', 'index.html','startpick.js','divelog.js','ruler.js','windwatch.js','windmap.js','windlocal.js','seastate.js','tripform.js','plotterscan.js','boat.js','cx_index.json','inbox.js', 'style.css', 'app.js', 'species.js', 'cy100.js','cy100-en.js','i18n.js','cloud.js','extras.js','ext.js','track.js','mapwx.js','tripui.js','dialog.js','units.js','version.js','range.js','gearstats.js', 'coords.js','techs.js','tackle.js','knots.js','orient.js','todayloc.js','tackle-lib.js','tackle-guide.js','gear.js','hist.js','bitewx.js','profile-view.js','navigator.js','navigator-mpa.json','bathy-lines.js','direct.js','sea.js','cards.js','tools.js','ports.js','route.js','redesign.js','redesign.css','fc2.js','fc2.css','friends.js','seacorr.js','dams.js','dams_levels.json','smart.js','insights.js','speciespick.js','regions.js','community.js','forecast-tab.js','coastgrid.js','exposure.js','fish-photos.js', 'rules.js', 'zones.js', 'forecast.js', 'personal.js', 'mine-tab.js','knowledge.js','advisor.js', 'diag.js', 'leaflet.js', 'leaflet.css', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
+const V = 'alkyon-1.0.0';
+const CFG = 'alkyon-cfg';
+const SHELL = ['./', 'migrate.js', 'classic.html', 'apple-touch-icon.png', 'push-config.js', 'index.html','startpick.js','divelog.js','ruler.js','windwatch.js','windmap.js','windlocal.js','seastate.js','tripform.js','plotterscan.js','boat.js','cx_index.json','inbox.js', 'style.css', 'app.js', 'species.js', 'cy100.js','cy100-en.js','i18n.js','cloud.js','extras.js','ext.js','track.js','mapwx.js','tripui.js','dialog.js','units.js','version.js','range.js','gearstats.js', 'coords.js','techs.js','tackle.js','knots.js','orient.js','todayloc.js','tackle-lib.js','tackle-guide.js','gear.js','hist.js','bitewx.js','profile-view.js','navigator.js','navigator-mpa.json','bathy-lines.js','direct.js','sea.js','cards.js','tools.js','ports.js','route.js','redesign.js','redesign.css','fc2.js','fc2.css','friends.js','seacorr.js','dams.js','dams_levels.json','smart.js','insights.js','speciespick.js','regions.js','community.js','forecast-tab.js','coastgrid.js','exposure.js','fish-photos.js', 'rules.js', 'zones.js', 'forecast.js', 'personal.js', 'mine-tab.js','knowledge.js','advisor.js', 'diag.js', 'leaflet.js', 'leaflet.css', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 const cfgUrl = () => new URL('__cfg', self.registration.scope).href;
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(V).then(c => Promise.all(SHELL.map(u => c.add(u).catch(() => {})))).then(() => self.skipWaiting()));
 });
+/* 1.0.0: μεταφορά από τα παλιά ονόματα (BiteCast/Ψαρόβαρκα): ρυθμίσεις ειδοποιήσεων, πλακίδια χάρτη και πρόγνωση εκτός σύνδεσης */
+const OLD = 'psa' + 'ro-';
+async function moveOld(ks) {
+  for (const n of ['cfg', 'tiles', 'offdata']) {
+    if (!ks.includes(OLD + n)) continue;
+    try { const a = await caches.open(OLD + n), b = await caches.open('alkyon-' + n), have = await b.keys();
+      if (!have.length) for (const rq of await a.keys()) { const r = await a.match(rq); if (r) await b.put(rq, r); } } catch (e) {}
+  }
+}
+const KEEP = [CFG, 'alkyon-tiles', 'alkyon-offdata'];
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== V && k !== CFG && k !== 'psaro-tiles' && !k.startsWith('bitecast4-')).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then(ks => moveOld(ks).then(() => Promise.all(ks.filter(k => k !== V && !KEEP.includes(k) && !k.startsWith('alkyon4-')).map(k => caches.delete(k))))).then(() => self.clients.claim()));
 });
 self.addEventListener('fetch', e => {
   const u = new URL(e.request.url);
   if (e.request.method === 'GET' && u.origin !== location.origin && /(^|\.)(arcgisonline\.com|tile\.openstreetmap\.org|openseamap\.org)$/.test(u.hostname)) {
-    e.respondWith(caches.open('psaro-tiles').then(c => c.match(e.request.url, { ignoreVary: true })).then(r => r || fetch(e.request)));
+    e.respondWith(caches.open('alkyon-tiles').then(c => c.match(e.request.url, { ignoreVary: true })).then(r => r || fetch(e.request)));
     return;
   }
   if (e.request.method !== 'GET' || u.origin !== location.origin) return;
@@ -44,9 +54,9 @@ async function inboxAdd(it) {
 }
 async function showMsg(m, src) {
   const id = m.id || ('n' + Date.now() + Math.random().toString(36).slice(2, 6));
-  const it = { id, at: m.at || new Date().toISOString(), kind: m.kind || 'info', title: m.title || 'BiteCast', body: m.body || '', full: m.full || m.body || '', place: m.place || null, t: m.t || null, locs: m.locs || null, src: src || 'push' };
+  const it = { id, at: m.at || new Date().toISOString(), kind: m.kind || 'info', title: m.title || 'Alkyon', body: m.body || '', full: m.full || m.body || '', place: m.place || null, t: m.t || null, locs: m.locs || null, src: src || 'push' };
   await inboxAdd(it);
-  await self.registration.showNotification(it.title, { body: it.body, tag: m.tag || ('bc-' + id), renotify: true, icon: 'icon-192.png', badge: 'icon-192.png', data: { url: self.registration.scope + '#inbox=' + encodeURIComponent(id) } });
+  await self.registration.showNotification(it.title, { body: it.body, tag: m.tag || ('alk-' + id), renotify: true, icon: 'icon-192.png', badge: 'icon-192.png', data: { url: self.registration.scope + '#inbox=' + encodeURIComponent(id) } });
 }
 async function runCheck() {
   const cfg = await readCfg();
@@ -88,7 +98,7 @@ self.addEventListener('message', e => {
   /* v31z398: μήνυμα από τη σελίδα (π.χ. «ίδιες συνθήκες με παλιά ψαριά»): στο ιστορικό και ως ειδοποίηση */
   if (e.data && e.data.localMsg) { const m = e.data.localMsg; e.waitUntil(m.notify === false ? inboxAdd({ id: m.id, at: new Date().toISOString(), kind: m.kind || 'info', title: m.title, body: m.body, full: m.full || m.body, place: null, t: null, locs: m.locs || null, src: 'local' }) : showMsg(m, 'local').catch(() => {})); }
 });
-self.addEventListener('periodicsync', e => { if (e.tag === 'psaro-forecast') e.waitUntil(Promise.all([runCheck(), annivCheck()])); });
+self.addEventListener('periodicsync', e => { if (e.tag === 'alkyon-forecast') e.waitUntil(Promise.all([runCheck(), annivCheck()])); });
 /* v31z550: με την ειδοποίηση του πλάνου («Αύριο βγαίνεις», «Ώρα να ξεκινήσεις»), κατεβαίνουν χάρτης και πρόγνωση της περιοχής,
    για χρήση χωρίς σήμα, ακόμα κι αν η εφαρμογή είναι κλειστή. Ρύθμιση: Ειδοποιήσεις › Πριν την έξοδο (cfg.pf). */
 async function planPrefetch(d) {
@@ -104,10 +114,10 @@ async function planPrefetch(d) {
       const dLa = km / 111, dLo = km / (111 * Math.cos(lat * r));
       for (let x = tx(lon - dLo, z); x <= tx(lon + dLo, z); x++) for (let y = ty(lat + dLa, z); y <= ty(lat - dLa, z); y++) {
         const f = t => t.replace('{z}', z).replace('{x}', x).replace('{y}', y); list.push(f(tp.sat)); if (z >= 11) list.push(f(tp.sea)); } }
-    const tc = await caches.open('psaro-tiles'); let i = 0;
+    const tc = await caches.open('alkyon-tiles'); let i = 0;
     const worker = async () => { while (i < list.length) { const u = list[i++]; try { if (await tc.match(u)) continue; const res = await fetch(u, { mode: 'cors', credentials: 'omit' }); if (res.ok) await tc.put(u, res); } catch (x) {} } };
-    /* η πρόγνωση: ίδιες διευθύνσεις με την εφαρμογή, στην αποθήκη psaro-offdata */
-    const od = await caches.open('psaro-offdata');
+    /* η πρόγνωση: ίδιες διευθύνσεις με την εφαρμογή, στην αποθήκη alkyon-offdata */
+    const od = await caches.open('alkyon-offdata');
     const ff = (u, o) => fetch(u, o).then(res => { if (res.ok) od.put(u, res.clone()).catch(() => {}); return res; });
     await Promise.all([worker(), worker(), worker(), worker(), PF.getForecast(lat, lon, ff, { days: 7 }).catch(() => null)]);
   } catch (x) {}

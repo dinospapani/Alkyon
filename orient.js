@@ -3,10 +3,10 @@
    Όσο ο χάρτης είναι γυρισμένος, ένα πάτημα πάνω του τον επιστρέφει προσωρινά σε NU (δεν εκτελεί την ενέργεια του πατήματος). */
 (function(){
 'use strict';
-var C=window.PsaroCore, lm=document.getElementById('lmap'), box=lm&&lm.parentNode;
+var C=window.AlkyonCore, lm=document.getElementById('lmap'), box=lm&&lm.parentNode;
 if(!C||!lm||!box||document.getElementById('bOrient')) return;
 var EN=window.LANG==='en', T=function(el,en){ return EN?en:el; };
-var KEY='psaro-orient', MODES=['NU','CU','HU'];
+var KEY='alkyon-orient', MODES=['NU','CU','HU'];
 var mode=(function(){ var v=C.lsGet(KEY,'NU'); return MODES.indexOf(v)>=0?v:'NU'; })();
 var head=null, comp=null, rot=0, shown=0, paused=0, swallowUntil=0, lastApply=0;
 var NAMES={NU:T('Βορράς πάνω','North up'),CU:T('Πορεία πάνω (GPS)','Course up (GPS)'),HU:T('Πυξίδα πάνω (κινητό)','Heading up (phone compass)')};
@@ -80,7 +80,7 @@ function startCompass(){
   function go(){ compOn=true; window.addEventListener('deviceorientationabsolute',onOri,true); window.addEventListener('deviceorientation',onOri,true); }
   try{ if(DO&&typeof DO.requestPermission==='function'){ DO.requestPermission().then(function(r){ if(r==='granted') go(); else C.toast(T('Δεν δόθηκε άδεια πυξίδας.','Compass permission denied.')); }).catch(function(){}); } else go(); }catch(e){}
 }
-window.addEventListener('psaro-head',function(e){ var h=e.detail&&e.detail.head; if(h!=null){ head=h; } if(mode!=='NU') apply(); });
+window.addEventListener('alkyon-head',function(e){ var h=e.detail&&e.detail.head; if(h!=null){ head=h; } if(mode!=='NU') apply(); });
 
 /* Όσο ο χάρτης είναι γυρισμένος: σύρσιμο με ένα δάχτυλο (δικός μας χειρισμός, γιατί το Leaflet δεν ξέρει για την περιστροφή)
    και σωστή θέση πατήματος (διόρθωση συντεταγμένων). Όταν ανοίγει μενού ή παράθυρο πάνω στον χάρτη, ο χάρτης γυρίζει προσωρινά σε NU ώστε να διαβάζεται. */
@@ -106,7 +106,7 @@ lm.addEventListener('pointermove',function(e){
   if(!isOn||!ptr[e.pointerId]||nPtr()!==1||pinching) return; var m=getMap(); if(!m) return;
   var p=ptr[e.pointerId], sx=e.clientX-p.x, sy=e.clientY-p.y;
   if(!dragged&&startPt&&Math.hypot(e.clientX-startPt.x,e.clientY-startPt.y)<7) return;
-  if(!dragged&&window.PsaroFollowStop) window.PsaroFollowStop(); /* v31z536: σύρσιμο = σταματά να ακολουθεί */
+  if(!dragged&&window.AlkyonFollowStop) window.AlkyonFollowStop(); /* v31z536: σύρσιμο = σταματά να ακολουθεί */
   dragged=Date.now(); var th=shown*Math.PI/180, c=Math.cos(th), s=Math.sin(th);
   m.panBy([-(c*sx+s*sy),-(-s*sx+c*sy)],{animate:false}); p.x=e.clientX; p.y=e.clientY;
 },true);
@@ -115,7 +115,7 @@ lm.addEventListener('pointerup',pend,true); lm.addEventListener('pointercancel',
 /* μετά από σύρσιμο δεν πρέπει να εκτελεστεί «πάτημα» */
 ['click','dblclick'].forEach(function(t){ lm.addEventListener(t,function(e){ if(isOn&&dragged&&Date.now()-dragged<450){ e.stopPropagation(); e.preventDefault(); } },true); });
 lm.addEventListener('touchstart',function(e){ if(e.touches&&e.touches.length>=2) pinching=true; },true);
-function endT(e){ if(e.touches&&e.touches.length===0&&pinching){ pinching=false; ptr={}; if(isOn&&window.PsaroFollowReset) window.PsaroFollowReset(); } }
+function endT(e){ if(e.touches&&e.touches.length===0&&pinching){ pinching=false; ptr={}; if(isOn&&window.AlkyonFollowReset) window.AlkyonFollowReset(); } }
 lm.addEventListener('touchend',endT,true); lm.addEventListener('touchcancel',endT,true);
 /* v31z535: περιστροφή με δύο δάχτυλα. Ξεκινά όταν τα δάχτυλα στρίψουν πάνω από 15° (αλλιώς είναι μόνο ζουμ), μετά ακολουθεί τα δάχτυλα.
    Αν ήταν ενεργό CU/HU, γυρίζει σε NU (όπως το Google Maps βγαίνει από τη λειτουργία πυξίδας). Η πυξίδα «Β» επαναφέρει τον βορρά πάνω. */
@@ -141,7 +141,7 @@ window.addEventListener('resize',function(){ if(isOn) layout(true); });
 window.addEventListener('orientationchange',function(){ setTimeout(function(){ if(isOn) layout(true); },300); });
 
 /* Δεν φορτώνει τίποτα ακόμα; ο χάρτης δημιουργείται από το app.js, οπότε περιμένουμε λίγο */
-window.PsaroOrient={mode:function(){ return document.body.classList.contains('ontrip')?mode:'NU'; }};
+window.AlkyonOrient={mode:function(){ return document.body.classList.contains('ontrip')?mode:'NU'; }};
 try{ new MutationObserver(function(){ apply(); }).observe(document.body,{attributes:true,attributeFilter:['class']}); }catch(e){}
 var tries=0; (function wait(){ if(getMap()||tries++>40){ hoist(); patch(); if(mode==='HU') startCompass(); apply(); updBtn(); } else setTimeout(wait,250); })();
 })();

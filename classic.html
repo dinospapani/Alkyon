@@ -6,14 +6,15 @@
 <meta name="theme-color" content="#0c2b3a">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="BiteCast">
+<meta name="apple-mobile-web-app-title" content="Alkyon">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>BiteCast</title>
+<title>Alkyon</title>
 <style>html.rst{background:#0c2b3a url(icon-192.png) center/84px no-repeat fixed!important}html.rst body{visibility:hidden}</style>
-<script>try{if(sessionStorage.getItem("psaro-restore"))document.documentElement.classList.add("rst");}catch(e){}</script>
-<script>try{if(!localStorage.getItem("psaro-sess"))document.documentElement.classList.add("gated");}catch(e){}</script>
+<script src="migrate.js"></script>
+<script>try{if(sessionStorage.getItem("alkyon-restore"))document.documentElement.classList.add("rst");}catch(e){}</script>
+<script>try{if(!localStorage.getItem("alkyon-sess"))document.documentElement.classList.add("gated");}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Roboto+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
@@ -24,10 +25,10 @@
 </head>
 <body>
 <script src="startpick.js"></script>
-<div id="gate" role="dialog" aria-label="BiteCast">
+<div id="gate" role="dialog" aria-label="Alkyon">
   <div class="gbox">
     <img src="icon-192.png" alt="" width="84" height="84" class="glogo">
-    <h1>BiteCast</h1>
+    <h1>Alkyon</h1>
     <p class="gtag">Συνδέσου ή φτιάξε λογαριασμό για να συνεχίσεις.</p>
     <label class="f">Email<input type="email" id="gEmail" autocomplete="username" inputmode="email"></label>
     <label class="f">Κωδικός<input type="password" id="gPass" autocomplete="current-password"></label>
@@ -85,7 +86,7 @@
       </div>
       <div id="selfTgBox" hidden>
         <div class="label">Το δικό μου Telegram (έλεγχος «είσαι καλά;»)</div>
-        <p class="note">Αν χαθεί η επαφή με το κινητό σου στη θάλασσα, το BiteCast σε ρωτάει πρώτα εσένα στο Telegram. Ειδοποιεί την επαφή σου μόνο αν δεν απαντήσεις.</p>
+        <p class="note">Αν χαθεί η επαφή με το κινητό σου στη θάλασσα, το Alkyon σε ρωτάει πρώτα εσένα στο Telegram. Ειδοποιεί την επαφή σου μόνο αν δεν απαντήσεις.</p>
         <div class="row"><button class="btn ghost sm" id="selfTgLink" type="button">Σύνδεση του Telegram μου</button></div>
         <p class="note" id="selfTgState"></p>
       </div>
@@ -146,10 +147,10 @@
 <div class="wrap">
   <header class="top">
     <div class="toprow">
-      <div class="brand"><img src="icon-192.png" alt="" width="26" height="26" style="vertical-align:-6px;border-radius:6px;margin-right:8px">BiteCast</div>
+      <div class="brand"><img src="icon-192.png" alt="" width="26" height="26" style="vertical-align:-6px;border-radius:6px;margin-right:8px">Alkyon</div>
       <div class="topr"><button type="button" id="tripBtn" class="tripbtn" aria-label="Έξοδος για ψάρεμα">▶ Έξοδος</button><button type="button" id="sosBtn" class="sosbtn" hidden aria-label="SOS">SOS</button><button type="button" id="profBtn" class="avatar" aria-label="Προφίλ">?</button></div>
     </div>
-    <div class="mapbrand" aria-hidden="true"><img src="icon-192.png" alt="" width="24" height="24"><span>BiteCast</span></div>
+    <div class="mapbrand" aria-hidden="true"><img src="icon-192.png" alt="" width="24" height="24"><span>Alkyon</span></div>
     <div class="stripwrap"><div class="strip" id="hdrStrip"></div><button type="button" class="sc more" id="hdrToggle" aria-expanded="false" aria-label="Περισσότερες λεπτομέρειες">Όλα ▾</button></div>
     <div id="hdrMore" hidden>
     <div class="card" id="seaCard">

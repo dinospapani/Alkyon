@@ -1,10 +1,10 @@
 /* Εισαγωγή καταδύσεων από ρολόι (FIT / UDDF) — ψαροτούφεκο. Τοπικά στο κινητό, χωρίς server. */
 (function(){
   var T=function(a,b){return window.LANG==='en'?b:a;};
-  var KEY='psaro-dives';
+  var KEY='alkyon-dives';
   function load(){try{return JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){return [];}}
   function save(a){try{localStorage.setItem(KEY,JSON.stringify(a));}catch(e){}}
-  var prof=function(){try{return localStorage.getItem('psaro-fprof')||'boat';}catch(e){return 'boat';}};
+  var prof=function(){try{return localStorage.getItem('alkyon-fprof')||'boat';}catch(e){return 'boat';}};
 
   /* ---- Εντοπισμός καταδύσεων από σειρά (χρόνος s, βάθος m) ---- */
   function detect(s){
@@ -122,10 +122,10 @@
     var a=load(), h='<b>'+T('Καταδύσεις από ρολόι','Dives from watch')+'</b>';
     h+='<p class="note">'+T('Εισαγωγή αρχείου .fit ή .uddf από την εφαρμογή του ρολογιού σου. Μένει μόνο σε αυτό το κινητό.','Import a .fit or .uddf file from your watch app. It stays on this phone only.')+'</p>';
     h+='<div class="row"><button class="btn acc" id="ndDvImp" type="button">'+T('Εισαγωγή αρχείου','Import file')+'</button></div><input type="file" id="ndDvFile" accept=".fit,.uddf,.xml,application/xml,text/xml" hidden><p class="note" id="ndDvMsg" role="status"></p>';
-    var bites=[]; try{ bites=window.PsaroCore.Store.get('bites'); }catch(e){}
+    var bites=[]; try{ bites=window.AlkyonCore.Store.get('bites'); }catch(e){}
     a.slice().sort(function(x,y){return y.start-x.start;}).forEach(function(s){
       var n=s.dives.length, mx=0, sum=0, lg=0; s.dives.forEach(function(d){ if(d.max>mx) mx=d.max; sum+=d.dur; if(d.dur>lg) lg=d.dur; });
-      var dd=day(s.start), fish=0; bites.forEach(function(b){ if(b.date===dd) fish+=window.PsaroCore.bc?window.PsaroCore.bc(b):1; });
+      var dd=day(s.start), fish=0; bites.forEach(function(b){ if(b.date===dd) fish+=window.AlkyonCore.bc?window.AlkyonCore.bc(b):1; });
       h+='<details style="border-top:1px solid var(--line,#8884);padding:8px 0"><summary style="cursor:pointer"><b>'+esc(dd)+'</b> · '+n+' '+T('καταδύσεις','dives')+' · '+T('μέγ. ','max ')+mx+' m · '+T('μέσος ','avg ')+fmt(sum/n)+' · '+fish+' '+T('ψάρια','fish')+'</summary>';
       h+='<div style="font-size:13px;margin-top:6px">';
       s.dives.forEach(function(d,i){ h+='<div style="display:flex;justify-content:space-between;padding:2px 0"><span>#'+(i+1)+'</span><span>'+d.max+' m · '+fmt(d.dur)+(d.si!=null?' · '+T('ανάπ. ','rest ')+fmt(d.si):'')+'</span></div>'; });
@@ -135,7 +135,7 @@
     var fi=card.querySelector('#ndDvFile'), msg=card.querySelector('#ndDvMsg');
     card.querySelector('#ndDvImp').onclick=function(){ fi.click(); };
     fi.onchange=function(){ var f=fi.files&&fi.files[0]; if(!f) return; importFile(f,msg); fi.value=''; };
-    Array.prototype.forEach.call(card.querySelectorAll('[data-del]'),function(b){ b.onclick=function(){ var id=b.getAttribute('data-del'); var go=function(){ save(load().filter(function(s){return s.id!==id;})); render(); }; if(window.PsaroAsk) window.PsaroAsk(T('Διαγραφή αυτής της εισαγωγής;','Delete this import?'),{ok:T('Διαγραφή','Delete'),cancel:T('Άκυρο','Cancel')}).then(function(y){ if(y) go(); }); else go(); }; });
+    Array.prototype.forEach.call(card.querySelectorAll('[data-del]'),function(b){ b.onclick=function(){ var id=b.getAttribute('data-del'); var go=function(){ save(load().filter(function(s){return s.id!==id;})); render(); }; if(window.AlkyonAsk) window.AlkyonAsk(T('Διαγραφή αυτής της εισαγωγής;','Delete this import?'),{ok:T('Διαγραφή','Delete'),cancel:T('Άκυρο','Cancel')}).then(function(y){ if(y) go(); }); else go(); }; });
   }
 
   function importFile(f,msg){
@@ -155,7 +155,7 @@
     if(isFit) r.readAsArrayBuffer(f); else r.readAsText(f);
   }
 
-  window.PsaroDiveLog={parseFit:parseFit,parseUddf:parseUddf,detect:detect,render:render};
-  window.addEventListener('psaro-fprof',function(){ setTimeout(render,100); });
+  window.AlkyonDiveLog={parseFit:parseFit,parseUddf:parseUddf,detect:detect,render:render};
+  window.addEventListener('alkyon-fprof',function(){ setTimeout(render,100); });
   var n=0, iv=setInterval(function(){ n++; if(document.getElementById('tripList')){ clearInterval(iv); render(); } else if(n>40) clearInterval(iv); },500);
 })();

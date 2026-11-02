@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""BiteCast - coastline from OpenStreetMap.
+"""Alkyon - coastline from OpenStreetMap.
 
 Source: OSM land polygons, split, WGS84 (osmdata.openstreetmap.de, land-polygons-split-4326).
 Data (c) OpenStreetMap contributors, ODbL 1.0 - attribution is shown in the app (exposure card).
@@ -104,7 +104,7 @@ def build_grid(shp_path, out_dir):
         "/* Raster ξηράς/θάλασσας (Κύπρος, Ελλάδα, Αιγαίο, Ιόνιο, Τουρκία, Λεβάντε) για το exposure.js.\n"
         "   Πηγή: OpenStreetMap land polygons (osmdata.openstreetmap.de), (c) OpenStreetMap contributors, ODbL 1.0.\n"
         f"   Κελί {step}° (~250 m), run-length. Φτιάχνεται αυτόματα από το coastline-sync.yml ({stamp}). */\n"
-        f"window.PSARO_COASTGRID={{src:'osm',built:'{stamp}',lon0:{g['lon0']:g},lat1:{g['lat1']:g},step:{step:g},w:{w},h:{h},rle:'{rle}'}};\n"
+        f"window.ALKYON_COASTGRID={{src:'osm',built:'{stamp}',lon0:{g['lon0']:g},lat1:{g['lat1']:g},step:{step:g},w:{w},h:{h},rle:'{rle}'}};\n"
     )
     with open(f"{out_dir}/coastgrid.js", "w") as f:
         f.write(js)

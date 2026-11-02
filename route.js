@@ -14,8 +14,8 @@ function bboxFor(a,b,mul){
 function getGrid(bb){
   if(last&&bb.s>=last.s&&bb.n<=last.n&&bb.w>=last.w&&bb.e<=last.e&&Date.now()-last.t<600000) return Promise.resolve(last.g);
   var res=Math.max(RES0,Math.max(bb.n-bb.s,bb.e-bb.w)/MAXC);
-  if(!window.PsaroBathy||!window.PsaroBathy.fetchGrid) return Promise.reject(new Error('nodata'));
-  return window.PsaroBathy.fetchGrid(bb,res).then(function(g){ last={s:bb.s,n:bb.n,w:bb.w,e:bb.e,t:Date.now(),g:g}; return g; });
+  if(!window.AlkyonBathy||!window.AlkyonBathy.fetchGrid) return Promise.reject(new Error('nodata'));
+  return window.AlkyonBathy.fetchGrid(bb,res).then(function(g){ last={s:bb.s,n:bb.n,w:bb.w,e:bb.e,t:Date.now(),g:g}; return g; });
 }
 /* grid → {w,h,sea,dist,mx,my,cell(lat,lon),pos(i,j)} */
 function prep(g,rings){
@@ -46,7 +46,7 @@ function plan(from,to,clr,mul){
   clr=Math.max(0,+clr||0); mul=mul||1;
   var bb0=bboxFor(from,to,mul);
   return getGrid(bb0).then(function(g){
-    var SS=window.PsaroSeaState; if(!SS||!SS.landRings) return [g,[]];
+    var SS=window.AlkyonSeaState; if(!SS||!SS.landRings) return [g,[]];
     return SS.landRings(bb0).then(function(rs){ return [g,rs]; },function(){ return [g,[]]; });
   }).then(function(gr){ var g=gr[0];
     var P=prep(g,gr[1]), minClr=Math.max(clr,Math.min(P.mx,P.my)*1.2);
@@ -85,5 +85,5 @@ function plan(from,to,clr,mul){
     return {pts:pts,len:len,direct:hav(from.lat,from.lon,to.lat,to.lon)};
   });
 }
-window.PsaroRoute={plan:plan,_prep:prep};
+window.AlkyonRoute={plan:plan,_prep:prep};
 })();

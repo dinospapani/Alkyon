@@ -3,13 +3,13 @@
    Τα δεδομένα είναι εθελοντικά και μπορεί να λείπουν ή να είναι παλιά. Έλεγξε επιτόπου. */
 (function(){
 'use strict';
-var C=window.PsaroCore, mb=document.querySelector('.mapbtns'); if(!C||!mb||typeof L==='undefined') return;
+var C=window.AlkyonCore, mb=document.querySelector('.mapbtns'); if(!C||!mb||typeof L==='undefined') return;
 var map=C.map&&C.map(); if(!map) return;
 var EN=window.LANG==='en', T=function(el,en){ return EN?en:el; };
-var KEY='psaro-ports-on', TK='psaro-ports-tiles', ZMIN=8, TILE=0.5, DAYS=30;
+var KEY='alkyon-ports-on', TK='alkyon-ports-tiles', ZMIN=8, TILE=0.5, DAYS=30;
 var OVP=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter','https://overpass.private.coffee/api/interpreter','https://overpass.openstreetmap.fr/api/interpreter','https://maps.mail.ru/osm/tools/overpass/api/interpreter'];
 var on=C.lsGet(KEY,true)!==false;
-var KM='psaro-ports-mine', mine=C.lsGet(KM,[]); if(!Array.isArray(mine)) mine=[];
+var KM='alkyon-ports-mine', mine=C.lsGet(KM,[]); if(!Array.isArray(mine)) mine=[];
 var layer=L.layerGroup(), tiles=C.lsGet(TK,{}), mem={}, shown={}, tm=null, warned=0;
 if(!tiles||typeof tiles!=='object') tiles={};
 var st=document.createElement('style');
@@ -68,8 +68,8 @@ function pop(p){
   var k=document.createElement('div'); k.className='pk'; var me=C.getCond&&C.getCond();
   k.textContent=KIND[p.k]+(me&&me.lat!=null?' · '+(Math.round(dist(me.lat,me.lon,p.la,p.lo)*10)/10)+' km':''); w.appendChild(k);
   var r=document.createElement('div'); r.className='pbtns';
-  var a=document.createElement('button'); a.type='button'; a.className='pb'; a.textContent=(function(){var f='boat';try{f=localStorage.getItem('psaro-fprof')||'boat';}catch(e){} return f==='lake'?T('Σημείο εκκίνησης','Starting point'):(f==='spear'||f==='shore')?T('Λιμάνι ή σημείο εκκίνησης','Departure port or point'):T('Λιμάνι αναχώρησης','Departure port');})();
-  a.addEventListener('click',function(){ var sm=window.PsaroSmart; if(sm&&sm.setHome){ sm.setHome({lat:p.la,lon:p.lo,name:p.n||KIND[p.k]}); map.closePopup(); C.toast(T('Λιμάνι: ','Port: ')+(p.n||KIND[p.k])); } });
+  var a=document.createElement('button'); a.type='button'; a.className='pb'; a.textContent=(function(){var f='boat';try{f=localStorage.getItem('alkyon-fprof')||'boat';}catch(e){} return f==='lake'?T('Σημείο εκκίνησης','Starting point'):(f==='spear'||f==='shore')?T('Λιμάνι ή σημείο εκκίνησης','Departure port or point'):T('Λιμάνι αναχώρησης','Departure port');})();
+  a.addEventListener('click',function(){ var sm=window.AlkyonSmart; if(sm&&sm.setHome){ sm.setHome({lat:p.la,lon:p.lo,name:p.n||KIND[p.k]}); map.closePopup(); C.toast(T('Λιμάνι: ','Port: ')+(p.n||KIND[p.k])); } });
   r.append(a);
   if(p.mine){ k.textContent+=' · '+T('δικό σου','yours'); var x=document.createElement('button'); x.type='button'; x.className='pb g'; x.textContent=T('Διαγραφή','Delete');
     x.addEventListener('click',function(){ mine=mine.filter(function(q){ return !(q.la===p.la&&q.lo===p.lo); }); C.lsSet(KM,mine); var id=p.la+','+p.lo+(p.n||''); if(shown[id]){ layer.removeLayer(shown[id]); delete shown[id]; } map.closePopup(); C.toast(T('Διαγράφηκε.','Deleted.')); }); r.append(x); }
@@ -130,7 +130,7 @@ function startAdd(){
   C.toast(T('Πάτα στον χάρτη στη θέση της ράμπας ή του λιμανιού.','Tap the map where the ramp or port is.'));
   map.once('click',function(e){ map.closePopup(); setTimeout(function(){ map.closePopup(); },0); openForm(e.latlng); });
 }
-window.PsaroPorts={startAdd:startAdd,mine:function(){ return mine.map(function(q){ return {name:q.n||(q.k==='ramp'?T('Ράμπα','Ramp'):T('Λιμάνι','Port')),lat:q.la,lon:q.lo}; }); }};
+window.AlkyonPorts={startAdd:startAdd,mine:function(){ return mine.map(function(q){ return {name:q.n||(q.k==='ramp'?T('Ράμπα','Ramp'):T('Λιμάνι','Port')),lat:q.la,lon:q.lo}; }); }};
 var btn=document.createElement('button'); btn.type='button'; btn.id='bPorts'; btn.className='mbtn'; btn.setAttribute('aria-pressed',String(on));
 btn.setAttribute('aria-label',T('Λιμάνια και ράμπες','Ports and ramps')); btn.title=T('Λιμάνια, μαρίνες και ράμπες καθέλκυσης','Ports, marinas and boat ramps');
 btn.innerHTML=ICO.port; mb.appendChild(btn);

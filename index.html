@@ -4,13 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#06171F">
-<title>BiteCast</title>
+<title>Alkyon</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>html,body{margin:0;height:100%;background:#06171F;color:#E6F1F2;font:16px system-ui,sans-serif}body{display:grid;place-items:center}a{color:#FF7A4D}</style>
+<script src="migrate.js"></script>
 <script>
-/* BiteCast: η κύρια εφαρμογή είναι πλέον στο v4/. Η κλασική έκδοση μένει στο classic.html ως εφεδρεία.
+/* Alkyon: η κύρια εφαρμογή είναι πλέον στο v4/. Η κλασική έκδοση μένει στο classic.html ως εφεδρεία.
    Οι συντομεύσεις (?a=bite|trip|fc) περνούν στη νέα εφαρμογή. Ο service worker της ρίζας μένει για τις ειδοποιήσεις. */
 (function(){
   var a=''; try{ a=new URLSearchParams(location.search).get('a')||''; }catch(e){}
@@ -24,5 +25,5 @@
 })();
 </script>
 </head>
-<body><p>BiteCast… <a href="v4/">Άνοιγμα</a> · <a href="classic.html">Κλασική έκδοση</a></p></body>
+<body><p>Alkyon… <a href="v4/">Άνοιγμα</a> · <a href="classic.html">Κλασική έκδοση</a></p></body>
 </html>

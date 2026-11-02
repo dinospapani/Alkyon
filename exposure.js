@@ -14,7 +14,7 @@ var NAMES_EN=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W'
 
 function decode(){
   if(MASK) return true;
-  G=window.PSARO_COASTGRID; if(!G||!G.rle) return false;
+  G=window.ALKYON_COASTGRID; if(!G||!G.rle) return false;
   var s=atob(G.rle), n=G.w*G.h, m=new Uint8Array(n), i=0, pos=0, land=0;
   while(i<s.length&&pos<n){
     var v=0, sh=0, b;
@@ -184,7 +184,7 @@ function showSwell(node,m,r){
   node.textContent=parts.join(' · '); node.hidden=!parts.length;
 }
 /* ---------- καταγραφή «πώς είναι η θάλασσα» (τοπικά στη συσκευή) ---------- */
-var LOGK='psaro-sealog';
+var LOGK='alkyon-sealog';
 function logGet(){ try{ var v=JSON.parse(localStorage.getItem(LOGK)||'[]'); return Array.isArray(v)?v:[]; }catch(e){ return []; } }
 function logPut(a){ try{ localStorage.setItem(LOGK,JSON.stringify(a.slice(-600))); return true; }catch(e){ return false; } }
 function logCard(box,p,r,cd,cur,m){
@@ -205,13 +205,13 @@ function logCard(box,p,r,cd,cur,m){
     var b=el('button',{type:'button','data-s':String(o[0]),'class':'ghost',style:'padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit'},o[1]+' '+o[2]);
     b.addEventListener('click',function(){
       var a=logGet().filter(function(e){ return !(e.k===key&&e.h===hr); });
-      var rec={t:new Date().toISOString(),h:hr,k:key,lat:+p.lat,lon:+p.lon,place:p.name||'',sea:o[0],v:window.PSARO_VERSION||'',
+      var rec={t:new Date().toISOString(),h:hr,k:key,lat:+p.lat,lon:+p.lon,place:p.name||'',sea:o[0],v:window.ALKYON_VERSION||'',
         wind:cd?{dir:cd.dir,spd:cd.wind,gust:cd.gust}:null,
         fetchKm:cur>=0?Math.round(r.dirs[cur].km*10)/10:null,coastKm:Math.round(r.coastKm*100)/100,
         model:m?{wh:m.wh,wd:m.wd,wp:m.wp,sh:m.sh,sd:m.sd,sp:m.sp}:null};
       a.push(rec);
       if(!logPut(a)) st.textContent=T('Δεν αποθηκεύτηκε (γεμάτος χώρος συσκευής).','Not saved (device storage full).'); else paint();
-      try{ if(window.PsaroCore&&window.PsaroCore.toast) window.PsaroCore.toast(T('Καταγράφηκε: ','Logged: ')+o[2]); }catch(e){}
+      try{ if(window.AlkyonCore&&window.AlkyonCore.toast) window.AlkyonCore.toast(T('Καταγράφηκε: ','Logged: ')+o[2]); }catch(e){}
     });
     row.appendChild(b);
   });
@@ -225,9 +225,9 @@ function logCard(box,p,r,cd,cur,m){
   w.appendChild(ex); box.appendChild(w); paint();
 }
 function fmtKm(k){ return k<10?k.toFixed(1)+' km':Math.round(k)+' km'; }
-window.addEventListener('psaro-fcloaded',function(ev){
+window.addEventListener('alkyon-fcloaded',function(ev){
   var d=ev.detail||{};
   setTimeout(function(){ try{ render(d.place,d.fc); }catch(e){ try{ console.error('exposure',e); }catch(e0){} } },60);
 });
-window.PsaroExposure={compute:compute,logGet:logGet,level:level,hs:hs,ready:function(){ return decode(); },isLand:function(lat,lon){ return decode()?isLand(lat,lon):-1; }};
+window.AlkyonExposure={compute:compute,logGet:logGet,level:level,hs:hs,ready:function(){ return decode(); },isLand:function(lat,lon){ return decode()?isLand(lat,lon):-1; }};
 })();

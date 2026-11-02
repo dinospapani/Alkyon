@@ -1,11 +1,11 @@
-/* v31z380 · Νέα οθόνη «Πρόγνωση» (σύστημα σχεδίασης BiteCast).
+/* v31z380 · Νέα οθόνη «Πρόγνωση» (σύστημα σχεδίασης Alkyon).
    Μία σελίδα: τοποθεσία, βαθμός τώρα, καλύτερη ώρα, 24 ώρες, γράφημα πίεσης/ανέμου/σελήνης, γραμμές που ανοίγουν, 7 μέρες.
-   Δεν αλλάζει υπολογισμούς: διαβάζει την ίδια πρόγνωση (psaro-fcloaded) και μεταφέρει τις υπάρχουσες κάρτες μέσα στη νέα διάταξη.
-   Επιστροφή στην παλιά εμφάνιση: localStorage psaro-fc2 = "0". */
+   Δεν αλλάζει υπολογισμούς: διαβάζει την ίδια πρόγνωση (alkyon-fcloaded) και μεταφέρει τις υπάρχουσες κάρτες μέσα στη νέα διάταξη.
+   Επιστροφή στην παλιά εμφάνιση: localStorage alkyon-fc2 = "0". */
 (function(){
 'use strict';
-var C=window.PsaroCore, PU=window.PsaroUnits; if(!C) return;
-var on=true; try{ on=localStorage.getItem('psaro-fc2')!=='0'; }catch(e){}
+var C=window.AlkyonCore, PU=window.AlkyonUnits; if(!C) return;
+var on=true; try{ on=localStorage.getItem('alkyon-fc2')!=='0'; }catch(e){}
 if(!on) return;
 window.ndFC2=true;
 var EN=window.LANG==='en', T=function(el,en){ return EN?en:el; };
@@ -13,7 +13,7 @@ var $=function(i){ return document.getElementById(i); };
 function E(tag,cls,txt){ var e=document.createElement(tag); if(cls) e.className=cls; if(txt!=null) e.textContent=txt; return e; }
 function p2(n){ return (n<10?'0':'')+n; }
 function u(fn,v){ try{ return PU&&PU[fn]?PU[fn](v):String(v); }catch(e){ return ''; } }
-function isLake(){ try{ return localStorage.getItem('psaro-fprof')==='lake'; }catch(e){ return false; } }
+function isLake(){ try{ return localStorage.getItem('alkyon-fprof')==='lake'; }catch(e){ return false; } }
 function lvl(v){ return v>=75?'good':v>=60?'ok':v>=45?'fair':'poor'; }
 var DN=EN?['Sun','Mon','Tue','Wed','Thu','Fri','Sat']:['Κυρ','Δευ','Τρί','Τετ','Πέμ','Παρ','Σάβ'];
 var DIRS=EN?['N','NE','E','SE','S','SW','W','NW']:['Β','ΒΑ','Α','ΝΑ','Ν','ΝΔ','Δ','ΒΔ'];
@@ -55,8 +55,8 @@ function moonSVG(f,size){
 var PHN=EN?['New moon','Waxing crescent','First quarter','Waxing gibbous','Full moon','Waning gibbous','Last quarter','Waning crescent']:['Νέα σελήνη','Αύξουσα μηνίσκος','Α΄ τέταρτο','Αύξουσα κυρτή','Πανσέληνος','Φθίνουσα κυρτή','Δ΄ τέταρτο','Φθίνουσα μηνίσκος'];
 
 var fc=null, place=null, selH=null, openRow={}, openDay={};
-try{ var c0=JSON.parse(localStorage.getItem('psaro-fc7')||'null'); if(c0&&c0.fc) fc=c0.fc; }catch(e){}
-window.addEventListener('psaro-fcloaded',function(e){ if(e.detail&&e.detail.fc){ fc=e.detail.fc; place=e.detail.place; selH=null; render(); } });
+try{ var c0=JSON.parse(localStorage.getItem('alkyon-fc7')||'null'); if(c0&&c0.fc) fc=c0.fc; }catch(e){}
+window.addEventListener('alkyon-fcloaded',function(e){ if(e.detail&&e.detail.fc){ fc=e.detail.fc; place=e.detail.place; selH=null; render(); } });
 
 var root=null, segT=null, mode='today';
 /* v31z381: «Σήμερα» και «7 μέρες» ως χωριστές καρτέλες της ίδιας σελίδας */
@@ -109,8 +109,8 @@ function segBuild(box,act){
 }
 function go(k){
   try{
-    if(k==='fc'||k==='days'){ setMode(k==='days'?'days':'today'); C.lsSet('psaro-wxsub','today'); C.switchTab('today'); window.scrollTo(0,0); return; }
-    C.lsSet('psaro-wxsub','fc'); C.switchTab('fc');
+    if(k==='fc'||k==='days'){ setMode(k==='days'?'days':'today'); C.lsSet('alkyon-wxsub','today'); C.switchTab('today'); window.scrollTo(0,0); return; }
+    C.lsSet('alkyon-wxsub','fc'); C.switchTab('fc');
     setTimeout(function(){ var b=document.querySelector('#fcSeg button[data-s='+k+']'); if(b) b.click(); fcSeg(k); window.scrollTo(0,0); },30);
   }catch(e){}
 }
@@ -139,7 +139,7 @@ function hero(){
     '<div class="fc2-sum"><span class="ds-over"></span><b class="fc2-verd"></b><span class="ds-chip"></span><p></p></div>'+
     '<div class="fc2-best"><div><span class="ds-over"></span><b class="ds-num"></b></div><span class="fc2-why"></span></div>';
   h.querySelector('.fc2-score b').textContent=isNaN(v)?'–':String(v);
-  h.querySelector('.fc2-sum .ds-over').textContent=T('Τώρα','Now')+(window.PsaroFProf?' · '+window.PsaroFProf.name():'');
+  h.querySelector('.fc2-sum .ds-over').textContent=T('Τώρα','Now')+(window.AlkyonFProf?' · '+window.AlkyonFProf.name():'');
   h.querySelector('.fc2-verd').textContent=verdict||'–';
   var ch=h.querySelector('.ds-chip'); ch.textContent=ptxt; ch.hidden=!ptxt; ch.dataset.t=/bad|danger|no\b/.test(pcls)?'poor':/warn|caution/.test(pcls)?'fair':'good';
   h.querySelector('.fc2-sum p').textContent=stxt;
@@ -179,18 +179,18 @@ var ROWS=[
   {k:'why',ic:'why',t:function(){ var v=parseInt((($('score')||{}).firstChild||{}).textContent,10); return isNaN(v)?T('Γιατί αυτός ο βαθμός','Why this score'):T('Γιατί ','Why ')+v+';'; },s:function(){ return T('Σελήνη, πίεση, άνεμος, κύμα, ουρανός','Moon, pressure, wind, waves, sky'); },node:function(){ return $('factors'); }},
   {k:'press',ic:'press',t:function(){ return T('Πίεση','Pressure'); },s:function(){ var p=$('fcTurn'); var q=p&&p.querySelectorAll(':scope>p:not(.note)'); return q&&q[0]?q[0].textContent:''; },node:function(){ return $('fcTurn'); }},
   {k:'moon',ic:'moon',t:function(){ return T('Σελήνη','Moon'); },s:function(){ var m=moonNow(); return m?m.name+' · '+m.ill+'%':''; },build:moonBox},
-  {k:'dam',ic:'drop',t:function(){ var n=damNear(); return n?n.name+T(' · πληρότητα',' · fullness'):T('Πληρότητα φράγματος','Reservoir level'); },s:function(){ var n=damNear(); return n?Math.round(n.lv.pct)+'%'+(n.lv.lyPct!=null?T(' · πέρσι ',' · last year ')+Math.round(n.lv.lyPct)+'%':''):''; },build:function(body){ var n=damNear(); if(!n){ body.textContent=''; return; } var sig=n.name+n.date+n.lv.pct; if(body.dataset.sig===sig) return; body.dataset.sig=sig; body.replaceChildren(window.PsaroDams.box(n.lv,n.H)); }},
+  {k:'dam',ic:'drop',t:function(){ var n=damNear(); return n?n.name+T(' · πληρότητα',' · fullness'):T('Πληρότητα φράγματος','Reservoir level'); },s:function(){ var n=damNear(); return n?Math.round(n.lv.pct)+'%'+(n.lv.lyPct!=null?T(' · πέρσι ',' · last year ')+Math.round(n.lv.lyPct)+'%':''):''; },build:function(body){ var n=damNear(); if(!n){ body.textContent=''; return; } var sig=n.name+n.date+n.lv.pct; if(body.dataset.sig===sig) return; body.dataset.sig=sig; body.replaceChildren(window.AlkyonDams.box(n.lv,n.H)); }},
   {k:'lkw',ic:'coast',t:function(){ return T('Από ποια όχθη','Which bank'); },s:function(){ var x=lakeWind(); return x?x.short:''; },build:function(body){ var x=lakeWind(); if(!x){ body.textContent=''; return; } if(body.dataset.sig===x.long) return; body.dataset.sig=x.long; body.replaceChildren(E('p','',x.long),E('p','ds-note',T('Γενικός κανόνας ψαράδων λίμνης, όχι μέτρηση. Ο άνεμος σπρώχνει το ζεστό επιφανειακό νερό και την τροφή προς την όχθη που τον δέχεται.','A general lake-angling rule, not a measurement. Wind pushes warm surface water and food toward the bank it blows onto.'))); }},
   {k:'coast',ic:'coast',t:function(){ return T('Έκθεση ακτής','Coast exposure'); },s:function(){ var e=$('fcExposure'); if(!e) return ''; var p=[].slice.call(e.querySelectorAll(':scope>p:not(.note)')).filter(function(x){ return /^Τώρα|^Now/.test((x.textContent||'').trim()); })[0]; return p?p.textContent.replace(/^(Τώρα|Now):\s*/,''):''; },node:function(){ return $('fcExposure'); }},
   {k:'sp',ic:'fish',t:function(){ return T('Βαθμός για είδος','Score for a species'); },s:function(){ var s=document.querySelector('#fcSpPick select'); return s&&s.selectedOptions[0]?s.selectedOptions[0].textContent:T('Όλα τα είδη','All species'); },node:function(){ return $('fcSpPick'); }},
   {k:'scen',ic:'sliders',t:function(){ return T('Δοκίμασε σενάριο','Try a scenario'); },s:function(){ return T('Άλλη μέρα, άνεμος ή κύμα','Another day, wind or waves'); },node:function(){ return document.querySelector('#liveBox details.scen'); }}
 ];
 function damNear(){
-  if(!isLake()||!window.PsaroDams||!window.PsaroDams.near) return null;
+  if(!isLake()||!window.AlkyonDams||!window.AlkyonDams.near) return null;
   var c=C.getCond&&C.getCond(), ll=place&&place.lat!=null?[place.lat,place.lon]:(c&&c.lat!=null?[c.lat,c.lon]:null);
-  return ll?window.PsaroDams.near(+ll[0],+ll[1],5):null;
+  return ll?window.AlkyonDams.near(+ll[0],+ll[1],5):null;
 }
-window.addEventListener('psaro-dams',function(){ try{ if(root) rows(); }catch(e){} });
+window.addEventListener('alkyon-dams',function(){ try{ if(root) rows(); }catch(e){} });
 /* v31z404: λίμνη, άνεμος και όχθη (την τρέχουσα ώρα) */
 function lakeWind(){
   if(!isLake()||!fc||!fc.days||!fc.days[0]||!fc.days[0].hours) return null;
@@ -285,14 +285,14 @@ function render(){
   try{ paintActs(); }catch(e){} try{ hero(); }catch(e){} try{ hours(); }catch(e){} try{ rows(); }catch(e){} try{ days(); }catch(e){}
 }
 /* όταν ανοίγει η καρτέλα «Πρόγνωση», να υπάρχει πρόγνωση για 7 μέρες και ώρες */
-function ensure(){ if(!fc&&window.PsaroPlaces&&window.PsaroPlaces.view) try{ window.PsaroPlaces.view(); }catch(e){} }
+function ensure(){ if(!fc&&window.AlkyonPlaces&&window.AlkyonPlaces.view) try{ window.AlkyonPlaces.view(); }catch(e){} }
 var n=0, iv=setInterval(function(){ n++; if(build()||n>40){ clearInterval(iv); render(); } },300);
 (window.ndEvery||function(f,m){ return setInterval(f,m); })(render,1000);
 document.addEventListener('click',function(){ setTimeout(render,60); },true);
 try{ var tf=$('tab-fc'); if(tf) new MutationObserver(function(){ if(!tf.hidden){ var s=document.querySelector('#fcSeg button[aria-pressed=true]'); fcSeg(s?s.dataset.s:'mine'); } }).observe(tf,{attributes:true,attributeFilter:['hidden']}); }catch(e){}
-document.addEventListener('psaro-cond',function(){ setTimeout(render,50); });
-window.PsaroFC2={render:render,go:go,mode:setMode};
+document.addEventListener('alkyon-cond',function(){ setTimeout(render,50); });
+window.AlkyonFC2={render:render,go:go,mode:setMode};
 })();
 
 /* η καρτέλα «Πρόγνωση» της κάτω μπάρας ανοίγει πάντα στο «Σήμερα» */
-(function(){ var nb=document.querySelector('nav.tabs button[data-tab=fc]'); if(nb) nb.addEventListener('click',function(){ var td=document.getElementById('tab-today'), tf=document.getElementById('tab-fc'); if(td&&tf&&td.hidden&&tf.hidden&&window.PsaroFC2&&window.PsaroFC2.mode) window.PsaroFC2.mode('today'); },true); })();
+(function(){ var nb=document.querySelector('nav.tabs button[data-tab=fc]'); if(nb) nb.addEventListener('click',function(){ var td=document.getElementById('tab-today'), tf=document.getElementById('tab-fc'); if(td&&tf&&td.hidden&&tf.hidden&&window.AlkyonFC2&&window.AlkyonFC2.mode) window.AlkyonFC2.mode('today'); },true); })();

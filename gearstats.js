@@ -2,9 +2,9 @@
    φάση σελήνης στη ρίψη, καιρός όσο ήταν μέσα και μήνας. Ο καιρός είναι εκτίμηση μοντέλου (Open-Meteo). */
 (function(){
 'use strict';
-var C=window.PsaroCore; if(!C) return;
+var C=window.AlkyonCore; if(!C) return;
 var EN=window.LANG==='en', T=function(el,en){ return EN?en:el; };
-var WK='psaro-gearwx', SK='psaro-gearstat-type', HOUR=3600000;
+var WK='alkyon-gearwx', SK='alkyon-gearstat-type', HOUR=3600000;
 var TYPES={net:T('Δίχτυ','Net'),ll:T('Παραγάδι','Longline'),trap:T('Κλούβες','Pots')};
 var MOON=T(['Νέα σελήνη','Αύξων μηνίσκος','Πρώτο τέταρτο','Αύξουσα κυρτή','Πανσέληνος','Φθίνουσα κυρτή','Τελευταίο τέταρτο','Φθίνων μηνίσκος'],['New moon','Waxing crescent','First quarter','Waxing gibbous','Full moon','Waning gibbous','Last quarter','Waning crescent']);
 var MON=T(['Ιαν','Φεβ','Μαρ','Απρ','Μάι','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'],['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']);
@@ -17,7 +17,7 @@ function ptOf(g){ var s=g.set||{}, h=g.haul||{}; return s.a||s.b||h.a||h.b||null
 
 /* όλα τα ολοκληρωμένα εργαλεία: τοπικά + από τις συνόψεις των εξόδων (συγχρονισμένα) */
 function items(){
-  var out=[], seen={}, G=window.PsaroGear&&window.PsaroGear.state?window.PsaroGear.state():{items:[]};
+  var out=[], seen={}, G=window.AlkyonGear&&window.AlkyonGear.state?window.AlkyonGear.state():{items:[]};
   var bites=C.Store.get('bites')||[];
   function fish(id){ var n=0,kg=0; bites.forEach(function(b){ if(b.gear===id){ n++; kg+=b.rel?0:(+b.kg||0); } }); return {n:n,kg:Math.round(kg*10)/10}; }
   function add(g,f){
@@ -29,17 +29,17 @@ function items(){
   (C.Store.get('trips')||[]).forEach(function(t){ (t.gear||[]).forEach(function(g){ add(g,{n:+g.n||0,kg:+g.kg||0}); }); });
   return out;
 }
-function moonIdx(ms){ try{ return window.PsaroInsights.phaseAt(ms).idx; }catch(e){ return null; } }
+function moonIdx(ms){ try{ return window.AlkyonInsights.phaseAt(ms).idx; }catch(e){ return null; } }
 
 /* καιρός: φέρνει ό,τι λείπει, ένα-ένα, και ξαναζωγραφίζει */
 function fillWx(list){
   var w=wxLoad(), todo=list.filter(function(g){ var c=w[g.id]; return g.pos&&(!c||(c.x===0&&Date.now()-(c.at||0)>6*HOUR)); });
-  if(!todo.length||busy||!window.PsaroHist||!window.PsaroHist.range||navigator.onLine===false) return;
+  if(!todo.length||busy||!window.AlkyonHist||!window.AlkyonHist.range||navigator.onLine===false) return;
   busy=true; var i=0;
   (function next(){
     if(i>=todo.length||i>=12){ busy=false; paint(); return; }
     var g=todo[i++];
-    window.PsaroHist.range(g.pos[0],g.pos[1],g.t0,g.t1).then(function(r){
+    window.AlkyonHist.range(g.pos[0],g.pos[1],g.t0,g.t1).then(function(r){
       var ww=wxLoad(); ww[g.id]=r?{x:1,w:r.w,wm:r.wm,v:r.v,p:r.p,pd:r.pd}:{x:0,at:Date.now()}; wxSave(ww);
       if(host) host.querySelector('.gsnote')&&(host.querySelector('.gsnote').textContent=T('Φέρνω καιρό… ','Fetching weather… ')+i+'/'+Math.min(todo.length,12));
       setTimeout(next,250);
@@ -58,7 +58,7 @@ function section(box,title,rows,labelOf){
 }
 function paint(){
   if(!host) return; host.replaceChildren();
-  var R=window.PsaroRange, all=items().filter(function(g){ return !R||R.inR('log',{date:ldate(g.t0)}); });
+  var R=window.AlkyonRange, all=items().filter(function(g){ return !R||R.inR('log',{date:ldate(g.t0)}); });
   var wx=wxLoad();
   host.append(el('h3','',T('Στατιστικά εργαλείων','Gear statistics')));
   var sg=el('div','seg gsseg'); [['all',T('Όλα','All')],['net',TYPES.net],['ll',TYPES.ll],['trap',TYPES.trap]].forEach(function(p){
@@ -91,6 +91,6 @@ function paint(){
   fillWx(list);
 }
 function build(){ host=el('div','card gearstats'); paint(); return host; }
-window.PsaroGearStats={build:build,items:items};
-window.addEventListener('psaro-range',function(e){ if(e.detail&&e.detail.key==='log'&&host&&host.isConnected) paint(); });
+window.AlkyonGearStats={build:build,items:items};
+window.addEventListener('alkyon-range',function(e){ if(e.detail&&e.detail.key==='log'&&host&&host.isConnected) paint(); });
 })();

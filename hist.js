@@ -62,11 +62,11 @@ function empty(b){ return KEYS.every(function(k){ return b[k]==null||b[k]===''; 
 /* καιρός που πιθανόν δεν αντιστοιχεί στην ώρα του ψαριού: η εγγραφή φτιάχτηκε πολύ μετά (ή πριν) την ώρα του ψαριού */
 function created(b){ var n=parseInt(String(b.id||'').slice(0,8),36); return (n>1.6e12&&n<2.1e12)?n:null; }
 function suspect(b,ms){ if(b.hist||empty(b)) return false; var c=created(b); return c!=null&&Math.abs(c-ms)>90*60000; }
-window.PsaroHist={fetch:fetchHist,range:fetchRange,keys:KEYS,empty:empty};
+window.AlkyonHist={fetch:fetchHist,range:fetchRange,keys:KEYS,empty:empty};
 
 /* ---- μαζική συμπλήρωση παλιών ψαριών (ρυθμίσεις θάλασσας) ---- */
-(window.PsaroSeaRows=window.PsaroSeaRows||[]).push(function(){
-  var C=window.PsaroCore; if(!C||!C.Store||!C.biteMs) return null;
+(window.AlkyonSeaRows=window.AlkyonSeaRows||[]).push(function(){
+  var C=window.AlkyonCore; if(!C||!C.Store||!C.biteMs) return null;
   function todo(){ return ((C.Store.raw?C.Store.raw('bites'):C.Store.get('bites'))||[]).filter(function(b){ return typeof b.lat==='number'&&typeof b.lon==='number'&&(empty(b)||suspect(b,C.biteMs(b))||(b.tide==null&&!b.tideNA)||(b.wdeg==null&&!b.wdegNA))&&C.biteMs(b)<Date.now()-90*60000; }); }
   var r=document.createElement('div'); r.className='sprow'; var x=document.createElement('div'); x.className='sptx';
   var b1=document.createElement('b'); b1.textContent=T('Καιρός παλιών ψαριών','Weather for older catches');

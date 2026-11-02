@@ -1,12 +1,12 @@
 /* Κάτω δεξιά του χάρτη: μεγάλο «Start Fishing» και, μέσα σε έξοδο, Catch / Miss / Παύση. Επίσης κάρτα συνθηκών πάνω στον χάρτη. */
 (function(){
 'use strict';
-var C=window.PsaroCore; if(!C||!document.getElementById('dock')) return;
+var C=window.AlkyonCore; if(!C||!document.getElementById('dock')) return;
 var $=C.$, h=C.h, EN=window.LANG==='en', T=function(el,en){ return EN?en:el; };
 var box=document.querySelector('.mapbox');
-function st(){ return (window.PsaroTrip&&window.PsaroTrip.state)?window.PsaroTrip.state():{}; }
+function st(){ return (window.AlkyonTrip&&window.AlkyonTrip.state)?window.AlkyonTrip.state():{}; }
 function hm(ms){ var d=new Date(ms+C.utcMin()*60000); return ('0'+d.getUTCHours()).slice(-2)+':'+('0'+d.getUTCMinutes()).slice(-2); }
-function gearNow(){ return (C.lsGet('psaro-gear-now','')||'').trim(); }
+function gearNow(){ return (C.lsGet('alkyon-gear-now','')||'').trim(); }
 function clock(ms){ var t=Math.floor(ms/1000), hh=Math.floor(t/3600), mm=Math.floor(t%3600/60), ss=t%60; return ('0'+hh).slice(-2)+':'+('0'+mm).slice(-2)+':'+('0'+ss).slice(-2); }
 function topSpecies(){
   var m={}, bs=C.Store.get('bites')||[];
@@ -29,12 +29,12 @@ function drawSp(){
 }
 function tick(){
   var s=st(); if(!s.active) return;
-  var ms=window.PsaroTrip.effMs(s), c=clock(ms);
+  var ms=window.AlkyonTrip.effMs(s), c=clock(ms);
   $('dkClock').textContent=c; if(!$('lockOv').hidden) $('lkClock').textContent=c;
 }
 function info(){
   var s=st(); if(!s.active) return;
-  var c=window.PsaroTrip.counts(), k=window.PsaroTrack?window.PsaroTrack.km():0, g=window.PsaroTrack&&window.PsaroTrack.enabled();
+  var c=window.AlkyonTrip.counts(), k=window.AlkyonTrack?window.AlkyonTrack.km():0, g=window.AlkyonTrack&&window.AlkyonTrack.enabled();
   $('dkInfo').textContent=(s.pausedAt?'⏸ ':'')+(c.kg?c.kg+' kg · ':'')+(g?k.toFixed(2)+' km · ':'')+T('επιστροφή ','back ')+hm(s.due)+(gearNow()?' · '+gearNow().slice(0,22):'');
   $('dkGps').setAttribute('aria-pressed',String(!!g));
   if(!$('lockOv').hidden) lockStats(c,k,g);
@@ -44,7 +44,7 @@ function upd(){
   document.body.classList.toggle('live',on);
   $('dkStart').hidden=on; $('dkLive').hidden=!on; dk.classList.toggle('paused',on&&!!s.pausedAt);
   if(on){
-    var c=window.PsaroTrip.counts();
+    var c=window.AlkyonTrip.counts();
     $('dkN').textContent=c.n; $('dkM').textContent=c.miss;
     $('dkPause').textContent=s.pausedAt?'▶':'⏸';
     drawSp(); info(); tick();
@@ -54,13 +54,13 @@ function upd(){
 function buzz(){ try{ if(navigator.vibrate) navigator.vibrate(25); }catch(e){} }
 $('dkStart').addEventListener('click',function(){ buzz(); $('tripBtn').click(); });
 $('dkMiss').addEventListener('click',function(){ buzz(); C.quickMiss(); });
-$('dkPause').addEventListener('click',function(){ buzz(); if(window.PsaroTrip) window.PsaroTrip.toggle(); });
+$('dkPause').addEventListener('click',function(){ buzz(); if(window.AlkyonTrip) window.AlkyonTrip.toggle(); });
 var cb=$('dkCatch'), lp=null, held=false;
 cb.addEventListener('pointerdown',function(){ held=false; clearTimeout(lp); lp=setTimeout(function(){ held=true; buzz(); $('fab').click(); },650); });
 ['pointerup','pointerleave','pointercancel'].forEach(function(ev){ cb.addEventListener(ev,function(){ clearTimeout(lp); }); });
 cb.addEventListener('contextmenu',function(e){ e.preventDefault(); });
 cb.addEventListener('click',function(){ if(held){ held=false; return; } buzz(); C.quick(); });
-$('dkGps').addEventListener('click',function(){ if(!window.PsaroTrack) return; buzz(); window.PsaroTrack.setEnabled(!window.PsaroTrack.enabled()); });
+$('dkGps').addEventListener('click',function(){ if(!window.AlkyonTrack) return; buzz(); window.AlkyonTrack.setEnabled(!window.AlkyonTrack.enabled()); });
 $('dkGps').title=T('Διαδρομή GPS και χιλιόμετρα','GPS route and distance'); $('dkLock').title=T('Κλείδωμα οθόνης','Lock screen');
 /* ---------- κλείδωμα οθόνης ---------- */
 function lockStats(c,k,g){
@@ -80,16 +80,16 @@ hb.addEventListener('contextmenu',function(e){ e.preventDefault(); });
 $('lockOv').addEventListener('touchmove',function(e){ e.preventDefault(); },{passive:false});
 $('dkCatch').querySelector('small').textContent=T('κράτα = είδος','hold = species');
 $('dkStart').textContent=T('▶ Start Fishing','▶ Start Fishing');
-window.addEventListener('psaro-sess',upd);
+window.addEventListener('alkyon-sess',upd);
 C.Store.on('bites',upd);
 setInterval(upd,30000);
 setInterval(function(){ if(!document.hidden) tick(); },1000);
-window.addEventListener('psaro-track',function(){ info(); });
+window.addEventListener('alkyon-track',function(){ info(); });
 document.addEventListener('visibilitychange',function(){ if(!document.hidden) upd(); });
 
 /* ---------- κάρτα συνθηκών πάνω στον χάρτη ---------- */
 var wx=$('mapWx'), open=true;
-try{ open=localStorage.getItem('psaro-mapwx')!=='0'; }catch(e){}
+try{ open=localStorage.getItem('alkyon-mapwx')!=='0'; }catch(e){}
 var TR={fast:'↓↓',slow:'↓',stable:'→',rise:'↑'};
 function cell(ic,v,l){ return h('div',{class:'mw'},h('i',{text:ic}),h('b',{text:v}),h('span',{text:l})); }
 function drawWx(){
@@ -108,8 +108,8 @@ function drawWx(){
   ];
   wx.append(h('div',{class:'mwg'},items));
 }
-wx.addEventListener('click',function(){ open=!open; try{ localStorage.setItem('psaro-mapwx',open?'1':'0'); }catch(e){} drawWx(); });
-document.addEventListener('psaro-cond',function(){ setTimeout(drawWx,50); });
+wx.addEventListener('click',function(){ open=!open; try{ localStorage.setItem('alkyon-mapwx',open?'1':'0'); }catch(e){} drawWx(); });
+document.addEventListener('alkyon-cond',function(){ setTimeout(drawWx,50); });
 setTimeout(drawWx,900); setTimeout(drawWx,3500);
 upd();
 })();

@@ -1,4 +1,4 @@
-name: BiteCast Navigator sync
+name: Alkyon Navigator sync
 # Μηνιαία ενημέρωση του navigator-mpa.json από το ProtectedSeas Navigator API (ανοιχτό, χωρίς κλειδί).
 # Αν κάτι δεν πάει καλά (σφάλμα δικτύου, ύποπτη απάντηση, πολλές διαγραφές), το script σταματά και το αρχείο δεν αλλάζει.
 on:
@@ -22,7 +22,7 @@ jobs:
       - name: Commit αν άλλαξε
         run: |
           if git diff --quiet -- navigator-mpa.json; then echo "Καμία αλλαγή"; exit 0; fi
-          git config user.name "bitecast-bot"
+          git config user.name "alkyon-bot"
           git config user.email "actions@users.noreply.github.com"
           git add navigator-mpa.json
           git commit -m "Navigator: ενημέρωση περιοχών"

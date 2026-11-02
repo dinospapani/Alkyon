@@ -1,12 +1,12 @@
 /* Διαδρομή GPS κατά τη διάρκεια της εξόδου: χάρτης, χιλιόμετρα, αποθήκευση στην έξοδο. Προαιρετικό (κοστίζει μπαταρία). */
 (function(){
 'use strict';
-var C=window.PsaroCore; if(!C) return;
+var C=window.AlkyonCore; if(!C) return;
 var EN=window.LANG==='en', T=function(el,en){ return EN?en:el; };
-var KEY='psaro-track', ON='psaro-gps';
+var KEY='alkyon-track', ON='alkyon-gps';
 var wid=null, layer=null, line=null, dot=null;
 
-function st(){ return (window.PsaroTrip&&window.PsaroTrip.state)?window.PsaroTrip.state():{}; }
+function st(){ return (window.AlkyonTrip&&window.AlkyonTrip.state)?window.AlkyonTrip.state():{}; }
 function enabled(){ return C.lsGet(ON,'1')!=='0'; }
 function load(){ var t=C.lsGet(KEY,null); return t&&Array.isArray(t.pts)?t:null; }
 function store(t){ try{ C.lsSet(KEY,t); }catch(e){} }
@@ -33,10 +33,10 @@ function onPos(p){
   if(last){ var d=dist(last,pt); if(d<12){ draw(); return; } if(d>2000&&pt[2]-last[2]<20000) return; t.m+=d; }
   t.pts.push(pt);
   if(t.pts.length>3000){ t.pts=t.pts.filter(function(_,i){ return i%2===0||i===t.pts.length-1; }); }
-  store(t); draw(); window.dispatchEvent(new Event('psaro-track'));
+  store(t); draw(); window.dispatchEvent(new Event('alkyon-track'));
 }
 function onErr(e){
-  if(e&&e.code===1){ C.lsSet(ON,'0'); stop(); try{ C.toast(T('Δεν δόθηκε άδεια θέσης. Η διαδρομή απενεργοποιήθηκε.','Location permission denied. Route recording is off.')); }catch(x){} window.dispatchEvent(new Event('psaro-track')); }
+  if(e&&e.code===1){ C.lsSet(ON,'0'); stop(); try{ C.toast(T('Δεν δόθηκε άδεια θέσης. Η διαδρομή απενεργοποιήθηκε.','Location permission denied. Route recording is off.')); }catch(x){} window.dispatchEvent(new Event('alkyon-track')); }
 }
 function begin(){
   if(wid!=null||!navigator.geolocation) return;
@@ -88,7 +88,7 @@ function take(){
   }
   stop(); store(null);
   if(layer){ layer.clearLayers(); line=dot=null; }
-  setTimeout(function(){ window.dispatchEvent(new Event('psaro-track')); },0);
+  setTimeout(function(){ window.dispatchEvent(new Event('alkyon-track')); },0);
   return out;
 }
 /* Εμφάνιση αποθηκευμένης διαδρομής στον χάρτη (από τη λίστα εξόδων) */
@@ -110,11 +110,11 @@ function setEnabled(v){
   C.lsSet(ON,v?'1':'0');
   if(v){ if(st().active) begin(); try{ C.toast(T('Διαδρομή GPS ενεργή. Καταναλώνει περισσότερη μπαταρία.','GPS route on. It uses more battery.')); }catch(e){} }
   else { stop(); var t=cur(); if(t) store(null); if(layer){ layer.clearLayers(); line=dot=null; } }
-  window.dispatchEvent(new Event('psaro-track'));
+  window.dispatchEvent(new Event('alkyon-track'));
 }
 
-window.PsaroTrack={hide:hide,fix:function(){ return fixP; },enabled:enabled,setEnabled:setEnabled,km:km,take:take,show:show,draw:draw,active:function(){ return wid!=null; }};
-window.addEventListener('psaro-sess',function(){
+window.AlkyonTrack={hide:hide,fix:function(){ return fixP; },enabled:enabled,setEnabled:setEnabled,km:km,take:take,show:show,draw:draw,active:function(){ return wid!=null; }};
+window.addEventListener('alkyon-sess',function(){
   var s=st();
   if(!s.active){ stop(); if(layer){ layer.clearLayers(); line=dot=null; } return; }
   begin(); draw();

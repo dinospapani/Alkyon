@@ -3,15 +3,15 @@
    ΟΛΑ είναι εμπειρικοί κανόνες ή στατιστική, όχι μέτρηση ούτε μοντέλο υψηλής ανάλυσης. */
 (function(){
 'use strict';
-var C=window.PsaroCore; if(!C||!window.PF) return;
+var C=window.AlkyonCore; if(!C||!window.PF) return;
 var EN=window.LANG==='en', T=function(a,b){ return EN?b:a; };
 var COMP=EN?['N','NE','E','SE','S','SW','W','NW']:['Β','ΒΑ','Α','ΝΑ','Ν','ΝΔ','Δ','ΒΔ'];
 function dn(d){ return COMP[Math.round((((d%360)+360)%360)/45)%8]; }
-function fd(d){ try{ return window.PsaroWindMap.diffTxt(d); }catch(e){ return (d>0?'+':'')+d.toFixed(1)+' kn'; } }
-function rng(a,b){ try{ var P=window.PsaroUnits, x=P.windP(a), y=P.windP(b); return x[0]+'–'+y[0]+' '+x[1]; }catch(e){ return a+'–'+b+' kn'; } }
+function fd(d){ try{ return window.AlkyonWindMap.diffTxt(d); }catch(e){ return (d>0?'+':'')+d.toFixed(1)+' kn'; } }
+function rng(a,b){ try{ var P=window.AlkyonUnits, x=P.windP(a), y=P.windP(b); return x[0]+'–'+y[0]+' '+x[1]; }catch(e){ return a+'–'+b+' kn'; } }
 function adiff(a,b){ var d=Math.abs(a-b)%360; return d>180?360-d:d; }
 var SUPA='https://sgfohmqwdwtkhtrebnix.supabase.co', SKEY='sb_publishable_LGuwvrvLnAj1CF22Q6g9vg_4OImZYbA';
-var LOGK='psaro-windlog2', COASTK='psaro-wl-coast';
+var LOGK='alkyon-windlog2', COASTK='alkyon-wl-coast';
 function fetchJ(url,opt,ms){ var ac=new AbortController(), tm=setTimeout(function(){ ac.abort(); },ms||12000); opt=opt||{}; opt.signal=ac.signal; return fetch(url,opt).then(function(r){ clearTimeout(tm); if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }); }
 
 /* ---- 1. κατεύθυνση προς τη θάλασσα (πού βρίσκεται η θάλασσα από το σημείο) ----
@@ -50,7 +50,7 @@ function breezeWindow(fc,sd){
   if(best&&best.n>=3) return {win:best};
   var day=hrs.filter(function(h){ return h.hr>=11&&h.hr<=19; });
   if(!season) why=T('εκτός εποχής (οι αύρες είναι ισχυρότερες Μάιο–Σεπτέμβριο)','out of season (breezes are strongest May–September)');
-  else if(day.length&&day.filter(function(h){ return h.wind>12; }).length>day.length/2) why=T('ο γενικός άνεμος είναι ήδη δυνατός (πάνω από '+window.PsaroUnits.wind(12)+')','the general wind is already strong (over '+window.PsaroUnits.wind(12)+')');
+  else if(day.length&&day.filter(function(h){ return h.wind>12; }).length>day.length/2) why=T('ο γενικός άνεμος είναι ήδη δυνατός (πάνω από '+window.AlkyonUnits.wind(12)+')','the general wind is already strong (over '+window.AlkyonUnits.wind(12)+')');
   else if(day.length&&day.filter(function(h){ return h.cloud==='over'; }).length>day.length/2) why=T('πολλά σύννεφα, λιγότερη θέρμανση της ξηράς','cloudy, less heating of the land');
   else why=T('μικρή διαφορά θερμοκρασίας ξηράς–θάλασσας','small land–sea temperature difference');
   return {win:null,why:why};
@@ -62,13 +62,13 @@ function hh(h){ return (h.hr<10?'0':'')+h.hr+':00'; }
 function mdlVec(hourly,sfx,i){ var s=hourly['wind_speed_10m'+sfx], d=hourly['wind_direction_10m'+sfx]; if(!s||!d||typeof s[i]!=='number'||typeof d[i]!=='number') return null; var r=d[i]*Math.PI/180; return {u:-s[i]*Math.sin(r),v:-s[i]*Math.cos(r)}; }
 function bucket(h){ return h<6?0:h<12?1:h<18?2:3; }
 async function logOnce(){
-  if(!window.PsaroWindMap||!window.PsaroWindMap.modelFetch) return;
+  if(!window.AlkyonWindMap||!window.AlkyonWindMap.modelFetch) return;
   try{
-    var st=await fetchJ(window.PSARO_OBS_URL||SUPA+'/functions/v1/smart-api',{headers:{apikey:SKEY,Authorization:'Bearer '+SKEY}},12000);
+    var st=await fetchJ(window.ALKYON_OBS_URL||SUPA+'/functions/v1/smart-api',{headers:{apikey:SKEY,Authorization:'Bearer '+SKEY}},12000);
     st=(Array.isArray(st)?st:[]).filter(function(x){ return x&&x.spd!=null&&x.t&&isFinite(x.lat)&&isFinite(x.lon)&&Date.now()-Date.parse(x.t)<3*3600000; }); if(!st.length) return;
     st=st.slice(0,60);
     var base='https://api.open-meteo.com/v1/forecast?latitude='+st.map(function(x){ return (+x.lat).toFixed(3); }).join(',')+'&longitude='+st.map(function(x){ return (+x.lon).toFixed(3); }).join(',')+'&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=kn&past_hours=3&forecast_hours=2&timezone=UTC';
-    var mf=await window.PsaroWindMap.modelFetch(base), j=mf.arr, sfxs=mf.names.map(function(x){ return x.sfx; });
+    var mf=await window.AlkyonWindMap.modelFetch(base), j=mf.arr, sfxs=mf.names.map(function(x){ return x.sfx; });
     if(j.length<st.length) return;
     var db=C.lsGet(LOGK,null); if(!db||!db.agg||db.v!==2) db={v:2,agg:{},seen:[]};
     var seen={}, added=0; db.seen.forEach(function(k){ seen[k]=1; });
@@ -121,5 +121,5 @@ async function render(el,lat,lon,cur){
   }catch(e){ if(id===token){ p1.textContent=T('Δεν φορτώθηκαν δεδομένα για τα τοπικά φαινόμενα.','Local-effect data did not load.'); } }
 }
 setTimeout(logOnce,15000); setInterval(function(){ if(!document.hidden) logOnce(); },30*60000);
-window.PsaroWindLocal={render:render,seaDir:seaDir,breeze:breezeWindow,biasTable:biasTable,logOnce:logOnce};
+window.AlkyonWindLocal={render:render,seaDir:seaDir,breeze:breezeWindow,biasTable:biasTable,logOnce:logOnce};
 })();

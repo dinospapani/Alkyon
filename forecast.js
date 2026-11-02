@@ -61,11 +61,11 @@ function sunMoon(dateStr,lat,lon,tz){
 }
 /* απόσταση (λεπτά) της ώρας t από την πιο κοντινή περίοδο μιας λίστας */
 const nearMin=(t,arr)=>{ let b=1e9; for(const x of arr||[]) b=Math.min(b,Math.abs(t-x)); return b; };
-/* v31z363: είδος-στόχος για τον βαθμό. Στη σελίδα έρχεται από «Τι να ψαρέψω» (psaro-advsp + knowledge.js),
+/* v31z363: είδος-στόχος για τον βαθμό. Στη σελίδα έρχεται από «Τι να ψαρέψω» (alkyon-advsp + knowledge.js),
    στον server και στο service worker από τη ρύθμιση (cfg.sp = {n, l, sst}). */
 function targetSp(w){
   if(w&&w.sp) return w.sp;
-  try{ if(typeof localStorage==='undefined') return null; const n=localStorage.getItem('psaro-advsp'); if(!n) return null; let v=n; try{ v=JSON.parse(n); }catch(x){} if(!v) return null;
+  try{ if(typeof localStorage==='undefined') return null; const n=localStorage.getItem('alkyon-advsp'); if(!n) return null; let v=n; try{ v=JSON.parse(n); }catch(x){} if(!v) return null;
     const kb=(typeof self!=='undefined'&&self.SPKB)||[], e=kb.find(k=>k.n===v); return e?{n:e.n,l:e.l,sst:e.sst}:{n:v}; }catch(e){ return null; }
 }
 /* ειδικοί κανόνες από μελέτες: καλαμάρι (Cabanellas-Reboredo κ.ά. 2012, Μαγιόρκα), ξιφίας (Ceyhan κ.ά. 2018, Αν. Μεσόγειος) */
@@ -73,7 +73,7 @@ function spKind(sp){ const s=((sp&&(sp.l||''))+' '+(sp&&sp.n||'')).toLowerCase()
 function hourScore(sm,hr,w){
   const wind=w.wind, wave=w.wave==null?0.5:w.wave, sp=targetSp(w), kind=spKind(sp);
   /* προφίλ ψαρέματος: προσαρμογή βαρών (εκτίμηση, όχι επικυρωμένη). Στο service worker δεν υπάρχει localStorage, άρα ισχύει «βάρκα». */
-  let prof=w.prof; if(!prof){ try{ prof=typeof localStorage!=='undefined'?localStorage.getItem('psaro-fprof'):null; }catch(e){ prof=null; } }
+  let prof=w.prof; if(!prof){ try{ prof=typeof localStorage!=='undefined'?localStorage.getItem('alkyon-fprof'):null; }catch(e){ prof=null; } }
   /* v31z361: η σελήνη μετρά λιγότερο (μελέτες: επίδραση 5–10% σε κάποια είδη, καμία σε άλλα) */
   let base=50+(kind==='sword'?0:kind==='squid'?Math.round(Math.cos(2*Math.PI*sm.f)*5):Math.round(Math.cos(4*Math.PI*sm.f)*4)); /* καλαμάρι: καλύτερα κοντά στη νέα σελήνη· ξιφίας: καμία επίδραση */
   /* v31z362: η πίεση μετρά ελάχιστα. Οι μελέτες δεν βρίσκουν σταθερή επίδραση στο τσίμπημα (πέρκα: καμία· ανασκόπηση Stoner 2004:
@@ -115,9 +115,9 @@ function hourScore(sm,hr,w){
   return clamp(Math.round(base+b),5,98);
 }
 const bft=w=>[1,4,7,11,17,22,28,34,41,48,56,64].filter(x=>x<=w).length;
-/* v31z525: όρια «ασφαλούς» ώρας ρυθμίζονται από τον χρήστη (psaro-limits: kn, kn, m)· προεπιλογή όπως πριν */
+/* v31z525: όρια «ασφαλούς» ώρας ρυθμίζονται από τον χρήστη (alkyon-limits: kn, kn, m)· προεπιλογή όπως πριν */
 const LIMD={wind:14,wave:0.9,gust:24}; let LIMO=null;
-function lims(){ if(LIMO) return Object.assign({},LIMD,LIMO); try{ const o=typeof localStorage!=='undefined'?JSON.parse(localStorage.getItem('psaro-limits')||'null'):null; if(o&&typeof o==='object') return Object.assign({},LIMD,o); }catch(e){} return LIMD; }
+function lims(){ if(LIMO) return Object.assign({},LIMD,LIMO); try{ const o=typeof localStorage!=='undefined'?JSON.parse(localStorage.getItem('alkyon-limits')||'null'):null; if(o&&typeof o==='object') return Object.assign({},LIMD,o); }catch(e){} return LIMD; }
 const safeHour=h=>{ const L=lims(); return h.wind<=L.wind&&(h.wave==null||h.wave<=L.wave)&&(h.gust==null||h.gust<=L.gust)&&(h.code==null||h.code<95); };
 function ptrendOf(d){return d<=-3?'fast':d<=-1?'slow':d>=1?'rise':'stable';}
 async function fetchJson(url,fetchFn){

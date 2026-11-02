@@ -3,7 +3,7 @@
    Αποθηκεύονται στο ψάρι ως b.wx. Η σελήνη υπολογίζεται από την ακριβή ώρα του ψαριού. */
 (function(){
 'use strict';
-var C={get Store(){ return window.PsaroCore&&window.PsaroCore.Store; }, get toast(){ return (window.PsaroCore&&window.PsaroCore.toast)||function(){}; }, biteMs:function(b){ return window.PsaroCore.biteMs(b); }};
+var C={get Store(){ return window.AlkyonCore&&window.AlkyonCore.Store; }, get toast(){ return (window.AlkyonCore&&window.AlkyonCore.toast)||function(){}; }, biteMs:function(b){ return window.AlkyonCore.biteMs(b); }};
 var EN=window.LANG==='en', T=function(el,en){ return EN?en:el; };
 var HOUR=3600000, DAY=86400000, MIN=60000, K=6, N=2*K+1;
 var SYN=29.530588853, REF=Date.UTC(2000,0,6,18,14);
@@ -72,13 +72,13 @@ function enqueue(b,force){
 function eligible(b){ var ms=C.biteMs(b); return typeof b.lat==='number'&&typeof b.lon==='number'&&ms<=Date.now()+10*MIN; }
 
 /* ---------- κείμενα ---------- */
-function W(kn){ try{ return window.PsaroUnits.wind(kn); }catch(e){ return Math.round(kn)+' kn'; } }
-function PR(h){ try{ return window.PsaroUnits.press(h); }catch(e){ return Math.round(h*10)/10+' hPa'; } }
+function W(kn){ try{ return window.AlkyonUnits.wind(kn); }catch(e){ return Math.round(kn)+' kn'; } }
+function PR(h){ try{ return window.AlkyonUnits.press(h); }catch(e){ return Math.round(h*10)/10+' hPa'; } }
 function sgn(v){ return v>0?'+':v<0?'−':''; }
-function dPress(a,b){ if(a==null||b==null) return null; var d=b-a; var c=window.PsaroUnits&&window.PsaroUnits.cfg&&window.PsaroUnits.cfg.press, u='hPa', k=1; if(c==='inhg'){ u='inHg'; k=0.02953; } else if(c==='mmhg'){ u='mmHg'; k=0.750062; }
+function dPress(a,b){ if(a==null||b==null) return null; var d=b-a; var c=window.AlkyonUnits&&window.AlkyonUnits.cfg&&window.AlkyonUnits.cfg.press, u='hPa', k=1; if(c==='inhg'){ u='inHg'; k=0.02953; } else if(c==='mmhg'){ u='mmHg'; k=0.750062; }
   var x=d*k, dec=c==='inhg'?2:1; return sgn(Math.round(x*Math.pow(10,dec))/Math.pow(10,dec))+Math.abs(x).toFixed(dec)+' '+u; }
-function dWind(a,b){ if(a==null||b==null) return null; var c=window.PsaroUnits&&window.PsaroUnits.cfg&&window.PsaroUnits.cfg.wind, d=b-a;
-  if(c==='bft'){ var bf=window.PsaroUnits.bft, x=bf(b)-bf(a); return (x===0?'±0':sgn(x)+Math.abs(x))+' Bft'; }
+function dWind(a,b){ if(a==null||b==null) return null; var c=window.AlkyonUnits&&window.AlkyonUnits.cfg&&window.AlkyonUnits.cfg.wind, d=b-a;
+  if(c==='bft'){ var bf=window.AlkyonUnits.bft, x=bf(b)-bf(a); return (x===0?'±0':sgn(x)+Math.abs(x))+' Bft'; }
   var k=c==='kmh'?1.852:c==='ms'?0.514444:c==='mph'?1.15078:1, u=c==='kmh'?'km/h':c==='ms'?'m/s':c==='mph'?'mph':'kn', x2=Math.round(d*k*10)/10;
   return (x2===0?'±0':sgn(x2)+Math.abs(x2))+' '+u; }
 function turn(a,b){ if(a==null||b==null) return null; var d=((b-a+540)%360)-180; return d; }
@@ -110,7 +110,7 @@ function chart(wx,b){
   var txt=function(x,y,t,anc,sz,fill){ var e=mk('text',{x:x,y:y,'text-anchor':anc||'end','font-size':sz||8,fill:fill||mut}); e.textContent=t; svg.append(e); };
   svg.append(mk('rect',{x:X(K-1),y:TP-4,width:X(K+1)-X(K-1),height:Ht-BT-TP+2,fill:ink,'fill-opacity':.12}));
   svg.append(mk('line',{x1:X(K),x2:X(K),y1:TP-4,y2:Ht-BT-2,stroke:ink,'stroke-width':1,'stroke-dasharray':'3 2'}));
-  var PU=window.PsaroUnits, pl=function(h){ try{ return PU.pressP(h)[0]; }catch(e){ return Math.round(h); } }, wl=function(k){ try{ return PU.windP(k)[0]; }catch(e){ return Math.round(k); } };
+  var PU=window.AlkyonUnits, pl=function(h){ try{ return PU.pressP(h)[0]; }catch(e){ return Math.round(h); } }, wl=function(k){ try{ return PU.windP(k)[0]; }catch(e){ return Math.round(k); } };
   txt(L,TP-2,(PU&&PU.label?PU.label('press'):'hPa'),'start',8);
   [pmn,pmx].forEach(function(g){ svg.append(mk('line',{x1:L,x2:Wd-R,y1:Y1(g),y2:Y1(g),stroke:mut,'stroke-opacity':.25,'stroke-width':.5})); txt(Wd-R+3,Y1(g)+3,String(pl(g)),'start',8); });
   var path=function(arr,f){ var d='',pen=false; for(var i=0;i<arr.length;i++){ if(arr[i]==null){ pen=false; continue; } d+=(pen?'L':'M')+X(i).toFixed(1)+' '+f(arr[i]).toFixed(1); pen=true; } return d; };
@@ -171,7 +171,7 @@ function slot(b){
 function ensure(b){ if(b&&eligible(b)) enqueue(b,true); }
 
 /* ---------- μαζική συμπλήρωση (ρυθμίσεις θάλασσας) ---------- */
-(window.PsaroSeaRows=window.PsaroSeaRows||[]).push(function(){
+(window.AlkyonSeaRows=window.AlkyonSeaRows||[]).push(function(){
   function todo(){ return ((C.Store.raw?C.Store.raw('bites'):C.Store.get('bites'))||[]).filter(function(b){ return eligible(b)&&!b.gear&&!valid(b)&&!b.wxNA; }); }
   var r=document.createElement('div'); r.className='sprow'; var x=document.createElement('div'); x.className='sptx';
   var b1=document.createElement('b'); b1.textContent=T('Πίεση και άνεμος γύρω από τα ψάρια','Pressure and wind around catches');
@@ -190,5 +190,5 @@ function ensure(b){ if(b&&eligible(b)) enqueue(b,true); }
   r.append(x,bt); r.dataset.k='wxfill'; return r;
 });
 
-window.PsaroBiteWx={slot:slot,ensure:ensure,fetch:fetchWx,moon:moonAt};
+window.AlkyonBiteWx={slot:slot,ensure:ensure,fetch:fetchWx,moon:moonAt};
 })();

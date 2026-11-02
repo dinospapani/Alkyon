@@ -1,7 +1,7 @@
-/* Μονάδες μέτρησης: αποθηκεύονται σε psaro-units. Οι εσωτερικές τιμές μένουν kn, °C, hPa, m, km. */
+/* Μονάδες μέτρησης: αποθηκεύονται σε alkyon-units. Οι εσωτερικές τιμές μένουν kn, °C, hPa, m, km. */
 (function(){
 'use strict';
-var K='psaro-units', D={wind:'bft',temp:'c',press:'hpa',wave:'m',dist:'km',coord:'dm'};
+var K='alkyon-units', D={wind:'bft',temp:'c',press:'hpa',wave:'m',dist:'km',coord:'dm'};
 var OPT={
   wind:[['kn','kn'],['bft','Bft'],['kmh','km/h'],['ms','m/s'],['mph','mph']],
   temp:[['c','°C'],['f','°F']],
@@ -37,6 +37,6 @@ U.press=function(h){ return s(U.pressP(h)); };
 U.wave=function(m,d){ return s(U.waveP(m,d)); };
 U.dist=function(km,d){ return s(U.distP(km,d)); };
 U.label=lab; U.options=OPT; U.bft=bft;
-U.set=function(k,v){ if(!OPT[k]) return; U.cfg[k]=v; try{ localStorage.setItem(K,JSON.stringify(U.cfg)); }catch(e){} try{ window.dispatchEvent(new Event('psaro-units')); }catch(e){} };
-window.PsaroUnits=U;
+U.set=function(k,v){ if(!OPT[k]) return; U.cfg[k]=v; try{ localStorage.setItem(K,JSON.stringify(U.cfg)); }catch(e){} try{ window.dispatchEvent(new Event('alkyon-units')); }catch(e){} };
+window.AlkyonUnits=U;
 })();

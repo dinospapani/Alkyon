@@ -3,7 +3,7 @@
    Τα solunar είναι παραδοσιακός δείκτης, όχι αποδεδειγμένος. Οι ώρες σελήνης/ήλιου είναι προσεγγίσεις (±5 λεπτά). */
 (function(){
 'use strict';
-var C=window.PsaroCore; if(!C) return;
+var C=window.AlkyonCore; if(!C) return;
 var EN=window.LANG==='en', T=function(el,en){ return EN?en:el; };
 var $=function(i){ return document.getElementById(i); };
 var R=Math.PI/180;
@@ -158,14 +158,14 @@ var dt=null; function later(){ clearTimeout(dt); dt=setTimeout(decorate,60); }
 (function(){ var n=$('spotList'); if(n) new MutationObserver(later).observe(n,{childList:true}); later(); })();
 
 /* ---------- 6: συντήρηση ---------- */
-var MK='psaro-maint', M=C.lsGet(MK,null); if(!M||!Array.isArray(M.items)) M={items:null,sent:{}};
+var MK='alkyon-maint', M=C.lsGet(MK,null); if(!M||!Array.isArray(M.items)) M={items:null,sent:{}};
 if(!M.items) M.items=T([
   ['Λάδι κινητήρα',100,12],['Φίλτρο καυσίμου',100,12],['Λάδι ποδιού (gearcase)',100,12],['Πτερωτή νερού (impeller)',200,24],['Ανόδια',0,6],['Προπέλα (έλεγχος)',0,6],['Μπαταρία (έλεγχος)',0,6],['Αντλία σεντίνας (δοκιμή)',0,3]
 ],[
   ['Engine oil',100,12],['Fuel filter',100,12],['Gearcase oil',100,12],['Water impeller',200,24],['Anodes',0,6],['Propeller (inspect)',0,6],['Battery (inspect)',0,6],['Bilge pump (test)',0,3]
 ]).map(function(x,i){ return {id:'m'+i,name:x[0],h:x[1],mo:x[2],last:null}; });
 function msave(){ C.lsSet(MK,M); }
-function engH(){ var s=window.PsaroSmart&&window.PsaroSmart.state&&window.PsaroSmart.state(); return s&&s.eng?+s.eng.h||0:0; }
+function engH(){ var s=window.AlkyonSmart&&window.AlkyonSmart.state&&window.AlkyonSmart.state(); return s&&s.eng?+s.eng.h||0:0; }
 function mstat(it){
   if(!it.last) return {lv:'n',tx:T('Δεν έχει καταγραφεί','Not logged yet')};
   var eh=engH(), dh=it.h>0?it.h-(eh-it.last.h):null, dm=it.mo>0?it.mo*30.4-(Date.now()-it.last.t)/86400000:null, parts=[], lv='ok';
@@ -175,7 +175,7 @@ function mstat(it){
 }
 function maintCheck(){
   var now=Date.now(); M.items.forEach(function(it){ var s=mstat(it); if(s.lv!=='bad'&&s.lv!=='warn') return; if(M.sent[it.id]&&now-M.sent[it.id]<7*86400000) return; M.sent[it.id]=now; msave();
-    var t='🔧 '+it.name, b=s.lv==='bad'?T('Εκπρόθεσμο.','Overdue.'):T('Πλησιάζει η ώρα.','Coming due.'); try{ if(window.PsaroSea&&window.PsaroSea.notify) window.PsaroSea.notify(t,b); else C.toast(t+' · '+b); }catch(e){} });
+    var t='🔧 '+it.name, b=s.lv==='bad'?T('Εκπρόθεσμο.','Overdue.'):T('Πλησιάζει η ώρα.','Coming due.'); try{ if(window.AlkyonSea&&window.AlkyonSea.notify) window.AlkyonSea.notify(t,b); else C.toast(t+' · '+b); }catch(e){} });
 }
 function maintUI(box,rr){
   var render=rr||render0;
@@ -190,10 +190,10 @@ function maintUI(box,rr){
     var del=btn(T('Διαγραφή','Delete'),'',function(){ M.items=M.items.filter(function(q){ return q!==it; }); msave(); render(); });
     d.append(el('div','mtint',''),h,el('span','',' h  '),m,el('span','',T(' μήνες',' mo ')),del);
     r.append(x,b,d); box.append(r); });
-  var add=el('div','sprow'); add.append(btn(T('+ Νέο στοιχείο','+ New item'),'',function(){ window.PsaroAsk.prompt&&window.PsaroAsk.prompt(T('Όνομα στοιχείου συντήρησης','Maintenance item name'),{title:T('Νέο στοιχείο','New item')}).then(function(v){ v=(v||'').trim(); if(!v) return; M.items.push({id:'m'+Date.now().toString(36),name:v.slice(0,60),h:0,mo:12,last:null}); msave(); render(); }); })); box.append(add);
+  var add=el('div','sprow'); add.append(btn(T('+ Νέο στοιχείο','+ New item'),'',function(){ window.AlkyonAsk.prompt&&window.AlkyonAsk.prompt(T('Όνομα στοιχείου συντήρησης','Maintenance item name'),{title:T('Νέο στοιχείο','New item')}).then(function(v){ v=(v||'').trim(); if(!v) return; M.items.push({id:'m'+Date.now().toString(36),name:v.slice(0,60),h:0,mo:12,last:null}); msave(); render(); }); })); box.append(add);
 }
 
-window.PsaroMaint={ui:function(box,rr){ maintUI(box,rr); },check:function(){ maintCheck(); },engH:function(){ return engH(); }};
+window.AlkyonMaint={ui:function(box,rr){ maintUI(box,rr); },check:function(){ maintCheck(); },engH:function(){ return engH(); }};
 /* ---------- 7: κόστος ανά σεζόν ---------- */
 function costOf(t){ var c=t&&t.cost; return c?(+c.fuel||0)+(+c.bait||0)+(+c.other||0):0; }
 function costUI(box){
@@ -216,32 +216,32 @@ function dl(name,text,mime){
 }
 var BC=['date','time','species','latin','bait','tech','depth','kg','len','press','ptrend','wind','wave','cloud','temp','sst','tide','place','lat','lon','notes','tripId'];
 function stamp(){ return C.nicosiaToday(); }
-function exportBites(){ var rows=bites().slice().sort(function(a,b){ return ((a.date||'')+(a.time||'')).localeCompare((b.date||'')+(b.time||'')); }); var cols=BC.map(function(c){ return c==='tripId'?'trip':c; }); dl('bitecast-fish-'+stamp()+'.csv',toCsv(rows,cols)); }
+function exportBites(){ var rows=bites().slice().sort(function(a,b){ return ((a.date||'')+(a.time||'')).localeCompare((b.date||'')+(b.time||'')); }); var cols=BC.map(function(c){ return c==='tripId'?'trip':c; }); dl('alkyon-fish-'+stamp()+'.csv',toCsv(rows,cols)); }
 function exportTrips(){
   var cols=['date','spot',function(t){ return t.startMs?new Date(t.startMs).toISOString():''; },function(t){ return t.endMs?new Date(t.endMs).toISOString():''; },function(t){ return t.startMs&&t.endMs?Math.round(Math.max(0,t.endMs-t.startMs-(t.pauseMs||0))/360000)/10:''; },'km','count','kg','miss',function(t){ return t.cost?t.cost.fuel:''; },function(t){ return t.cost?t.cost.bait:''; },function(t){ return t.cost?t.cost.other:''; },function(t){ return costOf(t)||''; }];
   var head=['date','route','start','end','hours','km','fish','kg','missed','fuel_eur','bait_eur','other_eur','total_eur'];
   var rows=trips().slice().sort(function(a,b){ return (a.date||'').localeCompare(b.date||''); });
-  dl('bitecast-trips-'+stamp()+'.csv','﻿'+[head.join(',')].concat(rows.map(function(r){ return cols.map(function(c){ return csvCell(typeof c==='function'?c(r):r[c]); }).join(','); })).join('\r\n'));
+  dl('alkyon-trips-'+stamp()+'.csv','﻿'+[head.join(',')].concat(rows.map(function(r){ return cols.map(function(c){ return csvCell(typeof c==='function'?c(r):r[c]); }).join(','); })).join('\r\n'));
 }
 function exportGear(){
-  var it=(window.PsaroGear?window.PsaroGear.state().items:[]).slice(), bs=bites();
+  var it=(window.AlkyonGear?window.AlkyonGear.state().items:[]).slice(), bs=bites();
   function iso(ms){ return ms?new Date(ms).toISOString():''; }
   function km(a){ if(!a||a.length<2) return ''; var m=0; for(var i=1;i<a.length;i++) m+=distM(a[i-1][0],a[i-1][1],a[i][0],a[i][1]); return Math.round(m/10)/100; }
   var cols=['name','type','state',function(g){ return iso(g.set&&g.set.ta); },function(g){ return iso(g.set&&g.set.tb); },function(g){ return g.set&&g.set.a?g.set.a[0]:''; },function(g){ return g.set&&g.set.a?g.set.a[1]:''; },function(g){ return g.set&&g.set.b?g.set.b[0]:''; },function(g){ return g.set&&g.set.b?g.set.b[1]:''; },function(g){ return km(g.set&&g.set.pts); },
     function(g){ return iso(g.haul&&g.haul.ta); },function(g){ return iso(g.haul&&g.haul.tb); },function(g){ return km(g.haul&&g.haul.pts); },function(g){ return bs.filter(function(b){ return b.gear===g.id; }).length; },function(g){ return Math.round(bs.filter(function(b){ return b.gear===g.id; }).reduce(function(s,b){ return s+(+b.kg||0); },0)*10)/10; }];
   var head=['name','type','state','set_start','set_end','set_start_lat','set_start_lon','set_end_lat','set_end_lon','set_km','haul_start','haul_end','haul_km','fish','kg'];
-  dl('bitecast-gear-'+stamp()+'.csv','﻿'+[head.join(',')].concat(it.map(function(r){ return cols.map(function(c){ return csvCell(typeof c==='function'?c(r):r[c]); }).join(','); })).join('\r\n'));
+  dl('alkyon-gear-'+stamp()+'.csv','﻿'+[head.join(',')].concat(it.map(function(r){ return cols.map(function(c){ return csvCell(typeof c==='function'?c(r):r[c]); }).join(','); })).join('\r\n'));
 }
-function exportSpots(){ dl('bitecast-spots-'+stamp()+'.csv',toCsv(spots(),['name','type','lat','lon','depth','notes','tips'])); }
+function exportSpots(){ dl('alkyon-spots-'+stamp()+'.csv',toCsv(spots(),['name','type','lat','lon','depth','notes','tips'])); }
 function exportAll(){
-  var o={app:'BiteCast',exported:new Date().toISOString(),bites:bites(),trips:trips().map(function(t){ return t; }),spots:spots(),gear:(window.PsaroGear?window.PsaroGear.state().items:[]),smart:C.lsGet('psaro-smart',null),maintenance:M};
-  dl('bitecast-backup-'+stamp()+'.json',JSON.stringify(o),'application/json');
-  C.lsSet('psaro-lastbackup',Date.now());
+  var o={app:'Alkyon',exported:new Date().toISOString(),bites:bites(),trips:trips().map(function(t){ return t; }),spots:spots(),gear:(window.AlkyonGear?window.AlkyonGear.state().items:[]),smart:C.lsGet('alkyon-smart',null),maintenance:M};
+  dl('alkyon-backup-'+stamp()+'.json',JSON.stringify(o),'application/json');
+  C.lsSet('alkyon-lastbackup',Date.now());
 }
 function exportUI(box){
   box.append(el('div','smsec',T('Εξαγωγή δεδομένων','Export data')));
   box.append(el('div','sptx',T('Αρχεία CSV για Excel/Google Sheets και πλήρες αντίγραφο JSON. Οι φωτογραφίες δεν περιλαμβάνονται.','CSV files for Excel/Google Sheets and a full JSON copy. Photos are not included.')));
-  var lb=+C.lsGet('psaro-lastbackup',0)||0; box.append(el('div','sptx',T('Τελευταίο πλήρες αντίγραφο: ','Last full backup: ')+(lb?new Date(lb).toLocaleDateString():T('ποτέ','never'))));
+  var lb=+C.lsGet('alkyon-lastbackup',0)||0; box.append(el('div','sptx',T('Τελευταίο πλήρες αντίγραφο: ','Last full backup: ')+(lb?new Date(lb).toLocaleDateString():T('ποτέ','never'))));
   var r=el('div','sprow wrap'); r.append(btn(T('Ψάρια (CSV)','Catches (CSV)'),'',exportBites),btn(T('Έξοδοι (CSV)','Trips (CSV)'),'',exportTrips),btn(T('Σημεία (CSV)','Spots (CSV)'),'',exportSpots),btn(T('Εργαλεία (CSV)','Gear (CSV)'),'',exportGear),btn(T('Πλήρες αντίγραφο (JSON)','Full backup (JSON)'),'acc',exportAll)); box.append(r);
 }
 
@@ -257,8 +257,8 @@ function render(showAll){ if(showAll===true) view=null; body.replaceChildren(); 
   if(only){ body.append(btn(T('Όλες οι αναλύσεις (κόστος, συντήρηση, εξαγωγή)','All insights (cost, maintenance, export)'),'',function(){ render(true); })); }
   focus=null; }
 function openPanel(k){ focus=k||null; view=k||null; render(); P.hidden=false; }
-window.PsaroOpenExport=function(){ var sp=$('seaPanel'); if(sp) sp.hidden=true; openPanel('export'); };
-(window.PsaroSeaRows=window.PsaroSeaRows||[]).push(function(){
+window.AlkyonOpenExport=function(){ var sp=$('seaPanel'); if(sp) sp.hidden=true; openPanel('export'); };
+(window.AlkyonSeaRows=window.AlkyonSeaRows||[]).push(function(){
   var r=el('div','sprow'), x=el('div','sptx'); x.append(el('b','',T('Αναλύσεις και αρχείο','Insights and archive')),el('span','',T('Σελήνη, κόστος ανά κιλό, συντήρηση, εξαγωγή δεδομένων','Moon, cost per kg, maintenance, data export')));
   r.append(x,btn(T('Άνοιγμα','Open'),'acc',function(){ var sp=$('seaPanel'); if(sp) sp.hidden=true; openPanel(); })); r.dataset.k='insights'; return r;
 });
@@ -266,28 +266,28 @@ window.PsaroOpenExport=function(){ var sp=$('seaPanel'); if(sp) sp.hidden=true; 
 /* ---------- εκκίνηση ---------- */
 function refresh(){ try{ moonCard(); }catch(e){} try{ simCard(); }catch(e){} }
 refresh(); setTimeout(refresh,2500);
-window.addEventListener('psaro-fcloaded',function(e){ var p=e.detail&&e.detail.place; if(p&&p.lat!=null&&p.lon!=null){ fcLoc={lat:+p.lat,lon:+p.lon}; refresh(); } });
-document.addEventListener('psaro-cond',function(){ setTimeout(refresh,300); });
-window.addEventListener('psaro-tripend',function(){ setTimeout(function(){ refresh(); maintCheck(); },1500); });
+window.addEventListener('alkyon-fcloaded',function(e){ var p=e.detail&&e.detail.place; if(p&&p.lat!=null&&p.lon!=null){ fcLoc={lat:+p.lat,lon:+p.lon}; refresh(); } });
+document.addEventListener('alkyon-cond',function(){ setTimeout(refresh,300); });
+window.addEventListener('alkyon-tripend',function(){ setTimeout(function(){ refresh(); maintCheck(); },1500); });
 var tabs=document.querySelector('nav[role=tablist],[role=tablist]'); if(tabs) tabs.addEventListener('click',function(){ setTimeout(refresh,200); });
 try{ C.Store.on('bites',function(){ setTimeout(refresh,200); }); C.Store.on('trips',function(){ setTimeout(refresh,200); }); }catch(e){}
 setTimeout(maintCheck,6000);
-window.PsaroInsights={dayInfo:dayInfo,phaseAt:phaseAt,open:openPanel,dayTable:dayTable,simScore:simScore,maint:function(){ return M; },exportBites:exportBites,exportTrips:exportTrips,exportSpots:exportSpots,exportAll:exportAll,spotSummary:spotSummary,maintCheck:maintCheck};
+window.AlkyonInsights={dayInfo:dayInfo,phaseAt:phaseAt,open:openPanel,dayTable:dayTable,simScore:simScore,maint:function(){ return M; },exportBites:exportBites,exportTrips:exportTrips,exportSpots:exportSpots,exportAll:exportAll,spotSummary:spotSummary,maintCheck:maintCheck};
 
 /* v31z12: υπενθύμιση αντιγράφου ασφαλείας κάθε 30 ημέρες (όχι σε ενεργή έξοδο· «Αργότερα» = 7 ημέρες) */
 (function(){
   var DAY=86400000;
   function check(){
     try{
-      var s=window.PsaroTrip&&window.PsaroTrip.state&&window.PsaroTrip.state(); if(s&&s.active) return;
+      var s=window.AlkyonTrip&&window.AlkyonTrip.state&&window.AlkyonTrip.state(); if(s&&s.active) return;
       var nb=bites().length, ns=spots().length; if(!nb&&!ns) return;
-      var now=Date.now(), since=+C.lsGet('psaro-backup-since',0)||0; if(!since){ C.lsSet('psaro-backup-since',now); since=now; }
-      var ref=Math.max(+C.lsGet('psaro-lastbackup',0)||0,since);
+      var now=Date.now(), since=+C.lsGet('alkyon-backup-since',0)||0; if(!since){ C.lsSet('alkyon-backup-since',now); since=now; }
+      var ref=Math.max(+C.lsGet('alkyon-lastbackup',0)||0,since);
       /* αν ο συγχρονισμός με τον λογαριασμό δουλεύει (τελευταίος πριν λιγότερο από 3 ημέρες) τα δεδομένα είναι ασφαλή: καμία υπενθύμιση. Αλλιώς κάθε 7 ημέρες */
-      var lastSync=+C.lsGet('psaro-last',0)||0; if(lastSync&&now-lastSync<3*DAY) return;
+      var lastSync=+C.lsGet('alkyon-last',0)||0; if(lastSync&&now-lastSync<3*DAY) return;
       if(now-ref<7*DAY) return;
-      if(now<(+C.lsGet('psaro-backup-snooze',0)||0)) return;
-      window.PsaroAsk(T('Έχεις '+nb+' ψάρια και '+ns+' σημεία. Δεν έχει γίνει πρόσφατος συγχρονισμός με τον λογαριασμό σου ούτε αντίγραφο ασφαλείας τις τελευταίες 7 ημέρες. Να το κάνω τώρα; Θα αποθηκευτεί ένα αρχείο στο κινητό.','You have '+nb+' catches and '+ns+' spots. Nothing has synced to your account and no backup was made in the last 7 days. Back up now? A file will be saved to your phone.'),{title:T('Αντίγραφο ασφαλείας','Backup'),ok:T('Αντίγραφο τώρα','Back up now'),cancel:T('Αργότερα','Later')}).then(function(ok){ if(ok) exportAll(); else C.lsSet('psaro-backup-snooze',Date.now()+7*DAY); });
+      if(now<(+C.lsGet('alkyon-backup-snooze',0)||0)) return;
+      window.AlkyonAsk(T('Έχεις '+nb+' ψάρια και '+ns+' σημεία. Δεν έχει γίνει πρόσφατος συγχρονισμός με τον λογαριασμό σου ούτε αντίγραφο ασφαλείας τις τελευταίες 7 ημέρες. Να το κάνω τώρα; Θα αποθηκευτεί ένα αρχείο στο κινητό.','You have '+nb+' catches and '+ns+' spots. Nothing has synced to your account and no backup was made in the last 7 days. Back up now? A file will be saved to your phone.'),{title:T('Αντίγραφο ασφαλείας','Backup'),ok:T('Αντίγραφο τώρα','Back up now'),cancel:T('Αργότερα','Later')}).then(function(ok){ if(ok) exportAll(); else C.lsSet('alkyon-backup-snooze',Date.now()+7*DAY); });
     }catch(e){}
   }
   setTimeout(check,9000);

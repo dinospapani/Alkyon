@@ -1,7 +1,7 @@
 /* Κόμποι: σχηματικά animation βήμα-βήμα (SVG), δικά μας σχέδια. Ενδεικτικά, δεν αντικαθιστούν δοκιμή του κόμπου με πραγματική πετονιά. */
 (function(){
 'use strict';
-var C=window.PsaroCore, seg=document.querySelector('#tab-guide .seg'), tab=document.getElementById('tab-guide');
+var C=window.AlkyonCore, seg=document.querySelector('#tab-guide .seg'), tab=document.getElementById('tab-guide');
 if(!C||!seg||!tab||document.getElementById('g-knots')) return;
 var EN=window.LANG==='en', T=function(el,en){ return EN?en:el; };
 var NS='http://www.w3.org/2000/svg';

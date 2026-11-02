@@ -1,10 +1,10 @@
 /* Προστατευόμενες θαλάσσιες περιοχές Ευρώπης (EMODnet Human Activities, CC BY 4.0 – Cogea Srl / EEA). Επίπεδο WMS, χωρίς δικά μας δεδομένα. */
 (function(){
 'use strict';
-var C=window.PsaroCore, EN=window.LANG==='en', T=function(el,en){ return EN?en:el; };
+var C=window.AlkyonCore, EN=window.LANG==='en', T=function(el,en){ return EN?en:el; };
 var bz=document.getElementById('bZones'); if(!C||!bz||typeof L==='undefined') return;
 var map=C.map&&C.map(); if(!map) return;
-var URL='https://ows.emodnet-humanactivities.eu/wms', LAYER='nationallydesignatedareas', KEY='psaro-mpa';
+var URL='https://ows.emodnet-humanactivities.eu/wms', LAYER='nationallydesignatedareas', KEY='alkyon-mpa';
 try{ map.attributionControl.setPrefix(T('Όχι για ναυσιπλοΐα','Not for navigation')+' · <a href="https://leafletjs.com" target="_blank" rel="noopener">Leaflet</a>'); }catch(e){}
 var lay=L.tileLayer.wms(URL,{layers:LAYER,format:'image/png',transparent:true,version:'1.3.0',opacity:.6,attribution:'Protected areas © <a href="https://emodnet.ec.europa.eu" target="_blank" rel="noopener">EMODnet</a>/EEA, CC BY 4.0',maxZoom:19});
 var b=document.createElement('button'); b.type='button'; b.className='mbtn'; b.id='bMpa';

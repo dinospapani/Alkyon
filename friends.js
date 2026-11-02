@@ -4,19 +4,19 @@
    Τα δεδομένα των φίλων ΔΕΝ μπαίνουν στο δικό σου Ημερολόγιο: φαίνονται μόνο σε ξεχωριστό επίπεδο του χάρτη. */
 (function(){
 'use strict';
-var C=window.PsaroCore; if(!C) return;
+var C=window.AlkyonCore; if(!C) return;
 var EN=window.LANG==='en', T=function(a,b){ return EN?b:a; };
 var $=function(i){ return document.getElementById(i); };
 function el(tag,cls,txt){ var e=document.createElement(tag); if(cls) e.className=cls; if(txt!=null) e.textContent=txt; return e; }
 function ls(k,v){ try{ if(v===undefined){ var x=localStorage.getItem(k); return x==null?null:JSON.parse(x); } if(v===null) localStorage.removeItem(k); else localStorage.setItem(k,JSON.stringify(v)); }catch(e){ return null; } }
-function CL(){ return window.PsaroCloud; }
+function CL(){ return window.AlkyonCloud; }
 function logged(){ var c=CL(); return !!(c&&c.logged&&c.logged()); }
 function me(){ var c=CL(); return c&&c.uid?c.uid():''; }
 var COLORS=['#8e44ad','#d35400','#16a085','#c0392b','#2c3e50','#b8860b'];
-var S=ls('psaro-fr')||{list:[],data:{},at:0}; if(!S.list) S.list=[]; if(!S.data) S.data={};
-function save(){ try{ localStorage.setItem('psaro-fr',JSON.stringify(S)); }catch(e){ try{ localStorage.setItem('psaro-fr',JSON.stringify({list:S.list,data:{},at:0})); }catch(x){} } ls('psaro-fr-on',S.list.length>0); }
-function mapOn(){ return ls('psaro-fr-map')!==false; }
-function useOn(){ return ls('psaro-fr-use')===true; }
+var S=ls('alkyon-fr')||{list:[],data:{},at:0}; if(!S.list) S.list=[]; if(!S.data) S.data={};
+function save(){ try{ localStorage.setItem('alkyon-fr',JSON.stringify(S)); }catch(e){ try{ localStorage.setItem('alkyon-fr',JSON.stringify({list:S.list,data:{},at:0})); }catch(x){} } ls('alkyon-fr-on',S.list.length>0); }
+function mapOn(){ return ls('alkyon-fr-map')!==false; }
+function useOn(){ return ls('alkyon-fr-use')===true; }
 /* ψάρια φίλων κοντά σε ένα σημείο (για ψαρότοπους / ομοιότητα), μόνο αν το έχεις ενεργοποιήσει */
 function bitesNear(lat,lon,kmMax){ if(!useOn()) return []; var out=[]; S.list.forEach(function(f){ var d=S.data[f.uid]; if(!d) return; (d.bites||[]).forEach(function(b){ if(lat==null||Math.hypot((b.lat-lat)*111,(b.lon-lon)*111*Math.cos(lat*Math.PI/180))<=kmMax) out.push(Object.assign({},b,{_fr:f.name,_fu:f.uid})); }); }); return out; }
 var trL=null;
@@ -105,7 +105,7 @@ function draw(){
   });
 }
 function fmtD(b){ var d=new Date((b.date||'2000-01-01')+'T12:00:00Z'), DN=EN?['Sun','Mon','Tue','Wed','Thu','Fri','Sat']:['Κυρ','Δευ','Τρι','Τετ','Πέμ','Παρ','Σάβ']; return DN[d.getUTCDay()]+' '+d.getUTCDate()+'/'+(d.getUTCMonth()+1)+'/'+String(d.getUTCFullYear()).slice(2)+(b.time?' '+b.time:''); }
-function cond(b){ var U=window.PsaroUnits, P={slow:T('πίεση πέφτει αργά','pressure falling slowly'),fast:T('πίεση πέφτει γρήγορα','pressure falling fast'),stable:T('σταθερή πίεση','steady pressure'),rise:T('πίεση ανεβαίνει','pressure rising')};
+function cond(b){ var U=window.AlkyonUnits, P={slow:T('πίεση πέφτει αργά','pressure falling slowly'),fast:T('πίεση πέφτει γρήγορα','pressure falling fast'),stable:T('σταθερή πίεση','steady pressure'),rise:T('πίεση ανεβαίνει','pressure rising')};
   return [b.wind!=null&&U?U.wind(b.wind):null,b.wave!=null&&U?U.wave(b.wave)+T(' κύμα',' waves'):null,b.ptrend?P[b.ptrend]:null,b.sst!=null&&U?U.temp(b.sst)+T(' θάλασσα',' sea'):null].filter(Boolean).join(' · '); }
 function bitePop(f,b){
   var w=el('div','pop fishpop frpop'), im=el('img','pimg'); im.hidden=true; w.append(im);
@@ -116,7 +116,7 @@ function bitePop(f,b){
   if(b.bait||b.tech) w.append(el('div','meta',[b.bait,b.tech].filter(Boolean).join(' · ')));
   var cd=cond(b); if(cd) w.append(el('div','meta',cd));
   if(b.place) w.append(el('div','meta',b.place));
-  try{ w.append(el('div','meta mono',window.PsaroCoord.fmt(b.lat,b.lon))); }catch(e){}
+  try{ w.append(el('div','meta mono',window.AlkyonCoord.fmt(b.lat,b.lon))); }catch(e){}
   var row=el('div','row pbtns'); row.style.marginTop='6px';
   var sv=el('button','btn sm',T('Αποθήκευση ως σημείο μου','Save as my spot')); sv.type='button';
   sv.addEventListener('click',function(){ C.Store.save('spots',{name:(b.place||b.species||T('Σημείο','Spot'))+' ('+f.name+')',type:'',lat:b.lat,lon:b.lon,depth:b.depth!=null?b.depth:null,notes:T('Από φίλο: ','From a friend: ')+f.name+' · '+(b.species||'')+' '+fmtD(b)}).then(function(){ sv.disabled=true; sv.textContent=T('Αποθηκεύτηκε ✓','Saved ✓'); }); });
@@ -125,7 +125,7 @@ function bitePop(f,b){
 function spotPop(f,sp){
   var w=el('div','pop'); var who=el('div','frwho'); who.style.setProperty('--fc',col(f.uid)); who.textContent=T('Σημείο του ','Spot of ')+f.name; w.append(who);
   w.append(el('b','',sp.name||T('Σημείο','Spot'))); if(sp.depth!=null) w.append(el('div','meta',sp.depth+' m')); if(sp.notes) w.append(el('div','meta',sp.notes));
-  try{ w.append(el('div','meta mono',window.PsaroCoord.fmt(sp.lat,sp.lon))); }catch(e){}
+  try{ w.append(el('div','meta mono',window.AlkyonCoord.fmt(sp.lat,sp.lon))); }catch(e){}
   var row=el('div','row pbtns'); row.style.marginTop='6px'; var sv=el('button','btn sm',T('Αποθήκευση στα σημεία μου','Save to my spots')); sv.type='button';
   sv.addEventListener('click',function(){ C.Store.save('spots',{name:(sp.name||T('Σημείο','Spot'))+' ('+f.name+')',type:sp.type||'',lat:sp.lat,lon:sp.lon,depth:sp.depth!=null?sp.depth:null,notes:(sp.notes?sp.notes+' · ':'')+T('Από φίλο: ','From a friend: ')+f.name}).then(function(){ sv.disabled=true; sv.textContent=T('Αποθηκεύτηκε ✓','Saved ✓'); }); });
   row.append(sv); w.append(row); return w;
@@ -158,7 +158,7 @@ async function invite(out){
   var c=code(); out.replaceChildren(el('p','note',T('Δημιουργία…','Creating…')));
   try{ await CL().rest('friend_invites',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({code:c,name:(CL().name&&CL().name())||''})});
     out.replaceChildren(); var big=el('div','frcode',c.slice(0,4)+'-'+c.slice(4)); out.append(big,el('p','note',T('Στείλε τον κωδικό στον φίλο σου. Ισχύει 48 ώρες και για μία σύνδεση. Ο φίλος τον γράφει στο «Έχω κωδικό».','Send the code to your friend. It is valid for 48 hours and one use. Your friend enters it under “I have a code”.')));
-    var sh=el('button','btn sm',T('Αποστολή','Share')); sh.type='button'; var txt=T('BiteCast: κωδικός φίλου ','BiteCast friend code ')+c.slice(0,4)+'-'+c.slice(4)+T('\nΆνοιξε BiteCast → Προφίλ → Ρυθμίσεις → Φίλοι → Έχω κωδικό.','\nOpen BiteCast → Profile → Settings → Friends → I have a code.');
+    var sh=el('button','btn sm',T('Αποστολή','Share')); sh.type='button'; var txt=T('Alkyon: κωδικός φίλου ','Alkyon friend code ')+c.slice(0,4)+'-'+c.slice(4)+T('\nΆνοιξε Alkyon → Προφίλ → Ρυθμίσεις → Φίλοι → Έχω κωδικό.','\nOpen Alkyon → Profile → Settings → Friends → I have a code.');
     sh.addEventListener('click',function(){ if(navigator.share) navigator.share({text:txt}).catch(function(){}); else if(navigator.clipboard) navigator.clipboard.writeText(txt).then(function(){ sh.textContent=T('Αντιγράφηκε ✓','Copied ✓'); }); });
     out.append(sh);
   }catch(e){ out.replaceChildren(el('p','note',errMsg(e))); }
@@ -172,7 +172,7 @@ async function redeem(v,out){
 }
 async function setShare(f,v){ try{ await CL().rest('friends?owner=eq.'+me()+'&viewer=eq.'+f.uid,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({share:v})}); f.mine=v; save(); status(v?T('Ο ','')+f.name+T(' βλέπει τα δικά σου.',' can see yours.'):T('Ο ','')+f.name+T(' δεν βλέπει πια τα δικά σου.',' can no longer see yours.')); }catch(e){ status(errMsg(e),true); render(); } }
 async function remove(f){
-  var ok=window.PsaroAsk?await window.PsaroAsk(f.name,{title:T('Αφαίρεση φίλου;','Remove friend?'),ok:T('Αφαίρεση','Remove'),cancel:T('Άκυρο','Cancel'),danger:true}):confirm(f.name);
+  var ok=window.AlkyonAsk?await window.AlkyonAsk(f.name,{title:T('Αφαίρεση φίλου;','Remove friend?'),ok:T('Αφαίρεση','Remove'),cancel:T('Άκυρο','Cancel'),danger:true}):confirm(f.name);
   if(!ok) return;
   try{ await CL().rest('friends?owner=eq.'+me()+'&viewer=eq.'+f.uid,{method:'DELETE',headers:{Prefer:'return=minimal'}}); await CL().rest('friends?owner=eq.'+f.uid+'&viewer=eq.'+me(),{method:'DELETE',headers:{Prefer:'return=minimal'}}); await refresh(true); }catch(e){ status(errMsg(e),true); }
 }
@@ -193,9 +193,9 @@ function render(){
     var trs=(d&&d.trips)||[]; if(trs.length){ var tb=el('button','btn ghost sm',T('Έξοδοι','Trips')+' ('+trs.length+')'); tb.type='button'; tb.addEventListener('click',function(){ tripList(f,trs,r); }); r.append(tb); }
     ls3.append(r); });
   card.append(ls3);
-  var mp=el('label','chk'), mc=el('input'); mc.type='checkbox'; mc.checked=mapOn(); mc.addEventListener('change',function(){ ls('psaro-fr-map',mc.checked); draw(); }); mp.append(mc,el('span','',T('Ψάρια και σημεία φίλων στον χάρτη','Friends’ fish and spots on the map'))); mp.style.cssText='display:flex;gap:10px;align-items:center;margin:8px 0';
+  var mp=el('label','chk'), mc=el('input'); mc.type='checkbox'; mc.checked=mapOn(); mc.addEventListener('change',function(){ ls('alkyon-fr-map',mc.checked); draw(); }); mp.append(mc,el('span','',T('Ψάρια και σημεία φίλων στον χάρτη','Friends’ fish and spots on the map'))); mp.style.cssText='display:flex;gap:10px;align-items:center;margin:8px 0';
   card.append(mp);
-  var up=el('label','chk'), uc=el('input'); uc.type='checkbox'; uc.checked=useOn(); uc.addEventListener('change',function(){ ls('psaro-fr-use',uc.checked); try{ window.dispatchEvent(new Event('psaro-fruse')); }catch(e){} }); up.append(uc,el('span','',T('Να μετράνε και τα ψάρια των φίλων στους ψαρότοπους («Πότε», «Τώρα») και στις ειδοποιήσεις ίδιων συνθηκών','Also count friends’ fish in fishing spots (“When”, “Now”) and in same-conditions alerts'))); up.style.cssText='display:flex;gap:10px;align-items:center;margin:0 0 8px';
+  var up=el('label','chk'), uc=el('input'); uc.type='checkbox'; uc.checked=useOn(); uc.addEventListener('change',function(){ ls('alkyon-fr-use',uc.checked); try{ window.dispatchEvent(new Event('alkyon-fruse')); }catch(e){} }); up.append(uc,el('span','',T('Να μετράνε και τα ψάρια των φίλων στους ψαρότοπους («Πότε», «Τώρα») και στις ειδοποιήσεις ίδιων συνθηκών','Also count friends’ fish in fishing spots (“When”, “Now”) and in same-conditions alerts'))); up.style.cssText='display:flex;gap:10px;align-items:center;margin:0 0 8px';
   card.append(up);
   var row=el('div','row'), inv=el('button','btn sm acc',T('Πρόσκληση φίλου','Invite a friend')); inv.type='button';
   var ref=el('button','btn sm ghost',T('Ανανέωση','Refresh')); ref.type='button'; ref.addEventListener('click',function(){ refresh(true); });
@@ -221,7 +221,7 @@ document.head.appendChild(st);
 function boot(){ render(); draw(); refresh(false); }
 if(window.ndEvery) window.ndEvery(function(){ refresh(false); },20*60000);
 document.addEventListener('visibilitychange',function(){ if(!document.hidden) refresh(false); });
-window.addEventListener('psaro-login',function(){ refresh(true); });
+window.addEventListener('alkyon-login',function(){ refresh(true); });
 setTimeout(boot,1500);
-window.PsaroFriends={refresh:refresh,draw:draw,state:function(){ return S; },bitesNear:bitesNear,useOn:useOn};
+window.AlkyonFriends={refresh:refresh,draw:draw,state:function(){ return S; },bitesNear:bitesNear,useOn:useOn};
 })();

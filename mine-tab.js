@@ -1,7 +1,7 @@
 /* Υπο-καρτέλα «Δικά μου δεδομένα» της Πρόγνωσης: προσωπική πρόγνωση από τις έξοδοι και τα τσιμπήματα του χρήστη. */
 (function(){
 'use strict';
-var C=window.PsaroCore, PP=window.PP; var root=document.getElementById('fcMine'); if(!C||!PP||!root) return;
+var C=window.AlkyonCore, PP=window.PP; var root=document.getElementById('fcMine'); if(!C||!PP||!root) return;
 var h=C.h, $=C.$, pad=C.pad, EN=window.LANG==='en';
 var T=function(el,en){ return EN?en:el; };
 var last={place:null,fc:null}, seg='gen';
@@ -61,7 +61,7 @@ function listCard(){
   S.forEach(function(s){
     var hrs=(s.endMs-s.startMs)/3600000, n=s.manual?(+s.count||0):bites.filter(function(b){ var ms=PP.biteMs(b,C.utcMin()); return ms!=null&&ms>=s.startMs-600000&&ms<=s.endMs+600000; }).length;
     c.append(h('div',{class:'sessrow'},h('div',{style:'flex:1;min-width:0'},h('b',{text:s.date||''}),h('div',{class:'meta',text:(Math.round(hrs*10)/10)+' h · '+n+(EN?' bites':' τσιμπήματα')+(s.manual?' · '+T('χειροκίνητη','manual'):'')})),
-      h('button',{class:'btn ghost sm',type:'button','aria-label':T('Διαγραφή','Delete'),text:'✕',onclick:function(){ window.PsaroAsk(T('Να διαγραφεί η έξοδος;','Delete this trip?'),{title:T('Διαγραφή εξόδου','Delete trip'),ok:T('Διαγραφή','Delete'),danger:true}).then(function(y){ if(y) C.Store.remove('trips',s.id).then(render); }); }})));
+      h('button',{class:'btn ghost sm',type:'button','aria-label':T('Διαγραφή','Delete'),text:'✕',onclick:function(){ window.AlkyonAsk(T('Να διαγραφεί η έξοδος;','Delete this trip?'),{title:T('Διαγραφή εξόδου','Delete trip'),ok:T('Διαγραφή','Delete'),danger:true}).then(function(y){ if(y) C.Store.remove('trips',s.id).then(render); }); }})));
   });
   return c;
 }
@@ -122,10 +122,10 @@ function setSeg(s){
   var gen=$('fcGen'); if(gen) gen.hidden=s!=='gen'; root.hidden=s!=='mine'; var adv=$('fcAdv'); if(adv) adv.hidden=s!=='adv';
   Array.prototype.forEach.call(document.querySelectorAll('#fcSeg button'),function(b){ b.setAttribute('aria-pressed',String(b.dataset.s===s)); });
   if(s==='mine') render();
-  if(s==='adv'&&window.PsaroAdv) window.PsaroAdv.render();
+  if(s==='adv'&&window.AlkyonAdv) window.AlkyonAdv.render();
 }
 Array.prototype.forEach.call(document.querySelectorAll('#fcSeg button'),function(b){ b.addEventListener('click',function(){ setSeg(b.dataset.s); }); });
-window.addEventListener('psaro-fcloaded',function(e){ last=e.detail||last; if(seg==='mine'&&!root.hidden) render(); });
+window.addEventListener('alkyon-fcloaded',function(e){ last=e.detail||last; if(seg==='mine'&&!root.hidden) render(); });
 ['trips','bites'].forEach(function(k){ C.Store.on(k,function(){ if(seg==='mine'&&!root.hidden&&!document.activeElement.closest('#fcMine')) render(); }); });
 setSeg(seg==='mine'||seg==='adv'?seg:'gen');
 })();
