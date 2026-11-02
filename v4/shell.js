@@ -52,8 +52,20 @@ function start(){
   window.addEventListener('hashchange',route);
   document.addEventListener('visibilitychange',function(){ if(!document.hidden&&cur&&VIEWS[cur].resume) VIEWS[cur].resume(); });
   route();
-  if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js',{scope:'./'}).catch(function(){});
+  if('serviceWorker' in navigator) autoUpdate();
 }
+/* v31z530: η νέα έκδοση μπαίνει μόνη της. Έλεγχος όταν επιστρέφεις στην εφαρμογή και κάθε 30′· μόλις ο νέος service worker πάρει τον έλεγχο,
+   ανανέωση της σελίδας, εκτός αν είναι ανοιχτό παράθυρο ή γράφεις κάτι: τότε μήνυμα με κουμπί «Ανανέωση» (για να μη χαθεί ό,τι έγραφες). */
+function autoUpdate(){ var SW=navigator.serviceWorker, had=!!SW.controller, done=false, lastChk=0;
+  function busy(){ var a=document.activeElement; return !!document.querySelector('.sheet.on')||!!(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)); }
+  function reload(){ if(done) return; done=true; try{ sessionStorage.setItem('bc-updated','1'); }catch(e){} location.reload(); }
+  SW.addEventListener('controllerchange',function(){ if(!had){ had=true; return; } if(busy()){ B.toast(T('Νέα έκδοση της εφαρμογής.','New app version.'),12000,{label:T('Ανανέωση','Refresh'),fn:reload}); var w=setInterval(function(){ if(!busy()){ clearInterval(w); reload(); } },4000); } else reload(); });
+  SW.register('sw.js',{scope:'./'}).then(function(reg){
+    function chk(){ if(Date.now()-lastChk<60000) return; lastChk=Date.now(); try{ reg.update(); }catch(e){} }
+    document.addEventListener('visibilitychange',function(){ if(!document.hidden) chk(); });
+    setInterval(function(){ if(!document.hidden) chk(); },30*60000);
+  }).catch(function(){});
+  try{ if(sessionStorage.getItem('bc-updated')){ sessionStorage.removeItem('bc-updated'); setTimeout(function(){ B.toast(T('Ενημερώθηκε στην ','Updated to ')+(window.PSARO_VERSION||''),3500); },1200); } }catch(e){} }
 B.start=start;
 })();
 /* «Νέα έκδοση διαθέσιμη» (όπως η κλασική): ελέγχει το ../version.js και ανανεώνει όταν το πατήσεις, ποτέ μέσα σε έξοδο */

@@ -125,9 +125,11 @@ body:not(.maptrip) .rtwrap{display:none}
 .mo-btn.wait{opacity:.7}
 body:not(.ontrip) .mo-btn,body:not(.mapon) .mo-btn{display:none!important}
 body.hasdt .mo-btn{top:calc(var(--safe-t) + 282px)}
-.mapbox.mrot .leaflet-marker-icon>div:not(.you){transform:rotate(var(--mc,0deg))}
+.mapbox.mrot .leaflet-marker-icon:not(.mk)>div:not(.you){transform:rotate(var(--mc,0deg))}
 .mapbox.mrot .leaflet-popup{rotate:var(--mc,0deg);transition:opacity .2s linear,rotate .35s linear}
-.mapbox.mrot .leaflet-marker-icon.mk{rotate:var(--mc,0deg)}
+/* v31z526: η αντίστροφη περιστροφή (για να μένουν όρθια τα σημάδια) γίνεται γύρω από το σημείο του σημαδιού, όχι γύρω από τη γωνία του χάρτη.
+   Η θέση μου / το σκάφος δεν γυρίζει αντίστροφα: σε CU/HU ήδη δείχνει προς τα πάνω. */
+.mapbox.mrot .leaflet-marker-icon.mk:not(.me):not(.rpboat)>*{rotate:var(--mc,0deg);transform-origin:0 0}
 #bNav{display:none!important}
 .zonewarn.navwarn{position:fixed;left:12px;right:12px;top:calc(var(--safe-t) + 70px);z-index:30;padding:12px 14px;border-radius:14px;color:#fff;font-weight:700;font-size:14px;box-shadow:0 6px 18px rgba(0,0,0,.35);max-width:540px;margin:0 auto}
 .zonewarn[hidden]{display:none}
@@ -485,3 +487,45 @@ body.ontrip[data-tprof=lake] .mk.me.hd i::before{width:96px;height:96px;margin:-
 .mo-btn .moi .mon{fill:#e5484d;opacity:1}
 .mo-btn.on .moi .mon{fill:#fff}
 .mo-btn b{font:800 9.5px/1 var(--font);letter-spacing:.04em;opacity:.8}
+/* v31z526 · ρεύματα: μονάδα, για να μη μπερδεύονται με το κύμα */
+.mk.cur b small{font-size:8.5px;font-weight:700;opacity:.85}
+/* v31z526 · η κλίμακα θερμοκρασίας νερού κάτω από τη μπάρα ενδείξεων (όχι από πίσω της) */
+body.wxro .sstleg{top:calc(var(--safe-t) + 126px)}
+/* μπάρα ενδείξεων με άνεμο + κύμα + νερό: χωρίς τα δευτερεύοντα (kn, κατεύθυνση, περίοδος) για να χωράει μαζί με το «123» */
+.wxread:has(.rgi~.rgi~.rgi) .rv em{display:none}
+.wxread .rgi{min-width:0}
+.wxcross{z-index:460}
+/* v31z526 · αριστερή στήλη (MOB, μικρόφωνο, άγκυρα, προσανατολισμός) στον ίδιο κάθετο άξονα και με ίσες αποστάσεις */
+.seabar{width:58px;align-items:center}
+.micmap{margin-left:0}
+.ancbtn{width:52px;height:52px}
+.mo-btn{left:15px;top:calc(var(--safe-t) + 204px)}
+body.hasdt .mo-btn{top:calc(var(--safe-t) + 276px)}
+body[data-tprof=shore] .mo-btn,body[data-tprof=lake] .mo-btn{top:calc(var(--safe-t) + 74px)}
+body.hasdt[data-tprof=shore] .mo-btn,body.hasdt[data-tprof=lake] .mo-btn{top:calc(var(--safe-t) + 146px)}
+body:not(.maptrip) .mo-btn{top:calc(var(--safe-t) + 74px)}
+/* ⓘ πηγές: κάτω από τη δεξιά στήλη (στην αριστερή κρυβόταν πίσω από MOB / μικρόφωνο / προσανατολισμό) */
+.attrbtn{left:auto;right:24px;top:calc(var(--safe-t) + 186px)}
+/* κλίμακα νερού κάτω από τη μπάρα ενδείξεων· πιο ισχυρός κανόνας από το body:has(.mapwx[hidden]) */
+body.wxro .sstleg.sstleg.sstleg{top:calc(var(--safe-t) + 126px)}
+/* v31z527 · κλίμακα «Δομή βυθού» πάνω από την κάρτα «Πού πιάνω» όταν φαίνονται και οι δύο */
+body:has(.heatpill:not([hidden])):not(.maptrip) .sbleg{bottom:calc(var(--nav-h,64px) + var(--safe-b,0px) + 152px + var(--ndwh,0px))}
+/* v31z528 · Στρώματα χάρτη: χαμηλά οριζόντια πλακίδια (εικονίδιο + κείμενο), δύο ανά σειρά, ίδιο ύψος όλα → μισό μήκος */
+.lyr .lgrid{grid-template-columns:1fr 1fr;gap:8px}
+.lyr .ltile{flex-direction:row;align-items:center;justify-content:flex-start;gap:10px;min-height:60px;padding:8px 10px;border-radius:14px;text-align:left;border-width:1.5px}
+.lyr .ltile .lic{flex:none;width:36px;height:36px;border-radius:10px;margin:0}
+.lyr .ltile .lic svg{width:20px;height:20px}
+.lyr .ltile b,.lyr .ltile small{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lyr .ltile b{font-size:14px}
+.lyr .ltile small{font-size:12px;margin-top:1px}
+.lyr .ltile>b{flex:1 1 auto}
+.lyr .ltile{display:grid;grid-template-columns:36px minmax(0,1fr);grid-template-rows:auto auto;column-gap:10px;row-gap:0;align-content:center}
+.lyr .ltile .lic{grid-row:1 / span 2}
+.lyr .ltile small:empty{display:none}
+.lyr .lyh{margin:18px 2px 8px}
+.lyr .lbase{gap:10px}
+.lyr .lbt .lprev{height:70px;background-color:#1d4a5e;background-size:cover;background-position:center}
+.lyr .lbt.osm .lprev{background-color:#e8e4dc}
+.lyr .lbt .lprev.real{background-repeat:no-repeat}
+@media (max-width:340px){.lyr .lgrid{grid-template-columns:1fr}}
+.lyr .ldepth{margin-bottom:0}.lyr .ldepth .seg{margin-bottom:0}

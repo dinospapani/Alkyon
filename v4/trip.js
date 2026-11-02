@@ -172,7 +172,10 @@ B.tripStart=function(){
   function setDur(hrs){ var t=new Date(Date.now()+hrs*3600000); tm.value=B.pad(t.getHours())+':'+B.pad(t.getMinutes()); [].forEach.call(chips.children,function(c){ c.setAttribute('aria-pressed',String(+c.dataset.h===hrs)); }); }
   [2,3,4,6,8].forEach(function(x){ chips.append(h('button',{type:'button',class:'chip',data:{h:x},text:x+T(' ώρες',' h'),onclick:function(){ setDur(x); }})); }); setDur(4);
   tm.addEventListener('input',function(){ [].forEach.call(chips.children,function(c){ c.setAttribute('aria-pressed','false'); }); });
-  var rt=h('input',{type:'text',maxlength:'80',value:d.route||'',placeholder:T('π.χ. Πωμός, ύφαλος','e.g. Pomos, reef')});
+  /* v31z530: χωρίς αυτόματη συμπλήρωση του browser (έβαζε το όνομα του χρήστη)· παλιά τιμή που είναι όνομα ανθρώπου αγνοείται */
+  var rv=String(d.route||'').trim(), ses=(B.cloud&&B.cloud.session&&B.cloud.session())||{}, bad=[ses.name,ses.email,d.name,d.contactName,(d.contact&&d.contact.name)].filter(Boolean).map(function(x){ return String(x).trim().toLowerCase(); });
+  if(rv&&bad.indexOf(rv.toLowerCase())>=0) rv='';
+  var rt=h('input',{type:'text',maxlength:'80',value:rv,placeholder:T('π.χ. Πωμός, ύφαλος','e.g. Pomos, reef'),autocomplete:'off',autocapitalize:'sentences',name:'bc-trip-where',enterkeyhint:'done',spellcheck:'false'});
   var sil=h('select',{class:'select'}); [[0,T('Χωρίς','Off')],[30,T('Μετά από 30 λεπτά','After 30 minutes')],[60,T('Μετά από 60 λεπτά','After 60 minutes')],[90,T('Μετά από 90 λεπτά','After 90 minutes')]].forEach(function(o){ sil.append(h('option',{value:String(o[0]),text:o[1]})); }); sil.value=String(d.sil!=null?d.sil:60);
   var nt=h('input',{type:'checkbox',checked:true}), gp=h('input',{type:'checkbox',checked:gpsOn()});
   var c=hasContact(d), logged=!!Cl(), ex=B.tripStartExtras?B.tripStartExtras(rt):null;

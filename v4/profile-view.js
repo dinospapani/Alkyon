@@ -26,7 +26,7 @@ var PI={tackle:'<path d="M4 20L18.5 5.5"/><path d="M18.5 5.5c1.2-1.2 2.5-.4 2.5 
   type:'<path d="M3 17c2.2 0 2.2-1.5 4.5-1.5S9.8 17 12 17s2.2-1.5 4.5-1.5S19 17 21 17"/><path d="M12 3v10M8 7l4-4 4 4"/>',lang:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/>',
   units:'<path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/>',safety:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
   ai:'<path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',cloud:'<path d="M7 18h10a4 4 0 0 0 .5-8 6 6 0 0 0-11.5 2A3 3 0 0 0 7 18z"/>',
-  backup:'<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v3h16v-3"/>',stats:'<path d="M5 20V10M12 20V4M19 20v-7"/>'};
+  backup:'<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v3h16v-3"/>',hist:'<path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4h4"/><path d="M12 8v4l3 2"/>',stats:'<path d="M5 20V10M12 20V4M19 20v-7"/>'};
 function pic(k){ return h('span',{class:'ic pic',html:k==='type'&&B.profBadge?B.profBadge(B.prof()):'<svg viewBox="0 0 24 24" aria-hidden="true">'+(PI[k]||'')+'</svg>'}); }
 function row(k,title,sub,href,fn){ var a=h(href?'a':'button',{class:'li',href:href||null,type:href?null:'button',onclick:fn||null},pic(k),h('span',{class:'tx'},h('b',{text:title}),sub?h('small',{text:sub}):null),B.icon('chev')); return a; }
 function group(title,rows){ return h('div',{class:'pgrp'},title?h('h3',{class:'listh',text:title}):null,h('div',{class:'list'},rows.filter(Boolean))); }
@@ -34,7 +34,9 @@ var tab=ls.get('psaro-v4-ptab','mine');
 /* κεφαλίδα: όνομα, συγχρονισμός, η χρονιά σου */
 function head(s){ var st=C().state(), nm=s?((s.name||'').trim()||s.email||''):'', y=String(new Date().getFullYear());
   var bs=B.store.raw('bites').filter(function(b){ return !b.deleted&&!b.miss&&!b.gear&&(b.date||'').slice(0,4)===y; }), tr=B.store.raw('trips').filter(function(t){ return !t.deleted&&(t.date||'').slice(0,4)===y; });
-  var n=bs.reduce(function(a,b){ return a+Math.max(1,Math.floor(+b.cnt)||1); },0), best=null, pl={}; bs.forEach(function(b){ if(+b.kg>0&&(!best||+b.kg>+best.kg)) best=b; if(b.place) pl[b.place]=(pl[b.place]||0)+1; });
+  var n=bs.reduce(function(a,b){ return a+Math.max(1,Math.floor(+b.cnt)||1); },0), best=null, pl={}; var sps=B.store.raw('spots').filter(function(x){ return !x.deleted&&typeof x.lat==='number'; });
+  function nearSpot(b){ if(typeof b.lat!=='number'||!sps.length) return ''; var bn='', bd=1500; sps.forEach(function(x){ var dy=(x.lat-b.lat)*111320, dx=(x.lon-b.lon)*111320*Math.cos(b.lat*Math.PI/180), d=Math.sqrt(dx*dx+dy*dy); if(d<bd){ bd=d; bn=x.name||''; } }); return bn; }
+  bs.forEach(function(b){ if(+b.kg>0&&(!best||+b.kg>+best.kg)) best=b; var pn=(b.place||'').trim()||nearSpot(b); if(pn) pl[pn]=(pl[pn]||0)+Math.max(1,Math.floor(+b.cnt)||1); });
   var top=Object.keys(pl).sort(function(a,b){ return pl[b]-pl[a]; })[0];
   var cls=!s?'off':st.err?'bad':(st.t&&Date.now()-st.t<86400000)?'ok':'warn', stx=!s?T('Χωρίς λογαριασμό · μόνο σε αυτό το κινητό','No account · this phone only'):st.err?T('Πρόβλημα συγχρονισμού','Sync problem'):st.t?T('Συγχρονίστηκε ','Synced ')+new Date(st.t).toLocaleString(EN?'en-GB':'el-GR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):T('Δεν έχει συγχρονιστεί ακόμα','Not synced yet');
   var c=h('section',{class:'card phead'});
@@ -68,22 +70,21 @@ function mineTab(page){
   var n=B.store.raw('tackle').filter(function(x){ return !x.deleted; }).length, sp=B.store.raw('spots').filter(function(x){ return !x.deleted; }).length;
   var bt=ls.get('psaro-boat',null), bn=bt&&bt.boat&&bt.boat.name, g=ls.get('psaro-gear',null), gn=g&&Array.isArray(g.items)?g.items.length:0;
   page.append(group(T('Εξοπλισμός και σκάφος','Tackle and boat'),[
-    row('tackle',T('Εξοπλισμός','Tackle'),n?n+' '+T('κομμάτια','items'):T('Καλάμια, μουλινέ, τεχνητά, ψαροντούφεκα','Rods, reels, lures, spearguns'),'#tackle'),
-    row('boat',T('Σκάφος','Boat'),bn||T('Κινητήρας, συντήρηση, λήξεις, μπαταρίες','Engine, maintenance, expiries, batteries'),'#boat'),
-    row('gear',T('Παραγάδια, δίχτυα, ζεμπίλια','Longlines, nets, pots'),gn?gn+' '+T('καταγραφές','records'):T('Ρίψη και ανέβασμα εργαλείων','Set and haul gear'),null,function(){ ls.set('psaro-v4-logtab','gear'); location.hash='#log'; }),
-    row('spots',T('Τα σημεία μου','My spots'),sp?sp+' '+T('σημεία','spots'):T('Δεν έχεις αποθηκεύσει σημεία','No saved spots yet'),null,function(){ ls.set('psaro-v4-logtab','spots'); location.hash='#log'; })]));
+    row('tackle',T('Εξοπλισμός','Tackle'),n?n+' '+(n===1?T('κομμάτι','item'):T('κομμάτια','items')):T('Καλάμια, μουλινέ, τεχνητά, ψαροντούφεκα','Rods, reels, lures, spearguns'),'#tackle'),
+    row('gear',T('Παραγάδια, δίχτυα, ζεμπίλια','Longlines, nets, pots'),gn?gn+' '+(gn===1?T('καταγραφή','record'):T('καταγραφές','records')):T('Ρίψη και ανέβασμα εργαλείων','Set and haul gear'),null,function(){ ls.set('psaro-v4-logtab','gear'); location.hash='#log'; }),
+    row('boat',T('Σκάφος','Boat'),bn||T('Κινητήρας, συντήρηση, λήξεις, μπαταρίες','Engine, maintenance, expiries, batteries'),'#boat')]));
   /* v31z525: η εισαγωγή είναι δεδομένα σου, όχι ρύθμιση λογαριασμού */
-  page.append(group(T('Εισαγωγή δεδομένων','Import data'),[row('backup',T('Από plotter, GPS ή ρολόι κατάδυσης','From a plotter, GPS or dive watch'),'GPX · KML · CSV · FIT · UDDF',null,function(){ if(B.importSheet) B.importSheet(); })]));
-  page.append(group(T('Κοινότητα','Community'),[
+  page.append(group(T('Σημεία και δεδομένα','Spots and data'),[row('spots',T('Τα σημεία μου','My spots'),sp?sp+' '+(sp===1?T('σημείο','spot'):T('σημεία','spots')):T('Δεν έχεις αποθηκεύσει σημεία','No saved spots yet'),null,function(){ ls.set('psaro-v4-logtab','spots'); location.hash='#log'; }),row('backup',T('Από plotter, GPS ή ρολόι κατάδυσης','From a plotter, GPS or dive watch'),'GPX · KML · CSV · FIT · UDDF',null,function(){ if(B.importSheet) B.importSheet(); })]));
+  page.append(group(T('Φίλοι και κοινότητα','Friends and community'),[
     row('community',T('Κοινότητα','Community'),T('Ψάρια άλλων ψαράδων, χωρίς θέση','Other anglers’ catches, no locations'),'#community'),
     row('people',T('Φίλοι','Friends'),T('Κοινά ψάρια και σημεία με φίλους','Share catches and spots with friends'),'#friends')]));
   page.append(group(T('Γνώση','Knowledge'),[
-    row('guide',T('Οδηγός','Guide'),T('Είδη, ελάχιστα μεγέθη, νόμοι, κόμποι, ασφάλεια','Species, minimum sizes, laws, knots, safety'),'#guide')]));
+    row('guide',T('Οδηγός','Guide'),T('Είδη, μεγέθη, νόμοι, κόμποι','Species, sizes, laws, knots'),'#guide')]));
 }
 function sheetOf(title,body){ return B.sheet({title:title,body:body}); }
 function settingsTab(page){
   var sf=ls.get('psaro-safe',null)||{}, n=Object.assign({on:false},ls.get('psaro-notify',{}));
-  var uSum=U&&U.cfg?[U.cfg.wind,U.cfg.wave,U.cfg.temp].filter(Boolean).join(' · '):'';
+  var uLab=function(k){ var v=U&&U.cfg&&U.cfg[k], o=U&&U.options&&U.options[k], m=o&&o.filter(function(x){ return x[0]===v; })[0]; return m?m[1]:v; }, uSum=U&&U.cfg?['wind','wave','temp'].map(uLab).filter(Boolean).join(' · '):'';
   page.append(group(T('Ψάρεμα','Fishing'),[
     row('type',T('Τύπος ψαρέματος','Fishing type'),(B.PROF[B.prof()]||'')+(ls.raw&&ls.raw('psaro-askfp')==='"0"'?'':''),null,function(){ var body=h('div',{class:'bform'},
         h('div',{class:'ptiles',role:'group','aria-label':T('Τύπος ψαρέματος','Fishing type')},Object.keys(B.PROF).map(function(k){ return h('button',{type:'button',class:'ptile','aria-pressed':String(B.prof()===k),onclick:function(){ try{ localStorage.setItem('psaro-fprof',k); }catch(e){} B.emit('store','psaro-fprof'); B.toast(T('Ο βαθμός και οι προτάσεις προσαρμόστηκαν.','The score and suggestions were adjusted.')); B.closeSheet(); draw(); }},h('span',{class:'pti',html:B.profBadge?B.profBadge(k):''}),h('b',{text:B.PROF[k]})); })),
@@ -91,7 +92,7 @@ function settingsTab(page){
       sheetOf(T('Τύπος ψαρέματος','Fishing type'),body); }),
     row('safety',T('Επαφή ασφαλείας','Safety contact'),sf.name||sf.phone||sf.email||(sf.tgLinked?'Telegram':T('Δεν έχει οριστεί','Not set')),null,function(){ if(B.safetyCard) sheetOf(T('Επαφή ασφαλείας','Safety contact'),B.safetyCard()); }),
     row('bell',T('Ρυθμίσεις ειδοποιήσεων','Notification settings'),n.on?T('Ενεργές','On'):T('Ανενεργές','Off'),'#alerts'),
-    row('bell',T('Ιστορικό ειδοποιήσεων','Notification history'),T('Ό,τι σου στάλθηκε','Everything sent to you'),'#inbox')]));
+    row('hist',T('Ιστορικό ειδοποιήσεων','Notification history'),T('Ό,τι σου στάλθηκε','Everything sent to you'),'#inbox')]));
   page.append(group(T('Εφαρμογή','App'),[
     row('lang',T('Γλώσσα','Language'),B.LANG==='en'?'English':'Ελληνικά',null,function(){ sheetOf(T('Γλώσσα','Language'),h('div',{class:'bform'},B.seg([['el','Ελληνικά'],['en','English']],B.LANG,function(v){ try{ localStorage.setItem('psaro-lang',v); }catch(e){} location.reload(); },T('Γλώσσα','Language')))); }),
     U&&U.options?row('units',T('Μονάδες','Units'),uSum,null,unitsSheet):null,
@@ -105,17 +106,23 @@ function accountTab(page,s){
   page.append(backupCard());
   if(B.dataCards){ var dc=B.dataCards(); page.append(dc[0]); page.append(dc[2]); }
   var dm=dataCard(); if(dm) page.append(dm);
+  if(s) page.append(dangerCard());
 }
 /* ---------- λογαριασμός ---------- */
 function accountCard(s){
   var c=h('section',{class:'card acc'}), st=C().state();
   var nm=(s.name||'').trim(), ch=(nm||s.email||'?').charAt(0).toUpperCase();
-  c.append(h('div',{class:'idr'},h('span',{class:'av',text:ch}),h('div',{class:'tx'},h('b',{text:nm||T('Χωρίς όνομα','No name')}),h('small',{text:s.email||''}))));
+  c.append(h('h2',{text:T('Λογαριασμός','Account')}),h('p',{class:'sub accmail',text:s.email||''}));
   var ni=h('input',{type:'text',maxlength:'40',value:nm,placeholder:T('Το όνομά σου','Your name'),autocomplete:'name','aria-label':T('Όνομα','Name')});
   c.append(h('div',{class:'inrow'},ni,h('button',{class:'btn',type:'button',text:T('Αποθήκευση','Save'),onclick:function(){ C().setName(ni.value.trim()).then(function(){ B.toast(T('Το όνομα αποθηκεύτηκε.','Name saved.')); draw(); }).catch(function(e){ B.toast(C().errText(e)); }); }})));
-  var sm=h('p',{class:'sub syncmsg'+(st.err?' bad':''),text:st.msg||(st.t?T('Τελευταίος συγχρονισμός: ','Last sync: ')+new Date(st.t).toLocaleString(EN?'en-GB':'el-GR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'')});
+  /* η ώρα συγχρονισμού φαίνεται ήδη στην κεφαλίδα· εδώ μόνο πρόοδος ή σφάλμα */
+  var sm=h('p',{class:'sub syncmsg'+(st.err?' bad':''),hidden:!st.err,text:st.err?st.msg:''});
   var sb=h('button',{class:'btn full',type:'button',html:B.iconSvg('refresh')+'<span>'+T('Συγχρονισμός τώρα','Sync now')+'</span>',onclick:function(){ sb.disabled=true; C().sync(true).then(function(){ sb.disabled=false; draw(); }); }});
   c.append(sm,sb);
+  return c;
+}
+/* αποσύνδεση και διαγραφή: χωριστά, στο τέλος της καρτέλας */
+function dangerCard(){ var c=h('section',{class:'card accx'});
   c.append(h('button',{class:'btn full out',type:'button',text:T('Αποσύνδεση','Sign out'),onclick:function(){ B.ask(T('Αποσύνδεση από τον λογαριασμό; Τα δεδομένα σου μένουν στο κινητό και στον λογαριασμό.','Sign out? Your data stays on this phone and in your account.'),T('Αποσύνδεση','Sign out'),true).then(function(y){ if(y) C().signOut().then(function(){ B.toast(T('Αποσυνδέθηκες.','Signed out.')); draw(); }); }); }}));
   c.append(h('button',{class:'linkbtn danger',type:'button',text:T('Διαγραφή λογαριασμού','Delete account'),onclick:delAccount}));
   return c;
@@ -149,6 +156,8 @@ function backupCard(){
   return c;
 }
 B.view('profile',{title:T('Προφίλ','Profile'),mount:function(el){ root=el; draw(); },unmount:function(){ root=null; },resume:function(){ draw(); }});
-B.on('sync',function(){ if(root){ var m=root.querySelector('.syncmsg'); if(m){ var st=C().state(); m.textContent=st.msg; m.classList.toggle('bad',!!st.err); } } });
+B.on('sync',function(){ if(!root) return; var st=C().state(), busy=/…$/.test(st.msg||''), m=root.querySelector('.syncmsg');
+  if(m){ m.hidden=!(busy||st.err); m.textContent=(busy||st.err)?st.msg:''; m.classList.toggle('bad',!!st.err); }
+  if(!busy){ var hd=root.querySelector('.phead'); if(hd) try{ hd.replaceWith(head(C().session())); }catch(e){} } });
 B.on('store',function(k){ if(root&&k==='psaro-sess') draw(); });
 })();

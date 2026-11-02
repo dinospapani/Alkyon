@@ -234,3 +234,212 @@ input[list]::-webkit-calendar-picker-indicator{display:none!important;opacity:0}
 .tkw2.ok{background:rgba(46,158,106,.14);color:#4fcf95}.tkw2.ok::before{content:"✔ "}
 .tkli .tkc{flex:none;align-self:flex-start;margin-top:2px;padding:3px 8px;border-radius:999px;background:rgba(46,158,106,.16);color:#4fcf95;font:750 12px var(--font);white-space:nowrap}
 .tkli>svg:last-child{align-self:center}
+/* v31z530 · εξοπλισμός: μάρκα + 🐟 στην ίδια γραμμή, τίτλος σε όλο το πλάτος (2 γραμμές), λεπτομέρειες σε 2 γραμμές */
+.tkx .tktop{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+.tkx .tktop .tkbr{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tkx .tktop .tkc{flex:none;padding:2px 8px;border-radius:999px;background:rgba(46,158,106,.16);color:#4fcf95;font:750 11.5px var(--font);white-space:nowrap}
+.tkx .tkmt{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tkx small.tkmt{white-space:normal!important;overflow:hidden!important;text-overflow:clip!important;display:-webkit-box!important;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+/* v31z530 · πιο επαγγελματική διάταξη εξοπλισμού */
+/* εργαλεία: μία λεπτή μπάρα αντί για 4 μεγάλα κουτιά */
+.tktools2{gap:0;padding:4px;border-radius:16px;background:var(--surface);box-shadow:var(--shadow);margin:2px 0 12px}
+.tkt2{flex-direction:column;gap:3px;padding:7px 2px 6px;border-radius:12px;background:none;box-shadow:none}
+.tkt2+.tkt2{position:relative}
+.tkt2+.tkt2::before{content:"";position:absolute;left:0;top:22%;bottom:22%;width:1px;background:var(--line)}
+.tki2{width:30px;height:30px;border-radius:9px}
+.tki2 svg{width:18px;height:18px}
+.tkt2 b{font:650 11px/1.2 var(--font);color:var(--ink-2)}
+.tkt2:active{background:var(--surface-2)}
+/* χαρακτηριστικά σε ετικέτες */
+.tktags{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+.tktag{padding:2px 7px;border-radius:7px;background:var(--surface-2);border:1px solid var(--line);font:600 11.5px/1.35 var(--font);color:var(--ink-2);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+/* σετ: καρτέλα προδιαγραφών */
+.tkspec{display:grid;grid-template-columns:auto auto minmax(0,1fr);column-gap:7px;row-gap:0;margin-top:6px;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.tksr{display:contents}
+.tksr>*{padding:5px 0;border-top:1px solid var(--line);align-self:stretch;display:flex;align-items:center}
+.tksr:first-child>*{border-top:0}
+.tksr>i{padding-left:8px}.tksr>i svg{width:15px;height:15px}
+.tksr>em{font:700 10px var(--font);letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);font-style:normal}
+.tksr>span{font:650 12.5px/1.3 var(--font);color:var(--ink);padding-right:8px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tksr.ty-rod>i{color:#ff9a66}.tksr.ty-reel>i{color:#6fb0ff}.tksr.ty-line>i,.tksr.ty-leader>i{color:#3fd0c2}.tksr.ty-lure>i{color:#f27aa8}
+.tkw2{margin-top:6px;padding:3px 9px;border-radius:999px;font:650 11.5px/1.35 var(--font)}
+.tksr>span{white-space:normal;overflow:visible}
+/* v31z530 · εξοπλισμός σε πλέγμα (κάρτες) */
+.tksrow{display:flex;gap:8px;align-items:center}
+.tksrow .search{flex:1 1 auto;min-width:0}
+.tkvw{flex:none;width:44px;height:44px;border-radius:14px}
+.tkvw svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tkgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:6px}
+.tkcard{position:relative;display:flex;flex-direction:column;align-items:stretch;padding:0;border:0;border-radius:16px;overflow:hidden;background:var(--surface);box-shadow:var(--shadow);color:var(--ink);text-align:left;font-family:var(--font);cursor:pointer}
+.tkcard:active{transform:scale(.98)}
+.tkcov{display:grid;place-items:center;height:74px;background-size:cover;background-position:center}
+.tkcov svg{width:34px;height:34px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.tkcov.ty-rod{background-color:rgba(255,140,90,.16);color:#ff9a66}
+.tkcov.ty-reel{background-color:rgba(90,150,255,.16);color:#6fb0ff}
+.tkcov.ty-line,.tkcov.ty-leader{background-color:rgba(50,200,185,.15);color:#3fd0c2}
+.tkcov.ty-lure{background-color:rgba(240,110,160,.15);color:#f27aa8}
+.tkcov.ty-hook,.tkcov.ty-other,.tkcov.ty-acc{background-color:var(--surface-2);color:var(--ink-2)}
+.tkcov.ty-gun,.tkcov.ty-shaft{background-color:rgba(120,140,255,.15);color:#8f9cff}
+.tkcov.ph{height:96px}
+.tkcf{position:absolute;top:8px;right:8px;padding:2px 8px;border-radius:999px;background:rgba(10,30,40,.72);color:#5fe0a5;font:750 11.5px var(--font)}
+.tkcb{display:flex;flex-direction:column;gap:2px;padding:9px 10px 11px;min-width:0}
+.tkcb .tkbr{font:750 10px var(--font);letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tkcb .tkmd{font:750 14px/1.25 var(--font);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.5em}
+.tkcb .tktags{margin-top:4px}
+.tkcb .tktag{font-size:11px}
+/* v31z530 · κατηγορίες εξοπλισμού σε πλέγμα */
+.tkcats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 12px}
+.tkcat{display:flex;flex-direction:column;align-items:center;gap:1px;padding:9px 4px 8px;border-radius:14px;border:1.5px solid transparent;background:var(--surface);box-shadow:var(--shadow);color:var(--ink);font-family:var(--font);cursor:pointer;min-width:0}
+.tkcat .tkci{display:grid;place-items:center;width:28px;height:28px;border-radius:9px;margin-bottom:2px}
+.tkcat .tkci svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tkcat b{font:800 17px/1.1 var(--font)}
+.tkcat small{font:600 10.5px/1.2 var(--font);color:var(--ink-2);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tkcat.ty-set .tkci{background:rgba(150,120,255,.16);color:#a58bff}
+.tkcat.ty-rod .tkci{background:rgba(255,140,90,.16);color:#ff9a66}
+.tkcat.ty-reel .tkci{background:rgba(90,150,255,.16);color:#6fb0ff}
+.tkcat.ty-line .tkci,.tkcat.ty-leader .tkci{background:rgba(50,200,185,.15);color:#3fd0c2}
+.tkcat.ty-lure .tkci{background:rgba(240,110,160,.15);color:#f27aa8}
+.tkcat.ty-hook .tkci,.tkcat.ty-other .tkci,.tkcat.ty-acc .tkci{background:var(--surface-2);color:var(--ink-2)}
+.tkcat.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--surface))}
+.tkcat.on small{color:var(--accent)}
+.tkcats:has(.on) .tkcat:not(.on){opacity:.6}
+/* v31z530 · κεφαλίδα με εργαλεία, ταξινόμηση, απόδοση */
+.top.tktop2{gap:6px}
+.top.tktop2 h1.lt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;font-size:clamp(24px,7.4vw,34px)}
+.top.tktop2>div:first-child{min-width:0;flex:1 1 auto}
+.tkhbs{display:flex;align-items:center;gap:6px;flex:none}
+.tkhb{position:relative;width:40px;height:40px}
+.tkhb svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tkhb .tkbdg{position:absolute;top:-3px;right:-3px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--accent);color:#fff;font:800 10.5px/17px var(--font);font-style:normal;text-align:center}
+.tkhbs .tkhb:nth-child(3) svg{fill:currentColor;stroke:none}
+.tksort{flex:none;display:flex;align-items:center;gap:5px;height:44px;padding:0 11px;border-radius:14px;border:0;background:var(--surface);box-shadow:var(--shadow);color:var(--ink);font:650 12.5px var(--font);cursor:pointer}
+.tksort svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;color:var(--ink-2)}
+.tkperf{display:block;margin-top:5px;font:650 11.5px/1.35 var(--font);color:#4fcf95!important;white-space:normal}
+.tkcb .tkperf{margin-top:4px;font-size:11px}
+.tkx small.tkperf,.tkcb small.tkperf{white-space:normal!important;overflow:visible!important;text-overflow:clip!important}
+/* μεγάλος τίτλος (π.χ. «Εξοπλισμός») χωράει δίπλα στα εικονίδια· ονόματα κατηγοριών σε 2 γραμμές */
+.top.tktop2 h1.lt{font-size:clamp(22px,6.3vw,34px);text-overflow:clip}
+.tkhbs{gap:5px}.tkhb{width:38px;height:38px}
+.tkcat small{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.15;text-align:center;font-size:10px}
+@media (max-width:384px){.tkhbs .tkhb:first-child{display:none}}
+/* v31z530 · χαμένος εξοπλισμός στη φόρμα ψαριού */
+.tklost{margin-top:8px;padding:8px 10px;border-radius:12px;background:rgba(240,150,50,.08);border:1px dashed rgba(240,150,50,.4)}
+.tklost[hidden]{display:none}
+.tklost .tklh{display:block;margin-bottom:6px;color:var(--ink-2);font-size:12.5px}
+.tklchip[aria-pressed=true]{background:#e8743b!important;border-color:#e8743b!important;color:#fff!important}
+/* v31z530 · Σκάφος: συμπαγής σύνοψη, λήξεις σε γραμμές, συντήρηση με ✓ */
+.bkp .kpi{padding:11px 13px}.bkp .kpi b{font-size:22px}.bkp .kpi span{font-size:12.5px}
+.bkp .kpi.bad b{color:var(--poor)}.bkp .kpi.warn b{color:var(--fair)}
+.bok{color:var(--good)!important}
+.bstart{display:flex;flex-direction:column;gap:6px}
+.bsq{display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto;align-items:center;column-gap:8px;padding:10px 12px;border-radius:12px;border:0;background:var(--surface-2);color:var(--ink);text-align:left;font-family:var(--font);cursor:pointer}
+.bsq b{font-size:14.5px}.bsq small{grid-row:2;color:var(--ink-2);font-size:12.5px}.bsq svg{grid-row:1 / span 2;grid-column:2;width:18px;height:18px;color:var(--ink-3)}
+.expd{padding:0}
+.expd>summary{list-style:none;cursor:pointer;margin:0;padding:11px 0;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:nowrap}
+.expd>summary::-webkit-details-marker{display:none}
+.expd .exn{display:flex;flex-direction:column;min-width:0}
+.expd .exn b{font-size:15px}.expd .exn small{color:var(--ink-2);font-size:12.5px}
+.expd[open]>summary{padding-bottom:6px}
+.expd[open]{padding-bottom:12px}
+.mtrow{padding:9px 0}
+.mtdone{flex:none;width:38px;height:38px;border-radius:50%;border:1.5px solid var(--line);background:transparent;color:var(--ink-2);display:grid;place-items:center;cursor:pointer}
+.mtdone svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.mtdone.due{border-color:var(--accent);background:var(--accent);color:#fff}
+.mtdone:active{transform:scale(.92)}
+/* λιμάνι και έξοδος: αποστάσεις ανάμεσα στους διακόπτες */
+.card .tg+.tg{margin-top:12px}
+.card .tg+.fld{margin-top:16px}
+/* ===== v31z530 · νέα σελίδα Σκάφους ===== */
+.bpage .bedit svg,.bhedit svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.bhero{position:relative;border-radius:20px;overflow:hidden;box-shadow:var(--shadow);margin:0 0 12px;min-height:150px;display:flex;align-items:flex-end;background:#0e3446}
+.bcov{position:absolute;inset:0;background:url("bc-card-boat.jpg") center/cover no-repeat}
+.bcov::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(4,18,26,0) 25%,rgba(4,18,26,.82) 100%)}
+.bht{position:relative;padding:14px 16px;display:flex;flex-direction:column;gap:2px;color:#fff;min-width:0}
+.bht b{font:800 22px/1.15 var(--font)}
+.bht small{font:600 13px/1.3 var(--font);opacity:.9}
+.breg{align-self:flex-start;margin-top:5px;padding:2px 8px;border-radius:7px;background:rgba(255,255,255,.18);font:700 11.5px var(--font);letter-spacing:.06em}
+.bhedit{position:absolute;top:10px;right:10px;width:38px;height:38px;border-radius:50%;border:0;background:rgba(4,18,26,.55);color:#fff;display:grid;place-items:center;cursor:pointer;backdrop-filter:blur(4px)}
+.bpage .bedit{display:none}
+.bgauges{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 12px}
+.bgt{display:flex;flex-direction:column;align-items:stretch;gap:4px;padding:10px 10px 9px;border:0;border-radius:14px;background:var(--surface);box-shadow:var(--shadow);color:var(--ink);text-align:left;font-family:var(--font);cursor:pointer;min-width:0}
+.bgt .bgl{font:700 10.5px var(--font);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+.bgt b{font:800 14.5px/1.2 var(--font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bgt .bgs{font:600 11px/1.25 var(--font);color:var(--ink-2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.bgt.bad .bgs{color:var(--poor)}.bgt.warn .bgs{color:var(--fair)}.bgt.ok .bgs{color:var(--good)}
+.bbar{display:block;height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden;position:relative}
+.bbar i{display:block;height:100%;border-radius:3px;background:var(--good)}
+.bbar.warn i{background:var(--fair)}.bbar.bad i{background:var(--poor)}
+.bbar.none{background:repeating-linear-gradient(90deg,var(--surface-2) 0 6px,transparent 6px 10px)}
+.batt h2{margin-bottom:6px}
+.batr{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.batr:first-of-type{border-top:0}
+.batr>i{flex:none;width:4px;align-self:stretch;border-radius:2px;background:var(--fair)}
+.batr.bad>i{background:var(--poor)}
+.batx{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:1px;border:0;background:none;padding:0;color:var(--ink);text-align:left;font-family:var(--font);cursor:pointer}
+.batx b{font-size:14.5px}.batx small{font-size:12.5px;color:var(--fair)}.batr.bad .batx small{color:var(--poor)}
+.bseg{margin:4px 0 12px}
+.bfq{margin:-2px 0 12px}
+.bml{display:flex;flex-direction:column}
+.bmr{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+.bmr:first-child{border-top:0}
+.bmx{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;border:0;background:none;padding:0;color:var(--ink);text-align:left;font-family:var(--font);cursor:pointer}
+.bmt{display:flex;align-items:baseline;justify-content:space-between;gap:8px;min-width:0}
+.bmt b{font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bmt small{flex:none;font-size:12px;color:var(--ink-2)}
+.bmr.bad .bmt small{color:var(--poor)}.bmr.warn .bmt small{color:var(--fair)}
+.btline,.bund{display:flex;flex-direction:column}
+.btl{display:flex;align-items:center;gap:10px;padding:9px 0;border:0;border-top:1px solid var(--line);background:none;color:var(--ink);text-align:left;font-family:var(--font);cursor:pointer;width:100%}
+.btline .btl:first-child{border-top:0}
+.btl>i{flex:none;width:4px;align-self:stretch;border-radius:2px;background:var(--line)}
+.btl.ok>i{background:var(--good)}.btl.warn>i{background:var(--fair)}.btl.bad>i{background:var(--poor)}
+.bttx{flex:1;min-width:0;display:flex;flex-direction:column}
+.bttx b{font-size:14.5px}.bttx small{font-size:12.5px;color:var(--ink-2)}
+.bund{margin-top:8px;border-top:1px solid var(--line)}
+.bund>summary{list-style:none;cursor:pointer;padding:11px 0;font:650 13.5px var(--font);color:var(--ink-2)}
+.bund>summary::-webkit-details-marker{display:none}
+.bund>summary::after{content:" ›";}
+.bund[open]>summary::after{content:" ⌄"}
+.bund .btl>i{background:transparent;border:1.5px dashed var(--line)}
+.bbats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:10px}
+.bbat{display:flex;flex-direction:column;gap:5px;padding:11px;border:0;border-radius:14px;background:var(--surface-2);color:var(--ink);text-align:left;font-family:var(--font);cursor:pointer;min-width:0}
+.bbh{display:flex;flex-direction:column;gap:3px}
+.bbh b{font-size:14.5px}
+.bv{align-self:flex-start;padding:1px 7px;border-radius:999px;font:700 11px var(--font)}
+.bv.ok{background:rgba(46,158,106,.16);color:#4fcf95}.bv.warn{background:rgba(240,150,50,.14);color:#f2a65a}.bv.bad{background:rgba(220,70,60,.15);color:#ff7a6e}
+.bbat small{font-size:11.5px;color:var(--ink-2)}
+.bgt b{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:14px;line-height:1.2;min-height:2.4em}
+.bfq::before{content:attr(data-l);align-self:center;font:650 12px var(--font);color:var(--ink-2);margin-right:2px}
+/* v31z530b · Σκάφος: σχέδιο, δείκτες σε 2 στήλες, προσοχή με εικονίδια, σύνοψη καυσίμου */
+.bhero.noph{min-height:132px}
+.bcov.ill{background:none}.bcov.ill svg{position:absolute;inset:0;width:100%;height:100%}
+.baddph{align-self:flex-start;margin-top:8px;display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;border:1px solid rgba(255,255,255,.4);background:rgba(4,18,26,.35);color:#fff;font:650 12.5px var(--font);cursor:pointer}
+.baddph svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.bgauges{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.bgt{padding:12px 13px 11px;gap:6px}
+.bgt .bgl{font-size:11.5px}
+.bgt b{font-size:19px;min-height:0;-webkit-line-clamp:1}
+.bgt .bgs{font-size:12.5px}
+.bbar{height:7px}
+.bgx{grid-column:1 / -1;display:flex;align-items:center;gap:10px;padding:11px 13px;border:0;border-radius:14px;background:var(--surface);box-shadow:var(--shadow);color:var(--ink);text-align:left;font-family:var(--font);cursor:pointer;min-width:0}
+.bgxi{flex:none;display:grid;place-items:center;width:36px;height:36px;border-radius:11px;background:var(--surface-2);color:var(--ink-2)}
+.bgx.warn .bgxi{background:rgba(240,150,50,.15);color:#f2a65a}.bgx.bad .bgxi{background:rgba(220,70,60,.15);color:#ff7a6e}.bgx.ok .bgxi{background:rgba(46,158,106,.15);color:#4fcf95}
+.bgxi svg,.bati svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.bgxt{flex:1;min-width:0;display:flex;flex-direction:column}
+.bgxt small{font:700 11.5px var(--font);letter-spacing:.05em;text-transform:uppercase;color:var(--ink-2)}
+.bgxt b{font-size:15.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bgx>svg{width:18px;height:18px;color:var(--ink-3)}
+.batt h2{display:flex;align-items:center;gap:8px}
+.bcnt{min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:var(--fair);color:#1a1a1a;font:800 12px/22px var(--font);text-align:center}
+.batr>i{display:none}
+.bati{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:rgba(240,150,50,.15);color:#f2a65a}
+.batr.bad .bati{background:rgba(220,70,60,.15);color:#ff7a6e}
+.bmore>summary{list-style:none;cursor:pointer;padding:9px 0 2px;font:650 13px var(--font);color:var(--accent)}
+.bmore>summary::-webkit-details-marker{display:none}
+.bmore[open]>summary{display:none}
+.bch{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.bch h2{margin:0}
+.bsm{width:36px;height:36px}.bsm svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.bfs{margin:8px 0 10px;font:650 14.5px/1.4 var(--font);color:var(--ink)}
+.bch h2{font-size:19px;font-weight:700;letter-spacing:-.01em}
+.bht{max-width:68%}
+@media (max-width:380px){.bcov.ill svg g{opacity:.55}}

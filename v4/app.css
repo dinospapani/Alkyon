@@ -437,3 +437,11 @@ body:has(.sheet.on) .toast.on{transform:none}
 .asksub{margin:-2px 0 6px;white-space:pre-line;font-size:15px;line-height:1.45;color:var(--ink-2)}
 body:has(.tripbar:not([hidden])) .toast{bottom:calc(var(--nav-h) + var(--safe-b) + 72px)}
 body:has(.sheet.on) .toast{bottom:auto}
+/* v31z529 · λογαριασμός: email κάτω από τον τίτλο, αποσύνδεση/διαγραφή στο τέλος */
+.acc .accmail{margin:-6px 0 12px;word-break:break-all}
+.accx{display:flex;flex-direction:column;gap:6px;align-items:stretch}
+.accx .linkbtn{align-self:center;margin:4px 0 0}
+/* κορυφαίο σημείο: όνομα σε έως 2 γραμμές αντί να κόβεται */
+.pst b{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.15;word-break:break-word}
+.pst b:not(:only-of-type){font-size:16px}
+.app{padding-bottom:calc(var(--nav-h) + var(--safe-b) + 52px)}
