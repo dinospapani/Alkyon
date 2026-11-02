@@ -362,7 +362,7 @@ const Photos=(function(){
   let dbp=null;
   const db=()=>window.alkyonPhotoDB?window.alkyonPhotoDB():dbp||(dbp=new Promise((res,rej)=>{const r=indexedDB.open('alkyon',1);r.onupgradeneeded=()=>r.result.createObjectStore('photos');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}));
   async function tx(mode,fn){const d=await db();return new Promise((res,rej)=>{const t=d.transaction('photos',mode);const rq=fn(t.objectStore('photos'));t.oncomplete=()=>res(rq&&rq.result);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error);});}
-  return {put:(id,b)=>tx('readwrite',s=>s.put(b,id)),get:id=>tx('readonly',s=>s.get(id)),del:id=>tx('readwrite',s=>s.delete(id))};
+  return {put:(id,b)=>tx('readwrite',s=>s.put(b,id)),get:id=>tx('readonly',s=>s.get(id)).then(v=>v!==undefined||!window.alkyonOldPhoto?v:window.alkyonOldPhoto(id)),del:id=>tx('readwrite',s=>s.delete(id))};
 })();
 window.AlkyonCore={Store:Store,Photos:Photos,toast:null,bc:function(b){ return Math.max(1,Math.floor(+b.cnt)||1); }};
 window.addEventListener('alkyon-pickfc',()=>startPick('fc'));

@@ -10,16 +10,21 @@ self.addEventListener('install', e => {
 });
 /* 1.0.0: μεταφορά από τα παλιά ονόματα (BiteCast/Ψαρόβαρκα): ρυθμίσεις ειδοποιήσεων, πλακίδια χάρτη και πρόγνωση εκτός σύνδεσης */
 const OLD = 'psa' + 'ro-';
+/* αντιγραφή ένα-ένα (όσα λείπουν), με τη διεύθυνση /Pasrovarka/ → /Alkyon/· το παλιό σβήνεται μόνο αν πέτυχε όλη η αντιγραφή */
 async function moveOld(ks) {
+  const ok = [];
   for (const n of ['cfg', 'tiles', 'offdata']) {
     if (!ks.includes(OLD + n)) continue;
-    try { const a = await caches.open(OLD + n), b = await caches.open('alkyon-' + n), have = await b.keys();
-      if (!have.length) for (const rq of await a.keys()) { const r = await a.match(rq); if (r) await b.put(rq, r); } } catch (e) {}
+    try { const a = await caches.open(OLD + n), b = await caches.open('alkyon-' + n);
+      for (const rq of await a.keys()) { const u = rq.url.replace(/\/[Pp]asrovarka\//, '/Alkyon/');
+        if (await b.match(u, { ignoreVary: true })) continue; const r = await a.match(rq); if (r) await b.put(u, r); }
+      ok.push(OLD + n); } catch (e) {}
   }
+  return ok;
 }
 const KEEP = [CFG, 'alkyon-tiles', 'alkyon-offdata'];
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(ks => moveOld(ks).then(() => Promise.all(ks.filter(k => k !== V && !KEEP.includes(k) && !k.startsWith('alkyon4-')).map(k => caches.delete(k))))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then(ks => moveOld(ks).then(moved => Promise.all(ks.filter(k => k !== V && !KEEP.includes(k) && !k.startsWith('alkyon4-') && (!k.startsWith(OLD) || moved.includes(k))).map(k => caches.delete(k))))).then(() => self.clients.claim()));
 });
 self.addEventListener('fetch', e => {
   const u = new URL(e.request.url);

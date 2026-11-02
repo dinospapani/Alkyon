@@ -596,7 +596,7 @@ box.insertBefore(tools,bar.nextSibling);
     bar.querySelector('.ndupgo').textContent=T('Ανανέωση','Update');
     bar.querySelector('.ndupgo').addEventListener('click',function(){
       var go=function(){ location.reload(); };
-      try{ if(navigator.serviceWorker&&navigator.serviceWorker.getRegistration) navigator.serviceWorker.getRegistration().then(function(rg){ return rg?rg.update():0; }).catch(function(){}).then(function(){ return window.caches?caches.keys():[]; }).then(function(ks){ return Promise.all((ks||[]).filter(function(k){ return /^alkyon-/.test(k)&&k!=='alkyon-'+window.ALKYON_VERSION; }).map(function(k){ return caches.delete(k); })); }).then(go,go); else go(); }catch(e){ go(); } });
+      try{ if(navigator.serviceWorker&&navigator.serviceWorker.getRegistration) navigator.serviceWorker.getRegistration().then(function(rg){ return rg?rg.update():0; }).catch(function(){}).then(function(){ return window.caches?caches.keys():[]; }).then(function(ks){ return Promise.all((ks||[]).filter(function(k){ return /^alkyon-\d/.test(k)&&k!=='alkyon-'+window.ALKYON_VERSION; }).map(function(k){ return caches.delete(k); })); }).then(go,go); else go(); }catch(e){ go(); } });
     bar.querySelector('.ndupx').addEventListener('click',function(){ dismissedV=bar_v||'x'; bar.remove(); bar=null; });
     document.body.appendChild(bar);
   }
@@ -622,7 +622,7 @@ box.insertBefore(tools,bar.nextSibling);
   function say(m){ try{ window.AlkyonCore.toast(m); }catch(e){} try{ window.dispatchEvent(new CustomEvent('alkyon-updmsg',{detail:m})); }catch(e){} }
   function num(v){ var s=/^v?(\d+)\.(\d+)(?:\.(\d+))?$/.exec(v||''); if(s) return 1e7+(+s[1])*1e4+(+s[2])*100+(+(s[3]||0)); var m=/v(\d+)z(\d+)/.exec(v||''); return m?+m[1]*1000+(+m[2]):0; }
   function reload(){ var go=function(){ location.reload(); };
-    try{ (navigator.serviceWorker&&navigator.serviceWorker.getRegistration?navigator.serviceWorker.getRegistration().then(function(rg){ return rg?rg.update():0; }):Promise.resolve()).catch(function(){}).then(function(){ return window.caches?caches.keys():[]; }).then(function(ks){ return Promise.all((ks||[]).filter(function(k){ return /^alkyon-/.test(k)&&k!=='alkyon-'+window.ALKYON_VERSION; }).map(function(k){ return caches.delete(k); })); }).then(go,go); }catch(e){ go(); } }
+    try{ (navigator.serviceWorker&&navigator.serviceWorker.getRegistration?navigator.serviceWorker.getRegistration().then(function(rg){ return rg?rg.update():0; }):Promise.resolve()).catch(function(){}).then(function(){ return window.caches?caches.keys():[]; }).then(function(ks){ return Promise.all((ks||[]).filter(function(k){ return /^alkyon-\d/.test(k)&&k!=='alkyon-'+window.ALKYON_VERSION; }).map(function(k){ return caches.delete(k); })); }).then(go,go); }catch(e){ go(); } }
   function check(btn){
     if(!navigator.onLine){ say(T('Δεν υπάρχει σύνδεση στο ίντερνετ.','No internet connection.')); return; }
     btn.disabled=true; var old=btn.textContent; btn.textContent=T('Έλεγχος…','Checking…');
