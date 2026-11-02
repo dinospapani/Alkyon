@@ -28,7 +28,7 @@ function pushServer(){ var cl=B.cloud&&B.cloud.session()?B.cloud:null; if(!cl) r
       .catch(function(){ return cl.rest('push_subs',{method:'POST',headers:H,body:JSON.stringify(body)}); }).then(function(){ return true; }); }); }).catch(function(){ return false; }); }
 B.pushSync=function(){ var n=nt(); writeCfg(); return n.on?pushServer():Promise.resolve(false); };
 /* 1.0.0: νέα διεύθυνση (/Alkyon) → νέα συνδρομή push, μία φορά. Η άδεια ειδοποιήσεων μένει (ίδιος τόπος dinospapani.github.io). */
-setTimeout(function(){ try{ if(ls.get('alkyon-moved-push',0)) return; var n=nt(); writeCfg(); if(!n.on||!('Notification' in window)||Notification.permission!=='granted') return; pushServer().then(function(ok){ if(ok){ ls.set('alkyon-moved-push',Date.now()); var q=nt(); q.server=true; setNt(q); } }); }catch(e){} },6000);
+setTimeout(function(){ try{ if(ls.get('alkyon-moved-push',0)) return; var n=nt(); writeCfg(); if(!n.on||!('Notification' in window)||Notification.permission!=='granted') return; periodic(true); pushServer().then(function(ok){ if(ok){ ls.set('alkyon-moved-push',Date.now()); var q=nt(); q.server=true; setNt(q); } }); }catch(e){} },6000);
 function dropServer(){ var cl=B.cloud&&B.cloud.session()?B.cloud:null; if(!cl) return Promise.resolve();
   return getSub(false).then(function(sub){ if(!sub) return; return subId(sub).then(function(id){ return cl.rest('push_subs?id=eq.'+id,{method:'DELETE'}); }); }).catch(function(){}); }
 function sync(){ var n=nt(); if(!n.on){ return writeCfg(); } msg=T('Ενημέρωση…','Updating…'); draw();

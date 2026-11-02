@@ -32,7 +32,7 @@ function get(k,id){ return raw(k).filter(function(x){ return x.id===id; })[0]||n
 var dbp=null;
 function db(){ if(window.alkyonPhotoDB) return window.alkyonPhotoDB(); return dbp||(dbp=new Promise(function(res,rej){ var r=indexedDB.open('alkyon',1); r.onupgradeneeded=function(){ r.result.createObjectStore('photos'); }; r.onsuccess=function(){ res(r.result); }; r.onerror=function(){ rej(r.error); }; })); }
 function tx(mode,fn){ return db().then(function(d){ return new Promise(function(res,rej){ var t=d.transaction('photos',mode), rq=fn(t.objectStore('photos')); t.oncomplete=function(){ res(rq&&rq.result); }; t.onerror=function(){ rej(t.error); }; t.onabort=function(){ rej(t.error); }; }); }); }
-var Photos={put:function(id,b){ return tx('readwrite',function(s){ return s.put(b,id); }); },get:function(id){ return tx('readonly',function(s){ return s.get(id); }); },del:function(id){ return tx('readwrite',function(s){ return s.delete(id); }); }};
+var Photos={put:function(id,b){ return tx('readwrite',function(s){ return s.put(b,id); }); },get:function(id){ return tx('readonly',function(s){ return s.get(id); }).then(function(v){ return v!==undefined||!window.alkyonOldPhoto?v:window.alkyonOldPhoto(id); }); },del:function(id){ return tx('readwrite',function(s){ return s.delete(id); }); }};
 function phKeys(b){ var a=[]; if(b&&b.photo){ a.push(b.id); for(var i=1;i<=(+b.xph||0);i++) a.push(b.id+'~'+i); } return a; }
 /* μικραίνει τη φωτογραφία στα 1280 px (όπως η κλασική) */
 function resize(file){
