@@ -36,13 +36,15 @@ function setOn(on){
   try{ var m=getMap(); if(m){ if(on){ saved={t:m.options.touchZoom,w:m.options.scrollWheelZoom}; m.options.touchZoom='center'; m.options.scrollWheelZoom='center'; try{ m.dragging.disable(); }catch(e){} } else if(saved){ m.options.touchZoom=saved.t; m.options.scrollWheelZoom=saved.w; try{ m.dragging.enable(); }catch(e){} } } }catch(e){}
   lm.style.transition=on?'transform .35s linear':''; lm.style.touchAction=on?'none':''; if(!on) shown=0;
 }
-function target(){
-  if(!document.body.classList.contains('ontrip')) return null; /* εκτός εξόδου ο χάρτης μένει NU */
+var man=null; /* v31z535: χειροκίνητη περιστροφή με δύο δάχτυλα (μοίρες που δείχνει η πάνω πλευρά), όπως στο Google Maps */
+function autoT(){
+  if(!document.body.classList.contains('ontrip')) return null; /* εκτός εξόδου δεν γυρίζει αυτόματα */
   if(Date.now()<paused||popHold) return null;
   if(mode==='CU') return head;
   if(mode==='HU') return comp!=null?comp:head;
   return null;
 }
+function target(){ var a=autoT(); return a!=null?a:man; }
 function apply(){
   if(popOpen&&isOn&&mode!=='NU') return; /* όσο είναι ανοιχτό το μενού, ο χάρτης δεν γυρίζει */
   var t=target();
@@ -57,6 +59,7 @@ box.appendChild(btn);
 function updBtn(){
   var rt=isOn&&Date.now()>=paused; if(btn.getAttribute('data-m')!==mode){ btn.setAttribute('data-m',mode); btn.innerHTML='<svg class="moi" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path class="mon" d="M12 4.5l2.6 7.5h-5.2z"/><path d="M12 19.5l-2.6-7.5h5.2z"/></svg><b>'+mode+'</b>'; } btn.setAttribute('aria-label',T('Προσανατολισμός χάρτη: ','Map orientation: ')+NAMES[mode]); btn.title=NAMES[mode];
   btn.classList.toggle('on',mode!=='NU'); btn.classList.toggle('wait',mode!=='NU'&&!rt&&Date.now()>=paused);
+  if(typeof updN==='function') try{ updN(); }catch(e){}
 }
 function setMode(m,user){
   mode=m; C.lsSet(KEY,m); paused=0;
@@ -103,6 +106,7 @@ lm.addEventListener('pointermove',function(e){
   if(!isOn||!ptr[e.pointerId]||nPtr()!==1||pinching) return; var m=getMap(); if(!m) return;
   var p=ptr[e.pointerId], sx=e.clientX-p.x, sy=e.clientY-p.y;
   if(!dragged&&startPt&&Math.hypot(e.clientX-startPt.x,e.clientY-startPt.y)<7) return;
+  if(!dragged&&window.PsaroFollowStop) window.PsaroFollowStop(); /* v31z536: σύρσιμο = σταματά να ακολουθεί */
   dragged=Date.now(); var th=shown*Math.PI/180, c=Math.cos(th), s=Math.sin(th);
   m.panBy([-(c*sx+s*sy),-(-s*sx+c*sy)],{animate:false}); p.x=e.clientX; p.y=e.clientY;
 },true);
@@ -113,6 +117,26 @@ lm.addEventListener('pointerup',pend,true); lm.addEventListener('pointercancel',
 lm.addEventListener('touchstart',function(e){ if(e.touches&&e.touches.length>=2) pinching=true; },true);
 function endT(e){ if(e.touches&&e.touches.length===0&&pinching){ pinching=false; ptr={}; if(isOn&&window.PsaroFollowReset) window.PsaroFollowReset(); } }
 lm.addEventListener('touchend',endT,true); lm.addEventListener('touchcancel',endT,true);
+/* v31z535: περιστροφή με δύο δάχτυλα. Ξεκινά όταν τα δάχτυλα στρίψουν πάνω από 15° (αλλιώς είναι μόνο ζουμ), μετά ακολουθεί τα δάχτυλα.
+   Αν ήταν ενεργό CU/HU, γυρίζει σε NU (όπως το Google Maps βγαίνει από τη λειτουργία πυξίδας). Η πυξίδα «Β» επαναφέρει τον βορρά πάνω. */
+var rg=null;
+function tAng(e){ var a=e.touches[0], b=e.touches[1]; return Math.atan2(b.clientY-a.clientY,b.clientX-a.clientX)*180/Math.PI; }
+lm.addEventListener('touchstart',function(e){ if(e.touches&&e.touches.length===2){ var cur=isOn?norm(-shown):0; rg={a0:tAng(e),base:cur,on:false}; } else if(e.touches&&e.touches.length>2) rg=null; },true);
+lm.addEventListener('touchmove',function(e){
+  if(!rg||!e.touches||e.touches.length!==2) return; var d=delta(tAng(e),rg.a0);
+  if(!rg.on){ if(Math.abs(d)<15) return; rg.on=true; rg.a0=tAng(e); d=0; if(autoT()!=null||mode!=='NU'){ mode='NU'; C.lsSet(KEY,'NU'); } }
+  man=norm(rg.base-d); lm.style.transition='none'; apply(); lm.style.transition='none';
+},true);
+function rgEnd(e){ if(rg&&(!e.touches||e.touches.length<2)){ var was=rg.on; rg=null; if(was){ if(man!=null&&Math.abs(delta(man,0))<4){ man=null; } apply(); if(isOn) lm.style.transition='transform .35s linear'; } } }
+lm.addEventListener('touchend',rgEnd,true); lm.addEventListener('touchcancel',rgEnd,true);
+var nb=document.createElement('button'); nb.type='button'; nb.className='mo-n'; nb.hidden=true; nb.setAttribute('aria-label',T('Βορράς πάνω','North up'));
+nb.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path class="nn" d="M12 3l3.2 9H8.8z"/><path class="ns" d="M12 21l-3.2-9h6.4z"/></svg><b>'+T('Β','N')+'</b>';
+nb.addEventListener('click',function(){ if(man==null) return; lm.style.transition='transform .35s ease-out'; man=0; apply(); setTimeout(function(){ man=null; apply(); },380); });
+box.appendChild(nb);
+function updN(){ var on=isOn&&man!=null&&autoT()==null; nb.hidden=!on; if(!on) return; nb.style.setProperty('--nr',shown.toFixed(1)+'deg');
+  /* θέση: κάτω από το κουμπί NU/CU/HU αν φαίνεται, αλλιώς κάτω από την αριστερή στήλη (άγκυρα κ.λπ.) */
+  var y=0; [btn,document.querySelector('.seabar')].forEach(function(el){ if(!el) return; var r=el.getBoundingClientRect(); if(r.height>0&&getComputedStyle(el).display!=='none'&&r.bottom>y) y=r.bottom; });
+  nb.style.top=Math.round((y||60)+10)+'px'; }
 window.addEventListener('resize',function(){ if(isOn) layout(true); });
 window.addEventListener('orientationchange',function(){ setTimeout(function(){ if(isOn) layout(true); },300); });
 
