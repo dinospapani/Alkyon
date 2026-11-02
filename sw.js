@@ -1,7 +1,7 @@
 // Network first for the app's own files so updates arrive at once; cache is the offline fallback.
 // Weather APIs and fonts are cross-origin and always go straight to the network.
 importScripts('forecast.js');
-const V = 'psarovarka-v31z547';
+const V = 'psarovarka-v31z550';
 const CFG = 'psaro-cfg';
 const SHELL = ['./', 'classic.html', 'apple-touch-icon.png', 'push-config.js', 'index.html','startpick.js','divelog.js','ruler.js','windwatch.js','windmap.js','windlocal.js','seastate.js','tripform.js','plotterscan.js','boat.js','cx_index.json','inbox.js', 'style.css', 'app.js', 'species.js', 'cy100.js','cy100-en.js','i18n.js','cloud.js','extras.js','ext.js','track.js','mapwx.js','tripui.js','dialog.js','units.js','version.js','range.js','gearstats.js', 'coords.js','techs.js','tackle.js','knots.js','orient.js','todayloc.js','tackle-lib.js','tackle-guide.js','gear.js','hist.js','bitewx.js','profile-view.js','navigator.js','navigator-mpa.json','bathy-lines.js','direct.js','sea.js','cards.js','tools.js','ports.js','route.js','redesign.js','redesign.css','fc2.js','fc2.css','friends.js','seacorr.js','dams.js','dams_levels.json','smart.js','insights.js','speciespick.js','regions.js','community.js','forecast-tab.js','coastgrid.js','exposure.js','fish-photos.js', 'rules.js', 'zones.js', 'forecast.js', 'personal.js', 'mine-tab.js','knowledge.js','advisor.js', 'diag.js', 'leaflet.js', 'leaflet.css', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 const cfgUrl = () => new URL('__cfg', self.registration.scope).href;
@@ -89,11 +89,34 @@ self.addEventListener('message', e => {
   if (e.data && e.data.localMsg) { const m = e.data.localMsg; e.waitUntil(m.notify === false ? inboxAdd({ id: m.id, at: new Date().toISOString(), kind: m.kind || 'info', title: m.title, body: m.body, full: m.full || m.body, place: null, t: null, locs: m.locs || null, src: 'local' }) : showMsg(m, 'local').catch(() => {})); }
 });
 self.addEventListener('periodicsync', e => { if (e.tag === 'psaro-forecast') e.waitUntil(Promise.all([runCheck(), annivCheck()])); });
+/* v31z550: με την ειδοποίηση του πλάνου («Αύριο βγαίνεις», «Ώρα να ξεκινήσεις»), κατεβαίνουν χάρτης και πρόγνωση της περιοχής,
+   για χρήση χωρίς σήμα, ακόμα κι αν η εφαρμογή είναι κλειστή. Ρύθμιση: Ειδοποιήσεις › Πριν την έξοδο (cfg.pf). */
+async function planPrefetch(d) {
+  try {
+    const p = d && d.place; if (!p || p.lat == null || !/^\d{4}-\d{2}-\d{2}$/.test(d.t || '')) return;
+    const cfg = await readCfg(); if (!cfg || cfg.pf === 'off') return;
+    const pl = (cfg.plans || []).find(x => x.date === d.t && Math.abs(x.lat - p.lat) < 0.05 && Math.abs(x.lon - p.lon) < 0.05); if (!pl) return;
+    const c = self.navigator && self.navigator.connection; if (cfg.pf === 'wifi' && c && c.type && !/wifi|ethernet|wimax/.test(c.type)) return;
+    const tp = cfg.tiles || { sat: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', sea: 'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png' };
+    const lat = +pl.lat, lon = +pl.lon, r = Math.PI / 180, list = [];
+    const tx = (lo, z) => Math.floor((lo + 180) / 360 * 2 ** z), ty = (la, z) => { const s = Math.sin(la * r); return Math.floor((.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * 2 ** z); };
+    for (const [z, km] of [[9, 35], [10, 25], [11, 15], [12, 10], [13, 6], [14, 3.5], [15, 2]]) {
+      const dLa = km / 111, dLo = km / (111 * Math.cos(lat * r));
+      for (let x = tx(lon - dLo, z); x <= tx(lon + dLo, z); x++) for (let y = ty(lat + dLa, z); y <= ty(lat - dLa, z); y++) {
+        const f = t => t.replace('{z}', z).replace('{x}', x).replace('{y}', y); list.push(f(tp.sat)); if (z >= 11) list.push(f(tp.sea)); } }
+    const tc = await caches.open('psaro-tiles'); let i = 0;
+    const worker = async () => { while (i < list.length) { const u = list[i++]; try { if (await tc.match(u)) continue; const res = await fetch(u, { mode: 'cors', credentials: 'omit' }); if (res.ok) await tc.put(u, res); } catch (x) {} } };
+    /* η πρόγνωση: ίδιες διευθύνσεις με την εφαρμογή, στην αποθήκη psaro-offdata */
+    const od = await caches.open('psaro-offdata');
+    const ff = (u, o) => fetch(u, o).then(res => { if (res.ok) od.put(u, res.clone()).catch(() => {}); return res; });
+    await Promise.all([worker(), worker(), worker(), worker(), PF.getForecast(lat, lon, ff, { days: 7 }).catch(() => null)]);
+  } catch (x) {}
+}
 self.addEventListener('push', e => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch (err) { try { d = { body: e.data.text() }; } catch (e2) {} }
   if (!d.body) d.body = 'Άνοιξε την εφαρμογή για την πρόγνωση.';
-  e.waitUntil(showMsg(d, 'push').then(async () => {
+  e.waitUntil(showMsg(d, 'push').then(() => planPrefetch(d)).then(async () => {
     /* v31z366: τελεία/αριθμός στο εικονίδιο της εφαρμογής και ανανέωση της ένδειξης «αδιάβαστες» στις ανοιχτές σελίδες */
     try { if (self.navigator && self.navigator.setAppBadge) await self.navigator.setAppBadge(); } catch (x) {}
     try { const cs = await self.clients.matchAll({ type: 'window', includeUncontrolled: true }); cs.forEach(c => c.postMessage({ inboxNew: 1 })); } catch (x) {}
