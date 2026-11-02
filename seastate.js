@@ -378,6 +378,10 @@ function viewTiles(){
 
 function draw(){
   if(!on||!cvs.length) return;
+  /* v31z526: τα μοντέλα κύματος (για το πεδίο κύματος της v4) ζητιούνται για την περιοχή που βλέπεις και όταν είναι πολύ μακριά για τις γραμμές ακτής,
+     αλλιώς το χρώμα σταματούσε στο όριο της προηγούμενης περιοχής */
+  var bd0=map.getBounds(); if(bd0.getNorth()-bd0.getSouth()<=12&&bd0.getEast()-bd0.getWest()<=16&&(!covers(REG,bd0)||(REG&&Date.now()-REG.at>3600000)))
+    loadRegion(bd0).then(function(){ PREP=null; later(); try{ window.dispatchEvent(new Event('psaro-seareg')); }catch(e){} });
   var tgt=cvs[1-cur], sz=map.getSize(), dpr=Math.min(window.devicePixelRatio||1,2);
   tgt.width=Math.round(sz.x*dpr); tgt.height=Math.round(sz.y*dpr); tgt.style.width=sz.x+'px'; tgt.style.height=sz.y+'px'; pin(tgt);
   var ctx=tgt.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,sz.x,sz.y);
