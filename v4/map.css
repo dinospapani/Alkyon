@@ -478,3 +478,10 @@ body.ontrip[data-tprof=shore] .mk.me.hd i::before,body.ontrip[data-tprof=spear] 
 .tripbtn{display:none!important}
 body.ontrip[data-tprof=lake] .mk.me i{background:url("bc-th-lake.jpg") center/cover no-repeat;border-radius:50%;box-shadow:0 0 0 3px #fff,0 3px 8px rgba(0,0,0,.5);width:44px;height:44px;transform:translate(-22px,-22px);filter:none}
 body.ontrip[data-tprof=lake] .mk.me.hd i::before{width:96px;height:96px;margin:-48px 0 0 -48px}
+/* v31z526 · προσανατολισμός χάρτη: πυξίδα + μικρή ετικέτα (NU/CU/HU) αντί για σκέτα γράμματα */
+.mo-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0}
+.mo-btn .moi{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.6}
+.mo-btn .moi path{fill:currentColor;stroke:none;opacity:.45}
+.mo-btn .moi .mon{fill:#e5484d;opacity:1}
+.mo-btn.on .moi .mon{fill:#fff}
+.mo-btn b{font:800 9.5px/1 var(--font);letter-spacing:.04em;opacity:.8}

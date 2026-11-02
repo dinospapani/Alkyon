@@ -35,7 +35,7 @@ function toast(msg,ms,act){
   tEl.replaceChildren(h('span',{text:msg})); tEl.classList.toggle('act',!!act);
   if(act) tEl.append(h('button',{type:'button',class:'tact',text:act.label,onclick:function(){ clearTimeout(tT); tEl.classList.remove('on'); act.fn(); }}));
   clearTimeout(tT); requestAnimationFrame(function(){ tEl.classList.add('on'); });
-  tT=setTimeout(function(){ tEl.classList.remove('on'); },ms||(act?5000:2600));
+  tT=setTimeout(function(){ tEl.classList.remove('on'); },ms||Math.min(9000,Math.max(act?5000:2600,String(msg||'').length*60)));
 }
 /* σύρσιμο προς τα αριστερά για διαγραφή (λίστες): content = το στοιχείο της γραμμής, onDel = διαγραφή */
 function swipeDel(content,onDel){
@@ -98,7 +98,12 @@ function longPress(el,fn){ var t=0; function st(){ t=setTimeout(function(){ t=0;
 function ask(q,okText,danger){ return new Promise(function(res){ var done=false;
   var ok=h('button',{class:'btn full'+(danger?'':' pri'),type:'button',text:okText||T('Εντάξει','OK'),style:danger?{color:'var(--poor)'}:null});
   var no=h('button',{class:'btn full',type:'button',text:T('Άκυρο','Cancel')});
-  var sh=sheet({title:q,body:h('div',{style:{display:'grid',gap:'10px',paddingTop:'4px'}},ok,no),onclose:function(){ if(!done) res(false); }});
+  /* μεγάλη ερώτηση: ο τίτλος κρατά μόνο την ερώτηση, η εξήγηση πάει από κάτω σε κανονικά γράμματα */
+  var title=String(q||'').trim(), sub=null;
+  if(title.length>64){ var qs=title.match(/[^.!;?\n]*[;?]/g), lq=qs&&qs[qs.length-1].trim();
+    if(lq&&lq.length>=8&&lq.length<=80){ var at=title.lastIndexOf(lq); sub=(title.slice(0,at)+' '+title.slice(at+lq.length)).replace(/[ \t]+/g,' ').trim(); title=lq; if(!sub) sub=null; }
+    else { sub=title; title=T('Επιβεβαίωση','Confirm'); } }
+  var sh=sheet({title:title,body:h('div',{style:{display:'grid',gap:'10px',paddingTop:'4px'}},sub?h('p',{class:'sub asksub',text:sub}):null,ok,no),onclose:function(){ if(!done) res(false); }});
   ok.addEventListener('click',function(){ done=true; sh.close(); res(true); }); no.addEventListener('click',function(){ sh.close(); });
 }); }
 

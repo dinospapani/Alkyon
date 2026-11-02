@@ -12,7 +12,7 @@
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Commissioner:wght@400..800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Commissioner:wght@400..800&display=swap" media="print" onload="this.media='all'">
 <script>/* «Πού ψαρεύεις σήμερα;» ανοίγει πρώτο: κρύβει την εφαρμογή από πίσω μέχρι να φορτώσει η σελίδα επιλογής */
 try{(function(){var g=function(k){return localStorage.getItem(k);},s=JSON.parse(g('psaro-safe')||'null');if(/#(new|trip)/.test(location.hash)||(s&&s.active))return;
 if(!g('psaro-onboard')||!(g('psaro-askfp')==='0'&&g('psaro-fprof-done')))document.documentElement.classList.add('pre-pick');})();}catch(e){}</script>
@@ -24,6 +24,13 @@ if(!g('psaro-onboard')||!(g('psaro-askfp')==='0'&&g('psaro-fprof-done')))documen
 </head>
 <body>
 <noscript>Το BiteCast χρειάζεται JavaScript.</noscript>
+<script>/* καταγραφή σφαλμάτων στο κινητό (v31z526): τα 30 τελευταία, στο Προφίλ → «Αναφορά σφαλμάτων» */
+(function(){ var K='psaro-errlog'; function add(m,w){ try{ m=String(m||'').slice(0,300); if(!m||/^Script error\.?$/.test(m)||/ResizeObserver loop/.test(m)) return; var a=JSON.parse(localStorage.getItem(K)||'[]'), last=a[a.length-1];
+  if(last&&last.m===m&&last.w===w){ last.n=(last.n||1)+1; last.t=Date.now(); } else a.push({t:Date.now(),m:m,w:w||'',v:window.PSARO_VERSION||'',p:location.hash||''}); localStorage.setItem(K,JSON.stringify(a.slice(-30))); }catch(e){} }
+  window.addEventListener('error',function(e){ if(e.target&&e.target!==window) return; add(e.message,(e.filename||'').split('/').pop()+':'+(e.lineno||'')+':'+(e.colno||'')); });
+  window.addEventListener('unhandledrejection',function(e){ var r=e.reason; if(r&&(r.name==='AbortError'||/Failed to fetch|NetworkError|Load failed/i.test(r.message||''))) return; add('Promise: '+(r&&(r.message||r)),r&&r.stack?String(r.stack).split('\n')[1]||'':''); });
+  window.PsaroErrLog={get:function(){ try{ return JSON.parse(localStorage.getItem(K)||'[]'); }catch(e){ return []; } },clear:function(){ try{ localStorage.removeItem(K); }catch(e){} },add:add};
+})();</script>
 <script src="../version.js"></script>
 <script src="../units.js"></script>
 <script src="../knowledge.js"></script>

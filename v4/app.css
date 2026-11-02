@@ -150,9 +150,6 @@ svg{display:block}
 .rows.one{grid-template-columns:1fr}.rows.one .row:nth-last-child(2){border-bottom:1px solid var(--line)}
 .seg button:first-child:nth-last-child(4),.seg button:first-child:nth-last-child(4)~button{font-size:13.5px;padding:0 2px}
 .card.dim{opacity:.55;pointer-events:none}
-.nrow{padding:10px 0;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:2px}
-.nrow:first-child{border-top:0}
-.nrow p{margin:2px 0 0;font-size:14.5px;color:var(--ink-2);white-space:pre-line}
 .cdimg{display:block;width:100%;height:auto;border-radius:16px;box-shadow:var(--shadow);margin-bottom:12px}
 .micbtn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%}
 .micbtn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
@@ -227,14 +224,6 @@ svg{display:block}
 .simcard .simhead b{font-size:30px;font-weight:800;color:var(--accent)}
 .simcard .simhead span{color:var(--ink-2);font-size:14px}
 .rows.one .row b{text-align:right}
-.stpick .stgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.stopt{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:14px;border-radius:16px;border:2px solid transparent;background:var(--surface);box-shadow:var(--shadow);text-align:left;color:var(--ink)}
-.stopt[aria-pressed=true],.stm[aria-pressed=true]{border-color:var(--accent)}
-.stopt b{font-size:17px}.stopt small{color:var(--ink-2);font-size:13px}
-.sti{font-size:26px;line-height:1}
-.stlist{display:flex;flex-direction:column;gap:8px;margin-bottom:8px}
-.stm{border:2px solid transparent;border-radius:16px;background:var(--surface);box-shadow:var(--shadow)}
-.stm .sti{margin-right:4px}
 /* σύρσιμο για διαγραφή */
 .swp{position:relative;overflow:hidden;transition:height .2s ease}
 .swp .swbg{position:absolute;inset:0;border:0;background:#d64532;color:#fff;font:700 15px var(--font);display:flex;align-items:center;justify-content:flex-end;padding-right:20px}
@@ -254,18 +243,9 @@ svg{display:block}
 .updbar span{flex:1}
 .updbar .x{width:32px;height:32px;border:0;border-radius:50%;background:transparent;color:inherit;font-size:15px}
 /* καλωσόρισμα */
-.onb{position:fixed;inset:0;z-index:400;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:calc(var(--safe-t) + 24px) 20px calc(var(--safe-b) + 24px);overflow:auto}
-.obc{width:100%;max-width:440px;display:flex;flex-direction:column;gap:12px;text-align:center;margin:auto}
-.obic{width:84px;height:84px;margin:0 auto 6px;border-radius:26px;display:grid;place-items:center;background:var(--accent);color:var(--accent-ink,#fff)}
-.obic svg{width:44px;height:44px;stroke:currentColor;fill:none;stroke-width:1.8}
-.obc h2{margin:0;font:800 26px/1.2 var(--font);color:var(--ink)}
-.obc>p{margin:0 0 6px;font-size:16px;line-height:1.5;color:var(--ink-2)}
-.obc .stgrid,.obc .stlist{text-align:left}
 .obd{display:flex;justify-content:center;gap:8px;margin:8px 0}
 .obd i{width:8px;height:8px;border-radius:50%;background:var(--line)}
 .obd i.on{width:22px;border-radius:4px;background:var(--accent)}
-.obskip{border:0;background:none;color:var(--ink-3);font:600 14.5px var(--font);padding:10px}
-.obc .stgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.obc .stlist{display:flex;flex-direction:column;gap:8px}
 /* ===== «Πού ψαρεύεις σήμερα;» και καλωσόρισμα: ολόκληρη σελίδα με φωτογραφίες ===== */
 html.pre-pick body{background:#061420}
 html.pre-pick body>*:not(.sppage){visibility:hidden}
@@ -442,3 +422,18 @@ img.pbph{display:block;object-fit:cover;border-radius:18px}
 .fab.fabtrip svg{fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;width:34px;height:34px}
 .fabmenu{display:flex;flex-direction:column}
 .fabmenu .ic svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+/* v31z526 · αναφορά σφαλμάτων */
+.foot .errlk{display:inline;margin:0;padding:0;font:inherit;color:var(--accent);text-decoration:underline}
+.errl{display:flex;flex-direction:column;gap:8px;max-height:46vh;overflow:auto}
+.erri{background:var(--surface-2);border-radius:12px;padding:9px 11px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.erri small{color:var(--ink-2);font-size:12px}
+.erri code{font:500 12.5px/1.4 ui-monospace,Menlo,monospace;color:var(--ink);word-break:break-word}
+.erri .erw{opacity:.75;word-break:break-all}
+/* v31z526 · μηνύματα: πλήρες πλάτος (όχι μισό), και πάνω όταν είναι ανοιχτό παράθυρο για να μην κρύβουν κουμπιά */
+.toast{left:16px;right:16px;margin:0 auto;width:fit-content;max-width:min(calc(100vw - 32px),440px);transform:translateY(20px);line-height:1.35}
+.toast.on{transform:none}
+body:has(.sheet.on) .toast{bottom:auto;top:calc(var(--safe-t) + 14px);transform:translateY(-20px);box-shadow:0 8px 28px rgba(0,0,0,.35)}
+body:has(.sheet.on) .toast.on{transform:none}
+.asksub{margin:-2px 0 6px;white-space:pre-line;font-size:15px;line-height:1.45;color:var(--ink-2)}
+body:has(.tripbar:not([hidden])) .toast{bottom:calc(var(--nav-h) + var(--safe-b) + 72px)}
+body:has(.sheet.on) .toast{bottom:auto}

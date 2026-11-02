@@ -50,9 +50,20 @@ function draw(){
   page.append(head(s));
   page.append(B.seg([['mine',T('Τα δικά μου','My stuff')],['set',T('Ρυθμίσεις','Settings')],['acc',T('Λογαριασμός','Account')]],tab,function(v){ tab=v; ls.set('psaro-v4-ptab',v); draw(); },T('Ενότητα προφίλ','Profile section')));
   if(tab==='set') settingsTab(page); else if(tab==='acc') accountTab(page,s); else mineTab(page);
-  page.append(h('p',{class:'foot'},'BiteCast · '+(window.PSARO_VERSION||'')+' · ',h('a',{href:B.classic(),text:T('Κλασική έκδοση','Classic version')})));
+  var EL=window.PsaroErrLog, ne=EL?EL.get().length:0;
+  page.append(h('p',{class:'foot'},'BiteCast · '+(window.PSARO_VERSION||'')+' · ',h('a',{href:B.classic(),text:T('Κλασική έκδοση','Classic version')}),
+    ne?' · ':'',ne?h('button',{type:'button',class:'linkbtn errlk',text:T('Αναφορά σφαλμάτων','Error report')+' ('+ne+')',onclick:errSheet}):''));
   root.replaceChildren(page); if(y) try{ window.scrollTo(0,y); }catch(e){}
 }
+/* αναφορά σφαλμάτων: τι κόλλησε στο κινητό, για να σταλεί και να διορθωθεί */
+function errSheet(){ var EL=window.PsaroErrLog, a=EL?EL.get():[], sh;
+  function txt(){ return 'BiteCast '+(window.PSARO_VERSION||'')+' · '+navigator.userAgent+'\n'+a.map(function(e){ return new Date(e.t).toISOString().slice(0,16).replace('T',' ')+' '+(e.v||'')+' '+(e.p||'')+'\n  '+e.m+(e.n>1?' (x'+e.n+')':'')+(e.w?'\n  @ '+e.w:''); }).join('\n'); }
+  var list=h('div',{class:'errl'},a.slice().reverse().map(function(e){ return h('div',{class:'erri'},h('small',{text:new Date(e.t).toLocaleString(EN?'en-GB':'el-GR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+(e.n>1?' · ×'+e.n:'')+(e.p?' · '+e.p:'')}),h('code',{text:e.m}),e.w?h('small',{class:'erw',text:e.w}):''); }));
+  var send=h('button',{type:'button',class:'btn pri full',text:navigator.share?T('Αποστολή','Send'):T('Αντιγραφή','Copy'),onclick:function(){ var t=txt();
+    if(navigator.share) navigator.share({title:'BiteCast errors',text:t}).catch(function(){});
+    else if(navigator.clipboard) navigator.clipboard.writeText(t).then(function(){ B.toast(T('Αντιγράφηκε.','Copied.')); },function(){ B.toast(T('Δεν αντιγράφηκε.','Could not copy.')); }); }});
+  var clr=h('button',{type:'button',class:'btn full',text:T('Καθάρισμα','Clear'),onclick:function(){ EL.clear(); sh.close(); draw(); }});
+  sh=B.sheet({title:T('Αναφορά σφαλμάτων','Error report'),body:h('div',{class:'bform'},h('p',{class:'sub',text:T('Σφάλματα που έγιναν σε αυτό το κινητό. Στείλ’ τα για να διορθωθούν. Δεν περιέχουν ψάρια, σημεία ή στοιχεία λογαριασμού.','Errors that happened on this phone. Send them so they can be fixed. They contain no catches, spots or account details.')}),list,send,clr)}); }
 function mineTab(page){
   var n=B.store.raw('tackle').filter(function(x){ return !x.deleted; }).length, sp=B.store.raw('spots').filter(function(x){ return !x.deleted; }).length;
   var bt=ls.get('psaro-boat',null), bn=bt&&bt.boat&&bt.boat.name, g=ls.get('psaro-gear',null), gn=g&&Array.isArray(g.items)?g.items.length:0;
