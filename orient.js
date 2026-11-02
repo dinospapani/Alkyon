@@ -55,7 +55,7 @@ var btn=document.createElement('button'); btn.type='button'; btn.id='bOrient'; b
 btn.addEventListener('click',function(){ setMode(MODES[(MODES.indexOf(mode)+1)%3],true); });
 box.appendChild(btn);
 function updBtn(){
-  var rt=isOn&&Date.now()>=paused; btn.textContent=mode; btn.setAttribute('aria-label',T('Προσανατολισμός χάρτη: ','Map orientation: ')+NAMES[mode]); btn.title=NAMES[mode];
+  var rt=isOn&&Date.now()>=paused; if(btn.getAttribute('data-m')!==mode){ btn.setAttribute('data-m',mode); btn.innerHTML='<svg class="moi" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path class="mon" d="M12 4.5l2.6 7.5h-5.2z"/><path d="M12 19.5l-2.6-7.5h5.2z"/></svg><b>'+mode+'</b>'; } btn.setAttribute('aria-label',T('Προσανατολισμός χάρτη: ','Map orientation: ')+NAMES[mode]); btn.title=NAMES[mode];
   btn.classList.toggle('on',mode!=='NU'); btn.classList.toggle('wait',mode!=='NU'&&!rt&&Date.now()>=paused);
 }
 function setMode(m,user){
