@@ -200,6 +200,8 @@ function dayView(page,fc,d){
       h('span',{text:T('Επόμενη καλή μέρα','Next good day')}),h('b',{text:B.dayName(nx.date,td)+', '+win(nx)}),h('i',{class:'sc',text:String(nx.best)}))); }
   if(tg) hero.append(h('span',{class:'tag '+tg[0],text:tg[1]}));
   page.append(hero);
+  /* ψαροντούφεκο: ορατότητα νερού (δορυφόρος όταν υπάρχει, αλλιώς εκτίμηση από κύμα και βροχή) */
+  if(B.prof()==='spear'&&B.clarityCard){ var cc=B.clarityCard(fc,d,st.place,isToday,isToday?nh:null); if(cc) page.append(cc); }
   /* «Σήμερα με μια ματιά»: ο καιρός αυτή την ώρα και γρήγορες ενέργειες */
   if(isToday){ var hn=hourOf(d,nh), lake=B.prof()==='lake', onTrip=!!(B.trip&&B.trip.active&&B.trip.active());
     if(hn){ var cells=[[U.windP(hn.wind)[0],U.windP(hn.wind)[1]+' '+dirTxt(hn.dir),T('άνεμος','wind')]];

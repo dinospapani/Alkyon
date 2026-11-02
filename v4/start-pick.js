@@ -91,4 +91,16 @@ B.tour=function(){
   if(!go&&wanted()) go=B.startPick;
   if(go) go(); else cover(false);
 })();
+/* v31z531: στο κινητό η εφαρμογή συνήθως «ξυπνά» από το παρασκήνιο χωρίς να ξαναφορτώσει, οπότε η ερώτηση δεν έβγαινε.
+   Τώρα βγαίνει και όταν επιστρέφεις μετά από 3+ ώρες ή σε νέα μέρα (εκτός αν είναι επιλεγμένο «Να μη ρωτάει κάθε φορά»). */
+(function(){ var away=0;
+  document.addEventListener('visibilitychange',function(){
+    if(document.hidden){ away=Date.now(); return; }
+    if(!away) return; var was=away; away=0;
+    var newDay=new Date(was).toDateString()!==new Date().toDateString();
+    if(!(newDay||Date.now()-was>=3*3600e3)||!wanted()) return;
+    if(document.querySelector('.sppage,.sheet')) return; var a=document.activeElement; if(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return;
+    B.startPick();
+  });
+})();
 })();

@@ -505,7 +505,8 @@ body[data-tprof=shore] .mo-btn,body[data-tprof=lake] .mo-btn{top:calc(var(--safe
 body.hasdt[data-tprof=shore] .mo-btn,body.hasdt[data-tprof=lake] .mo-btn{top:calc(var(--safe-t) + 146px)}
 body:not(.maptrip) .mo-btn{top:calc(var(--safe-t) + 74px)}
 /* ⓘ πηγές: κάτω από τη δεξιά στήλη (στην αριστερή κρυβόταν πίσω από MOB / μικρόφωνο / προσανατολισμό) */
-.attrbtn{left:auto;right:24px;top:calc(var(--safe-t) + 186px)}
+.attrbtn{left:auto;right:24px;top:calc(var(--safe-t) + 242px)}
+body:has(.mapbar .gearbtn:not([hidden])) .attrbtn{top:calc(var(--safe-t) + 298px)}
 /* κλίμακα νερού κάτω από τη μπάρα ενδείξεων· πιο ισχυρός κανόνας από το body:has(.mapwx[hidden]) */
 body.wxro .sstleg.sstleg.sstleg{top:calc(var(--safe-t) + 126px)}
 /* v31z527 · κλίμακα «Δομή βυθού» πάνω από την κάρτα «Πού πιάνω» όταν φαίνονται και οι δύο */
