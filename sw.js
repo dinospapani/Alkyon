@@ -1,7 +1,7 @@
 // Network first for the app's own files so updates arrive at once; cache is the offline fallback.
 // Weather APIs and fonts are cross-origin and always go straight to the network.
 importScripts('forecast.js');
-const V = 'psarovarka-v31z542';
+const V = 'psarovarka-v31z544';
 const CFG = 'psaro-cfg';
 const SHELL = ['./', 'classic.html', 'apple-touch-icon.png', 'push-config.js', 'index.html','startpick.js','divelog.js','ruler.js','windwatch.js','windmap.js','windlocal.js','seastate.js','tripform.js','plotterscan.js','boat.js','cx_index.json','inbox.js', 'style.css', 'app.js', 'species.js', 'cy100.js','cy100-en.js','i18n.js','cloud.js','extras.js','ext.js','track.js','mapwx.js','tripui.js','dialog.js','units.js','version.js','range.js','gearstats.js', 'coords.js','techs.js','tackle.js','knots.js','orient.js','todayloc.js','tackle-lib.js','tackle-guide.js','gear.js','hist.js','bitewx.js','profile-view.js','navigator.js','navigator-mpa.json','bathy-lines.js','direct.js','sea.js','cards.js','tools.js','ports.js','route.js','redesign.js','redesign.css','fc2.js','fc2.css','friends.js','seacorr.js','dams.js','dams_levels.json','smart.js','insights.js','speciespick.js','regions.js','community.js','forecast-tab.js','coastgrid.js','exposure.js','fish-photos.js', 'rules.js', 'zones.js', 'forecast.js', 'personal.js', 'mine-tab.js','knowledge.js','advisor.js', 'diag.js', 'leaflet.js', 'leaflet.css', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 const cfgUrl = () => new URL('__cfg', self.registration.scope).href;
@@ -52,11 +52,11 @@ async function runCheck() {
   const cfg = await readCfg();
   if (!cfg || !cfg.on || cfg.server) return;
   /* v31z539: ώρες ησυχίας 23:00–07:00 (ώρα Κύπρου) */
-  if (cfg.quiet !== false) { let hh = new Date().getHours(); try { hh = +new Date().toLocaleString('en-GB', { timeZone: 'Asia/Nicosia', hour: '2-digit', hour12: false }) % 24; } catch (e) {} if (hh >= 23 || hh < 7) return; }
+  if (cfg.quiet !== false) { let hh = new Date().getHours(); try { hh = +new Date().toLocaleString('en-GB', { timeZone: 'Asia/Nicosia', hour: '2-digit', hour12: false }) % 24; } catch (e) {} if (hh >= 23 || hh < 7) { if (!(cfg.plans && cfg.plans.length)) return; cfg.onlyPlans = true; } }
   try {
-    if (cfg.places && cfg.places.length) {
+    if ((cfg.places && cfg.places.length) || (cfg.plans && cfg.plans.length)) {
       const r = await PF.checkPlaces(cfg);
-      cfg.notified = r.notified; await writeCfg(cfg);
+      cfg.notified = r.notified; delete cfg.onlyPlans; await writeCfg(cfg);
       if (r.msgs && r.msgs.length) { for (const m of r.msgs) await showMsg({ title: m.title, body: m.body, full: m.full, kind: m.kind, id: m.key, place: m.place, t: m.t }, 'local'); }
       else if (r.items.length) await showMsg({ title: r.title, body: r.body, full: r.body, kind: 'info' }, 'local');
     }
