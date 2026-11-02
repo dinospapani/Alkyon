@@ -7,7 +7,7 @@ var B=window.BC, h=B.h, T=B.T, ls=B.ls;
 function raw(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
 function put(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
 var SIDE={shore:{n:T('Ακτή','Shore'),d:T('Παραλία · Μόλος · Βράχια · Φράγμα','Beach · Pier · Rocks · Dam'),img:'bc-card-shore.jpg'},
-  boat:{n:T('Σκάφος','Boat'),d:T('Θάλασσα · Κύμα · MOB · SOS','Open sea · Waves · MOB · SOS'),img:'bc-card-boat.jpg'}};
+  boat:{n:T('Σκάφος','Offshore'),d:T('Θάλασσα · Κύμα · MOB · SOS','Open sea · Waves · MOB · SOS'),img:'bc-card-boat.jpg'}};
 /* εικονίδια γραμμής (ίδιο στυλ με την υπόλοιπη εφαρμογή) */
 var IC={rod:'<path d="M4 20L18.5 5.5"/><path d="M18.5 5.5c1.2-1.2 2.5-.4 2.5 1v5"/><circle cx="7.5" cy="16.5" r="2.2"/><path d="M21 11.5v2.5a1.5 1.5 0 0 1-3 0"/>',
   spear:'<path d="M2 14h13"/><path d="M15 12.5h3l4 1.5-4 1.5h-3z"/><path d="M5 14v3.5M8 14v2"/><path d="M2 11.5l2.5 2.5L2 16.5"/>',
@@ -19,7 +19,7 @@ var METH={shore:[{p:'shore',n:T('Καλάμι από την ακτή','Rod from 
   boat:[{p:'boat',n:T('Καλάμι','Rod'),d:T('Βυθός · Τρόλινγκ · Jigging · Casting','Bottom · Trolling · Jigging · Casting'),i:'rod',th:'bc-th-boatrod.jpg'},{p:'spear',n:T('Ψαροντούφεκο από σκάφος','Spearfishing from a boat'),d:T('Βουτιά · Ψαροντούφεκο · Σημαδούρα','Dive · Speargun · Float · Safety'),i:'spear',th:'bc-th-spear.jpg'}]};
 function cur(){ return B.prof(); }
 function side(){ var p=cur(), s=raw('psaro-fside'); if(p==='boat') return 'boat'; if(p==='shore'||p==='lake') return 'shore'; return s==='boat'?'boat':'shore'; }
-function label(p,s){ return s==='boat'?(p==='boat'?T('Σκάφος, καλάμι','Boat, rod'):T('Σκάφος, ψαροντούφεκο','Boat, spearfishing')):(p==='lake'?T('Φράγμα ή λίμνη','Dam or lake'):p==='spear'?T('Ακτή, ψαροντούφεκο','Shore, spearfishing'):T('Ακτή, καλάμι','Shore, rod')); }
+function label(p,s){ return s==='boat'?(p==='boat'?T('Σκάφος, καλάμι','Offshore, rod'):T('Σκάφος, ψαροντούφεκο','Offshore, spearfishing')):(p==='lake'?T('Φράγμα ή λίμνη','Dam or lake'):p==='spear'?T('Ακτή, ψαροντούφεκο','Shore, spearfishing'):T('Ακτή, καλάμι','Shore, rod')); }
 B.fishSide=side;
 var CHK='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>', CHEV='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>';
 
