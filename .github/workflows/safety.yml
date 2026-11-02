@@ -1,4 +1,4 @@
-name: BiteCast safety
+name: Alkyon safety
 on:
   schedule:
     - cron: '*/5 * * * *'
