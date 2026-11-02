@@ -1,7 +1,7 @@
 /* BiteCast 4 · service worker (μόνο για τον φάκελο v4/).
    Δικά μας αρχεία: πρώτα δίκτυο, αλλιώς αποθηκευμένο αντίγραφο. Γραμματοσειρές: αποθηκευμένο αντίγραφο πρώτα. */
-const V = 'bitecast4-070';
-const SHELL = ['./', 'index.html', 'app.css', 'forecast.css', 'core.js', 'ui.js', 'shell.js', 'clarity.js', 'forecast-view.js', 'forecast-more.js', 'advise.js', 'store.js', 'bite-form.js', 'log-view.js', 'profile-view.js', 'log.css', 'map.css', 'map-view.js', 'wxfx.js', 'opps.js', 'coordpick.js', 'extras.js', 'seabed.js', 'tackle-view.js', 'gear-view.js', 'boat-view.js', 'friends-view.js', 'community-view.js', 'trip.js', 'trip-extra.js', 'autostart.js', 'night.js', 'bigtrip.js', 'records.js', 'live.js', 'help.js', 'sea-tools.js', 'smart.js', '../ext.js', '../divelog.js', '../coords.js', '../regions.js', '../windwatch.js', '../coastgrid.js', '../exposure.js', '../bitewx.js', 'alerts-view.js', 'cards.js', 'datatools.js', 'import-view.js', 'insights.js', 'years.js', 'start-pick.js', 'bc-hero-boat.jpg', 'bc-card-shore.jpg', 'bc-card-boat.jpg', 'bc-hero-spear.jpg', 'bc-th-boatrod.jpg', 'bc-th-spear.jpg', 'bc-th-lake.jpg', 'bc-th-shorerod.jpg', '../species.js', '../rules.js', 'guide-core.js', 'guide-view.js', '../cy100.js', '../regions.js', '../knots.js', '../coastgrid.js', '../exposure.js', '../bathy-lines.js', '../windmap.js', '../windlocal.js', '../seastate.js', '../ruler.js', '../ports.js', '../orient.js', '../navigator.js', '../route.js', '../leaflet.js', '../leaflet.css', '../zones.js', '../dams_levels.json', '../version.js', '../hist.js', 'manifest.webmanifest',
+const V = 'bitecast4-073';
+const SHELL = ['./', 'index.html', 'errlog.js', 'app.css', 'forecast.css', 'core.js', 'ui.js', 'shell.js', 'clarity.js', 'forecast-view.js', 'forecast-more.js', 'advise.js', 'store.js', 'bite-form.js', 'log-view.js', 'profile-view.js', 'log.css', 'map.css', 'map-view.js', 'wxfx.js', 'opps.js', 'coordpick.js', 'extras.js', 'seabed.js', 'tackle-view.js', 'gear-view.js', 'boat-view.js', 'friends-view.js', 'community-view.js', 'trip.js', 'trip-extra.js', 'autostart.js', 'night.js', 'bigtrip.js', 'records.js', 'live.js', 'help.js', 'sea-tools.js', 'smart.js', '../ext.js', '../divelog.js', '../coords.js', '../regions.js', '../windwatch.js', '../coastgrid.js', '../exposure.js', '../bitewx.js', 'alerts-view.js', 'cards.js', 'datatools.js', 'import-view.js', 'insights.js', 'years.js', 'backup.js', 'prefetch.js', 'syscheck.js', 'start-pick.js', 'bc-hero-boat.jpg', 'bc-card-shore.jpg', 'bc-card-boat.jpg', 'bc-hero-spear.jpg', 'bc-th-boatrod.jpg', 'bc-th-spear.jpg', 'bc-th-lake.jpg', 'bc-th-shorerod.jpg', '../species.js', '../rules.js', 'guide-core.js', 'guide-view.js', '../cy100.js', '../regions.js', '../knots.js', '../coastgrid.js', '../exposure.js', '../bathy-lines.js', '../windmap.js', '../windlocal.js', '../seastate.js', '../ruler.js', '../ports.js', '../orient.js', '../navigator.js', '../route.js', '../leaflet.js', '../leaflet.css', '../zones.js', '../dams_levels.json', '../version.js', '../hist.js', 'manifest.webmanifest',
   '../units.js', '../knowledge.js', '../i18n.js', '../forecast.js', '../personal.js', '../icon-192.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(V).then(c => Promise.all(SHELL.map(u => c.add(u).catch(() => {})))).then(() => self.skipWaiting()));
@@ -30,12 +30,22 @@ self.addEventListener('fetch', e => {
     return;
   }
   if (u.origin !== location.origin) return;
-  e.respondWith(
-    fetch(new Request(e.request, { cache: 'no-cache' }))
-      .then(r => { if (r.ok) { const cp = r.clone(); caches.open(V).then(c => c.put(e.request, cp)); } return r; })
-      .catch(() => caches.open(V).then(c => c.match(e.request, { ignoreSearch: e.request.mode === 'navigate' }).then(r => r || (e.request.mode === 'navigate' ? c.match('index.html') : undefined))))
-  );
+  e.respondWith(own(e));
 });
+/* v31z550: δικά μας αρχεία — πρώτα δίκτυο για να έρχονται αμέσως οι ενημερώσεις, ΑΛΛΑ αν το δίκτυο αργεί (αδύναμο σήμα στη θάλασσα)
+   ή δεν υπάρχει, ανοίγει αμέσως από το αποθηκευμένο αντίγραφο και το δίκτυο συνεχίζει στο παρασκήνιο να ενημερώνει την αποθήκη. */
+function own(e) {
+  const nav = e.request.mode === 'navigate';
+  const cached = () => caches.open(V).then(c => c.match(e.request, { ignoreSearch: nav }).then(r => r || (nav ? c.match('index.html') : undefined)));
+  const net = fetch(new Request(e.request, { cache: 'no-cache' })).then(r => { if (r.ok) { const cp = r.clone(); caches.open(V).then(c => c.put(e.request, cp)); } return r; });
+  e.waitUntil(net.then(() => {}, () => {}));
+  if (self.navigator && self.navigator.onLine === false) return cached().then(r => r || net);
+  return new Promise(resolve => {
+    let done = false; const fin = r => { if (!done && r) { done = true; resolve(r); } };
+    const t = setTimeout(() => cached().then(fin), nav ? 2500 : 2000);
+    net.then(r => { clearTimeout(t); fin(r); }, () => { clearTimeout(t); cached().then(r => { if (r) fin(r); else if (!done) { done = true; resolve(Response.error()); } }); });
+  });
+}
 
 /* v31z521: ειδοποίηση εξόδου με κουμπιά «Ψάρι εδώ» / «Χάθηκε». Φαίνεται και στο ρολόι (Garmin, Wear OS).
    Το πάτημα γράφεται εδώ (IndexedDB bc4q) χωρίς να ανοίξει η εφαρμογή· η εφαρμογή το περνά στο Ημερολόγιο με την ώρα του και τη θέση της διαδρομής. */

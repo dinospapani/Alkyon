@@ -169,8 +169,25 @@ function lev(a,b){ var m=a.length,n=b.length,p=[],i,j; for(j=0;j<=n;j++) p[j]=j;
 function parseVoice(text){
   var r={species:null,kg:null,len:null,text:text}, sp=findSpecies(text); if(sp) r.species=sp;
   parseNums(text).forEach(function(n){ if(n.u==='kg'&&r.kg==null) r.kg=Math.round(n.v*100)/100; else if(n.u==='g'&&r.kg==null) r.kg=Math.round(n.v)/1000; else if(n.u==='cm'&&r.len==null) r.len=Math.round(n.v); });
+  /* v31z550: πόσα («τρία λαβράκια», «2 σαργοί», «ζευγάρι»), δόλωμα («με γαρίδα»), απελευθέρωση («το άφησα») */
+  var c=voiceCount(text); if(c>1&&c<500) r.cnt=c;
+  var bm=nrm(text).match(/(?:^| )(?:με|στο|στη|στην|with|on|using) (?:το |τη |την |ενα |μια |a |an |the )?([a-zα-ω]+(?: [a-zα-ω]+)?)/);
+  if(bm){ var bw=bm[1].split(' ')[0]; if(BAITW.some(function(x){ return bw.indexOf(x)===0; })){ var want=bm[1].replace(/ (και|and|στα|στο|κιλ\S*|γραμ\S*)$/,'').trim().split(' '), orig=String(text).split(/\s+/), out=[];
+      for(var oi=0;oi<orig.length&&out.length<want.length;oi++){ var on=nrm(orig[oi]); if(on===want[out.length]) out.push(orig[oi].replace(/[.,!?;]+$/,'')); else if(out.length) out=[]; }
+      var bt=(out.length===want.length?out.join(' '):want.join(' ')); r.bait=bt.charAt(0).toUpperCase()+bt.slice(1); } }
+  if(/αφησα|αφεθηκε|πισω στη θαλασσα|απελευθερ|released|let (it|him) go|catch and release/.test(nrm(text))) r.rel=true;
   return r;
 }
+var BAITW=['γαριδ','καλαμαρ','σουπι','χταπ','σκουληκ','σαρδελ','γαυρ','κουρκουρ','μαριδ','ζωντανο','ζωντανη','τεχνητ','τζιγκ','jig','ψαρακι','πλανο','καβουρ','μυδ','πεταλιδ','αχιβαδ','ψωμ','καλαμποκ','σιτ','κρεατ','σκουμπρ','κολι','λουκανικ','shrimp','squid','worm','sardine','lure','bread','corn','crab','pellet','bolentin','rapala','σιλικον','ψαλιδ','popper','πομπερ','minnow'];
+function voiceCount(text){ var tk=nrm(text).split(' ');
+  if(/ζευγαρι|ζευγος|couple of|pair of/.test(nrm(text))) return 2;
+  for(var i=0;i<tk.length;i++){ var w=tk[i], v=null;
+    if(/^\d+$/.test(w)) v=+w; else if(NUM[w]!=null&&NUM[w]>=2) v=NUM[w];
+    if(v==null) continue; var nx=tk[i+1]||'';
+    if(/^(κιλ|kg|kilo|γραμ|gram|εκατοστ|ποντ|cm|centim|και|and|μισ|half|μετρ|meter|οργι|λεπτ|minut|ωρ|hour)/.test(nx)) continue;
+    return v; }
+  return 0; }
+var PESTV=/λαγοκεφαλ|λαγοκ|toadfish|pufferfish|puffer|εφαγε το δολωμα|φαγανε το δολωμα|μου φαγαν|bait stolen|took the bait|stole the bait|εκοψε|κοψανε|cut the line|bit off/;
 function b64u(buf){ var s=''; var a=new Uint8Array(buf); for(var i=0;i<a.length;i++) s+=String.fromCharCode(a[i]); return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
 function unb64u(s){ s=s.replace(/-/g,'+').replace(/_/g,'/'); while(s.length%4) s+='='; var b=atob(s), a=new Uint8Array(b.length); for(var i=0;i<b.length;i++) a[i]=b.charCodeAt(i); return a; }
 function enc(obj){
@@ -250,9 +267,10 @@ function voiceFill(fill){ listen(function(alts){ var r=best(alts); if(!r||r.sc==
 function voiceLog(){
   var t0=Date.now();
   listen(function(alts){
+    if(alts.some(function(a){ return PESTV.test(nrm(a)); })&&B.quickPest){ B.quickPest(/λαγοκ|toad|puffer/.test(nrm(alts.join(' ')))?'toad':'stolen',null); return; }
     if(alts.some(function(a){ return LOST.test(a); })){ if(B.quickRec) B.quickRec(true); return; }
     var r=best(alts); if(!r||!r.species){ B.ask(T('Άκουσα: «','Heard: “')+alts[0]+T('». Δεν αναγνώρισα το είδος. Να ξαναπείς;','”. I did not recognise the species. Try again?'),T('Ξανά','Again')).then(function(y){ if(y) voiceLog(); }); return; }
-    r.t0=t0; var msg=[SN(r.species.disp),r.kg!=null?r.kg+' kg':null,r.len!=null?r.len+' cm':null].filter(Boolean).join(' · ');
+    r.t0=t0; var msg=[(r.cnt?r.cnt+' × ':'')+SN(r.species.disp),r.kg!=null?r.kg+' kg':null,r.len!=null?r.len+' cm':null,r.bait?T('δόλωμα: ','bait: ')+r.bait:null,r.rel?T('απελευθερώθηκε','released'):null].filter(Boolean).join(' · ');
     B.ask(msg+'\n'+T('Άκουσα: «','Heard: “')+alts[0]+T('»','”')+'\n\n'+T('Να καταγραφεί ως ψάρι;','Log as a catch?'),T('Καταγραφή','Log')).then(function(y){ if(y) B.biteForm(null,{voice:r,auto:true}); });
   });
 }

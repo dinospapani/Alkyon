@@ -217,6 +217,10 @@ function plansAll(){ var a=ls.get(PK,[]); return Array.isArray(a)?a:[]; }
 B.plans={list:function(){ var td=today(); return plansAll().filter(function(x){ return x&&x.date>=td; }).slice(0,6); },
   get:function(date){ return plansAll().filter(function(x){ return x.date===date; })[0]||null; },
   set:function(date,p){ var td=today(), a=plansAll().filter(function(x){ return x.date!==date&&x.date>=td; }); if(p) a.push({date:date,id:p.id||'',name:p.name||'',lat:+(+p.lat).toFixed(4),lon:+(+p.lon).toFixed(4),t:Date.now()}); a.sort(function(x,y){ return x.date<y.date?-1:1; }); ls.set(PK,a); try{ if(B.pushSync) B.pushSync(); }catch(e){} }};
+var pmMemo={t:0,m:null};
+function persDay(d,isToday){ try{ if(!window.PP||!B.adv||!B.adv.model) return null; if(!pmMemo.m||Date.now()-pmMemo.t>120000){ pmMemo={t:Date.now(),m:B.adv.model()}; } var m=pmMemo.m;
+  if(!m||!m.ready||!m.valid||!(m.valid.gain>0.05)) return null; var nk=isToday?(st.fc&&st.fc.nowLocal?st.fc.nowLocal.slice(0,13)+':00':null):null, r=PP.day(m,d,nk); return r&&r.safe&&r.best!=null?r:null; }catch(e){ return null; } }
+B.on&&B.on('store',function(k){ if(/^psaro-(bites|trips)$/.test(k)) pmMemo.m=null; });
 function planBtn(d){
   var pl=B.plans.get(d.date), p=st.place||current();
   var b=h('button',{type:'button',class:'planbtn'+(pl?' on':''),onclick:function(){
@@ -244,6 +248,8 @@ function dayView(page,fc,d){
   if(isToday&&(!d.safe||(d.best<50))){ var nx=(fc.days||[]).filter(function(x){ return x.date>d.date&&x.safe&&x.best>=60; })[0];
     if(nx) hero.append(h('button',{class:'next',type:'button',onclick:function(){ st.view='today'; st.day=nx.date; st.hour=null; draw(); }},
       h('span',{text:T('Επόμενη καλή μέρα','Next good day')}),h('b',{text:B.dayName(nx.date,td)+', '+win(nx)}),h('i',{class:'sc',text:String(nx.best)}))); }
+  /* v31z550: ο δικός σου βαθμός (προσωπική πρόγνωση), μόνο όταν έχει αποδειχθεί ότι προβλέπει καλύτερα από τον μέσο όρο σου */
+  var pd=d.safe?persDay(d,isToday):null; if(pd) hero.append(h('button',{type:'button',class:'perschip',onclick:function(){ st.view='mine'; st.day=null; st.hour=null; draw(); }},h('span',{text:T('Για σένα','For you')}),h('b',{text:String(pd.best)}),pd.win?h('small',{text:B.pad(pd.win.s)+':00–'+B.pad((pd.win.e+1)%24)+':00'}):null));
   if(tg) hero.append(h('span',{class:'tag '+tg[0],text:tg[1]}));
   if(d.date>=td&&!(isToday&&d.why==='night')) hero.append(planBtn(d));
   page.append(hero);

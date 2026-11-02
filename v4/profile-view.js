@@ -54,7 +54,7 @@ function draw(){
   if(tab==='set') settingsTab(page); else if(tab==='acc') accountTab(page,s); else mineTab(page);
   var EL=window.PsaroErrLog, ne=EL?EL.get().length:0;
   page.append(h('p',{class:'foot'},'BiteCast · '+(window.PSARO_VERSION||'')+' · ',h('a',{href:B.classic(),text:T('Κλασική έκδοση','Classic version')}),
-    ne?' · ':'',ne?h('button',{type:'button',class:'linkbtn errlk',text:T('Αναφορά σφαλμάτων','Error report')+' ('+ne+')',onclick:errSheet}):''));
+    ne?' · ':'',ne?h('button',{type:'button',class:'linkbtn errlk',text:T('Αναφορά σφαλμάτων','Error report')+' ('+ne+')',onclick:function(){ location.hash='#check'; }}):''));
   root.replaceChildren(page); if(y) try{ window.scrollTo(0,y); }catch(e){}
 }
 /* αναφορά σφαλμάτων: τι κόλλησε στο κινητό, για να σταλεί και να διορθωθεί */
@@ -80,7 +80,8 @@ function mineTab(page){
     row('people',T('Φίλοι','Friends'),T('Κοινά ψάρια και σημεία με φίλους','Share catches and spots with friends'),'#friends')]));
   page.append(group(T('Γνώση','Knowledge'),[
     row('help',T('Πώς δουλεύει','How it works'),T('Όλες οι λειτουργίες με λίγα λόγια','Every feature in a few words'),'#help'),
-    row('guide',T('Οδηγός','Guide'),T('Είδη, μεγέθη, νόμοι, κόμποι','Species, sizes, laws, knots'),'#guide')]));
+    row('guide',T('Οδηγός','Guide'),T('Είδη, μεγέθη, νόμοι, κόμποι','Species, sizes, laws, knots'),'#guide'),
+    row('safety',T('Έλεγχος συστήματος','System check'),T('Δουλεύουν όλα; Καιρός, δορυφόρος, ειδοποιήσεις, αντίγραφο','Is everything working? Weather, satellite, alerts, backup'),'#check')]));
 }
 function sheetOf(title,body){ return B.sheet({title:title,body:body}); }
 function settingsTab(page){
@@ -166,6 +167,7 @@ function backupCard(){
   var im=h('button',{class:'btn',type:'button',text:T('Επαναφορά από αρχείο','Restore from file'),onclick:function(){ file.click(); }});
   file.addEventListener('change',function(){ var f=file.files&&file.files[0]; file.value=''; if(!f) return; B.backup.importFile(f).then(function(n){ B.toast(T('Επαναφέρθηκαν ','Restored ')+n+T(' εγγραφές.',' records.')); }).catch(function(){ B.toast(T('Το αρχείο δεν διαβάστηκε.','The file could not be read.')); }); });
   c.append(h('div',{class:'acts'},ex,im),file);
+  if(B.cloudBackupRow) c.append(B.cloudBackupRow()); /* v31z550 */
   return c;
 }
 B.view('profile',{title:T('Προφίλ','Profile'),mount:function(el){ root=el; draw(); },unmount:function(){ root=null; },resume:function(){ draw(); }});

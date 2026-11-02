@@ -346,21 +346,29 @@ B.view('tackle',{title:T('Εξοπλισμός','Tackle'),mount:function(el){ ro
 
 /* ---------- αντίγραφο ασφαλείας (ίδια μορφή αρχείου με την κλασική) ---------- */
 function b2u(bl){ return new Promise(function(res){ var r=new FileReader(); r.onload=function(){ res(r.result); }; r.readAsDataURL(bl); }); }
+/* v31z550: και οι ρυθμίσεις (σκάφος, όρια, πλάνα, στόχοι, συντήρηση, τοποθεσίες, ειδοποιήσεις, ασφάλεια) */
+var SETK=['psaro-boat','psaro-smart','psaro-maint','psaro-limits','psaro-v4-plans','psaro-v4-goals','psaro-places','psaro-notify','psaro-safe','psaro-units','psaro-fprof','psaro-lang','psaro-v4-autostart','psaro-v4-night','psaro-mapwx-items','psaro-gear'];
+function settingsOf(){ var o={}; SETK.forEach(function(k){ var v=ls.get(k,undefined); if(v!==undefined&&v!==null) o[k]=v; }); return o; }
 B.backup={
-  exportAll:function(){
-    var bites=S().raw('bites'), photos={}, keys=[]; bites.forEach(function(b){ S().phKeys(b).forEach(function(k){ keys.push(k); }); }); S().raw('tackle').forEach(function(t){ if(t.photo) keys.push('tk-'+t.id); });
+  build:function(withPhotos){
+    var bites=S().raw('bites'), photos={}, keys=[]; if(withPhotos){ bites.forEach(function(b){ S().phKeys(b).forEach(function(k){ keys.push(k); }); }); S().raw('tackle').forEach(function(t){ if(t.photo) keys.push('tk-'+t.id); }); }
     var p=Promise.resolve(); keys.forEach(function(k){ p=p.then(function(){ return S().Photos.get(k).then(function(bl){ if(bl) return b2u(bl).then(function(u){ photos[k]=u; }); }).catch(function(){}); }); });
     return p.then(function(){ var g=ls.get('psaro-gear',null);
-      var data={app:'psarovarka',v:2,spots:S().raw('spots'),trips:S().raw('trips'),bites:bites,tackle:S().raw('tackle'),gear:g&&g.items?g.items:[],boat:ls.get('psaro-boat',null),photos:photos};
+      return {app:'psarovarka',v:3,at:new Date().toISOString(),ver:window.PSARO_VERSION||'',spots:S().raw('spots'),trips:S().raw('trips'),bites:bites,tackle:S().raw('tackle'),gear:g&&g.items?g.items:[],boat:ls.get('psaro-boat',null),settings:settingsOf(),photos:photos,nphotos:keys.length}; }); },
+  exportAll:function(){
+    return B.backup.build(true).then(function(data){ var keys={length:data.nphotos};
       var d=new Date(), name='psarovarka-'+d.getFullYear()+'-'+B.pad(d.getMonth()+1)+'-'+B.pad(d.getDate())+'.json';
       var a=h('a',{href:URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'})),download:name}); document.body.append(a); a.click(); a.remove();
       ls.set('psaro-lastbackup',Date.now()); return keys.length; });
   },
-  importFile:function(file){
-    return file.text().then(function(t){ var d=JSON.parse(t), n=0;
+  importFile:function(file){ return file.text().then(function(t){ return B.backup.apply(JSON.parse(t)); }); },
+  apply:function(d){
+    return Promise.resolve().then(function(){ var n=0;
       ['spots','trips','bites','tackle'].forEach(function(k){ (Array.isArray(d[k])?d[k]:[]).forEach(function(it){ if(it&&typeof it==='object'){ S().save(k,it); n++; } }); });
       if(Array.isArray(d.gear)&&d.gear.length){ var g=ls.get('psaro-gear',{})||{}, ex={}; g.items=Array.isArray(g.items)?g.items:[]; g.items.forEach(function(x){ ex[x.id]=1; }); d.gear.forEach(function(x){ if(x&&x.id&&!ex[x.id]){ g.items.push(x); n++; } }); ls.set('psaro-gear',g); }
       if(d.boat&&typeof d.boat==='object'){ ls.set('psaro-boat',d.boat); n++; }
+      /* v31z550: ρυθμίσεις (αν υπάρχουν στο αντίγραφο) */
+      if(d.settings&&typeof d.settings==='object') Object.keys(d.settings).forEach(function(k){ if(SETK.indexOf(k)>=0&&k!=='psaro-gear'&&k!=='psaro-boat'){ ls.set(k,d.settings[k]); n++; } });
       var ph=d.photos&&typeof d.photos==='object'?d.photos:{}, p=Promise.resolve();
       Object.keys(ph).forEach(function(id){ p=p.then(function(){ return fetch(ph[id]).then(function(r){ return r.blob(); }).then(function(bl){ return S().Photos.put(id,bl); }).catch(function(){}); }); });
       return p.then(function(){ return n; }); });

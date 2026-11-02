@@ -68,6 +68,9 @@ function endHaul(id){ here().then(function(p){ var g=G(), it=g.items.filter(func
 /* για τη φόρμα ψαριού: σύνδεση με το εργαλείο που ανεβαίνει τώρα */
 B.gearTag=function(rec){ var it=hauling(); if(!it||rec.miss||rec.gear) return rec; rec.gear=it.id; rec.gearName=nm(it); if(!rec.tech) rec.tech=tn(it.type); return rec; };
 B.gearOf=function(id){ return G().items.filter(function(x){ return x.id===id; })[0]||null; };
+/* v31z549: εργαλείο και από παλιές εξόδους (αρχείο), για «Στον χάρτη» */
+B.gearFind=function(id){ var g=B.gearOf(id); if(g) return g; var f=null; B.store.raw('trips').forEach(function(t){ if(f||t.deleted) return; (t.gear||[]).forEach(function(x){ if(!f&&x&&x.id===id) f=x; }); }); return f; };
+B.gearPts=function(g){ var pts=[]; if(!g) return pts; [g.set,g.haul].forEach(function(s){ if(!s) return; if(s.pts&&s.pts.length) pts=pts.concat(s.pts); else { if(s.a) pts.push(s.a); if(s.b) pts.push(s.b); } }); return pts; };
 
 /* ---------- πίνακας ενεργειών (από τον χάρτη) ---------- */
 B.gearPanel=function(){
@@ -89,8 +92,9 @@ B.gearPanel=function(){
 
 /* ---------- χάρτης: γραμμές εργαλείων ---------- */
 B.gearLayers=function(L,onlyIds){
-  var out=[], g=G();
-  g.items.forEach(function(it){ if(onlyIds?onlyIds.indexOf(it.id)<0:it.state==='done') return;
+  var out=[], g=G(), list=g.items.slice();
+  if(onlyIds) onlyIds.forEach(function(id){ if(!list.some(function(x){ return x.id===id; })){ var x=B.gearFind(id); if(x) list.push(x); } });
+  list.forEach(function(it){ if(onlyIds?onlyIds.indexOf(it.id)<0:it.state==='done') return;
     var c=(TYPES[it.type]||TYPES.net).c, s=it.set||{}, hh=it.haul;
     if(s.pts&&s.pts.length>1) out.push(L.polyline(s.pts,{color:c,weight:4,opacity:.9}));
     if(s.a) out.push(L.circleMarker(s.a,{radius:7,color:'#fff',weight:2,fillColor:'#2e9e5b',fillOpacity:1}).bindTooltip(nm(it)+' · '+T('ρίψη ','set ')+(s.ta?clock(s.ta):'')));

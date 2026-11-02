@@ -18,7 +18,7 @@ function subId(sub){ return crypto.subtle.digest('SHA-256',new TextEncoder().enc
 function vapid(){ if(window.VAPID_PUBLIC) return Promise.resolve(window.VAPID_PUBLIC); return new Promise(function(res){ var s=document.createElement('script'); s.src='../push-config.js'; s.onload=function(){ res(window.VAPID_PUBLIC||null); }; s.onerror=function(){ res(null); }; document.head.appendChild(s); }); }
 function getSub(create){ return Promise.all([reg(),vapid()]).then(function(a){ var r=a[0], key=a[1]; if(!r||!r.pushManager||!key) return null;
   return r.pushManager.getSubscription().then(function(sub){ if(sub||!create) return sub; return r.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(key)}); }); }); }
-function writeCfg(){ var n=nt(), cfg={limits:ls.get('psaro-limits',null)||undefined,sp:spCfg(),lang:B.LANG,on:n.on,threshold:n.threshold,pressure:n.pressure!==false,turn:!!n.turn,wind:wwCfg(),notified:n.notified,server:!!n.server,quiet:n.quiet!==false,front:n.front!==false&&B.prof()!=='lake',plans:B.plans?B.plans.list():[],places:cfgPlaces()};
+function writeCfg(){ var n=nt(), cfg={limits:ls.get('psaro-limits',null)||undefined,sp:spCfg(),lang:B.LANG,on:n.on,threshold:n.threshold,pressure:n.pressure!==false,turn:!!n.turn,wind:wwCfg(),notified:n.notified,server:!!n.server,quiet:n.quiet!==false,front:n.front!==false&&B.prof()!=='lake',plans:B.plans?B.plans.list():[],places:cfgPlaces(),pf:ls.get('psaro-v4-pf','all'),tiles:B.tileTpl||null};
   return caches.open('psaro-cfg').then(function(c){ return c.put(new URL('__cfg',ROOT).href,new Response(JSON.stringify(cfg))); }).catch(function(){}); }
 function pushServer(){ var cl=B.cloud&&B.cloud.session()?B.cloud:null; if(!cl) return Promise.resolve(false); var n=nt();
   return getSub(true).then(function(sub){ if(!sub) return false; return subId(sub).then(function(id){
@@ -63,6 +63,8 @@ function draw(){
     asCard=(h('section',{class:'card'},h('h2',{text:T('Αυτόματη έναρξη','Auto start')}),h('label',{class:'tg'},as,h('span',null,T('Ρώτα με αν ξεκινάω ψάρεμα όταν σταθώ σε σημείο μου','Ask me if I am starting to fish when I stop at one of my spots'),h('small',{class:'tgs',text:T('Για ψάρεμα από ακτή. Όταν η εφαρμογή είναι ανοιχτή και μείνεις ~2 λεπτά σε απόσταση έως 150 m από σημείο σου ή από μέρος που έχεις πιάσει ψάρια.','For shore fishing. When the app is open and you stay ~2 minutes within 150 m of one of your spots or a place where you caught fish.')}))))); }
   page.append(c2);
   if(asCard) page.append(asCard);
+  /* v31z550: κατέβασμα χάρτη και πρόγνωσης πριν από μια έξοδο που σχεδίασες */
+  if(B.prefetchRow) page.append(h('section',{class:'card'},h('h2',{text:T('Πριν την έξοδο','Before the trip')}),B.prefetchRow()));
   /* τοποθεσίες */
   var c3=h('section',{class:'card'+(n.on?'':' dim')},h('h2',{text:T('Για ποιες τοποθεσίες','For which places')}),h('p',{class:'sub',style:{margin:'-4px 0 8px'},text:T('Προσθέτεις τοποθεσίες από την Πρόγνωση.','Add places from the Forecast.')}));
   places().forEach(function(p){ var sw=h('input',{type:'checkbox',checked:p.watch!==false}); sw.addEventListener('change',function(){ if(p.id==='gps'){ var q=nt(); q.gpsWatch=sw.checked; setNt(q); } else { var a=ls.get('psaro-places',[])||[]; a.forEach(function(x){ if(x.id===p.id) x.watch=sw.checked; }); ls.set('psaro-places',a); } sync(); });

@@ -31,6 +31,7 @@ if(!g('psaro-onboard')||!(g('psaro-askfp')==='0'&&g('psaro-fprof-done')))documen
   window.addEventListener('unhandledrejection',function(e){ var r=e.reason; if(r&&(r.name==='AbortError'||/Failed to fetch|NetworkError|Load failed/i.test(r.message||''))) return; add('Promise: '+(r&&(r.message||r)),r&&r.stack?String(r.stack).split('\n')[1]||'':''); });
   window.PsaroErrLog={get:function(){ try{ return JSON.parse(localStorage.getItem(K)||'[]'); }catch(e){ return []; } },clear:function(){ try{ localStorage.removeItem(K); }catch(e){} },add:add};
 })();</script>
+<script src="errlog.js"></script>
 <script src="../version.js"></script>
 <script src="../units.js"></script>
 <script src="../knowledge.js"></script>
@@ -81,15 +82,14 @@ if(!g('psaro-onboard')||!(g('psaro-askfp')==='0'&&g('psaro-fprof-done')))documen
 <script src="alerts-view.js"></script>
 <script src="cards.js"></script>
 <script src="datatools.js"></script>
-<script src="import-view.js"></script>
 <script src="insights.js"></script>
-<script src="years.js"></script>
+<script src="backup.js"></script>
+<script src="prefetch.js"></script>
+<script src="syscheck.js"></script>
 <script src="start-pick.js"></script>
 <script src="../rules.js"></script>
 <script src="../regions.js"></script>
 <script src="../coords.js"></script>
-<script src="guide-core.js"></script>
-<script src="guide-view.js"></script>
 <script>BC.start();</script>
 </body>
 </html>

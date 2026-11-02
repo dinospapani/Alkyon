@@ -36,7 +36,9 @@ function open(){
   el=h('div',{class:'bigtrip',role:'dialog','aria-modal':'true','aria-label':T('Μεγάλα κουμπιά','Big buttons')},
     h('div',{class:'bthead'},h('b',{text:T('Έξοδος','Trip')}),h('button',{type:'button',class:'btx','aria-label':T('Κλείσιμο','Close'),html:X,onclick:close})),
     h('div',{class:'btinfo'}),h('div',{class:'btgrid'},fish,miss,pest,mob),
-    h('p',{class:'btfoot',text:T('Το είδος και οι λεπτομέρειες συμπληρώνονται μετά από το Ημερολόγιο. Κράτα πατημένο το MOB για 1 δευτερόλεπτο.','Species and details are added later from the Logbook. Hold MOB for 1 second.')}));
+    /* v31z550: φωνή — «τρία λαβράκια ενάμισι κιλό με γαρίδα», «χάθηκε», «λαγοκέφαλος» */
+    B.voice&&B.voice.ok?h('button',{type:'button',class:'btb bt-voice',onclick:function(){ B.voice.log(); }},h('span',{class:'bti',html:B.voice.MIC}),h('span',{text:T('Πες το: «λαβράκι δύο κιλά»','Say it: “sea bass two kilos”')})):null,
+    h('p',{class:'btfoot',text:T('Το είδος και οι λεπτομέρειες συμπληρώνονται μετά από το Ημερολόγιο ή με τη φωνή. Κράτα πατημένο το MOB για 1 δευτερόλεπτο.','Species and details are added later from the Logbook or by voice. Hold MOB for 1 second.')}));
   document.body.append(el); document.body.classList.add('btopen'); paint(); tm=setInterval(paint,20000);
   B.on&&B.on('trip',paint); ls.set('psaro-v4-bigtrip',true);
 }

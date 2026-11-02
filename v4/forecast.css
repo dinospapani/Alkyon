@@ -273,3 +273,6 @@ svg.pwc{width:100%;height:auto}
 .mpdet summary{cursor:pointer;color:var(--accent);font-weight:700;font-size:14px;padding:4px 2px}
 .mpdet[open] summary{margin-bottom:8px}
 .mpsave{position:sticky;bottom:0;padding:8px 0 2px;background:linear-gradient(transparent,var(--bg) 30%)}
+/* v31z550: ο δικός σου βαθμός στην κάρτα της ημέρας */
+.perschip{display:inline-flex;align-items:center;gap:8px;margin:10px 8px 0 0;padding:6px 12px;border-radius:99px;border:1px solid var(--lv);background:var(--lvb);color:var(--ink);font:600 13px/1 var(--font)}
+.perschip b{font-size:16px;font-weight:800}.perschip small{opacity:.85;font-size:12px}

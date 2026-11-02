@@ -273,7 +273,8 @@ B.biteForm=function(edit,opt){
       if(B.cloud&&B.cloud.session()) B.cloud.sync(false); });
   }
   /* φωνή: συμπληρώνει είδος, κιλά, εκατοστά και την ώρα που πάτησες το μικρόφωνο */
-  function applyVoice(r){ if(r.species) sp.value=r.species.disp; if(r.kg!=null) kg.value=r.kg; if(r.len!=null) len.value=r.len; law();
+  function applyVoice(r){ if(r.species) sp.value=r.species.disp; if(r.kg!=null) kg.value=r.kg; if(r.len!=null) len.value=r.len;
+    /* v31z550: πόσα, δόλωμα, απελευθέρωση */ if(r.cnt>1){ many.checked=true; cnt.value=r.cnt; try{ many.dispatchEvent(new Event('change')); }catch(x){} } if(r.bait) bait.value=r.bait; if(r.rel){ rel.checked=true; try{ rel.dispatchEvent(new Event('change')); }catch(x){} } law();
     if(r.t0&&Date.now()-r.t0<30*60000){ var d=new Date(r.t0); when.value=d.getFullYear()+'-'+B.pad(d.getMonth()+1)+'-'+B.pad(d.getDate())+'T'+B.pad(d.getHours())+':'+B.pad(d.getMinutes()); } }
   var sh=B.sheet({title:e?T('Επεξεργασία ψαριού','Edit catch'):T('Νέο ψάρι','New catch'),body:form,focus:e||(opt&&opt.auto)?null:'input[list=bfSp]'});
   law();

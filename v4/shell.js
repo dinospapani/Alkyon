@@ -4,6 +4,18 @@
 var B=window.BC, h=B.h, T=B.T;
 var VIEWS={}, cur=null, main=null;
 B.view=function(name,def){ VIEWS[name]=def; };
+/* v31z550: φόρτωση κατά απαίτηση για σπάνια κομμάτια (γρηγορότερο άνοιγμα). Τα αρχεία είναι στο cache του service worker, οπότε δουλεύουν και χωρίς σήμα. */
+var LZ={};
+B.loadScripts=function(files){ return files.reduce(function(pr,f){ return pr.then(function(){ if(LZ[f]) return LZ[f]; LZ[f]=new Promise(function(res,rej){ var s=document.createElement('script'); s.src=f; s.onload=function(){ res(); }; s.onerror=function(){ delete LZ[f]; s.remove(); rej(new Error('load '+f)); }; document.head.appendChild(s); }); return LZ[f]; }); },Promise.resolve()); };
+B.lazyView=function(name,title,files){ if(VIEWS[name]) return; var stub={title:title,mount:function(el){ el.append(h('div',{class:'card empty lzload'},h('p',{class:'sub',text:T('Φόρτωση…','Loading…')})));
+    B.loadScripts(files).then(function(){ if(cur!==name||VIEWS[name]===stub) return; el.replaceChildren(); VIEWS[name].mount(el); document.title=(VIEWS[name].title||'BiteCast')+' · BiteCast'; })
+    .catch(function(){ if(cur!==name) return; el.replaceChildren(h('div',{class:'card empty'},h('p',{text:T('Δεν φορτώθηκε. Έλεγξε τη σύνδεση και ξαναδοκίμασε.','Could not load. Check your connection and try again.')}),h('button',{class:'btn',type:'button',text:T('Ξανά','Retry'),onclick:function(){ el.replaceChildren(); stub.mount(el); }}))); }); }};
+  VIEWS[name]=stub; };
+B.lazyView('guide',T('Οδηγός','Guide'),['guide-core.js','guide-view.js']);
+/* σύγκριση χρονιών: κάρτα που φορτώνει το years.js όταν φανεί */
+if(!B.yearsCard) B.yearsCard=function(){ var box=h('div',{class:'lzyears'}); B.loadScripts(['years.js']).then(function(){ if(B.yearsCard&&!B.yearsCard._stub&&box.isConnected) box.replaceWith(B.yearsCard()); }).catch(function(){}); return box; }; B.yearsCard._stub=1;
+/* εισαγωγή από plotter/ρολόι: φορτώνει το import-view.js όταν το ζητήσεις */
+if(!B.importSheet) B.importSheet=function(){ var a=arguments; B.loadScripts(['import-view.js']).then(function(){ if(!B.importSheet._stub) B.importSheet.apply(null,a); }).catch(function(){ B.toast(T('Δεν φορτώθηκε. Έλεγξε τη σύνδεση.','Could not load. Check your connection.')); }); }; B.importSheet._stub=1;
 
 var TABS=[['forecast',T('Πρόγνωση','Forecast'),'forecast'],['map',T('Χάρτης','Map'),'map'],null,['log',T('Ημερολόγιο','Logbook'),'log'],['profile',T('Προφίλ','Profile'),'user']];
 function nav(){

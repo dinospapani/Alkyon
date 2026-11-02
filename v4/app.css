@@ -461,3 +461,20 @@ html.night body::after{content:'';position:fixed;inset:0;background:#a81000;mix-
 .hgo{display:inline-block;margin-left:6px;color:var(--accent);font-weight:700;text-decoration:none;white-space:nowrap}
 .hnews small{display:block;color:var(--ink-3);font-weight:700;margin:6px 0 2px}.hnews .hlist{padding:0 0 4px 18px}
 .hnew{padding:0 0 4px 18px}
+/* v31z549: προτεινόμενες λήξεις σκάφους */
+.esg{display:flex;flex-direction:column;gap:6px;margin:0 0 4px}
+.esg .esgl{font-size:13px;font-weight:600;color:var(--ink-2)}
+.esg .chips.esgc{flex-wrap:wrap;overflow:visible;margin:0;padding:0;gap:6px}
+.esg .esghint:empty{display:none}
+/* v31z550: έλεγχος συστήματος, αντίγραφο cloud, πριν την έξοδο */
+.ckcard{padding:4px 14px}
+.ckrow{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--line)}
+.ckrow:last-child{border-bottom:0}
+.ckrow>i{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-weight:800;font-size:14px;color:#fff;background:#8a96a3;margin-top:1px}
+.ckrow.ok>i{background:#2e9e5b}.ckrow.warn>i{background:#e08a1e}.ckrow.bad>i{background:#d33a3a}.ckrow.run>i{background:#8a96a3}
+.ckrow .tx{display:flex;flex-direction:column;gap:2px;min-width:0}
+.ckrow .tx b{font-size:15px}.ckrow .tx small{color:var(--ink-2);font-size:13px;overflow-wrap:anywhere}
+.ckrow .ckfix{color:var(--ink)!important;font-weight:600}
+.ckrow .btn.sm{align-self:flex-start;margin-top:6px;min-height:34px;padding:0 12px;font-size:13px}
+.cbk{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.pfrow select{margin-top:4px}.pfrow small{display:block;margin-top:6px}

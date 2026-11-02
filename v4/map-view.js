@@ -5,6 +5,7 @@
 var B=window.BC, h=B.h, T=B.T, EN=B.EN, ls=B.ls;
 var root=null, map=null, layers={}, base=null, sea=null, me=null, meAcc=null, watch=null, gSpots=null, gFish=null;
 var TILES={sat:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',osm:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',sea:'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png'};
+B.tileTpl={sat:TILES.sat,sea:TILES.sea}; /* v31z550: για το κατέβασμα πριν την έξοδο (prefetch.js, sw.js) */
 var cfg=Object.assign({base:'sat',sea:true,spots:true,fish:true,zones:true,depth:false,mpa:false,dams:B.prof()==='lake',wind:false},ls.get('psaro-v4-map',{}));
 var DAMS=[
 ['Κούρης','Kouris',34.7278,32.9178,'check',110],['Ασπρόκρεμμος','Asprokremmos',34.7259,32.5543,'check',53],['Εύρετου','Evretou',34.9757,32.4727,'check',70],
@@ -103,10 +104,16 @@ function mobSheet(m){ var fx=(B.trip&&B.trip.fix())||B.lastPos(), rows=[[T('Ώρ
   if(fx){ var R=6371000, r=Math.PI/180, dLa=(m.lat-fx.lat)*r, dLo=(m.lon-fx.lon)*r, x=Math.sin(dLa/2)*Math.sin(dLa/2)+Math.cos(fx.lat*r)*Math.cos(m.lat*r)*Math.sin(dLo/2)*Math.sin(dLo/2), d=2*R*Math.asin(Math.min(1,Math.sqrt(x)));
     var y=Math.sin(dLo)*Math.cos(m.lat*r), xx=Math.cos(fx.lat*r)*Math.sin(m.lat*r)-Math.sin(fx.lat*r)*Math.cos(m.lat*r)*Math.cos(dLo), br=(Math.atan2(y,xx)/r+360)%360; rows.push([T('Απόσταση','Distance'),d<1000?Math.round(d)+' m':B.num(d/1852,2)+' nm'],[T('Πορεία','Bearing'),Math.round(br)+'°']); }
   var sh=B.sheet({title:'MOB',body:h('div',null,h('div',{class:'card'},h('div',{class:'rows one'},rows.map(function(q){ return h('div',{class:'row'},h('span',{text:q[0]}),h('b',{text:q[1]})); }))),h('div',{class:'acts'},h('button',{class:'btn pri',type:'button',text:T('Πήγαινε εκεί','Go there'),onclick:function(){ B.goTo(m.lat,m.lon,'MOB'); }}),h('button',{class:'btn del',type:'button',text:T('Διαγραφή','Delete'),onclick:function(){ B.mobDel(m.t); sh.close(); }})))}); }
-var gGear=null;
-function drawGear(){ if(!map||!B.gearLayers) return; if(gGear) map.removeLayer(gGear); var show=ls.get('psaro-v4-gearshow',null);
-  gGear=L.layerGroup(B.gearLayers(L,show?[show]:null)).addTo(map);
-  if(show){ ls.set('psaro-v4-gearshow',null); var g=B.gearOf(show), pts=[]; if(g){ [g.set&&g.set.pts,g.haul&&g.haul.pts].forEach(function(a){ if(a) pts=pts.concat(a); }); } if(pts.length) map.fitBounds(L.latLngBounds(pts),{padding:[60,60],maxZoom:16}); } }
+var gGear=null, gShow=null;
+/* v31z549: το εργαλείο από «Στον χάρτη» μένει ορατό (και αν έχει ανέβει) μέχρι να το κλείσεις από το ✕ */
+function drawGear(){ if(!map||!B.gearLayers) return; if(gGear) map.removeLayer(gGear); var show=ls.get('psaro-v4-gearshow',null), fit=false;
+  if(show){ ls.set('psaro-v4-gearshow',null); gShow=show; fit=true; }
+  var lys=B.gearLayers(L,null); if(gShow) lys=lys.concat(B.gearLayers(L,[gShow]));
+  gGear=L.layerGroup(lys).addTo(map);
+  if(fit){ var g=B.gearFind?B.gearFind(gShow):B.gearOf(gShow), pts=B.gearPts?B.gearPts(g):[];
+    if(pts.length){ setFollow(false); followPause=Date.now()+60000; map.fitBounds(L.latLngBounds(pts),{padding:[60,60],maxZoom:16});
+      var id=gShow; revShow((g&&(g.name||''))||T('Εργαλείο','Gear'),null); revOnClear=function(){ if(gShow===id){ gShow=null; drawGear(); } }; }
+    else { gShow=null; B.toast(T('Αυτό το εργαλείο δεν έχει θέση στον χάρτη.','This gear has no position on the map.')); } } }
 function esc(s){ return String(s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 
 /* ---------- επιπλέον στρώματα ---------- */
@@ -379,8 +386,9 @@ function pointMenu(ll){
 function fishSheet(a){
   if(a.length===1&&B.biteDetail){ B.biteDetail(a[0]); return; }
   var l=h('div',{class:'list'}); a.sort(function(x,y){ return (y.date+y.time).localeCompare(x.date+x.time); }).forEach(function(b){
-    l.append(h('button',{class:'li',type:'button',onclick:function(){ sh.close(true); if(B.biteDetail) B.biteDetail(b); }},h('span',{class:'ic'},B.icon('fish')),h('span',{class:'tx'},h('b',{text:(b.species||'')+(+b.cnt>1?' ×'+b.cnt:'')}),h('small',{text:[B.dateShort(b.date)+(b.time?', '+b.time:''),+b.kg?b.kg+' kg':''].filter(Boolean).join(' · ')})))); });
-  var sh=B.sheet({title:a.length+' '+T('ψάρια σε αυτό το σημείο','catches at this spot'),body:l});
+    var row=h('button',{class:'li',type:'button',onclick:function(){ sh.close(true); if(B.biteDetail) B.biteDetail(b); }},h('span',{class:'ic'},B.icon('fish')),h('span',{class:'tx'},h('b',{text:b.miss?T('Χαμένο','Lost'):(b.species||'')+(+b.cnt>1?' ×'+b.cnt:'')}),h('small',{text:[B.dateShort(b.date)+(b.time?', '+b.time:''),+b.kg?b.kg+' kg':''].filter(Boolean).join(' · ')})));
+    l.append(B.swipeDel?B.swipeDel(row,function(){ S().delUndo('bites',b,T('Διαγράφηκε: ','Deleted: ')+(b.miss?T('χαμένο','lost fish'):(b.species||T('ψάρι','catch')))+'.'); if(!l.children.length) sh.close(true); }):row); });
+  var sh=B.sheet({title:a.length+' '+T('ψάρια σε αυτό το σημείο','catches at this spot'),body:h('div',null,h('p',{class:'sum',text:T('Πάτα για λεπτομέρειες · σύρε αριστερά για διαγραφή','Tap for details · swipe left to delete')}),l)});
 }
 function spotList(a){ var l=h('div',{class:'list'}), sh; a.forEach(function(sp){ l.append(h('button',{class:'li',type:'button',onclick:function(){ sh.close(true); spotSheet(sp); }},h('span',{class:'ic'},B.icon('pin')),h('span',{class:'tx'},h('b',{text:sp.name||T('Σημείο','Spot')}),h('small',{text:[sp.type,sp.depth!=null&&sp.depth!==''?sp.depth+' m':''].filter(Boolean).join(' · ')||' '})),B.icon('chev'))); });
   sh=B.sheet({title:a.length+' '+T('σημεία εδώ','spots here'),body:l}); }
@@ -393,7 +401,9 @@ function spotSheet(sp){
     h('button',{class:'btn pri',type:'button',text:T('Πρόγνωση εδώ','Forecast here'),onclick:function(){ sh.close(true); fcHere(sp.name||T('Σημείο','Spot'),sp.lat,sp.lon); }}),
     goBtn(sp.lat,sp.lon,sp.name)),
     h('div',{class:'acts'},h('a',{class:'btn',href:'https://www.google.com/maps/dir/?api=1&destination='+sp.lat+','+sp.lon,target:'_blank',rel:'noopener',text:T('Οδηγίες με αυτοκίνητο','Driving directions')})),
-    h('div',{class:'acts'},h('button',{class:'btn',type:'button',text:T('Επεξεργασία','Edit'),onclick:function(){ sh.close(true); spotForm(sp); }}),B.shareSpots?h('button',{class:'btn',type:'button',text:T('Στείλε σε φίλο','Send to a friend'),onclick:function(){ B.shareSpots([sp]); }}):null));
+    h('div',{class:'acts'},h('button',{class:'btn',type:'button',text:T('Επεξεργασία','Edit'),onclick:function(){ sh.close(true); spotForm(sp); }}),B.shareSpots?h('button',{class:'btn',type:'button',text:T('Στείλε σε φίλο','Send to a friend'),onclick:function(){ B.shareSpots([sp]); }}):null),
+    /* v31z549: διαγραφή σημείου από τον χάρτη (τα ψάρια μένουν), με «Αναίρεση» */
+    h('div',{class:'acts'},h('button',{class:'btn del',type:'button',text:T('Διαγραφή σημείου','Delete spot'),onclick:function(){ sh.close(true); S().delUndo('spots',sp,T('Διαγράφηκε το σημείο «','Deleted spot “')+(sp.name||'')+T('». Τα ψάρια μένουν.','”. Catches stay.')); }})));
   var sh=B.sheet({title:(sp.name||T('Σημείο','Spot'))+(sp.priv?' 🔒':''),body:body});
 }
 function fcHere(name,lat,lon){ var a=ls.get('psaro-places',[])||[], id='p'+Math.round(lat*100)+'_'+Math.round(lon*100);
@@ -616,7 +626,7 @@ function mount(el){
   }).catch(function(){ box.replaceChildren(h('div',{class:'card empty',style:{margin:'80px 16px'}},h('h3',{text:T('Ο χάρτης δεν φορτώθηκε','The map did not load')}),h('p',{text:T('Έλεγξε τη σύνδεση.','Check your connection.')}))); });
 }
 /* ο χάρτης δεν καταστρέφεται: μένει έτοιμος με τα στρώματά του για την επόμενη φορά· σταματά μόνο το GPS της σελίδας */
-function unmount(){ replayStop(); document.body.classList.remove('mapon'); if(watch!=null){ try{ navigator.geolocation.clearWatch(watch); }catch(e){} watch=null; } document.body.classList.remove('maptrip'); root=null; }
+function unmount(){ replayStop(); gShow=null; revOnClear=null; document.body.classList.remove('mapon'); if(watch!=null){ try{ navigator.geolocation.clearWatch(watch); }catch(e){} watch=null; } document.body.classList.remove('maptrip'); root=null; }
 /* μετάβαση στον χάρτη σε ένα σημείο (ψάρι, σημείο από φίλο) ή με μια διαδρομή εξόδου */
 var pend=null, gRev=null;
 /* ---------- επανάληψη εξόδου: η διαδρομή «παίζει» και τα ψάρια εμφανίζονται τη στιγμή που πιάστηκαν ---------- */
@@ -652,7 +662,8 @@ function replay(t){ replayStop(); if(!map||!t||!t.track||t.track.length<2) retur
 B.replayTrip=function(t){ if(!t||!t.track||t.track.length<2) return; pend={lat:t.track[0][0],lon:t.track[0][1],z:13,tr:t.track,replay:t}; if(map&&root) applyPend(); else location.hash='#map'; };
 /* v31z520: η διαδρομή ή το σημείο που άνοιξες από το Ημερολόγιο μένει στον χάρτη με ένα κουμπί «✕» για να φύγει */
 var revChip=null;
-function revClear(){ if(gRev&&map){ map.removeLayer(gRev); } gRev=null; if(revChip){ revChip.remove(); revChip=null; } }
+var revOnClear=null;
+function revClear(){ if(gRev&&map){ map.removeLayer(gRev); } gRev=null; if(revChip){ revChip.remove(); revChip=null; } var f=revOnClear; revOnClear=null; if(f) f(); }
 B.mapRevClear=revClear;
 function revShow(lab,trip){ if(revChip) revChip.remove();
   revChip=h('div',{class:'revchip',role:'group'},h('span',{class:'rvt',text:lab}),

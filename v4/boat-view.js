@@ -4,6 +4,12 @@
 'use strict';
 var B=window.BC, h=B.h, T=B.T, EN=B.EN, ls=B.ls, root=null, DAY=86400000;
 var EXP_DEF=[['insp',T('Επιθεώρηση σκάφους','Boat inspection'),30],['ext',T('Πυροσβεστήρας','Fire extinguisher'),30],['vhf',T('Άδεια ασυρμάτου (VHF)','Radio licence (VHF)'),30],['ins',T('Ασφάλεια σκάφους','Boat insurance'),30],['flare',T('Φωτοβολίδες','Flares'),30],['epirb',T('EPIRB / PLB (μπαταρία)','EPIRB / PLB (battery)'),60],['raft',T('Σωσίβια σχεδία (σέρβις)','Liferaft (service)'),30]];
+/* v31z549: προτεινόμενες λήξεις για «+ Νέα λήξη» [κλειδί, όνομα, ημέρες υπενθύμισης, συνήθης ισχύς σε μήνες] */
+var EXP_SUG=[['skip',T('Δίπλωμα χειριστή','Skipper’s licence'),60,0],['reg',T('Άδεια / νηολόγηση σκάφους','Boat licence / registration'),30,12],['lj',T('Φουσκωτά σωσίβια (σέρβις)','Inflatable lifejackets (service)'),30,12],
+  ['co2',T('Φιάλες CO2 σωσιβίων','Lifejacket CO2 cylinders'),30,12],['aid',T('Φαρμακείο πρώτων βοηθειών','First-aid kit'),30,12],['plb',T('PLB προσωπικό (μπαταρία)','Personal PLB (battery)'),60,0],
+  ['hvhf',T('Ασύρματος χειρός (μπαταρία)','Handheld VHF (battery)'),30,0],['spear',T('Άδεια ψαροντουφέκου','Spearfishing licence'),14,12],['berth',T('Θέση στη μαρίνα','Marina berth'),30,12],
+  ['ttax',T('Τέλη κυκλοφορίας τρέιλερ','Trailer road tax'),30,12],['tmot',T('MOT τρέιλερ','Trailer MOT'),30,24],['tins',T('Ασφάλεια τρέιλερ','Trailer insurance'),30,12],
+  ['hydro',T('Υδροστατικός έλεγχος πυροσβεστήρα','Extinguisher pressure test'),30,60],['eng',T('Ασφάλεια / εγγύηση μηχανής','Engine warranty / cover'),30,12]];
 var BAT_LIFE={lead:4,agm:5,gel:5,lith:10}, BTYP=[['lead',T('Μολύβδου (υγρή)','Lead-acid (flooded)')],['agm','AGM'],['gel','Gel'],['lith',T('Λιθίου (LiFePO4)','Lithium (LiFePO4)')]];
 function D(){ var b=ls.get('psaro-boat',null); if(!b||typeof b!=='object') b={}; b.boat=b.boat||{}; b.eng=b.eng||{}; b.log=Array.isArray(b.log)?b.log:[]; b.bat=Array.isArray(b.bat)?b.bat:[]; b.af=b.af||{mo:12};
   if(!Array.isArray(b.exp)) b.exp=EXP_DEF.map(function(x){ return {id:x[0],name:x[1],date:'',lead:x[2],std:1}; }); return b; }
@@ -116,11 +122,20 @@ function expEdit(key){
   if(key==='lic'){ var s=Sm(), d=vIn('date',s.lic||''); return sheetForm(T('Άδεια ψαρέματος','Fishing licence'),[fld(T('Λήξη','Expiry'),d),h('small',{class:'sub',text:T('Υπενθύμιση 14 ημέρες πριν.','Reminder 14 days before.')})],function(){ var x=Sm(); x.lic=d.value||null; saveS(x); }); }
   if(key==='af'){ var b=D(), ad=vIn('date',b.af.date||''), mo=vIn('number',b.af.mo||12,'12'), pr=vIn('text',b.af.prod||'',T('π.χ. Hempel','e.g. Hempel'));
     return sheetForm(T('Αντιρρυπαντική (μουράβια)','Antifouling'),[h('div',{class:'g2'},fld(T('Ημερομηνία εφαρμογής','Date applied'),ad),fld(T('Επανάληψη κάθε (μήνες)','Reapply every (months)'),mo)),fld(T('Προϊόν','Product'),pr)],function(){ var x=D(); x.af.date=ad.value||''; x.af.mo=nv(mo)>0?nv(mo):12; x.af.prod=pr.value.trim(); saveB(x); }); }
-  var b2=D(), it=key?b2.exp.filter(function(q){ return q.id===key; })[0]:null, nm=vIn('text',it?it.name:'',T('π.χ. Άδεια σκάφους','e.g. Boat licence')), dd=vIn('date',it?it.date:''), le=vIn('number',it?(it.lead||30):30,'30');
-  return sheetForm(it?it.name:T('Νέα λήξη','New expiry'),[it&&it.std?null:fld(T('Όνομα','Name'),nm),h('div',{class:'g2'},fld(T('Ημερομηνία','Date'),dd),fld(T('Υπενθύμιση (ημέρες πριν)','Remind (days before)'),le))],function(){
-    var x=D(), o=it?x.exp.filter(function(q){ return q.id===it.id; })[0]:null; if(!o){ var v=nm.value.trim(); if(!v){ nm.focus(); return false; } o={id:uid(),name:'',date:'',lead:30}; x.exp.push(o); }
-    if(!o.std&&nm.value.trim()) o.name=nm.value.trim().slice(0,50); o.date=dd.value||''; o.lead=nv(le)==null?30:nv(le); saveB(x); },
-    it&&!it.std?function(close){ return h('button',{class:'btn full del',type:'button',text:T('Διαγραφή','Delete'),onclick:function(){ var x=D(); x.exp=x.exp.filter(function(q){ return q.id!==it.id; }); saveB(x); close(); draw(); }}); }:null); }
+  var b2=D(), it=key?b2.exp.filter(function(q){ return q.id===key; })[0]:null, nm=vIn('text',it?it.name:'',T('π.χ. Άδεια σκάφους','e.g. Boat licence')), dd=vIn('date',it?it.date:''), le=vIn('number',it?(it.lead||30):30,'30'), sugBox=null, pick=null;
+  if(!it){ /* v31z549: λίστα με προτεινόμενα (όσα δεν έχεις ήδη) + δικό σου όνομα */
+    var have={}; b2.exp.forEach(function(q){ have[q.id]=1; have[String(q.name||'').toLowerCase()]=1; });
+    var sug=EXP_DEF.map(function(x){ return [x[0],x[1],x[2],0,1]; }).concat(EXP_SUG).filter(function(x){ return !have[x[0]]&&!have[String(x[1]).toLowerCase()]; });
+    var hint=h('small',{class:'sub esghint'});
+    sugBox=h('div',{class:'esg'},h('span',{class:'esgl',text:T('Προτεινόμενα','Suggested')}),h('div',{class:'chips esgc'},sug.map(function(x){ return h('button',{type:'button',class:'chip sm','aria-pressed':'false',text:x[1],onclick:function(ev){
+      [].forEach.call(sugBox.querySelectorAll('.esgc .chip'),function(c){ c.setAttribute('aria-pressed','false'); }); ev.currentTarget.setAttribute('aria-pressed','true');
+      pick=x; nm.value=x[1]; le.value=x[2]; hint.textContent=x[3]?T('Συνήθως ανανεώνεται κάθε ','Usually renewed every ')+(x[3]%12?x[3]+T(' μήνες',' months'):(x[3]/12)+T(x[3]===12?' χρόνο':' χρόνια',x[3]===12?' year':' years'))+'.':''; try{ dd.focus(); }catch(e){} }}); })),hint,
+      h('span',{class:'esgl',text:sug.length?T('…ή γράψε δικό σου','…or type your own'):T('Γράψε όνομα','Type a name')}));
+    nm.addEventListener('input',function(){ if(pick&&nm.value!==pick[1]){ pick=null; [].forEach.call(sugBox.querySelectorAll('.esgc .chip'),function(c){ c.setAttribute('aria-pressed','false'); }); hint.textContent=''; } }); }
+  return sheetForm(it?it.name:T('Νέα λήξη','New expiry'),[sugBox,it&&it.std?null:fld(T('Όνομα','Name'),nm),h('div',{class:'g2'},fld(T('Ημερομηνία λήξης','Expiry date'),dd),fld(T('Υπενθύμιση (ημέρες πριν)','Remind (days before)'),le))],function(){
+    var x=D(), o=it?x.exp.filter(function(q){ return q.id===it.id; })[0]:null; if(!o){ var v=nm.value.trim(); if(!v){ nm.focus(); return false; } o={id:(pick&&!x.exp.some(function(q){ return q.id===pick[0]; }))?pick[0]:uid(),name:'',date:'',lead:30}; if(pick&&pick[4]) o.std=1; x.exp.push(o); }
+    if(nm.value.trim()&&(!o.std||!it)) o.name=nm.value.trim().slice(0,50); o.date=dd.value||''; o.lead=nv(le)==null?30:nv(le); saveB(x); },
+    it?function(close){ return h('button',{class:'btn full del',type:'button',text:it.std?T('Αφαίρεση από τη λίστα','Remove from the list'):T('Διαγραφή','Delete'),onclick:function(){ var x=D(); x.exp=x.exp.filter(function(q){ return q.id!==it.id; }); saveB(x); close(); draw(); }}); }:null); }
 /* μπαταρία: επεξεργασία */
 function batEdit(id){ var b=D(), x=b.bat.filter(function(q){ return q.id===id; })[0]; if(!x) return;
   var nm=vIn('text',x.name,T('π.χ. Μίζα','e.g. Starter')), ty=h('select',{class:'select'}); BTYP.forEach(function(t){ ty.append(h('option',{value:t[0],text:t[1]})); }); ty.value=x.type||'agm';

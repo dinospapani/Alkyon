@@ -77,6 +77,8 @@ function detail(b){
   if(!b.miss&&B.cards) acts.append(h('button',{class:'btn',type:'button',text:T('Κάρτα','Card'),onclick:function(){ B.cards.fish(b); }}));
   if(!b.miss&&B.commShare) acts.append(h('button',{class:'btn',type:'button',disabled:B.commShared(b.id),text:B.commShared(b.id)?T('✓ Στην κοινότητα','✓ Shared'):T('Κοινότητα','Community'),onclick:function(){ sh.close(true); B.commShare(b); }}));
   body.append(acts);
+  /* v31z549: διαγραφή και από εδώ (π.χ. πατώντας το ψάρι πάνω στον χάρτη), με «Αναίρεση» */
+  body.append(h('div',{class:'acts'},h('button',{class:'btn del',type:'button',text:T('Διαγραφή','Delete'),onclick:function(){ sh.close(true); S().delUndo('bites',b,(b.miss?T('Διαγράφηκε το χαμένο.','Lost fish deleted.'):T('Διαγράφηκε: ','Deleted: ')+(b.species||T('ψάρι','catch'))+'.')); }})));
   var sh=B.sheet({title:(b.species||T('Ψάρι','Catch'))+(bc(b)>1?' ×'+bc(b):''),body:body});
 }
 
