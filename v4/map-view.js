@@ -30,6 +30,7 @@ function leaflet(){ if(window.L) return Promise.resolve(window.L); if(lp) return
     var s=document.createElement('script'); s.src='../leaflet.js'; s.onload=function(){ res(window.L); }; s.onerror=rej; document.head.appendChild(s);
     if(!window.ZONES){ var z=document.createElement('script'); z.src='../zones.js'; z.onload=function(){ if(map) drawOverlays(); }; document.head.appendChild(z); } }); return lp; }
 
+B.leaflet=leaflet; /* v31z532: και για τον μικρό χάρτη επιλογής σημείου (coordpick) */
 function icon(cls,html){ return L.divIcon({className:'mk '+cls,html:html||'',iconSize:null}); }
 function drawBase(){ if(base) map.removeLayer(base); base=L.tileLayer(TILES[cfg.base],{maxZoom:19,maxNativeZoom:cfg.base==='sat'?18:19,attribution:cfg.base==='sat'?'Esri':'© OpenStreetMap'}).addTo(map); base.bringToBack();
   if(sea){ map.removeLayer(sea); sea=null; } if(cfg.sea) sea=L.tileLayer(TILES.sea,{maxZoom:19,maxNativeZoom:18,opacity:.9}).addTo(map); }
@@ -226,13 +227,18 @@ B.goBtn=goBtn;
 /* πορεία από το GPS (για το βέλος της θέσης σου και τον προσανατολισμό του χάρτη) και ακολουθία της θέσης κατά την έξοδο, όπως η κλασική */
 var youHead=null, youPrev=null, followPause=0;
 window.PsaroFollowReset=function(){ followPause=0; };
+/* v31z536: όταν μετακινείς τον χάρτη με το δάχτυλο, σταματά να σε ακολουθεί μέχρι να πατήσεις το κουμπί θέσης (όπως το Google Maps) */
+var follow=true, gpsBtn=null;
+function setFollow(v){ follow=!!v; if(gpsBtn){ gpsBtn.classList.toggle('fol',follow&&document.body.classList.contains('ontrip')); gpsBtn.setAttribute('aria-pressed',String(follow)); } }
+window.PsaroFollowStop=function(){ setFollow(false); };
+try{ var wasTrip=document.body.classList.contains('ontrip'); new MutationObserver(function(){ var t=document.body.classList.contains('ontrip'); if(t&&!wasTrip) setFollow(true); wasTrip=t; setFollow(follow); }).observe(document.body,{attributes:true,attributeFilter:['class']}); }catch(e){}
 function headFix(lat,lon,gh,gs){
   if(gh!=null&&isFinite(gh)&&gs!=null&&isFinite(gs)&&gs>0.8) youHead=gh;
   else if(youPrev){ var R6=6371000, dy=(lat-youPrev[0])*Math.PI/180*R6, dx=(lon-youPrev[1])*Math.PI/180*R6*Math.cos(lat*Math.PI/180), d=Math.hypot(dx,dy); if(d>15){ youHead=(Math.atan2(dx,dy)*180/Math.PI+360)%360; youPrev=[lat,lon]; } }
   if(!youPrev) youPrev=[lat,lon];
   if(youHead!=null){ try{ window.dispatchEvent(new CustomEvent('psaro-head',{detail:{head:youHead}})); }catch(e){} var el=me&&me.getElement&&me.getElement(); if(el){ el.classList.add('hd'); el.style.setProperty('--hd',Math.round(youHead)+'deg'); } }
 }
-function followMe(lat,lon){ if(!map||!root||!document.body.classList.contains('ontrip')||Date.now()<followPause) return; try{ map.panTo([lat,lon],{animate:true,duration:.6}); }catch(e){} }
+function followMe(lat,lon){ if(!map||!root||!follow||!document.body.classList.contains('ontrip')||Date.now()<followPause) return; try{ map.panTo([lat,lon],{animate:true,duration:.6}); }catch(e){} }
 
 /* ---------- κάρτα καιρού πάνω στον χάρτη (ίδια στοιχεία με την κλασική mapwx.js, επιλογή στο psaro-mapwx-items) ---------- */
 var MWK='psaro-mapwx-items', MWDEF=['wind','press','sst'], mwEl=null, mwEdit=false;
@@ -550,11 +556,12 @@ function mount(el){
   if(!mbtns){ mbtns=h('div',{class:'mapbtns'}); hookBtns(); }
   var bar=h('div',{class:'mapbar'},
     h('button',{class:'iconbtn',type:'button','aria-label':T('Στρώματα','Layers'),html:B.iconSvg('map'),onclick:layersSheet}),
-    h('button',{class:'iconbtn',type:'button','aria-label':T('Η θέση μου','My position'),html:B.iconSvg('gps'),onclick:function(){ locate(true); }}),
+    (gpsBtn=h('button',{class:'iconbtn gpsb',type:'button','aria-label':T('Η θέση μου','My position'),html:B.iconSvg('gps'),onclick:function(){ followPause=0; setFollow(true); locate(true); }})),
     h('button',{class:'iconbtn gearbtn',hidden:!gearAtSea(),type:'button','aria-label':T('Εργαλεία: παραγάδι, δίχτυ, ζεμπίλι','Gear: longline, net, pot'),html:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h18M3 12h18M3 17h18M7 4v16M12 4v16M17 4v16"/></svg>',onclick:function(){ if(B.gearPanel) B.gearPanel(); }}),
     mbtns,
     /* v31z531: ειδοποιήσεις και από τον χάρτη (κόκκινος αριθμός = αδιάβαστες) */
     (mapBell=h('a',{class:'iconbtn bellb',href:'#inbox','aria-label':T('Ειδοποιήσεις','Notifications'),html:B.iconSvg('bell')})));
+  setFollow(follow);
   if(B.inboxUnread) B.inboxUnread().then(function(n){ var o=mapBell.querySelector('.bdg'); if(o) o.remove(); if(n>0) mapBell.append(h('i',{class:'bdg',text:n>9?'9+':String(n)})); });
   /* γρήγορα στρώματα: άνεμος, κύμα, ρεύματα, βάθη (τα υπόλοιπα στο μενού «Στρώματα») */
   var qc=h('div',{class:'mchips',role:'group','aria-label':T('Γρήγορα στρώματα','Quick layers')});
@@ -598,7 +605,7 @@ function mount(el){
     drawBase(); drawData(); drawOverlays(); applyDepth(); applyPend(); locate(false); drawDirect(); if(cfg.cur) currents(true);
     map.on('zoomend',function(){ drawData(); }); map.on('moveend',function(){ declutterSoon(); if(cfg.cur) currents(false); var c=map.getCenter(); ls.set('psaro-v4-mapview',{lat:+c.lat.toFixed(5),lon:+c.lng.toFixed(5),z:map.getZoom()}); });
     map.on('contextmenu',function(e){ try{ e.originalEvent&&e.originalEvent.preventDefault(); }catch(x){} pointMenu(e.latlng); });
-    map.on('dragstart zoomstart',function(){ followPause=Date.now()+20000; }); map.on('popupopen',function(){ followPause=Date.now()+20000; });
+    map.on('dragstart',function(){ setFollow(false); }); map.on('popupopen',function(){ followPause=Date.now()+20000; });
     map.on('popupopen',function(e){ var c=e.popup.getContent(); if(c&&c.classList&&c.classList.contains('portpop')&&!c.querySelector('.pgo')){ var ll=e.popup.getLatLng(), nm=(c.querySelector('b')||{}).textContent||''; var r=c.querySelector('.pbtns')||c; var g=h('button',{class:'pb pgo',type:'button',text:T('Πήγαινε εκεί','Go there'),onclick:function(){ map.closePopup(); B.goTo(ll.lat,ll.lng,nm); }}); r.insertBefore(g,r.firstChild); e.popup.update(); } });
     setTimeout(function(){ map.invalidateSize(); },60);
     classicMods();

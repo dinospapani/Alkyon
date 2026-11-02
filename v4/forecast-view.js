@@ -488,6 +488,9 @@ function placeSheet(){
       res.replaceChildren(l);
     }).catch(function(){ res.replaceChildren(h('p',{class:'sub',style:{margin:'10px 4px'},text:T('Η αναζήτηση χρειάζεται σύνδεση.','Search needs a connection.')})); });
   }
+  /* v31z532: νέα τοποθεσία από τον χάρτη (μετακινείς τον χάρτη, το κέντρο είναι το σημείο) ή με συντεταγμένες */
+  body.append(h('button',{class:'li pickmap',type:'button',onclick:function(){ sh.close(); setTimeout(mapPick,260); }},h('span',{class:'ic'},B.icon('map')),
+    h('span',{class:'tx'},h('b',{text:T('Διάλεξε στον χάρτη','Pick on the map')}),h('small',{text:T('Ή γράψε συντεταγμένες','Or type coordinates')})),B.icon('chev')));
   body.append(h('h3',{class:'listh',text:T('Οι τοποθεσίες σου','Your places')}));
   var l=h('div',{class:'list'});
   allPlaces().forEach(function(p){
@@ -510,6 +513,17 @@ function placeSheet(){
     body.append(l2);
   }
   sh=B.sheet({title:T('Τοποθεσία','Location'),body:body});
+}
+
+function mapPick(){
+  var c=current(), st0=(c&&c.lat!=null)?c:(B.lastPos()||{lat:34.75,lon:32.42});
+  var nm=h('input',{type:'text',maxlength:'40',placeholder:T('π.χ. Ξέρα Λατσιού','e.g. Latchi reef'),autocomplete:'off'});
+  var cb=B.coordBox(+st0.lat,+st0.lon,{map:true}), err=h('small',{class:'wn'}), sh2;
+  var save=h('button',{class:'btn pri full',type:'button',text:T('Αποθήκευση και πρόγνωση','Save and show forecast'),onclick:function(){ var g=cb.get(); if(!g){ err.textContent=T('Οι συντεταγμένες δεν διαβάζονται.','The coordinates cannot be read.'); return; }
+    sh2.close(); addPlace(nm.value.trim()||T('Σημείο χάρτη','Map point'),g.lat,g.lon); }});
+  sh2=B.sheet({title:T('Τοποθεσία από τον χάρτη','Place from the map'),body:h('div',{class:'bform'},
+    h('p',{class:'sub',text:T('Μετακίνησε τον χάρτη· το σημείο είναι στο κέντρο.','Move the map; the point is at the centre.')}),cb.el,
+    h('label',{class:'fld'},h('span',{text:T('Όνομα','Name')}),nm),err,save)});
 }
 
 /* ---------- σύνδεση με το κέλυφος ---------- */

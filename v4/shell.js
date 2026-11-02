@@ -33,6 +33,8 @@ function route(){
   /* συντομεύσεις: #new = νέο ψάρι, #trip = έναρξη εξόδου */
   if(name==='new'||name==='trip'){ var act=name; history.replaceState(null,'',location.pathname+(act==='new'?'#log':'#map')); name=act==='new'?'log':'map'; setTimeout(function(){ if(act==='new'&&B.biteForm) B.biteForm(); else if(B.tripStart) B.tripStart(); },500); }
   if(/^share=/.test(name)) name='map';
+  /* v31z537: σύνδεσμος πρόσκλησης φίλου (#addfriend=ΚΩΔΙΚΟΣ): κρατά τον κωδικό και ανοίγει τους Φίλους με τον κωδικό συμπληρωμένο */
+  if(/^addfriend=/.test(name)){ var fcd=decodeURIComponent(name.slice(10)).replace(/[^A-Za-z0-9]/g,'').toUpperCase(); try{ if(fcd.length>=6) localStorage.setItem('bc-friend-code',JSON.stringify({c:fcd,t:Date.now()})); }catch(e){} history.replaceState(null,'',location.pathname+'#friends'); name='friends'; }
   if(!VIEWS[name]) name='forecast';
   [].forEach.call(document.querySelectorAll('.nav a[data-v]'),function(a){ if(a.dataset.v===name) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
   if(cur===name) return;

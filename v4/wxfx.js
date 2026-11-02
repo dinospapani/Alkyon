@@ -245,16 +245,26 @@ function days(){
   var sl=document.getElementById('ndWindSl'), Wx=W(); if(!sl||!Wx||!Wx.hours) return; var hs=Wx.hours()||[]; if(hs.length<2) return;
   var row=sl.parentNode, box=row.parentNode.querySelector('.wxdays'), key=hs[0]+hs.length;
   if(box&&box._k===key) return; if(box) box.remove();
-  box=document.createElement('div'); box.className='wxdays'; box._k=key; box.setAttribute('aria-hidden','true');
+  box=document.createElement('div'); box.className='wxdays'; box._k=key; box.setAttribute('role','group'); box.setAttribute('aria-label',T('Μέρες','Days'));
   var prev='', tz='Asia/Nicosia', now=Date.now();
-  hs.forEach(function(t,i){ var ms=Date.parse(t+(t.length<=16?':00Z':'Z')), dk;
+  /* v31z534: πάτημα σε μέρα → η μπάρα πάει σε εκείνη τη μέρα, ίδια ώρα με αυτή που βλέπεις τώρα */
+  var hod=function(ms){ try{ return +new Date(ms).toLocaleTimeString('en-GB',{timeZone:tz,hour:'2-digit',hour12:false}).slice(0,2)%24; }catch(e){ return new Date(ms).getHours(); } };
+  var MS=hs.map(function(t){ return Date.parse(t+(t.length<=16?':00Z':'Z')); });
+  function toNow(){ var bi=0, bd=1e15; MS.forEach(function(m,j){ var d=Math.abs(m-Date.now()); if(d<bd){ bd=d; bi=j; } }); sl.value=bi; sl.dispatchEvent(new Event('input',{bubbles:true})); }
+  function jump(i0,dk){ if(i0===0&&box.querySelector('button')&&box.querySelector('button')._now){ toNow(); return; } var cur=MS[+sl.value]||MS[0], want=hod(cur), best=i0, bd=99;
+    for(var j=i0;j<MS.length;j++){ var dj; try{ dj=new Date(MS[j]).toLocaleDateString(EN?'en-GB':'el-GR',{timeZone:tz,weekday:'short',day:'numeric'}); }catch(e){ dj=hs[j].slice(0,10); } if(dj!==dk) break; var dd=Math.abs(hod(MS[j])-want); if(dd<bd){ bd=dd; best=j; } }
+    sl.value=best; sl.dispatchEvent(new Event('input',{bubbles:true})); }
+  hs.forEach(function(t,i){ var ms=MS[i], dk;
     try{ dk=new Date(ms).toLocaleDateString(EN?'en-GB':'el-GR',{timeZone:tz,weekday:'short',day:'numeric'}); }catch(e){ dk=t.slice(0,10); }
-    if(dk!==prev){ prev=dk; var pos=100*i/(hs.length-1), lastS=box.querySelector('span:last-of-type'); if(lastS&&pos-parseFloat(lastS.style.left)<14) lastS.remove(); var s=document.createElement('span'); s.textContent=dk; s.style.left=pos+'%'; if(i>0) s.className='tick'; box.append(s); }
+    if(dk!==prev){ prev=dk; var pos=100*i/(hs.length-1), lastS=box.querySelector('button:last-of-type'); if(lastS&&pos-parseFloat(lastS.style.left)<14){ if(lastS._i===0&&pos>=8){ lastS.textContent=T('Τώρα','Now'); lastS._now=true; } else lastS.remove(); }
+      var s=document.createElement('button'); s.type='button'; s.textContent=dk; s.style.left=pos+'%'; if(i>0) s.className='tick'; s._i=i; (function(i0,d0){ s.addEventListener('click',function(){ jump(i0,d0); }); })(i,dk); box.append(s); }
     if(Math.abs(ms-now)<1800000){ var n=document.createElement('i'); n.className='now'; n.style.left=(100*i/(hs.length-1))+'%'; box.append(n); } });
-  row.after(box);
+  row.after(box); markDay();
 }
+/* η μέρα που δείχνει η μπάρα τώρα, τονισμένη */
+function markDay(){ var sl=document.getElementById('ndWindSl'), box=document.querySelector('.wxdays'); if(!sl||!box) return; var v=+sl.value, bs=box.querySelectorAll('button'), on=null; [].forEach.call(bs,function(b){ if(b._i<=v) on=b; }); [].forEach.call(bs,function(b){ b.classList.toggle('on',b===on); }); }
 function sync(){ var k=[mapOn(),seaOn(),windOn()].join(); if(k!==sig){ sig=k; later(80); if(sstOn){ if(mapOn()) sstLoad(false); else sstDraw(); } } days(); }
-window.addEventListener('psaro-windhour',function(){ later(60); if(sstOn&&sstG){ var h=sstHour(); if(h!==sstHr){ sstHr=h; clearTimeout(sstDraw._t); sstDraw._t=setTimeout(sstDraw,150); } } });
+window.addEventListener('psaro-windhour',function(){ markDay(); later(60); if(sstOn&&sstG){ var h=sstHour(); if(h!==sstHr){ sstHr=h; clearTimeout(sstDraw._t); sstDraw._t=setTimeout(sstDraw,150); } } });
 window.addEventListener('psaro-windstop',function(){ later(60); });
 window.addEventListener('psaro-seareg',function(){ later(60); roLater(); });
 window.addEventListener('psaro-curs',function(){ if(numsOn) setTimeout(drawLabels,50); });

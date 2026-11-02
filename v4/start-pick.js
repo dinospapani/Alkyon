@@ -59,7 +59,7 @@ B.startPick=function(){
       go,h('p',{class:'spfoot',text:T('Αλλαγή αργότερα: Προφίλ › Τύπος ψαρέματος','Change later: Profile › Fishing type')})));
   lab(); cover(true); document.body.append(pg); document.addEventListener('keydown',key);
 };
-function wanted(){ if(!raw('psaro-onboard')) return false; if(raw('psaro-askfp')==='0'&&raw('psaro-fprof-done')) return false; var s=ls.get('psaro-safe',null); if(s&&s.active) return false; if(/#(new|trip)/.test(location.hash)) return false; return true; }
+function wanted(){ if(!raw('psaro-onboard')) return false; if(raw('psaro-askfp')==='0'&&raw('psaro-fprof-done')) return false; var s=ls.get('psaro-safe',null); if(s&&s.active) return false; if(/#(new|trip|addfriend)/.test(location.hash)) return false; return true; }
 
 /* ---------- καλωσόρισμα πρώτου ανοίγματος (όπως η κλασική: psaro-onboard). Δεν εμφανίζεται αν υπάρχουν ήδη δεδομένα. ---------- */
 function hasData(){ try{ return ['bites','trips','spots','tackle'].some(function(k){ return B.store.raw(k).length>0; }); }catch(e){ return false; } }

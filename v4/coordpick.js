@@ -15,9 +15,10 @@ B.coordBox=function(lat,lon,opt){ opt=opt||{};
   function openMap(){ mapBox.hidden=false; mb.setAttribute('aria-pressed','true'); if(mm){ setTimeout(function(){ mm.invalidateSize(); },60); return; }
     var g=get()||B.lastPos()||{lat:35.0,lon:33.2}, el=h('div',{class:'cpmm'});
     mapBox.append(el,h('i',{class:'cpx','aria-hidden':'true'}),h('small',{class:'cphint',text:T('Μετακίνησε τον χάρτη: η θέση είναι στο κέντρο','Move the map: the position is at the centre')}));
-    setTimeout(function(){ if(!window.L) return; mm=L.map(el,{zoomControl:false,attributionControl:false}).setView([g.lat,g.lon],13); L.tileLayer(SAT,{maxZoom:18}).addTo(mm);
+    /* v31z532: φόρτωσε το Leaflet αν δεν έχει ανοίξει ακόμα ο Χάρτης */
+    (window.L?Promise.resolve():(B.leaflet?B.leaflet():Promise.resolve())).catch(function(){}).then(function(){ setTimeout(function(){ if(!window.L||mm) return; mm=L.map(el,{zoomControl:false,attributionControl:false}).setView([g.lat,g.lon],13); L.tileLayer(SAT,{maxZoom:18}).addTo(mm);
       mm.on('moveend',function(){ if(quiet) return; var c=mm.getCenter(); set(+c.lat.toFixed(5),+c.lng.toFixed(5),true); });
-      setTimeout(function(){ mm.invalidateSize(); },300); },50); }
+      setTimeout(function(){ mm.invalidateSize(); },300); },50); }); }
   var mb=h('button',{type:'button',class:'chip sm','aria-pressed':String(!!opt.map),text:'🗺 '+T('Στον χάρτη','On the map'),onclick:function(){ if(mapBox.hidden) openMap(); else { mapBox.hidden=true; mb.setAttribute('aria-pressed','false'); } }});
   var tools=h('div',{class:'chips cptools'},
     h('button',{type:'button',class:'chip sm',text:'📋 '+T('Επικόλληση','Paste'),onclick:function(){ if(!navigator.clipboard||!navigator.clipboard.readText){ msg.textContent=T('Κράτα πατημένο το πεδίο «Πλάτος» και επικόλλησε εκεί.','Long-press the Latitude field and paste there.'); return; }

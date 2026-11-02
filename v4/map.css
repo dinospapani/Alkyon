@@ -377,10 +377,12 @@ body:not(.mapon) .revchip,body.replaying .revchip{display:none}
 .revchip{top:calc(var(--safe-t) + 118px)}
 body:has(.mapwx[hidden]) .revchip,body:not(:has(.mapwx)) .revchip{top:calc(var(--safe-t) + 70px)}
 /* v31z520: μέρες κάτω από τη μπάρα ώρας (σαν το Windy) */
-.wxdays{position:relative;height:18px;margin:2px 52px 0 50px;font:700 10.5px var(--font);color:var(--ink-2)}
-.wxdays span{position:absolute;top:2px;white-space:nowrap;transform:translateX(0)}
-.wxdays span.tick{padding-left:5px;border-left:1.5px solid var(--line)}
-.wxdays span:last-of-type{max-width:60px;overflow:hidden}
+.wxdays{position:relative;height:24px;margin:2px 52px 0 50px;font:700 10.5px var(--font);color:var(--ink-2)}
+.wxdays button{position:absolute;top:0;white-space:nowrap;transform:translateX(0);border:0;background:none;color:inherit;font:inherit;padding:3px 8px 7px 0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.wxdays button.tick{padding-left:5px;border-left:1.5px solid var(--line)}
+.wxdays button:last-of-type{max-width:60px;overflow:hidden}
+.wxdays button:active{color:var(--accent)}
+.wxdays button.on{color:var(--accent)}
 .wxdays i.now{position:absolute;top:-10px;width:2px;height:8px;border-radius:1px;background:var(--accent);transform:translateX(-1px)}
 #ndWindPanel>.note{display:none}
 #ndWindPanel:has(button[aria-expanded=true])>.note{display:block}
@@ -530,3 +532,13 @@ body:has(.heatpill:not([hidden])):not(.maptrip) .sbleg{bottom:calc(var(--nav-h,6
 .lyr .lbt .lprev.real{background-repeat:no-repeat}
 @media (max-width:340px){.lyr .lgrid{grid-template-columns:1fr}}
 .lyr .ldepth{margin-bottom:0}.lyr .ldepth .seg{margin-bottom:0}
+/* v31z535 · πυξίδα όταν ο χάρτης έχει γυριστεί με δύο δάχτυλα: η βελόνα δείχνει τον βορρά, πάτημα = βορράς πάνω */
+.mo-n{position:fixed;left:15px;top:calc(var(--safe-t) + 74px);z-index:710;width:52px;height:52px;border-radius:50%;border:0;background:var(--surface);color:var(--ink);box-shadow:var(--shadow);padding:0;display:grid;place-items:center;cursor:pointer}
+.mo-n[hidden]{display:none}
+.mo-n svg{width:30px;height:30px;transform:rotate(var(--nr,0deg));transition:transform .1s linear}
+.mo-n .nn{fill:#e5484d}.mo-n .ns{fill:currentColor;opacity:.35}
+.mo-n b{position:absolute;font:800 9px/1 var(--font);top:3px;left:50%;transform:translateX(-50%) rotate(0);opacity:0}
+body:not(.mapon) .mo-n{display:none!important}
+/* v31z536 · κουμπί θέσης: τονισμένο όσο ο χάρτης σε ακολουθεί στην έξοδο */
+.mapbar .gpsb.fol{color:var(--accent)}
+.mapbar .gpsb.fol svg{stroke-width:2.4}

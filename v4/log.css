@@ -443,3 +443,6 @@ input[list]::-webkit-calendar-picker-indicator{display:none!important;opacity:0}
 .bch h2{font-size:19px;font-weight:700;letter-spacing:-.01em}
 .bht{max-width:68%}
 @media (max-width:380px){.bcov.ill svg g{opacity:.55}}
+/* v31z537 · πρόσκληση φίλου από σύνδεσμο */
+.frinv{display:flex;flex-direction:column;gap:2px;margin:6px 0 12px;padding:10px 12px;border-radius:12px;background:var(--good-bg);color:var(--ink);text-align:left}
+.frinv b{font-size:14px;color:var(--good)}.frinv span{font-size:13px;color:var(--ink-2)}

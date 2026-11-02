@@ -19,25 +19,32 @@ function load(){
     draw();
   }).catch(function(e){ list=[]; err=/42P01|PGRST205|relation/.test(String(e.message))?T('Οι φίλοι δεν έχουν ενεργοποιηθεί στη βάση (friends.sql).','Friends are not enabled in the database (friends.sql).'):C().errText(e); draw(); });
 }
+/* v31z537: κωδικός που ήρθε από σύνδεσμο (#addfriend=…), ισχύει 48 ώρες */
+function pend(){ var o=B.ls.get('bc-friend-code',null); if(!o||!o.c) return null; if(Date.now()-o.t>48*3600e3){ clearPend(); return null; } return o.c; }
+function clearPend(){ try{ localStorage.removeItem('bc-friend-code'); }catch(e){} }
 function draw(){
   if(!root) return;
   var page=h('div',{class:'page'});
   page.append(h('div',{class:'top'},h('div',{style:{display:'flex',alignItems:'center',gap:'12px'}},h('a',{class:'iconbtn',href:'#profile','aria-label':T('Πίσω στο Προφίλ','Back to Profile'),html:B.iconSvg('back')}),h('h1',{class:'lt',text:T('Φίλοι','Friends')}))));
-  if(!C().session()){ page.append(h('div',{class:'card empty'},h('h3',{text:T('Χρειάζεται λογαριασμός','An account is needed')}),h('p',{text:T('Οι φίλοι βλέπουν ο ένας τα ψάρια και τα σημεία του άλλου μέσω του λογαριασμού.','Friends see each other’s catches and spots through their accounts.')}),h('a',{class:'btn pri',href:'#profile',text:T('Σύνδεση','Sign in')}))); root.replaceChildren(page); return; }
+  if(!C().session()){ page.append(h('div',{class:'card empty'},h('h3',{text:T('Χρειάζεται λογαριασμός','An account is needed')}),h('p',{text:T('Οι φίλοι βλέπουν ο ένας τα ψάρια και τα σημεία του άλλου μέσω του λογαριασμού.','Friends see each other’s catches and spots through their accounts.')}),pend()?h('div',{class:'frinv'},h('b',{text:T('Πρόσκληση από φίλο','Invite from a friend')}),h('span',{text:T('Ο κωδικός κρατήθηκε. Μετά τη σύνδεση άνοιξε Προφίλ › Φίλοι και θα είναι ήδη συμπληρωμένος.','The code is saved. After signing in, open Profile › Friends and it will already be filled in.')})):null,h('a',{class:'btn pri',href:'#profile',text:T('Σύνδεση','Sign in')}))); root.replaceChildren(page); return; }
   page.append(h('p',{class:'sub',style:{margin:'-6px 4px 14px'},text:T('Με έναν καλό φίλο που ψαρεύετε μαζί βλέπετε ο ένας τα ψάρια, τα σημεία και τις εξόδους του άλλου. Ό,τι έχεις σημειώσει ως ιδιωτικό δεν φαίνεται.','With a good fishing friend you see each other’s catches, spots and trips. Anything you marked private stays hidden.')}));
   /* πρόσκληση και προσθήκη */
   var inv=h('div'), c=h('section',{class:'card'},h('h2',{text:T('Πρόσθεσε φίλο','Add a friend')}));
   var ib=h('button',{class:'btn pri full',type:'button',text:T('Φτιάξε κωδικό πρόσκλησης','Create an invite code'),onclick:function(){ var k=code(); ib.disabled=true; inv.replaceChildren(h('p',{class:'sub',text:T('Δημιουργία…','Creating…')}));
     var s=C().session(); C().rest('friend_invites',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({code:k,name:(s&&s.name)||''})}).then(function(){ ib.disabled=false;
-      var shown=k.slice(0,4)+'-'+k.slice(4), msg=T('Πρόσθεσέ με στο BiteCast με τον κωδικό ','Add me on BiteCast with the code ')+shown;
-      inv.replaceChildren(h('div',{class:'frcode',text:shown}),h('p',{class:'sub',text:T('Στείλε τον κωδικό στον φίλο σου. Ισχύει 48 ώρες και για μία σύνδεση.','Send the code to your friend. It is valid for 48 hours and one connection.')}),
-        h('div',{class:'acts'},h('button',{class:'btn',type:'button',text:T('Αποστολή','Share'),onclick:function(){ if(navigator.share) navigator.share({text:msg}).catch(function(){}); else { try{ navigator.clipboard.writeText(shown); B.toast(T('Αντιγράφηκε.','Copied.')); }catch(e){} } }}))); })
+      var shown=k.slice(0,4)+'-'+k.slice(4), link=location.origin+location.pathname+'#addfriend='+shown, msg=T('Πρόσθεσέ με στο BiteCast με τον κωδικό ','Add me on BiteCast with the code ')+shown+'\n'+T('Πάτα εδώ: ','Tap here: ')+link;
+      inv.replaceChildren(h('div',{class:'frcode',text:shown}),h('p',{class:'sub',text:T('Στείλε τον στον φίλο σου: πατά τον σύνδεσμο και ο κωδικός μπαίνει μόνος του. Ισχύει 48 ώρες και για μία σύνδεση.','Send it to your friend: they tap the link and the code fills in by itself. Valid for 48 hours and one connection.')}),
+        h('div',{class:'acts'},h('button',{class:'btn',type:'button',text:T('Αποστολή','Share'),onclick:function(){ if(navigator.share) navigator.share({text:msg}).catch(function(){}); else { try{ navigator.clipboard.writeText(msg); B.toast(T('Αντιγράφηκε.','Copied.')); }catch(e){} } }}))); })
       .catch(function(e){ ib.disabled=false; inv.replaceChildren(h('p',{class:'err',text:C().errText(e)})); }); }});
   var ci=h('input',{type:'text',maxlength:'12',autocapitalize:'characters',autocomplete:'off',placeholder:'ABCD-1234','aria-label':T('Κωδικός φίλου','Friend’s code')});
   var rb=h('button',{class:'btn',type:'button',text:T('Σύνδεση','Connect'),onclick:function(){ var v=ci.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase(); if(v.length<6){ ci.focus(); return; } rb.disabled=true; var s=C().session();
-    C().rest('rpc/redeem_friend',{method:'POST',body:JSON.stringify({p_code:v,p_name:(s&&s.name)||''})}).then(function(r){ return r.json(); }).then(function(j){ rb.disabled=false; ci.value=''; B.toast(T('Συνδεθήκατε','You are connected')+(j&&j.name?T(' με τον/την ',' with ')+j.name:'')+'.'); load(); })
-      .catch(function(e){ rb.disabled=false; var m=String(e.message); B.toast(/έληξε|does not exist|δεν υπάρχει/i.test(m)?T('Ο κωδικός δεν υπάρχει ή έληξε.','The code does not exist or has expired.'):/δικός σου/.test(m)?T('Αυτός είναι ο δικός σου κωδικός.','This is your own code.'):C().errText(e)); }); }});
-  c.append(ib,inv,h('h3',{class:'h3',text:T('Έχεις κωδικό από φίλο;','Got a code from a friend?')}),h('div',{class:'inrow'},ci,rb));
+    C().rest('rpc/redeem_friend',{method:'POST',body:JSON.stringify({p_code:v,p_name:(s&&s.name)||''})}).then(function(r){ return r.json(); }).then(function(j){ rb.disabled=false; ci.value=''; clearPend(); B.toast(T('Συνδεθήκατε','You are connected')+(j&&j.name?T(' με τον/την ',' with ')+j.name:'')+'.'); load(); })
+      .catch(function(e){ rb.disabled=false; var m=String(e.message); if(/έληξε|does not exist|δεν υπάρχει|δικός σου/i.test(m)) clearPend(); B.toast(/έληξε|does not exist|δεν υπάρχει/i.test(m)?T('Ο κωδικός δεν υπάρχει ή έληξε.','The code does not exist or has expired.'):/δικός σου/.test(m)?T('Αυτός είναι ο δικός σου κωδικός.','This is your own code.'):C().errText(e)); }); }});
+  var pc=pend();
+  if(pc){ ci.value=pc.slice(0,4)+'-'+pc.slice(4); c.append(h('div',{class:'frinv'},h('b',{text:T('Πρόσκληση από φίλο','Invite from a friend')}),h('span',{text:T('Ο κωδικός ','The code ')+ci.value+T(' μπήκε από τον σύνδεσμο. Πάτα «Σύνδεση».',' came from the link. Tap “Connect”.')}))); rb.classList.add('pri'); ib.classList.remove('pri'); }
+  var gotH=h('h3',{class:'h3',text:T('Έχεις κωδικό από φίλο;','Got a code from a friend?')}), gotR=h('div',{class:'inrow'},ci,rb);
+  if(pc) c.append(gotR,h('h3',{class:'h3',text:T('Ή πρόσκαλεσε εσύ κάποιον','Or invite someone yourself')}),ib,inv); /* με κωδικό από σύνδεσμο: πρώτα η σύνδεση */
+  else c.append(ib,inv,gotH,gotR);
   page.append(c);
   /* λίστα */
   if(err) page.append(h('p',{class:'err',text:err}));
