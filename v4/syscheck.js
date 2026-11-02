@@ -66,13 +66,13 @@ var CHECKS=[
 ];
 var ICON={ok:'✓',warn:'!',bad:'✕',off:'–',run:'…'};
 function rowOf(c){ var r=res[c[0]]||{lv:'run',txt:T('Έλεγχος…','Checking…')};
-  var el=h('div',{class:'ckrow '+r.lv},h('i',{text:ICON[r.lv]}),h('span',{class:'tx'},h('b',{text:c[1]}),h('small',{text:r.txt}),r.fix?h('small',{class:'ckfix',text:r.fix}):null));
+  var el=h('div',{class:'ckrow '+r.lv,'data-ck':c[0]},h('i',{text:ICON[r.lv]}),h('span',{class:'tx'},h('b',{text:c[1]}),h('small',{text:r.txt}),r.fix?h('small',{class:'ckfix',text:r.fix}):null));
   if(r.x&&r.x.persist&&navigator.storage&&navigator.storage.persist) el.querySelector('.tx').append(h('button',{class:'btn sm',type:'button',text:T('Προστασία δεδομένων','Protect data'),onclick:function(){ navigator.storage.persist().then(function(ok){ B.toast(ok?T('Τα δεδομένα προστατεύονται.','Your data is protected.'):T('Ο browser δεν το επέτρεψε. Πρόσθεσε την εφαρμογή στην αρχική οθόνη και ξαναδοκίμασε.','The browser did not allow it. Add the app to the home screen and try again.')); runOne(c).then(paint); }); }}));
   return el; }
 function runOne(c){ res[c[0]]={lv:'run',txt:T('Έλεγχος…','Checking…')}; var p; try{ p=c[2](); }catch(e){ p=Promise.reject(e); } return p.then(function(r){ return r; },function(e){ return R('bad',String(e&&e.message||e)); }).then(function(r){ res[c[0]]=r; }); }
 function runAll(){ if(running) return; running=true; res={}; paint();
   /* παράλληλα σε ομάδες για να μην αργεί */
-  var p=Promise.all(CHECKS.map(function(c){ return runOne(c).then(paint); }));
+  var p=Promise.all(CHECKS.map(function(c){ return runOne(c).then(function(){ upd(c); }); }));
   p.then(function(){ running=false; ls.set('alkyon-v4-check',{t:Date.now(),r:res}); paint(); }); }
 function report(){ var L=['Alkyon '+(window.ALKYON_VERSION||'')+' · '+new Date().toISOString().slice(0,16).replace('T',' ')+' · '+navigator.userAgent.slice(0,120)];
   CHECKS.forEach(function(c){ var r=res[c[0]]; if(r){ L.push(ICON[r.lv]+' '+c[1]+': '+r.txt+(r.fix?' → '+r.fix:'')); if(r.x&&r.x.caps) L.push('   caps: '+JSON.stringify(r.x.caps).slice(0,1500)); } });
@@ -91,6 +91,8 @@ function paint(){ if(!root) return; var page=h('div',{class:'page ckpage'});
     h('button',{class:'btn',type:'button',disabled:running,text:navigator.share?T('Αποστολή αναφοράς','Send report'):T('Αντιγραφή αναφοράς','Copy report'),onclick:function(){ var t=report();
       if(navigator.share) navigator.share({title:'Alkyon check',text:t}).catch(function(){}); else if(navigator.clipboard) navigator.clipboard.writeText(t).then(function(){ B.toast(T('Αντιγράφηκε.','Copied.')); }); }})));
   root.replaceChildren(page); }
+/* 1.0.0: όσο τρέχει ο έλεγχος αλλάζει μόνο η γραμμή που τελείωσε (πριν ξαναχτιζόταν όλη η σελίδα 14 φορές και «αναβόσβηνε») */
+function upd(c){ if(!root) return; var old=root.querySelector('.ckrow[data-ck="'+c[0]+'"]'); if(!old) return paint(); old.replaceWith(rowOf(c)); }
 B.sysCheck={report:report,results:function(){ return res; }};
 B.view('check',{title:T('Έλεγχος συστήματος','System check'),mount:function(el){ root=el; var last=ls.get('alkyon-v4-check',null); if(last&&last.r&&Date.now()-last.t<120000){ res=last.r; paint(); } else runAll(); },unmount:function(){ root=null; }});
 })();
