@@ -70,4 +70,30 @@ B.thermoCard=function(p){ if(!p||p.lat==null) return null; var box=h('section',{
       h('p',{class:'thsum',text:th?T('Θερμοκλινές ~','Thermocline ~')+Math.round(th.top)+'–'+Math.round(th.bot)+' m: '+f(th.t1)+' → '+f(th.t2)+'.':T('Χωρίς έντονο θερμοκλινές ως τα ','No strong thermocline down to ')+Math.round(P[P.length-1].d)+' m ('+f(P[0].t)+' → '+f(P[P.length-1].t)+').'}),
       rows,h('p',{class:'foot',text:(th?T('Πολλά ψάρια κρατιούνται συχνά λίγο πάνω ή μέσα στο θερμοκλινές: δοκίμασε το jig ή το δόλωμα σε αυτό το βάθος. ','Fish often hold just above or within the thermocline: try your jig or bait at that depth. '):'')+T('Μοντέλο Copernicus Μεσογείου (ημερήσιος μέσος), όχι μέτρηση.','Copernicus Mediterranean model (daily mean), not a measurement.')}));
     box.hidden=false; }); return box; };
+
+/* 1.1.0: ρεύματα (ίδια συνάρτηση Supabase, mode=current, μοντέλο Copernicus Μεσογείου): τώρα, επόμενες 24 ώρες, και σε βάθος.
+   Η κατεύθυνση είναι ΠΡΟΣ τα πού πάει το νερό. Αν η συνάρτηση δεν απαντά (π.χ. δεν έχει ενημερωθεί), η κάρτα δεν εμφανίζεται. */
+function curGet(lat,lon){ var key='c'+lat.toFixed(2)+','+lon.toFixed(2), c=ls.get(CK,{})||{}, hit=c[key];
+  if(hit&&Date.now()-hit.at<2*3600000) return Promise.resolve(hit.v);
+  return fetch(SUPA+'/functions/v1/water-clarity?mode=current&lat='+lat.toFixed(4)+'&lon='+lon.toFixed(4),{headers:{apikey:SKEY,Authorization:'Bearer '+SKEY}}).then(function(r){ return r.ok?r.json():{err:'HTTP '+r.status}; }).catch(function(){ return {err:'net'}; })
+    .then(function(v){ if(v&&v.now){ c=ls.get(CK,{})||{}; c[key]={at:Date.now(),v:v}; ls.set(CK,c); } return v; }); }
+var DIRS_EL=['Β','ΒΑ','Α','ΝΑ','Ν','ΝΔ','Δ','ΒΔ'], DIRS_EN=['N','NE','E','SE','S','SW','W','NW'];
+function dname(d){ return (EN?DIRS_EN:DIRS_EL)[Math.round(((d%360)+360)%360/45)%8]; }
+function arrow(d,sz){ var s=document.createElementNS('http://www.w3.org/2000/svg','svg'); s.setAttribute('viewBox','0 0 24 24'); s.setAttribute('width',sz||18); s.setAttribute('height',sz||18); s.setAttribute('class','curar'); s.style.transform='rotate('+d+'deg)';
+  s.innerHTML='<path d="M12 3l6 9h-4v9h-4v-9H6z" fill="currentColor"/>'; return s; }
+function kn(x){ return B.num(x,x<1?2:1)+' kn'; }
+function level(k){ return k<0.3?'lo':k<0.8?'mid':'hi'; }
+B.currentGet=curGet;
+B.currentCard=function(p){ if(!p||p.lat==null) return null; var box=h('section',{class:'card curcard',hidden:true});
+  curGet(+p.lat,+p.lon).then(function(v){ if(!v||!v.now) return; var n=v.now, prof=B.prof?B.prof():'boat';
+    var head=h('div',{class:'curnow '+level(n.kn)},arrow(n.dir,34),h('div',null,h('b',{text:kn(n.kn)+' '+T('προς ','towards ')+dname(n.dir)}),h('small',{text:n.kn<0.3?T('Ήπιο ρεύμα','Gentle current'):n.kn<0.8?T('Μέτριο ρεύμα','Moderate current'):T('Δυνατό ρεύμα','Strong current')})));
+    var strip=null; if(v.hrs&&v.hrs.length>1){ strip=h('div',{class:'curhrs'}); v.hrs.slice(0,9).forEach(function(x){ var d=new Date(x.t); strip.append(h('div',{class:'curh '+level(x.kn)},h('small',{text:B.pad(d.getHours())+':00'}),arrow(x.dir,16),h('em',{text:B.num(x.kn,1)}))); }); }
+    var deep=null; if(v.deep&&v.deep.length>1){ deep=h('div',{class:'thrs'}); v.deep.forEach(function(x){ deep.append(h('div',{class:'thr curd'},h('span',{text:x.d+' m'}),h('i',null,arrow(x.dir,14),h('small',{text:' '+dname(x.dir)})),h('em',{text:kn(x.kn)}))); }); }
+    var tip=[];
+    if(prof==='boat') tip.push(n.kn>=0.5?T('Χωρίς αέρα, το σκάφος θα παρασύρεται προς ','With no wind, the boat will drift towards ')+dname(n.dir)+T('. Για βυθό ή jig χρειάζεσαι βαρύτερο βαρίδι.','. For bottom fishing or jigging you need a heavier weight.'):T('Ήπιο ρεύμα: καλό για κάθετο ψάρεμα και άγκυρα.','Gentle current: good for vertical fishing and anchoring.'));
+    if(prof==='spear') tip.push(n.kn>=0.8?T('Προσοχή: δυνατό ρεύμα. Ξεκίνα κόντρα στο ρεύμα, για να γυρίσεις με αυτό.','Careful: strong current. Start against the current so you return with it.'):T('Βούτα κόντρα στο ρεύμα και άφησέ το να σε φέρει πίσω.','Dive against the current and let it bring you back.'));
+    if(prof==='shore') tip.push(T('Ρίξε λίγο κόντρα στο ρεύμα, για να φτάσει το δόλωμα μπροστά σου.','Cast slightly up-current so the bait settles in front of you.'));
+    box.replaceChildren(h('h2',{text:T('Ρεύμα θάλασσας','Sea current')}),head,strip,deep?h('p',{class:'sub',style:{margin:'10px 0 4px'},text:T('Σε βάθος (μέσος όρος ημέρας):','At depth (daily mean):')}):null,deep,
+      h('p',{class:'foot',text:(tip.length?tip.join(' ')+' ':'')+T('Μοντέλο Copernicus Μεσογείου (κελί ~4 km), όχι μέτρηση. Τα βέλη δείχνουν προς τα πού πάει το νερό.','Copernicus Mediterranean model (~4 km cell), not a measurement. Arrows show where the water is going.')+(v.at?T(' Πλησιέστερη θάλασσα στο μοντέλο.',' Nearest sea cell in the model.'):'')}));
+    box.hidden=false; }); return box; };
 })();

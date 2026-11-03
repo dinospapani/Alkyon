@@ -57,7 +57,7 @@ function notifyBest(top){
   var best=top[0]; if(!best||best.score<70) return; var lbl=dayLbl(best.date); if(lbl!==T('Σήμερα','Today')&&lbl!==T('Αύριο','Tomorrow')) return;
   var today=new Date().toISOString().slice(0,10), sent=ls.get(SENT,null); if(sent===today) return; ls.set(SENT,today);
   var title=T('Καλή ευκαιρία: ','Good chance: ')+best.name, body=lbl+' '+B.pad(best.s)+':00–'+B.pad((best.e+1)%24)+':00 · '+T('δείκτης ','score ')+best.score+(whyTxt(best)?' · '+whyTxt(best):'');
-  if(B.inboxAdd) B.inboxAdd(title,body,'good');
+  if(B.inboxAdd) B.inboxAdd(title,body,'good',{place:{name:best.name,lat:best.lat,lon:best.lon},t:best.date});
   try{ if(document.hidden&&'Notification' in window&&Notification.permission==='granted'&&navigator.serviceWorker){ navigator.serviceWorker.getRegistration().then(function(r){ if(r) r.showNotification(title,{body:body,icon:'../icon-192.png',tag:'alkyon-opps'}); }); return; } }catch(e){}
   B.toast(title+' · '+body,9000);
 }

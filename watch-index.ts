@@ -1,7 +1,8 @@
 // @ts-nocheck
 // Supabase Edge Function «watch» (v31z552, v31z553): η εφαρμογή Alkyon στο ρολόι Garmin.
 //   GET  /functions/v1/watch?lat=34.9&lon=32.4[&code=ABC123]  → σύντομη πρόγνωση (ίδιος βαθμός με την εφαρμογή, από το forecast.js)
-//   POST /functions/v1/watch  {code, t, lat, lon, kind:'fish'|'miss'|'pest', n}  → γράφει το ψάρι στο Ημερολόγιο του χρήστη
+//   POST /functions/v1/watch  {code, t, lat, lon, kind:'fish'|'miss'|'pest', n, trip}  → γράφει το ψάρι στο Ημερολόγιο του χρήστη
+//   POST /functions/v1/watch  {code, kind:'trip', ts, te, tz, tid, n, pts:[[lat,lon,ts],…]}  → 1.1.0: έξοδος από το ρολόι
 // Το «code» είναι ο κωδικός σύνδεσης ρολογιού (Προφίλ › Ρολόι Garmin στην εφαρμογή, πίνακας watch_links, βλ. watch-link.sql).
 // Χρειάζεται: Verify JWT = off. Τα SUPABASE_URL και SUPABASE_SERVICE_ROLE_KEY υπάρχουν ήδη σε κάθε Edge Function.
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS' };
@@ -84,12 +85,29 @@ export async function handle(req, F = fetch, now = Date.now()) {
       const us = await userOf(F, b.code, now); if (!us) return J({ ok: 0, err: 'code' }, 403);
       const t0 = Number.isFinite(+b.t) ? +b.t : Number.isFinite(+b.ts) ? +b.ts * 1000 : NaN;   // το ρολόι στέλνει ts σε δευτερόλεπτα
       const t = t0 > 1.5e12 && t0 < now + 600e3 ? t0 : now;
+      const tripId = (v) => String(v || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 24);
+      /* 1.1.0: έξοδος από το ρολόι (δραστηριότητα «Ψάρεμα»): αρχή/τέλος, διαδρομή, πόσα ψάρια → μία έξοδος στο Ημερολόγιο */
+      if (b.kind === 'trip') {
+        const tz = Number.isFinite(+b.tz) ? +b.tz : null;
+        const s0 = Number.isFinite(+b.ts) ? +b.ts * 1000 : NaN, e0 = Number.isFinite(+b.te) ? +b.te * 1000 : now;
+        if (!(s0 > 1.5e12) || e0 < s0 || e0 - s0 > 36 * 3600e3) return J({ ok: 0, err: 'time' }, 400);
+        const pts = (Array.isArray(b.pts) ? b.pts : []).filter(p => Array.isArray(p) && Number.isFinite(+p[0]) && Number.isFinite(+p[1]) && Math.abs(+p[0]) <= 90 && Math.abs(+p[1]) <= 180 && (Math.abs(+p[0]) > 0.01 || Math.abs(+p[1]) > 0.01))
+          .slice(0, 1000).map(p => [Math.round(+p[0] * 1e5) / 1e5, Math.round(+p[1] * 1e5) / 1e5, Number.isFinite(+p[2]) ? +p[2] * 1000 : null]);
+        let km = 0; for (let i = 1; i < pts.length; i++) { const [a, c] = [pts[i - 1], pts[i]], R = 6371, dl = (c[0] - a[0]) * Math.PI / 180, dn = (c[1] - a[1]) * Math.PI / 180, x = Math.sin(dl / 2) ** 2 + Math.cos(a[0] * Math.PI / 180) * Math.cos(c[0] * Math.PI / 180) * Math.sin(dn / 2) ** 2; km += 2 * R * Math.asin(Math.sqrt(x)); }
+        const lp = localParts(s0, tz != null ? tz : tzOf(s0)), en = us.lang === 'en', tid = tripId(b.tid) || rid(), mid = pts.length ? pts[Math.floor(pts.length / 2)] : null;
+        const n = Math.max(0, Math.min(999, Math.floor(+b.n) || 0));
+        const data = { id: tid, sid: tid, date: lp.date, spot: '', tech: '', species: '', count: n, kg: 0, startMs: s0, endMs: e0, km: Math.round(km * 10) / 10, track: pts, lat: mid ? mid[0] : null, lon: mid ? mid[1] : null,
+          notes: en ? 'Recorded on the Garmin watch' : 'Καταγράφηκε στο ρολόι Garmin', src: 'watch', _u: now };
+        const r = await sb(F, 'records', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify([{ user_id: us.user_id, kind: 'trips', id: tid, data, deleted: false, updated_at: new Date(now).toISOString() }]) });
+        if (!r.ok && r.status !== 409) return J({ ok: 0, err: 'db ' + r.status, detail: (await r.text()).slice(0, 200) }, 502);
+        return J({ ok: 1, id: tid });   // 409 = υπάρχει ήδη (το ρολόι το ξανάστειλε)
+      }
       const kind = b.kind === 'miss' ? 'miss' : b.kind === 'pest' ? 'pest' : 'fish';
       const lp = localParts(t, Number.isFinite(+b.tz) ? +b.tz : tzOf(t)), en = us.lang === 'en';
       const lat = Number.isFinite(+b.lat) && Math.abs(+b.lat) > 0.01 ? Math.round(+b.lat * 1e5) / 1e5 : null, lon = Number.isFinite(+b.lon) && Math.abs(+b.lon) > 0.01 ? Math.round(+b.lon * 1e5) / 1e5 : null;
       const id = rid();
       const data = { id, date: lp.date, time: lp.time, species: kind === 'pest' ? (en ? 'Silver-cheeked toadfish' : 'Λαγοκέφαλος') : '', latin: kind === 'pest' ? 'Lagocephalus sceleratus' : '', bait: '', tech: '', depth: null, kg: null, len: null,
-        notes: '', place: '', lat, lon, photo: false, src: 'watch', _u: now, ...(kind === 'miss' ? { miss: true } : {}), ...(kind === 'pest' ? { pest: true } : {}), ...(Math.floor(+b.n) > 1 && Math.floor(+b.n) < 100 ? { cnt: Math.floor(+b.n) } : {}) };
+        notes: '', place: '', lat, lon, photo: false, src: 'watch', _u: now, ...(kind === 'miss' ? { miss: true } : {}), ...(kind === 'pest' ? { pest: true } : {}), ...(Math.floor(+b.n) > 1 && Math.floor(+b.n) < 100 ? { cnt: Math.floor(+b.n) } : {}), ...(tripId(b.trip) ? { trip: tripId(b.trip) } : {}) };
       const r = await sb(F, 'records', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify([{ user_id: us.user_id, kind: 'bites', id, data, deleted: false, updated_at: new Date(now).toISOString() }]) });
       if (!r.ok) return J({ ok: 0, err: 'db ' + r.status, detail: (await r.text()).slice(0, 200) }, 502);
       return J({ ok: 1, id, time: lp.time });

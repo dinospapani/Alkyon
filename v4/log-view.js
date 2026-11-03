@@ -11,7 +11,15 @@ var RANGES=[['all',T('Όλα','All')],['7',T('7 μέρες','7 days')],['30',T('
 function nrm(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); }
 function when(b,long){ if(!b.date) return ''; var td=new Date(), t=td.getFullYear()+'-'+B.pad(td.getMonth()+1)+'-'+B.pad(td.getDate()), dn=B.dayName(b.date,t), rel=dn!==B.dayName(b.date);
   return (rel?dn:(long?dn+' ':'')+B.dateShort(b.date)+(long&&b.date.slice(0,4)!==t.slice(0,4)?' '+b.date.slice(0,4):''))+(b.time?', '+b.time:''); }
-function thumb(b){ var w=h('span',{class:'th'}); if(b.photo){ S().Photos.get(b.id).then(function(bl){ if(bl) w.append(h('img',{src:URL.createObjectURL(bl),alt:''})); else w.append(B.icon('fish')); }).catch(function(){ w.append(B.icon('fish')); }); } else w.append(B.icon('fish')); return w; }
+/* 1.1.1: οι μικρές φωτογραφίες κρατιούνται στη μνήμη, ώστε όταν ξαναζωγραφίζεται η λίστα (π.χ. μετά από διαγραφή) να μην «αναβοσβήνουν» */
+var TH={};
+function thumb(b){ var w=h('span',{class:'th'}), k=b.id+':'+(b._u||0);
+  if(!b.photo){ w.append(B.icon('fish')); return w; }
+  var c=TH[b.id]; if(c&&c.k===k){ if(c.u) w.append(h('img',{src:c.u,alt:'',decoding:'sync'})); else w.append(B.icon('fish')); return w; }
+  S().Photos.get(b.id).then(function(bl){ if(TH[b.id]&&TH[b.id].u) try{ URL.revokeObjectURL(TH[b.id].u); }catch(e){} var u=bl?URL.createObjectURL(bl):null; TH[b.id]={k:k,u:u}; w.replaceChildren(u?h('img',{src:u,alt:''}):B.icon('fish')); }).catch(function(){ w.replaceChildren(B.icon('fish')); });
+  return w; }
+/* πολλές αλλαγές μαζί (διαγραφή + ενημέρωση εξόδου + συγχρονισμός) → μία ζωγραφική, χωρίς να χάνεται η θέση της λίστας */
+var rdF=0; function redraw(){ if(rdF) return; rdF=requestAnimationFrame(function(){ rdF=0; var y=window.scrollY; draw(); if(Math.abs(window.scrollY-y)>2) window.scrollTo(0,y); }); }
 function sizeTxt(b){ var n=bc(b), a=[]; if(+b.kg) a.push(B.num(b.kg,+b.kg<10?2:1).replace(/([.,]\d)0$/,'$1')+' kg'+(n>1?T(' σύνολο',' total'):'')); if(+b.len) a.push(b.len+' cm'); return a.join(', '); }
 
 function draw(){
@@ -205,5 +213,5 @@ function lostAnalysis(page,bs){
 }
 B.biteDetail=detail;
 B.view('log',{title:T('Ημερολόγιο','Logbook'),mount:function(el){ root=el; st.tab=ls.get('alkyon-v4-logtab',st.tab)||st.tab; draw(); },unmount:function(){ root=null; },resume:function(){ st.tab=ls.get('alkyon-v4-logtab',st.tab)||st.tab; draw(); }});
-B.on('store',function(k){ if(root&&/^alkyon-(bites|trips|spots|sess|gear)$/.test(k)) draw(); });
+B.on('store',function(k){ if(root&&/^alkyon-(bites|trips|spots|sess|gear)$/.test(k)) redraw(); });
 })();

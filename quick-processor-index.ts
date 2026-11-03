@@ -121,7 +121,10 @@ function hourScore(sm,hr,w){
   return clamp(Math.round(base+b),5,98);
 }
 const bft=w=>[1,4,7,11,17,22,28,34,41,48,56,64].filter(x=>x<=w).length;
-const safeHour=h=>h.wind<=14&&(h.wave==null||h.wave<=0.9)&&(h.gust==null||h.gust<=24)&&(h.code==null||h.code<95);
+/* v31z525: όρια «ασφαλούς» ώρας ρυθμίζονται από τον χρήστη (alkyon-limits: kn, kn, m)· προεπιλογή όπως πριν */
+const LIMD={wind:14,wave:0.9,gust:24}; let LIMO=null;
+function lims(){ if(LIMO) return Object.assign({},LIMD,LIMO); try{ const o=typeof localStorage!=='undefined'?JSON.parse(localStorage.getItem('alkyon-limits')||'null'):null; if(o&&typeof o==='object') return Object.assign({},LIMD,o); }catch(e){} return LIMD; }
+const safeHour=h=>{ const L=lims(); return h.wind<=L.wind&&(h.wave==null||h.wave<=L.wave)&&(h.gust==null||h.gust<=L.gust)&&(h.code==null||h.code<95); };
 function ptrendOf(d){return d<=-3?'fast':d<=-1?'slow':d>=1?'rise':'stable';}
 async function fetchJson(url,fetchFn){
   const f=fetchFn||fetch, ac=typeof AbortController!=='undefined'?new AbortController():null, t=ac&&setTimeout(()=>ac.abort(),12000);
@@ -133,8 +136,8 @@ async function getForecast(lat,lon,fetchFn,opt){
   const nd=Math.min(14,Math.max(1,(opt&&opt.days)||3));
   const q='latitude='+lat.toFixed(4)+'&longitude='+lon.toFixed(4);
   const [w,m]=await Promise.allSettled([
-    fetchJson('https://api.open-meteo.com/v1/forecast?'+q+'&hourly=pressure_msl,wind_speed_10m,wind_gusts_10m,wind_direction_10m,cloud_cover,temperature_2m,precipitation_probability,precipitation,weather_code&wind_speed_unit=kn&timezone=auto&past_days=1&forecast_days='+(nd+1),fetchFn),
-    fetchJson('https://marine-api.open-meteo.com/v1/marine?'+q+'&hourly=wave_height,wave_period,sea_surface_temperature,sea_level_height_msl&timezone=auto&past_days=1&forecast_days='+(nd+1),fetchFn)
+    fetchJson('https://api.open-meteo.com/v1/forecast?'+q+'&hourly=pressure_msl,wind_speed_10m,wind_gusts_10m,wind_direction_10m,cloud_cover,temperature_2m,precipitation_probability,precipitation,weather_code&wind_speed_unit=kn&timezone=auto&past_days=2&forecast_days='+(nd+1),fetchFn),
+    fetchJson('https://marine-api.open-meteo.com/v1/marine?'+q+'&hourly=wave_height,wave_period,sea_surface_temperature,sea_level_height_msl&timezone=auto&past_days=2&forecast_days='+(nd+1),fetchFn)
   ]);
   if(w.status!=='fulfilled') throw new Error('weather');
   const H=w.value.hourly||{}, T=H.time||[], tz=Math.round((w.value.utc_offset_seconds||0)/60);
@@ -176,7 +179,9 @@ async function getForecast(lat,lon,fetchFn,opt){
       pStart:rows[0].p,pEnd:rows[rows.length-1].p,waveMax:mx(use.map(r=>r.wave)),waveAvg:av(use.map(r=>r.wave)),period:av(use.map(r=>r.period)),sst:av(rows.map(r=>r.sst)),illum:(1-Math.cos(2*Math.PI*sm.f))/2,rise:sm.rise,set:sm.set};
     days.push({date,f:sm.f,rise:sm.rise,set:sm.set,best,win,why,hours,avgWind:av(used.map(h=>h.wind)),avgWave:av(used.filter(h=>h.wave!=null).map(h=>h.wave)),safe:cand.length>0,wx});
   }
-  return {days,tz,nowLocal};
+  /* ωριαίο κύμα/βροχή και των 2 προηγούμενων ημερών, για την ορατότητα νερού (v31z531): [ώρα, κύμα, mm] */
+  const wl=[]; for(let i=0;i<T.length;i++){ const t=T[i], mm=mar[t]||{}, r=nn(at('precipitation',i)); if(mm.wave==null&&r==null) continue; wl.push([t,mm.wave==null?null:Math.round(mm.wave*100)/100,r]); }
+  return {days,tz,nowLocal,wl};
 }
 /* Βρίσκει την πρώτη ιδανική ώρα τις επόμενες ~36 ώρες. */
 function findIdeal(fc,threshold){
@@ -334,7 +339,8 @@ function whyGood(d,win,en){
    Πίεση (καμπές και απότομες αλλαγές): μόνο για την περιοχή ψαρέματος — cfg.area (π.χ. θέση ενεργής εξόδου), αλλιώς «Η θέση μου»,
    αλλιώς η πρώτη τοποθεσία με ειδοποιήσεις. Καμπές: «πριν» (σε ≤3 ώρες) και «μόλις άρχισε» (έως 4 ώρες μετά), για κάθε καμπή. */
 async function checkPlaces(cfg,fetchFn){
-  const thr=cfg.threshold||75, notified=Object.assign({},cfg.notified||{}), goods=[], press=[], winds=[], turns=[]; const errs=[]; let okN=0;
+  LIMO=(cfg&&cfg.limits&&typeof cfg.limits==='object')?cfg.limits:null;
+  const thr=cfg.threshold||75, notified=Object.assign({},cfg.notified||{}), goods=[], press=[], winds=[], turns=[], changes=[], eves=[]; let nextGood=null, todayGood=null, tmrGood=null; const errs=[]; let okN=0;
   const today=new Date(Date.now()-86400000).toISOString().slice(0,10);
   for(const k of Object.keys(notified)){ if(k.split(':').pop()<today) delete notified[k]; }
   const en=cfg.lang==='en'||(typeof self!=='undefined'&&self.LANG==='en'), t=(el,e)=>en?e:el;
@@ -366,12 +372,24 @@ async function checkPlaces(cfg,fetchFn){
       }
     }
   }
-  for(const p of cfg.places||[]){
+  for(const p of (cfg.onlyPlans?[]:cfg.places||[])){
     if(p.watch===false||p.lat==null) continue;
     try{
       const fc=await getForecast(p.lat,p.lon,fetchFn,{days:7,sp:cfg.sp||null});
       okN++;
-      for(const g of goodDays(fc,thr)){ const key=p.id+':'+g.date; if(notified[key]) continue; let why=''; try{ why=whyGood(g.d,g.win,en); }catch(e){} goods.push({type:'good',place:p,key,date:g.date,best:g.best,win:g.win,wind:g.wind,why}); }
+      for(const g of goodDays(fc,thr)){ if(g.date===fc.nowLocal.slice(0,10)&&g.win&&g.win.e>=+fc.nowLocal.slice(11,13)&&(!todayGood||g.best>todayGood.best)) todayGood={place:p.name,date:g.date,best:g.best,win:g.win}; /* 1.1.0: πρωινό μήνυμα */ { const tm=new Date(Date.parse(fc.nowLocal.slice(0,10)+'T12:00:00Z')+864e5).toISOString().slice(0,10); if(g.date===tm&&g.win&&(!tmrGood||g.best>tmrGood.best)) tmrGood={place:p.name,pid:p.id,date:g.date,best:g.best,win:g.win}; } /* 1.1.2: βραδινό μήνυμα για αύριο */ if(g.date>fc.nowLocal.slice(0,10)&&(!nextGood||g.date<nextGood.date||(g.date===nextGood.date&&g.best>nextGood.best))) nextGood={place:p.name,date:g.date,best:g.best,win:g.win}; const key=p.id+':'+g.date; if(notified[key]) continue; let why=''; try{ why=whyGood(g.d,g.win,en); }catch(e){} goods.push({type:'good',place:p,key,date:g.date,best:g.best,win:g.win,wind:g.wind,why}); }
+      /* v31z538: για μέρες που σου προτάθηκαν ήδη: (α) «άλλαξε η πρόγνωση» αν πέσει κάτω από τα όρια ασφαλείας ή αρκετά κάτω από τον στόχο,
+         (β) υπενθύμιση το προηγούμενο βράδυ (19:00–23:59 τοπική ώρα) με τα τελευταία στοιχεία. Μία φορά η καθεμία ανά μέρα. */
+      const nowD=fc.nowLocal.slice(0,10), nowH=+fc.nowLocal.slice(11,13), tmr=new Date(Date.parse(nowD+'T12:00:00Z')+864e5).toISOString().slice(0,10);
+      for(const d of fc.days){
+        if(!notified[p.id+':'+d.date]||d.date<=nowD) continue; /* η σημερινή όχι: ο δείκτης της μετρά μόνο τις ώρες που απομένουν */
+        const xk=p.id+':x:'+d.date, ek=p.id+':eve:'+d.date;
+        if(!notified[xk]){
+          const bad=!d.safe?'unsafe':(d.best<thr-8?'worse':null);
+          if(bad){ changes.push({type:'goodx',place:p,key:xk,date:d.date,best:d.best,why:bad,d}); continue; }
+        }
+        if(!notified[ek]&&!notified[xk]&&d.date===tmr&&nowH>=19&&d.safe&&d.win&&d.best>=thr-5){ let why=''; try{ why=whyGood(d,d.win,en); }catch(e){} eves.push({type:'goodeve',place:p,key:ek,date:d.date,best:d.best,win:d.win,why}); }
+      }
       if(near(p)) await doPressure(fc,{name:p.name,lat:p.lat,lon:p.lon});
       if(cfg.wind){
         const we=windEvent(fc,cfg.wind);
@@ -379,7 +397,40 @@ async function checkPlaces(cfg,fetchFn){
       }
     }catch(e){ errs.push((p.name||p.id)+': '+(e&&e.message||e)); }
   }
-  if(area&&!areaDone&&(cfg.pressure!==false||cfg.turn)){
+  /* v31z545: μέτωπο θερμοκρασίας νερού κοντά στα σημεία (πλέγμα 5×5 ανά ~11 km, μοντέλο Open-Meteo): διαφορά ≥0,8° ανάμεσα σε γειτονικά σημεία, έως ~25 km από το σημείο. Μία φορά τη μέρα ανά σημείο. */
+  const fronts=[];
+  if(cfg.front&&!cfg.onlyPlans) for(const p of (cfg.places||[]).filter(x=>x.watch!==false&&x.lat!=null).slice(0,3)){
+    try{
+      const N=5, st=0.1, la=[], lo=[]; for(let j=0;j<N;j++) for(let i=0;i<N;i++){ la.push((+p.lat+(j-2)*st).toFixed(3)); lo.push((+p.lon+(i-2)*st).toFixed(3)); }
+      const j=await fetchJson('https://marine-api.open-meteo.com/v1/marine?latitude='+la.join(',')+'&longitude='+lo.join(',')+'&current=sea_surface_temperature&cell_selection=sea',fetchFn);
+      const arr=Array.isArray(j)?j:[j], T=arr.map(x=>x&&x.current&&typeof x.current.sea_surface_temperature==='number'?x.current.sea_surface_temperature:null);
+      const R=Math.PI/180, km=(a,b,c,d)=>{ const x=(d-b)*R*Math.cos((a+c)/2*R), y=(c-a)*R; return Math.sqrt(x*x+y*y)*6371; };
+      let best=null;
+      for(let jj=0;jj<N;jj++) for(let ii=0;ii<N;ii++){ const k=jj*N+ii; if(T[k]==null) continue;
+        for(const [dj,di] of [[0,1],[1,0]]){ const j2=jj+dj, i2=ii+di; if(j2>=N||i2>=N) continue; const k2=j2*N+i2; if(T[k2]==null) continue;
+          const df=Math.abs(T[k]-T[k2]); if(df<0.8) continue; const mla=(+la[k]+ +la[k2])/2, mlo=(+lo[k]+ +lo[k2])/2, dist=km(+p.lat,+p.lon,mla,mlo); if(dist>25) continue;
+          if(!best||df>best.df+0.1||(Math.abs(df-best.df)<=0.1&&dist<best.dist)) best={df,dist,mla,mlo,t1:Math.max(T[k],T[k2]),t2:Math.min(T[k],T[k2])}; } }
+      const today=new Date(Date.now()+(arr[0]&&arr[0].utc_offset_seconds||0)*1000).toISOString().slice(0,10), key='front:'+p.id+':'+today;
+      if(best&&!notified[key]){ const br=(Math.atan2(Math.sin((best.mlo-p.lon)*R)*Math.cos(best.mla*R),Math.cos(p.lat*R)*Math.sin(best.mla*R)-Math.sin(p.lat*R)*Math.cos(best.mla*R)*Math.cos((best.mlo-p.lon)*R))/R+360)%360;
+        fronts.push({type:'front',place:p,key,f:best,br}); }
+    }catch(e){ errs.push((p.name||p.id)+' front: '+(e&&e.message||e)); }
+  }
+  /* v31z544: πλάνο εξόδου («Θα βγω»): υπενθύμιση το προηγούμενο βράδυ, «ώρα να ξεκινήσεις» ~1 ώρα πριν από το καλύτερο παράθυρο, και ειδοποίηση αν χαλάσει. */
+  const plans=[];
+  for(const pl of (cfg.plans||[]).slice(0,6)){
+    if(!pl||pl.lat==null||!pl.date) continue;
+    try{
+      const fc=await getForecast(+pl.lat,+pl.lon,fetchFn,{days:7,sp:cfg.sp||null}); okN++;
+      const nowD=fc.nowLocal.slice(0,10), nowM=+fc.nowLocal.slice(11,13)*60+(+fc.nowLocal.slice(14,16)||0), tmr=new Date(Date.parse(nowD+'T12:00:00Z')+864e5).toISOString().slice(0,10);
+      if(pl.date<nowD) continue; const d=fc.days.find(x=>x.date===pl.date); if(!d) continue;
+      const xk='plan:x:'+pl.date, ek='plan:eve:'+pl.date, ak='plan:am:'+pl.date, bad=!d.safe?'unsafe':(d.best<thr-8?'worse':null);
+      if(bad&&!notified[xk]&&(pl.date>nowD||(d.why!=='night'))){ plans.push({type:'planx',key:xk,pl,d,bad}); continue; }
+      if(bad) continue;
+      if(pl.date===tmr&&nowM>=19*60&&!notified[ek]){ let why=''; try{ why=whyGood(d,d.win,en); }catch(e){} plans.push({type:'planeve',key:ek,pl,d,why}); }
+      if(pl.date===nowD&&d.win&&!notified[ak]){ const until=d.win.s*60-nowM; if(until>=10&&until<=80) plans.push({type:'planam',key:ak,pl,d,until}); }
+    }catch(e){ errs.push((pl.name||'plan')+': '+(e&&e.message||e)); }
+  }
+  if(area&&!cfg.onlyPlans&&!areaDone&&(cfg.pressure!==false||cfg.turn)){
     try{ const fc=await getForecast(area.lat,area.lon,fetchFn,{days:3,sp:cfg.sp||null}); okN++; await doPressure(fc,{name:area.name,lat:area.lat,lon:area.lon}); }
     catch(e){ errs.push((area.name||'area')+': '+(e&&e.message||e)); }
   }
@@ -400,7 +451,7 @@ async function checkPlaces(cfg,fetchFn){
       'peak-past':t('πέρασε η κορυφή ('+p+' hPa στις '+hh+'), η πίεση άρχισε να πέφτει.','the peak has passed ('+p+' hPa at '+hh+'), pressure has started falling.'),
       'trough-past':t('πέρασε η κοιλάδα ('+p+' hPa στις '+hh+'), η πίεση άρχισε να ανεβαίνει.','the low has passed ('+p+' hPa at '+hh+'), pressure has started rising.')}[e.kind]||''; };
   const tl=turns.slice(0,2).map(e=>e.place.name+': '+ttxt(e));
-  const items=goods.concat(press,winds,turns);
+  const items=goods.concat(press,winds,turns,changes,eves,plans,fronts);
   items.forEach(i=>{notified[i.key]=1;});
   const kinds=(goods.length?1:0)+(press.length?1:0)+(winds.length?1:0)+(turns.length?1:0);
   const title=kinds>1?t('Ενημέρωση ψαρέματος','Fishing update'):goods.length>1?t('Καλές μέρες για ψάρεμα','Good days for fishing'):goods.length?t('Καλή μέρα για ψάρεμα','Good day for fishing'):press.length?t('Αλλαγή πίεσης','Pressure change'):turns.length?t('Καμπή πίεσης','Pressure turning point'):t('Αλλαγή ανέμου','Wind change');
@@ -421,9 +472,25 @@ async function checkPlaces(cfg,fetchFn){
   if(goods.length){ const tx=lines.join('\n');
     msgs.push({kind:'good',key:goods.map(i=>i.key).sort().join('|').slice(0,180),place:goods.length===1?P(goods[0].place):null,t:top[0]&&top[0].date,title:'🎣 '+(goods.length>1?t('Καλές μέρες για ψάρεμα','Good days for fishing'):t('Καλή μέρα για ψάρεμα','Good day for fishing')),
       body:lines[0]+(lines.length>1?' · +'+(goods.length-1):'')+(top[0]&&top[0].why?'\n'+top[0].why:''),full:goods.map(i=>i.place.name+': '+dayLabel(i.date)+' · '+t('δείκτης ','score ')+i.best+' · '+pad(i.win.s)+':00–'+pad((i.win.e+1)%24)+':00'+(i.why?'\n   '+i.why:'')).join('\n')}); }
-  return {items,notified,title,body:lines.concat(pl,tl,wl).join('\n'),msgs,area:area?{name:area.name,lat:area.lat,lon:area.lon}:null,errs,okN,goodsN:goods.length,pressN:press.length,turnsN:turns.length,windsN:winds.length};
+  const span=w=>pad(w.s)+':00–'+pad((w.e+1)%24)+':00';
+  changes.forEach(i=>{ const d=i.d, tx=i.why==='unsafe'?t('Η θάλασσα πλέον βγαίνει πάνω από τα όριά σου','The sea is now forecast above your limits')+(d.avgWind!=null?' ('+t('άνεμος ','wind ')+bft(d.wx&&d.wx.windMax!=null?d.wx.windMax:d.avgWind)+' Bft'+(d.wx&&d.wx.waveMax!=null?', '+t('κύμα ','waves ')+(Math.round(d.wx.waveMax*10)/10).toFixed(1).replace('.',en?'.':',')+' m':'')+')':'')+'.'
+      :t('Ο δείκτης έπεσε στο ','The score dropped to ')+i.best+t(' (κάτω από τον στόχο σου '+thr+').',' (below your target of '+thr+').');
+    msgs.push({kind:'good',key:i.key,place:P(i.place),t:i.date,title:'⚠️ '+t('Άλλαξε η πρόγνωση','Forecast changed')+' · '+dayLabel(i.date),body:i.place.name+': '+tx,full:i.place.name+', '+dayLabel(i.date)+': '+tx+' '+t('Είχε προταθεί ως καλή μέρα.','It had been suggested as a good day.')}); });
+  eves.forEach(i=>{ const tx=t('Αύριο ','Tomorrow ')+dayLabel(i.date)+' · '+t('δείκτης ','score ')+i.best+' · '+t('καλύτερη ώρα ','best time ')+span(i.win);
+    msgs.push({kind:'good',key:i.key,place:P(i.place),t:i.date,title:'🎣 '+t('Αύριο καλή μέρα','Good day tomorrow')+' · '+i.place.name,body:tx+(i.why?'\n'+i.why:''),full:i.place.name+': '+tx+(i.why?'\n'+i.why:'')+'\n'+t('Τελευταία πρόγνωση, απόψε.','Latest forecast, tonight.')}); });
+  const sp2=w=>pad(w.s)+':00–'+pad((w.e+1)%24)+':00', cond=d=>[d.avgWind!=null?(en?'wind ':'άνεμος ')+bft(d.avgWind)+' Bft':'',d.avgWave!=null?(en?'waves ':'κύμα ')+(Math.round(d.avgWave*10)/10).toFixed(1).replace('.',en?'.':',')+' m':''].filter(Boolean).join(', ');
+  fronts.forEach(i=>{ const f=i.f, dg=x=>(Math.round(x*10)/10).toFixed(1).replace('.',en?'.':','), tx=dg(f.df)+t('° διαφορά σε ~11 km, περίπου ','° difference over ~11 km, about ')+Math.round(f.dist)+t(' km ',' km ')+compassOf(i.br,en?'en':'el')+t(' του σημείου (',' of the spot (')+dg(f.t1)+'° → '+dg(f.t2)+'°).';
+    msgs.push({kind:'good',key:i.key,place:{name:i.place.name,lat:+f.mla.toFixed(4),lon:+f.mlo.toFixed(4)},t:null,title:'🌡 '+t('Μέτωπο θερμοκρασίας · ','Temperature front · ')+i.place.name,body:tx.charAt(0).toUpperCase()+tx.slice(1),full:i.place.name+': '+tx+' '+t('Στα μέτωπα συχνά μαζεύονται πελαγικά (λίτσες, μαγιάτικα, παλαμίδες). Πρόγνωση μοντέλου, όχι μέτρηση.','Pelagics (leerfish, amberjack, bonito) often gather on fronts. Model forecast, not a measurement.')}); });
+  plans.forEach(i=>{ const nm=i.pl.name||t('το σημείο σου','your spot'), d=i.d;
+    if(i.type==='planx'){ const tx=i.bad==='unsafe'?t('η θάλασσα πλέον βγαίνει πάνω από τα όριά σου','the sea is now forecast above your limits')+(d.wx&&d.wx.windMax!=null?' ('+t('άνεμος έως ','wind up to ')+bft(d.wx.windMax)+' Bft'+(d.wx.waveMax!=null?', '+t('κύμα έως ','waves up to ')+(Math.round(d.wx.waveMax*10)/10).toFixed(1).replace('.',en?'.':',')+' m':'')+')':''):t('ο δείκτης έπεσε στο ','the score dropped to ')+d.best;
+      msgs.push({kind:'good',key:i.key,place:P(i.pl),t:i.pl.date,title:'⚠️ '+t('Το πλάνο σου για ','Your plan for ')+dayLabel(i.pl.date),body:nm+': '+tx+'.',full:nm+', '+dayLabel(i.pl.date)+': '+tx+'. '+t('Δες την Πρόγνωση για άλλη μέρα.','Check the Forecast for another day.')}); }
+    else if(i.type==='planeve'){ const tx=t('Αύριο ','Tomorrow ')+dayLabel(i.pl.date)+' · '+nm+' · '+t('καλύτερη ώρα ','best time ')+sp2(d.win)+' · '+t('δείκτης ','score ')+d.best+(cond(d)?' · '+cond(d):'');
+      msgs.push({kind:'good',key:i.key,place:P(i.pl),t:i.pl.date,title:'📅 '+t('Αύριο βγαίνεις για ψάρεμα','Fishing tomorrow'),body:tx,full:tx+(i.why?'\n'+i.why:'')+'\n'+t('Ετοίμασε από απόψε: λίστα ελέγχου, δόλωμα, καύσιμα, επαφή ασφαλείας.','Prepare tonight: checklist, bait, fuel, safety contact.')}); }
+    else { const tx=t('Η καλύτερη ώρα ξεκινά σε ~','The best time starts in ~')+i.until+t(' λεπτά (',' min (')+sp2(d.win)+') · '+nm+(cond(d)?' · '+cond(d):'');
+      msgs.push({kind:'good',key:i.key,place:P(i.pl),t:i.pl.date,title:'⏰ '+t('Ώρα να ξεκινήσεις','Time to get going'),body:tx,full:tx}); } });
+  return {nextGood,todayGood,tmrGood,items,notified,title,body:lines.concat(pl,tl,wl).join('\n'),msgs,area:area?{name:area.name,lat:area.lat,lon:area.lon}:null,errs,okN,goodsN:goods.length,pressN:press.length,turnsN:turns.length,windsN:winds.length};
 }
-g.PF={moonAlt,moonEvents,moonPhase,solunarPeriods,pressureRise,sunMoon,hourScore,getForecast,findIdeal,message,check,goodDays,checkPlaces,dayLabel,bft,pressureEvent,windEvent,pressureTurns,pressureOutlook};
+g.PF={lims,moonAlt,moonEvents,moonPhase,solunarPeriods,pressureRise,sunMoon,hourScore,getForecast,findIdeal,message,check,goodDays,checkPlaces,dayLabel,bft,pressureEvent,windEvent,pressureTurns,pressureOutlook};
 })(typeof self!=='undefined'?self:this);
 
 const PF = self.PF;
@@ -635,11 +702,72 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
         const lang = (r.lang === 'en' || ((r.places || []).find(p => p && p.lang) || {}).lang === 'en') ? 'en' : 'el';
         let area = null, onTrip = tripUsers.indexOf(r.user_id) >= 0;
         try { const tr = await sb(`safety_trips?user_id=eq.${r.user_id}&status=eq.active&last_lat=not.is.null&select=last_lat,last_lon&limit=1`); if (tr && tr[0]) { onTrip = true; area = { id: 'trip', name: lang === 'en' ? 'Trip now' : 'Έξοδος τώρα', lat: +tr[0].last_lat, lon: +tr[0].last_lon }; } } catch (e) { /* χωρίς έξοδο */ }
+        // v31z539: ώρες ησυχίας 23:00–07:00 (ώρα Κύπρου), εκτός αν ο χρήστης τις έκλεισε ή είναι σε έξοδο. Δεν αλλάζει το checked_at, οπότε στις 07:00 ελέγχεται αμέσως.
+        const quietOn = !((r.places || []).find(p => p && p.quiet === 'off'));
+        let cyH = new Date().getUTCHours(); try { cyH = +new Date().toLocaleString('en-GB', { timeZone: 'Asia/Nicosia', hour: '2-digit', hour12: false }) % 24; } catch (e) { /* UTC */ }
+        // v31z544: πλάνα εξόδου (από την εφαρμογή, μέσα στις τοποθεσίες) · στις ώρες ησυχίας ελέγχονται μόνο αυτά (π.χ. «ώρα να ξεκινήσεις» στις 05:00)
+        const plans = ((r.places || []).find(p => p && Array.isArray(p.plans)) || {}).plans || [];
+        const quietNow = quietOn && !onTrip && (cyH >= 23 || cyH < 7);
+        if (quietNow && !plans.length) { stats.quiet = (stats.quiet || 0) + 1; continue; }
         // v31z357: κατά την έξοδο οι ειδοποιήσεις καμπής/έναρξης ανόδου είναι πάντα ανοιχτές
         const turnOn = r.turn === true || onTrip;
-        const res = await PF.checkPlaces({ lang, sp: ((r.places || []).find(p => p && p.sp) || {}).sp || null, places: r.places || [], threshold: r.threshold || 75, pressure: r.pressure !== false, wind: r.wind || null, turn: turnOn, notified: r.state || {}, area }, F);
+        const res = await PF.checkPlaces({ plans, onlyPlans: quietNow, front: !!(r.places || []).find(p => p && p.front === 'on'), lang, sp: ((r.places || []).find(p => p && p.sp) || {}).sp || null, places: r.places || [], threshold: r.threshold || 75, pressure: r.pressure !== false, wind: r.wind || null, turn: turnOn, notified: r.state || {}, area }, F);
         log(`Πρόγνωση ${String(r.id).slice(0, 6)}: καμπή=${r.turn === true ? 'ναι' : 'όχι'}${onTrip ? ' (έξοδος: ναι)' : ''} τοποθεσίες=${(r.places || []).length} περιοχή=${res.area ? res.area.name : '-'} ok=${res.okN} καλές=${res.goodsN} πίεση=${res.pressN} καμπές=${res.turnsN} άνεμος=${res.windsN} μηνύματα=${(res.msgs || []).length}` + (res.errs && res.errs.length ? ' ΣΦΑΛΜΑΤΑ: ' + res.errs.join(' | ').slice(0, 300) : ''));
         let gone = false, sent = 0, failed = 0;
+        // v31z542: εβδομαδιαία σύνοψη, Κυριακή 19:00–22:59 (ώρα Κύπρου), μία φορά: έξοδοι, ψάρια (χωρίς λαγοκέφαλους), καλύτερη μέρα, επόμενη καλή μέρα
+        try {
+          const cyNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Nicosia' })), wd = cyNow.getDay(), hh = cyNow.getHours();
+          const dkey = cyNow.getFullYear() + '-' + String(cyNow.getMonth() + 1).padStart(2, '0') + '-' + String(cyNow.getDate()).padStart(2, '0'), wk = 'wk:' + dkey;
+          if (wd === 0 && hh >= 19 && hh <= 22 && !(res.notified || {})[wk]) {
+            res.notified = res.notified || {}; res.notified[wk] = 1;
+            const lo = new Date(cyNow.getTime() - 6 * 864e5), los = lo.getFullYear() + '-' + String(lo.getMonth() + 1).padStart(2, '0') + '-' + String(lo.getDate()).padStart(2, '0');
+            const rows = (await sb(`records?select=kind,data&user_id=eq.${r.user_id}&kind=in.(bites,trips)&deleted=eq.false&data->>date=gte.${los}&limit=2000`).catch(() => [])) || [];
+            const en = lang === 'en', t = (a, b) => en ? b : a, PEST = /λαγοκ[εέ]φαλ|κουνελ[οό]ψαρ|toadfish|puffer ?fish|lagocephalus|torquigener/i;
+            const pest = b => !!b.pest || /^(Lagocephalus|Torquigener|Sphoeroides)\s/.test(b.latin || '') || PEST.test(b.species || '');
+            const bs = rows.filter(x => x.kind === 'bites').map(x => x.data || {}).filter(b => !b.miss && !b.gear && !pest(b) && (b.date || '') <= dkey);
+            const ps = rows.filter(x => x.kind === 'bites').map(x => x.data || {}).filter(b => pest(b) && (b.date || '') <= dkey).length;
+            const trips = rows.filter(x => x.kind === 'trips').length, n = bs.reduce((s, b) => s + Math.max(1, Math.floor(+b.cnt) || 1), 0);
+            const byDay = {}; bs.forEach(b => { byDay[b.date] = (byDay[b.date] || 0) + Math.max(1, Math.floor(+b.cnt) || 1); });
+            const bd = Object.keys(byDay).sort((a, b) => byDay[b] - byDay[a])[0], sp = {}; bs.forEach(b => { if (b.species) sp[b.species] = (sp[b.species] || 0) + 1; });
+            const top = Object.keys(sp).sort((a, b) => sp[b] - sp[a])[0], ng = res.nextGood;
+            const DN = en ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] : ['Κυριακή', 'Δευτέρα', 'Τρίτη', 'Τετάρτη', 'Πέμπτη', 'Παρασκευή', 'Σάββατο'], dn = s => DN[new Date(s + 'T12:00:00Z').getUTCDay()];
+            const pad = x => String(x).padStart(2, '0');
+            const parts = [];
+            if (trips || n) parts.push(t('Αυτή την εβδομάδα: ', 'This week: ') + trips + t(trips === 1 ? ' έξοδος, ' : ' έξοδοι, ', trips === 1 ? ' trip, ' : ' trips, ') + n + t(n === 1 ? ' ψάρι' : ' ψάρια', n === 1 ? ' fish' : ' fish') + (top ? t(', κυρίως ', ', mostly ') + top : '') + (bd && n > 1 ? t('. Καλύτερη μέρα: ', '. Best day: ') + dn(bd) + ' (' + byDay[bd] + ')' : '') + '.');
+            else parts.push(t('Αυτή την εβδομάδα δεν κατέγραψες εξόδους.', 'No trips logged this week.'));
+            if (ps) parts.push('🐡 ' + ps + t(ps === 1 ? ' λαγοκέφαλος (δεν μετράει).' : ' λαγοκέφαλοι (δεν μετράνε).', ' toadfish (not counted).'));
+            if (ng) parts.push(t('Επόμενη καλή μέρα: ', 'Next good day: ') + dn(ng.date) + ' ' + pad(ng.win.s) + ':00–' + pad((ng.win.e + 1) % 24) + ':00 · ' + ng.place + ' · ' + t('δείκτης ', 'score ') + ng.best + '.');
+            res.msgs = (res.msgs || []).concat([{ kind: 'info', key: wk, title: '📅 ' + t('Η εβδομάδα σου', 'Your week'), body: parts.join(' '), full: parts.join('\n'), place: null, t: null }]);
+          }
+        } catch (e) { log('weekly: ' + e.message); }
+        // 1.1.0 / 1.1.2: «Σήμερα / Αύριο στα σημεία σου»: το προηγούμενο βράδυ (19:00–22:59) για αύριο, ή/και το πρωί (07:00–09:59) για σήμερα.
+        // Ρύθμιση από την εφαρμογή: places[].morning = 'eve' (προεπιλογή) | 'morn' | 'both' | 'off' (το παλιό 'on' = πρωί).
+        try {
+          const mv = ((r.places || []).find(p => p && p.morning) || {}).morning || 'eve';
+          const mode = mv === 'on' ? 'morn' : mv;
+          const cyNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Nicosia' })), hh = cyNow.getHours();
+          const dkey = cyNow.getFullYear() + '-' + String(cyNow.getMonth() + 1).padStart(2, '0') + '-' + String(cyNow.getDate()).padStart(2, '0');
+          const en = lang === 'en', pad = x => String(x).padStart(2, '0');
+          res.notified = res.notified || {};
+          const tg = res.todayGood, mk = 'mo:' + dkey;
+          if ((mode === 'morn' || mode === 'both') && hh >= 7 && hh <= 9 && tg && tg.date === dkey && tg.win && tg.win.e >= hh && !res.notified[mk]) {
+            res.notified[mk] = 1;
+            const body = (en ? 'Today at ' : 'Σήμερα στο ') + tg.place + ': ' + pad(Math.max(tg.win.s, hh)) + ':00–' + pad((tg.win.e + 1) % 24) + ':00 · ' + (en ? 'score ' : 'δείκτης ') + tg.best + '.';
+            res.msgs = (res.msgs || []).concat([{ kind: 'good', key: mk, title: '🌅 ' + (en ? 'Good fishing today' : 'Καλό ψάρεμα σήμερα'), body, full: body, place: null, t: null }]);
+            stats.morning = (stats.morning || 0) + 1;
+          }
+          const mg = res.tmrGood, ek = mg ? 'ev:' + mg.date : null;
+          /* αν ήδη φεύγει η βραδινή υπενθύμιση «Αύριο» για την ίδια τοποθεσία (από παλιότερη «καλή μέρα»), δεν στέλνεται δεύτερο μήνυμα */
+          const dup = mg && (res.msgs || []).some(m => m && m.key && String(m.key).indexOf(':eve:' + mg.date) >= 0);
+          if ((mode === 'eve' || mode === 'both') && hh >= 19 && hh <= 22 && mg && !res.notified[ek]) {
+            res.notified[ek] = 1;
+            if (!dup) {
+              const body = (en ? 'Tomorrow at ' : 'Αύριο στο ') + mg.place + ': ' + pad(mg.win.s) + ':00–' + pad((mg.win.e + 1) % 24) + ':00 · ' + (en ? 'score ' : 'δείκτης ') + mg.best + '.';
+              res.msgs = (res.msgs || []).concat([{ kind: 'good', key: ek, title: '🌙 ' + (en ? 'Good fishing tomorrow' : 'Καλό ψάρεμα αύριο'), body, full: body, place: null, t: mg.date }]);
+              stats.evening = (stats.evening || 0) + 1;
+            }
+          }
+        } catch (e) { log('morning: ' + e.message); }
         for (const m of res.msgs || []) {
           const at = new Date().toISOString();
           // v31z358: ίδιο μήνυμα την ίδια μέρα στον ίδιο χρήστη = μία φορά, ακόμα κι αν ο χρήστης έχει πολλές εγγραφές push (π.χ. παλιά συνδρομή)
@@ -662,7 +790,9 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
         if (gone) continue;
         stats.fc += sent;
         // η κατάσταση «στάλθηκε» αποθηκεύεται πάντα, ώστε να μην ξαναβγαίνουν τα ίδια σε κάθε έλεγχο
-        await upd({ checked_at: new Date().toISOString(), state: res.notified });
+        // v31z544: με πλάνο για σήμερα ξαναελέγχεται σε ~10 λεπτά (για το «ώρα να ξεκινήσεις»), αλλιώς σε ~3 ώρες
+        const cyD = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Nicosia' }), planToday = plans.some(p => p && p.date === cyD);
+        await upd({ checked_at: new Date(Date.now() - (planToday ? 170 * 60e3 : 0)).toISOString(), state: res.notified });
       } catch (e) { log('Forecast job: ' + e.message); try { await upd({ checked_at: new Date().toISOString() }); } catch (e2) { /* τίποτα */ } }
     }
   }
@@ -695,6 +825,53 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
       if (sent) stats.pa++;
     }
   } catch (e) { log('Πίεση: ' + e.message); }
+  // 8) v31z543: κατά την έξοδο, και με κλειστό κινητό: (α) καιρός που χαλάει τις επόμενες 3 ώρες στη θέση της εξόδου (καταιγίδα, άνεμος/ριπές/κύμα πάνω από τα όριά σου),
+  //    (β) «ώρα να γυρίσεις»: απόσταση από το λιμάνι σου και ταχύτητα επιστροφής σε σχέση με τη δύση και την ώρα επιστροφής που δήλωσες. Έλεγχος ανά ~15 λεπτά.
+  try {
+    if (webpush && new Date().getUTCMinutes() % 15 < 5) {
+      const act = (await sb('safety_trips?status=eq.active&last_lat=not.is.null&select=*')) || [];
+      for (const t of act) {
+        const subs = (await sb(`push_subs?user_id=eq.${t.user_id}&select=*`).catch(() => [])) || []; if (!subs.length) continue;
+        const pl = [].concat(...subs.map(x => x.places || [])), cfg = pl.find(p => p && (p.lim || p.home)) || pl[0] || {};
+        const en = cfg.lang === 'en', tx = (a, b) => en ? b : a, L = Object.assign({ wind: 14, gust: 24, wave: 0.9 }, cfg.lim || {});
+        const lat = +t.last_lat, lon = +t.last_lon, now = Date.now(), msgs = [];
+        const hm = ms => new Date(ms).toLocaleTimeString('en-GB', { timeZone: 'Asia/Nicosia', hour: '2-digit', minute: '2-digit' });
+        /* (α) καιρός */
+        try {
+          const q = `latitude=${lat.toFixed(3)}&longitude=${lon.toFixed(3)}&forecast_hours=4&timezone=UTC`;
+          const [w, m] = await Promise.all([F(`https://api.open-meteo.com/v1/forecast?${q}&hourly=wind_speed_10m,wind_gusts_10m,weather_code&wind_speed_unit=kn`).then(r => r.json()), F(`https://marine-api.open-meteo.com/v1/marine?${q}&hourly=wave_height`).then(r => r.json()).catch(() => null)]);
+          const ts = (w.hourly && w.hourly.time) || [], H = w.hourly || {}, wv = (m && m.hourly && m.hourly.wave_height) || [];
+          let storm = null, over = null;
+          ts.forEach((tt, i) => { const ms = Date.parse(tt + 'Z'); if (ms < now - 3600e3 || ms > now + 3 * 3600e3) return;
+            if (!storm && H.weather_code && H.weather_code[i] >= 95) storm = ms;
+            const ws = H.wind_speed_10m && H.wind_speed_10m[i], gs = H.wind_gusts_10m && H.wind_gusts_10m[i], wh = wv[i];
+            if (!over && ((ws != null && ws > L.wind) || (gs != null && gs > L.gust) || (wh != null && wh > L.wave))) over = { ms, ws, gs, wh }; });
+          if (storm) msgs.push({ k: 'storm:' + new Date(storm).toISOString().slice(0, 13), title: tx('⛈ Πιθανή καταιγίδα', '⛈ Thunderstorm possible'), body: tx('Γύρω στις ', 'Around ') + hm(storm) + tx(' στην περιοχή της εξόδου σου. Κοίταξε τον ουρανό και σκέψου την επιστροφή.', ' near your trip area. Watch the sky and consider heading back.') });
+          if (over) msgs.push({ k: 'wx:' + new Date(over.ms).toISOString().slice(0, 10), title: tx('💨 Ο καιρός χαλάει', '💨 Weather is getting worse'), body: tx('Γύρω στις ', 'Around ') + hm(over.ms) + ': ' + [over.ws != null ? tx('άνεμος ', 'wind ') + Math.round(over.ws) + ' kn' : '', over.gs != null && over.gs > L.gust ? tx('ριπές ', 'gusts ') + Math.round(over.gs) + ' kn' : '', over.wh != null && over.wh > L.wave ? tx('κύμα ', 'waves ') + over.wh.toFixed(1) + ' m' : ''].filter(Boolean).join(', ') + tx(' (πάνω από τα όριά σου).', ' (over your limits).'), ms: over.ms });
+        } catch (e) { log('Καιρός εξόδου: ' + e.message); }
+        /* (β) ώρα να γυρίσεις */
+        const hm0 = cfg.home;
+        if (hm0 && hm0.lat != null) {
+          const R = Math.PI / 180, dx = (hm0.lon - lon) * R * Math.cos((hm0.lat + lat) / 2 * R), dy = (hm0.lat - lat) * R, km = Math.sqrt(dx * dx + dy * dy) * 6371 * 1.1, nm = km / 1.852;
+          const kn = +hm0.kn > 2 ? +hm0.kn : 15, eta = nm / kn * 60;
+          if (nm >= 0.5) {
+            const name = hm0.name || tx('το λιμάνι', 'the port'), due = t.due_at ? Date.parse(t.due_at) : null;
+            if (due && due > now && due - now <= (eta + 10) * 60e3) msgs.push({ k: 'due:' + t.due_at, title: tx('🏠 Ώρα να γυρίσεις', '🏠 Time to head back'), body: tx('Για να είσαι πίσω στις ', 'To be back by ') + hm(due) + tx(' που δήλωσες, ξεκίνα τώρα: ~', ' as planned, leave now: ~') + Math.round(eta) + tx('′ για ', ' min to ') + name + ' (' + nm.toFixed(1) + ' nm).' });
+            try { if (PF && PF.sunMoon) { const d = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Nicosia' }), tz = Math.round((Date.parse(new Date().toLocaleString('en-US', { timeZone: 'Asia/Nicosia' })) - Date.parse(new Date().toLocaleString('en-US', { timeZone: 'UTC' }))) / 60000);
+              const sm = PF.sunMoon(d, lat, lon, tz), set = Date.parse(d + 'T00:00:00Z') - tz * 60e3 + sm.set * 60e3;
+              if (set > now && set - now <= (eta + 15) * 60e3) msgs.push({ k: 'sunset:' + d, title: tx('🌅 Η δύση πλησιάζει', '🌅 Sunset is near'), body: tx('Δύση στις ', 'Sunset at ') + hm(set) + tx('. Χρειάζεσαι ~', '. You need ~') + Math.round(eta) + tx('′ για ', ' min to ') + name + ' (' + nm.toFixed(1) + ' nm).' }); } } catch (e) { /* χωρίς δύση */ }
+            const wx = msgs.find(x => x.ms); if (wx && wx.ms - now <= (eta + 30) * 60e3) msgs.push({ k: 'back:' + new Date(wx.ms).toISOString().slice(0, 13), title: tx('🏠 Ώρα να γυρίσεις', '🏠 Time to head back'), body: tx('Ο καιρός χαλάει γύρω στις ', 'The weather turns around ') + hm(wx.ms) + tx(' και η επιστροφή θέλει ~', ' and the trip home takes ~') + Math.round(eta) + tx('′ (', ' min (') + nm.toFixed(1) + ' nm).' });
+          }
+        }
+        for (const m of msgs) {
+          const at = new Date().toISOString(), key = 'trip-wx:' + t.id + ':' + m.k;
+          let ins = null; try { ins = await sb('notif_log', { method: 'POST', headers: { Prefer: 'return=representation,resolution=ignore-duplicates' }, body: JSON.stringify({ id: (t.user_id + '|' + key).slice(0, 250), user_id: t.user_id, at, kind: 'info', title: m.title, body: m.body, details: m.body, place: { name: tx('Έξοδος', 'Trip'), lat, lon }, t: at }) }); } catch (e) { ins = [1]; }
+          if (Array.isArray(ins) && !ins.length) continue; /* στάλθηκε ήδη */
+          for (const r of subs) { try { await webpush.sendNotification(r.sub, JSON.stringify({ title: m.title, body: m.body, full: m.body, kind: 'info', id: key, tag: 'alk-' + key.slice(-40), at, place: { name: tx('Έξοδος', 'Trip'), lat, lon } }), { TTL: 1800 }); stats.tripwx = (stats.tripwx || 0) + 1; } catch (e) { /* συνδρομή που έληξε: καθαρίζεται στο 6 */ } }
+        }
+      }
+    }
+  } catch (e) { log('Καιρός εξόδου: ' + e.message); }
   log('Safety job: ' + JSON.stringify(stats));
   return { ok: true, stats };
 }

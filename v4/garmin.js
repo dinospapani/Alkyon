@@ -16,7 +16,7 @@ function create(){ var cl=C(); if(!cl) return Promise.reject(new Error('nosess')
 function drop(code){ var cl=C(); if(!cl||!code) return Promise.resolve(); return cl.rest('watch_links?code=eq.'+code,{method:'DELETE'}).catch(function(){}); }
 function sheet(){ var body=h('div',{class:'bform gmn'}), sh=B.sheet({title:T('Ρολόι Garmin','Garmin watch'),body:body});
   function paint(err){ var st=ls.get(K,null); body.replaceChildren();
-    body.append(h('p',{class:'sub',text:T('Με την εφαρμογή Alkyon στο ρολόι: πρόγνωση και βαθμός της ημέρας, ειδοποίηση όταν αλλάζει η πίεση, και καταγραφή ψαριού (Ψάρι / Χάθηκε / Λαγοκέφαλος) με ώρα και θέση, που έρχεται εδώ στο Ημερολόγιο.','With the Alkyon app on your watch: the day’s forecast and score, an alert when the pressure changes, and catch logging (Fish / Lost / Toadfish) with time and position that arrives here in your Logbook.')}));
+    body.append(h('p',{class:'sub',text:T('Με την εφαρμογή Alkyon στο ρολόι: πρόγνωση και βαθμός της ημέρας, ειδοποίηση όταν αλλάζει η πίεση, καταγραφή ψαριού (Ψάρι / Χάθηκε / Λαγοκέφαλος) με ώρα και θέση, και έξοδος με καταγραφή δραστηριότητας «Ψάρεμα» και διαδρομή GPS. Όλα έρχονται εδώ στο Ημερολόγιο.','With the Alkyon app on your watch: the day’s forecast and score, an alert when the pressure changes, catch logging (Fish / Lost / Toadfish) with time and position, and trips recorded as a «Fishing» activity with a GPS track. Everything arrives here in your Logbook.')}));
     if(!C()){ body.append(h('p',{class:'wn',text:T('Χρειάζεται λογαριασμός: Προφίλ › Λογαριασμός.','Needs an account: Profile › Account.')})); return; }
     if(err) body.append(h('p',{class:'wn',text:err==='notable'?T('Δεν έχει στηθεί ακόμα: τρέξε μία φορά το watch-link.sql στο Supabase.','Not set up yet: run watch-link.sql once in Supabase.'):T('Δεν έγινε. Έλεγξε τη σύνδεση και ξαναδοκίμασε.','Failed. Check your connection and try again.')}));
     if(st&&st.code){
@@ -33,7 +33,12 @@ function sheet(){ var body=h('div',{class:'bform gmn'}), sh=B.sheet({title:T('Ρ
 B.garmin={sheet:sheet,code:function(){ var s=ls.get(K,null); return s&&s.code; }};
 /* ψάρια από το ρολόι: έξοδος και συνθήκες (μία φορά για το καθένα) */
 function fix(){ try{
-  var st=S(); if(!st||!st.raw) return; var bs=st.raw('bites').filter(function(b){ return b&&b.src==='watch'&&!b.deleted&&!b._wfix; }); if(!bs.length) return;
+  var st=S(); if(!st||!st.raw) return;
+  /* 1.1.0: έξοδοι από το ρολόι (δραστηριότητα «Ψάρεμα»): προφίλ ψαρέματος και μήνυμα, μία φορά */
+  var wt=st.raw('trips').filter(function(t){ return t&&t.src==='watch'&&!t.deleted&&!t._wfix; });
+  wt.forEach(function(t){ st.save('trips',Object.assign({},t,{_wfix:1,prof:t.prof||B.prof()})); });
+  if(wt.length){ B.emit('store','alkyon-trips'); B.toast(wt.length===1?T('1 έξοδος από το ρολόι, με διαδρομή.','1 trip from the watch, with track.'):wt.length+T(' έξοδοι από το ρολόι.',' trips from the watch.')); }
+  var bs=st.raw('bites').filter(function(b){ return b&&b.src==='watch'&&!b.deleted&&!b._wfix; }); if(!bs.length) return;
   var trips=st.raw('trips').filter(function(t){ return !t.deleted&&t.startMs; }), act=ls.get('alkyon-safe',{})||{};
   bs.forEach(function(b){ var p=b.date.split('-').map(Number), q=(b.time||'00:00').split(':').map(Number), ms=new Date(p[0],p[1]-1,p[2],q[0],q[1]).getTime(), o=Object.assign({},b,{_wfix:1});
     if(!o.trip){ if(act.active&&act.id&&act.start&&ms>=act.start-600000) o.trip=act.id; else { var t=trips.filter(function(x){ return ms>=x.startMs-600000&&ms<=(x.endMs||x.startMs)+600000; })[0]; if(t) o.trip=t.sid||t.id; } }

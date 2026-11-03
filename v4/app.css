@@ -482,3 +482,7 @@ html.night body::after{content:'';position:fixed;inset:0;background:#a81000;mix-
 .gmcode{display:flex;flex-direction:column;align-items:center;gap:4px;margin:14px 0;padding:16px;border-radius:16px;background:var(--surface-2,rgba(127,127,127,.08))}
 .gmcode b{font:800 34px/1.1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.12em}
 .gmsteps{margin:0 0 12px;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:14px}
+
+/* 1.1.0: ενέργειες ανοιχτής ειδοποίησης */
+.list .ibacts{display:flex;flex-direction:row;gap:8px;padding:0 16px 14px 68px;flex-wrap:wrap}.ibacts .btn{width:auto;flex:0 0 auto;min-height:36px;padding:0 14px}
+.tg.moseg{display:block}.tg.moseg .seg{margin-top:8px}
