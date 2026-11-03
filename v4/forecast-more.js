@@ -62,7 +62,7 @@ B.fcAdv=function(page,fc,ctx){
     if(R.depth) c2.append(h('h3',{class:'h3',text:T('Βάθη όπου το πιάνεις','Depths where you catch it')}),h('p',{class:'p',text:R.depth.lo+'–'+R.depth.hi+' m, '+T('συνήθως ','typically ')+R.depth.md+' m ('+R.depth.n+T(' ψάρια',' fish')+').'}));
     c2.append(h('h3',{class:'h3',text:T('Τα σημεία σου','Your spots')}));
     if(!R.spots.length) c2.append(h('p',{class:'sub',text:T('Δεν έχεις ακόμα ψάρι αυτού του είδους με θέση.','No catch of this species with a position yet.')}));
-    else { var l3=h('div',{class:'mini-list'}); R.spots.forEach(function(z){ l3.append(h('a',{class:'mrow',href:B.classic('?a=map&lat='+z.lat.toFixed(5)+'&lon='+z.lon.toFixed(5))},h('span',{text:z.lat.toFixed(4)+', '+z.lon.toFixed(4)}),h('b',{text:z.n+' '+T('ψάρια','fish')+(z.kg?', '+B.num(z.kg,1)+' kg':'')}),B.icon('chev'))); }); c2.append(l3); }
+    else { var l3=h('div',{class:'mini-list'}); R.spots.forEach(function(z){ l3.append(h('a',{class:'mrow',href:'#map',onclick:function(ev){ ev.preventDefault(); B.mapGo(z.lat,z.lon,15,null,{lab:z.n+' '+T('ψάρια','fish')}); }},h('span',{text:z.lat.toFixed(4)+', '+z.lon.toFixed(4)}),h('b',{text:z.n+' '+T('ψάρια','fish')+(z.kg?', '+B.num(z.kg,1)+' kg':'')}),B.icon('chev'))); }); c2.append(l3); }
   }
   page.append(c2);
   page.append(h('p',{class:'foot',text:T('Τρέχει μόνο στο κινητό σου. Ξεκινά από γενική γνώση για τα είδη και περνά στα δικά σου ψάρια όσο τα καταγράφεις.','Runs only on your phone. It starts from general knowledge about the species and moves to your own catches as you log them.')}));
