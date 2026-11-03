@@ -5,6 +5,10 @@
 'use strict';
 var B=window.AK, h=B.h, T=B.T, EN=B.EN, ls=B.ls, root=null, msg='', hist=null;
 var ROOT=new URL('../',location.href).href;
+/* 1.2.2: τα «Σημείο χάρτη» (Πρόγνωση εδώ από τον χάρτη) έστελναν ειδοποιήσεις. Μία φορά: κλείνουν οι ειδοποιήσεις τους (ανοίγουν ξανά από εδώ) */
+(function(){ try{ if(ls.get('alkyon-mpfix',0)) return; var a=ls.get('alkyon-places',[])||[], ch=false;
+  a.forEach(function(p){ if(p&&/^p-?\d+_-?\d+$/.test(String(p.id))&&(p.name==='Σημείο χάρτη'||p.name==='Map point')&&p.watch!==false){ p.watch=false; p.map=1; ch=true; } });
+  if(ch) ls.set('alkyon-places',a); ls.set('alkyon-mpfix',1); }catch(e){} })();
 function nt(){ return Object.assign({on:false,threshold:75,notified:{},server:false,gpsWatch:true,pressure:true,turn:false},ls.get('alkyon-notify',{})); }
 function setNt(o){ ls.set('alkyon-notify',o); }
 function places(){ var g=B.lastPos(), a=(ls.get('alkyon-places',[])||[]).slice(); if(g) a.unshift({id:'gps',name:T('Η θέση μου','My location'),lat:g.lat,lon:g.lon,watch:nt().gpsWatch!==false}); return a; }

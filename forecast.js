@@ -139,10 +139,12 @@ async function getForecast(lat,lon,fetchFn,opt){
   const tideAt=(t)=>{ const i=m.status==='fulfilled'&&m.value.hourly&&m.value.hourly.time?m.value.hourly.time.indexOf(t):-1; const L=i>0&&m.value.hourly.sea_level_height_msl; if(!L||typeof L[i-1]!=='number'||typeof L[i+1]!=='number') return null; const d=L[i+1]-L[i-1]; return d>0.01?'up':d<-0.01?'down':'slack'; };
   const nowLocal=new Date(Date.now()+tz*60000).toISOString().slice(0,16);
   const today=nowLocal.slice(0,10);
+  /* 1.2.1: και οι 2 προηγούμενες μέρες (past_days=2), βαθμολογημένες με τον ίδιο τρόπο, σε χωριστό fc.past· το fc.days μένει από σήμερα */
+  const past0=(()=>{ const d=new Date(today+'T12:00:00Z'); d.setUTCDate(d.getUTCDate()-2); return d.toISOString().slice(0,10); })();
   const at=(k,i)=>H[k]?H[k][i]:null, nn=v=>typeof v==='number'?v:null;
   const byDay={};
   for(let i=0;i<T.length;i++){
-    const t=T[i], date=t.slice(0,10); if(date<today) continue;
+    const t=T[i], date=t.slice(0,10); if(date<past0) continue;
     const p=at('pressure_msl',i), p0=i>=3?H.pressure_msl[i-3]:null, c=at('cloud_cover',i), ws=at('wind_speed_10m',i);
     if(ws==null) continue;
     const mm=mar[t]||{};
@@ -150,12 +152,12 @@ async function getForecast(lat,lon,fetchFn,opt){
       wave:nn(mm.wave),period:nn(mm.period),sst:nn(mm.sst),tide:tideAt(t),ptrend:(p!=null&&p0!=null)?ptrendOf(p-p0):'stable',cloud:c==null?'part':c<20?'clear':c<70?'part':'over'});
   }
   const num=a=>a.filter(v=>typeof v==='number'), av=a=>{a=num(a);return a.length?a.reduce((x,y)=>x+y,0)/a.length:null;}, mx=a=>{a=num(a);return a.length?Math.max(...a):null;}, mn=a=>{a=num(a);return a.length?Math.min(...a):null;};
-  const days=[];
-  for(const date of Object.keys(byDay).sort().slice(0,nd)){
+  const days=[], past=[], dks=Object.keys(byDay).sort();
+  for(const date of dks.filter(x=>x<today).concat(dks.filter(x=>x>=today).slice(0,nd))){
     const zn=(typeof w.value.timezone==='string')?w.value.timezone:null, tzd=zn?nicOffAt(date,tz,zn):(tz===120||tz===180)?nicOffAt(date,tz):tz, sm=sunMoon(date,lat,lon,tzd), rows=byDay[date];
     const hours=rows.map(h=>({t:h.t,hr:h.hr,p:h.p,pres:h.pres,wind:h.wind,wave:h.wave,gust:h.gust,code:h.code,ptrend:h.ptrend,tide:h.tide,dir:h.dir,temp:h.temp,rain:h.rain,cloud:h.cloud,sst:h.sst,period:h.period,score:hourScore(sm,h.hr,opt&&opt.sp?Object.assign({sp:opt.sp},h):h),safe:safeHour(h)}));
     const day=h=>{const t=h.hr*60+30;return t>=sm.rise-60&&t<=sm.set+60;};
-    const cand=hours.filter(h=>h.safe&&day(h)&&(date>today||h.t>=nowLocal.slice(0,13)+':00'));
+    const cand=hours.filter(h=>h.safe&&day(h)&&(date!==today||h.t>=nowLocal.slice(0,13)+':00'));
     let best=0,win=null;
     if(cand.length){
       best=Math.max(...cand.map(h=>h.score)); const thr=best-6; let groups=[],cur=null;
@@ -171,11 +173,11 @@ async function getForecast(lat,lon,fetchFn,opt){
     const wx={tmax:mx(rows.map(r=>r.temp)),tmin:mn(rows.map(r=>r.temp)),windAvg:av(use.map(r=>r.wind)),windMax:mx(use.map(r=>r.wind)),gustMax:mx(use.map(r=>r.gust)),windDir:mid?mid.dir:null,
       rainMax:mx(use.map(r=>r.rain)),rainMm:num(rows.map(r=>r.mm)).reduce((x,y)=>x+y,0),code:storm?95:(mode!=null?+mode:null),cloudAvg:av(use.map(r=>r.cc)),
       pStart:rows[0].p,pEnd:rows[rows.length-1].p,waveMax:mx(use.map(r=>r.wave)),waveAvg:av(use.map(r=>r.wave)),period:av(use.map(r=>r.period)),sst:av(rows.map(r=>r.sst)),illum:(1-Math.cos(2*Math.PI*sm.f))/2,rise:sm.rise,set:sm.set};
-    days.push({date,f:sm.f,rise:sm.rise,set:sm.set,best,win,why,hours,avgWind:av(used.map(h=>h.wind)),avgWave:av(used.filter(h=>h.wave!=null).map(h=>h.wave)),safe:cand.length>0,wx});
+    (date<today?past:days).push({date,f:sm.f,rise:sm.rise,set:sm.set,best,win,why,hours,avgWind:av(used.map(h=>h.wind)),avgWave:av(used.filter(h=>h.wave!=null).map(h=>h.wave)),safe:cand.length>0,wx});
   }
   /* ωριαίο κύμα/βροχή και των 2 προηγούμενων ημερών, για την ορατότητα νερού (v31z531): [ώρα, κύμα, mm] */
   const wl=[]; for(let i=0;i<T.length;i++){ const t=T[i], mm=mar[t]||{}, r=nn(at('precipitation',i)); if(mm.wave==null&&r==null) continue; wl.push([t,mm.wave==null?null:Math.round(mm.wave*100)/100,r]); }
-  return {days,tz,nowLocal,wl};
+  return {days,past,tz,nowLocal,wl};
 }
 /* Βρίσκει την πρώτη ιδανική ώρα τις επόμενες ~36 ώρες. */
 function findIdeal(fc,threshold){

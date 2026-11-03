@@ -111,12 +111,14 @@ var HK='alkyon-v4-dayhist';
 function hkey(p){ return p?(p.gps||p.id==='gps'?'g'+(+p.lat).toFixed(1)+','+(+p.lon).toFixed(1):String(p.id)):''; }
 function hist(p){ var a=ls.get(HK,{})||{}; return a[hkey(p)]||{}; }
 function saveHist(p,fc){ try{ if(!p||p.lat==null||!fc||!fc.days||!fc.nowLocal) return; var td=fc.nowLocal.slice(0,10), all=ls.get(HK,{})||{}, k=hkey(p), m=all[k]||{};
-    fc.days.forEach(function(d){ if(d.date>td) return; m[d.date]={b:d.safe?d.best:null,w:d.safe&&d.win?[d.win.s,d.win.e]:null,y:d.safe?'':(d.why||''),wi:d.avgWind!=null?Math.round(d.avgWind*10)/10:null,wa:d.avgWave!=null?Math.round(d.avgWave*100)/100:null,n:p.name||''}; });
+    allDays(fc).forEach(function(d){ if(d.date>td) return; m[d.date]={b:d.safe?d.best:null,w:d.safe&&d.win?[d.win.s,d.win.e]:null,y:d.safe?'':(d.why||''),wi:d.avgWind!=null?Math.round(d.avgWind*10)/10:null,wa:d.avgWave!=null?Math.round(d.avgWave*100)/100:null,n:p.name||''}; });
     var ds=Object.keys(m).sort(); ds.slice(0,Math.max(0,ds.length-90)).forEach(function(x){ delete m[x]; }); all[k]=m;
     var ks=Object.keys(all); if(ks.length>20) ks.sort(function(a,b){ var la=Object.keys(all[a]).sort().pop()||'', lb=Object.keys(all[b]).sort().pop()||''; return la<lb?-1:1; }).slice(0,ks.length-20).forEach(function(x){ delete all[x]; });
     ls.set(HK,all); }catch(e){} }
+/* 1.2.1: όλες οι μέρες για αναζήτηση ανά ημερομηνία: οι 2 προηγούμενες (fc.past) και οι επόμενες */
+function allDays(fc){ return fc?(fc.past||[]).concat(fc.days||[]):[]; }
 function addDays(ds,n){ var d=new Date(ds+'T12:00:00'); d.setDate(d.getDate()+n); return d.getFullYear()+'-'+B.pad(d.getMonth()+1)+'-'+B.pad(d.getDate()); }
-function pastOk(date){ return !!((st.fc&&(st.fc.days||[]).some(function(x){ return x.date===date; }))||hist(st.place||current())[date]); }
+function pastOk(date){ return !!((st.fc&&allDays(st.fc).some(function(x){ return x.date===date; }))||hist(st.place||current())[date]); }
 /* μέρα του παρελθόντος χωρίς ωριαία στοιχεία: σύνοψη από το ιστορικό και τα ψάρια της μέρας */
 function pastView(page,date){ var r=hist(st.place||current())[date], U=window.AlkyonUnits, dt=new Date(date+'T12:00:00');
   var bs=(B.store&&B.store.raw?B.store.raw('bites'):[]).filter(function(b){ return b&&!b.deleted&&b.date===date&&!b.miss&&!(B.pest&&B.pest(b)); }), n=bs.reduce(function(s,b){ return s+Math.max(1,Math.floor(+b.cnt)||1); },0);
@@ -124,7 +126,7 @@ function pastView(page,date){ var r=hist(st.place||current())[date], U=window.Al
   page.append(h('section',{class:'hero past lv-'+lv},h('p',{class:'sub',text:dt.toLocaleDateString(EN?'en-GB':'el-GR',{weekday:'long',day:'numeric',month:'long'})+' · '+T('ιστορικό','history')}),
     r?h('div',{class:'pscore'},h('b',{text:r.b!=null?String(r.b):'—'}),h('span',null,h('strong',{text:r.b!=null?(r.w?T('Καλύτερη ώρα ','Best time ')+B.pad(r.w[0])+':00–'+B.pad((r.w[1]+1)%24)+':00':''):(r.y==='night'?T('Χωρίς φως','No light'):T('Πάνω από τα όρια','Over the limits'))}),h('small',{text:[r.wi!=null?(U&&U.wind?U.wind(r.wi):Math.round(r.wi)+' kn'):null,r.wa!=null?(U&&U.wave?U.wave(r.wa):B.num(r.wa,1)+' m'):null].filter(Boolean).join(' · ')}))):h('p',{text:T('Δεν υπάρχει αποθηκευμένος βαθμός για αυτή τη μέρα.','No saved score for this day.')}),
     h('p',{class:'foot',text:n?T('Εκείνη τη μέρα κατέγραψες ','That day you logged ')+n+(n===1?T(' ψάρι.',' catch.'):T(' ψάρια.',' catches.')):T('Δεν κατέγραψες ψάρια εκείνη τη μέρα.','You logged no catches that day.')}))); }
-function dayOf(date){ var a=(st.fc&&st.fc.days)||[]; return a.filter(function(d){ return d.date===date; })[0]||a[0]; }
+function dayOf(date){ var a=(st.fc&&st.fc.days)||[]; return allDays(st.fc).filter(function(d){ return d.date===date; })[0]||a[0]; }
 function hourOf(d,hr){ return (d.hours||[]).filter(function(x){ return x.hr===hr; })[0]||null; }
 function val(p){ return p?[p[0],h('small',{text:p[1]})]:'–'; }
 function ago(t){ var m=Math.round((Date.now()-t)/60000); return m<2?T('μόλις τώρα','just now'):m<60?T('πριν ','')+m+T(' λεπτά',' min ago'):T('πριν ','')+Math.round(m/60)+T(' ώρες',' h ago'); }
@@ -184,7 +186,7 @@ function draw(){
   } else if(st.view==='week') week(page,fc);
   else if(st.view==='adv'){ B.fcAdv(page,fc,{place:p,today:td,open:openDay,reload:function(){ load(false); }}); page.append(seasonCard()); }
   else if(st.view==='mine'){ if(B.oppsCard) page.append(B.oppsCard(5)); B.fcMine(page,fc,{place:p,today:td}); }
-  else { if(!st.day||(st.day<td&&!pastOk(st.day))||(st.day>=td&&!(fc.days||[]).some(function(x){ return x.date===st.day; }))) st.day=td; if(!(fc.days||[]).some(function(x){ return x.date===st.day; })){ var fd=(fc.days||[]).filter(function(x){ return x.date>=td; })[0]||(fc.days||[])[fc.days.length-1]; if(fd) st.day=fd.date; } page.append(dayStrip(fc)); var dw=h('div',{class:'dwrap'}); dayBody(dw,fc,st.day); page.append(dw); }
+  else { if(!st.day||(st.day<td&&!pastOk(st.day))||(st.day>=td&&!(fc.days||[]).some(function(x){ return x.date===st.day; }))) st.day=td; if(st.day>=td&&!(fc.days||[]).some(function(x){ return x.date===st.day; })){ var fd=(fc.days||[]).filter(function(x){ return x.date>=td; })[0]||(fc.days||[])[fc.days.length-1]; if(fd) st.day=fd.date; } page.append(dayStrip(fc)); var dw=h('div',{class:'dwrap'}); dayBody(dw,fc,st.day); page.append(dw); }
 
   if(st.note) page.append(h('p',{class:'foot',text:st.note}));
   if(fc) page.append(h('p',{class:'foot'},T('Ενημέρωση ','Updated ')+ago(st.t)+'. '+T('Καιρός και κύμα από ','Weather and waves from '),h('a',{href:'https://open-meteo.com',target:'_blank',rel:'noopener',text:'Open-Meteo'}),T('. Ενδεικτική πρόγνωση, όχι επίσημη.','. Indicative, not an official forecast.')));
@@ -201,12 +203,12 @@ function openDay(date,hr){ st.view='today'; st.day=date; st.hour=hr==null?null:h
 function swapDay(bar,date){ [].forEach.call(bar.children,function(b){ var on=b._d===date; b.classList.toggle('on',on); b.setAttribute('aria-selected',String(on)); });
   var old=root&&root.querySelector('.dwrap'); if(!old||!st.fc){ draw(); return; } var nw=h('div',{class:'dwrap'}); dayBody(nw,st.fc,date); old.replaceWith(nw); }
 /* παρελθόν: αν η πρόγνωση έχει ακόμα τις ώρες της μέρας (2 μέρες πίσω) δείχνει όλη τη μέρα, αλλιώς τη σύνοψη από το ιστορικό */
-function dayBody(el,fc,date){ var td=today(); if(date<td){ var fd=(fc.days||[]).filter(function(x){ return x.date===date; })[0]; if(fd){ el.append(h('p',{class:'pastnote',text:T('Περασμένη μέρα: έτσι ήταν οι συνθήκες.','A past day: this is how conditions were.')})); dayView(el,fc,fd); } else pastView(el,date); return; } dayView(el,fc,dayOf(date)); }
+function dayBody(el,fc,date){ var td=today(); if(date<td){ var fd=allDays(fc).filter(function(x){ return x.date===date; })[0]; if(fd){ el.append(h('p',{class:'pastnote',text:T('Περασμένη μέρα: έτσι ήταν οι συνθήκες.','A past day: this is how conditions were.')})); dayView(el,fc,fd); } else pastView(el,date); return; } dayView(el,fc,dayOf(date)); }
 function dayStrip(fc){
   var td=today(), sel=st.day||td, bar=h('div',{class:'dstrip',role:'tablist','aria-label':T('Ημέρες','Days')}), selEl=null;
   /* 1.1.2: πρώτα οι προηγούμενες μέρες (έως 7), από το ιστορικό ή από την πρόγνωση */
   var hs=hist(st.place||current()), past=[];
-  for(var k=7;k>=1;k--){ var ds=addDays(td,-k), fd=(fc.days||[]).filter(function(x){ return x.date===ds; })[0], hr=hs[ds];
+  for(var k=7;k>=1;k--){ var ds=addDays(td,-k), fd=allDays(fc).filter(function(x){ return x.date===ds; })[0], hr=hs[ds];
     if(fd) past.push({date:ds,b:fd.safe?fd.best:null,w:fd.safe&&fd.win?[fd.win.s,fd.win.e]:null,y:fd.why}); else if(hr) past.push({date:ds,b:hr.b,w:hr.w,y:hr.y}); }
   past.forEach(function(x){ var on=x.date===sel, dt=new Date(x.date+'T12:00:00'), lv=x.b!=null?lvl(x.b):'poor';
     var b=h('button',{type:'button',role:'tab','aria-selected':String(on),class:'dtile past lv-'+lv+(on?' on':''),onclick:function(){ if(st.day===x.date) return; st.day=x.date; st.hour=null; swapDay(bar,x.date); }},
@@ -267,7 +269,12 @@ function planBtn(d){
   return b; }
 /* «Πού να πάω»: οι καλύτερες ευκαιρίες στα σημεία σου τις επόμενες μέρες */
 function whereGo(){ if(!B.oppsCard){ location.hash='#map'; return; }
-  var body=h('div',null,h('p',{class:'sub',text:T('Τα σημεία σου με τον καλύτερο βαθμό, μόνο ώρες μέσα στα όρια ασφαλείας. Πάτα ένα για να το δεις στον χάρτη.','Your spots with the best score, only hours within your safety limits. Tap one to see it on the map.')}),B.oppsCard(6));
+  var pl=st.place||current();
+  var body=h('div',null,
+    /* 1.2.2: αναζήτηση στη θάλασσα γύρω σου, από όλα τα δεδομένα */
+    B.bestSpots?h('button',{class:'btn pri',type:'button',text:'🎯 '+T('Βρες τα καλύτερα σημεία γύρω μου','Find the best spots around me'),onclick:function(){ sh.close(); B.bestSpots.go(pl&&pl.lat!=null?+pl.lat:null,pl&&pl.lon!=null?+pl.lon:null); }}):null,
+    B.bestSpots?h('p',{class:'sub',text:T('Καιρός και κύμα, τροφή (χλωροφύλλη), θερμοκρασία και μέτωπα, ρεύμα, βυθός και τα ψάρια σου, μέσα στα όρια ασφαλείας σου.','Weather and waves, food (chlorophyll), temperature and fronts, current, seabed and your catches, within your safety limits.')}):null,
+    h('p',{class:'sub',text:T('Τα σημεία σου με τον καλύτερο βαθμό, μόνο ώρες μέσα στα όρια ασφαλείας. Πάτα ένα για να το δεις στον χάρτη.','Your spots with the best score, only hours within your safety limits. Tap one to see it on the map.')}),B.oppsCard(6));
   var sh=B.sheet({title:T('Πού να πάω','Where to go'),body:body});
   body.addEventListener('click',function(e){ if(e.target.closest&&e.target.closest('.opr')&&sh&&sh.close) sh.close(); }); }
 /* ---------- μία μέρα ---------- */

@@ -10,7 +10,7 @@ const BASE = 'https://wmts.marine.copernicus.eu/teroWmts';
 // L3 = πραγματικές παρατηρήσεις (κενά όπου σύννεφα) · L4 = χάρτης χωρίς κενά (συμπληρωμένος) ως εφεδρεία · MY = αρχείο
 const PRODUCTS = ['OCEANCOLOUR_MED_BGC_L3_NRT_009_141', 'OCEANCOLOUR_MED_BGC_L4_NRT_009_142', 'OCEANCOLOUR_MED_BGC_L3_MY_009_143'];
 const Z = 10, TS = 256, DAYS_BACK = 3;
-const mem = { layers: null, layersAt: 0, hits: new Map(), phyAll: null, phyAt: 0, prof: new Map(), cur: new Map(), ovl: null, ovlAt: 0 };
+const mem = { layers: null, layersAt: 0, hits: new Map(), phyAll: null, phyAt: 0, prof: new Map(), cur: new Map(), ovl: null, ovlAt: 0, cg: new Map(), scan: new Map() };
 // v31z545: θερμοκρασία σε βάθος (θερμοκλινές) από το μοντέλο Copernicus Μεσογείου: ?mode=profile&lat=&lon=
 const PHY = 'MEDSEA_ANALYSISFORECAST_PHY_006_013', WANT_DEPTHS = [0, 5, 10, 15, 20, 30, 40, 50, 75, 100];
 /* v1.1.0: όλα τα επίπεδα του μοντέλου Μεσογείου μία φορά (θερμοκρασία thetao, ρεύματα uo/vo) */
@@ -105,6 +105,53 @@ async function current(F, lat, lon, now, dbg) {
   out.src = { h: hu ? hu.id.split('/').slice(1).join('/') : null, d: du ? du.id.split('/').slice(1).join('/') : null };
   return out;
 }
+/* 1.2.2: ρεύματα για πολλά σημεία του χάρτη από το Copernicus Μεσογείου (επιφάνεια, τρέχουσα ώρα): ?mode=curgrid&pts=lat,lon;lat,lon…
+   Το μοντέλο Μεσογείου (~4 km, με αφομοίωση μετρήσεων) είναι πιο ακριβές εδώ από το παγκόσμιο του Open-Meteo (~8 km).
+   null για σημεία χωρίς τιμή (στεριά / εκτός μοντέλου): ο χάρτης τότε δείχνει το Open-Meteo. */
+async function pool(items, n, fn) { const out = new Array(items.length); let i = 0;
+  await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => { while (i < items.length) { const k = i++; try { out[k] = await fn(items[k], k); } catch (e) { out[k] = null; } } }));
+  return out; }
+async function curGrid(F, pts, now, dbg) {
+  const all = await phyCaps(F, now);
+  const hu = all.filter(x => x.v === 'uo' && x.hourly)[0], hv = all.filter(x => x.v === 'vo' && x.hourly)[0];
+  const du = all.filter(x => x.v === 'uo' && x.daily && x.elev.length)[0], dv = all.filter(x => x.v === 'vo' && x.daily && x.elev.length)[0];
+  const U = hu && hv ? [hu, hv] : du && dv ? [du, dv] : null; if (!U) throw new Error('no uo/vo');
+  const near0 = (L) => L.elev.length ? '&elevation=' + L.elev.reduce((b, e) => Math.abs(e) < Math.abs(b) ? e : b, L.elev[0]) : '';
+  const hr = new Date(Math.floor(now / 3600e3) * 3600e3).toISOString().slice(0, 13) + ':00:00.000Z', T = U[0].hourly ? '&time=' + hr : '&time=' + new Date(now).toISOString().slice(0, 10) + 'T00:00:00.000Z';
+  const res = await pool(pts, 12, async ([la, lo]) => { const ck = 'g' + la.toFixed(3) + ',' + lo.toFixed(3) + T, c = mem.cg.get(ck); if (c && now - c.at < 3 * 3600e3) return c.v;
+    const [u, v] = await Promise.all([gfi(F, U[0].id, la, lo, near0(U[0]) + T, dbg), gfi(F, U[1].id, la, lo, near0(U[1]) + T, dbg)]);
+    const w = vec(u, v); mem.cg.set(ck, { at: now, v: w }); if (mem.cg.size > 5000) mem.cg.clear(); return w; });
+  return { src: 'copernicus', model: U[0].id.split('/')[0], t: hr, pts: res };
+}
+
+/* 1.2.2: «Καλύτερο σημείο»: σάρωση πλέγματος σημείων θάλασσας γύρω από ένα κέντρο: ?mode=scan&lat=&lon=&r=km
+   Για κάθε σημείο: άνεμος/ριπή/κύμα (μέγιστα στις ώρες της μέρας 06–18, σήμερα και αύριο), θερμοκρασία επιφάνειας, ρεύμα (Open-Meteo, ένα αίτημα για όλα),
+   χλωροφύλλη (Copernicus, δορυφόρος L4). Τη βαθμολογία (μαζί με βάθος, κλίση βυθού, μέτωπα και τα ψάρια του χρήστη) την κάνει η εφαρμογή. */
+async function scan(F, lat, lon, r, now, dbg) {
+  r = Math.max(5, Math.min(60, r || 20)); const sp = r / 4.5, dLa = sp / 111, dLo = dLa / Math.cos(lat * Math.PI / 180), pts = [];
+  for (let i = -5; i <= 5; i++) for (let j = -5; j <= 5; j++) { const la = lat + i * dLa, lo = lon + j * dLo, km = Math.hypot(i * sp, j * sp); if (km <= r * 1.05) pts.push([Math.round(la * 1e4) / 1e4, Math.round(lo * 1e4) / 1e4]); }
+  const la = pts.map(p => p[0]).join(','), lo = pts.map(p => p[1]).join(',');
+  const [mr, wr] = await Promise.all([
+    getText(F, 'https://marine-api.open-meteo.com/v1/marine?latitude=' + la + '&longitude=' + lo + '&hourly=wave_height,sea_surface_temperature,ocean_current_velocity,ocean_current_direction&forecast_days=2&timezone=auto&cell_selection=sea', 25000),
+    getText(F, 'https://api.open-meteo.com/v1/forecast?latitude=' + la + '&longitude=' + lo + '&hourly=wind_speed_10m,wind_gusts_10m&wind_speed_unit=kn&forecast_days=2&timezone=auto', 25000)]);
+  if (!mr.ok || !wr.ok) throw new Error('open-meteo ' + mr.status + '/' + wr.status);
+  let M = JSON.parse(mr.s), W = JSON.parse(wr.s); if (!Array.isArray(M)) M = [M]; if (!Array.isArray(W)) W = [W];
+  const mx = (a) => { const v = a.filter(x => typeof x === 'number'); return v.length ? Math.max(...v) : null; }, av = (a) => { const v = a.filter(x => typeof x === 'number'); return v.length ? v.reduce((x, y) => x + y, 0) / v.length : null; };
+  const r1 = (x, k = 10) => x == null ? null : Math.round(x * k) / k;
+  const nowLocal = M[0] && M[0].utc_offset_seconds != null ? new Date(now + M[0].utc_offset_seconds * 1000).toISOString().slice(0, 13) : null;
+  let ov = null; try { ov = await overlays(F, now, null); } catch (e) {}
+  const chl = ov && ov.chl ? await pool(pts, 12, ([a, b]) => sample(F, ov.chl.layer, a, b, ov.chl.day, dbg)) : pts.map(() => null);
+  const out = pts.map((p, k) => { const m = M[k] && M[k].hourly, w = W[k] && W[k].hourly; if (!m || !w) return null;
+    const T = m.time || [], days = [];
+    for (const dd of [0, 1]) { const date = (T[0] || '').slice(0, 10), d0 = new Date(date + 'T12:00:00Z'); d0.setUTCDate(d0.getUTCDate() + dd); const ds = d0.toISOString().slice(0, 10);
+      const idx = T.map((t, i) => ({ t, i })).filter(x => x.t.slice(0, 10) === ds && +x.t.slice(11, 13) >= 6 && +x.t.slice(11, 13) <= 18).map(x => x.i);
+      days.push({ date: ds, w: r1(mx(idx.map(i => w.wind_speed_10m[i]))), g: r1(mx(idx.map(i => w.wind_gusts_10m[i]))), v: r1(mx(idx.map(i => m.wave_height[i])), 100) }); }
+    const ih = nowLocal ? T.indexOf(nowLocal + ':00') : 0, i0 = ih >= 0 ? ih : 0;
+    const ck = m.ocean_current_velocity && m.ocean_current_velocity[i0] != null ? m.ocean_current_velocity[i0] / 1.852 : null;
+    return { la: p[0], lo: p[1], sst: r1(av((m.sea_surface_temperature || []).slice(0, 24))), ck: r1(ck, 100), cd: m.ocean_current_direction ? m.ocean_current_direction[i0] : null, chl: chl[k] != null ? Math.round(chl[k] * 1000) / 1000 : null, d: days }; });
+  return { lat, lon, r, sp: Math.round(sp * 10) / 10, chlDay: ov && ov.chl ? ov.chl.day : null, pts: out.filter(Boolean) };
+}
+
 /* v1.1.0: στρώσεις χάρτη (χλωροφύλλη, θερμοκρασία επιφάνειας από δορυφόρο): ?mode=layers
    Επιστρέφει έτοιμες διευθύνσεις πλακιδίων WMTS (EPSG:3857) με την πιο πρόσφατη μέρα. Τα πλακίδια τα φορτώνει ο browser απευθείας. */
 const OVL = { chl: ['OCEANCOLOUR_MED_BGC_L4_NRT_009_142', 'OCEANCOLOUR_MED_BGC_L3_NRT_009_141'], sst: ['SST_MED_SST_L4_NRT_OBSERVATIONS_010_004', 'SST_MED_PHY_SUBSKIN_L4_NRT_010_036'] };
@@ -131,7 +178,14 @@ async function overlays(F, now, dbg) {
         if (dbg) dbg.push({ P, status: r.status, n: L.length, ids: L.slice(0, 12).map(x => x.id.split('/').slice(1).join('/')) });
         if (!c.length) continue;
         const ly = c[0], day = (ly.last || new Date(now - 864e5).toISOString()).slice(0, 10);
-        res[k] = { day, layer: ly.id, url: BASE + '?service=WMTS&request=GetTile&version=1.0.0&layer=' + encodeURIComponent(ly.id) + '&style=' + encodeURIComponent(ly.style) + '&tilematrixset=EPSG:3857&tilematrix={z}&tilerow={y}&tilecol={x}&format=image/png&time=' + day + 'T00:00:00.000Z' };
+        const tu = (st: string) => BASE + '?service=WMTS&request=GetTile&version=1.0.0&layer=' + encodeURIComponent(ly.id) + '&style=' + encodeURIComponent(st) + '&tilematrixset=EPSG:3857&tilematrix={z}&tilerow={y}&tilecol={x}&format=image/png&time=' + day + 'T00:00:00.000Z';
+        /* 1.2.2: η προεπιλεγμένη κλίμακα χρωμάτων είναι για όλο τον κόσμο, οπότε η ανατολική Μεσόγειος (πολύ φτωχή σε χλωροφύλλη, θερμοκρασία σε στενό εύρος)
+           βγαίνει παντού στο ίδιο χρώμα. url2 = στενή κλίμακα (Copernicus dynamic style): χλωροφύλλη 0.02–1 mg/m³ λογαριθμικά, θερμοκρασία ανά μήνα (σε K).
+           Αν το url2 δεν δουλέψει, ο χάρτης γυρίζει στο url. */
+        const mo = +day.slice(5, 7), SR: Record<number, [number, number]> = { 1: [15, 20], 2: [14, 19], 3: [14, 20], 4: [16, 22], 5: [18, 25], 6: [21, 28], 7: [24, 30], 8: [25, 31], 9: [24, 30], 10: [22, 28], 11: [19, 26], 12: [17, 22] };
+        const sr = SR[mo] || [15, 30];
+        const st2 = k === 'chl' ? 'cmap:algae,range:0.02/1,logScale' : 'cmap:thermal,range:' + (sr[0] + 273.15).toFixed(2) + '/' + (sr[1] + 273.15).toFixed(2);
+        res[k] = { day, layer: ly.id, url: tu(ly.style), url2: tu(st2), range: k === 'chl' ? [0.02, 1] : sr };
         break;
       } catch (e) { if (dbg) dbg.push({ P, err: String(e) }); }
     }
@@ -230,6 +284,20 @@ export async function handle(req, F = fetch, now = Date.now()) {
   if (req.method !== 'GET') return J({ error: 'method' }, 405);
   const q = new URL(req.url).searchParams, lat = parseFloat(q.get('lat')), lon = parseFloat(q.get('lon')), debug = q.get('debug') === '1';
   if (q.get('mode') === 'layers') { const dbg = debug ? [] : null; try { const v = await overlays(F, now, dbg); return J(debug ? { ...v, debug: dbg } : v); } catch (e) { return J({ err: 'layers', error: String(e) }, 502); } }
+  if (q.get('mode') === 'curgrid') {
+    const pts = String(q.get('pts') || '').split(';').map(x => x.split(',').map(Number)).filter(x => x.length === 2 && x.every(Number.isFinite) && x[0] > 30 && x[0] < 46.5 && x[1] > -6 && x[1] < 37).slice(0, 30);
+    if (!pts.length) return J({ err: 'area', pts: [] });
+    const dbg = debug ? [] : null;
+    try { const v = await curGrid(F, pts, now, dbg); return J(debug ? { ...v, debug: dbg } : v); } catch (e) { return J({ err: 'curgrid', error: String(e), ...(debug ? { debug: dbg } : {}) }, 502); }
+  }
+  if (q.get('mode') === 'scan') {
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return J({ error: 'bad lat/lon' }, 400);
+    const r = parseFloat(q.get('r') || '20'), sk = 's' + lat.toFixed(2) + ',' + lon.toFixed(2) + ',' + Math.round(r), sh = mem.scan.get(sk);
+    if (!debug && sh && now - sh.at < 2 * 3600e3) return J({ ...sh.v, cached: true });
+    const dbg = debug ? [] : null;
+    try { const v = await scan(F, lat, lon, r, now, dbg); mem.scan.set(sk, { at: now, v }); if (mem.scan.size > 200) mem.scan.clear(); return J(debug ? { ...v, debug: dbg } : v); }
+    catch (e) { return J({ err: 'scan', error: String(e), ...(debug ? { debug: dbg } : {}) }, 502); }
+  }
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) return J({ error: 'bad lat/lon' }, 400);
   if (lat < 30 || lat > 46.5 || lon < -6 || lon > 37) return J({ err: 'area', error: 'outside the Mediterranean' });
   if (q.get('mode') === 'current') {

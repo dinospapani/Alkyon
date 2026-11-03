@@ -24,12 +24,16 @@ var WC=[[0,[98,113,183]],[3,[57,97,159]],[6,[74,148,169]],[10,[77,141,123]],[14,
 function wcol(kn){ if(!(kn>0)) return WC[0][1]; for(var i=1;i<WC.length;i++){ if(kn<=WC[i][0]){ var a=WC[i-1], b=WC[i], t=(kn-a[0])/(b[0]-a[0]); return [a[1][0]+(b[1][0]-a[1][0])*t,a[1][1]+(b[1][1]-a[1][1])*t,a[1][2]+(b[1][2]-a[1][2])*t]; } } return WC[WC.length-1][1]; }
 B.windColor=wcol;
 function pane(n,z){ var p=map.getPane(n)||map.createPane(n); p.style.zIndex=String(z); p.style.pointerEvents='none'; return p; }
+var zooming=false;
 function pin(c){ try{ L.DomUtil.setPosition(c,map.containerPointToLayerPoint([0,0])); }catch(e){} }
 function ensure(){
   var m=window.AlkyonCore&&window.AlkyonCore.map&&window.AlkyonCore.map(); if(!m) return false;
   if(m!==map){ map=m; fillCv=null; dashCv=null;
-    map.on('movestart zoomstart',function(){ if(fillCv) fillCv.style.opacity='0'; parts=[]; if(dctx){ var s=map.getSize(); dctx.clearRect(0,0,s.x,s.y); } });
-    map.on('move',function(){ if(fillCv) pin(fillCv); if(dashCv) pin(dashCv); roLater(); });
+    /* 1.2.2: στο σύρσιμο το χρώμα του κύματος/ανέμου μένει και κινείται μαζί με τον χάρτη (πριν έσβηνε και φαινόταν μόνο η σκίαση των βαθών)· σβήνει μόνο στο ζουμ */
+    map.on('zoomstart',function(){ zooming=true; if(fillCv) fillCv.style.opacity='0'; });
+    map.on('movestart zoomstart',function(){ parts=[]; if(dctx){ var s=map.getSize(); dctx.clearRect(0,0,s.x,s.y); } });
+    map.on('move',function(){ if(zooming&&fillCv) pin(fillCv); if(dashCv) pin(dashCv); roLater(); });
+    map.on('zoomend',function(){ zooming=false; });
     map.on('moveend zoomend resize',function(){ later(250); if(sstOn) setTimeout(function(){ sstLoad(false); },260); });
     map.on('movestart zoomstart',function(){ if(sstCv) sstCv.style.opacity='0'; });
     map.on('move',function(){ if(sstCv) pin(sstCv); }); }

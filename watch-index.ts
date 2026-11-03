@@ -33,7 +33,7 @@ const DAYS_EL = ['Κυρ', 'Δευ', 'Τρι', 'Τετ', 'Πεμ', 'Παρ', 'Σ
 const bft = (kn) => kn == null ? null : [1, 4, 7, 11, 17, 22, 28, 34, 41, 48, 56, 64].findIndex(x => kn < x) === -1 ? 12 : [1, 4, 7, 11, 17, 22, 28, 34, 41, 48, 56, 64].findIndex(x => kn < x);
 const r1 = (x) => x == null ? null : Math.round(x * 10) / 10;
 /* σύντομη μορφή για το ρολόι (μικρή μνήμη): ως 6 μέρες + οι επόμενες 12 ώρες + πίεση */
-export function compact(PF, fc, en) {
+export function compact(PF, fc, en, lat = null, lon = null) {
   const now = fc.nowLocal.slice(0, 13) + ':00', today = fc.nowLocal.slice(0, 10);
   const days = fc.days.filter(d => d.date >= today).slice(0, 6).map(d => {
     const dt = new Date(d.date + 'T12:00:00Z');
@@ -46,8 +46,15 @@ export function compact(PF, fc, en) {
   /* 1.2.0: σημερινές 24 ώρες για το δαχτυλίδι του ρολογιού: βαθμός ανά ώρα (-1 = όχι ασφαλής), ανατολή/δύση σε λεπτά από τα μεσάνυχτα, καλύτερο παράθυρο */
   let td = null; const d0 = fc.days.find(d => d.date === today);
   if (d0) { const h = new Array(24).fill(-1); d0.hours.forEach(x => { if (x.hr >= 0 && x.hr < 24) h[x.hr] = x.safe && x.score != null ? Math.round(x.score) : -1; });
-    td = { h, r: d0.rise != null ? Math.round(d0.rise) : null, st: d0.set != null ? Math.round(d0.set) : null, ws: d0.safe && d0.win ? d0.win.s : null, we: d0.safe && d0.win ? d0.win.e : null }; }
-  return { ok: 1, now: { s: cur.s, b: cur.b, v: cur.v, p: cur.p }, days, hrs, pr, tn: turns(PF, fc), at: fc.nowLocal.slice(11, 16), td };
+    td = { h, r: d0.rise != null ? Math.round(d0.rise) : null, st: d0.set != null ? Math.round(d0.set) : null, ws: d0.safe && d0.win ? d0.win.s : null, we: d0.safe && d0.win ? d0.win.e : null };
+    /* 1.2.2: ηλιοσεληνιακές περίοδοι σήμερα (κέντρο, λεπτά από τα μεσάνυχτα): ma = κύριες, mi = δευτερεύουσες */
+    try { if (lat != null && lon != null && PF.sunMoon) { const sm = PF.sunMoon(today, lat, lon, Number.isFinite(+fc.tz) ? +fc.tz : 120), inDay = (m) => m >= 0 && m < 1440;
+      td.ma = (sm.maj || []).filter(inDay).map(Math.round); td.mi = (sm.min || []).filter(inDay).map(Math.round); } } catch (e) {} }
+  /* 1.2.2: επόμενο καλό παράθυρο (σήμερα ή αύριο) για την ειδοποίηση «σε 30′» στο ρολόι: ts σε δευτερόλεπτα UTC */
+  let bw = null; try { const tz = Number.isFinite(+fc.tz) ? +fc.tz : 120, nowS = Date.now() / 1000;
+    for (const d of fc.days.filter(x => x.date >= today).slice(0, 2)) { if (!d.safe || !d.win) continue; const ts = Math.round((Date.parse(d.date + 'T' + String(d.win.s).padStart(2, '0') + ':00:00Z') - tz * 60000) / 1000);
+      if (ts > nowS) { bw = { ts, s: Math.round(d.best), w: String(d.win.s).padStart(2, '0') + '-' + String((d.win.e + 1) % 24).padStart(2, '0') }; break; } } } catch (e) {}
+  return { ok: 1, now: { s: cur.s, b: cur.b, v: cur.v, p: cur.p }, days, hrs, pr, tn: turns(PF, fc), at: fc.nowLocal.slice(11, 16), td, bw };
 }
 /* v31z553: καμπές πίεσης (ίδιες με την ειδοποίηση της εφαρμογής, PF.pressureTurns): k = 'peak' (κορυφή → μετά πέφτει) ή 'low' (πάτος → μετά ανεβαίνει),
    ts = ώρα σε δευτερόλεπτα UTC, t = τοπική ώρα ΩΩ:ΛΛ, p = hPa. Μόνο από 1 ώρα πριν ως 24 ώρες μετά. */
@@ -77,14 +84,22 @@ export async function handle(req, F = fetch, now = Date.now()) {
       if (q.get('code')) { us = await userOf(F, q.get('code'), now).catch(() => null); if (us && us.lang && !q.get('lang')) en = us.lang === 'en'; }   // η γλώσσα του ρολογιού (lang) έχει προτεραιότητα
       const key = lat.toFixed(2) + ',' + lon.toFixed(2) + (en ? 'e' : 'g') + JSON.stringify(lim || '');
       const bg = q.get('bg') === '1';   // από το παρασκήνιο του ρολογιού: μόνο οι καμπές πίεσης (λίγη μνήμη)
-      const small = (v) => bg ? { ok: 1, tn: v.tn || [], p: v.now ? v.now.p : null } : v;
+      const small = (v) => bg ? { ok: 1, tn: v.tn || [], p: v.now ? v.now.p : null, s: v.days && v.days[0] ? v.days[0].s : null, w: v.days && v.days[0] ? v.days[0].w : '', bw: v.bw || null } : v;
       /* 1.2.0: ώρα επιστροφής από το πλάνο εξόδου του κινητού (αν υπάρχει ενεργό), για το δαχτυλίδι της εξόδου στο ρολόι */
-      const withDue = async (v) => { if (bg || !us) return v; try { const r = await sb(F, 'safety_trips?user_id=eq.' + us.user_id + '&status=eq.active&select=due_at&order=due_at.desc&limit=1'); const a = r.ok ? await r.json() : [];
-        const ms = a && a[0] ? Date.parse(a[0].due_at) : NaN; return Number.isFinite(ms) && ms > now - 12 * 3600e3 ? { ...v, due: Math.round(ms / 1000) } : v; } catch (e) { return v; } };
+      const withDue = async (v) => { if (bg || !us) return v; let o = v;
+        try { const r = await sb(F, 'safety_trips?user_id=eq.' + us.user_id + '&status=eq.active&select=due_at&order=due_at.desc&limit=1'); const a = r.ok ? await r.json() : [];
+          const ms = a && a[0] ? Date.parse(a[0].due_at) : NaN; if (Number.isFinite(ms) && ms > now - 12 * 3600e3) o = { ...o, due: Math.round(ms / 1000) }; } catch (e) {}
+        /* 1.2.2: τα 12 κοντινότερα αποθηκευμένα σημεία του χρήστη, για τη σελίδα «Σημείο» του ρολογιού: [όνομα, lat, lon] */
+        try { const r = await sb(F, 'records?user_id=eq.' + us.user_id + '&kind=eq.spots&deleted=eq.false&select=data&limit=500'); const a = r.ok ? await r.json() : [];
+          const d2 = (x) => (x.lat - lat) ** 2 + ((x.lon - lon) * Math.cos(lat * Math.PI / 180)) ** 2;
+          const sp = (a || []).map(x => x && x.data).filter(x => x && Number.isFinite(+x.lat) && Number.isFinite(+x.lon) && !x.deleted).map(x => ({ n: String(x.name || '').slice(0, 20), lat: +x.lat, lon: +x.lon }))
+            .sort((p, q) => d2(p) - d2(q)).slice(0, 12).map(x => [x.n, Math.round(x.lat * 1e5) / 1e5, Math.round(x.lon * 1e5) / 1e5]);
+          if (sp.length) o = { ...o, sp }; } catch (e) {}
+        return o; };
       const hit = mem.fc.get(key); if (hit && now - hit.at < 30 * 60e3) return J(small(await withDue(hit.v)), 200, 'private, max-age=300');
       const PF = await loadPF(F, now);
       const fc = await PF.getForecast(lat, lon, F, { days: 6 });
-      const v = compact(PF, fc, en); mem.fc.set(key, { at: now, v }); if (mem.fc.size > 300) mem.fc.clear();
+      const v = compact(PF, fc, en, lat, lon); mem.fc.set(key, { at: now, v }); if (mem.fc.size > 300) mem.fc.clear();
       return J(small(await withDue(v)), 200, 'private, max-age=300');
     }
     if (req.method === 'POST') {
