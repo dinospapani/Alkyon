@@ -57,7 +57,7 @@ function draw(){
       page.append(tip); } }
   page.append(B.seg([['mine',T('Τα δικά μου','My stuff')],['set',T('Ρυθμίσεις','Settings')],['acc',T('Λογαριασμός','Account')]],tab,function(v){ tab=v; ls.set('alkyon-v4-ptab',v); draw(); },T('Ενότητα προφίλ','Profile section')));
   if(tab==='set') settingsTab(page); else if(tab==='acc') accountTab(page,s); else mineTab(page);
-  var EL=window.AlkyonErrLog, ne=EL?EL.get().length:0;
+  var EL=window.AlkyonErrLog, ne=EL?EL.get().filter(function(e){ return !e.v||e.v===window.ALKYON_VERSION; }).length:0; /* 1.4.1: μόνο της τωρινής έκδοσης */
   page.append(h('p',{class:'foot'},'Alkyon · '+(window.ALKYON_VERSION||''),
     ne?' · ':'',ne?h('button',{type:'button',class:'linkbtn errlk',text:T('Αναφορά σφαλμάτων','Error report')+' ('+ne+')',onclick:function(){ location.hash='#check'; }}):''));
   root.replaceChildren(page); if(y) try{ window.scrollTo(0,y); }catch(e){}
