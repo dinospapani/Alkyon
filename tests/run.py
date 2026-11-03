@@ -158,6 +158,25 @@ with sync_playwright() as p:
         okk=s['h']=='#profile' and ((want=='session' and s['s']) or (want=='newpass' and s['s'] and ('Νέος κωδικός' in s['sh'] or 'New password' in s['sh'])) or (want=='expired' and not s['s'] and s['sh']))
         check('σύνδεσμος email: '+want, okk and not pg._errs, (s,pg._errs)); c.close()
 
+    print('# Google')
+    for on in (False,True):
+        def supa3(route,*_a,on=on):
+            u=route.request.url
+            if '/auth/v1/settings' in u: return route.fulfill(json={'external':{'google':on,'email':True}})
+            if '/auth/v1/user' in u: return route.fulfill(json={'id':'uG','email':'g@gmail.com','user_metadata':{'full_name':'Test G'}})
+            return route.fulfill(json=[])
+        c=ctx(b); c.route('**/*supabase.co/**',supa3); pg=page(c); pg.goto(BASE+'/v4/#friends'); pg.wait_for_timeout(1500)
+        pg.click('#main .btn.pri'); pg.wait_for_timeout(800)
+        vis=pg.evaluate("()=>{const g=document.querySelector('.sheet .gbox'); return !!g&&!g.hidden}")
+        check('Google κουμπί '+('φαίνεται όταν είναι ενεργό' if on else 'κρυφό όταν δεν είναι ενεργό'), vis==on, vis)
+        if on:
+            u=[]; c.route('**/auth/v1/authorize**', lambda r: (u.append(r.request.url), r.fulfill(status=200,body='ok')))
+            pg.click('.sheet .gbtn'); pg.wait_for_timeout(800)
+            check('Google: πάει στο authorize με redirect_to', bool(u) and 'provider=google' in u[0] and 'redirect_to=' in u[0], u)
+            pg.goto(BASE+'/#access_token=AT&expires_in=3600&provider_token=x&refresh_token=RT&token_type=bearer'); pg.wait_for_timeout(3000)
+            check('Google: επιστροφή → συνδεδεμένος', pg.evaluate("()=>{const s=AK.cloud.session(); return !!s&&s.name==='Test G'&&location.hash==='#profile'}"))
+        check('Google χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
+
     print('# δύο λογαριασμοί στο ίδιο κινητό')
     ST={'fk':False,'postB':0}
     def supa2(route):

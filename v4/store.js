@@ -50,7 +50,7 @@ function setSess(j,prev){
   if(outing&&prev) return prev; /* 1.4.5: μπλοκάρει μόνο ανανέωση παλιάς συνεδρίας· νέα σύνδεση αμέσως μετά την αποσύνδεση περνά */
   if(!prev) outing=false;
   var s={access_token:j.access_token,refresh_token:j.refresh_token,exp:Date.now()+((j.expires_in||3600)-60)*1000,uid:(j.user&&j.user.id)||(prev&&prev.uid),email:(j.user&&j.user.email)||(prev&&prev.email),
-    name:(j.user&&j.user.user_metadata&&j.user.user_metadata.name)||(prev&&prev.name)||''};
+    name:(j.user&&j.user.user_metadata&&(j.user.user_metadata.name||j.user.user_metadata.full_name))||(prev&&prev.name)||''};
   ls.set('alkyon-sess',s); B.emit('store','alkyon-sess'); return s;
 }
 function auth(path,body){ return fetch(URL_+'/auth/v1/'+path,{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ if(!r.ok) throw new Error(j.msg||j.error_description||j.message||j.error||('HTTP '+r.status)); return j; }); }); }
@@ -82,6 +82,10 @@ function recover(email){ return auth('recover?redirect_to='+encodeURIComponent(s
 function resend(email){ return auth('resend?redirect_to='+encodeURIComponent(site()),{type:'signup',email:email}); }
 function fromLink(p){ return fetch(URL_+'/auth/v1/user',{headers:{apikey:KEY,Authorization:'Bearer '+p.access_token}}).then(function(r){ return r.json().catch(function(){ return {}; }).then(function(u){
   if(!r.ok) throw new Error(u.msg||u.message||('HTTP '+r.status)); setSess({access_token:p.access_token,refresh_token:p.refresh_token,expires_in:+p.expires_in||3600,user:u},null); return sync(true); }); }); }
+/* 1.5.0: σύνδεση με Google (OAuth του Supabase). Το κουμπί φαίνεται μόνο αν ο πάροχος είναι ενεργός στο Supabase (/auth/v1/settings). */
+function providers(){ var c=ls.get('alkyon-v4-authprov',null); if(c&&Date.now()-c.t<6*3600e3) return Promise.resolve(c.p);
+  return fetch(URL_+'/auth/v1/settings',{headers:{apikey:KEY}}).then(function(r){ return r.ok?r.json():{}; }).then(function(j){ var p=(j&&j.external)||{}; ls.set('alkyon-v4-authprov',{t:Date.now(),p:p}); return p; }).catch(function(){ return (c&&c.p)||{}; }); }
+function oauthUrl(pv){ return URL_+'/auth/v1/authorize?provider='+encodeURIComponent(pv)+'&redirect_to='+encodeURIComponent(site()); }
 function setPassword(pw){ return ensure().then(function(s){ return fetch(URL_+'/auth/v1/user',{method:'PUT',headers:H(s),body:JSON.stringify({password:pw})}).then(function(r){ if(!r.ok) return r.json().catch(function(){ return {}; }).then(function(j){ throw new Error(j.msg||j.message||('HTTP '+r.status)); }); }); }); }
 /* v31z545: αποσύνδεση που ολοκληρώνεται πάντα: συγχρονισμός (έως 12″), αποσύνδεση στον server (έως 5″), μετά καθαρισμός.
    opt.wipe: σβήνει και τα δεδομένα από αυτό το κινητό, ΜΟΝΟ αν ο συγχρονισμός πέτυχε (μένουν στον λογαριασμό). Επιστρέφει {wiped, synced}. */
@@ -172,5 +176,5 @@ B.store.delUndo=function(k,rec,msg){
   B.toast(msg||T('Διαγράφηκε.','Deleted.'),7000,{label:T('Αναίρεση','Undo'),fn:function(){ undone=true; clearTimeout(t); var r=Object.assign({},rec); delete r.deleted; save(k,r);
     if(k==='bites'){ var pup=ls.get('alkyon-pup',{})||{}; keys.forEach(function(x){ delete pup[x]; }); ls.set('alkyon-pup',pup); recountTrip(rec.trip); } B.toast(T('Επαναφέρθηκε.','Restored.')); }});
 };
-B.cloud={owner:owner,ownerChoice:ownerChoice,localCount:localCount,rest:rest,storage:storage,session:S,signIn:signIn,signUp:signUp,signOut:signOut,setName:setName,sync:sync,verify:verify,recover:recover,resend:resend,fromLink:fromLink,setPassword:setPassword,state:function(){ return state; },errText:errText};
+B.cloud={providers:providers,oauthUrl:oauthUrl,owner:owner,ownerChoice:ownerChoice,localCount:localCount,rest:rest,storage:storage,session:S,signIn:signIn,signUp:signUp,signOut:signOut,setName:setName,sync:sync,verify:verify,recover:recover,resend:resend,fromLink:fromLink,setPassword:setPassword,state:function(){ return state; },errText:errText};
 })();
