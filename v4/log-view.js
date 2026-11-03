@@ -74,8 +74,9 @@ function detail(b){
   var keys=S().phKeys(b); if(keys.length){ var gal=h('div',{class:'gal'}); keys.forEach(function(k){ S().Photos.get(k).then(function(bl){ if(bl) gal.append(h('img',{src:URL.createObjectURL(bl),alt:b.species||''})); }).catch(function(){}); }); body.append(gal); }
   var rows=[[T('Πότε','When'),when(b,true)],[T('Μέγεθος','Size'),sizeTxt(b)||'–'],[T('Πού','Where'),b.place||(typeof b.lat==='number'?b.lat.toFixed(5)+', '+b.lon.toFixed(5):'–')],[T('Βάθος','Depth'),b.depth!=null?b.depth+' m':'–'],
     [T('Δόλωμα','Bait'),b.bait||'–'],[T('Τεχνική','Technique'),b.tech||'–'],
+    b.troll?[T('Συρτή','Trolling'),[b.troll.kn!=null?B.num(b.troll.kn,1)+' kn':'',b.troll.hd!=null?b.troll.hd+'°':'',b.troll.lead?b.troll.lead+' g':'',b.troll.lb!=null?T('δόλωμα ~','lure ~')+b.troll.lb+T(' m πίσω από τη βάρκα',' m behind the boat'):''].filter(Boolean).join(' · ')||'✓']:null,
     [T('Άνεμος','Wind'),b.wind!=null?U.wind(b.wind)+(b.hist?' ('+T('εκτίμηση','estimate')+')':''):'–'],[T('Κύμα','Waves'),b.wave!=null?U.wave(b.wave):'–'],[T('Πίεση','Pressure'),b.press!=null?U.press(b.press):'–'],[T('Θάλασσα','Sea temp'),b.sst!=null?U.temp(b.sst):'–']];
-  body.append(h('div',{class:'card'},h('div',{class:'rows one'},rows.filter(function(r,i){ return i<3||r[1]!=='–'; }).map(function(r){ return h('div',{class:'row'},h('span',{text:r[0]}),h('b',{text:r[1]})); }))));
+  body.append(h('div',{class:'card'},h('div',{class:'rows one'},rows.filter(function(r,i){ return r&&(i<3||r[1]!=='–'); }).map(function(r){ return h('div',{class:'row'},h('span',{text:r[0]}),h('b',{text:r[1]})); }))));
   if(b.tk&&b.tk.length){ var tkn=b.tk.map(function(id){ var x=S().get('tackle',id); return x?x.name:null; }).filter(Boolean); if(tkn.length) body.append(h('div',{class:'card'},h('h2',{text:T('Εξοπλισμός','Tackle')}),h('p',{class:'p',text:tkn.join(', ')}))); }
   if(b.notes) body.append(h('div',{class:'card'},h('p',{class:'p',text:b.notes})));
   if(window.AlkyonBiteWx&&!b.gear){ var wx=h('div',{class:'card bwxcard'},h('h2',{text:T('Καιρός γύρω από το πιάσιμο','Weather around the catch')})); try{ wx.append(AlkyonBiteWx.slot(b)); body.append(wx); }catch(e){} }

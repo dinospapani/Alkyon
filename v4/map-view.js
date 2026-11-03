@@ -89,6 +89,11 @@ function drawData(){
       else { var gc={}; caught.forEach(function(b){ var g=fishGroup(b); gc[g]=(gc[g]||0)+1; }); var g=Object.keys(gc).sort(function(x,y){ return gc[y]-gc[x]; })[0];
         if(n>1){ cls='fish many g-'+g; html='<b>'+n+'</b>'; } else { var b0=caught[0]; cls='fish sym g-'+g+(b0.photo?' ph':'')+(b0.rel?' rel':'')+(b0.prof==='spear'?' sp':b0.prof==='lake'?' lk':''); html=g==='ceph'?CSVG:FSVG; } }
       L.marker(c.ll,{icon:icon(cls,html),title:a.map(function(b){ return b.miss?T('Χαμένο','Lost'):b.species; }).join(', ')}).on('click',function(){ if(a.length===1||spread(a,fll)<150||map.getZoom()>=17) fishSheet(a); else map.fitBounds(L.latLngBounds(a.map(fll)).pad(0.5),{maxZoom:17}); }).addTo(gFish); }); }
+  /* 1.6.0: συρτή: λεπτή γραμμή από τη θέση της βάρκας ως το σημείο του ψαριού (εκεί που ήταν το δόλωμα), με την ταχύτητα */
+  if(cfg.fish&&z>=12) S().raw('bites').forEach(function(b){ if(b.deleted||typeof b.boatLat!=='number'||typeof b.lat!=='number') return;
+    L.polyline([[b.boatLat,b.boatLon],[b.lat,b.lon]],{color:'#ffd166',weight:2,opacity:.85,dashArray:'3 5',interactive:false}).addTo(gFish);
+    L.circleMarker([b.boatLat,b.boatLon],{radius:3,color:'#ffd166',weight:1,fillColor:'#ffd166',fillOpacity:1,interactive:false}).addTo(gFish);
+    if(b.troll&&b.troll.kn!=null&&z>=14) L.marker([b.boatLat,b.boatLon],{interactive:false,keyboard:false,icon:L.divIcon({className:'mk trlab',iconSize:null,html:'<b>'+B.num(b.troll.kn,1)+' kn'+(b.depth!=null?' · '+b.depth+' m':'')+'</b>'})}).addTo(gFish); });
   gFish.addTo(map); gSpots.addTo(map);
   drawGear(); drawSea(); drawHeat();
   if(typeof declutterSoon==='function') declutterSoon();
@@ -629,7 +634,7 @@ function mount(el){
   B.qpaint=qpaint; setTimeout(qpaint,400); setTimeout(qpaint,2500);
   heatPill=h('button',{class:'heatpill',type:'button',hidden:!cfg.heat,onclick:heatSheet},h('span',{class:'hpd'}),h('span',{class:'tx'},h('b',{text:''}),h('small',{text:''})));
   var trip=h('button',{class:'tripbtn',type:'button',onclick:function(){ B.tripStart(); }},h('span',{class:'tbic',html:B.profBadge?B.profBadge(B.prof()):'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 15h18l-2.5 4.5h-13z"/><path d="M12 3v12"/><path d="M12 4l6 9h-6"/></svg>'}),h('span',{text:B.prof()==='boat'||(B.fishSide&&B.fishSide()==='boat')?T('Έναρξη εξόδου','Start a trip'):T('Ξεκινάω ψάρεμα','Start fishing')}));
-  var seab=h('div',{class:'seabar'},h('button',{class:'mobbtn',type:'button','aria-label':'MOB',text:'MOB',onclick:function(){ B.mob(); }}),B.voice&&B.voice.ok?h('button',{class:'iconbtn micmap',type:'button','aria-label':T('Φωνητική καταγραφή ψαριού','Voice catch log'),html:B.voice.MIC,onclick:function(){ B.voice.log(); }}):null,h('button',{class:'iconbtn ancbtn',type:'button','aria-label':T('Συναγερμός άγκυρας','Anchor alarm'),text:'⚓',onclick:function(){ if(B.anchor()) B.ask(T('Να σταματήσει ο συναγερμός άγκυρας;','Turn off the anchor alarm?'),T('Σταμάτημα','Turn off')).then(function(y){ if(y) B.anchorOff(); }); else B.anchorOn(); }}));
+  var seab=h('div',{class:'seabar'},h('button',{class:'mobbtn',type:'button','aria-label':'MOB',text:'MOB',onclick:function(){ B.mob(); }}),B.voice&&B.voice.ok?h('button',{class:'iconbtn micmap',type:'button','aria-label':T('Φωνητική καταγραφή ψαριού','Voice catch log'),html:B.voice.MIC,onclick:function(){ B.voice.log(); }}):null,B.trollBtn?B.trollBtn():null,h('button',{class:'iconbtn ancbtn',type:'button','aria-label':T('Συναγερμός άγκυρας','Anchor alarm'),text:'⚓',onclick:function(){ if(B.anchor()) B.ask(T('Να σταματήσει ο συναγερμός άγκυρας;','Turn off the anchor alarm?'),T('Σταμάτημα','Turn off')).then(function(y){ if(y) B.anchorOff(); }); else B.anchorOn(); }}));
   var cross=h('div',{class:'cross','aria-hidden':'true'});
   /* κατά την έξοδο: πράσινο ψάρι = έπιασα (φόρμα), κόκκινο = τσίμπησε και χάθηκε (καταγράφεται αμέσως). Κράτα πατημένο = διαγραφή του τελευταίου. */
   var FB='<path d="M3 12C8 4.5 17 4 22 12c-5 8-14 7.5-19 0z"/><path d="M22 12l7-6.5v13z"/>';

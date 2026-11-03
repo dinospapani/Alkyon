@@ -75,7 +75,7 @@ var wid=null, wl=null;
 function gpsOn(){ return ls.raw('alkyon-gps')!=='"0"'&&ls.get('alkyon-gps','1')!=='0'; }
 function dist(a,b){ var R=6371000, r=Math.PI/180, dLa=(b[0]-a[0])*r, dLo=(b[1]-a[1])*r, x=Math.sin(dLa/2)*Math.sin(dLa/2)+Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin(dLo/2)*Math.sin(dLo/2); return 2*R*Math.asin(Math.min(1,Math.sqrt(x))); }
 function track(){ var s=load(); if(!s.active) return null; var t=ls.get('alkyon-track',null); if(!t||!Array.isArray(t.pts)||t.id!==s.id){ t={id:s.id,pts:[],m:0}; ls.set('alkyon-track',t); } return t; }
-function onPos(p){ var c=p.coords; fixP={lat:c.latitude,lon:c.longitude,t:Date.now()}; onAnchor(c); var t=track(); if(!t) return; if(c.accuracy&&c.accuracy>60) return;
+function onPos(p){ var c=p.coords; fixP={lat:c.latitude,lon:c.longitude,t:Date.now(),spd:c.speed,hd:c.heading}; /* 1.6.0: ταχύτητα/πορεία για τη συρτή */ onAnchor(c); var t=track(); if(!t) return; if(c.accuracy&&c.accuracy>60) return;
   var pt=[+c.latitude.toFixed(6),+c.longitude.toFixed(6),Date.now()], last=t.pts[t.pts.length-1];
   if(last){ var d=dist(last,pt); if(d<12){ B.emit('track'); return; } if(d>2000&&pt[2]-last[2]<20000) return; t.m+=d; }
   t.pts.push(pt); if(t.pts.length>3000) t.pts=t.pts.filter(function(_,i){ return i%2===0||i===t.pts.length-1; });

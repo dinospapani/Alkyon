@@ -233,6 +233,7 @@ B.biteForm=function(edit,opt){
     if(miss.checked){ rec.miss=true; if(!e) rec.src='miss'; } else delete rec.miss;
     if(!e&&opt&&opt.gear){ rec.gear=opt.gear.id; rec.gearName=opt.gear.name||''; if(!rec.tech) rec.tech={ll:T('Παραγάδι','Longline'),net:T('Δίχτυ','Net'),trap:T('Ζεμπίλι / παγίδα','Trap / pot')}[opt.gear.type]||''; }
     else if(!e&&B.gearTag) B.gearTag(rec);
+    if(!e&&B.troll) B.troll.adjust(rec); /* 1.6.0: συρτή: θέση του δολώματος πίσω από τη βάρκα, ταχύτητα, τεχνητά */
     var ex={}; tkItems.forEach(function(x){ ex[x.id]=1; }); var keepOther=(e&&e.tk||[]).filter(function(id){ return !ex[id]; });
     var tk=keepOther.concat(tkSel.filter(function(id){ return ex[id]; })); if(tk.length){ rec.tk=tk; var w2={},s2={},h2={}, lures=[], hooks=[]; tk.forEach(function(id){ var x=tkItems.filter(function(y){ return y.id===id; })[0]; if(!x) return; if(x.type==='lure'){ lures.push(id); if(tkw[id]!=null) w2[id]=tkw[id]; else if(x.w&&x.w.length===1) w2[id]=x.w[0]; } if(x.type==='hook'){ hooks.push(id); if(tks[id]!=null) s2[id]=tks[id]; else if(x.sz&&x.sz.length===1) s2[id]=x.sz[0]; } });
       if(lures.length&&hooks.length) lures.forEach(function(l){ h2[l]=(e&&e.tkh&&e.tkh[l]&&hooks.indexOf(e.tkh[l])>=0)?e.tkh[l]:hooks[0]; });
@@ -288,9 +289,9 @@ function localAt(ms){ var d=new Date(ms); return d.getFullYear()+'-'+B.pad(d.get
 B.quickRec=function(miss,at,tms,quiet){
   var S=st(), f=(B.trip&&B.trip.fix&&B.trip.fix())||null, p=at||(tms?trackAt(tms):null)||(f&&Math.abs((tms||Date.now())-(f.t||0))<180000?f:B.lastPos()), dt=tms?localAt(tms):nowLocal(), date=dt.slice(0,10), time=dt.slice(11,16);
   var rec={date:date,time:time,tz:-new Date().getTimezoneOffset(),species:'',latin:'',bait:'',tech:'',depth:null,kg:null,len:null,notes:'',place:'',lat:null,lon:null,photo:false,src:at?(miss?'miss-map':'map'):(miss?'miss':'quick'),prof:B.prof()};
-  if(p){ rec.lat=+(+p.lat).toFixed(5); rec.lon=+(+p.lon).toFixed(5); var ns=nearSpot(rec.lat,rec.lon); if(ns){ rec.lat=ns.lat; rec.lon=ns.lon; rec.place=ns.name||''; } }
+  var tr=false; if(p){ rec.lat=+(+p.lat).toFixed(5); rec.lon=+(+p.lon).toFixed(5); tr=!at&&!miss&&B.troll&&B.troll.adjust(rec); if(!tr){ var ns=nearSpot(rec.lat,rec.lon); if(ns){ rec.lat=ns.lat; rec.lon=ns.lon; rec.place=ns.name||''; } } }
   if(miss) rec.miss=true;
-  var tk=lastTk(B.prof()); if(tk.length&&!miss) rec.tk=tk;
+  var tk=lastTk(B.prof()); if(tk.length&&!miss&&!rec.tk) rec.tk=tk;
   var c=condFor(rec.lat,rec.lon,date,time); Object.keys(c).forEach(function(k){ rec[k]=c[k]; });
   var sf=ls.get('alkyon-safe',{})||{}; if(sf.active&&sf.id){ rec.trip=sf.id; rec.n=S.raw('bites').filter(function(b){ return b.trip===sf.id&&!!b.miss===!!miss; }).reduce(function(m,b){ return Math.max(m,+b.n||0); },0)+1; }
   if(!miss&&B.gearTag) B.gearTag(rec);
