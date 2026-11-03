@@ -178,7 +178,7 @@ function sstLoad(force){
   var s=b.getSouth()-padY, n=b.getNorth()+padY, w=b.getWest()-padX, e=b.getEast()+padX, key=[s,n,w,e].map(function(x){ return x.toFixed(2); }).join(',');
   if(sstG&&!force&&sstG.s<=b.getSouth()&&sstG.n>=b.getNorth()&&sstG.w<=b.getWest()&&sstG.e>=b.getEast()&&Date.now()-sstG.at<3*3600000){ sstDraw(); return; }
   var NY=9, NX=8, la=[], lo=[]; for(var j=0;j<NY;j++) for(var i=0;i<NX;i++){ la.push((s+(n-s)*j/(NY-1)).toFixed(3)); lo.push((w+(e-w)*i/(NX-1)).toFixed(3)); }
-  sstBusy=true; B.sstMsg&&B.sstMsg(T('Φόρτωση θερμοκρασίας νερού…','Loading water temperature…'));
+  sstBusy=true; B.toast(T('Φόρτωση θερμοκρασίας νερού…','Loading water temperature…'));
   fetch('https://marine-api.open-meteo.com/v1/marine?latitude='+la.join(',')+'&longitude='+lo.join(',')+'&hourly=sea_surface_temperature&past_hours=1&forecast_hours=120&timezone=GMT&cell_selection=sea').then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }).then(function(j){
     var a=Array.isArray(j)?j:[j], tl=(a[0]&&a[0].hourly&&a[0].hourly.time)||[];
     sstG={s:s,n:n,w:w,e:e,NY:NY,NX:NX,t:tl,v:a.map(function(p){ return (p&&p.hourly&&p.hourly.sea_surface_temperature)||[]; }),at:Date.now()};
