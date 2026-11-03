@@ -47,7 +47,8 @@ function resize(file){
 function S(){ var s=ls.get('alkyon-sess',null); return s&&s.access_token?s:null; }
 var outing=false; /* v31z545: κατά την αποσύνδεση δεν ξαναγράφεται συνεδρία από ανανέωση που ήταν ήδη σε εξέλιξη */
 function setSess(j,prev){
-  if(outing) return prev;
+  if(outing&&prev) return prev; /* 1.4.5: μπλοκάρει μόνο ανανέωση παλιάς συνεδρίας· νέα σύνδεση αμέσως μετά την αποσύνδεση περνά */
+  if(!prev) outing=false;
   var s={access_token:j.access_token,refresh_token:j.refresh_token,exp:Date.now()+((j.expires_in||3600)-60)*1000,uid:(j.user&&j.user.id)||(prev&&prev.uid),email:(j.user&&j.user.email)||(prev&&prev.email),
     name:(j.user&&j.user.user_metadata&&j.user.user_metadata.name)||(prev&&prev.name)||''};
   ls.set('alkyon-sess',s); B.emit('store','alkyon-sess'); return s;
@@ -96,11 +97,22 @@ function setName(n){ return ensure().then(function(s){ return fetch(URL_+'/auth/
 /* ---------- συγχρονισμός ---------- */
 var busy=null, again=false, timer=0, state={t:ls.get('alkyon-last',0),msg:'',err:false};
 function iso(ms){ return new Date(ms).toISOString(); }
+/* 1.4.5: σε ποιον λογαριασμό ανήκουν τα δεδομένα του κινητού. Αν συνδεθείς με άλλον λογαριασμό και υπάρχουν δεδομένα του προηγούμενου,
+   ο συγχρονισμός σταματά και ρωτά: χωριστά (σβήνονται από το κινητό, μένουν στον παλιό λογαριασμό) ή μαζί (μπαίνουν και στον νέο). */
+var OWN='alkyon-owner';
+function localCount(){ return KINDS.reduce(function(n,k){ return n+raw(k).filter(function(o){ return !o.deleted; }).length; },0); }
+function owner(){ return ls.get(OWN,null); }
+function ownerCheck(s){ var o=owner(); if(!o||!o.uid||o.uid===s.uid) return 'ok'; if(!localCount()){ ls.set(OWN,{uid:s.uid,email:s.email||''}); return 'ok'; } return 'ask'; }
+function wipeLocal(){ try{ KINDS.forEach(function(k){ localStorage.removeItem('alkyon-'+k); }); ['alkyon-tomb','alkyon-pup','alkyon-v4-plans','alkyon-v4-goals','alkyon-last'].forEach(function(k){ localStorage.removeItem(k); }); }catch(e){} }
+function ownerChoice(ch){ var s=S(); if(!s) return Promise.resolve();
+  if(ch==='separate') wipeLocal();
+  ls.set(OWN,{uid:s.uid,email:s.email||''}); state.ask=false; KINDS.forEach(function(k){ B.emit('store','alkyon-'+k); }); return sync(true); }
 function sched(){ if(!S()) return; clearTimeout(timer); timer=setTimeout(function(){ sync(false); },2500); }
 function sync(manual){
   if(!S()) return Promise.resolve();
   if(busy){ again=true; return busy; }
   if(navigator.onLine===false){ state.msg=T('Χωρίς σύνδεση. Θα γίνει όταν συνδεθείς.','Offline. It will run when you are online.'); B.emit('sync',state); return Promise.resolve(); }
+  if(ownerCheck(S())==='ask'){ var ow=owner(); state.ask=true; state.err=true; state.msg=T('Ο συγχρονισμός περιμένει: στο κινητό υπάρχουν δεδομένα του λογαριασμού ','Sync is waiting: this phone has data from the account ')+((ow&&ow.email)||T('άλλου λογαριασμού','another account'))+'.'; B.emit('sync',state); B.emit('owner-ask',ow); return Promise.resolve(); }
   state.msg=T('Συγχρονισμός…','Syncing…'); state.err=false; B.emit('sync',state);
   var s0=S(), got=0, sent=0, needPh=[], pup=ls.get('alkyon-pup',{})||{};
   busy=rest('records?select=kind,id,data,deleted,updated_at&user_id=eq.'+encodeURIComponent(s0.uid)+'&order=updated_at.asc&limit=10000').then(function(r){ return r.json(); }).then(function(rows){
@@ -129,12 +141,14 @@ function sync(manual){
       return q;
     });
   }).then(function(){
-    ls.set('alkyon-pup',pup); state.t=Date.now(); ls.set('alkyon-last',state.t); state.err=false;
+    ls.set('alkyon-pup',pup); state.t=Date.now(); ls.set('alkyon-last',state.t); state.err=false; ls.set(OWN,{uid:s0.uid,email:s0.email||''});
     state.msg=T('Συγχρονίστηκε ','Synced ')+new Date().toLocaleTimeString(B.EN?'en-GB':'el-GR',{hour:'2-digit',minute:'2-digit'})+(got?T(', ήρθαν ',', received ')+got:'')+(sent?T(', στάλθηκαν ',', sent ')+sent:'');
     if(got) KINDS.forEach(function(k){ B.emit('store','alkyon-'+k); });
   }).catch(function(e){
     var m=String(e&&e.message||e); state.err=true;
-    if(/HTTP 4(01|03)|JWT|refresh_token|Refresh Token|invalid_grant/i.test(m)){ ls.set('alkyon-sess',null); try{ localStorage.removeItem('alkyon-sess'); }catch(x){} state.msg=T('Η σύνδεση έληξε. Συνδέσου ξανά.','Your session expired. Sign in again.'); B.emit('store','alkyon-sess'); }
+    /* 1.4.5: ο χρήστης δεν υπάρχει πια στον server (π.χ. διαγράφηκε από το Supabase): αποσύνδεση αντί για ακατανόητο σφάλμα */
+    if(/23503|not present in table|User from sub claim|user_not_found/i.test(m)){ ls.set('alkyon-sess',null); try{ localStorage.removeItem('alkyon-sess'); }catch(x){} ls.set(OWN,null); state.msg=T('Ο λογαριασμός δεν βρέθηκε στον server (ίσως διαγράφηκε). Συνδέσου ξανά ή φτιάξε νέο λογαριασμό. Τα δεδομένα σου έμειναν στο κινητό.','The account was not found on the server (it may have been deleted). Sign in again or create a new account. Your data stayed on this phone.'); B.emit('store','alkyon-sess'); }
+    else if(/HTTP 4(01|03)|JWT|refresh_token|Refresh Token|invalid_grant/i.test(m)){ ls.set('alkyon-sess',null); try{ localStorage.removeItem('alkyon-sess'); }catch(x){} state.msg=T('Η σύνδεση έληξε. Συνδέσου ξανά.','Your session expired. Sign in again.'); B.emit('store','alkyon-sess'); }
     else state.msg=errText(e);
   }).then(function(){ B.emit('sync',state); busy=null; if(again){ again=false; sched(); } });
   return busy;
@@ -158,5 +172,5 @@ B.store.delUndo=function(k,rec,msg){
   B.toast(msg||T('Διαγράφηκε.','Deleted.'),7000,{label:T('Αναίρεση','Undo'),fn:function(){ undone=true; clearTimeout(t); var r=Object.assign({},rec); delete r.deleted; save(k,r);
     if(k==='bites'){ var pup=ls.get('alkyon-pup',{})||{}; keys.forEach(function(x){ delete pup[x]; }); ls.set('alkyon-pup',pup); recountTrip(rec.trip); } B.toast(T('Επαναφέρθηκε.','Restored.')); }});
 };
-B.cloud={rest:rest,storage:storage,session:S,signIn:signIn,signUp:signUp,signOut:signOut,setName:setName,sync:sync,verify:verify,recover:recover,resend:resend,fromLink:fromLink,setPassword:setPassword,state:function(){ return state; },errText:errText};
+B.cloud={owner:owner,ownerChoice:ownerChoice,localCount:localCount,rest:rest,storage:storage,session:S,signIn:signIn,signUp:signUp,signOut:signOut,setName:setName,sync:sync,verify:verify,recover:recover,resend:resend,fromLink:fromLink,setPassword:setPassword,state:function(){ return state; },errText:errText};
 })();

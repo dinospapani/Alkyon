@@ -158,6 +158,33 @@ with sync_playwright() as p:
         okk=s['h']=='#profile' and ((want=='session' and s['s']) or (want=='newpass' and s['s'] and ('Νέος κωδικός' in s['sh'] or 'New password' in s['sh'])) or (want=='expired' and not s['s'] and s['sh']))
         check('σύνδεσμος email: '+want, okk and not pg._errs, (s,pg._errs)); c.close()
 
+    print('# δύο λογαριασμοί στο ίδιο κινητό')
+    ST={'fk':False,'postB':0}
+    def supa2(route):
+        u=route.request.url; m=route.request.method; body=route.request.post_data or ''
+        if '/auth/v1/token' in u:
+            em=json.loads(body).get('email','a@x.com'); uid='uA' if em.startswith('a') else 'uB'
+            return route.fulfill(json={'access_token':'AT-'+uid,'refresh_token':'RT','expires_in':3600,'user':{'id':uid,'email':em}})
+        if '/auth/v1/logout' in u: return route.fulfill(status=204,body='')
+        if '/rest/v1/records' in u and m=='POST':
+            if ST['fk']: return route.fulfill(status=409,json={'code':'23503','details':'Key is not present in table "users".'})
+            if (route.request.headers.get('authorization') or '').endswith('uB'): ST['postB']+=1
+            return route.fulfill(status=201,body='')
+        return route.fulfill(json=[])
+    c=ctx(b); c.route('**/*supabase.co/**',supa2); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(1500)
+    pg.evaluate("()=>{localStorage.setItem('alkyon-v4-acctask','1'); return AK.cloud.signIn('a@x.com','pw')}"); pg.wait_for_timeout(600)
+    pg.evaluate("()=>AK.cloud.signOut({})"); pg.wait_for_timeout(600)
+    pg.evaluate("()=>AK.cloud.signIn('b@x.com','pw')"); pg.wait_for_timeout(1500)
+    check('νέα σύνδεση αμέσως μετά την αποσύνδεση', pg.evaluate("()=>(AK.cloud.session()||{}).uid==='uB'"))
+    check('άλλος λογαριασμός: ρωτά πριν στείλει', ST['postB']==0 and pg.evaluate("()=>/λογαριασμού|account/.test((document.querySelector('.sheet')||{}).textContent||'')"))
+    pg.click('.sheet .btn.pri'); pg.wait_for_timeout(1200)
+    check('«χωριστά»: τίποτα στον νέο λογαριασμό, κινητό καθαρό', ST['postB']==0 and pg.evaluate("()=>AK.store.raw('bites').length===0"))
+    c.close()
+    ST['fk']=True; c=ctx(b); c.route('**/*supabase.co/**',supa2); pg=page(c); pg.goto(BASE+'/v4/#profile'); pg.wait_for_timeout(1200)
+    pg.evaluate("()=>AK.cloud.signIn('a@x.com','pw')"); pg.wait_for_timeout(800)
+    check('λογαριασμός που διαγράφηκε: αποσύνδεση, δεδομένα μένουν', pg.evaluate("()=>!AK.cloud.session()&&AK.store.raw('bites').length>0"))
+    check('δύο λογαριασμοί χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
+
     print('# παλιά έξοδος και κλασική')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(1500)
     pg.evaluate("()=>AK.pastTrip()"); pg.wait_for_timeout(500)

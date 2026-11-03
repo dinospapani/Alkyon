@@ -114,6 +114,18 @@ B.on('store',function(k){ if(k!=='alkyon-bites'||logged()||ls.get(ASK,0)) return
       h('button',{class:'btn pri full',type:'button',text:T('Δημιουργία λογαριασμού','Create account'),onclick:function(){ sh.close(); B.authSheet({mode:'up'}); }}),
       h('button',{class:'btn full',type:'button',text:T('Όχι τώρα','Not now'),onclick:function(){ sh.close(); }}))}); },1800); });
 
+/* ---------- 1.4.5: δεδομένα άλλου λογαριασμού στο κινητό ---------- */
+var askOpen=false;
+B.on('owner-ask',function(ow){ if(askOpen) return; askOpen=true; var s=C().session()||{}, n=C().localCount(), old=(ow&&ow.email)||T('άλλο λογαριασμό','another account'), sh;
+  function go(ch){ sh.close(); C().ownerChoice(ch).then(function(){ B.toast(ch==='separate'?T('Φορτώθηκαν τα δεδομένα του ','Loaded the data of ')+(s.email||''):T('Τα δεδομένα μπήκαν και σε αυτόν τον λογαριασμό.','The data was added to this account too.'),5000); remount(); }); }
+  setTimeout(function(){ sh=B.sheet({title:T('Δεδομένα άλλου λογαριασμού','Data from another account'),body:h('div',{class:'bform'},
+    h('p',{class:'sub',text:T('Σε αυτό το κινητό υπάρχουν '+n+' εγγραφές (ψάρια, έξοδοι, σημεία, εξοπλισμός) του λογαριασμού ','This phone has '+n+' records (catches, trips, spots, tackle) from the account ')+old+T('. Τώρα συνδέθηκες ως ','. You are now signed in as ')+(s.email||'')+'.'}),
+    h('button',{class:'btn pri full',type:'button',text:T('Κράτα τα χωριστά','Keep them separate'),onclick:function(){ go('separate'); }}),
+    h('p',{class:'foot',text:T('Σβήνονται από το κινητό και φορτώνονται τα δεδομένα του ','They are removed from this phone and the data of ')+(s.email||'')+T('. Μένουν στον λογαριασμό ',' is loaded. They stay in the account ')+old+T(' και επιστρέφουν αν ξανασυνδεθείς με αυτόν.',' and come back if you sign in with it again.')}),
+    h('button',{class:'btn full',type:'button',text:T('Πρόσθεσέ τα και σε αυτόν τον λογαριασμό','Add them to this account too'),onclick:function(){ go('merge'); }}),
+    h('p',{class:'foot',text:T('Π.χ. αν είναι δικά σου και άλλαξες λογαριασμό.','E.g. if they are yours and you changed account.')}),
+    h('button',{class:'linkbtn',type:'button',text:T('Αποσύνδεση','Sign out'),onclick:function(){ sh.close(); C().signOut({}).then(function(){ remount(); }); }})),onclose:function(){ askOpen=false; }}); },400); });
+
 /* ---------- εκκίνηση ---------- */
 setTimeout(doLink,400);
 })();
