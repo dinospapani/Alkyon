@@ -31,51 +31,75 @@ function err(e){ var m=String(e&&e.message||e);
   return C().errText(e); }
 
 /* ---------- φόρμα ---------- */
+/* 1.4.4: κουμπί «ματάκι» στο πεδίο κωδικού */
+var EYE='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+    EYEX='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 5.1A10.8 10.8 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.6 6.6C3.8 8.4 2 12 2 12s3.6 7 10 7c1.7 0 3.2-.5 4.5-1.2"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
+function pwField(attrs){ var inp=h('input',Object.assign({type:'password'},attrs)), b=h('button',{type:'button',class:'eye','aria-label':T('Εμφάνιση κωδικού','Show password'),html:EYE});
+  b.addEventListener('click',function(){ var show=inp.type==='password'; inp.type=show?'text':'password'; b.innerHTML=show?EYEX:EYE; b.setAttribute('aria-label',show?T('Απόκρυψη κωδικού','Hide password'):T('Εμφάνιση κωδικού','Show password')); try{ inp.focus(); }catch(e){} });
+  return {input:inp,el:h('div',{class:'pwwrap'},inp,b)}; }
+/* 1.4.4: ο κωδικός που περιμένουμε από το email κρατιέται (30′), ώστε αν πας στο email και γυρίσεις, η φόρμα να είναι εκεί που την άφησες */
+var PK='alkyon-v4-pendcode';
+function pend(){ var p=ls.get(PK,null); return p&&p.email&&Date.now()-p.t<30*60000?p:null; }
+function setPend(v){ ls.set(PK,v); }
 B.authForm=function(o){ o=o||{}; var mode=o.mode==='up'?'up':'in', codeType='signup', codeEmail='';
   var em=h('input',{type:'email',autocomplete:'email',inputmode:'email',placeholder:'email','aria-label':'Email'});
-  var pw=h('input',{type:'password',autocomplete:'current-password',placeholder:T('Κωδικός','Password'),'aria-label':T('Κωδικός','Password')});
-  var msg=h('p',{class:'err',role:'alert'}), go=h('button',{class:'btn pri full',type:'submit'}), sw=h('button',{class:'link',type:'button'});
-  var fg=h('button',{class:'link',type:'button',text:T('Ξέχασα τον κωδικό','Forgot password')});
+  var P=pwField({autocomplete:'current-password',placeholder:T('Κωδικός','Password'),'aria-label':T('Κωδικός','Password')}), pw=P.input;
+  var msg=h('p',{class:'err',role:'alert'}), go=h('button',{class:'btn pri full',type:'submit'}), sw=h('button',{class:'link swm',type:'button'});
+  var fg=h('button',{class:'link fgt',type:'button',text:T('Ξέχασα τον κωδικό','Forgot password')});
   var ttl=h('h2'), sub=h('p',{class:'sub',text:o.reason||T('Με λογαριασμό τα ψάρια, οι έξοδοι και οι φωτογραφίες σου κρατιούνται και σε άλλο κινητό.','With an account your catches, trips and photos are kept on any phone.')});
-  var pwF=h('label',{class:'fld'},h('span',{text:T('Κωδικός','Password')}),pw);
-  /* κωδικός από το email: δουλεύει και μέσα στην εγκατεστημένη εφαρμογή, χωρίς να ανοίξει ο σύνδεσμος στον browser */
-  var ci=h('input',{type:'text',inputmode:'numeric',autocomplete:'one-time-code',maxlength:'10',class:'codein','aria-label':T('Κωδικός από το email','Code from the email')});
-  var cok=h('button',{class:'btn pri',type:'button',text:T('Επιβεβαίωση','Confirm')}), crs=h('button',{class:'btn',type:'button',text:T('Νέος κωδικός','Resend code')});
-  var cbox=h('div',{class:'codebox',hidden:true},h('label',{class:'fld'},h('span',{text:T('Κωδικός από το email','Code from the email')}),ci),h('div',{class:'inrow'},cok,crs));
+  var main=h('div',{class:'authmain'},ttl,sub,h('label',{class:'fld'},h('span',{text:'Email'}),em),h('label',{class:'fld'},h('span',{text:T('Κωδικός','Password')}),P.el));
+  /* βήμα κωδικού: δουλεύει και μέσα στην εγκατεστημένη εφαρμογή, χωρίς να ανοίξει ο σύνδεσμος στον browser */
+  var ci=h('input',{type:'text',inputmode:'numeric',autocomplete:'one-time-code',maxlength:'10',class:'codein',placeholder:'••••••','aria-label':T('Κωδικός από το email','Code from the email')});
+  var cttl=h('h2'), cinfo=h('p',{class:'sub'});
+  var cok=h('button',{class:'btn pri full',type:'button',text:T('Επιβεβαίωση','Confirm')});
+  var cps=navigator.clipboard&&navigator.clipboard.readText?h('button',{class:'btn',type:'button',text:'📋 '+T('Επικόλληση','Paste')}):null;
+  var crs=h('button',{class:'btn',type:'button',text:T('Νέος κωδικός','Resend code')});
+  var cbk=h('button',{class:'link',type:'button',text:T('‹ Άλλο email','‹ Different email')});
+  var cbox=h('div',{class:'codebox',hidden:true},cttl,cinfo,h('label',{class:'fld'},h('span',{text:T('Κωδικός από το email','Code from the email')}),ci),cok,h('div',{class:'inrow'},cps,crs),cbk);
   function say(t,good){ msg.textContent=t||''; msg.style.color=good?'var(--good)':''; }
   function paint(){ ttl.textContent=mode==='in'?T('Σύνδεση','Sign in'):T('Νέος λογαριασμός','New account');
     go.textContent=mode==='in'?T('Σύνδεση','Sign in'):T('Δημιουργία λογαριασμού','Create account');
     sw.textContent=mode==='in'?T('Δεν έχεις λογαριασμό; Δημιούργησε έναν','No account? Create one'):T('Έχεις ήδη λογαριασμό; Σύνδεση','Already have an account? Sign in');
     pw.autocomplete=mode==='in'?'current-password':'new-password'; fg.hidden=mode!=='in'; }
-  function ok(t){ B.toast(t||T('Συνδέθηκες.','Signed in.')); if(o.close) o.close(); if(o.done) o.done(); else remount(); }
-  function showCode(type,email,text){ codeType=type; codeEmail=email; cbox.hidden=false; ci.value=''; say(text,true); try{ ci.focus(); }catch(e){} }
-  sw.addEventListener('click',function(){ mode=mode==='in'?'up':'in'; say(''); cbox.hidden=true; paint(); });
+  function step(code){ main.hidden=code; go.hidden=code; sw.hidden=code; fg.hidden=code||mode!=='in'; cbox.hidden=!code; if(!code) paint(); }
+  function ok(t){ setPend(null); B.toast(t||T('Συνδέθηκες.','Signed in.')); if(o.close) o.close(); if(o.done) o.done(); else remount(); }
+  function showCode(type,email,text,keepT){ codeType=type; codeEmail=email; if(!keepT) setPend({type:type,email:email,t:Date.now()});
+    cttl.textContent=type==='recovery'?T('Νέος κωδικός πρόσβασης','Reset password'):T('Επιβεβαίωση email','Confirm your email');
+    cinfo.textContent=(type==='recovery'?T('Στείλαμε κωδικό στο ','We sent a code to '):T('Στείλαμε κωδικό επιβεβαίωσης στο ','We sent a confirmation code to '))+email+T('. Γράψ\' τον εδώ (ή πάτα τον σύνδεσμο στο email). Δες και τα ανεπιθύμητα.','. Enter it here (or tap the link in the email). Check spam too.');
+    ci.value=''; step(true); say(text||'',true); try{ ci.focus(); }catch(e){} }
+  sw.addEventListener('click',function(){ mode=mode==='in'?'up':'in'; say(''); paint(); });
+  cbk.addEventListener('click',function(){ setPend(null); say(''); em.value=codeEmail||em.value; step(false); });
   fg.addEventListener('click',function(){ var a=em.value.trim(); if(!a){ say(T('Γράψε πρώτα το email σου.','Enter your email first.')); em.focus(); return; }
-    fg.disabled=true; C().recover(a).then(function(){ fg.disabled=false; showCode('recovery',a,T('Σου στείλαμε email. Γράψε τον κωδικό που περιέχει (ή πάτα τον σύνδεσμο) για να βάλεις νέο κωδικό. Δες και τα ανεπιθύμητα.','We sent you an email. Enter the code it contains (or tap the link) to set a new password. Check spam too.')); })
-      .catch(function(e){ fg.disabled=false; say(err(e)); }); });
-  function verify(){ var code=(ci.value||'').replace(/\s+/g,''); if(!/^\d{6,10}$/.test(code)){ say(T('Γράψε τον αριθμητικό κωδικό από το email.','Enter the numeric code from the email.')); return; }
+    fg.disabled=true; C().recover(a).then(function(){ fg.disabled=false; showCode('recovery',a); }).catch(function(e){ fg.disabled=false; say(err(e)); }); });
+  function verify(){ var code=(ci.value||'').replace(/\D+/g,''); if(!/^\d{6,10}$/.test(code)){ say(T('Γράψε τον αριθμητικό κωδικό από το email.','Enter the numeric code from the email.')); return; }
     cok.disabled=true; say(T('Έλεγχος…','Checking…'),true);
-    C().verify(codeType,codeEmail,code).then(function(){ cok.disabled=false; if(codeType==='recovery'){ if(o.close) o.close(); newPassSheet(o.done); } else ok(T('Το email επιβεβαιώθηκε. Είσαι συνδεδεμένος.','Email confirmed. You are signed in.')); })
+    C().verify(codeType,codeEmail,code).then(function(){ cok.disabled=false; setPend(null); if(codeType==='recovery'){ if(o.close) o.close(); newPassSheet(o.done); } else ok(T('Το email επιβεβαιώθηκε. Είσαι συνδεδεμένος.','Email confirmed. You are signed in.')); })
       .catch(function(e){ cok.disabled=false; say(err(e)); }); }
   cok.addEventListener('click',verify); ci.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); verify(); } });
+  /* επικόλληση: από το κουμπί ή με παρατεταμένο πάτημα στο πεδίο· μετά επιβεβαιώνει αμέσως */
+  ci.addEventListener('paste',function(){ setTimeout(function(){ ci.value=(ci.value||'').replace(/\D+/g,'').slice(0,10); if(/^\d{6,10}$/.test(ci.value)) verify(); },0); });
+  if(cps) cps.addEventListener('click',function(){ navigator.clipboard.readText().then(function(x){ var d=String(x||'').replace(/\D+/g,'').slice(0,10); if(!d){ say(T('Δεν βρέθηκε κωδικός στο πρόχειρο. Αντέγραψε πρώτα τον κωδικό από το email.','No code in the clipboard. Copy the code from the email first.')); return; } ci.value=d; verify(); }).catch(function(){ try{ ci.focus(); }catch(e){} say(T('Κράτα πατημένο το πεδίο και διάλεξε «Επικόλληση».','Long-press the field and choose “Paste”.')); }); });
   crs.addEventListener('click',function(){ crs.disabled=true; setTimeout(function(){ crs.disabled=false; },30000);
-    (codeType==='recovery'?C().recover(codeEmail):C().resend(codeEmail)).then(function(){ say(T('Στάλθηκε νέος κωδικός. Δες και τα ανεπιθύμητα.','A new code was sent. Check spam too.'),true); }).catch(function(e){ say(err(e)); }); });
-  var f=h('form',{class:'bform authf',novalidate:true},ttl,sub,h('label',{class:'fld'},h('span',{text:'Email'}),em),pwF,msg,go,cbox,sw,fg);
-  f.addEventListener('submit',function(e){ e.preventDefault(); say(''); var a=em.value.trim(), b=pw.value; if(!a||!b){ say(T('Συμπλήρωσε email και κωδικό.','Fill in email and password.')); return; }
+    (codeType==='recovery'?C().recover(codeEmail):C().resend(codeEmail)).then(function(){ setPend({type:codeType,email:codeEmail,t:Date.now()}); say(T('Στάλθηκε νέος κωδικός. Δες και τα ανεπιθύμητα.','A new code was sent. Check spam too.'),true); }).catch(function(e){ say(err(e)); }); });
+  var f=h('form',{class:'bform authf',novalidate:true},main,cbox,msg,go,sw,fg);
+  f.addEventListener('submit',function(e){ e.preventDefault(); if(!cbox.hidden){ verify(); return; } say(''); var a=em.value.trim(), b=pw.value; if(!a||!b){ say(T('Συμπλήρωσε email και κωδικό.','Fill in email and password.')); return; }
     go.disabled=true; (mode==='in'?C().signIn(a,b):C().signUp(a,b)).then(function(r){ go.disabled=false;
-      if(r==='confirm'){ showCode('signup',a,T('Σου στείλαμε email επιβεβαίωσης. Γράψε εδώ τον κωδικό που περιέχει (ή πάτα τον σύνδεσμο) και θα συνδεθείς. Δες και τα ανεπιθύμητα.','We sent you a confirmation email. Enter the code it contains here (or tap the link) and you will be signed in. Check spam too.')); return; }
+      if(r==='confirm'){ showCode('signup',a); return; }
       ok(); })
-    .catch(function(e2){ go.disabled=false; if(/Email not confirmed/i.test(String(e2&&e2.message))){ C().resend(a).catch(function(){}); showCode('signup',a,T('Το email δεν έχει επιβεβαιωθεί. Σου στείλαμε νέο κωδικό: γράψ\' τον εδώ.','Your email is not confirmed yet. We sent a new code: enter it here.')); return; } say(err(e2)); }); });
-  paint(); return f; };
+    .catch(function(e2){ go.disabled=false; if(/Email not confirmed/i.test(String(e2&&e2.message))){ C().resend(a).catch(function(){}); showCode('signup',a,T('Το email δεν είχε επιβεβαιωθεί, οπότε στείλαμε νέο κωδικό.','Your email was not confirmed yet, so we sent a new code.')); return; } say(err(e2)); }); });
+  paint();
+  /* αν περιμέναμε κωδικό (π.χ. πήγες στο email και γύρισες), η φόρμα ανοίγει κατευθείαν στο βήμα του κωδικού */
+  var pd=!logged()&&pend(); if(pd) showCode(pd.type,pd.email,'',true);
+  return f; };
 B.authSheet=function(o){ o=Object.assign({},o||{}); var sh; o.close=function(){ sh&&sh.close(); }; sh=B.sheet({title:T('Λογαριασμός','Account'),body:B.authForm(o)}); return sh; };
 B.accountBtn=function(reason,label){ return h('button',{class:'btn pri',type:'button',text:label||T('Σύνδεση ή νέος λογαριασμός','Sign in or create account'),onclick:function(){ B.authSheet({reason:reason}); }}); };
 B.needAccount=function(reason,then){ if(logged()){ then&&then(); return; } B.authSheet({mode:'up',reason:reason,done:function(){ remount(); then&&then(); }}); };
 
 /* ---------- νέος κωδικός (μετά από «Ξέχασα τον κωδικό») ---------- */
-function newPassSheet(after){ var sh, pw=h('input',{type:'password',autocomplete:'new-password','aria-label':T('Νέος κωδικός','New password')}), msg=h('p',{class:'err',role:'alert'});
+function newPassSheet(after){ var sh, NP=pwField({autocomplete:'new-password','aria-label':T('Νέος κωδικός','New password')}), pw=NP.input, msg=h('p',{class:'err',role:'alert'});
   var go=h('button',{class:'btn pri full',type:'button',text:T('Αποθήκευση','Save'),onclick:function(){ var v=pw.value; if(v.length<6){ msg.textContent=T('Ο κωδικός πρέπει να έχει τουλάχιστον 6 χαρακτήρες.','The password needs at least 6 characters.'); return; }
     go.disabled=true; C().setPassword(v).then(function(){ sh.close(); B.toast(T('Ο νέος κωδικός αποθηκεύτηκε. Είσαι συνδεδεμένος.','New password saved. You are signed in.'),5000); if(after) after(); else remount(); }).catch(function(e){ go.disabled=false; msg.textContent=err(e); }); }});
-  sh=B.sheet({title:T('Νέος κωδικός','New password'),body:h('div',{class:'bform'},h('p',{class:'sub',text:T('Γράψε νέο κωδικό (τουλάχιστον 6 χαρακτήρες).','Enter a new password (at least 6 characters).')}),h('label',{class:'fld'},h('span',{text:T('Νέος κωδικός','New password')}),pw),msg,go)});
+  sh=B.sheet({title:T('Νέος κωδικός','New password'),body:h('div',{class:'bform'},h('p',{class:'sub',text:T('Γράψε νέο κωδικό (τουλάχιστον 6 χαρακτήρες).','Enter a new password (at least 6 characters).')}),h('label',{class:'fld'},h('span',{text:T('Νέος κωδικός','New password')}),NP.el),msg,go)});
   setTimeout(function(){ try{ pw.focus(); }catch(e){} },300); }
 B.newPassSheet=newPassSheet;
 

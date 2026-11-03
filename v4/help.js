@@ -66,6 +66,7 @@ var HELP=[
 ];
 /* έκδοση → αλλαγές (νεότερες πρώτες). Προσθέτεις γραμμή εδώ σε κάθε νέα λειτουργία. */
 var NEWS=[
+ ['1.4.4',[T('Εγγραφή: αν πας στο email να πάρεις τον κωδικό και γυρίσεις, η φόρμα σε περιμένει στο βήμα του κωδικού. Νέο κουμπί «Επικόλληση», και ματάκι 👁 για να βλέπεις τον κωδικό πρόσβασης.','Sign-up: if you switch to your email to get the code and come back, the form waits at the code step. New “Paste” button, and an eye 👁 to show your password.')]],
  ['1.4.3',[T('Διόρθωση: ο σύνδεσμος επιβεβαίωσης στο email εγγραφής ανοίγει πλέον την εφαρμογή (πριν μπορούσε να βγάλει σελίδα 404).','Fix: the confirmation link in the sign-up email now opens the app (before it could show a 404 page).')]],
  ['1.4.2',[T('Λιγότερα δεδομένα σε κάθε ενημέρωση: δεν κατεβαίνουν πια στο παρασκήνιο ~4 MB αρχεία της παλιάς κλασικής έκδοσης.','Less data on every update: about 4 MB of old classic-version files are no longer downloaded in the background.')]],
  ['1.4.1',[T('Έλεγχος συστήματος: τα σφάλματα παλιότερων εκδόσεων (ήδη σταλμένα και διορθωμένα) δεν φαίνονται πια σαν τωρινά, και η λίστα καθαρίζεται με «Καθαρισμός λίστας».','System check: errors from older versions (already sent and fixed) no longer show as current, and the list can be cleared with “Clear list”.')]],

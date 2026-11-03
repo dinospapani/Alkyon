@@ -487,8 +487,18 @@ html.night body::after{content:'';position:fixed;inset:0;background:#a81000;mix-
 .list .ibacts{display:flex;flex-direction:row;gap:8px;padding:0 16px 14px 68px;flex-wrap:wrap}.ibacts .btn{width:auto;flex:0 0 auto;min-height:36px;padding:0 14px}
 .tg.moseg{display:block}.tg.moseg .seg{margin-top:8px}
 /* 1.4.0: λογαριασμός */
-.authf .codebox{margin-top:10px;padding-top:12px;border-top:1px solid var(--line)}
-.authf .codein{text-align:center;letter-spacing:6px;font-size:22px}
+.authf .codebox{display:flex;flex-direction:column;gap:10px}
+.authf .codebox[hidden],.authf .authmain[hidden],.authf [hidden]{display:none!important}
+.authf .codebox h2{margin:0}
+.authf .codebox .fld{margin:0}
+.authf .codein{text-align:center;letter-spacing:6px;font-size:24px;font-weight:700}
+.authf .codebox .inrow{margin:0;gap:8px}
+.authf .codebox .inrow .btn{flex:1}
+.authf .codebox .link{align-self:flex-start}
+.pwwrap{position:relative;display:block}
+.pwwrap input{width:100%;box-sizing:border-box;padding-right:52px}
+.pwwrap .eye{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:44px;height:44px;display:grid;place-items:center;border:0;background:transparent;color:var(--muted,currentColor);border-radius:10px;cursor:pointer}
+.pwwrap .eye svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .authf .link[hidden]{display:none}
 .card.acctip p{margin:0 0 10px}
 .card.acctip .inrow{gap:8px;flex-wrap:wrap}
