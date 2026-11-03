@@ -74,7 +74,8 @@ function errText(e){
 }
 function signIn(email,pw){ return auth('token?grant_type=password',{email:email,password:pw}).then(function(j){ setSess(j,null); return sync(true); }); }
 /* 1.4.3: η διεύθυνση επιστροφής πάει στο ?redirect_to= (όπως στην κλασική)· μέσα στο σώμα την αγνοεί το Supabase και έστελνε στο Site URL */
-function signUp(email,pw){ return auth('signup?redirect_to='+encodeURIComponent(site()),{email:email,password:pw}).then(function(j){ if(j.access_token){ setSess(j,null); return sync(true).then(function(){ return 'in'; }); } return 'confirm'; }); }
+function lang(){ return window.LANG==='en'?'en':'el'; }
+function signUp(email,pw){ return auth('signup?redirect_to='+encodeURIComponent(site()),{email:email,password:pw,data:{lang:lang()}}) /* 1.5.1: η γλώσσα για το email επιβεβαίωσης */.then(function(j){ if(j.access_token){ setSess(j,null); return sync(true).then(function(){ return 'in'; }); } return 'confirm'; }); }
 /* 1.4.0: κωδικός από το email, «Ξέχασα τον κωδικό», σύνδεσμος από email, νέος κωδικός (πριν ήταν μόνο στην κλασική) */
 function site(){ return location.origin+location.pathname.replace(/v4\/.*$/,''); }
 function verify(type,email,token){ return auth('verify',{type:type,email:email,token:token}).then(function(j){ if(!j.access_token) throw new Error('Invalid token'); setSess(j,null); return sync(true); }); }
@@ -111,6 +112,9 @@ function wipeLocal(){ try{ KINDS.forEach(function(k){ localStorage.removeItem('a
 function ownerChoice(ch){ var s=S(); if(!s) return Promise.resolve();
   if(ch==='separate') wipeLocal();
   ls.set(OWN,{uid:s.uid,email:s.email||''}); state.ask=false; KINDS.forEach(function(k){ B.emit('store','alkyon-'+k); }); return sync(true); }
+/* 1.5.1: η γλώσσα της εφαρμογής γράφεται στον λογαριασμό (user_metadata.lang), ώστε τα email (π.χ. «Ξέχασα τον κωδικό») να έρχονται σε αυτήν. Μία φορά ανά λογαριασμό και γλώσσα. */
+function langMeta(s){ var k=s.uid+':'+lang(); if(ls.get('alkyon-v4-langmeta','')===k) return;
+  fetch(URL_+'/auth/v1/user',{method:'PUT',headers:H(s),body:JSON.stringify({data:{lang:lang()}})}).then(function(r){ if(r.ok) ls.set('alkyon-v4-langmeta',k); }).catch(function(){}); }
 function sched(){ if(!S()) return; clearTimeout(timer); timer=setTimeout(function(){ sync(false); },2500); }
 function sync(manual){
   if(!S()) return Promise.resolve();
@@ -145,7 +149,7 @@ function sync(manual){
       return q;
     });
   }).then(function(){
-    ls.set('alkyon-pup',pup); state.t=Date.now(); ls.set('alkyon-last',state.t); state.err=false; ls.set(OWN,{uid:s0.uid,email:s0.email||''});
+    ls.set('alkyon-pup',pup); state.t=Date.now(); ls.set('alkyon-last',state.t); state.err=false; ls.set(OWN,{uid:s0.uid,email:s0.email||''}); langMeta(s0);
     state.msg=T('Συγχρονίστηκε ','Synced ')+new Date().toLocaleTimeString(B.EN?'en-GB':'el-GR',{hour:'2-digit',minute:'2-digit'})+(got?T(', ήρθαν ',', received ')+got:'')+(sent?T(', στάλθηκαν ',', sent ')+sent:'');
     if(got) KINDS.forEach(function(k){ B.emit('store','alkyon-'+k); });
   }).catch(function(e){

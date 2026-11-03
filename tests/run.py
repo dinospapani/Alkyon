@@ -128,6 +128,7 @@ with sync_playwright() as p:
         u=route.request.url; m=route.request.method; body=route.request.post_data or ''
         if '/auth/v1/signup' in u:
             CHK['redir']=('redirect_to=' in u)
+            CHK['lang']=json.loads(body).get('data',{}).get('lang')
             return route.fulfill(json={'id':'u1','email':'d@x.com'})
         if '/auth/v1/verify' in u:
             if json.loads(body).get('token')!='123456': return route.fulfill(status=403,json={'msg':'Token has expired or is invalid'})
@@ -143,6 +144,7 @@ with sync_playwright() as p:
     check('Φίλοι: σύνδεση επιτόπου', pg.evaluate("()=>!!document.querySelector('.sheet .authf')"))
     pg.click('.sheet .authf .swm'); pg.fill('.sheet input[type=email]','d@x.com'); pg.fill('.sheet input[type=password]','secret1'); pg.click('.sheet button[type=submit]'); pg.wait_for_timeout(800)
     check('εγγραφή: στέλνει διεύθυνση επιστροφής (redirect_to)', CHK.get('redir') is True)
+    check('εγγραφή: στέλνει τη γλώσσα (για το email)', CHK.get('lang')=='el', CHK.get('lang'))
     check('εγγραφή → κωδικός από email', pg.evaluate("()=>!document.querySelector('.sheet .codebox').hidden"))
     pg.fill('.sheet .codein','000000'); pg.click('.sheet .codebox .btn.pri'); pg.wait_for_timeout(600)
     check('λάθος κωδικός: μήνυμα', 'κωδικός' in pg.evaluate("()=>document.querySelector('.sheet .err').textContent").lower() or 'code' in pg.evaluate("()=>document.querySelector('.sheet .err').textContent").lower())
