@@ -236,7 +236,7 @@ B.safetyCard=function(){
         if(navigator.share) navigator.share({text:txt}).catch(function(){}); else { try{ navigator.clipboard.writeText(txt); B.toast(T('Αντιγράφηκε ο σύνδεσμος.','Link copied.')); }catch(e){} } setTimeout(pollTg,20000); setTimeout(pollTg,90000); }); }}),
       me,h('button',{class:'btn full',type:'button',text:T('Σύνδεση του δικού μου Telegram','Connect my own Telegram'),onclick:function(){ var x=load(); if(!x.selfCode){ x.selfCode='S'+newCode(); save(x); } pushContact().then(function(){ window.open('https://t.me/'+BOT+'?start='+load().selfCode,'_blank'); setTimeout(pollTg,30000); setTimeout(pollTg,120000); }); }}));
     pollTg();
-  } else c.append(h('p',{class:'sub',text:T('Για αυτόματη ειδοποίηση χρειάζεται λογαριασμός.','Automatic alerts need an account.')}));
+  } else c.append(h('p',{class:'sub',text:T('Για αυτόματη ειδοποίηση της επαφής σου αν δεν γυρίσεις χρειάζεται λογαριασμός.','To alert your contact automatically if you are not back, an account is needed.')}),B.accountBtn?B.accountBtn(T('Η αυτόματη ειδοποίηση ασφαλείας στέλνεται από τον server μέσω του λογαριασμού σου, ακόμα κι αν το κινητό σου κλείσει.','The automatic safety alert is sent by the server through your account, even if your phone is off.')):null);
   return c;
 };
 

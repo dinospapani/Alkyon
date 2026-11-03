@@ -56,6 +56,7 @@ function route(){
   VIEWS[name].mount(main);
   document.title=(VIEWS[name].title||'Alkyon')+' · Alkyon';
 }
+B.remount=function(){ if(!cur||!main) return; if(VIEWS[cur].unmount) VIEWS[cur].unmount(); cur=null; route(); };
 function start(){
   main=h('main',{class:'app',id:'main'});
   document.body.append(main,nav());

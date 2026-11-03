@@ -125,6 +125,6 @@ B.fcMine=function(page,fc,ctx){
     S.forEach(function(s){ var hrs=(s.endMs-s.startMs)/3600000, n=s.manual?(+s.count||0):bites.filter(function(b){ var ms=PP.biteMs(b,utc); return ms!=null&&ms>=s.startMs-600000&&ms<=s.endMs+600000; }).length;
       l.append(h('div',{class:'mrow'},h('span',{text:s.date?B.dayName(s.date)+' '+B.dateShort(s.date):''}),h('b',{text:B.num(hrs,1)+' h, '+n+' '+T(n===1?'ψάρι':'ψάρια',n===1?'catch':'catches')}))); });
     c6.append(l); page.append(c6); }
-  page.append(h('p',{class:'foot'},T('Για να προσθέσεις παλιά έξοδο, άνοιξε την ','To add a past trip, open the '),h('a',{href:B.classic('?a=fc'),text:T('κλασική έκδοση','classic version')}),'.'));
+  page.append(h('p',{class:'foot'},T('Έξοδος χωρίς καταγραφή; ','A trip you did not log? '),h('button',{type:'button',class:'linkbtn',text:T('Πρόσθεσε παλιά έξοδο','Add a past trip'),onclick:function(){ if(B.pastTrip) B.pastTrip(); else location.hash='#log'; }}),'.')); /* 1.4.0: όχι πια στην κλασική */
 };
 })();

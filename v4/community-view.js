@@ -66,7 +66,7 @@ function draw(){
   if(!root) return; var page=h('div',{class:'page'});
   page.append(h('div',{class:'top'},h('div',{style:{display:'flex',alignItems:'center',gap:'12px'}},h('a',{class:'iconbtn',href:'#profile','aria-label':T('Πίσω στο Προφίλ','Back to Profile'),html:B.iconSvg('back')}),h('h1',{class:'lt',text:T('Κοινότητα','Community')})),
     sess()?h('button',{class:'iconbtn',type:'button','aria-label':T('Ανανέωση','Refresh'),html:B.iconSvg('refresh'),onclick:function(){ load(true); }}):null));
-  if(!sess()){ page.append(h('div',{class:'card empty'},h('h3',{text:T('Χρειάζεται λογαριασμός','An account is needed')}),h('p',{text:T('Συνδέσου στο Προφίλ για να δεις και να μοιραστείς ψάρια με άλλους ψαράδες. Δεν φαίνεται ποτέ θέση.','Sign in from Profile to see and share catches with other anglers. A location is never shown.')}),h('a',{class:'btn pri',href:'#profile',text:T('Στο Προφίλ','Go to Profile')}))); root.replaceChildren(page); return; }
+  if(!sess()){ page.append(h('div',{class:'card empty'},h('h3',{text:T('Χρειάζεται λογαριασμός','An account is needed')}),h('p',{text:T('Συνδέσου στο Προφίλ για να δεις και να μοιραστείς ψάρια με άλλους ψαράδες. Δεν φαίνεται ποτέ θέση.','Sign in from Profile to see and share catches with other anglers. A location is never shown.')}),B.accountBtn(T('Με λογαριασμό βλέπεις και μοιράζεσαι ψάρια με άλλους ψαράδες. Δεν φαίνεται ποτέ θέση.','With an account you see and share catches with other anglers. A location is never shown.')))); root.replaceChildren(page); return; }
   page.append(B.seg([['all',T('Όλα','All')],['mine',T('Δικά μου','Mine')]],F.mine?'mine':'all',function(v){ var m=v==='mine'; if(m===F.mine) return; F.mine=m; load(true); },T('Αναρτήσεις','Posts')));
   page.append(h('p',{class:'sub',style:{margin:'10px 4px'},text:T('Οι αναρτήσεις δεν δείχνουν ποτέ θέση ή όνομα σημείου. Μοιράζεσαι ένα ψάρι από το Ημερολόγιο: πάτα το ψάρι › Κοινότητα.','Posts never show a location or spot name. Share a catch from the Log: tap the catch › Community.')}));
   var bl=blocked(), shown=F.items.filter(function(p){ return bl.indexOf(p.user_id)<0; });
@@ -86,7 +86,7 @@ function moonIdx(b){ try{ return Math.round(PF.moonPhase(B.biteMs(b)).f*8)%8; }c
 function uuid(){ return (window.crypto&&crypto.randomUUID)?crypto.randomUUID():'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
 B.commShared=function(id){ var s=ls.get('alkyon-comm-shared',{})||{}; return !!s[id]; };
 B.commShare=function(b){
-  if(!sess()){ B.toast(T('Συνδέσου πρώτα στον λογαριασμό σου (Προφίλ).','Sign in first (Profile).')); return; }
+  if(!sess()){ B.authSheet({reason:T('Για να μοιραστείς ψάρι στην Κοινότητα χρειάζεται λογαριασμός.','Sharing a catch to the Community needs an account.')}); return; }
   if(B.commShared(b.id)){ B.toast(T('Έχει ήδη μοιραστεί.','Already shared.')); return; }
   if(!b.species){ B.toast(T('Λείπει το είδος.','Species is missing.')); return; }
   var blob=null, body=h('div',{class:'bform'}), prev=h('div'), withCond=false, sh;

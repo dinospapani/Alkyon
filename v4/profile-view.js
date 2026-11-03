@@ -50,10 +50,15 @@ function draw(){
   var s=C().session(), page=h('div',{class:'page'}), y=window.scrollY;
   page.append(h('div',{class:'top'},h('h1',{class:'lt',text:T('Προφίλ','Profile')})));
   page.append(head(s));
+  /* 1.4.0: χωρίς λογαριασμό και με 3+ ψάρια ή εξόδους: μικρή υπενθύμιση, μέχρι να την κλείσεις */
+  if(!s&&tab!=='acc'&&!ls.get('alkyon-v4-acctip',0)){ var nn=0; try{ nn=B.store.raw('bites').filter(function(b){ return !b.deleted; }).length+B.store.raw('trips').filter(function(t){ return !t.deleted; }).length; }catch(e){}
+    if(nn>=3){ var tip=h('section',{class:'card acctip'},h('p',{text:T('Έχεις '+nn+' ψάρια και εξόδους μόνο σε αυτό το κινητό. Με δωρεάν λογαριασμό δεν χάνονται.','You have '+nn+' catches and trips on this phone only. With a free account they are never lost.')}),
+      h('div',{class:'inrow'},B.accountBtn?B.accountBtn(null,T('Δημιουργία λογαριασμού','Create account')):null,h('button',{class:'btn',type:'button',text:T('Όχι, ευχαριστώ','No thanks'),onclick:function(){ ls.set('alkyon-v4-acctip',Date.now()); tip.remove(); }})));
+      page.append(tip); } }
   page.append(B.seg([['mine',T('Τα δικά μου','My stuff')],['set',T('Ρυθμίσεις','Settings')],['acc',T('Λογαριασμός','Account')]],tab,function(v){ tab=v; ls.set('alkyon-v4-ptab',v); draw(); },T('Ενότητα προφίλ','Profile section')));
   if(tab==='set') settingsTab(page); else if(tab==='acc') accountTab(page,s); else mineTab(page);
   var EL=window.AlkyonErrLog, ne=EL?EL.get().length:0;
-  page.append(h('p',{class:'foot'},'Alkyon · '+(window.ALKYON_VERSION||'')+' · ',h('a',{href:B.classic(),text:T('Κλασική έκδοση','Classic version')}),
+  page.append(h('p',{class:'foot'},'Alkyon · '+(window.ALKYON_VERSION||''),
     ne?' · ':'',ne?h('button',{type:'button',class:'linkbtn errlk',text:T('Αναφορά σφαλμάτων','Error report')+' ('+ne+')',onclick:function(){ location.hash='#check'; }}):''));
   root.replaceChildren(page); if(y) try{ window.scrollTo(0,y); }catch(e){}
 }
@@ -142,19 +147,7 @@ function dangerCard(){ var c=h('section',{class:'card accx'});
   c.append(h('button',{class:'linkbtn danger',type:'button',text:T('Διαγραφή λογαριασμού','Delete account'),onclick:delAccount}));
   return c;
 }
-function signInCard(){
-  var c=h('section',{class:'card acc'}), mode='in';
-  var em=h('input',{type:'email',autocomplete:'email',inputmode:'email',placeholder:'email','aria-label':'Email'}), pw=h('input',{type:'password',autocomplete:'current-password',placeholder:T('Κωδικός','Password'),'aria-label':T('Κωδικός','Password')});
-  var msg=h('p',{class:'err',role:'alert'}), go=h('button',{class:'btn pri full',type:'submit'}), sw=h('button',{class:'link',type:'button'});
-  var ttl=h('h2'), sub=h('p',{class:'sub',text:T('Με λογαριασμό τα ψάρια, οι έξοδοι και οι φωτογραφίες σου κρατιούνται και σε άλλο κινητό.','With an account your catches, trips and photos are kept on any phone.')});
-  function paint(){ ttl.textContent=mode==='in'?T('Σύνδεση','Sign in'):T('Νέος λογαριασμός','New account'); go.textContent=mode==='in'?T('Σύνδεση','Sign in'):T('Δημιουργία λογαριασμού','Create account'); sw.textContent=mode==='in'?T('Δεν έχεις λογαριασμό; Δημιούργησε έναν','No account? Create one'):T('Έχεις ήδη λογαριασμό; Σύνδεση','Already have an account? Sign in'); pw.autocomplete=mode==='in'?'current-password':'new-password'; }
-  sw.addEventListener('click',function(){ mode=mode==='in'?'up':'in'; msg.textContent=''; paint(); });
-  var f=h('form',{class:'bform',novalidate:true},ttl,sub,h('label',{class:'fld'},h('span',{text:'Email'}),em),h('label',{class:'fld'},h('span',{text:T('Κωδικός','Password')}),pw),msg,go,sw);
-  f.addEventListener('submit',function(e){ e.preventDefault(); msg.textContent=''; var a=em.value.trim(), b=pw.value; if(!a||!b){ msg.textContent=T('Συμπλήρωσε email και κωδικό.','Fill in email and password.'); return; }
-    go.disabled=true; (mode==='in'?C().signIn(a,b):C().signUp(a,b)).then(function(r){ go.disabled=false; if(r==='confirm'){ msg.style.color='var(--good)'; msg.textContent=T('Σου στείλαμε email επιβεβαίωσης. Πάτα τον σύνδεσμο και μετά συνδέσου.','We sent you a confirmation email. Tap the link, then sign in.'); return; } B.toast(T('Συνδέθηκες.','Signed in.')); draw(); })
-      .catch(function(err){ go.disabled=false; msg.textContent=C().errText(err); }); });
-  paint(); c.append(f); return c;
-}
+function signInCard(){ var c=h('section',{class:'card acc'}); c.append(B.authForm({done:draw})); return c; } /* 1.4.0: account.js */
 
 /* συμπλήρωση δεδομένων παλιών ψαριών (ίδιες λειτουργίες με την κλασική: ιστορικός καιρός, πίεση και άνεμος ±30′) */
 function dataCard(){ var rows=(window.AlkyonSeaRows||[]).map(function(f){ try{ return f(); }catch(e){ return null; } }).filter(Boolean); if(!rows.length) return null;

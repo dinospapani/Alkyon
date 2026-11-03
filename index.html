@@ -11,19 +11,19 @@
 <style>html,body{margin:0;height:100%;background:#06171F;color:#E6F1F2;font:16px system-ui,sans-serif}body{display:grid;place-items:center}a{color:#FF7A4D}</style>
 <script src="migrate.js"></script>
 <script>
-/* Alkyon: η κύρια εφαρμογή είναι πλέον στο v4/. Η κλασική έκδοση μένει στο classic.html ως εφεδρεία.
+/* Alkyon: η εφαρμογή είναι στο v4/. Η κλασική έκδοση αποσύρθηκε στην 1.4.0 (το classic.html ανακατευθύνει εδώ).
    Οι συντομεύσεις (?a=bite|trip|fc) περνούν στη νέα εφαρμογή. Ο service worker της ρίζας μένει για τις ειδοποιήσεις. */
 (function(){
   var a=''; try{ a=new URLSearchParams(location.search).get('a')||''; }catch(e){}
   var M={bite:'#new',trip:'#trip',fc:'#forecast',log:'#log',map:'#map',prof:'#profile'};
-  if(a&&!M[a]){ location.replace('classic.html'+location.search); return; }
-  /* σύνδεσμοι από email (επιβεβαίωση, νέος κωδικός) και ιστορικό ειδοποιήσεων: τα χειρίζεται η κλασική */
-  if(/access_token|type=recovery|error_description/.test(location.hash)){ location.replace('classic.html'+location.search+location.hash); return; }
+  if(a&&!M[a]){ location.replace('classic.html'+location.search); return; } /* το classic.html μεταφράζει τις παλιές συντομεύσεις */
+  /* 1.4.0: σύνδεσμοι από email (επιβεβαίωση, νέος κωδικός): τους χειρίζεται πλέον η νέα εφαρμογή (v4/account.js) */
+  if(/access_token|type=recovery|error_description/.test(location.hash)){ location.replace('v4/'+location.search+location.hash); return; }
   if(/^#inbox/.test(location.hash)){ location.replace('v4/#inbox'); return; }
   try{ if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){}); }catch(e){}
   location.replace('v4/'+(M[a]||location.hash||''));
 })();
 </script>
 </head>
-<body><p>Alkyon… <a href="v4/">Άνοιγμα</a> · <a href="classic.html">Κλασική έκδοση</a></p></body>
+<body><p>Alkyon… <a href="v4/">Άνοιγμα</a></p></body>
 </html>

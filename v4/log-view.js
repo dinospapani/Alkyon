@@ -92,11 +92,35 @@ function detail(b){
 
 /* ---------- έξοδοι ---------- */
 function dur(t){ return t.startMs&&t.endMs?(t.endMs-t.startMs-(t.pauseMs||0))/3600000:null; }
+/* 1.4.0: παλιά έξοδος (χωρίς καταγραφή GPS): ίδια στοιχεία με την κλασική, για εξόδους που έγιναν χωρίς την εφαρμογή */
+function pastTrip(){ var sh, td=new Date(), today=td.getFullYear()+'-'+B.pad(td.getMonth()+1)+'-'+B.pad(td.getDate()), prof=B.prof?B.prof():'boat';
+  var dt=h('input',{type:'date',value:today,max:today,'aria-label':T('Ημερομηνία','Date')});
+  var sp=h('input',{type:'text',maxlength:'60',list:'ptSpots',placeholder:T('Επίλεξε ή γράψε','Pick or type')});
+  var spl=h('datalist',{id:'ptSpots'}); S().raw('spots').concat(S().raw('trips')).forEach(function(x){ var n=(x.name||x.spot||'').trim(); if(n&&!spl.querySelector('option[value="'+n.replace(/"/g,'')+'"]')) spl.append(h('option',{value:n})); });
+  var tc=h('input',{type:'text',maxlength:'40',list:'ptTech',placeholder:T('π.χ. Βυθού, Jigging, Συρτή','e.g. Bottom, Jigging, Trolling')});
+  var tcl=h('datalist',{id:'ptTech'}); var seenT={}; S().raw('trips').concat(S().bites()).forEach(function(x){ var v=(x.tech||'').trim(); if(v&&!seenT[v]){ seenT[v]=1; tcl.append(h('option',{value:v})); } });
+  var t0=h('input',{type:'time','aria-label':T('Ώρα έναρξης','Start time')}), t1=h('input',{type:'time','aria-label':T('Ώρα τέλους','End time')});
+  var sps=h('input',{type:'text',maxlength:'80',placeholder:T('π.χ. σαργός, λιθρίνι','e.g. white bream, pandora')});
+  var cn=h('input',{type:'number',min:'0',step:'1',inputmode:'numeric',value:'0'}), kg=h('input',{type:'number',min:'0',step:'0.1',inputmode:'decimal',value:'0'});
+  var nt=h('textarea',{maxlength:'500',rows:'3',placeholder:T('Δόλωμα, άνεμος, τι δούλεψε','Bait, wind, what worked')}), msg=h('p',{class:'err',role:'alert'});
+  var pseg=B.seg([['boat',T('Βάρκα','Boat')],['shore',T('Ακτή','Shore')],['spear',T('Τουφέκι','Spear')],['lake',T('Λίμνη','Lake')]],prof,function(v){ prof=v; },T('Τύπος','Type'));
+  function f(l,el){ return h('label',{class:'fld'},h('span',{text:l}),el); }
+  function save(){ msg.textContent=''; var d=dt.value; if(!/^\d{4}-\d\d-\d\d$/.test(d)){ msg.textContent=T('Διάλεξε ημερομηνία.','Pick a date.'); return; } if(d>today){ msg.textContent=T('Η ημερομηνία είναι στο μέλλον.','The date is in the future.'); return; }
+    var rec={date:d,spot:sp.value.trim(),prof:prof,tech:tc.value.trim(),species:sps.value.trim(),count:Math.max(0,Math.round(+cn.value||0)),kg:Math.max(0,+kg.value||0),notes:nt.value.trim(),manual:true};
+    if(t0.value&&t1.value){ var a=new Date(d+'T'+t0.value).getTime(), b=new Date(d+'T'+t1.value).getTime(); if(b<=a) b+=86400000; rec.startMs=a; rec.endMs=b; }
+    S().save('trips',rec); sh.close(); B.toast(T('Η έξοδος αποθηκεύτηκε.','Trip saved.')); }
+  sh=B.sheet({title:T('Παλιά έξοδος','Past trip'),body:h('div',{class:'bform pasttrip'},
+    h('p',{class:'sub',text:T('Για έξοδο που έκανες χωρίς να την καταγράψεις στην εφαρμογή. Τα ψάρια μπορείς να τα προσθέσεις και ξεχωριστά με «Νέο ψάρι» και την ίδια ημερομηνία.','For a trip you made without logging it in the app. You can also add catches separately with “New catch” on the same date.')}),
+    pseg,f(T('Ημερομηνία','Date'),dt),f(T('Σημείο','Spot'),sp),spl,h('div',{class:'inrow'},f(T('Από','From'),t0),f(T('Έως','To'),t1)),f(T('Τεχνική','Technique'),tc),tcl,f(T('Είδη','Species'),sps),
+    h('div',{class:'inrow'},f(T('Ψάρια (τεμάχια)','Fish (count)'),cn),f(T('Βάρος (kg)','Weight (kg)'),kg)),f(T('Σημειώσεις','Notes'),nt),msg,
+    h('button',{class:'btn pri full',type:'button',text:T('Αποθήκευση εξόδου','Save trip'),onclick:save}))}); }
+B.pastTrip=pastTrip;
+function pastBtn(){ return h('button',{class:'btn',type:'button',text:'+ '+T('Παλιά έξοδος','Past trip'),onclick:pastTrip}); }
 function trips(page){
   /* ψαροντούφεκο: καταδύσεις από ρολόι (FIT/UDDF), ίδια λειτουργία με την κλασική (divelog.js) */
   if(window.AlkyonDiveLog&&B.prof()==='spear'){ page.append(h('div',{id:'l-trips',class:'dives'},h('div',{id:'tripList'}))); setTimeout(function(){ try{ AlkyonDiveLog.render(); }catch(e){} },0); }
   var a=S().raw('trips').filter(function(t){ return inRange(t.date||''); }).sort(function(x,y){ return (y.startMs||Date.parse(y.date))-(x.startMs||Date.parse(x.date)); });
-  if(!a.length){ page.append(h('div',{class:'card empty'},h('h3',{text:T('Καμία έξοδος σε αυτό το διάστημα','No trips in this period')}),h('p',{text:T('Οι έξοδοι ξεκινούν από τον χάρτη με «Έναρξη εξόδου».','Trips start from the map with “Start a trip”.')}),h('a',{class:'btn pri',href:'#trip',text:T('Έναρξη εξόδου','Start a trip')}))); return; }
+  if(!a.length){ page.append(h('div',{class:'card empty'},h('h3',{text:T('Καμία έξοδος σε αυτό το διάστημα','No trips in this period')}),h('p',{text:T('Οι έξοδοι ξεκινούν από τον χάρτη με «Έναρξη εξόδου».','Trips start from the map with “Start a trip”.')}),h('div',{class:'inrow'},h('a',{class:'btn pri',href:'#trip',text:T('Έναρξη εξόδου','Start a trip')}),pastBtn()))); return; }
   var tot=a.reduce(function(s,t){ return s+(dur(t)||0); },0), n=a.reduce(function(s,t){ return s+(+t.count||0); },0);
   page.append(h('p',{class:'sum',text:a.length+' '+T(a.length===1?'έξοδος':'έξοδοι',a.length===1?'trip':'trips')+', '+B.num(tot,0)+T(' ώρες, ',' hours, ')+n+' '+T('ψάρια','catches')}));
   var l=h('div',{class:'list'});
@@ -104,6 +128,7 @@ function trips(page){
     var row=h('button',{class:'li triprow',type:'button',onclick:function(){ tripDetail(t); }},h('span',{class:'tc'+(c?'':' z'),text:String(c)}),h('span',{class:'tx'},h('b',null,h('i',{class:'tpi',html:B.profBadge?B.profBadge(t.prof||'boat'):''}),document.createTextNode((t.spot||B.PROF[t.prof||'boat']||'')+(t.priv?' 🔒':''))),h('small',{text:[when(t),d!=null?B.num(d,1)+' h':'',+t.kg?B.num(t.kg,1)+' kg':''].filter(Boolean).join(' · ')})),B.icon('chev')); l.append(B.swipeDel(row,function(){ S().delUndo('trips',t,T('Η έξοδος διαγράφηκε. Τα ψάρια της μένουν.','Trip deleted. Its catches stay.')); }));
   });
   page.append(l);
+  page.append(h('div',{class:'inrow pastrow'},pastBtn()));
 }
 
 /* ---------- σημεία ---------- */
