@@ -4,6 +4,10 @@
    υπενθυμίσεις αλλαγής/συντήρησης, λίστα αγορών (alkyon-tk-shop), μονάδες (alkyon-tk-units), φωτογραφία και αρχείο εξοπλισμού. */
 (function(){
 'use strict';
+/* 1.3.3: αν το κινητό έχει ακόμα παλιό index.html (που δεν φορτώνει το tackle-core.js), το φορτώνει πρώτα και τρέχει ξανά αυτό το αρχείο.
+   Έτσι δεν χαλάει ο Εξοπλισμός ούτε το backup όσο γίνεται η ενημέρωση. */
+if(!window.AK.tkCore){ if(window.__tkRetry) return; window.__tkRetry=1; var s0=document.createElement('script'); s0.src='tackle-core.js';
+  s0.onload=function(){ var s1=document.createElement('script'); s1.src='tackle-view.js'; document.head.appendChild(s1); }; document.head.appendChild(s0); return; }
 var B=window.AK, h=B.h, T=B.T, EN=B.EN, ls=B.ls, root=null, q='', fType='all';
 var BR=['Major Craft','Shimano','Daiwa','Penn','Okuma','Abu Garcia','Savage Gear','Rapala','Yo-Zuri','Duel','Sunline','Varivas','Seaguar','Ygk','YGK','Jigging Master','Tailwalk','Ripple Fisher','Palms','Smith','Xesta','Williamson','Storm','Berkley','Fiiish','Cressi','Omer','Mares','Salvimar','Pathos','Rob Allen','Epsealon','Sigalsub','Dorado','Ultimate Fishing','Tica','Van Staal','Accurate','Fin-Nor','Stella','PowerPro','Daiwa J-Braid','X-Braid','Varivas'];
 function S(){ return B.store; }

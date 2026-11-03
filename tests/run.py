@@ -112,6 +112,16 @@ with sync_playwright() as p:
     check('ονόματα/βάρη εξοπλισμού χωρίς τη σελίδα', pg.evaluate("()=>AK.tackleKind('jig')!=='jig'&&/\\d/.test(AK.tackleW(60))"))
     check('backup χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
 
+    print('# ενημέρωση σε εξέλιξη (παλιό index.html από τη μνήμη, νέα αρχεία)')
+    c=ctx(b)
+    def oldidx(route):
+        r=route.fetch(); body=r.text().replace('<script src="tackle-core.js"></script>','<script src="tackle-view.js"></script>').replace('<script src="lazy.js"></script>','')
+        route.fulfill(response=r, body=body)
+    c.route('**/v4/', oldidx); c.route('**/v4/index.html', oldidx)
+    pg=page(c); pg.goto(BASE+'/v4/#profile'); pg.wait_for_timeout(2500)
+    check('παλιό index: backup διαθέσιμο', pg.evaluate("()=>!!(AK.backup&&AK.backup.build)"))
+    s=go(pg,'#tackle',2000); check('παλιό index: Εξοπλισμός χωρίς σφάλμα', not pg._errs and not s['fail'], (s,pg._errs)); c.close()
+
     print('# offline')
     c=ctx(b,sw=True); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(6000); pg.reload(); pg.wait_for_timeout(3000)
     c.set_offline(True)
