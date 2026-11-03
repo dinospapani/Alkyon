@@ -585,3 +585,12 @@ body:has(.mapbar .nightb:not([hidden])):has(.mapbar .gearbtn:not([hidden])) .att
 .mk.best i{font:900 15px/1 var(--font);font-style:normal;color:#0b0f14;background:#f6b744;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.45)}
 .mk.best b{font:800 10.5px var(--font);color:#fff;background:rgba(12,22,32,.85);border-radius:6px;padding:1px 5px;margin-top:2px}
 .bsw{margin:6px 0 10px 18px;padding:0}.bsw li{margin:3px 0}
+/* 1.2.4: λίστα «Καλύτερα σημεία» μέσα στον χάρτη (ίδια με την .opps της Πρόγνωσης) */
+.opps .opl{display:flex;flex-direction:column;gap:6px;margin:10px 0}
+.opps .opr{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border:0;border-radius:14px;background:var(--surface-2);color:var(--ink);text-align:left;font-family:var(--font);cursor:pointer}
+.opps .ops{flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font:800 15px var(--font);color:#fff;background:#8a96a3}
+.opps .ops.hi{background:#2e9e6a}.opps .ops.mid{background:#d79a2b}
+.opps .opt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.opps .opt b{font:700 13.5px var(--font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.opps .opt small{font:600 12px/1.3 var(--font);color:var(--ink-2)}
+.opps .opr svg{width:18px;height:18px;flex:none;opacity:.5}

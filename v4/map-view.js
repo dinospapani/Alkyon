@@ -706,7 +706,10 @@ function applyPend(){ if(!pend||!map) return false; var q=pend; pend=null;
   revClear();
   if(q.replay&&q.tr&&q.tr.length>1){ setTimeout(function(){ replay(q.replay); },300); }
   if(q.tr&&q.tr.length>1){ gRev=L.layerGroup([L.polyline(q.tr.map(function(p){ return [p[0],p[1]]; }),{color:'#ff8a50',weight:5,opacity:.95}),L.circleMarker(q.tr[0],{radius:7,color:'#fff',weight:3,fillColor:'#3ddc97',fillOpacity:1}),L.circleMarker(q.tr[q.tr.length-1],{radius:7,color:'#fff',weight:3,fillColor:'#ff4d4d',fillOpacity:1})]).addTo(map); map.fitBounds(L.latLngBounds(q.tr.map(function(p){ return [p[0],p[1]]; })),{padding:[40,40]}); revShow(q.lab||T('Διαδρομή εξόδου','Trip route'),q.trip||q.replay||null); }
-  else { map.setView([q.lat,q.lon],q.z||15); gRev=L.layerGroup([L.circleMarker([q.lat,q.lon],{radius:11,color:'#E4572E',weight:3,fillOpacity:.15})]).addTo(map); revShow(q.lab||T('Σημείο από το Ημερολόγιο','Point from the logbook'),null); }
+  else { var lab=q.lab||T('Σημείο από το Ημερολόγιο','Point from the logbook');
+    /* 1.2.4: τοποθεσίες πρόγνωσης / ευκαιρίες: αν το σημείο είναι στη στεριά (π.χ. το κέντρο μιας πόλης), δείχνει την κοντινότερη θάλασσα (έως 3 km), εκεί που ισχύει η πρόγνωση */
+    if(q.sea){ try{ var X=window.AlkyonExposure, sp=X&&X.seaPoint?X.seaPoint(q.lat,q.lon):null; if(sp&&sp.moved){ q.lat=sp.lat; q.lon=sp.lon; lab+=T(' · κοντινότερη θάλασσα',' · nearest sea'); } }catch(e){} }
+    map.setView([q.lat,q.lon],q.z||15); gRev=L.layerGroup([L.circleMarker([q.lat,q.lon],{radius:11,color:'#E4572E',weight:3,fillOpacity:.15})]).addTo(map); revShow(lab,null); }
   return true; }
 B.spotSheet=function(sp){ spotSheet(sp); };
 /* ονόματα σημείων που πέφτουν το ένα πάνω στο άλλο: φαίνεται μόνο το πρώτο (τα υπόλοιπα με πάτημα στο σημείο) */
@@ -714,7 +717,7 @@ function declutter(){ var kept=[]; [].forEach.call(document.querySelectorAll('#l
   var hit=kept.some(function(k){ return !(r.right<k.left-4||r.left>k.right+4||r.bottom<k.top-2||r.top>k.bottom+2); }); if(hit) b.style.visibility='hidden'; else kept.push(r); }); }
 var dcT=null; function declutterSoon(){ clearTimeout(dcT); dcT=setTimeout(declutter,120); }
 /* 1.2.2: πάντα μεταφέρει στον Χάρτη (πριν, αν ο χάρτης είχε ανοίξει μία φορά, μετακινούνταν μόνο ο κρυφός χάρτης και έμενες στην ίδια σελίδα) */
-B.mapGo=function(lat,lon,z,tr){ pend={lat:lat,lon:lon,z:z,tr:tr}; if(!/^#map/.test(location.hash||'')) location.hash='#map'; else if(map&&root) applyPend(); };
+B.mapGo=function(lat,lon,z,tr,o){ o=o||{}; pend={lat:lat,lon:lon,z:z,tr:tr,lab:o.lab||null,sea:!!o.sea}; if(!/^#map/.test(location.hash||'')) location.hash='#map'; else if(map&&root) applyPend(); };
 
 B.view('map',{title:T('Χάρτης','Map'),mount:mount,unmount:unmount,resume:function(){ if(map&&root){ map.invalidateSize(); drawData(); applyPend(); } }});
 var ddF=0; B.on('store',function(k){ if(map&&/^alkyon-(bites|spots|gear)$/.test(k)&&!ddF) ddF=requestAnimationFrame(function(){ ddF=0; if(map) drawData(); }); });

@@ -161,7 +161,7 @@ function ibDraw(){ var r=ib.root; if(!r) return; var page=h('div',{class:'page'}
       h('span',{class:'when',text:new Date(x.at).toLocaleTimeString(EN?'en-GB':'el-GR',{hour:'2-digit',minute:'2-digit'})})));
     /* 1.1.0: ανοιχτή ειδοποίηση με τοποθεσία → πρόγνωση εκεί ή χάρτης */
     var pl=x.place&&typeof x.place==='object'&&x.place.lat!=null?x.place:null;
-    if(open&&pl) l.append(h('div',{class:'ibacts'},h('button',{class:'btn sm pri',type:'button',text:T('Πρόγνωση εκεί','Forecast there'),onclick:function(){ fcAt(pl); }}),h('button',{class:'btn sm',type:'button',text:T('Στον χάρτη','On the map'),onclick:function(){ if(B.mapGo) B.mapGo(+pl.lat,+pl.lon,12); else location.hash='#map'; }})));
+    if(open&&pl) l.append(h('div',{class:'ibacts'},h('button',{class:'btn sm pri',type:'button',text:T('Πρόγνωση εκεί','Forecast there'),onclick:function(){ fcAt(pl); }}),h('button',{class:'btn sm',type:'button',text:T('Στον χάρτη','On the map'),onclick:function(){ if(B.mapGo) B.mapGo(+pl.lat,+pl.lon,12,null,{lab:pl.name||null,sea:true}); else location.hash='#map'; }})));
     else if(open&&!pl&&/good|καλ/i.test((x.kind||'')+(x.title||''))) l.append(h('div',{class:'ibacts'},h('a',{class:'btn sm pri',href:'#forecast',text:T('Άνοιγμα Πρόγνωσης','Open Forecast')})));
   });
   page.append(h('p',{class:'foot',text:T('Πάτα μια ειδοποίηση για όλο το κείμενο και για να δεις την πρόγνωση ή τον χάρτη εκεί.','Tap a notification for the full text and to see the forecast or map there.')}));

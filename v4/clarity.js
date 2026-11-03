@@ -47,7 +47,8 @@ B.clarityCard=function(fc,d,p,isToday,hr){ var est=estimate(fc,d.date,p&&p.lat,p
       h('small',{class:'clw',text:r.why.join(' · ')}),note?h('small',{class:'cln',text:note}):null); }
   paint(est,null);
   var dd=Math.round((Date.parse(d.date)-Date.parse(new Date().toISOString().slice(0,10)))/86400000);
-  if(p&&p.lat!=null&&dd>=0&&dd<=1) sat(+p.lat,+p.lon).then(function(v){ var s=fromSat(v,new Date().toISOString().slice(0,10)); if(s) paint(s,est?T('Από τις συνθήκες: ~','From conditions: ~')+est.m+' m':null); else paint(est,why(v)); });
+  if(dd===0&&est&&B.dayNote) B.dayNote(p,{vis:est.m,vs:'model'});   /* 1.2.5: ιστορικό */
+  if(p&&p.lat!=null&&dd>=0&&dd<=1) sat(+p.lat,+p.lon).then(function(v){ var s=fromSat(v,new Date().toISOString().slice(0,10)); if(s){ paint(s,est?T('Από τις συνθήκες: ~','From conditions: ~')+est.m+' m':null); if(dd===0&&B.dayNote) B.dayNote(p,{vis:s.m,vs:'sat'}); } else paint(est,why(v)); });
   return box; };
 /* για καταγραφή: η εκτίμηση εκείνης της στιγμής (για να μαθαίνει από ό,τι γράφεις) */
 B.clarityEst=function(lat,lon,date,time){ var c=ls.get('alkyon-fc7',null), fc=c&&c.fc; if(!fc) return null; var r=estimate(fc,date,lat,lon,parseInt((time||'10').slice(0,2),10)); return r?r.m:null; };
@@ -69,6 +70,7 @@ B.thermoCard=function(p){ if(!p||p.lat==null) return null; var box=h('section',{
     box.replaceChildren(h('h2',{text:T('Θερμοκρασία σε βάθος','Temperature at depth')}),
       h('p',{class:'thsum',text:th?T('Θερμοκλινές ~','Thermocline ~')+Math.round(th.top)+'–'+Math.round(th.bot)+' m: '+f(th.t1)+' → '+f(th.t2)+'.':T('Χωρίς έντονο θερμοκλινές ως τα ','No strong thermocline down to ')+Math.round(P[P.length-1].d)+' m ('+f(P[0].t)+' → '+f(P[P.length-1].t)+').'}),
       rows,h('p',{class:'foot',text:(th?T('Πολλά ψάρια κρατιούνται συχνά λίγο πάνω ή μέσα στο θερμοκλινές: δοκίμασε το jig ή το δόλωμα σε αυτό το βάθος. ','Fish often hold just above or within the thermocline: try your jig or bait at that depth. '):'')+T('Μοντέλο Copernicus Μεσογείου (ημερήσιος μέσος), όχι μέτρηση.','Copernicus Mediterranean model (daily mean), not a measurement.')}));
+    if(B.dayNote) B.dayNote(p,{t0:P[0].t,tc:th?[Math.round(th.top),Math.round(th.bot),Math.round(th.t1*10)/10,Math.round(th.t2*10)/10]:null});   /* 1.2.5: ιστορικό */
     box.hidden=false; }); return box; };
 
 /* 1.1.0: ρεύματα (ίδια συνάρτηση Supabase, mode=current, μοντέλο Copernicus Μεσογείου): τώρα, επόμενες 24 ώρες, και σε βάθος.
@@ -86,6 +88,7 @@ function level(k){ return k<0.3?'lo':k<0.8?'mid':'hi'; }
 B.currentGet=curGet;
 B.currentCard=function(p){ if(!p||p.lat==null) return null; var box=h('section',{class:'card curcard',hidden:true});
   curGet(+p.lat,+p.lon).then(function(v){ if(!v||!v.now) return; var n=v.now, prof=B.prof?B.prof():'boat';
+    if(B.dayNote) B.dayNote(p,{cu:[Math.round(n.kn*100)/100,n.dir],cz:v.deep&&v.deep.length?v.deep.map(function(z){ return [z.d,Math.round(z.kn*100)/100,z.dir]; }):null});   /* 1.2.5: ιστορικό */
     var head=h('div',{class:'curnow '+level(n.kn)},arrow(n.dir,34),h('div',null,h('b',{text:kn(n.kn)+' '+T('προς ','towards ')+dname(n.dir)}),h('small',{text:n.kn<0.3?T('Ήπιο ρεύμα','Gentle current'):n.kn<0.8?T('Μέτριο ρεύμα','Moderate current'):T('Δυνατό ρεύμα','Strong current')})));
     var strip=null; if(v.hrs&&v.hrs.length>1){ strip=h('div',{class:'curhrs'}); v.hrs.slice(0,9).forEach(function(x){ var d=new Date(x.t); strip.append(h('div',{class:'curh '+level(x.kn)},h('small',{text:B.pad(d.getHours())+':00'}),arrow(x.dir,16),h('em',{text:B.num(x.kn,1)}))); }); }
     var deep=null; if(v.deep&&v.deep.length>1){ deep=h('div',{class:'thrs'}); v.deep.forEach(function(x){ deep.append(h('div',{class:'thr curd'},h('span',{text:x.d+' m'}),h('i',null,arrow(x.dir,14),h('small',{text:' '+dname(x.dir)})),h('em',{text:kn(x.kn)}))); }); }

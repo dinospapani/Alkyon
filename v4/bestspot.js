@@ -73,11 +73,12 @@ function fcAt(lat,lon,name){ var a=ls.get('alkyon-places',[])||[], id='p'+Math.r
   if(!a.some(function(p){ return p.id===id; })){ a.unshift({id:id,name:name,lat:+lat.toFixed(4),lon:+lon.toFixed(4),watch:false,map:1}); ls.set('alkyon-places',a.slice(0,10)); }
   ls.set('alkyon-fcsel',id); location.hash='#forecast'; }
 
-function summary(res,data){ var body=h('div',null);
+function summary(res,data){ var body=h('div',{class:'opps'}), list=h('div',{class:'opl'});   /* ίδια εμφάνιση με τη λίστα «Πού να πάω» */
   var seg=B.seg([['0',T('Σήμερα','Today')],['1',T('Αύριο','Tomorrow')]],String(dayIx),function(v){ dayIx=+v; sh.close(); show(); },T('Μέρα','Day'));
   body.append(seg);
   if(!res.top.length) body.append(h('p',{class:'sub',text:res.unsafe?T('Όλα τα σημεία εδώ είναι πάνω από τα όρια ασφαλείας σου αυτή τη μέρα.','All spots here are over your safety limits that day.'):T('Δεν βρέθηκαν σημεία θάλασσας εδώ. Μετακίνησε τον χάρτη πάνω από θάλασσα.','No sea points found here. Move the map over the sea.')}));
-  res.top.forEach(function(a,i){ body.append(h('button',{type:'button',class:'opr',onclick:function(){ sh.close(); var m=M(); if(m) m.setView([a.p.la,a.p.lo],Math.max(m.getZoom(),12)); detail(a,i); }},
+  body.append(list);
+  res.top.forEach(function(a,i){ list.append(h('button',{type:'button',class:'opr',onclick:function(){ sh.close(); var m=M(); if(m) m.setView([a.p.la,a.p.lo],Math.max(m.getZoom(),12)); detail(a,i); }},
     h('span',{class:'ops '+(a.score>=70?'hi':a.score>=50?'mid':'lo'),text:String(a.score)}),h('span',{class:'opt'},h('b',{text:'#'+(i+1)+' · '+B.num(a.dk,1)+' km'}),h('small',{text:a.why.join(' · ')||T('Καλές συνθήκες','Good conditions')})),B.icon?B.icon('chev'):null)); });
   var notes=[]; if(!res.hasChl) notes.push(T('χωρίς χλωροφύλλη (δεν υπάρχει δορυφορική εικόνα εδώ)','no chlorophyll (no satellite image here)')); if(!res.hasBed) notes.push(T('χωρίς βυθό (χρειάζεται σύνδεση)','no seabed (needs a connection)'));
   body.append(h('p',{class:'sub',text:T('Έλεγξα ','Checked ')+res.n+T(' σημεία θάλασσας σε ακτίνα ',' sea points within ')+data.r+' km'+(res.unsafe?T(' · ',' · ')+res.unsafe+T(' πάνω από τα όρια ασφαλείας σου',' over your safety limits'):'')+(notes.length?' · '+notes.join(' · '):'')+'.'}),
@@ -100,7 +101,7 @@ function isOn(){ return !!grp; }
 function set(v){ if(v) run(true); else { clear(); last=null; } }
 /* από την Πρόγνωση («Πού να πάω»): άνοιγμα του Χάρτη στη θέση και αναζήτηση */
 function go(lat,lon){ var first=!/^#map/.test(location.hash||'');
-  if(lat!=null&&B.mapGo) B.mapGo(lat,lon,11); else if(first) location.hash='#map';
+  if(lat!=null&&B.mapGo) B.mapGo(lat,lon,11,null,{lab:T('Κέντρο αναζήτησης','Search centre'),sea:true}); else if(first) location.hash='#map';
   setTimeout(function(){ run(true); },first?1500:200); }
 B.bestSpots={on:isOn,set:set,run:run,go:go,_score:score};
 })();
