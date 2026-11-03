@@ -6,7 +6,7 @@
 (function(){
 'use strict';
 var B=window.AK, T=B.T;
-var MAP=['map-view.js','wxfx.js','seabed.js','bestspot.js'];
+var MAP=['medland.js','map-view.js','wxfx.js','seabed.js','bestspot.js']; /* 1.5.3: medland = στεριά σε όλη τη Μεσόγειο */
 /* 1.5.2: το Leaflet κατεβαίνει μαζί με τα αρχεία του χάρτη, όχι μετά */
 function loadMap(){ if(B.leaflet) B.leaflet().catch(function(){}); return B.loadScripts(MAP); }
 B.loadMap=loadMap;

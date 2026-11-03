@@ -151,7 +151,7 @@ function loadRegion(bounds){
   if(REG&&covers(REG,bounds)&&Date.now()-REG.at<3600000&&!REG.retry) return REG.p;
   /* v31z388: οι τελευταίες περιοχές μένουν στη μνήμη, ώστε πήγαινε-έλα στον χάρτη να μην ξαναζητά από το Open-Meteo */
   var old=(window.__ndSeaRegs||[]).filter(function(x){ return covers(x,bounds)&&Date.now()-x.at<3600000&&!x.retry; })[0]; if(old){ REG=old; return old.p; }
-  var b=regionFor(bounds), R={b:b,at:Date.now(),t0:Date.now(),done:false,wind:null,waves:[]}, NP=lattice(b,25), WP=lattice(b,49);
+  var b=regionFor(bounds), R={b:b,at:Date.now(),t0:Date.now(),done:false,wind:null,waves:[]}, NP=lattice(b,25), WP=lattice(b,Math.min(150,Math.max(49,Math.round((b.n-b.s)*(b.e-b.w)/3)))); /* 1.5.3: μεγαλύτερη περιοχή → περισσότερα σημεία (έως 150) */
   var pw=getJ('https://api.open-meteo.com/v1/forecast?'+latQ(NP)+'&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=kn&past_hours=24&forecast_hours=121&timezone=UTC')
     .then(function(j){ var a=arrOf(j); if(!a||a.length!==NP.nla*NP.nlo||!a[0].hourly) return; R.wind={L:NP,t:a[0].hourly.time,sp:a.map(function(p){ return (p.hourly&&p.hourly.wind_speed_10m)||[]; }),dir:a.map(function(p){ return (p.hourly&&p.hourly.wind_direction_10m)||[]; })}; })
     .catch(function(){ R.retry=true; });
@@ -380,7 +380,7 @@ function draw(){
   if(!on||!cvs.length) return;
   /* v31z526: τα μοντέλα κύματος (για το πεδίο κύματος της v4) ζητιούνται για την περιοχή που βλέπεις και όταν είναι πολύ μακριά για τις γραμμές ακτής,
      αλλιώς το χρώμα σταματούσε στο όριο της προηγούμενης περιοχής */
-  var bd0=map.getBounds(); if(bd0.getNorth()-bd0.getSouth()<=12&&bd0.getEast()-bd0.getWest()<=16&&(!covers(REG,bd0)||(REG&&Date.now()-REG.at>3600000)))
+  var bd0=map.getBounds(); if(bd0.getNorth()-bd0.getSouth()<=24&&bd0.getEast()-bd0.getWest()<=32&&(!covers(REG,bd0)||(REG&&Date.now()-REG.at>3600000)))
     loadRegion(bd0).then(function(){ PREP=null; later(); try{ window.dispatchEvent(new Event('alkyon-seareg')); }catch(e){} });
   var tgt=cvs[1-cur], sz=map.getSize(), dpr=Math.min(window.devicePixelRatio||1,2);
   tgt.width=Math.round(sz.x*dpr); tgt.height=Math.round(sz.y*dpr); tgt.style.width=sz.x+'px'; tgt.style.height=sz.y+'px'; pin(tgt);

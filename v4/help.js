@@ -66,6 +66,7 @@ var HELP=[
 ];
 /* έκδοση → αλλαγές (νεότερες πρώτες). Προσθέτεις γραμμή εδώ σε κάθε νέα λειτουργία. */
 var NEWS=[
+ ['1.5.3',[T('Χάρτης: το κύμα και τα ρεύματα δεν ζωγραφίζονται πια πάνω στη στεριά σε όλη τη Μεσόγειο (π.χ. Ιταλία, Αδριατική), όχι μόνο σε Κύπρο και Ελλάδα.','Map: waves and currents are no longer drawn over land anywhere in the Mediterranean (e.g. Italy, the Adriatic), not just in Cyprus and Greece.'),T('Το κύμα φαίνεται και όταν βλέπεις μεγάλη περιοχή, χωρίς «κομμένα» τετράγωνα.','Waves now show when you zoom out over a large area too, without cut-off squares.'),T('Οι γραμμές βάθους είναι πιο αχνές από μακριά και δυναμώνουν με το ζουμ.','Depth lines are fainter when zoomed out and get stronger as you zoom in.')]],
  ['1.5.2',[T('Ο χάρτης ανοίγει πιο γρήγορα, ειδικά με αδύναμο σήμα: τα αρχεία του κατεβαίνουν όλα μαζί και όχι το ένα μετά το άλλο.','The map opens faster, especially on a weak signal: its files now download together instead of one after another.')]],
  ['1.5.1',[T('Τα email του λογαριασμού (επιβεβαίωση, νέος κωδικός) έρχονται στη γλώσσα της εφαρμογής σου.','Account emails (confirmation, new password) now come in your app language.')]],
  ['1.5.0',[T('Σύνδεση με Google: «Συνέχεια με Google» με ένα πάτημα, χωρίς κωδικό και χωρίς email επιβεβαίωσης.','Sign in with Google: “Continue with Google” in one tap, with no password and no confirmation email.')]],

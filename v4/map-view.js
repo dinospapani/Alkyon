@@ -159,9 +159,11 @@ function applyDepth(){
   if(!map) return; var WM='https://ows.emodnet-bathymetry.eu/wms';
   if(!depthC){ depthC=L.tileLayer.wms(WM,{layers:'emodnet:mean_multicolour',format:'image/png',transparent:true,opacity:.6,version:'1.3.0',attribution:'EMODnet Bathymetry'}); depthK=L.tileLayer.wms(WM,{layers:'emodnet:contours',format:'image/png',transparent:true,version:'1.3.0',attribution:'EMODnet Bathymetry'}); }
   var dm=dmode(); [depthC,depthK].forEach(function(l){ if(map.hasLayer(l)) map.removeLayer(l); });
-  if(dm===1) depthC.addTo(map); if(dm===2&&!(window.AlkyonDense&&AlkyonDense.on())) depthK.addTo(map); if(sea) sea.bringToFront();
+  if(dm===1) depthC.addTo(map); if(dm===2&&!(window.AlkyonDense&&AlkyonDense.on())) depthK.addTo(map); if(sea) sea.bringToFront(); depthFade();
   try{ window.dispatchEvent(new CustomEvent('alkyon-depthmode',{detail:{dm:dm}})); }catch(e){}
 }
+/* 1.5.3: από μακριά οι γραμμές βάθους γίνονταν λευκό «κουβάρι» πάνω στο κύμα· τώρα είναι αχνές και δυναμώνουν με το ζουμ */
+function depthFade(){ if(!map||!depthK) return; var z=map.getZoom(); depthK.setOpacity(z<8?0.3:z<10?0.55:1); }
 function setDepth(dm,dl){ ls.set('alkyon-depth',dm); if(dl&&window.AlkyonDense&&AlkyonDense.setMode){ applyDepth(); AlkyonDense.setMode(dl); } else applyDepth(); }
 
 /* ---------- άνεμος (κινούμενος, 48 ώρες), σταθμοί ανέμου, κατάσταση θάλασσας, πυκνές γραμμές βάθους ----------
@@ -650,7 +652,7 @@ function mount(el){
     var p=B.lastPos(), v=ls.get('alkyon-v4-mapview',null);
     map=L.map(lmEl,{zoomControl:false,attributionControl:true,tap:true}).setView(v?[v.lat,v.lon]:(p?[p.lat,p.lon]:[35.0,33.2]),v?v.z:(p?12:9));
     drawBase(); drawData(); drawOverlays(); applyDepth(); applyPend(); locate(false); drawDirect(); if(cfg.cur) currents(true);
-    map.on('zoomend',function(){ drawData(); }); map.on('moveend',function(){ declutterSoon(); if(cfg.cur) currents(false); var c=map.getCenter(); ls.set('alkyon-v4-mapview',{lat:+c.lat.toFixed(5),lon:+c.lng.toFixed(5),z:map.getZoom()}); });
+    map.on('zoomend',function(){ drawData(); depthFade(); }); map.on('moveend',function(){ declutterSoon(); if(cfg.cur) currents(false); var c=map.getCenter(); ls.set('alkyon-v4-mapview',{lat:+c.lat.toFixed(5),lon:+c.lng.toFixed(5),z:map.getZoom()}); });
     map.on('contextmenu',function(e){ try{ e.originalEvent&&e.originalEvent.preventDefault(); }catch(x){} pointMenu(e.latlng); });
     map.on('dragstart',function(){ setFollow(false); }); map.on('popupopen',function(){ followPause=Date.now()+20000; });
     map.on('popupopen',function(e){ var c=e.popup.getContent(); if(c&&c.classList&&c.classList.contains('portpop')&&!c.querySelector('.pgo')){ var ll=e.popup.getLatLng(), nm=(c.querySelector('b')||{}).textContent||''; var r=c.querySelector('.pbtns')||c; var g=h('button',{class:'pb pgo',type:'button',text:T('Πήγαινε εκεί','Go there'),onclick:function(){ map.closePopup(); B.goTo(ll.lat,ll.lng,nm); }}); r.insertBefore(g,r.firstChild); e.popup.update(); } });
