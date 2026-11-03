@@ -9,7 +9,7 @@
 'use strict';
 var B=window.AK, h=B.h, T=B.T, EN=B.EN, ls=B.ls;
 var FN='https://sgfohmqwdwtkhtrebnix.supabase.co/functions/v1/water-clarity', SK='sb_publishable_LGuwvrvLnAj1CF22Q6g9vg_4OImZYbA';
-var grp=null, last=null, busy=false, dayIx=null;
+var grp=null, last=null, busy=false, dayIx=null, active=false, hooked=null, mvT=0, lastC=null, pill=null, lastRes=null;
 function M(){ return window.AlkyonCore&&window.AlkyonCore.map&&window.AlkyonCore.map(); }
 function km(a,b,c,d){ var R=6371, r=Math.PI/180, dl=(c-a)*r, dn=(d-b)*r, x=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(a*r)*Math.cos(c*r)*Math.sin(dn/2)*Math.sin(dn/2); return 2*R*Math.asin(Math.min(1,Math.sqrt(x))); }
 function clamp(x,a,b){ return Math.max(a,Math.min(b,x)); }
@@ -85,23 +85,31 @@ function summary(res,data){ var body=h('div',{class:'opps'}), list=h('div',{clas
     h('p',{class:'sub',text:T('Από: καιρό και κύμα (Open-Meteo), χλωροφύλλη (Copernicus, δορυφόρος ','From: weather and waves (Open-Meteo), chlorophyll (Copernicus satellite ')+(data.chlDay||'')+T('), θερμοκρασία και ρεύματα, βυθό (EMODnet), τα ψάρια σου.','), temperature and currents, seabed (EMODnet), your catches.')}),
     h('div',{class:'acts'},h('button',{class:'btn',type:'button',text:T('Ψάξε εδώ ξανά','Search here again'),onclick:function(){ sh.close(); run(true); }}),h('button',{class:'btn',type:'button',text:T('Κλείσιμο προτάσεων','Hide suggestions'),onclick:function(){ sh.close(); set(false); }})));
   var sh=B.sheet({title:T('Καλύτερα σημεία','Best spots'),body:body}); }
-function show(){ if(!last) return; var res=score(last.data,last.sb,dayIx,last.c); draw(res); summary(res,last.data); }
+function show(quiet){ if(!last) return; var res=score(last.data,last.sb,dayIx,last.c); lastRes=res; draw(res); paintPill(res); if(!quiet) summary(res,last.data); }
+/* 1.2.6: μικρό κουμπί στον χάρτη όσο είναι ανοιχτό: πόσα σημεία, και πάτημα για τη λίστα */
+function paintPill(res){ if(!active){ if(pill) pill.hidden=true; return; }
+  if(!pill){ pill=h('button',{type:'button',class:'bsPill',onclick:function(){ if(last&&lastRes) summary(lastRes,last.data); }}); document.body.append(pill); }
+  pill.hidden=false; pill.textContent=busy?'🎯 '+T('Ψάχνω…','Searching…'):'🎯 '+(res&&res.top.length?res.top.length+T(' καλύτερα σημεία · λίστα',' best spots · list'):T('Κανένα σημείο εδώ','No spot here')); }
+/* όταν μετακινείς τον χάρτη: νέα αναζήτηση για την περιοχή που βλέπεις (αν πήγες αρκετά μακριά ή άλλαξες ζουμ) */
+function hook(){ var m=M(); if(!m||hooked===m) return; hooked=m;
+  m.on('moveend',function(){ if(!active) return; clearTimeout(mvT); mvT=setTimeout(function(){ if(!active||!/^#map/.test(location.hash||'')) return; var c=m.getCenter(), z=m.getZoom();
+    if(lastC&&z===lastC.z&&km(lastC.lat,lastC.lon,c.lat,c.lng)<lastC.r*0.4) return; run(true,true); },1500); }); }
 
-function run(force){ var m=M(); if(!m){ return; } if(busy) return;
+function run(force,quiet){ var m=M(); if(!m){ return; } if(busy) return; hook();
   var c=m.getCenter(), z=m.getZoom(), r=z>=12?10:z>=11?15:z>=10?25:z>=9?40:60;
   if(dayIx==null) dayIx=new Date().getHours()>=15?1:0;
-  busy=true; B.toast(T('Ψάχνω τα καλύτερα σημεία σε ακτίνα ','Searching the best spots within ')+r+' km…',4000);
+  busy=true; lastC={lat:c.lat,lon:c.lng,r:r,z:z}; if(quiet) paintPill(lastRes); else B.toast(T('Ψάχνω τα καλύτερα σημεία σε ακτίνα ','Searching the best spots within ')+r+' km…',4000);
   var dLa=r/111*1.15, dLo=dLa/Math.cos(c.lat*Math.PI/180), bb={w:c.lng-dLo,e:c.lng+dLo,s:c.lat-dLa,n:c.lat+dLa};
   var url=FN+'?mode=scan&lat='+c.lat.toFixed(3)+'&lon='+c.lng.toFixed(3)+'&r='+r;
   Promise.all([fetch(url,{headers:{apikey:SK,Authorization:'Bearer '+SK}}).then(function(x){ return x.ok?x.json():null; }).catch(function(){ return null; }),seabed(bb)]).then(function(rr){ busy=false; var data=rr[0];
-    if(!data||!data.pts){ B.toast(T('Η αναζήτηση δεν έγινε. Χρειάζεται σύνδεση (και η νέα έκδοση της συνάρτησης water-clarity).','The search failed. Needs a connection (and the new water-clarity function).'),7000); return; }
-    last={data:data,sb:rr[1],c:{lat:c.lat,lon:c.lng}}; show(); });
+    if(!data||!data.pts){ paintPill(lastRes); if(quiet) return; B.toast(T('Η αναζήτηση δεν έγινε. Χρειάζεται σύνδεση (και η νέα έκδοση της συνάρτησης water-clarity).','The search failed. Needs a connection (and the new water-clarity function).'),7000); return; }
+    last={data:data,sb:rr[1],c:{lat:c.lat,lon:c.lng}}; show(quiet); });
 }
-function isOn(){ return !!grp; }
-function set(v){ if(v) run(true); else { clear(); last=null; } }
+function isOn(){ return active; }
+function set(v){ active=!!v; if(active) run(true); else { clear(); last=null; lastC=null; lastRes=null; paintPill(null); } }
 /* από την Πρόγνωση («Πού να πάω»): άνοιγμα του Χάρτη στη θέση και αναζήτηση */
 function go(lat,lon){ var first=!/^#map/.test(location.hash||'');
   if(lat!=null&&B.mapGo) B.mapGo(lat,lon,11,null,{lab:T('Κέντρο αναζήτησης','Search centre'),sea:true}); else if(first) location.hash='#map';
-  setTimeout(function(){ run(true); },first?1500:200); }
+  active=true; setTimeout(function(){ run(true); },first?1500:200); }
 B.bestSpots={on:isOn,set:set,run:run,go:go,_score:score};
 })();
