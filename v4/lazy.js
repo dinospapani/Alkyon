@@ -13,7 +13,7 @@ B.loadMap=loadMap;
 function fail(){ B.toast&&B.toast(T('Ο χάρτης δεν φορτώθηκε. Έλεγξε τη σύνδεση και ξαναδοκίμασε.','The map did not load. Check your connection and try again.')); }
 /* γέφυρα: φορτώνει τον χάρτη και καλεί την πραγματική συνάρτηση (αν η γέφυρα δεν έχει αντικατασταθεί, δεν καλεί τον εαυτό της) */
 function bridge(name){ var self=function(){ var a=arguments; loadMap().then(function(){ var f=B[name]; if(typeof f==='function'&&f!==self) f.apply(null,a); }).catch(fail); }; B[name]=self; }
-['mapGo','goTo','replayTrip','spotSheet','spotFormAt'].forEach(function(n){ if(!B[n]) bridge(n); });
+['mapGo','goTo','replayTrip','spotSheet','spotFormAt','mapPick'].forEach(function(n){ if(!B[n]) bridge(n); });
 /* μόνο το Leaflet (για τον μικρό χάρτη στην Πρόγνωση και στην επιλογή σημείου), χωρίς όλο τον χάρτη */
 if(!B.leaflet){ var lp=null; B.leaflet=function(){ if(window.L) return Promise.resolve(window.L); if(lp) return lp;
   lp=new Promise(function(res,rej){ var c=document.createElement('link'); c.rel='stylesheet'; c.href='../leaflet.css'; document.head.appendChild(c);

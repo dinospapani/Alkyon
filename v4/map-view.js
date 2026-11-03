@@ -646,7 +646,7 @@ function mount(el){
   fishb=h('div',{class:'fishbtns'},bPest,bMiss,bCatch,bBig); fishCounts();
   el.replaceChildren(box,cross,bar,qc,heatPill,trip,seab,dtBarEl(),fishb,mwBox());
   if(B.smartChip){ var rc=h('div',{class:'rtwrap'}); B.smartChip().forEach(function(n){ rc.append(n); }); el.append(rc); }
-  if(map){ setTimeout(function(){ if(!map) return; map.invalidateSize(); drawData(); applyPend(); drawDirect(); },30); locate(false); return; }
+  if(map){ setTimeout(function(){ if(!map) return; map.invalidateSize(); drawData(); applyPend(); drawDirect(); pickUI(); },30); locate(false); return; }
   leaflet().then(function(){
     if(!root||map) return;
     var p=B.lastPos(), v=ls.get('alkyon-v4-mapview',null);
@@ -656,12 +656,12 @@ function mount(el){
     map.on('contextmenu',function(e){ try{ e.originalEvent&&e.originalEvent.preventDefault(); }catch(x){} pointMenu(e.latlng); });
     map.on('dragstart',function(){ setFollow(false); }); map.on('popupopen',function(){ followPause=Date.now()+20000; });
     map.on('popupopen',function(e){ var c=e.popup.getContent(); if(c&&c.classList&&c.classList.contains('portpop')&&!c.querySelector('.pgo')){ var ll=e.popup.getLatLng(), nm=(c.querySelector('b')||{}).textContent||''; var r=c.querySelector('.pbtns')||c; var g=h('button',{class:'pb pgo',type:'button',text:T('Πήγαινε εκεί','Go there'),onclick:function(){ map.closePopup(); B.goTo(ll.lat,ll.lng,nm); }}); r.insertBefore(g,r.firstChild); e.popup.update(); } });
-    setTimeout(function(){ map.invalidateSize(); },60);
+    setTimeout(function(){ map.invalidateSize(); pickUI(); },60);
     classicMods();
   }).catch(function(){ box.replaceChildren(h('div',{class:'card empty',style:{margin:'80px 16px'}},h('h3',{text:T('Ο χάρτης δεν φορτώθηκε','The map did not load')}),h('p',{text:T('Έλεγξε τη σύνδεση.','Check your connection.')}))); });
 }
 /* ο χάρτης δεν καταστρέφεται: μένει έτοιμος με τα στρώματά του για την επόμενη φορά· σταματά μόνο το GPS της σελίδας */
-function unmount(){ replayStop(); gShow=null; revOnClear=null; document.body.classList.remove('mapon'); if(watch!=null){ try{ navigator.geolocation.clearWatch(watch); }catch(e){} watch=null; } document.body.classList.remove('maptrip'); root=null; }
+function unmount(){ if(pk){ pk.nav=false; pickEnd(false); } replayStop(); gShow=null; revOnClear=null; document.body.classList.remove('mapon'); if(watch!=null){ try{ navigator.geolocation.clearWatch(watch); }catch(e){} watch=null; } document.body.classList.remove('maptrip'); root=null; }
 /* μετάβαση στον χάρτη σε ένα σημείο (ψάρι, σημείο από φίλο) ή με μια διαδρομή εξόδου */
 var pend=null, gRev=null;
 /* ---------- επανάληψη εξόδου: η διαδρομή «παίζει» και τα ψάρια εμφανίζονται τη στιγμή που πιάστηκαν ---------- */
@@ -691,7 +691,7 @@ function replay(t){ replayStop(); if(!map||!t||!t.track||t.track.length<2) retur
   function start(){ if(f>=1) f=0; running=true; setPlay(true); clearInterval(iv); iv=setInterval(tick,STEP); rp.iv=iv; }
   play.addEventListener('click',function(){ if(running){ running=false; clearInterval(iv); iv=null; setPlay(false); } else start(); });
   sl.addEventListener('input',function(){ f=(+sl.value)/1000; show(f); });
-  var bar=h('div',{class:'rpbar'},h('div',{class:'rph'},h('span',null,h('b',{text:(t.spot||T('Έξοδος','Trip'))}),h('small',{text:' · '+(t.date||'').split('-').reverse().join('/')})),h('button',{class:'iconbtn sm',type:'button','aria-label':T('Κλείσιμο','Close'),html:B.iconSvg('close'),onclick:replayStop})),
+  var bar=h('div',{class:'rpbar'},h('div',{class:'rph'},h('span',null,h('b',{text:(t.spot||T('Έξοδος','Trip'))}),h('small',{text:' · '+(t.date||'').split('-').reverse().join('/')})),h('button',{class:'iconbtn sm',type:'button','aria-label':T('Κλείσιμο','Close'),html:B.iconSvg('close'),onclick:function(){ replayStop(); revClear(); }})),
     h('div',{class:'rpc'},play,sl,lab),cnt);
   document.body.append(bar); document.body.classList.add('replaying'); rp={g:g,bar:bar,iv:null}; setPlay(false); show(0); setTimeout(start,700); }
 B.replayTrip=function(t){ if(!t||!t.track||t.track.length<2) return; pend={lat:t.track[0][0],lon:t.track[0][1],z:13,tr:t.track,replay:t}; if(!/^#map/.test(location.hash||'')) location.hash='#map'; else if(map&&root) applyPend(); };
@@ -715,6 +715,24 @@ function applyPend(){ if(!pend||!map) return false; var q=pend; pend=null;
     map.setView([q.lat,q.lon],q.z||15); gRev=L.layerGroup([L.circleMarker([q.lat,q.lon],{radius:11,color:'#E4572E',weight:3,fillOpacity:.15})]).addTo(map); revShow(lab,null); }
   return true; }
 B.spotSheet=function(sp){ spotSheet(sp); };
+/* 1.5.3: «Διάλεξε στον χάρτη»: ανοίγει τον κανονικό Χάρτη (με τα σημεία, τα βάθη και τα στρώματά σου)· το σημείο είναι στον σταυρό του κέντρου.
+   o: {lat,lon,z, title, saveLabel, back:'#forecast', onPick(lat,lon,name)} */
+var pk=null;
+function pickEnd(ok){ if(!pk) return; var q=pk; pk=null; document.body.classList.remove('mappick'); if(q.bar) q.bar.remove(); if(map&&q.mv) map.off('move',q.mv);
+  if(ok&&map){ var g=q.det&&q.det.open&&q.cb?q.cb.get():null, c=map.getCenter(); var la=g?g.lat:+c.lat.toFixed(5), lo=g?g.lon:+c.lng.toFixed(5); try{ if(q.o.onPick) q.o.onPick(la,lo,q.nm.value.trim()); }catch(e){} }
+  if(q.o.back&&q.nav!==false) setTimeout(function(){ location.hash=q.o.back; },0); }
+function pickUI(){ if(!pk||pk.bar||!map||!root) return; var q=pk, o=q.o, PC=window.AlkyonCoord;
+  if(typeof o.lat==='number'&&typeof o.lon==='number'){ setFollow(false); followPause=Date.now()+600000; map.setView([o.lat,o.lon],Math.max(map.getZoom(),o.z||12)); }
+  var rd=h('b',{class:'mpcoord'}), show=function(){ var c=map.getCenter(); rd.textContent=PC&&PC.fmt?PC.fmt(c.lat,c.lng):c.lat.toFixed(5)+', '+c.lng.toFixed(5); };
+  q.cb=B.coordBox?B.coordBox(null,null,{noMap:true,onChange:function(la,lo){ if(map) map.setView([la,lo],Math.max(map.getZoom(),12)); }}):null;
+  q.det=q.cb?h('details',{class:'mpdet'},h('summary',{text:T('Γράψε ή επικόλλησε συντεταγμένες','Type or paste coordinates')}),q.cb.el):null;
+  q.nm=h('input',{type:'text',maxlength:'40',placeholder:T('Όνομα (προαιρετικό), π.χ. Ξέρα Λατσιού','Name (optional), e.g. Latchi reef'),autocomplete:'off',enterkeyhint:'done'});
+  q.bar=h('div',{class:'mpkbar',role:'dialog','aria-label':o.title||T('Διάλεξε σημείο','Pick a point')},
+    h('div',{class:'mpkh'},h('b',{text:o.title||T('Διάλεξε σημείο','Pick a point')}),h('small',{text:T('Μετακίνησε τον χάρτη· το σημείο είναι στον σταυρό.','Move the map; the point is under the crosshair.')})),
+    h('div',{class:'mprow'},h('small',{text:T('Κέντρο','Centre')}),rd),q.det,q.nm,
+    h('div',{class:'acts'},h('button',{class:'btn',type:'button',text:T('Άκυρο','Cancel'),onclick:function(){ pickEnd(false); }}),h('button',{class:'btn pri',type:'button',text:o.saveLabel||T('Επιλογή','Choose'),onclick:function(){ pickEnd(true); }})));
+  document.body.append(q.bar); document.body.classList.add('mappick'); q.mv=show; map.on('move',show); show(); }
+B.mapPick=function(o){ if(pk){ pk.nav=false; pickEnd(false); } pk={o:o||{}}; if(!/^#map/.test(location.hash||'')) location.hash='#map'; else pickUI(); };
 /* ονόματα σημείων που πέφτουν το ένα πάνω στο άλλο: φαίνεται μόνο το πρώτο (τα υπόλοιπα με πάτημα στο σημείο) */
 function declutter(){ var kept=[]; [].forEach.call(document.querySelectorAll('#lmap .mk.spot b'),function(b){ b.style.visibility=''; var r=b.getBoundingClientRect(); if(!r.width) return;
   var hit=kept.some(function(k){ return !(r.right<k.left-4||r.left>k.right+4||r.bottom<k.top-2||r.top>k.bottom+2); }); if(hit) b.style.visibility='hidden'; else kept.push(r); }); }
@@ -722,7 +740,7 @@ var dcT=null; function declutterSoon(){ clearTimeout(dcT); dcT=setTimeout(declut
 /* 1.2.2: πάντα μεταφέρει στον Χάρτη (πριν, αν ο χάρτης είχε ανοίξει μία φορά, μετακινούνταν μόνο ο κρυφός χάρτης και έμενες στην ίδια σελίδα) */
 B.mapGo=function(lat,lon,z,tr,o){ o=o||{}; pend={lat:lat,lon:lon,z:z,tr:tr,lab:o.lab||null,sea:!!o.sea}; if(!/^#map/.test(location.hash||'')) location.hash='#map'; else if(map&&root) applyPend(); };
 
-B.view('map',{title:T('Χάρτης','Map'),mount:mount,unmount:unmount,resume:function(){ if(map&&root){ map.invalidateSize(); drawData(); applyPend(); } }});
+B.view('map',{title:T('Χάρτης','Map'),mount:mount,unmount:unmount,resume:function(){ if(map&&root){ map.invalidateSize(); drawData(); applyPend(); pickUI(); } }});
 var ddF=0; B.on('store',function(k){ if(map&&/^alkyon-(bites|spots|gear)$/.test(k)&&!ddF) ddF=requestAnimationFrame(function(){ ddF=0; if(map) drawData(); }); });
 B.on('gear-pos',function(){ if(map) drawGear(); });
 ['track','anchor','mob','trip'].forEach(function(n){ B.on(n,function(){ if(map) drawSea(); fishCounts(); }); });

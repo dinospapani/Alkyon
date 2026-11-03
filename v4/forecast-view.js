@@ -683,26 +683,10 @@ function placeSheet(){
 
 /* v31z545: επιλογή σημείου: πρώτα μεγάλος χάρτης με σταυρό, από κάτω οι συντεταγμένες του κέντρου· πληκτρολόγηση/επικόλληση σε αναδιπλούμενο πεδίο */
 function mapPick(){
-  var c=current(), st0=(c&&c.lat!=null)?c:(B.lastPos()||{lat:34.75,lon:32.42}), mm=null, quiet=false, sh2;
-  var nm=h('input',{type:'text',maxlength:'40',placeholder:T('π.χ. Ξέρα Λατσιού','e.g. Latchi reef'),autocomplete:'off',enterkeyhint:'done'});
-  var rd=h('b',{class:'mpcoord'}), err=h('small',{class:'wn'}), cur={lat:+st0.lat,lon:+st0.lon};
-  var PC=window.AlkyonCoord, show=function(){ rd.textContent=PC&&PC.fmt?PC.fmt(cur.lat,cur.lon):cur.lat.toFixed(5)+', '+cur.lon.toFixed(5); };
-  var cb=B.coordBox(cur.lat,cur.lon,{noMap:true,onChange:function(la,lo){ cur={lat:la,lon:lo}; show(); if(mm){ quiet=true; mm.setView([la,lo],Math.max(mm.getZoom(),12)); setTimeout(function(){ quiet=false; },500); } }});
-  var mapEl=h('div',{class:'mpmap'}), box=h('div',{class:'mpwrap'},mapEl,h('i',{class:'mpx','aria-hidden':'true'}),
-    h('div',{class:'mpzoom'},h('button',{type:'button','aria-label':T('Μεγέθυνση','Zoom in'),text:'+',onclick:function(){ if(mm) mm.zoomIn(); }}),h('button',{type:'button','aria-label':T('Σμίκρυνση','Zoom out'),text:'−',onclick:function(){ if(mm) mm.zoomOut(); }})),
-    h('button',{type:'button',class:'mpme','aria-label':T('Η θέση μου','My position'),html:B.iconSvg('gps'),onclick:function(){ B.locate(8000).then(function(p){ if(p&&mm) mm.setView([p.lat,p.lon],Math.max(mm.getZoom(),14)); }); }}));
-  var det=h('details',{class:'mpdet'},h('summary',{text:T('Γράψε ή επικόλλησε συντεταγμένες','Type or paste coordinates')}),cb.el);
-  var save=h('button',{class:'btn pri full',type:'button',text:T('Αποθήκευση και πρόγνωση','Save and show forecast'),onclick:function(){ var g=det.open?(cb.get()||cur):cur; if(!g||isNaN(g.lat)){ err.textContent=T('Οι συντεταγμένες δεν διαβάζονται.','The coordinates cannot be read.'); return; }
-    sh2.close(); addPlace(nm.value.trim()||T('Σημείο χάρτη','Map point'),g.lat,g.lon); }});
-  show();
-  sh2=B.sheet({title:T('Σημείο από τον χάρτη','Pick on the map'),body:h('div',{class:'mpick'},box,h('div',{class:'mprow'},h('small',{text:T('Κέντρο','Centre')}),rd),det,
-    h('label',{class:'fld'},h('span',{text:T('Όνομα (προαιρετικό)','Name (optional)')}),nm),err,h('div',{class:'mpsave'},save))});
-  var mk=function(){ if(!window.L||mm) return; mm=L.map(mapEl,{zoomControl:false,attributionControl:false}).setView([cur.lat,cur.lon],12);
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:18}).addTo(mm);
-    mm.on('move',function(){ if(quiet) return; var q=mm.getCenter(); cur={lat:+q.lat.toFixed(5),lon:+q.lng.toFixed(5)}; show(); });
-    mm.on('moveend',function(){ if(quiet) return; cb.set(cur.lat,cur.lon,true); });
-    setTimeout(function(){ mm.invalidateSize(); },300); };
-  (window.L?Promise.resolve():(B.leaflet?B.leaflet():Promise.resolve())).catch(function(){}).then(function(){ setTimeout(mk,80); });
+  /* 1.5.3: στον κανονικό Χάρτη (όχι μικρός χάρτης σε παράθυρο) */
+  var c=current(), st0=(c&&c.lat!=null)?c:(B.lastPos()||null);
+  B.mapPick({lat:st0?+st0.lat:undefined,lon:st0?+st0.lon:undefined,z:12,back:'#forecast',title:T('Νέα τοποθεσία πρόγνωσης','New forecast place'),saveLabel:T('Αποθήκευση και πρόγνωση','Save and show forecast'),
+    onPick:function(la,lo,nm){ addPlace(nm||T('Σημείο χάρτη','Map point'),la,lo); }});
 }
 
 /* ---------- σύνδεση με το κέλυφος ---------- */
