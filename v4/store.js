@@ -72,12 +72,13 @@ function errText(e){
   return T('Σφάλμα: ','Error: ')+m;
 }
 function signIn(email,pw){ return auth('token?grant_type=password',{email:email,password:pw}).then(function(j){ setSess(j,null); return sync(true); }); }
-function signUp(email,pw){ return auth('signup',{email:email,password:pw,options:{email_redirect_to:site()}}).then(function(j){ if(j.access_token){ setSess(j,null); return sync(true).then(function(){ return 'in'; }); } return 'confirm'; }); }
+/* 1.4.3: η διεύθυνση επιστροφής πάει στο ?redirect_to= (όπως στην κλασική)· μέσα στο σώμα την αγνοεί το Supabase και έστελνε στο Site URL */
+function signUp(email,pw){ return auth('signup?redirect_to='+encodeURIComponent(site()),{email:email,password:pw}).then(function(j){ if(j.access_token){ setSess(j,null); return sync(true).then(function(){ return 'in'; }); } return 'confirm'; }); }
 /* 1.4.0: κωδικός από το email, «Ξέχασα τον κωδικό», σύνδεσμος από email, νέος κωδικός (πριν ήταν μόνο στην κλασική) */
 function site(){ return location.origin+location.pathname.replace(/v4\/.*$/,''); }
 function verify(type,email,token){ return auth('verify',{type:type,email:email,token:token}).then(function(j){ if(!j.access_token) throw new Error('Invalid token'); setSess(j,null); return sync(true); }); }
 function recover(email){ return auth('recover?redirect_to='+encodeURIComponent(site()),{email:email}); }
-function resend(email){ return auth('resend',{type:'signup',email:email,options:{emailRedirectTo:site()}}); }
+function resend(email){ return auth('resend?redirect_to='+encodeURIComponent(site()),{type:'signup',email:email}); }
 function fromLink(p){ return fetch(URL_+'/auth/v1/user',{headers:{apikey:KEY,Authorization:'Bearer '+p.access_token}}).then(function(r){ return r.json().catch(function(){ return {}; }).then(function(u){
   if(!r.ok) throw new Error(u.msg||u.message||('HTTP '+r.status)); setSess({access_token:p.access_token,refresh_token:p.refresh_token,expires_in:+p.expires_in||3600,user:u},null); return sync(true); }); }); }
 function setPassword(pw){ return ensure().then(function(s){ return fetch(URL_+'/auth/v1/user',{method:'PUT',headers:H(s),body:JSON.stringify({password:pw})}).then(function(r){ if(!r.ok) return r.json().catch(function(){ return {}; }).then(function(j){ throw new Error(j.msg||j.message||('HTTP '+r.status)); }); }); }); }
