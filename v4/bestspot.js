@@ -28,11 +28,42 @@ function bedAt(sb,lat,lon){ if(!sb) return null; var g=sb.g, x=Math.floor((lon-g
   for(var dy=-R;dy<=R;dy++) for(var dx=-R;dx<=R;dx++){ var xx=x+dx, yy=y+dy; if(xx<0||yy<0||xx>=g.w||yy>=g.h) continue; var s=sb.a.S[yy*g.w+xx]; if(s>mx) mx=s; }
   return {depth:dpt,slope:mx}; }
 
+/* 1.2.7: μέγιστο βάθος ανά τρόπο ψαρέματος (πάνω από αυτό το σημείο δεν προτείνεται): βάρκα 300 m, ψαροντούφεκο 30 m, ακτή 50 m */
+function maxDepth(){ var pr=B.prof?B.prof():'boat'; return pr==='spear'?30:pr==='shore'?50:300; }
+/* πιθανά ψάρια: βάθος, βυθός (δομή = κλίση / ύφαλος, επίπεδος = άμμος), θερμοκρασία νερού, εποχή, ανοιχτή θάλασσα (μέτωπα).
+   Ενδεικτικά όρια για Κύπρο / ανατολική Μεσόγειο. Τα δικά σου ψάρια στο σημείο μετράνε περισσότερο από όλα. */
+var SPP=[
+ {el:'Συναγρίδα',en:'Common dentex',d:[15,120],b:'rock',t:[15,27]},
+ {el:'Φαγκρί',en:'Red porgy',d:[20,150],b:'rock',t:[15,26]},
+ {el:'Λιθρίνι',en:'Common pandora',d:[15,120],b:'sand',t:[15,27]},
+ {el:'Σφυρίδα',en:'Dusky grouper',d:[10,150],b:'rock',t:[15,28]},
+ {el:'Μαγιάτικο',en:'Amberjack',d:[20,200],b:'rock',t:[18,29],m:[6,11],cur:1},
+ {el:'Λαβράκι',en:'Sea bass',d:[0,20],b:'any',t:[12,24],m:[10,4]},
+ {el:'Τσιπούρα',en:'Gilthead seabream',d:[2,30],b:'sand',t:[13,26],m:[9,3]},
+ {el:'Σαργός',en:'White seabream',d:[0,30],b:'rock',t:[13,28]},
+ {el:'Λούτσος',en:'Barracuda',d:[5,60],b:'any',t:[19,30],m:[5,11]},
+ {el:'Παλαμίδα',en:'Atlantic bonito',d:[20,300],b:'open',t:[16,25],m:[9,2]},
+ {el:'Κυνηγός',en:'Mahi-mahi',d:[60,300],b:'open',t:[22,30],m:[8,11]},
+ {el:'Καλαμάρι',en:'Squid',d:[10,100],b:'any',t:[14,24],m:[10,3]}];
+function inMonth(m,r){ return !r||(r[0]<=r[1]?m>=r[0]&&m<=r[1]:m>=r[0]||m<=r[1]); }
+function fishFor(a,date){ var p=a.p, bed=a.bed, mo=+(date||'').slice(5,7)||new Date().getMonth()+1, out=[];
+  var own={}; bites().forEach(function(b){ if(b.species&&km(b.lat,b.lon,p.la,p.lo)<1.5){ var n=window.spName?window.spName(b.species):b.species; own[n]=(own[n]||0)+1; } });
+  Object.keys(own).sort(function(x,y){ return own[y]-own[x]; }).slice(0,2).forEach(function(n){ out.push({n:n,s:100,own:own[n]}); });
+  SPP.forEach(function(f){ var nm=EN?f.en:f.el; if(out.some(function(o){ return o.n===nm; })) return; var sc=0;
+    if(bed&&bed.depth!=null){ if(bed.depth<f.d[0]-5||bed.depth>f.d[1]+20) return; sc+=30; } else sc+=10;
+    if(!inMonth(mo,f.m)) return; sc+=f.m?15:5;
+    if(p.sst!=null){ if(p.sst<f.t[0]-1||p.sst>f.t[1]+1) return; sc+=15; }
+    var slope=bed?bed.slope:0;
+    if(f.b==='rock') sc+=slope>=12?25:slope>=5?15:0; else if(f.b==='sand') sc+=bed&&slope<5?20:0; else if(f.b==='open') sc+=(a.gc>0.02?15:0)+(a.gs>0.1?10:0)+(bed&&bed.depth>=80?10:0); else sc+=8;
+    if(f.cur&&p.ck!=null&&p.ck>=0.2) sc+=8;
+    if(sc>=45) out.push({n:nm,s:sc}); });
+  out.sort(function(x,y){ return y.s-x.s; }); return out.slice(0,3); }
 function score(data,sb,di,center){
   var L=lims(), X=window.AlkyonExposure, bs=bites(), pts=[], unsafe=0, sp=data.sp||4;
   data.pts.forEach(function(p){ var d=p.d&&p.d[di]; if(!d||d.w==null) return;
     try{ if(X&&X.isLand&&X.isLand(p.la,p.lo)===1) return; }catch(e){}
     var bed=bedAt(sb,p.la,p.lo); if(bed&&bed.land) return;
+    if(bed&&bed.depth>maxDepth()) return;   /* 1.2.7: όχι σημεία πολύ βαθιά για ψάρεμα */
     if(d.w>L.wind||(d.v!=null&&d.v>L.wave)||(d.g!=null&&L.gust&&d.g>L.gust)){ unsafe++; return; }
     pts.push({p:p,d:d,bed:bed}); });
   /* μέτωπα: η μεγαλύτερη αλλαγή ανά km προς τους γείτονες */
@@ -45,14 +76,15 @@ function score(data,sb,di,center){
     part=15*clamp(1-Math.max(d.w/L.wind,(d.v||0)/L.wave),0,1); s+=part; if(part>=10) why.push([part,T('ήρεμη θάλασσα','calm sea')+' ('+Math.round(d.w)+' kn, '+B.num(d.v||0,1)+' m)']);
     if(p.chl>0){ part=a.gc>0.02?25*pGc(a.gc):0; s+=part; if(part>=14) why.push([part,T('μέτωπο χλωροφύλλης: εδώ μαζεύεται η τροφή','chlorophyll front: food gathers here')]);
       part=10*pChl(Math.log(p.chl)); s+=part; if(part>=7) why.push([part,T('περισσότερη τροφή από τη γύρω θάλασσα','more food than the sea around')]); }
-    part=a.gs>0.03?15*pGs(a.gs):0; s+=part; if(part>=9) why.push([part,T('θερμικό μέτωπο','thermal front')+' ('+B.num(a.gs,2)+' °C/km)']);
+    part=a.gs>=0.1?15*pGs(a.gs):0; s+=part; if(part>=9) why.push([part,T('θερμικό μέτωπο','thermal front')+' ('+B.num(a.gs,2)+' °C/km)']);
     if(p.ck!=null){ part=p.ck>=0.15&&p.ck<=0.8?8:(p.ck>=0.05&&p.ck<=1.2?4:0); s+=part; if(part>=8) why.push([part,T('ήπιο ρεύμα ','gentle current ')+B.num(p.ck,1)+' kn']); }
-    var bed=a.bed; if(bed){ part=bed.slope>=12?20:bed.slope>=5?10:0; s+=part; if(part>=10) why.push([part,(bed.slope>=12?T('απότομος βυθός (drop-off)','steep seabed (drop-off)'):T('κλίση βυθού','sloping seabed'))+' · '+Math.round(bed.depth)+' m']);
+    var bed=a.bed; if(bed){ part=bed.depth>200?0:bed.slope>=12?20:bed.slope>=5?10:0; s+=part; if(part>=10) why.push([part,(bed.slope>=12?T('απότομος βυθός (drop-off)','steep seabed (drop-off)'):T('κλίση βυθού','sloping seabed'))+' · '+Math.round(bed.depth)+' m']);
       part=bed.depth>=10&&bed.depth<=150?10:bed.depth>150&&bed.depth<=300?4:bed.depth<10?3:0; s+=part; if(part>=10&&!(bed.slope>=5)) why.push([part,T('βάθος ','depth ')+Math.round(bed.depth)+' m']); }
     var n=bs.filter(function(b){ return km(b.lat,b.lon,p.la,p.lo)<1.5; }).length; part=Math.min(15,5*n); s+=part; if(n) why.push([part+5,T('εδώ έχεις πιάσει ','you’ve caught here ')+n+(n===1?T(' ψάρι',' fish'):T(' ψάρια',' fish'))]);
     var dk=km(center.lat,center.lon,p.la,p.lo); s-=Math.min(8,dk/5);
     a.score=Math.round(clamp(s/1.05,0,100)); a.dk=dk; a.why=why.sort(function(x,y){ return y[0]-x[0]; }).slice(0,3).map(function(x){ return x[1]; }); });
   pts.sort(function(x,y){ return y.score-x.score; });
+  pts.slice(0,25).forEach(function(a){ a.fish=fishFor(a,a.d.date); });
   var top=[]; pts.forEach(function(a){ if(top.length<5&&!top.some(function(t){ return km(t.p.la,t.p.lo,a.p.la,a.p.lo)<Math.max(3,sp*0.9); })) top.push(a); });
   return {top:top,n:pts.length,unsafe:unsafe,hasBed:!!sb,hasChl:data.pts.some(function(p){ return p.chl>0; })};
 }
@@ -64,6 +96,8 @@ function dayName(ds){ try{ return new Date(ds+'T12:00:00').toLocaleDateString(EN
 function detail(a,i){ var p=a.p, d=a.d, body=h('div',null,
     h('p',{class:'sub',text:T('Βαθμός ','Score ')+a.score+' · '+B.num(a.dk,1)+T(' km από το κέντρο',' km from the centre')}),
     h('ul',{class:'bsw'},a.why.map(function(w){ return h('li',{text:w}); })),
+    a.fish&&a.fish.length?h('p',{class:'bsf'},h('b',{text:'🐟 '+T('Πιθανά ψάρια: ','Likely fish: ')}),a.fish.map(function(f){ return f.n+(f.own?T(' (έπιασες εδώ ',' (you caught ')+f.own+')':''); }).join(', ')):null,
+    a.bed&&a.bed.depth?h('p',{class:'sub',text:T('Βάθος ~','Depth ~')+Math.round(a.bed.depth)+' m'}):null,
     h('p',{class:'sub',text:[T('Άνεμος έως ','Wind up to ')+Math.round(d.w)+' kn',d.v!=null?T('κύμα έως ','waves up to ')+B.num(d.v,1)+' m':'',p.sst!=null?B.num(p.sst,1)+' °C':'',p.chl>0?T('χλωροφύλλη ','chlorophyll ')+B.num(p.chl,2)+' mg/m³':''].filter(Boolean).join(' · ')}),
     h('div',{class:'acts'},h('button',{class:'btn pri',type:'button',text:T('Πρόγνωση εδώ','Forecast here'),onclick:function(){ sh.close(); fcAt(p.la,p.lo,T('Πρόταση ','Suggestion ')+(i+1)); }}),
       B.spotFormAt?h('button',{class:'btn',type:'button',text:T('Αποθήκευση σημείου','Save spot'),onclick:function(){ sh.close(); B.spotFormAt(p.la,p.lo); }}):null),
@@ -79,7 +113,7 @@ function summary(res,data){ var body=h('div',{class:'opps'}), list=h('div',{clas
   if(!res.top.length) body.append(h('p',{class:'sub',text:res.unsafe?T('Όλα τα σημεία εδώ είναι πάνω από τα όρια ασφαλείας σου αυτή τη μέρα.','All spots here are over your safety limits that day.'):T('Δεν βρέθηκαν σημεία θάλασσας εδώ. Μετακίνησε τον χάρτη πάνω από θάλασσα.','No sea points found here. Move the map over the sea.')}));
   body.append(list);
   res.top.forEach(function(a,i){ list.append(h('button',{type:'button',class:'opr',onclick:function(){ sh.close(); var m=M(); if(m) m.setView([a.p.la,a.p.lo],Math.max(m.getZoom(),12)); detail(a,i); }},
-    h('span',{class:'ops '+(a.score>=70?'hi':a.score>=50?'mid':'lo'),text:String(a.score)}),h('span',{class:'opt'},h('b',{text:'#'+(i+1)+' · '+B.num(a.dk,1)+' km'}),h('small',{text:a.why.join(' · ')||T('Καλές συνθήκες','Good conditions')})),B.icon?B.icon('chev'):null)); });
+    h('span',{class:'ops '+(a.score>=70?'hi':a.score>=50?'mid':'lo'),text:String(a.score)}),h('span',{class:'opt'},h('b',{text:'#'+(i+1)+' · '+B.num(a.dk,1)+' km'}),h('small',{text:(a.why.join(' · ')||T('Καλές συνθήκες','Good conditions'))+(a.fish&&a.fish.length?' · 🐟 '+a.fish.map(function(f){ return f.n; }).join(', '):'')+(a.bed&&a.bed.depth?' · '+Math.round(a.bed.depth)+' m':'')})),B.icon?B.icon('chev'):null)); });
   var notes=[]; if(!res.hasChl) notes.push(T('χωρίς χλωροφύλλη (δεν υπάρχει δορυφορική εικόνα εδώ)','no chlorophyll (no satellite image here)')); if(!res.hasBed) notes.push(T('χωρίς βυθό (χρειάζεται σύνδεση)','no seabed (needs a connection)'));
   body.append(h('p',{class:'sub',text:T('Έλεγξα ','Checked ')+res.n+T(' σημεία θάλασσας σε ακτίνα ',' sea points within ')+data.r+' km'+(res.unsafe?T(' · ',' · ')+res.unsafe+T(' πάνω από τα όρια ασφαλείας σου',' over your safety limits'):'')+(notes.length?' · '+notes.join(' · '):'')+'.'}),
     h('p',{class:'sub',text:T('Από: καιρό και κύμα (Open-Meteo), χλωροφύλλη (Copernicus, δορυφόρος ','From: weather and waves (Open-Meteo), chlorophyll (Copernicus satellite ')+(data.chlDay||'')+T('), θερμοκρασία και ρεύματα, βυθό (EMODnet), τα ψάρια σου.','), temperature and currents, seabed (EMODnet), your catches.')}),
