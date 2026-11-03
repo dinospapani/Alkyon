@@ -66,6 +66,7 @@ var HELP=[
 ];
 /* έκδοση → αλλαγές (νεότερες πρώτες). Προσθέτεις γραμμή εδώ σε κάθε νέα λειτουργία. */
 var NEWS=[
+ ['1.5.2',[T('Ο χάρτης ανοίγει πιο γρήγορα, ειδικά με αδύναμο σήμα: τα αρχεία του κατεβαίνουν όλα μαζί και όχι το ένα μετά το άλλο.','The map opens faster, especially on a weak signal: its files now download together instead of one after another.')]],
  ['1.5.1',[T('Τα email του λογαριασμού (επιβεβαίωση, νέος κωδικός) έρχονται στη γλώσσα της εφαρμογής σου.','Account emails (confirmation, new password) now come in your app language.')]],
  ['1.5.0',[T('Σύνδεση με Google: «Συνέχεια με Google» με ένα πάτημα, χωρίς κωδικό και χωρίς email επιβεβαίωσης.','Sign in with Google: “Continue with Google” in one tap, with no password and no confirmation email.')]],
  ['1.4.5',[T('Αλλαγή λογαριασμού: αν συνδεθείς με άλλον λογαριασμό και στο κινητό υπάρχουν δεδομένα του προηγούμενου, η εφαρμογή ρωτά αν θα μείνουν χωριστά ή θα μπουν και στον νέο. Πριν, έμπαιναν στον νέο χωρίς ερώτηση.','Switching account: if you sign in with another account and this phone has data from the previous one, the app asks whether to keep them separate or add them to the new one. Before, they were added without asking.'),T('Διόρθωση: σύνδεση αμέσως μετά από αποσύνδεση δεν «κρατούσε». Και αν ο λογαριασμός διαγράφηκε από τον server, βγαίνει κατανοητό μήνυμα αντί για «HTTP 409».','Fix: signing in right after signing out did not stick. And if the account was deleted on the server, a clear message shows instead of “HTTP 409”.')]],

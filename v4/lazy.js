@@ -7,7 +7,8 @@
 'use strict';
 var B=window.AK, T=B.T;
 var MAP=['map-view.js','wxfx.js','seabed.js','bestspot.js'];
-function loadMap(){ return B.loadScripts(MAP); }
+/* 1.5.2: το Leaflet κατεβαίνει μαζί με τα αρχεία του χάρτη, όχι μετά */
+function loadMap(){ if(B.leaflet) B.leaflet().catch(function(){}); return B.loadScripts(MAP); }
 B.loadMap=loadMap;
 function fail(){ B.toast&&B.toast(T('Ο χάρτης δεν φορτώθηκε. Έλεγξε τη σύνδεση και ξαναδοκίμασε.','The map did not load. Check your connection and try again.')); }
 /* γέφυρα: φορτώνει τον χάρτη και καλεί την πραγματική συνάρτηση (αν η γέφυρα δεν έχει αντικατασταθεί, δεν καλεί τον εαυτό της) */

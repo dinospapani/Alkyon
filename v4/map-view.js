@@ -25,11 +25,12 @@ function S(){ return B.store; }
 var SPT=EN?['Rocks / reef','Sand','Wreck','Ledge / drop-off','Current / open water','Harbour / pier','Other']:['Βράχια / ύφαλος','Άμμος','Ναυάγιο','Ταμπλά / κατωφλι','Ρεύμα / ανοιχτά','Λιμάνι / μώλος','Άλλο'];
 
 /* Leaflet φορτώνεται μόνο όταν ανοίξει ο χάρτης */
-var lp=null;
-function leaflet(){ if(window.L) return Promise.resolve(window.L); if(lp) return lp;
+var lp=null, zl=false, lzLeaf=B.leaflet; /* 1.5.2: αν το lazy.js έχει ήδη αρχίσει να φορτώνει το Leaflet, το ίδιο φόρτωμα (όχι δεύτερο) */
+function zones(){ if(window.ZONES||zl) return; zl=true; var z=document.createElement('script'); z.src='../zones.js'; z.onload=function(){ if(map) drawOverlays(); }; document.head.appendChild(z); }
+function leaflet(){ zones(); if(window.L) return Promise.resolve(window.L); if(lp) return lp;
+  if(lzLeaf){ lp=lzLeaf().catch(function(e){ lp=null; throw e; }); return lp; }
   lp=new Promise(function(res,rej){ var c=document.createElement('link'); c.rel='stylesheet'; c.href='../leaflet.css'; document.head.appendChild(c);
-    var s=document.createElement('script'); s.src='../leaflet.js'; s.onload=function(){ res(window.L); }; s.onerror=rej; document.head.appendChild(s);
-    if(!window.ZONES){ var z=document.createElement('script'); z.src='../zones.js'; z.onload=function(){ if(map) drawOverlays(); }; document.head.appendChild(z); } }); return lp; }
+    var s=document.createElement('script'); s.src='../leaflet.js'; s.onload=function(){ res(window.L); }; s.onerror=function(e){ lp=null; rej(e); }; document.head.appendChild(s); }); return lp; }
 
 B.leaflet=leaflet; /* v31z532: και για τον μικρό χάρτη επιλογής σημείου (coordpick) */
 function icon(cls,html){ return L.divIcon({className:'mk '+cls,html:html||'',iconSize:null}); }
@@ -167,16 +168,16 @@ function setDepth(dm,dl){ ls.set('alkyon-depth',dm); if(dl&&window.AlkyonDense&&
    Είναι οι ίδιες μονάδες με την κλασική (windmap.js, seastate.js, bathy-lines.js), ώστε να δουλεύουν ακριβώς όπως εκεί.
    Φορτώνονται μία φορά, όταν ανοίξει πρώτη φορά ο χάρτης, γιατί ο χάρτης μένει ζωντανός σε όλη την εφαρμογή. */
 var mods=null, mbtns=null;
-function loadScript(src){ return new Promise(function(res){ var s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=res; document.head.appendChild(s); }); }
+function loadScript(src){ return new Promise(function(res){ var s=document.createElement('script'); s.async=false; s.src=src; s.onload=res; s.onerror=res; document.head.appendChild(s); }); }
 function classicMods(){
   if(mods) return mods;
   window.AlkyonCore=Object.assign(window.AlkyonCore||{},{map:function(){ return map; },toast:B.toast,lsGet:ls.get,lsSet:ls.set});
   window.AlkyonDepthRefresh=applyDepth; window.AlkyonDepthMode=dmode;
   window.ALKYON_BASE='../'; if(mbtns&&!document.getElementById('bZones')) mbtns.append(h('span',{id:'bZones',hidden:true}));
   Object.defineProperty(window,'AlkyonDepthLayers',{configurable:true,get:function(){ applyDepthInit(); return {c:depthC,k:depthK}; }});
-  var list=['../bathy-lines.js','../windmap.js','../windlocal.js','../seastate.js','../ruler.js','../ports.js','../orient.js','../navigator.js','../route.js'], p=Promise.resolve();
-  list.forEach(function(f){ p=p.then(function(){ return loadScript(f); }); });
-  mods=p.then(function(){ restoreWx(); }); return mods;
+  /* 1.5.2: κατεβαίνουν όλα μαζί και εκτελούνται με τη σειρά (async=false) */
+  var list=['../bathy-lines.js','../windmap.js','../windlocal.js','../seastate.js','../ruler.js','../ports.js','../orient.js','../navigator.js','../route.js'];
+  mods=Promise.all(list.map(loadScript)).then(function(){ restoreWx(); }); return mods;
 }
 function applyDepthInit(){ if(!depthC&&map) applyDepth(); }
 function cbtn(id){ return document.getElementById(id); }
