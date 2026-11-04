@@ -184,7 +184,7 @@ function classicMods(){
   Object.defineProperty(window,'AlkyonDepthLayers',{configurable:true,get:function(){ applyDepthInit(); return {c:depthC,k:depthK}; }});
   /* 1.5.2: κατεβαίνουν όλα μαζί και εκτελούνται με τη σειρά (async=false) */
   var list=['../bathy-lines.js','../windmap.js','../windlocal.js','../seastate.js','../ruler.js','../ports.js','../orient.js','../navigator.js','../route.js'];
-  mods=Promise.all(list.map(loadScript)).then(function(){ restoreWx(); }); return mods;
+  mods=Promise.all(list.map(loadScript)).then(function(){ restoreWx(); placeOrient(); }); return mods;
 }
 function applyDepthInit(){ if(!depthC&&map) applyDepth(); }
 function cbtn(id){ return document.getElementById(id); }
@@ -294,7 +294,7 @@ var curT=0, curKey='', curData=[];
 function currents(force){
   clearTimeout(curT); if(!map) return;
   if(!cfg.cur){ if(ov.cur){ map.removeLayer(ov.cur); ov.cur=null; try{ window.dispatchEvent(new Event('alkyon-curs')); }catch(e){} } curKey=''; return; }
-  curT=setTimeout(function(){ if(!map||!cfg.cur) return; var b=map.getBounds(), z=map.getZoom(), la=[], lo=[], NY=5, NX=4;
+  curT=setTimeout(function(){ if(!map||!cfg.cur) return; var b=map.getBounds(), z=map.getZoom(), la=[], lo=[], NY=4, NX=3; /* 1.6.1: 12 βέλη αντί για 20 */
     var key=b.getSouth().toFixed(2)+b.getWest().toFixed(2)+b.getNorth().toFixed(2)+b.getEast().toFixed(2)+new Date().getHours(); if(key===curKey&&!force) return; curKey=key;
     /* v31z526: σημεία μόνο στον ελεύθερο χώρο του χάρτη (όχι κάτω από τα κουμπιά πάνω, τη στήλη δεξιά, τη μπάρα ώρας κάτω) */
     var sz=map.getSize(), dk=document.getElementById('ndMapDock'), x0=70, x1=sz.x-78, y0=Math.min(sz.y*0.3,175), y1=sz.y-((dk&&!dk.hidden&&dk.offsetHeight)?dk.offsetHeight+110:150);
@@ -600,6 +600,16 @@ function layersSheet(){
 /* ---------- σελίδα ---------- */
 var box=null, lmEl=null, fishb=null, mapBell=null;
 function fishCounts(){ if(!fishb||!B.tripCounts) return; var c=B.tripCounts(), b=fishb.querySelectorAll('b'); b[0].textContent=c.pest||0; b[1].textContent=c.miss; b[2].textContent=c.n; }
+var moreBtn=null, unread=0;
+/* 1.6.1: το κουμπί προσανατολισμού (orient.js) μπαίνει στην αριστερή στήλη, κάτω από την άγκυρα */
+function placeOrient(){ var o=document.getElementById('bOrient'), sb=root&&root.querySelector('.seabar'); if(o&&sb&&o.parentNode!==sb) sb.append(o); }
+function moreSheet(){ var sh, rb=document.getElementById('bRuler'), ab=document.querySelector('.attrbtn'), ron=rb&&rb.getAttribute('aria-pressed')==='true';
+  var it=function(ic,t,s,fn){ return h('button',{class:'li',type:'button',onclick:function(){ sh.close(); setTimeout(fn,120); }},h('span',{class:'ic',html:ic}),h('span',{class:'tx'},h('b',{text:t}),s?h('small',{text:s}):null),B.icon('chev')); };
+  var RU='<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="8" width="20" height="8" rx="1.5" transform="rotate(-35 12 12)"/><path d="M8 9l1.5 2M11 7l1.5 2M14 5l1.5 2" transform="rotate(0)"/></svg>';
+  sh=B.sheet({title:T('Περισσότερα','More'),body:h('div',{class:'list'},
+    rb?it(RU,ron?T('Κλείσιμο χάρακα','Close the ruler'):T('Χάρακας','Ruler'),T('Απόσταση και πορεία ανάμεσα σε σημεία','Distance and bearing between points'),function(){ rb.click(); }):null,
+    it(B.iconSvg('bell'),T('Ειδοποιήσεις','Notifications'),unread>0?unread+T(' αδιάβαστες',' unread'):T('Καλές μέρες, πίεση, καιρός στην έξοδο','Good days, pressure, trip weather'),function(){ location.hash='#inbox'; }),
+    ab?it('<span style="font:800 18px var(--font)">ⓘ</span>',T('Πηγές χάρτη','Map sources'),T('Από πού έρχονται ο χάρτης, τα βάθη και ο καιρός','Where the map, depths and weather come from'),function(){ ab.click(); }):null)}); }
 function mount(el){
   root=el; document.body.classList.add('mapon'); cfg=Object.assign({base:'sat',sea:true,spots:true,fish:true,zones:true,mpa:false,dams:B.prof()==='lake',wind:false,seast:false},ls.get('alkyon-v4-map',{}));
   if(!box){ lmEl=h('div',{class:'lmap',id:'lmap'}); box=h('div',{class:'mapbox',id:'v4map'},lmEl); }
@@ -610,9 +620,11 @@ function mount(el){
     h('button',{class:'iconbtn gearbtn',hidden:!gearAtSea(),type:'button','aria-label':T('Εργαλεία: παραγάδι, δίχτυ, ζεμπίλι','Gear: longline, net, pot'),html:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h18M3 12h18M3 17h18M7 4v16M12 4v16M17 4v16"/></svg>',onclick:function(){ if(B.gearPanel) B.gearPanel(); }}),
     mbtns,
     /* v31z531: ειδοποιήσεις και από τον χάρτη (κόκκινος αριθμός = αδιάβαστες) */
-    (mapBell=h('a',{class:'iconbtn bellb',href:'#inbox','aria-label':T('Ειδοποιήσεις','Notifications'),html:B.iconSvg('bell')})));
+    (mapBell=h('a',{class:'iconbtn bellb',href:'#inbox','aria-label':T('Ειδοποιήσεις','Notifications'),html:B.iconSvg('bell')})),
+    /* 1.6.1: τα σπάνια κουμπιά (χάρακας, ειδοποιήσεις, πηγές χάρτη) σε ένα «⋯» */
+    (moreBtn=h('button',{class:'iconbtn morebtn',type:'button','aria-label':T('Περισσότερα','More'),html:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>',onclick:moreSheet})));
   setFollow(follow);
-  if(B.inboxUnread) B.inboxUnread().then(function(n){ var o=mapBell.querySelector('.bdg'); if(o) o.remove(); if(n>0) mapBell.append(h('i',{class:'bdg',text:n>9?'9+':String(n)})); });
+  if(B.inboxUnread) B.inboxUnread().then(function(n){ unread=n; [mapBell,moreBtn].forEach(function(x){ var o=x.querySelector('.bdg'); if(o) o.remove(); if(n>0) x.append(h('i',{class:'bdg',text:n>9?'9+':String(n)})); }); });
   /* γρήγορα στρώματα: άνεμος, κύμα, ρεύματα, βάθη (τα υπόλοιπα στο μενού «Στρώματα») */
   var qc=h('div',{class:'mchips',role:'group','aria-label':T('Γρήγορα στρώματα','Quick layers')});
   function qchip(ic,lab,get,set){ var b=h('button',{type:'button',class:'mchip',onclick:function(){ set(!get()); setTimeout(qpaint,80); setTimeout(qpaint,900); }},h('span',{html:LIC[ic]}),h('b',{text:lab})); b._g=get; qc.append(b); }
@@ -649,7 +661,7 @@ function mount(el){
   /* v31z545: μεγάλα κουμπιά (βρεγμένα χέρια, γάντια, κύμα) */
   var bBig=h('button',{class:'fb fbx',type:'button','aria-label':T('Μεγάλα κουμπιά','Big buttons'),html:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>',onclick:function(){ if(B.bigTrip) B.bigTrip.open(); }});
   fishb=h('div',{class:'fishbtns'},bPest,bMiss,bCatch,bBig); fishCounts();
-  el.replaceChildren(box,cross,bar,qc,heatPill,trip,seab,dtBarEl(),fishb,mwBox());
+  el.replaceChildren(box,cross,bar,qc,heatPill,trip,seab,dtBarEl(),fishb,mwBox()); placeOrient(); setTimeout(placeOrient,1500);
   if(B.smartChip){ var rc=h('div',{class:'rtwrap'}); B.smartChip().forEach(function(n){ rc.append(n); }); el.append(rc); }
   if(map){ setTimeout(function(){ if(!map) return; map.invalidateSize(); drawData(); applyPend(); drawDirect(); pickUI(); },30); locate(false); return; }
   leaflet().then(function(){

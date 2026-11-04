@@ -43,7 +43,9 @@ function fix(){ try{
   bs.forEach(function(b){ var p=b.date.split('-').map(Number), q=(b.time||'00:00').split(':').map(Number), ms=new Date(p[0],p[1]-1,p[2],q[0],q[1]).getTime(), o=Object.assign({},b,{_wfix:1});
     if(!o.trip){ if(act.active&&act.id&&act.start&&ms>=act.start-600000) o.trip=act.id; else { var t=trips.filter(function(x){ return ms>=x.startMs-600000&&ms<=(x.endMs||x.startMs)+600000; })[0]; if(t) o.trip=t.sid||t.id; } }
     o.prof=o.prof||B.prof();
-    st.save('bites',o); try{ if(window.AlkyonBiteWx) AlkyonBiteWx.ensure(o); }catch(e){} });
+    st.save('bites',o); try{ if(window.AlkyonBiteWx) AlkyonBiteWx.ensure(o); }catch(e){}
+    /* 1.6.4: συρτή από το ρολόι: το ψάρι πηγαίνει εκεί που ήταν το δόλωμα */
+    if(o.wtr&&B.troll&&B.troll.fromWatch) B.troll.fromWatch(o,ms).then(function(x){ if(!x) return; var cur=st.get('bites',o.id); if(!cur||cur.troll) return; st.save('bites',Object.assign({},cur,{lat:x.lat,lon:x.lon,boatLat:x.boatLat,boatLon:x.boatLon,troll:x.troll,tech:cur.tech||x.tech},cur.depth==null&&x.depth!=null?{depth:x.depth,depthSrc:x.depthSrc}:{})); B.emit('store','alkyon-bites'); }); });
   B.emit('store','alkyon-bites'); B.emit('trip');
   if(bs.length) B.toast((bs.length===1?T('1 ψάρι από το ρολόι','1 catch from the watch'):bs.length+T(' ψάρια από το ρολόι',' catches from the watch'))+T(' · συμπλήρωσε είδος στο Ημερολόγιο.',' · add the species in the Logbook.'));
 }catch(e){} }

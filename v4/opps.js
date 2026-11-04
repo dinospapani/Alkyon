@@ -71,7 +71,7 @@ B.oppsCard=function(max,opt){ opt=opt||{};
     items.forEach(function(it){ var cls=it.score>=80?'hi':it.score>=65?'mid':'lo';
       list.append(h('button',{type:'button',class:'opr',onclick:function(){ if(B.mapGo) B.mapGo(it.lat,it.lon,13,null,{lab:it.name,sea:true}); }},
         h('span',{class:'ops '+cls,text:String(it.score)}),
-        h('span',{class:'opt'},h('b',{text:dayLbl(it.date)+' '+B.pad(it.s)+':00–'+B.pad((it.e+1)%24)+':00 · '+it.name}),h('small',{text:whyTxt(it)||T('Καλές συνθήκες','Good conditions')})),B.icon?B.icon('chev'):null)); }); }
+        h('span',{class:'opt'},h('b',{text:it.name}),h('small',{class:'opw',text:dayLbl(it.date)+' '+B.pad(it.s)+':00–'+B.pad((it.e+1)%24)+':00'}),h('small',{text:whyTxt(it)||T('Καλές συνθήκες','Good conditions')})),B.icon?B.icon('chev'):null)); }); }
   var c=ls.get(KEY,null); if(c&&c.items) paint(c.items); else list.append(h('p',{class:'sub',text:T('Υπολογισμός…','Calculating…')}));
   compute(false).then(paint);
   return box; };

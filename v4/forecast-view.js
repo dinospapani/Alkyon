@@ -343,7 +343,9 @@ function dayView(page,fc,d){
         h('div',{class:'nwg'},cells.map(function(c){ return h('div',{class:'nwc'},h('b',null,c[0],h('small',{text:' '+c[1]})),h('span',{text:c[2]})); })),
         /* 1.1.0: εδώ αποφασίζεις πού και πότε· η έναρξη εξόδου και το νέο ψάρι είναι στο κεντρικό κουμπί */
         h('div',{class:'nwa'},onTrip?h('button',{class:'btn pri',type:'button',text:T('Ψάρι εδώ','Catch here'),onclick:function(){ B.quickRec&&B.quickRec(false); }}):h('button',{class:'btn pri',type:'button',text:'📍 '+T('Πού να πάω','Where to go'),onclick:whereGo}),
-          h('button',{class:'btn',type:'button',text:'🗺 '+T('Στον χάρτη','On the map'),onclick:function(){ var p=st.place||current(); if(p&&p.lat!=null&&B.mapGo) B.mapGo(p.lat,p.lon,12,null,{lab:p.name||null,sea:true}); else location.hash='#map'; }})));
+          h('button',{class:'btn',type:'button',text:'🗺 '+T('Στον χάρτη','On the map'),onclick:function(){ var p=st.place||current(); if(p&&p.lat!=null&&B.mapGo) B.mapGo(p.lat,p.lon,12,null,{lab:p.name||null,sea:true}); else location.hash='#map'; }})),
+        /* 1.6.1: από πού είναι η πρόγνωση (για σύγκριση με άλλες εφαρμογές, π.χ. Windy που δείχνει ένα μοντέλο) */
+        h('p',{class:'nwsrc',text:T('Open-Meteo · καλύτερο μοντέλο για την περιοχή. Ο Χάρτης δείχνει μέσο όρο ECMWF, ICON και GFS.','Open-Meteo · best model for the area. The Map shows the average of ECMWF, ICON and GFS.')}));
       page.append(nc); if(B.oppsCard) page.append(B.oppsCard(2,{hideEmpty:true})); } }
 
   /* ανά ώρα: μπάρες και λεπτομέρειες της ώρας (σύρε το δάχτυλο πάνω στις μπάρες) */

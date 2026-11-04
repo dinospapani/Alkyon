@@ -298,3 +298,18 @@ svg.pwc{width:100%;height:auto}
 .card.hist .hbar i{flex:1;border-radius:3px 3px 0 0;background:#b9c2d0}
 .card.hist .hbar i.great,.card.hist .hbar i.good{background:#2e9e6a}.card.hist .hbar i.fair{background:#d79a2b}.card.hist .hbar i.poor{background:#e0825a}.card.hist .hbar i.x{background:#d9dde3}
 .card.hist .hbl{display:flex;justify-content:space-between;color:var(--ink-2);margin-bottom:6px}
+
+/* 1.6.1 */
+.nowcard .nwsrc{margin:10px 2px 0;font-size:11.5px;line-height:1.35;color:var(--ink-2)}
+.opt b{white-space:normal!important;overflow:visible!important;text-overflow:clip!important}.opt .opw{font-weight:700;color:var(--ink)}
+/* 1.6.1: αντίθεση: σκούρα νούμερα στα πορτοκαλί/πράσινα «χάπια» και πιο σκούρες ώρες */
+.dtile.lv-fair .dsc,.dtile.lv-good .dsc{color:#0A1A12}
+.dtile .dw{color:var(--ink-2)}
+.place{min-height:40px}
+.next .sc,.mrow .sc{color:var(--good-ink)}
+.tag.fair,.tag.warn{color:var(--fair-ink)}
+.tag.good{color:var(--good-ink)}
+/* 1.6.1: βαθμός και κείμενα σε πορτοκαλί/πράσινο: πιο σκούρα απόχρωση ώστε να διαβάζονται (αντίθεση ≥ 4.5) */
+.lv-good .score,.lv-great .score,.wk:not(.lv-fair):not(.lv-poor) .ws,.hsel:not(.lv-fair):not(.lv-poor) .hs{color:var(--good-ink)}
+.lv-fair .score,.wk.lv-fair .ws,.hsel.lv-fair .hs,.spw{color:var(--fair-ink)}
+.clar .cll.ok{color:var(--good-ink)}.clar .cll.warn{color:var(--fair-ink)}

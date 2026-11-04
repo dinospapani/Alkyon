@@ -7,7 +7,7 @@
   5. offline: με κλειστό δίκτυο, οι σελίδες ανοίγουν από το cache
   6. ελληνικά και αγγλικά
 Βγαίνει με κωδικό 1 αν αποτύχει κάτι, ώστε το GitHub να στείλει ειδοποίηση."""
-import sys, os, json, subprocess, time, socket, threading, http.server, functools
+import time, sys, os, json, subprocess, time, socket, threading, http.server, functools
 HERE=os.path.dirname(os.path.abspath(__file__)); ROOT=os.path.dirname(HERE); sys.path.insert(0,HERE)
 from fakeom import respond
 from playwright.sync_api import sync_playwright
@@ -216,6 +216,26 @@ with sync_playwright() as p:
     for u,want in [('/classic.html?a=map&lat=35.1&lon=33.2','/v4/#share='),('/classic.html?a=bite','/v4/#log'),('/classic.html','/v4/#forecast')]:
         pg.goto(BASE+u); pg.wait_for_timeout(1500); check('κλασική → '+want, pg.url.split(BASE)[1].startswith(want), pg.url)
     check('παλιά έξοδος/κλασική χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
+
+    print('# συρτή, επιλογή σημείου, ψάρια χωρίς είδος (1.6.x)')
+    import json as _j
+    now=int(time.time()*1000); pts=[[34.70,32.40+i*0.000169,now-(30-i)*10000] for i in range(31)]
+    c=ctx(b); c.add_init_script("if(!sessionStorage.tr){sessionStorage.tr=1;localStorage.setItem('alkyon-safe',JSON.stringify({active:true,id:'T1',start:%d,due:%d}));localStorage.setItem('alkyon-track',JSON.stringify({id:'T1',pts:%s,m:1500}));localStorage.setItem('alkyon-v4-pos',JSON.stringify({lat:34.7,lon:32.40507,t:%d}));localStorage.setItem('alkyon-troll',JSON.stringify({on:true,mode:'surface',min:2.5,max:4,line:40}));localStorage.setItem('alkyon-v4-night',JSON.stringify('off'));localStorage.setItem('alkyon-v4-acctask','1');}"%(now-300000,now+3600000,_j.dumps(pts),now))
+    pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(5000)
+    r=pg.evaluate("()=>{ const id=AK.quickRec(false,null,null,true), x=AK.store.get('bites',id); return {kn:x.troll&&x.troll.kn, lb:x.troll&&x.troll.lb, dlon:x.boatLon-x.lon, tech:x.tech, pill:!!document.querySelector('.trpill:not([hidden])')} }")
+    check('συρτή: ψάρι ~40 m πίσω πάνω στη διαδρομή', r['lb']==40 and abs(r['dlon']-0.00044)<0.00005 and abs((r['kn'] or 0)-3)<0.3 and r['pill'], r)
+    g=pg.evaluate("()=>[AK.troll.geo({mode:'bottom',auto:false,leads:12,leader:10,v0:3},3),AK.troll.geo({mode:'bottom',auto:false,leads:12,leader:10,v0:3},3.5),AK.troll.nLeads({mode:'bottom',auto:true},32*1.83)]")
+    check('συρτή βυθού αυτόματα: βυθός 32 οργιές → 31 μολύβια', g[2]==31, g[2])
+    check('συρτή βυθού (Deep Fishing, ανά 5 οργιές): 12 μολύβια στα 3 kn = ~22 m βάθος, ~123 m πίσω· πιο γρήγορα ανεβαίνει', abs(g[0]['dl']-21.96)<0.2 and abs(g[0]['lb']-122.8)<1 and g[1]['dl']<g[0]['dl'], {k:g[0][k] for k in ('dl','lb','L','n')})
+    pg.evaluate("()=>AK.speciesFill('T1')"); pg.wait_for_timeout(500)
+    check('τέλος εξόδου: φόρμα ειδών για ψάρια χωρίς είδος', pg.evaluate("()=>!!document.querySelector('.sheet .spfill .spf')"))
+    pg.evaluate("()=>AK.closeSheet&&AK.closeSheet()"); pg.wait_for_timeout(400)
+    pg.evaluate("()=>AK.mapPick({lat:34.8,lon:32.5,z:12,onPick:(a,b)=>{window.__pk=[a,b]}})"); pg.wait_for_timeout(1500)
+    check('επιλογή σημείου: κάρτα στον κανονικό χάρτη', pg.evaluate("()=>!!document.querySelector('.mpkbar')&&document.body.classList.contains('mappick')"))
+    pg.evaluate("()=>document.querySelector('.mpkbar .btn.pri').click()"); pg.wait_for_timeout(500)
+    pk=pg.evaluate("()=>window.__pk")
+    check('επιλογή σημείου: επιστρέφει το κέντρο', pk and abs(pk[0]-34.8)<0.01 and abs(pk[1]-32.5)<0.01, pk)
+    check('συρτή/επιλογή χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
 
     print('# offline')
     c=ctx(b,sw=True); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(6000); pg.reload(); pg.wait_for_timeout(3000)

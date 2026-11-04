@@ -338,5 +338,22 @@ B.quickUndo=function(miss){
   B.ask(miss?T('Να διαγραφεί η τελευταία αστοχία;','Delete the last miss?'):T('Να διαγραφεί το τελευταίο ψάρι','Delete the last catch')+(b.species?' ('+b.species+(b.kg?' '+b.kg+' kg':'')+')':'')+'?',T('Διαγραφή','Delete'),true).then(function(y){ if(!y) return;
     S.phKeys(b).forEach(function(k){ S.Photos.del(k).catch(function(){}); }); adjLost(b.tkLost||[],1,null); S.remove('bites',b.id); B.emit('store','alkyon-bites'); B.emit('trip'); B.toast(T('Διαγράφηκε.','Deleted.')); });
 };
+/* 1.6.1: στο τέλος της εξόδου: τα ψάρια χωρίς είδος, με τα είδη που πιάνεις συχνότερα σαν κουμπιά */
+B.speciesFill=function(sid,done){ var S=st(), fin=function(){ if(done){ var d=done; done=null; d(); } };
+  var list=S.raw('bites').filter(function(b){ return !b.deleted&&!b.miss&&!B.pest(b)&&!b.species&&(sid?b.trip===sid:true); });
+  if(!list.length){ fin(); return; }
+  var cnt={}; S.raw('bites').forEach(function(b){ if(!b.deleted&&b.species&&!B.pest(b)) cnt[b.species]=(cnt[b.species]||0)+1; });
+  var top=Object.keys(cnt).sort(function(a,c){ return cnt[c]-cnt[a]; }).slice(0,6), left=list.length, sub=h('p',{class:'sub'});
+  function upd(){ sub.textContent=left?left+T(left===1?' ψάρι χωρίς είδος':' ψάρια χωρίς είδος',left===1?' catch without a species':' catches without a species'):T('Όλα έχουν είδος ✓','All have a species ✓'); }
+  var rows=h('div',{class:'spfill'});
+  list.forEach(function(b){ var done1=false, row=h('div',{class:'spf'}), lab=h('b',{text:(b.time||'')+(b.troll&&b.troll.kn!=null?' · '+B.num(b.troll.kn,1)+' kn':'')+(b.depth!=null?' · '+b.depth+' m':'')});
+    var ch=h('div',{class:'chips'});
+    function set(name){ var cur=S.get('bites',b.id); if(!cur) return; var la=(typeof latinOf==='function')?latinOf(name):''; S.save('bites',Object.assign({},cur,{species:name,latin:la||cur.latin||''})); B.emit('store','alkyon-bites');
+      if(!done1){ done1=true; left--; } row.classList.add('ok'); lab.textContent=lab.textContent.split(' ✓')[0]+' ✓ '+name; upd(); }
+    top.forEach(function(sp){ ch.append(h('button',{type:'button',class:'chip sm',text:sp,onclick:function(){ set(sp); }})); });
+    ch.append(h('button',{type:'button',class:'chip sm',text:T('Άλλο…','Other…'),onclick:function(){ sh.close(); B.biteForm(S.get('bites',b.id)); }}));
+    row.append(lab,ch); rows.append(row); });
+  upd();
+  var sh=B.sheet({title:T('Τι έπιασες;','What did you catch?'),onclose:fin,body:h('div',{class:'bform'},sub,rows,h('button',{class:'btn pri full',type:'button',text:T('Τέλος','Done'),onclick:function(){ sh.close(); }}),h('p',{class:'foot',text:T('Τα υπόλοιπα συμπληρώνονται και αργότερα από το Ημερολόγιο.','You can also fill these in later from the Logbook.')}))}); };
 B.tripCounts=function(){ var sf=ls.get('alkyon-safe',{})||{}, n=0, m=0, pc=0; if(!sf.active) return {n:0,miss:0}; st().raw('bites').forEach(function(b){ if(b.deleted||!(sf.id&&b.trip===sf.id)) return; if(B.pest(b)) pc++; else if(b.miss) m++; else n+=Math.max(1,Math.floor(+b.cnt)||1); }); return {n:n,miss:m,pest:pc}; };
 })();

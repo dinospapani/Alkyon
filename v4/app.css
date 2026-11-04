@@ -4,8 +4,8 @@
 :root{
   color-scheme:light dark;
   --bg:#E9F0EF; --surface:#FFFFFF; --surface-2:#F2F6F5; --ink:#0A2633; --ink-2:#4B6570; --ink-3:#7D949C; --line:#D5E0DE;
-  --accent:#E4572E; --accent-ink:#FFFFFF; --sea:#1C6E8C; --sea-2:#BFDCE6;
-  --good:#2E9E6B; --fair:#D99A1E; --poor:#D2452F;
+  --accent:#CC4521; --accent-ink:#FFFFFF; --sea:#1C6E8C; --sea-2:#BFDCE6;
+  --good:#2E9E6B; --fair:#D99A1E; --poor:#D2452F; --good-ink:#1E7A4F; --fair-ink:#8A5A00;
   --good-bg:#DDF2E7; --fair-bg:#FBEFD2; --poor-bg:#FADDD7;
   --r-lg:24px; --r-md:16px; --r-sm:12px;
   --shadow:0 1px 0 rgba(10,38,51,.04),0 8px 24px -16px rgba(10,38,51,.25);
@@ -15,14 +15,14 @@
 @media (prefers-color-scheme:dark){ :root:not([data-theme=light]){
   --bg:#06171F; --surface:#0D2A36; --surface-2:#123545; --ink:#E6F1F2; --ink-2:#9BB5BE; --ink-3:#6C8893; --line:#1C4253;
   --accent:#FF7A4D; --accent-ink:#1A0A04; --sea:#4FB3D9; --sea-2:#1B4A5C;
-  --good:#3DBE85; --fair:#F0B93A; --poor:#F06A55;
+  --good:#3DBE85; --fair:#F0B93A; --poor:#F06A55; --good-ink:#3DBE85; --fair-ink:#F0B93A;
   --good-bg:#103A2A; --fair-bg:#3A2E10; --poor-bg:#3D1B16;
   --shadow:0 1px 0 rgba(0,0,0,.2),0 10px 28px -18px rgba(0,0,0,.7);
 }}
 :root[data-theme=dark]{
   --bg:#06171F; --surface:#0D2A36; --surface-2:#123545; --ink:#E6F1F2; --ink-2:#9BB5BE; --ink-3:#6C8893; --line:#1C4253;
   --accent:#FF7A4D; --accent-ink:#1A0A04; --sea:#4FB3D9; --sea-2:#1B4A5C;
-  --good:#3DBE85; --fair:#F0B93A; --poor:#F06A55;
+  --good:#3DBE85; --fair:#F0B93A; --poor:#F06A55; --good-ink:#3DBE85; --fair-ink:#F0B93A;
   --good-bg:#103A2A; --fair-bg:#3A2E10; --poor-bg:#3D1B16;
   --shadow:0 1px 0 rgba(0,0,0,.2),0 10px 28px -18px rgba(0,0,0,.7);
 }
@@ -450,7 +450,19 @@ body:has(.sheet.on) .toast{bottom:auto}
 .limsug span{flex:1}.limsug .btn{flex:none}
 .tg .tgs{display:block;font-size:12.5px;font-weight:500;color:var(--ink-2);margin-top:2px;line-height:1.35}
 /* v31z545 · νυχτερινή λειτουργία: όλη η οθόνη σε κόκκινο (πολλαπλασιαστικό φίλτρο πάνω από το σκούρο θέμα) */
-html.night body::after{content:'';position:fixed;inset:0;background:#a81000;mix-blend-mode:multiply;pointer-events:none;z-index:2147483647}
+/* 1.6.1: νυχτερινή λειτουργία που κρατά τη φωτεινότητα: πρώτα όλα γίνονται κόκκινα με την ίδια φωτεινότητα (blend color),
+   μετά σκουραίνουν (multiply). Πριν, μόνο το multiply έκανε το λευκό και το κόκκινο ίδια απόχρωση (το MOB χανόταν). */
+html.night body::before{content:'';position:fixed;inset:0;background:#ff1a00;mix-blend-mode:color;pointer-events:none;z-index:2147483646}
+html.night body::after{content:'';position:fixed;inset:0;background:#9a1600;mix-blend-mode:multiply;pointer-events:none;z-index:2147483647}
+/* το MOB: πάντα λευκό περίγραμμα και γράμματα πάνω σε σκούρο, για να ξεχωρίζει και τη νύχτα */
+/* ο χάρτης πιο σκοτεινός (τα πλακίδια, το κύμα και ο άνεμος), τα κουμπιά ψαριού με λευκό περίγραμμα */
+html.night .leaflet-tile-pane,html.night .wxfill,html.night .sattile{filter:brightness(.42)}
+html.night #lmap.leaflet-container{background:#0a0a0a!important}
+/* οι δείκτες (ψάρια, σημεία, ρεύματα) και οι γραμμές φωτεινοί πάνω στον σκοτεινό χάρτη */
+html.night .leaflet-marker-pane,html.night .leaflet-overlay-pane{filter:grayscale(1) brightness(1.25) contrast(1.15)}
+html.night #lmap canvas,html.night .leaflet-container:not(#lmap){filter:brightness(.45)}
+html.night .fb{background:#1a0000!important;box-shadow:0 0 0 3px #fff!important;color:#fff!important}
+html.night .mobbtn{background:#1a0000!important;color:#fff!important;box-shadow:0 0 0 3px #fff!important;text-shadow:none}
 .mapbar .nightb[hidden]{display:none}
 .mapbar .nightb[aria-pressed=true]{background:#7a0d00;color:#ff8a70}
 .mapbar .nightb svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round}
@@ -509,3 +521,27 @@ html.night body::after{content:'';position:fixed;inset:0;background:#a81000;mix-
 .authf .gbtn svg{width:20px;height:20px}
 .authf .orline{display:flex;align-items:center;gap:10px;color:var(--muted,#8a9aa5);font-size:13px}
 .authf .orline::before,.authf .orline::after{content:'';flex:1;height:1px;background:var(--line)}
+html.night .tripbar{background:#1a0000!important;color:#fff!important;box-shadow:0 0 0 2px #fff!important}
+
+/* 1.6.1: συμπλήρωση ειδών στο τέλος της εξόδου */
+.spfill{display:flex;flex-direction:column;gap:12px;margin:8px 0 14px}.spf{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-radius:14px;background:var(--surface-2)}.spf.ok{opacity:.7}.spf .chips{margin:0}
+/* 1.6.1: καρτέλες με 5 επιλογές: ολόκληρες λέξεις, σύρονται αν δεν χωρούν (με σβήσιμο στην άκρη ως ένδειξη) */
+.seg:has(>button:nth-child(5)){overflow-x:auto;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 18px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 18px),transparent)}
+.seg:has(>button:nth-child(5))::-webkit-scrollbar{display:none}
+.seg:has(>button:nth-child(5)) button{flex:1 0 auto!important;min-width:max-content!important;padding:0 9px!important;font-size:13.5px!important;text-overflow:clip!important}
+.chips.rng{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 18px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 18px),transparent);padding-right:18px}
+/* 1.6.1: αν ο τίτλος και τα κουμπιά δεν χωρούν, τα κουμπιά πάνε από κάτω (πριν ο τίτλος κοβόταν, π.χ. «Εξοπλισμό») */
+.top{flex-wrap:wrap;row-gap:8px}.top>:last-child{margin-left:auto}
+.top h1{text-wrap:balance}
+
+/* 1.6.1: μακριά μηνύματα: 2 γραμμές, πάτημα για όλο */
+.toast.long>span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.toast.long.full>span{display:block;-webkit-line-clamp:unset}
+.toast.long:not(.full)>span::after{content:''}
+.toast.long{cursor:pointer}
+/* 1.6.1: αυτόματος έλεγχος: πιο μεγάλα σημεία πατήματος (≥ 36–44 px) και καλύτερη αντίθεση */
+.chip.sm{min-height:36px}
+.linkbtn{min-height:36px}
+.mk.fish,.mk.spot{position:relative}.mk.fish::after,.mk.spot::after{content:'';position:absolute;left:50%;top:50%;width:44px;height:44px;transform:translate(-50%,-50%);border-radius:50%}
+#ndMapDock button{min-height:36px}
+html.night body.trolling .trbtn{background:#1a0000!important;color:#fff!important;box-shadow:0 0 0 3px #fff!important}

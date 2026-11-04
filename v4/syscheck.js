@@ -86,7 +86,7 @@ function report(){ var L=['Alkyon '+(window.ALKYON_VERSION||'')+' · '+new Date(
   var E=(window.AlkyonErrLog?AlkyonErrLog.get():[]).slice(-12).reverse(); if(E.length){ L.push('','Σφάλματα:'); E.forEach(function(e){ L.push(new Date(e.t).toISOString().slice(5,16).replace('T',' ')+' '+(e.v||'')+' '+(e.p||'')+' '+e.m+(e.n>1?' ×'+e.n:'')+(e.w?' @ '+e.w:'')); }); }
   return L.join('\n'); }
 function paint(){ if(!root) return; var page=h('div',{class:'page ckpage'});
-  page.append(h('div',{class:'top'},h('div',{style:{display:'flex',alignItems:'center',gap:'12px'}},h('a',{class:'iconbtn',href:'#profile','aria-label':T('Πίσω','Back'),html:B.iconSvg('back')}),h('h1',{class:'lt',text:T('Έλεγχος συστήματος','System check')}))));
+  page.append(h('div',{class:'top'},h('div',{style:{display:'flex',alignItems:'center',gap:'12px'}},h('a',{class:'iconbtn',href:'#profile','aria-label':T('Πίσω','Back'),html:B.iconSvg('back')}),h('h1',{class:'lt',text:T('Έλεγχος','System check')}))));
   var n={ok:0,warn:0,bad:0}; CHECKS.forEach(function(c){ var r=res[c[0]]; if(r&&n[r.lv]!=null) n[r.lv]++; });
   page.append(h('p',{class:'sub',text:running?T('Γίνεται έλεγχος…','Checking…'):n.bad?n.bad+T(' δεν δουλεύουν · ',' not working · ')+n.warn+T(' θέλουν προσοχή',' need attention'):n.warn?T('Όλα δουλεύουν· ','Everything works; ')+n.warn+T(' θέλουν προσοχή.',' need attention.'):T('Όλα δουλεύουν.','Everything works.')}));
   var card=h('section',{class:'card ckcard'}); CHECKS.forEach(function(c){ card.append(rowOf(c)); }); page.append(card);

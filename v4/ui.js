@@ -31,8 +31,10 @@ function icon(n){ var w=document.createElement('span'); w.innerHTML=iconSvg(n); 
 /* μήνυμα στο κάτω μέρος */
 var tEl=null, tT=0;
 function toast(msg,ms,act){
-  if(!tEl){ tEl=h('div',{class:'toast',role:'status','aria-live':'polite'}); document.body.appendChild(tEl); }
-  tEl.replaceChildren(h('span',{text:msg})); tEl.classList.toggle('act',!!act);
+  if(!tEl){ tEl=h('div',{class:'toast',role:'status','aria-live':'polite'}); document.body.appendChild(tEl);
+    /* 1.6.1: μακριά μηνύματα σε 2 γραμμές· πάτημα = ολόκληρο το κείμενο (και μένει λίγο ακόμα) */
+    tEl.addEventListener('click',function(e){ if(e.target.closest('.tact')) return; if(!tEl.classList.contains('full')&&tEl.classList.contains('long')){ tEl.classList.add('full'); clearTimeout(tT); tT=setTimeout(function(){ tEl.classList.remove('on'); },9000); } else tEl.classList.remove('on'); }); }
+  tEl.replaceChildren(h('span',{text:msg})); tEl.classList.toggle('act',!!act); tEl.classList.remove('full'); tEl.classList.toggle('long',String(msg||'').length>90);
   if(act) tEl.append(h('button',{type:'button',class:'tact',text:act.label,onclick:function(){ clearTimeout(tT); tEl.classList.remove('on'); act.fn(); }}));
   clearTimeout(tT); requestAnimationFrame(function(){ tEl.classList.add('on'); });
   tT=setTimeout(function(){ tEl.classList.remove('on'); },ms||Math.min(9000,Math.max(act?5000:2600,String(msg||'').length*60)));

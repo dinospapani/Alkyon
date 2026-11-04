@@ -116,6 +116,8 @@ function startTimer(){ clearInterval(timer); timer=setInterval(tick,60000); }
 function start(o){
   var d=load(), s=Object.assign({},d,{active:true,id:'trip-'+Date.now().toString(36),route:o.route||'',due:o.due,autoExt:0,sosAt:0,pgStart:0,pgEnd:0,last:null,start:Date.now(),startDate:B.store?todayStr():'',cond0:cond0(),sil:o.sil||0,noAlert:!o.notify,synced:undefined});
   save(s); ls.set('alkyon-track',null); watch(); startTimer();
+  /* 1.6.1: με την έναρξη κατεβαίνουν χάρτης και πρόγνωση γύρω από τη θέση σου (αν υπάρχει σήμα και το επιτρέπει η ρύθμιση), για να δουλεύουν χωρίς σήμα */
+  try{ var pp=B.lastPos(); if(B.prefetch&&pp&&B.prefetch.mode()!=='off') B.prefetch.run({date:s.startDate||new Date().toISOString().slice(0,10),lat:pp.lat,lon:pp.lon}); }catch(e){}
   /* v31z543: στέλνει στον server όρια και λιμάνι, για ειδοποιήσεις καιρού / επιστροφής με κλειστό κινητό */
   try{ if(B.pushSync) B.pushSync(); }catch(e){}
   pushContact().then(trackPos).then(pushTrip);
@@ -149,7 +151,8 @@ function back(){
     if(tk){ rec.km=tk.km; rec.track=tk.track; if(tk.moving&&tk.moving.length) rec.moving=tk.moving; }
     var id=B.store.save('trips',rec), gc=gearCompact(id); if(gc){ var t=B.store.get('trips',id); B.store.save('trips',Object.assign({},t,{gear:gc})); }
     B.toast(T('Η έξοδος καταχωρήθηκε: ','Trip saved: ')+dur(d)+', '+(sm.n?sm.n+' '+T('ψάρια','catches'):T('χωρίς ψάρια (κρατήθηκε: βοηθά την προσωπική πρόγνωση)','no catches (kept: it helps your personal forecast)')));
-    seaQuestion(id,pos);
+    /* 1.6.1: πρώτα τα ψάρια χωρίς είδος (ένα πάτημα το καθένα), μετά η ερώτηση για τη θάλασσα */
+    if(B.speciesFill) B.speciesFill(s.id,function(){ seaQuestion(id,pos); }); else seaQuestion(id,pos);
     B.emit('tripend',{id:id,startMs:s.start,endMs:Date.now()});
   } else { B.emit('tripend',{id:null,startMs:s.start,endMs:Date.now()}); B.toast(T('Καλωσόρισες πίσω. Η έξοδος ήταν κάτω από 20 λεπτά χωρίς ψάρια, οπότε δεν καταχωρήθηκε.','Welcome back. The trip was under 20 minutes with no catches, so it was not saved.')); }
 }

@@ -1,6 +1,6 @@
 /* Alkyon 4 · service worker (μόνο για τον φάκελο v4/).
    Δικά μας αρχεία: πρώτα δίκτυο, αλλιώς αποθηκευμένο αντίγραφο. Γραμματοσειρές: αποθηκευμένο αντίγραφο πρώτα. */
-const V = 'alkyon4-1.6.0';
+const V = 'alkyon4-1.6.5';
 const SHELL = ['./', 'index.html', 'errlog.js', 'app.css', 'forecast.css', 'core.js', 'ui.js', 'shell.js', 'lazy.js', 'clarity.js', 'forecast-view.js', 'forecast-more.js', 'advise.js', 'store.js', 'account.js', 'bite-form.js', 'log-view.js', 'profile-view.js', 'log.css', 'map.css', 'map-view.js', 'medland.js', 'wxfx.js', 'opps.js', 'coordpick.js', 'extras.js', 'seabed.js', 'bestspot.js', 'tackle-view.js', 'tackle-core.js', 'gear-view.js', 'boat-view.js', 'friends-view.js', 'community-view.js', 'trip.js', 'troll.js', 'trip-extra.js', 'autostart.js', 'night.js', 'bigtrip.js', 'records.js', 'live.js', 'help.js', 'sea-tools.js', 'smart.js', '../ext.js', '../divelog.js', '../coords.js', '../regions.js', '../windwatch.js', '../coastgrid.js', '../exposure.js', '../bitewx.js', 'alerts-view.js', 'cards.js', 'datatools.js', 'import-view.js', 'insights.js', 'years.js', 'backup.js', 'garmin.js', 'prefetch.js', 'syscheck.js', 'start-pick.js', 'alk-hero-boat.jpg', 'alk-hero.jpg', 'alk-card-shore.jpg', 'alk-card-boat.jpg', 'alk-hero-spear.jpg', 'alk-th-boatrod.jpg', 'alk-th-spear.jpg', 'alk-th-lake.jpg', 'alk-th-shorerod.jpg', '../species.js', '../rules.js', 'guide-core.js', 'guide-view.js', '../cy100.js', '../regions.js', '../knots.js', '../coastgrid.js', '../exposure.js', '../bathy-lines.js', '../windmap.js', '../windlocal.js', '../seastate.js', '../ruler.js', '../ports.js', '../orient.js', '../navigator.js', '../route.js', '../leaflet.js', '../leaflet.css', '../zones.js', '../dams_levels.json', '../version.js', '../hist.js', 'manifest.webmanifest',
   '../units.js', '../knowledge.js', '../i18n.js', '../i18n-en.js', '../forecast.js', '../personal.js', '../icon-192.png', '../migrate.js',
   /* 1.3.0: αρχεία που φορτώνονται αργότερα: αποθηκεύονται από την αρχή για να δουλεύουν offline χωρίς να έχουν ανοιχτεί πρώτα */
@@ -42,6 +42,10 @@ function own(e) {
   const net = fetch(new Request(e.request, { cache: 'no-cache' })).then(r => { if (r.ok) { const cp = r.clone(); caches.open(V).then(c => c.put(e.request, cp)); } return r; });
   e.waitUntil(net.then(() => {}, () => {}));
   if (self.navigator && self.navigator.onLine === false) return cached().then(r => r || net);
+  /* 1.6.1: αρχεία της εφαρμογής (js, css, εικόνες, η σελίδα): πρώτα από τη μνήμη της ίδιας έκδοσης, αμέσως· το δίκτυο ανανεώνει στο παρασκήνιο.
+     Η αποθήκη ανήκει σε μία έκδοση (V) και γεμίζει ολόκληρη στην εγκατάσταση, άρα τα αρχεία ταιριάζουν πάντα μεταξύ τους· μια νέα έκδοση
+     έρχεται με το νέο sw.js και η εφαρμογή ξαναφορτώνει («Ενημερώθηκε»). Τα δεδομένα (.json) μένουν πρώτα δίκτυο. */
+  if (!/\.json(\?|$)/.test(new URL(e.request.url).pathname)) return cached().then(r => r || net);
   return new Promise(resolve => {
     let done = false; const fin = r => { if (!done && r) { done = true; resolve(r); } };
     const t = setTimeout(() => cached().then(fin), nav ? 2500 : 2000);

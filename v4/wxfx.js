@@ -11,6 +11,7 @@ window.ALKYON_WINDY=true;
 var WVC=[[0,[206,238,242]],[0.25,[160,216,232]],[0.5,[112,186,222]],[0.75,[78,154,208]],[1,[58,122,194]],[1.5,[50,90,172]],[2,[56,64,152]],[3,[96,58,140]],[4.5,[150,64,110]],[6,[176,72,96]],[9,[201,143,143]]];
 function wvcol(h){ if(!(h>0)) return WVC[0][1].slice(); for(var i=1;i<WVC.length;i++){ if(h<=WVC[i][0]){ var a=WVC[i-1], b=WVC[i], t=(h-a[0])/(b[0]-a[0]); return [a[1][0]+(b[1][0]-a[1][0])*t,a[1][1]+(b[1][1]-a[1][1])*t,a[1][2]+(b[1][2]-a[1][2])*t]; } } return WVC[WVC.length-1][1].slice(); }
 window.ALKYON_WAVEGRAD=wvcol; B.waveColor=wvcol;
+var RC={k:null,r:null,p:null}; /* 1.6.1: ακτογραμμή για την τρέχουσα θέα */
 var map=null, fillCv=null, dashCv=null, dctx=null, parts=[], raf=0, last=0, rt=0, waitT=0, sig='';
 var RM=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 function W(){ return window.AlkyonWindMap; }
@@ -58,15 +59,21 @@ function render(){
   for(var x=0;x<bw;x++) lon.push(map.containerPointToLatLng([x*st,0]).lng);
   var Sx=S(), Wx=W(), G=Sx&&Sx.grad;
   if(mode==='sea'&&!(Sx&&Sx.ready&&Sx.ready())){ fillCv.style.opacity='0'; clearTimeout(waitT); waitT=setTimeout(render,1500); return; }
+  /* 1.6.1: κοντά (zoom ≥ 10), όπου υπάρχει η λεπτομερής ακτή (Κύπρος/Ελλάδα), το κύμα κόβεται ακριβώς στην ακτογραμμή αντί για «σκαλοπάτια» */
+  var bb0=map.getBounds(), rk=[bb0.getSouth(),bb0.getNorth(),bb0.getWest(),bb0.getEast()].map(function(v){ return v.toFixed(3); }).join(','), rings=null;
+  if(mode==='sea'&&map.getZoom()>=10&&Sx&&Sx.landRings){ if(RC.k===rk) rings=RC.r; else if(RC.p!==rk){ RC.p=rk; Sx.landRings({s:bb0.getSouth()-0.05,n:bb0.getNorth()+0.05,w:bb0.getWest()-0.05,e:bb0.getEast()+0.05}).then(function(r){ RC={k:rk,r:r&&r.length?r:null,p:null}; if(r&&r.length) later(30); }).catch(function(){ RC.p=null; }); } }
   for(var yy=0;yy<bh;yy++) for(var xx=0;xx<bw;xx++){
     var la=lat[yy], lo=lon[xx], c=null, a=0, o=(yy*bw+xx)*4;
-    if(mode==='sea'){ if(land(la,lo)===1) continue; var m=Sx.modelAt(la,lo); if(!m) continue; c=wvcol(m.h); a=0.82; }
+    if(mode==='sea'){ if(!rings&&land(la,lo)===1) continue; var m=Sx.modelAt(la,lo); if(!m) continue; c=wvcol(m.h); a=0.82; }
     else { var v=Wx.sample(la,lo); if(!v) continue; c=wcol(v.sp); a=0.62; }
     d[o]=c[0]; d[o+1]=c[1]; d[o+2]=c[2]; d[o+3]=Math.round(255*a); any=true;
   }
   px.putImageData(im,0,0);
   fx.imageSmoothingEnabled=true; try{ fx.imageSmoothingQuality='high'; }catch(e){}
   fx.drawImage(pc,0,0,bw,bh,0,0,bw*st*dpr,bh*st*dpr);
+  if(rings){ fx.save(); fx.setTransform(dpr,0,0,dpr,0,0); fx.globalCompositeOperation='destination-out'; fx.beginPath();
+    rings.forEach(function(r){ var xy=r.xy; for(var i=0;i<xy.length;i+=2){ var q=map.latLngToContainerPoint([xy[i+1],xy[i]]); if(i) fx.lineTo(q.x,q.y); else fx.moveTo(q.x,q.y); } fx.closePath(); });
+    fx.fill('nonzero'); fx.restore(); }
   fillCv.style.opacity=any?'1':'0';
   if(mode==='sea'&&any) startAnim();
 }

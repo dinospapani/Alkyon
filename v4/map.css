@@ -624,3 +624,55 @@ body:not(.mapon) .trpill,body.mappick .trpill,body.replaying .trpill{display:non
 body.trolling .trbtn{background:var(--accent);color:#fff}
 .trsheet .trest{margin:6px 0 10px;padding:10px 12px;border-radius:12px;background:var(--surface-2);font:600 13px var(--font)}
 .mk.trlab b{display:inline-block;transform:translate(-50%,-150%);padding:1px 6px;border-radius:8px;background:rgba(12,22,32,.85);color:#ffd166;font:700 10.5px var(--font);white-space:nowrap}
+
+/* 1.6.1: αριστερή στήλη: η συρτή μόνο σε έξοδο, ίδιο μέγεθος με τα άλλα· ο προσανατολισμός μπαίνει στη στήλη (πριν έπεφτε πάνω στην άγκυρα) */
+.seabar .trbtn{width:52px;height:52px}
+body:not(.maptrip) .seabar .trbtn{display:none}
+.seabar .mo-btn{position:static!important;top:auto!important;left:auto!important}
+/* δεξιά στήλη: χάρακας, ειδοποιήσεις και πηγές μέσα στο «⋯»· ο χάρακας φαίνεται μόνο όταν είναι ανοιχτός, για να τον κλείσεις */
+.mapbar .bellb,.attrbtn{display:none!important}
+.mapbtns #bRuler{display:none}
+.mapbtns #bRuler[aria-pressed=true]{display:inline-grid}
+.morebtn{position:relative}.morebtn svg{width:22px;height:22px;fill:currentColor;stroke:none}
+/* 1.6.1: πιο χαμηλή μπάρα ώρας (έπιανε ~20% της οθόνης) */
+#ndMapDock>div{padding-top:6px!important;padding-bottom:6px!important}
+#ndMapDock .btn.ghost.sm,#ndMapDock button.btn{min-width:34px!important;min-height:34px!important;height:34px}
+#ndMapDock .note{font-size:12px!important;margin-top:2px!important}
+/* 1.6.1: στα Στρώματα τα ονόματα σε δύο γραμμές αντί να κόβονται («Καλύτερα ση…», «Νερό δορυφ…») */
+.lyr .ltile b,.lyr .ltile small{white-space:normal!important;text-overflow:clip!important;overflow:visible!important;line-height:1.2;overflow-wrap:anywhere}
+.lyr .ltile small{display:-webkit-box!important;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden!important}
+
+/* 1.6.2: ένδειξη συρτής βυθού: μολύβια − / + δίπλα στην ταχύτητα, βυθός με προειδοποίηση */
+.trwrap{position:fixed;left:12px;bottom:calc(var(--safe-b,0px) + 168px);z-index:21;display:flex;align-items:stretch;gap:6px}
+.trwrap .trpill{position:static}
+.trwrap[hidden]{display:none}
+body:not(.mapon) .trwrap,body.mappick .trwrap,body.replaying .trwrap{display:none}
+.trpill .trbot{font-weight:700}.trpill .trbot.warn{color:#ff5a4d}
+.trleads{display:grid;grid-template-columns:44px;grid-template-rows:44px auto auto 44px;justify-items:center;align-items:center;padding:4px;border-radius:18px;background:rgba(12,22,32,.9);color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.trleads button{width:44px;height:44px;border-radius:14px;border:0;background:rgba(255,255,255,.12);color:#fff;font:800 22px/1 var(--font);cursor:pointer}
+.trleads b{font:800 20px/1 var(--font)}.trleads small{font:600 9.5px var(--font);opacity:.75;text-transform:uppercase;letter-spacing:.04em}
+html.night .trleads button{background:#1a0000;box-shadow:0 0 0 2px #fff}
+/* 1.6.2: μολύβια κάτω από την ταχύτητα (στα πλάγια έπεφτε πάνω στα κουμπιά ψαριού) */
+.trwrap{flex-direction:column;align-items:stretch;max-width:min(230px,calc(100vw - 180px))}
+.trwrap .trpill{width:auto}
+.trwrap .trpill i{white-space:normal}
+.trleads{grid-template-columns:44px auto auto 44px;grid-template-rows:44px;column-gap:8px;justify-content:space-between;padding:4px}
+
+/* 1.6.4: Καλύτερα σημεία: τεχνική και ώρες */
+.bslab{margin:12px 2px 4px;font:700 12px var(--font);color:var(--ink-2);text-transform:uppercase;letter-spacing:.05em}
+.bstech,.bswin{flex-wrap:wrap}
+
+/* 1.6.5: βάθος δίπλα στην ταχύτητα (οργιές και μέτρα) · προφίλ βυθού */
+.trpill .trdep{grid-column:1/3;display:flex;align-items:baseline;gap:6px;margin:2px 0}
+.trpill .trdep small{grid-column:auto;font:700 9.5px var(--font);opacity:.75}
+.trpill .trdep b{font:800 22px/1 var(--font);color:#9fd4ee}.trpill .trdep em{font:650 12px var(--font);font-style:normal;opacity:.85}
+.trpill .trdep.warn b{color:#ff5a4d}
+.tprofw{overflow-x:auto;border-radius:14px;background:var(--surface-2);padding:6px}
+.tprof{display:block;width:100%;min-width:320px;height:auto}
+.tprof .pg{stroke:var(--line);stroke-width:1}.tprof .pt{fill:var(--ink-2);font:600 19px var(--font)}
+.tprof .pb{fill:#8a6a44;fill-opacity:.55;stroke:#6b4f2e;stroke-width:1.5}
+.tprof .pl{fill:none;stroke:#ff8a50;stroke-width:2.5;stroke-dasharray:6 4}
+.tprof .pf{fill:#3ddc97;stroke:#fff;stroke-width:2}
+.tleg{display:flex;gap:14px;margin:8px 2px;font:600 12px var(--font);color:var(--ink-2)}
+.tleg span::before{content:'';display:inline-block;width:14px;height:8px;border-radius:2px;margin-right:6px;vertical-align:1px}
+.tleg .lb::before{background:#8a6a44}.tleg .ll::before{background:#ff8a50;height:3px}.tleg .lf::before{background:#3ddc97;width:8px;border-radius:50%}
