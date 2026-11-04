@@ -542,6 +542,6 @@ html.night .tripbar{background:#1a0000!important;color:#fff!important;box-shadow
 /* 1.6.1: αυτόματος έλεγχος: πιο μεγάλα σημεία πατήματος (≥ 36–44 px) και καλύτερη αντίθεση */
 .chip.sm{min-height:36px}
 .linkbtn{min-height:36px}
-.mk.fish,.mk.spot{position:relative}.mk.fish::after,.mk.spot::after{content:'';position:absolute;left:50%;top:50%;width:44px;height:44px;transform:translate(-50%,-50%);border-radius:50%}
+.mk.fish,.mk.spot{position:absolute} /* 1.6.7: absolute (όχι relative): αλλιώς κάθε σημάδι σπρώχνεται κάτω από τα προηγούμενα */.mk.fish::after,.mk.spot::after{content:'';position:absolute;left:50%;top:50%;width:44px;height:44px;transform:translate(-50%,-50%);border-radius:50%}
 #ndMapDock button{min-height:36px}
 html.night body.trolling .trbtn{background:#1a0000!important;color:#fff!important;box-shadow:0 0 0 3px #fff!important}

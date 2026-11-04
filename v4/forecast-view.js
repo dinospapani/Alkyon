@@ -331,33 +331,40 @@ function dayView(page,fc,d){
   /* ψαροντούφεκο: ορατότητα νερού (δορυφόρος όταν υπάρχει, αλλιώς εκτίμηση από κύμα και βροχή) */
   if(B.prof()==='spear'&&B.clarityCard){ var cc=B.clarityCard(fc,d,st.place,isToday,isToday?nh:null); if(cc) page.append(cc); }
   /* v31z545: θερμοκλινές (σκάφος και ψαροντούφεκο), μόνο για σήμερα */
-  if(isToday&&B.thermoCard&&(B.prof()==='boat'||B.prof()==='spear')){ var tcd=B.thermoCard(st.place); if(tcd) page.append(tcd); }
-  if(isToday&&B.currentCard&&B.prof()!=='lake'){ var ccd=B.currentCard(st.place||current()); if(ccd) page.append(ccd); }
   /* «Σήμερα με μια ματιά»: ο καιρός αυτή την ώρα και γρήγορες ενέργειες */
+  var oppsLater=false;
   if(isToday){ var hn=hourOf(d,nh), lake=B.prof()==='lake', onTrip=!!(B.trip&&B.trip.active&&B.trip.active());
-    if(hn){ var cells=[[U.windP(hn.wind)[0],U.windP(hn.wind)[1]+' '+dirTxt(hn.dir),T('άνεμος','wind')]];
+    if(hn){ var gst=(hn.gust!=null&&hn.gust-(hn.wind||0)>=4)?hn.gust:null; /* 1.6.8: οι ριπές φαίνονται στο «Τώρα» (πορτοκαλί από 5 Bft) */
+      var cells=[[U.windP(hn.wind)[0],U.windP(hn.wind)[1]+' '+dirTxt(hn.dir),T('άνεμος','wind')+(gst!=null?' · '+T('ριπές','gusts')+' '+U.windP(gst)[0]:''),gst!=null&&gst>=17?'gw':'']];
       if(!lake&&hn.wave!=null) cells.push([U.waveP(hn.wave)[0],U.waveP(hn.wave)[1],T('κύμα','waves')]);
       if(hn.pres!=null) cells.push([String(Math.round(hn.pres)),({fast:'↓↓',slow:'↘',rise:'↗',stable:'→'}[hn.ptrend]||''),T('πίεση','pressure')]);
       cells.push([U.tempP(lake?hn.temp:(hn.sst!=null?hn.sst:hn.temp))[0],U.tempP(lake?hn.temp:(hn.sst!=null?hn.sst:hn.temp))[1],lake||hn.sst==null?T('αέρας','air'):T('νερό','water')]);
       var nc=h('section',{class:'card nowcard','aria-label':T('Τώρα','Now')},h('div',{class:'nwh'},h('b',{text:T('Τώρα','Now')+', '+B.pad(nh)+':00'}),h('span',{class:'sub',text:sky(hn.code)})),
-        h('div',{class:'nwg'},cells.map(function(c){ return h('div',{class:'nwc'},h('b',null,c[0],h('small',{text:' '+c[1]})),h('span',{text:c[2]})); })),
+        h('div',{class:'nwg'},cells.map(function(c){ return h('div',{class:'nwc'+(c[3]?' '+c[3]:'')},h('b',null,c[0],h('small',{text:' '+c[1]})),h('span',{text:c[2]})); })),
         /* 1.1.0: εδώ αποφασίζεις πού και πότε· η έναρξη εξόδου και το νέο ψάρι είναι στο κεντρικό κουμπί */
         h('div',{class:'nwa'},onTrip?h('button',{class:'btn pri',type:'button',text:T('Ψάρι εδώ','Catch here'),onclick:function(){ B.quickRec&&B.quickRec(false); }}):h('button',{class:'btn pri',type:'button',text:'📍 '+T('Πού να πάω','Where to go'),onclick:whereGo}),
           h('button',{class:'btn',type:'button',text:'🗺 '+T('Στον χάρτη','On the map'),onclick:function(){ var p=st.place||current(); if(p&&p.lat!=null&&B.mapGo) B.mapGo(p.lat,p.lon,12,null,{lab:p.name||null,sea:true}); else location.hash='#map'; }})),
         /* 1.6.1: από πού είναι η πρόγνωση (για σύγκριση με άλλες εφαρμογές, π.χ. Windy που δείχνει ένα μοντέλο) */
         h('p',{class:'nwsrc',text:T('Open-Meteo · καλύτερο μοντέλο για την περιοχή. Ο Χάρτης δείχνει μέσο όρο ECMWF, ICON και GFS.','Open-Meteo · best model for the area. The Map shows the average of ECMWF, ICON and GFS.')}));
-      page.append(nc); if(B.oppsCard) page.append(B.oppsCard(2,{hideEmpty:true})); } }
+      page.append(nc); oppsLater=true; } }
 
   /* ανά ώρα: μπάρες και λεπτομέρειες της ώρας (σύρε το δάχτυλο πάνω στις μπάρες) */
-  if(hr) page.append(hourCard(fc,d,selH,isToday?nh:null));
-
-  /* γιατί αυτός ο βαθμός */
-  var why2=reasons(d); if(why2.length) page.append(h('section',{class:'card'},h('h2',{text:T('Γιατί','Why')}),h('ul',{class:'why'},why2.map(function(r){ return h('li',{class:r[0]},r[1]); }))));
+  /* 1.6.8: σειρά = οι ερωτήσεις πριν βγεις: αξίζει/πότε → ασφαλές τώρα; → ποιες ώρες (και γιατί) → πού → με τι → εξέλιξη → κάτω από το νερό → ήλιος/σελήνη */
+  var why2=reasons(d), hcd=hr?hourCard(fc,d,selH,isToday?nh:null):null;
+  if(hcd){ if(why2.length) hcd.append(h('h3',{class:'whyh',text:T('Γιατί αυτός ο βαθμός','Why this score')}),h('ul',{class:'why'},why2.map(function(r){ return h('li',{class:r[0]},r[1]); }))); page.append(hcd); }
+  else if(why2.length) page.append(h('section',{class:'card'},h('h2',{text:T('Γιατί','Why')}),h('ul',{class:'why'},why2.map(function(r){ return h('li',{class:r[0]},r[1]); }))));
+  if(isToday&&B.oppsCard&&oppsLater) page.append(B.oppsCard(2,{hideEmpty:true}));
   var ww=workedCard(d); if(ww) page.append(ww); /* v31z545 */
   if(isToday&&B.lastYearCard){ var ly=B.lastYearCard(); if(ly) page.append(ly); }
   if(isToday&&B.bestDaysCard&&hr){ var bd=B.bestDaysCard({press:hr.pres,wind:hr.wind,wave:hr.wave,sst:hr.sst,temp:hr.temp}); if(bd) page.append(bd); }
 
   page.append(pwCard(fc,d));
+  /* 1.6.8: θερμοκρασία σε βάθος + ρεύμα σε μία κάρτα «Κάτω από την επιφάνεια» (μόνο σήμερα) */
+  if(isToday){ var ug=h('section',{class:'card under'},h('h2',{text:T('Κάτω από την επιφάνεια','Below the surface')})), nU=0;
+    if(B.thermoCard&&(B.prof()==='boat'||B.prof()==='spear')){ var tcd=B.thermoCard(st.place); if(tcd){ tcd.classList.remove('card'); tcd.classList.add('usub'); ug.append(tcd); nU++; } }
+    if(B.currentCard&&B.prof()!=='lake'){ var ccd=B.currentCard(st.place||current()); if(ccd){ ccd.classList.remove('card'); ccd.classList.add('usub'); ug.append(ccd); nU++; } }
+    if(nU){ var usync=function(){ ug.hidden=![].some.call(ug.querySelectorAll('.usub'),function(e){ return !e.hidden; }); }; usync();
+      try{ new MutationObserver(usync).observe(ug,{subtree:true,attributes:true,attributeFilter:['hidden']}); }catch(e){} page.append(ug); } }
   /* ήλιος και σελήνη */
   var p=st.place||current(), sm=null; try{ sm=PF.sunMoon(d.date,p.lat,p.lon,fc.tz); }catch(e){}
   var ms=h('section',{class:'card'},h('h2',{text:T('Ήλιος και σελήνη','Sun and moon')}));
@@ -464,7 +471,10 @@ function reasons(d){
   var hs=focusHours(d); if(!hs.length) return [];
   var av=function(k){ var a=hs.map(function(q){ return q[k]; }).filter(function(v){ return typeof v==='number'; }); return a.length?a.reduce(function(x,y){ return x+y; },0)/a.length:null; };
   var out=[], wd=av('wind'), wv=av('wave'), pf=B.prof();
-  if(wd!=null) out.push(wd<=12?['up',T('Ήπιος άνεμος ('+U.wind(wd)+')','Light wind ('+U.wind(wd)+')')]:wd<=18?['mid',T('Μέτριος άνεμος ('+U.wind(wd)+')','Moderate wind ('+U.wind(wd)+')')]:['down',T('Δυνατός άνεμος ('+U.wind(wd)+')','Strong wind ('+U.wind(wd)+')')]);
+  var gm=hs.reduce(function(m,q){ return typeof q.gust==='number'&&q.gust>m?q.gust:m; },-1); if(gm<0) gm=null;
+  var gusty=wd!=null&&gm!=null&&gm>=17&&gm-wd>=6; /* 1.6.8: με δυνατές ριπές δεν λέμε «ήπιος άνεμος» */
+  if(wd!=null) out.push(wd<=12&&!gusty?['up',T('Ήπιος άνεμος ('+U.wind(wd)+')','Light wind ('+U.wind(wd)+')')]:wd<=12?['mid',T('Ασθενής άνεμος ('+U.wind(wd)+') με ριπές','Light wind ('+U.wind(wd)+') but gusty')]:wd<=18?['mid',T('Μέτριος άνεμος ('+U.wind(wd)+')','Moderate wind ('+U.wind(wd)+')')]:['down',T('Δυνατός άνεμος ('+U.wind(wd)+')','Strong wind ('+U.wind(wd)+')')]);
+  if(gm!=null&&gm>=17&&gm-(av('wind')||0)>=6) out.push([gm>=22?'down':'mid',T('Ριπές έως '+U.wind(gm),'Gusts up to '+U.wind(gm))]);
   if(wv!=null&&pf!=='lake') out.push(wv<=(pf==='spear'?0.3:0.5)?['up',T('Χαμηλό κύμα ('+U.wave(wv)+')','Low waves ('+U.wave(wv)+')')]:wv<=1?['mid',T('Λίγο κύμα ('+U.wave(wv)+')','Some waves ('+U.wave(wv)+')')]:['down',T('Ψηλό κύμα ('+U.wave(wv)+')','High waves ('+U.wave(wv)+')')]);
   var tr=hs[0].ptrend; if(tr) out.push(tr==='fast'?['down',T('Η πίεση πέφτει απότομα','Pressure falling fast')]:tr==='rise'?['up',T('Η πίεση ανεβαίνει','Pressure rising')]:['up',T('Σταθερή πίεση','Steady pressure')]);
   if(d.win){ var s0=d.win.s*60, e0=(d.win.e+1)*60, near=function(m){ return m>=s0-60&&m<=e0+60; };

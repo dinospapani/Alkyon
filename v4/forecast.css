@@ -313,3 +313,9 @@ svg.pwc{width:100%;height:auto}
 .lv-good .score,.lv-great .score,.wk:not(.lv-fair):not(.lv-poor) .ws,.hsel:not(.lv-fair):not(.lv-poor) .hs{color:var(--good-ink)}
 .lv-fair .score,.wk.lv-fair .ws,.hsel.lv-fair .hs,.spw{color:var(--fair-ink)}
 .clar .cll.ok{color:var(--good-ink)}.clar .cll.warn{color:var(--fair-ink)}
+/* 1.6.8: ριπές στο «Τώρα», «Γιατί» μέσα στο «Ανά ώρα», κάρτα «Κάτω από την επιφάνεια» */
+.nwc.gw{background:color-mix(in srgb,var(--fair,#d9a21b) 22%,var(--surface-2))}.nwc.gw span{color:var(--fair-ink,#7a5200);font-weight:700}
+.hcard .whyh{margin:16px 0 4px;padding-top:12px;border-top:1px solid var(--line,rgba(0,0,0,.08));font-size:15px;font-weight:800}
+.card.under .usub{margin:0;padding:0;background:none;box-shadow:none;border:0}
+.card.under .usub:not([hidden])~.usub:not([hidden]){margin-top:16px;padding-top:14px;border-top:1px solid var(--line,rgba(0,0,0,.08))}
+.card.under .usub h2{font-size:16px;margin-top:0}

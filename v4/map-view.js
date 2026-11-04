@@ -672,7 +672,7 @@ function mount(el){
     var p=B.lastPos(), v=ls.get('alkyon-v4-mapview',null);
     map=L.map(lmEl,{zoomControl:false,attributionControl:true,tap:true}).setView(v?[v.lat,v.lon]:(p?[p.lat,p.lon]:[35.0,33.2]),v?v.z:(p?12:9));
     drawBase(); drawData(); drawOverlays(); applyDepth(); applyPend(); locate(false); drawDirect(); if(cfg.cur) currents(true);
-    map.on('zoomend',function(){ drawData(); depthFade(); }); map.on('moveend',function(){ declutterSoon(); if(cfg.cur) currents(false); var c=map.getCenter(); ls.set('alkyon-v4-mapview',{lat:+c.lat.toFixed(5),lon:+c.lng.toFixed(5),z:map.getZoom()}); });
+    map.on('zoomend',function(){ drawData(); depthFade(); }); map.on('zoomend moveend',posCheckSoon); map.on('moveend',function(){ declutterSoon(); if(cfg.cur) currents(false); var c=map.getCenter(); ls.set('alkyon-v4-mapview',{lat:+c.lat.toFixed(5),lon:+c.lng.toFixed(5),z:map.getZoom()}); });
     map.on('contextmenu',function(e){ try{ e.originalEvent&&e.originalEvent.preventDefault(); }catch(x){} pointMenu(e.latlng); });
     map.on('dragstart',function(){ setFollow(false); }); map.on('popupopen',function(){ followPause=Date.now()+20000; });
     map.on('popupopen',function(e){ var c=e.popup.getContent(); if(c&&c.classList&&c.classList.contains('portpop')&&!c.querySelector('.pgo')){ var ll=e.popup.getLatLng(), nm=(c.querySelector('b')||{}).textContent||''; var r=c.querySelector('.pbtns')||c; var g=h('button',{class:'pb pgo',type:'button',text:T('Πήγαινε εκεί','Go there'),onclick:function(){ map.closePopup(); B.goTo(ll.lat,ll.lng,nm); }}); r.insertBefore(g,r.firstChild); e.popup.update(); } });
@@ -756,6 +756,27 @@ B.mapPick=function(o){ if(pk){ pk.nav=false; pickEnd(false); } pk={o:o||{}}; if(
 /* ονόματα σημείων που πέφτουν το ένα πάνω στο άλλο: φαίνεται μόνο το πρώτο (τα υπόλοιπα με πάτημα στο σημείο) */
 function declutter(){ var kept=[]; [].forEach.call(document.querySelectorAll('#lmap .mk.spot b'),function(b){ b.style.visibility=''; var r=b.getBoundingClientRect(); if(!r.width) return;
   var hit=kept.some(function(k){ return !(r.right<k.left-4||r.left>k.right+4||r.bottom<k.top-2||r.top>k.bottom+2); }); if(hit) b.style.visibility='hidden'; else kept.push(r); }); }
+/* 1.6.7: έλεγχος θέσης: συγκρίνει πού ζωγραφίστηκαν τα σημάδια ψαριών και τα πλακίδια του χάρτη με το πού έπρεπε.
+   Αν διαφέρουν πάνω από 8 px, στέλνει τα στοιχεία στο app_errors (msg «mapdiag») και δοκιμάζει διόρθωση. Μία φορά ανά 10 λεπτά. */
+var pcT=null, pcLast=0; function posCheckSoon(){ clearTimeout(pcT); pcT=setTimeout(posCheck,1500); }
+function posMeasure(){
+  var box=lmEl.getBoundingClientRect(), out={mk:[],tl:null};
+  if(gFish) gFish.eachLayer(function(l){ if(out.mk.length>=3||!l.getLatLng||!l._icon||!/\bfish\b/.test(l._icon.className)) return; var r=l._icon.getBoundingClientRect(); if(!r.width) return;
+    var e=map.latLngToContainerPoint(l.getLatLng()); out.mk.push([Math.round(r.left+r.width/2-box.left-e.x),Math.round(r.top+r.height/2-box.top-e.y)]); });
+  try{ var tz=base&&base._tiles, k=tz&&Object.keys(tz).filter(function(k){ return tz[k].current&&tz[k].el&&tz[k].el.complete; })[0];
+    if(k){ var t=tz[k], c=t.coords, ts=base.getTileSize(), ll=map.unproject(L.point(c.x*ts.x,c.y*ts.y),c.z), e2=map.latLngToContainerPoint(ll), r2=t.el.getBoundingClientRect();
+      out.tl=c.z===map.getZoom()?[Math.round(r2.left-box.left-e2.x),Math.round(r2.top-box.top-e2.y)]:'z'+c.z; } }catch(x){ out.tl='err'; }
+  return out; }
+function posBad(m){ var bad=false; m.mk.forEach(function(d){ if(Math.abs(d[0])>8||Math.abs(d[1])>8) bad=true; }); if(m.tl&&m.tl.length===2&&(Math.abs(m.tl[0])>8||Math.abs(m.tl[1])>8)) bad=true; return bad; }
+function posCheck(){
+  if(!map||!lmEl||!lmEl.offsetWidth||!/^#map/.test(location.hash||'')) return; var m=posMeasure(); if(!posBad(m)) return;
+  var now=Date.now(); if(now-pcLast<600000) return; pcLast=now;
+  var box=lmEl.getBoundingClientRect(), sz=map.getSize(), mp=map.getPane('mapPane'), pane=function(n){ var e=map.getPane(n); if(!e) return ''; var cs=getComputedStyle(e); return (e.style.transform||'')+'|'+cs.transform+'|'+cs.top+','+cs.left+'|'+cs.translate; }, ic=null; if(gFish) gFish.eachLayer(function(l){ if(!ic&&l._icon&&/\bfish\b/.test(l._icon.className)){ var cs=getComputedStyle(l._icon); ic=[l._icon.style.transform,cs.translate,cs.marginLeft,cs.marginTop,cs.width,cs.position,l._icon.className]; } });
+  var info={v:window.ALKYON_VERSION,z:map.getZoom(),c:[+map.getCenter().lat.toFixed(4),+map.getCenter().lng.toFixed(4)],m:m,box:[Math.round(box.left),Math.round(box.top),Math.round(box.width),Math.round(box.height)],sz:[sz.x,sz.y],
+    scr:[lmEl.scrollLeft,lmEl.scrollTop,lmEl.parentNode&&lmEl.parentNode.scrollTop||0,document.scrollingElement?document.scrollingElement.scrollTop:0],vv:window.visualViewport?[Math.round(visualViewport.offsetLeft),Math.round(visualViewport.offsetTop),+visualViewport.scale.toFixed(2)]:null,
+    dpr:window.devicePixelRatio,iw:[innerWidth,innerHeight],map:pane('mapPane'),mk:pane('markerPane'),tile:pane('tilePane'),cls:(mp&&mp.className)||'',zs:map.options.zoomSnap,ic:ic,cfg:Object.keys(cfg).filter(function(k){ return cfg[k]===true; }).join(',')};
+  try{ lmEl.scrollTop=0; lmEl.scrollLeft=0; map.invalidateSize({pan:false}); drawData(); }catch(x){}
+  setTimeout(function(){ info.after=posMeasure(); try{ window.AlkyonErr&&AlkyonErr.report('mapdiag',{src:'map-view.js',stack:JSON.stringify(info)}); }catch(x){} },400); }
 var dcT=null; function declutterSoon(){ clearTimeout(dcT); dcT=setTimeout(declutter,120); }
 /* 1.2.2: πάντα μεταφέρει στον Χάρτη (πριν, αν ο χάρτης είχε ανοίξει μία φορά, μετακινούνταν μόνο ο κρυφός χάρτης και έμενες στην ίδια σελίδα) */
 B.mapGo=function(lat,lon,z,tr,o){ o=o||{}; pend={lat:lat,lon:lon,z:z,tr:tr,lab:o.lab||null,sea:!!o.sea}; if(!/^#map/.test(location.hash||'')) location.hash='#map'; else if(map&&root) applyPend(); };
