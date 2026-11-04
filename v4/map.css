@@ -676,3 +676,17 @@ html.night .trleads button{background:#1a0000;box-shadow:0 0 0 2px #fff}
 .tleg{display:flex;gap:14px;margin:8px 2px;font:600 12px var(--font);color:var(--ink-2)}
 .tleg span::before{content:'';display:inline-block;width:14px;height:8px;border-radius:2px;margin-right:6px;vertical-align:1px}
 .tleg .lb::before{background:#8a6a44}.tleg .ll::before{background:#ff8a50;height:3px}.tleg .lf::before{background:#3ddc97;width:8px;border-radius:50%}
+/* 1.7.0: ρίξιμο συρτής βυθού: «Σταμάτα στα Ν», «Στον βυθό ✓», «Ακούμπησε» */
+.trleads{grid-template-rows:44px auto;row-gap:6px}
+.trleads .trgo,.trleads .trtouch{grid-column:1/-1;width:100%;height:40px;border-radius:12px;font:800 14px var(--font);background:#E4572E;color:#fff}
+.trleads .trtouch{background:rgba(255,255,255,.14);box-shadow:inset 0 0 0 1.5px #ff8a6b}
+.trdrop{display:flex;flex-direction:column;gap:6px;padding:10px 10px 8px;border-radius:18px;background:rgba(12,22,32,.94);color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.trdrop>small{font:800 10px var(--font);letter-spacing:.08em;opacity:.8}
+.trdrop .trdn{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;gap:6px}
+.trdrop .trdn button{grid-row:1;width:44px;height:44px;border-radius:14px;border:0;background:rgba(255,255,255,.12);color:#fff;font:800 22px/1 var(--font)}
+.trdrop .trdn button:first-child{grid-column:1}.trdrop .trdn button:last-child{grid-column:3}
+.trdrop .trdn b{grid-column:2;grid-row:1;text-align:center;font:900 40px/1 var(--font);color:#ffd166}
+.trdrop .trdn span{grid-column:2;grid-row:2;text-align:center;font:700 11px var(--font);opacity:.8;margin-top:-2px}
+.trdrop em{font:600 12px var(--font);font-style:normal;opacity:.9}
+.trdrop .trdb{display:flex;gap:6px}.trdrop .trdb .btn.pri{flex:1;min-height:44px}.trdrop .trdb .btn.ghost{background:rgba(255,255,255,.12)!important;color:#fff!important;border:0!important;min-height:44px}
+html.night .trdrop .trdn b{color:#fff}

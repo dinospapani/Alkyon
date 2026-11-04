@@ -41,14 +41,16 @@ function check(){ if(!on()){ outSince=0; return; } measure(); var c=cfg(), now=D
       try{ navigator.vibrate&&navigator.vibrate(spd<c.min?[400,150,400]:[150,100,150,100,150]); }catch(e){}
       B.toast((spd<c.min?T('Συρτή: πολύ αργά · ','Trolling: too slow · '):T('Συρτή: πολύ γρήγορα · ','Trolling: too fast · '))+B.num(spd,1)+' kn ('+c.min+'–'+c.max+')',5000); } }
   else outSince=0;
-  if(B.depthAt&&now-depthAt>15000){ var f=B.trip.fix&&B.trip.fix()||B.lastPos(); if(f){ depthAt=now;
-      B.depthAt(f.lat,f.lon).then(function(d){ if(d!=null&&d>0) depth=d; var lb=layback(cfg(),spd), q=lb?behind({lat:f.lat,lon:f.lon},lb):null;
-        return q?B.depthAt(q.lat,q.lon).then(function(d2){ if(d2!=null&&d2>0) depthL=d2; }):null; }).catch(function(){}).then(function(){ bottomCheck(); sample(); paint(); }); } }
+  var dc=c.dep, dropping=c.mode==='bottom'&&dc&&dc.st==='drop';
+  if(B.depthAt&&now-depthAt>(dropping?8000:15000)){ var f=B.trip.fix&&B.trip.fix()||B.lastPos(); if(f){ depthAt=now;
+      dAt(f.lat,f.lon).then(function(d){ if(d!=null&&d>0) depth=d; if(dropping) return recommend(f); var lb=layback(cfg(),spd), q=lb?behind({lat:f.lat,lon:f.lon},lb):null;
+        return q?dAt(q.lat,q.lon).then(function(d2){ if(d2!=null&&d2>0) depthL=d2; }):null; }).catch(function(){}).then(function(){ bottomCheck(); sample(); paint(); }); } }
+  if(dropping) dropAuto(c,now);
   paint(); }
 
 /* ---------- πόσο πίσω είναι το δόλωμα ---------- */
 /* μολύβια: αυτόματα = οργιές βυθού στο σημείο του δολώματος − 1 (αλλιώς κάτω από τη βάρκα), ή ο αριθμός που έβαλες */
-function nLeads(c,dep){ c=c||cfg(); if(c.auto!==false){ var D=dep!=null?dep:(depthL!=null?depthL:depth); if(D!=null) return Math.max(1,fa(D)-1); } return Math.max(0,Math.round(+c.leads||0)); }
+function nLeads(c,dep){ c=c||cfg(); if(dep==null&&c.dep&&c.dep.st==='drop'&&recN!=null) return recN; if(c.auto!==false){ var D=dep!=null?dep:(depthL!=null?depthL:depth); if(D!=null) return Math.max(1,fa(D)-1); } return Math.max(0,Math.round(+c.leads||0)); }
 /* 1.6.5: αρματωσιές (alkyon-rigs): από το δόλωμα προς τη βάρκα: παράμαλλο (m) → κενό πριν το 1ο μολύβι (οργιές) → μολύβια ανά «απόσταση» οργιές,
    στριφτάρι ανά Χ μολύβια, έως «max» μολύβια. Προεπιλογή: Deep Fishing (Σ. Πάτσης): 12–15 m fluorocarbon, 5 οργιές κενό, μολύβι 160 g ανά 5 οργιές, στριφτάρι ανά 4. */
 var RK='alkyon-rigs', PRESET={id:'deep5',name:T('Deep Fishing (5 οργιές)','Deep Fishing (5 fathoms)'),leader:13.5,blank:5,gap:5,lead:160,swivel:4,max:30,v0:3};
@@ -58,7 +60,7 @@ function geo(c,kn,dep){ c=c||cfg(); var r=rigOf(c), n0=nLeads(c,dep), n=Math.min
   /* πετονιά από το κοντινότερο στη βάρκα μολύβι ως το 1ο (πιο βαθύ): (n−1) αποστάσεις, + ~1 οργιά ως την κορυφή του καλαμιού */
   var L=+c.lineB||Math.max(1,n-1)*gap+FATH, v=kn!=null&&kn>0.3?kn:(+r.v0||+c.v0||3), v0=+r.v0||+c.v0||3, cos0=Math.min(0.98,Math.max(0.05,n*FATH/L)), t0=Math.sqrt(1-cos0*cos0)/cos0, th=Math.atan(t0*(v/v0)*(v/v0));
   var tail=(+r.leader||0)+(+r.blank||0)*FATH;   /* παράμαλλο + κενό: πίσω από το 1ο μολύβι */
-  return {dl:L*Math.cos(th),lb:L*Math.sin(th)+tail,L:L,n:n,short:n0>n,rig:r}; }
+  return {dl:L*Math.cos(th)*Math.max(0.6,Math.min(1.6,+r.kD||1)),lb:L*Math.sin(th)+tail,L:L,n:n,short:n0>n,rig:r}; }
 function layback(c,kn,dep){ c=c||cfg(); var v; if(c.mode!=='bottom') v=Math.max(0,+c.line||0); else { var g=geo(c,kn,dep); v=g?g.lb:null; } return v==null?null:v*(+(c.mode==='bottom'?c.calB:c.calS)||1); }
 function lureDepth(c,kn){ c=c||cfg(); if(c.mode!=='bottom') return null; var g=geo(c,kn); return g?g.dl:null; }
 /* 1.6.2: ο βυθός μπροστά (κάτω από τη βάρκα, εκεί που θα περάσει το δόλωμα) πιο ρηχός από το δόλωμα: δόνηση και πόσα μολύβια να μαζέψεις */
@@ -66,12 +68,56 @@ var lastBot=0;
 /* 1.6.3: αυτόματα: ο βυθός κάτω από τη βάρκα (εκεί που θα περάσει το δόλωμα) ανεβαίνει ≥ 2 οργιές σε σχέση με το δόλωμα → μάζεψε μολύβια.
    Με δικό σου αριθμό: ο βυθός μπροστά είναι πιο ρηχός από τα μολύβια + 1 οργιά. */
 function bottomCheck(){ var c=cfg(); if(c.mode!=='bottom'||depth==null) return; var now=Date.now(), k=0, msg='';
+  if(c.dep&&c.dep.st==='drop') return;
+  if(c.dep&&c.dep.st==='set'&&depthL!=null){ var g1=geo(c,spd); if(!g1) return; var cl=clear(c); if(cl!=null&&cl<-0.5*FATH){ k=Math.max(1,Math.ceil(-cl/FATH)); msg=T('⚠ Βαράει βυθό: ~','⚠ Hitting bottom: ~')+faTxt(depthL)+T(' στο δόλωμα, η αρματωσιά ~',' at the lure, rig at ~')+faTxt(g1.dl)+T(': μάζεψε ~',': bring in ~')+k+T(k===1?' μολύβι':' μολύβια',k===1?' lead':' leads'); }
+    if(k>0&&now-lastBot>90000){ lastBot=now; try{ navigator.vibrate&&navigator.vibrate([600,200,600,200,600]); }catch(e){} B.toast(msg,8000); } return; }
   if(c.auto!==false){ if(depthL==null) return; var up=fa(depthL)-fa(depth); if(up>=2){ k=up; msg=T('⚠ Ο βυθός ανεβαίνει: ~','⚠ Bottom rising: ~')+faTxt(depth)+T(' μπροστά, ~',' ahead, ~')+faTxt(depthL)+T(' στο δόλωμα: μάζεψε ~',' at the lure: bring in ~')+k+T(k===1?' μολύβι':' μολύβια',k===1?' lead':' leads'); } }
   else { var n=nLeads(c); if(fa(depth)<n+1){ k=n+1-fa(depth); msg=T('⚠ Βυθός μπροστά ~','⚠ Bottom ahead ~')+faTxt(depth)+T(', έχεις ',', you have ')+n+T(' μολύβια: μάζεψε ',' leads: bring in ')+k; } }
   if(k>0&&now-lastBot>90000){ lastBot=now; try{ navigator.vibrate&&navigator.vibrate([600,200,600,200,600]); }catch(e){} B.toast(msg,8000); } }
+/* ---------- 1.7.0: ρίξιμο συρτής βυθού ----------
+   «Ρίχνω» (πρώτο μολύβι στο νερό, προαιρετικά τι δείχνει το βυθόμετρο) → όσο ρίχνεις: «Σταμάτα στα Ν» (πόσα μολύβια ώστε η αρματωσιά
+   να φτάσει λίγο πάνω από τον βυθό στο σημείο όπου θα καταλήξει το δόλωμα) → «Στον βυθό ✓» κλειδώνει τα μολύβια. Αν ξεχαστεί: μόνο του
+   μετά από 2′ σταθερής ταχύτητας. «Ακούμπησε βυθό»: η αρματωσιά πήγε βαθύτερα απ’ ό,τι υπολόγιζε → διορθώνεται ο συντελεστής της (kD).
+   Διορθώσεις βάθους (alkyon-dcorr): βυθόμετρο − χάρτης σε σημεία, για τον δικό σου χάρτη βυθού. */
+var CK='alkyon-dcorr', recN=null, recD=null, recLb=null, stillSince=0;
+function corrs(){ var a=ls.get(CK,null); return Array.isArray(a)?a:[]; }
+function corrAt(lat,lon){ var a=corrs(), sw=0, sv=0; for(var i=0;i<a.length;i++){ var d=dist([lat,lon],[a[i][0],a[i][1]]); if(d>2000) continue; var w=1/Math.pow(Math.max(d,60),2); sw+=w; sv+=w*a[i][2]; }
+  if(!sw) return 0; var near=Math.min(1,sw*Math.pow(300,2)); return sv/sw*near; }   /* μακριά από τις μετρήσεις, η διόρθωση σβήνει */
+function addCorr(lat,lon,off){ if(!isFinite(off)||Math.abs(off)>60) return; var a=corrs().filter(function(q){ return dist([lat,lon],[q[0],q[1]])>40; }); a.push([+lat.toFixed(5),+lon.toFixed(5),+off.toFixed(1),Date.now()]); if(a.length>400) a=a.slice(-400); ls.set(CK,a); }
+function dAt(lat,lon){ return B.depthAt(lat,lon).then(function(d){ if(d==null||d<=0) return d; return Math.max(1,d+corrAt(lat,lon)); }); }
+/* πόσο πάνω από τον βυθό (m) είναι η αρματωσιά στο σημείο του δολώματος· αρνητικό = σέρνει/βαράει */
+function clear(c){ c=c||cfg(); if(depthL==null) return null; var g=geo(c,spd,depthL); return g?depthL-g.dl:null; }
+/* μολύβια ώστε η αρματωσιά να είναι ~½ οργιά πάνω από βυθό D */
+function bestN(c,kn,D){ var r=rigOf(c), mx=+r.max||80, best=1; for(var n=1;n<=mx;n++){ var g=geo(Object.assign({},c,{auto:false,leads:n,dep:null}),kn); if(!g) continue; if(g.dl<=D-0.5*FATH) best=n; else break; } return best; }
+function recommend(f){ var c=cfg(), boat={lat:f.lat,lon:f.lon}, D=depth, n=bestN(c,spd,D), r=0;
+  function step(){ var g=geo(Object.assign({},c,{auto:false,leads:n,dep:null}),spd); if(!g) return null; var lb=g.lb*(+c.calB||1), q=behind(boat,lb); if(!q) return null; recLb=lb;
+    return dAt(q.lat,q.lon).then(function(d){ if(d==null||d<=0) return; D=d; var n2=bestN(c,spd,d); if(n2!==n&&++r<3){ n=n2; return step(); } n=n2; }); }
+  return Promise.resolve(step()).catch(function(){}).then(function(){ recN=n; recD=D; depthL=D; }); }
+function startDrop(sounderFa){ var c=cfg(), f=B.trip&&B.trip.fix&&B.trip.fix()||B.lastPos(); c.mode='bottom'; c.dep={st:'drop',t:Date.now(),lat:f?f.lat:null,lon:f?f.lon:null}; recN=null; recD=null; recLb=null; stillSince=0; depthAt=0; put(c);
+  if(sounderFa>0&&f&&B.depthAt){ B.depthAt(f.lat,f.lon).then(function(d){ if(d==null||d<=0) return; var off=sounderFa*FATH-d; addCorr(f.lat,f.lon,off); depthAt=0; check();
+      B.toast(T('Βυθόμετρο ','Sounder ')+sounderFa+T(' οργ. · χάρτης ',' fm · chart ')+faTxt(d)+(Math.abs(off)>=FATH?T(' · διόρθωση ',' · correction ')+(off>0?'+':'')+fa(off)+T(' οργ. γύρω από εδώ',' fm around here'):T(' · συμφωνούν',' · they agree')),5000); }).catch(function(){}); }
+  else check(); }
+function setDown(n,why){ var c=cfg(); if(!c.dep) c.dep={}; var nn=n!=null?n:(recN!=null?recN:nLeads(c)); c.auto=false; c.leads=Math.max(1,Math.min(80,nn)); c.dep.st='set'; c.dep.set=Date.now(); put(c); depthAt=0;
+  try{ navigator.vibrate&&navigator.vibrate([80,60,80]); }catch(e){} B.toast((why==='auto'?T('Στον βυθό (αυτόματα, 2′ σταθερή ταχύτητα): ','On the bottom (auto, 2′ steady speed): '):T('Στον βυθό: ','On the bottom: '))+c.leads+T(' μολύβια',' leads'),4000); check(); }
+function dropAuto(c,now){ if(spd!=null&&spd>=c.min&&spd<=c.max){ if(!stillSince) stillSince=now; } else stillSince=0;
+  if(stillSince&&now-stillSince>120000&&now-c.dep.t>120000&&recN!=null) setDown(recN,'auto'); }
+function cancelDrop(){ var c=cfg(); c.dep=null; c.auto=true; recN=null; put(c); }
+/* ακούμπησε βυθό: η αρματωσιά είναι στο βάθος του βυθού στο σημείο του δολώματος → συντελεστής βάθους της αρματωσιάς */
+function touched(){ var c=cfg(); if(c.mode!=='bottom'){ return; } if(depthL==null){ B.toast(T('Περιμένω βάθος για το σημείο του δολώματος…','Waiting for the depth at the lure…')); return; }
+  var r=rigOf(c), g=geo(c,spd,depthL); if(!g) return; var raw=g.dl/Math.max(0.6,Math.min(1.6,+r.kD||1)), ratio=Math.max(0.75,Math.min(1.35,depthL/raw)), old=+r.kD||1, nw=+Math.max(0.6,Math.min(1.6,old*0.6+old*ratio*0.4)).toFixed(3);
+  var a=rigs().slice(), i=a.map(function(x){ return x.id; }).indexOf(r.id), nr=Object.assign({},r,{kD:nw,kN:(+r.kN||0)+1}); if(i<0) a.push(nr); else a[i]=nr; ls.set(RK,a);
+  c.auto=false; c.leads=Math.max(1,g.n-1); if(c.dep) c.dep.st='set'; else c.dep={st:'set',t:Date.now()}; put(c); lastBot=Date.now();
+  try{ navigator.vibrate&&navigator.vibrate(30); }catch(e){}
+  B.toast(T('Σημείωσα: ακούμπησε στα ~','Noted: touched at ~')+faTxt(depthL)+T(' με ',' with ')+g.n+T(' μολύβια. Η αρματωσιά «','  leads. Rig “')+r.name+T('» διορθώθηκε ×','” adjusted ×')+B.num(nw,2)+T(' · μάζεψε 1 → ',' · bring in 1 → ')+c.leads,7000); }
+function dropSheet(){ var sh, inp=h('input',{type:'number',inputmode:'numeric',min:'1',max:'200',placeholder:T('π.χ. 32','e.g. 32')});
+  var body=h('div',{class:'bform'},h('p',{class:'sub',text:T('Πάτα «Ξεκινώ» μόλις πέσει το πρώτο μολύβι. Όσο ρίχνεις, η εφαρμογή σου λέει σε ποιο μολύβι να σταματήσεις, από το βάθος εκεί που θα καταλήξει το δόλωμα.','Tap “Start” as the first lead goes in. While you let out, the app tells you at which lead to stop, from the depth where the lure will end up.')}),
+    h('label',{class:'fld'},h('span',{text:T('Τι δείχνει το βυθόμετρο τώρα (οργιές) · προαιρετικό','Sounder now (fathoms) · optional')}),inp),
+    h('p',{class:'foot',text:T('Με το βυθόμετρο διορθώνεται ο χάρτης βυθού εδώ γύρω, και κρατιέται για την επόμενη φορά.','With the sounder reading the depth chart is corrected around here, and kept for next time.')}),
+    h('button',{class:'btn pri full',type:'button',text:T('Ξεκινώ να ρίχνω','Start letting out'),onclick:function(){ var v=+inp.value||0; sh&&sh.close&&sh.close(true); B.closeSheet&&B.closeSheet(); startDrop(v); }}));
+  sh=B.sheet({title:T('Ρίχνω την αρματωσιά','Letting out the rig'),body:body,stack:true}); }
 /* − / +: από εκεί και πέρα ο δικός σου αριθμός, μέχρι το τέλος της εξόδου (ή μέχρι να ξαναβάλεις «Αυτόματα») */
-function setLeads(d){ var c=cfg(), n=nLeads(c); c.auto=false; c.leads=Math.max(0,Math.min(80,n+d)); put(c); try{ navigator.vibrate&&navigator.vibrate(20); }catch(e){} bottomCheck(); }
-function setAuto(){ var c=cfg(); c.auto=true; put(c); }
+function setLeads(d){ var c=cfg(), n=nLeads(c); if(c.dep&&c.dep.st==='drop'){ recN=Math.max(1,Math.min(80,n+d)); paint(); return; } c.auto=false; c.leads=Math.max(0,Math.min(80,n+d)); put(c); try{ navigator.vibrate&&navigator.vibrate(20); }catch(e){} bottomCheck(); }
+function setAuto(){ var c=cfg(); c.auto=true; c.dep=null; put(c); }
 /* σημείο πάνω στη διαδρομή, m μέτρα πίσω από τη βάρκα */
 function behind(boat,m){ var p=pts(), cur=[boat.lat,boat.lon], left=m;
   for(var i=p.length-1;i>=0&&left>0;i--){ var q=[p[i][0],p[i][1]], d=dist(cur,q); if(d<0.5) continue;
@@ -96,7 +142,7 @@ function adjust(rec){ if(!on()||!rec||typeof rec.lat!=='number'||rec.gear) retur
 /* 1.6.3: αυτόματα: μετά την καταγραφή, το βάθος στο σημείο του δολώματος → μολύβια → πόσο πίσω → νέο σημείο (2 γύροι) */
 function refine(k,kn){ var S=B.store; if(!S||!B.depthAt) return; var b=S.raw('bites').filter(function(x){ return x.troll&&x.troll.k===k; })[0]; if(!b||typeof b.boatLat!=='number') return;
   var c=cfg(), boat={lat:b.boatLat,lon:b.boatLon}, pos={lat:b.lat,lon:b.lon}, g=null, D=null, round=0;
-  function step(){ return B.depthAt(pos.lat,pos.lon).then(function(d){ if(d==null||d<=0) return; D=d; g=geo(c,kn,d); if(!g) return; var lb=g.lb*(+c.calB||1), q=behind(boat,lb); if(q) pos={lat:q.lat,lon:q.lon,lb:lb,on:q.on}; if(++round<2) return step(); }); }
+  function step(){ return dAt(pos.lat,pos.lon).then(function(d){ if(d==null||d<=0) return; D=d; g=geo(c,kn,d); if(!g) return; var lb=g.lb*(+c.calB||1), q=behind(boat,lb); if(q) pos={lat:q.lat,lon:q.lon,lb:lb,on:q.on}; if(++round<2) return step(); }); }
   step().then(function(){ if(!g||D==null) return; var cur=S.get('bites',b.id); if(!cur||!cur.troll||cur.troll.fixed) return;
     var tr=Object.assign({},cur.troll,{leads:g.n,dl:Math.round(g.dl),line:Math.round(g.L),lb:Math.round(pos.lb||cur.troll.lb||0),fath:fa(D)}); delete tr.k; if(pos.on===false) tr.est=1;
     S.save('bites',Object.assign({},cur,{lat:+pos.lat.toFixed(5),lon:+pos.lon.toFixed(5),troll:tr},cur.depthSrc==='leads'||cur.depth==null?{depth:Math.round(g.dl),depthSrc:'leads'}:{})); B.emit('store','alkyon-bites'); }).catch(function(){}); }
@@ -116,14 +162,14 @@ function fromWatch(o,ms){ var w=o&&o.wtr; if(!w||typeof o.lat!=='number'||o.trol
   if(w.m!=='bottom') return Promise.resolve(fin(Math.max(0,+cc.line||0)*(+c.calS||1),null,null));
   if(!cc.auto||!B.depthAt){ var g0=geo(cc,w.kn); return Promise.resolve(fin(g0?g0.lb*(+c.calB||1):null,g0,null)); }
   var pos=boat, g=null, D=null, r=0;
-  function step(){ return B.depthAt(pos.lat,pos.lon).then(function(d){ if(d==null||d<=0) return; D=d; g=geo(cc,w.kn,d); if(!g) return; var q=backAlong(boat,g.lb*(+c.calB||1),ms,w.hd); if(q) pos=q; if(++r<2) return step(); }); }
+  function step(){ return dAt(pos.lat,pos.lon).then(function(d){ if(d==null||d<=0) return; D=d; g=geo(cc,w.kn,d); if(!g) return; var q=backAlong(boat,g.lb*(+c.calB||1),ms,w.hd); if(q) pos=q; if(++r<2) return step(); }); }
   return step().catch(function(){}).then(function(){ return fin(g?g.lb*(+c.calB||1):null,g,D); }); }
 
 /* 1.6.5: κατακόρυφο προφίλ: βυθός κάτω από τη βάρκα και δόλωμα (βάθος, θέση πάνω στη διαδρομή) σε κάθε μέτρηση.
    x = μέτρα πάνω στη διαδρομή της εξόδου. Στο τέλος της εξόδου μπαίνει στην έξοδο (trprof). */
 var PK='alkyon-trprof';
 function trackM(){ var t=B.trip&&B.trip.track&&B.trip.track(); return t&&t.m!=null?+t.m:null; }
-function sample(){ if(!on()||depth==null) return; var c=cfg(), x=trackM(); if(x==null) return; var s=B.trip.state(), sid=s&&s.id; if(!sid) return;
+function sample(){ if(!on()||depth==null) return; var c=cfg(); if(c.mode==='bottom'&&c.dep&&c.dep.st==='drop') return; var x=trackM(); if(x==null) return; var s=B.trip.state(), sid=s&&s.id; if(!sid) return;
   var P=ls.get(PK,null); if(!P||P.id!==sid) P={id:sid,s:[]}; var lb=layback(c,spd), dl=lureDepth(c,spd), g=c.mode==='bottom'?geo(c,spd):null;
   var last=P.s[P.s.length-1]; if(last&&Math.abs(x-last[0])<8&&Date.now()-last[1]<60000) return;
   P.s.push([Math.round(x),Date.now(),+depth.toFixed(1),dl!=null?+dl.toFixed(1):null,lb!=null?Math.round(lb):null,g?g.n:null,spd!=null?+spd.toFixed(1):null,c.mode==='bottom'?1:0]);
@@ -159,7 +205,15 @@ function paint(){ var c=cfg(), show=on();
   var main=h('button',{class:'trpill '+st,type:'button','aria-live':'polite',onclick:function(){ sheet(); }},h('small',{text:techName(c)}),h('b',{text:spd==null?'–':B.num(spd,1)}),h('em',{text:'kn · '+c.min+'–'+c.max}),
     depth!=null?h('span',{class:'trdep'+(c.mode==='bottom'&&depthL!=null&&fa(depthL)-fa(depth)>=2?' warn':'')},h('small',{text:T('ΒΥΘΟΣ','BOTTOM')}),h('b',{text:fa(depth)+T(' οργ.',' fm')}),h('em',{text:Math.round(depth)+' m'})):null,
     h('i',{text:(dl!=null?T('δόλωμα ~','lure ~')+faM(dl)+' · ':'')+(lb!=null?(dl!=null?'':T('δόλωμα ~','lure ~'))+Math.round(lb)+T(' m πίσω',' m back'):(c.mode==='bottom'?T('περιμένω βάθος…','waiting for depth…'):''))}));
-  var kids=[main]; if(c.mode==='bottom') kids.push(h('div',{class:'trleads'},h('button',{type:'button','aria-label':T('Ένα μολύβι λιγότερο','One lead less'),text:'−',onclick:function(){ setLeads(-1); }}),h('b',{text:(c.auto!==false&&depth==null&&depthL==null)?'–':String(nLeads(c))}),h('small',{text:c.auto!==false?T('μολύβια · αυτόματα','leads · auto'):T('μολύβια','leads')}),h('button',{type:'button','aria-label':T('Ένα μολύβι παραπάνω','One lead more'),text:'+',onclick:function(){ setLeads(1); }})));
+  var kids=[main], dst=c.mode==='bottom'&&c.dep?c.dep.st:null;
+  if(c.mode==='bottom'){ var minus=h('button',{type:'button','aria-label':T('Ένα μολύβι λιγότερο','One lead less'),text:'−',onclick:function(){ setLeads(-1); }}), plus=h('button',{type:'button','aria-label':T('Ένα μολύβι παραπάνω','One lead more'),text:'+',onclick:function(){ setLeads(1); }});
+    if(dst==='drop'){ /* 1.7.0: όσο ρίχνεις: σε ποιο μολύβι να σταματήσεις */
+      kids.push(h('div',{class:'trdrop'},h('small',{text:T('ΣΤΑΜΑΤΑ ΣΤΑ','STOP AT')}),h('div',{class:'trdn'},minus,h('b',{text:recN!=null?String(recN):'…'}),h('span',{text:T('μολύβια','leads')}),plus),
+        h('em',{text:recN!=null?T('βυθός εκεί ~','bottom there ~')+(recD!=null?faTxt(recD):'–')+(recLb!=null?' · '+Math.round(recLb)+T(' m πίσω',' m back'):''):T('υπολογίζω από τον βυθό πίσω σου…','working it out from the bottom behind you…')}),
+        h('div',{class:'trdb'},h('button',{class:'btn pri',type:'button',text:T('Στον βυθό ✓','On the bottom ✓'),onclick:function(){ setDown(recN); }}),h('button',{class:'btn ghost sm',type:'button',text:T('Άκυρο','Cancel'),onclick:cancelDrop})))); }
+    else { var cl=dst==='set'?clear(c):null;
+      kids.push(h('div',{class:'trleads'},minus,h('b',{text:(c.auto!==false&&depth==null&&depthL==null)?'–':String(nLeads(c))}),h('small',{text:c.auto!==false?T('μολύβια · αυτόματα','leads · auto'):(cl!=null?(cl<-0.5*FATH?T('βαράει βυθό!','hitting bottom!'):'~'+Math.max(0,fa(cl))+T(' οργ. πάνω από βυθό',' fm above bottom')):T('μολύβια','leads'))}),plus,
+        dst==='set'?h('button',{class:'trtouch',type:'button',text:T('Ακούμπησε','Touched'),title:T('Ένιωσα ότι ακούμπησε/κόλλησε στον βυθό','I felt it touch the bottom'),onclick:touched}):h('button',{class:'trgo',type:'button',text:T('Ρίχνω','Let out'),onclick:dropSheet}))); } }
   pill.replaceChildren.apply(pill,kids);
 }
 
@@ -226,9 +280,9 @@ function rigEdit(r,done){ var isNew=!r; r=Object.assign({},r||{id:'rig'+Date.now
     sum,save,del)}); }
 B.rigsSheet=function(){ rigEdit(rigOf(),null); };
 B.trollBtn=function(){ return h('button',{class:'iconbtn trbtn',type:'button','aria-label':T('Συρτή','Trolling'),html:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 15h10l-2 3H5z"/><path d="M8 15V7l5 8"/><path d="M13 9c3 1 5 3 8 8"/><circle cx="21" cy="18" r="1.3"/></svg>',onclick:sheet}); };
-B.troll={on:on,cfg:cfg,sheet:sheet,adjust:adjust,layback:layback,geo:geo,lureDepth:lureDepth,setLeads:setLeads,fromWatch:fromWatch,setAuto:setAuto,nLeads:nLeads,calibrate:calibrate,speed:function(){ return spd; }};
+B.troll={startDrop:startDrop,setDown:setDown,touched:touched,cancelDrop:cancelDrop,recommend:function(){ return {n:recN,d:recD,lb:recLb}; },corrAt:corrAt,addCorr:addCorr,bestN:bestN,dropSheet:dropSheet,on:on,cfg:cfg,sheet:sheet,adjust:adjust,layback:layback,geo:geo,lureDepth:lureDepth,setLeads:setLeads,fromWatch:fromWatch,setAuto:setAuto,nLeads:nLeads,calibrate:calibrate,speed:function(){ return spd; }};
 B.on('track',check);
-B.on('trip',function(){ if(!tripOn()&&cfg().on){ var q=cfg(); q.on=false; q.auto=true; ls.set(K,q); depth=null; depthL=null; } paint(); }); /* 1.6.3: στο τέλος της εξόδου ξανά «αυτόματα» */
+B.on('trip',function(){ if(!tripOn()&&cfg().on){ var q=cfg(); q.on=false; q.auto=true; q.dep=null; recN=null; ls.set(K,q); depth=null; depthL=null; } paint(); }); /* 1.6.3: στο τέλος της εξόδου ξανά «αυτόματα» */
 setInterval(function(){ if(on()) check(); },10000);
 setTimeout(paint,1500);
 })();

@@ -116,7 +116,7 @@ function readout(){
     parts2.push('<span class="rgi"><small>'+T('Άνεμος','Wind')+'</small><span class="rv">'+arrowSvg((v.dir+180)%360,'#fff',18)+'<b>'+wp[0]+' '+wp[1]+'</b>'+(wp[1]!=='kn'?'<em>'+Math.round(v.sp)+' kn</em>':'')+'<em>'+COMPn(v.dir)+'</em><i style="background:'+col+'"></i></span></span>'); } }
   if(sOn){ var hh=null, dd=null, tp=null, r=null; try{ r=Sx&&Sx.pointInfo?Sx.pointInfo(c.lat,c.lng):null; }catch(e){} if(r&&r.hs>=0){ hh=r.hs; dd=r.wdir; tp=r.period; } else { var m=Sx&&Sx.modelAt?Sx.modelAt(c.lat,c.lng):null; if(m){ hh=m.h; dd=m.dir; tp=m.tp; } }
     if(hh!=null){ var gc='rgb('+wvcol(hh).map(Math.round).join(',')+')';
-      parts2.push('<span class="rgi"><small>'+T('Κύμα','Waves')+'</small><span class="rv">'+(dd!=null?arrowSvg((dd+180)%360,'#9fdcff',18):'')+'<b>'+(U&&U.wave?U.wave(hh):B.num(hh,1)+' m')+'</b>'+(dd!=null?'<em>'+COMPn(dd)+'</em>':'')+(tp>0?'<em>'+Math.round(tp)+' s</em>':'')+'<i style="background:'+gc+'"></i></span></span>'); }
+      parts2.push('<span class="rgi"><small>'+T('Κύμα','Waves')+'</small><span class="rv">'+(dd!=null?arrowSvg((dd+180)%360,'#9fdcff',18):'')+'<b>'+(U&&U.wave?U.wave(hh):B.num(hh,1)+' m')+'</b>'+(dd!=null?'<em>'+COMPn(dd)+'</em>':'')+(tp>=2?'<em>'+Math.round(tp)+' s</em>':tp>0?'<em>'+T('κυματάκι','chop')+'</em>':'') /* 1.6.8: κάτω από 2 s δεν λέει κάτι */+'<i style="background:'+gc+'"></i></span></span>'); }
     else if(land(c.lat,c.lng)===1) parts2.push('<span class="rgi"><small>'+T('Κύμα','Waves')+'</small><span class="rv"><em>'+T('στεριά','land')+'</em></span></span>'); }
   var sv=B.sstAt?B.sstAt(c.lat,c.lng):null; if(sv!=null) parts2.push('<span class="rgi"><small>'+T('Νερό','Water')+'</small><span class="rv"><b>'+(U&&U.temp?U.temp(sv,1):B.num(sv,1)+'°')+'</b></span></span>');
   roEl.innerHTML=parts2.join('<span class="rsep"></span>')||'<span class="rgi"><em>'+T('Φόρτωση…','Loading…')+'</em></span>';
@@ -134,10 +134,10 @@ function drawLabels(){
   var Wx=W(), Sx=S(), U=window.AlkyonUnits, dock=document.getElementById('ndMapDock'), bot=sz.y-(dock&&!dock.hidden?dock.getBoundingClientRect().height+40:40)-60, top=125;
   var gx=sz.x<500?118:140, gy=104, row=0; c.font='800 12.5px system-ui,-apple-system,Segoe UI,Roboto,sans-serif'; c.textBaseline='middle'; c.lineCap='round'; c.lineJoin='round';
   /* v31z526: οι αριθμοί δεν μπαίνουν πάνω στα βελάκια των ρευμάτων */
-  var mc0=map.getContainer(), mr=mc0.getBoundingClientRect(), avoid=[].map.call(document.querySelectorAll('.mk.cur .cw'),function(e){ var r=e.getBoundingClientRect(); return [r.left-mr.left,r.top-mr.top,r.right-mr.left,r.bottom-mr.top]; });
+  var mc0=map.getContainer(), mr=mc0.getBoundingClientRect(), avoid=[].map.call(document.querySelectorAll('#lmap .mk.cur .cw,#lmap .mk.fish,#lmap .mk.spot i,#lmap .mk.me i'),function(e){ var r=e.getBoundingClientRect(); return [r.left-mr.left,r.top-mr.top,r.right-mr.left,r.bottom-mr.top]; });
   for(var y=top;y<=bot;y+=gy,row++) for(var x=(row%2?gx*0.75:gx*0.25);x<sz.x-20;x+=gx){
     if(avoid.some(function(a){ return x+48>a[0]-6&&x-48<a[2]+6&&y+22>a[1]-6&&y-22<a[3]+6; })) continue;
-    if([[-46,-20],[46,-20],[-46,20],[46,20],[0,0]].some(function(d){ var el=document.elementFromPoint(mr.left+x+d[0],mr.top+y+d[1]); return el&&(!mc0.contains(el)||!!el.closest('.leaflet-control,.wxread,.mapwx,button')); })) continue;
+    if([[-46,-20],[46,-20],[-46,20],[46,20],[0,0]].some(function(d){ var el=document.elementFromPoint(mr.left+x+d[0],mr.top+y+d[1]); return el&&(!mc0.contains(el)||!!el.closest('.leaflet-control,.wxread,.mapwx,button,.mk.fish,.mk.spot,.mk.dam,.mk.best,.mk.me')); })) continue;
     var ll=map.containerPointToLatLng([x,y]), isL=land(ll.lat,ll.lng)===1, lines=[];
     if(wOn&&!(sOn&&isL)){ var v=Wx&&Wx.sample?Wx.sample(ll.lat,ll.lng):null; if(v){ var wp=U&&U.windP?U.windP(v.sp):[String(Math.round(v.sp)),'kn']; lines.push({deg:(v.dir+180)%360,txt:wp[0]+' '+wp[1],col:wcol(v.sp),r:4+Math.min(5,v.sp/5)}); } }
     if(sOn&&!isL){ var r=null; try{ r=Sx&&Sx.pointInfo?Sx.pointInfo(ll.lat,ll.lng):null; }catch(e){} var hh=r&&r.hs>=0?r.hs:null, dd=r?r.wdir:null; if(hh==null){ var m=Sx&&Sx.modelAt?Sx.modelAt(ll.lat,ll.lng):null; if(m){ hh=m.h; dd=m.dir; } }

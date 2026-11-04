@@ -459,7 +459,7 @@ function workedCard(d){
   var hrs=sim.map(function(x){ return parseInt((x.b.time||'').slice(0,2),10); }).filter(function(v){ return !isNaN(v); }).sort(function(a,b){ return a-b; });
   var rows=[[T('Είδη','Species'),cnt(function(b){ return b.species; })],[T('Δόλωμα','Bait'),cnt(function(b){ return b.bait; })],[T('Τεχνική','Technique'),cnt(function(b){ return b.tech; })],
     [T('Εξοπλισμός','Tackle'),cnt(function(b){ return (b.tk||[]).map(function(id){ return tk[id]; }); })],
-    [T('Βάθος','Depth'),deps.length>=2?[Math.round(deps[Math.floor(deps.length*0.2)])+'–'+Math.round(deps[Math.ceil(deps.length*0.8)-1])+' m']:deps.length?[Math.round(deps[0])+' m']:[]],
+    [T('Βάθος','Depth'),deps.length>=2?[U.depthRange(deps[Math.floor(deps.length*0.2)],deps[Math.ceil(deps.length*0.8)-1])]:deps.length?[U.depth(deps[0])]:[]],
     [T('Ώρα','Time'),hrs.length>=2?[B.pad(hrs[Math.floor(hrs.length*0.2)])+':00–'+B.pad(Math.min(23,hrs[Math.ceil(hrs.length*0.8)-1]+1))+':00']:[]],
     [T('Σημείο','Spot'),cnt(function(b){ return b.place; })]].filter(function(r){ return r[1].length; });
   if(!rows.length) return null;

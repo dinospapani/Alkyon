@@ -302,7 +302,12 @@ function currents(force){
     /* v31z526: σημεία μόνο στον ελεύθερο χώρο του χάρτη (όχι κάτω από τα κουμπιά πάνω, τη στήλη δεξιά, τη μπάρα ώρας κάτω) */
     var sz=map.getSize(), dk=document.getElementById('ndMapDock'), x0=70, x1=sz.x-78, y0=Math.min(sz.y*0.3,175), y1=sz.y-((dk&&!dk.hidden&&dk.offsetHeight)?dk.offsetHeight+110:150);
     if(y1-y0<120){ y0=sz.y*0.2; y1=sz.y*0.8; }
-    for(var i=0;i<NY;i++) for(var j=0;j<NX;j++){ var q=map.containerPointToLatLng([x0+(x1-x0)*(j+0.5)/NX,y0+(y1-y0)*(i+0.5)/NY]);
+    /* 1.6.9: όχι βέλος ρεύματος πάνω σε ψάρι/σημείο: μετακινείται λίγο, αλλιώς παραλείπεται */
+    var mcR=lmEl.getBoundingClientRect(), occ=[].map.call(lmEl.querySelectorAll('.mk.fish,.mk.spot i'),function(e){ var r=e.getBoundingClientRect(); return [r.left-mcR.left,r.top-mcR.top,r.right-mcR.left,r.bottom-mcR.top]; });
+    function hit(px,py){ return occ.some(function(o){ return px+28>o[0]-4&&px-28<o[2]+4&&py+26>o[1]-4&&py-22<o[3]+4; }); }
+    for(var i=0;i<NY;i++) for(var j=0;j<NX;j++){ var cx0=x0+(x1-x0)*(j+0.5)/NX, cy0=y0+(y1-y0)*(i+0.5)/NY;
+      if(hit(cx0,cy0)){ var mv=[[0,-50],[0,50],[-55,0],[55,0]].filter(function(d){ return !hit(cx0+d[0],cy0+d[1]); })[0]; if(!mv) continue; cx0+=mv[0]; cy0+=mv[1]; }
+      var q=map.containerPointToLatLng([cx0,cy0]);
       /* 1.2.2: όχι βέλη πάνω στη στεριά: παραλείπονται τα σημεία της στεριάς, και το μοντέλο ρωτιέται για το κελί θάλασσας */
       var X=window.AlkyonExposure, ld=-1; try{ ld=X&&X.isLand?X.isLand(q.lat,q.lng):-1; }catch(e){} if(ld===1) continue; la.push(q.lat.toFixed(3)); lo.push(q.lng.toFixed(3)); }
     if(!la.length){ if(ov.cur){ map.removeLayer(ov.cur); ov.cur=null; } return; }
@@ -433,7 +438,7 @@ function spotList(a){ var l=h('div',{class:'list'}), sh; a.forEach(function(sp){
   sh=B.sheet({title:a.length+' '+T('σημεία εδώ','spots here'),body:l}); }
 function spotSheet(sp){
   var n=S().raw('bites').filter(function(b){ return !b.miss&&!B.pest(b)&&typeof b.lat==='number'&&Math.abs(b.lat-sp.lat)<0.0008&&Math.abs(b.lon-sp.lon)<0.001; }).length;
-  var body=h('div',{class:'det'},h('div',{class:'card'},h('div',{class:'rows one'},[[T('Τύπος','Type'),sp.type||'–'],[T('Βάθος','Depth'),sp.depth!=null&&sp.depth!==''?sp.depth+' m':'–'],[T('Ψάρια εδώ','Catches here'),String(n)],[T('Συντεταγμένες','Coordinates'),window.AlkyonCoord?AlkyonCoord.fmt(sp.lat,sp.lon):sp.lat.toFixed(5)+', '+sp.lon.toFixed(5)]].map(function(r){ return h('div',{class:'row'},h('span',{text:r[0]}),h('b',{text:r[1]})); }))));
+  var body=h('div',{class:'det'},h('div',{class:'card'},h('div',{class:'rows one'},[[T('Τύπος','Type'),sp.type||'–'],[T('Βάθος','Depth'),sp.depth!=null&&sp.depth!==''?(window.AlkyonUnits&&AlkyonUnits.depth?AlkyonUnits.depth(sp.depth):sp.depth+' m'):'–'],[T('Ψάρια εδώ','Catches here'),String(n)],[T('Συντεταγμένες','Coordinates'),window.AlkyonCoord?AlkyonCoord.fmt(sp.lat,sp.lon):sp.lat.toFixed(5)+', '+sp.lon.toFixed(5)]].map(function(r){ return h('div',{class:'row'},h('span',{text:r[0]}),h('b',{text:r[1]})); }))));
   if(sp.notes) body.append(h('div',{class:'card'},h('p',{class:'p',text:sp.notes})));
   var sum=B.spotSummary&&B.spotSummary(sp); if(sum) body.append(h('div',{class:'card'},h('h2',{text:T('Τι έπιασες εδώ','What you caught here')}),h('div',{class:'rows one'},sum.map(function(r){ return h('div',{class:'row'},h('span',{text:r[0]}),h('b',{text:r[1]})); }))));
   body.append(h('div',{class:'acts'},

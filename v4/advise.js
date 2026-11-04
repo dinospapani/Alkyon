@@ -79,7 +79,7 @@ function suggest(D,x){
   var R=rank(D,x), top=R.slice(0,6), out=top.map(function(r){
     var e=r.e, tl=tally(r), tq=topKeys(tl.t,2), bq=topKeys(tl.b,2);
     var dv=r.o?r.o.bites.filter(function(q){ return q.depth!=null&&q.depth!==''; }).map(function(q){ return +q.depth; }):[];
-    var depth=dv.length>=3?Math.round(dv.reduce(function(a,b){ return a+b; },0)/dv.length)+' m':(e&&e.d?e.d[0]+'–'+e.d[1]+' m':'');
+    var depth=dv.length>=3?(window.AlkyonUnits&&AlkyonUnits.depth?AlkyonUnits.depth(Math.round(dv.reduce(function(a,b){ return a+b; },0)/dv.length)):Math.round(dv.reduce(function(a,b){ return a+b; },0)/dv.length)+' m'):(e&&e.d?(window.AlkyonUnits&&AlkyonUnits.depthRange?AlkyonUnits.depthRange(e.d[0],e.d[1]):e.d[0]+'–'+e.d[1]+' m'):'');
     return {name:e?sName(e):r.name,p:r.p,n:r.o?r.o.n:0,tech:kt(tq.length?tq:(e?e.t.slice(0,2):[])),bait:kt(bq.length?bq:(e?e.b.slice(0,2):[])),depth:depth,warn:e&&e.warn?(EN?e.warn[1]:e.warn[0]):''};
   });
   var tw={};

@@ -76,11 +76,11 @@ function mineTab(page){
   var bt=ls.get('alkyon-boat',null), bn=bt&&bt.boat&&bt.boat.name, g=ls.get('alkyon-gear',null), gn=g&&Array.isArray(g.items)?g.items.length:0;
   page.append(group(T('Εξοπλισμός και σκάφος','Tackle and boat'),[
     row('tackle',T('Εξοπλισμός','Tackle'),n?n+' '+(n===1?T('κομμάτι','item'):T('κομμάτια','items')):T('Καλάμια, μουλινέ, τεχνητά, ψαροντούφεκα','Rods, reels, lures, spearguns'),'#tackle'),
-    row('gear',T('Παραγάδια, δίχτυα, ζεμπίλια','Longlines, nets, pots'),gn?gn+' '+(gn===1?T('καταγραφή','record'):T('καταγραφές','records')):T('Ρίψη και ανέβασμα εργαλείων','Set and haul gear'),null,function(){ ls.set('alkyon-v4-logtab','gear'); location.hash='#log'; }),
+    /* 1.6.9: τα παραγάδια/δίχτυα και τα σημεία είναι στο Ημερολόγιο (καρτέλες), όχι και εδώ */
     row('boat',T('Σκάφος','Boat'),bn||T('Κινητήρας, συντήρηση, λήξεις, μπαταρίες','Engine, maintenance, expiries, batteries'),'#boat'),
     /* v31z552 */ B.garmin?row('watch',T('Ρολόι Garmin','Garmin watch'),B.garmin.code()?T('Συνδεδεμένο · κωδικός ','Linked · code ')+B.garmin.code():T('Πρόγνωση, πίεση και καταγραφή ψαριού στο ρολόι','Forecast, pressure and catch logging on the watch'),null,function(){ B.garmin.sheet(); }):null].filter(Boolean)));
   /* v31z525: η εισαγωγή είναι δεδομένα σου, όχι ρύθμιση λογαριασμού */
-  page.append(group(T('Σημεία και δεδομένα','Spots and data'),[row('spots',T('Τα σημεία μου','My spots'),sp?sp+' '+(sp===1?T('σημείο','spot'):T('σημεία','spots')):T('Δεν έχεις αποθηκεύσει σημεία','No saved spots yet'),null,function(){ ls.set('alkyon-v4-logtab','spots'); location.hash='#log'; }),row('backup',T('Από plotter, GPS ή ρολόι κατάδυσης','From a plotter, GPS or dive watch'),'GPX · KML · CSV · FIT · UDDF',null,function(){ if(B.importSheet) B.importSheet(); })]));
+  page.append(group(T('Εισαγωγή δεδομένων','Import data'),[row('backup',T('Από plotter, GPS ή ρολόι κατάδυσης','From a plotter, GPS or dive watch'),'GPX · KML · CSV · FIT · UDDF',null,function(){ if(B.importSheet) B.importSheet(); })]));
   page.append(group(T('Φίλοι και κοινότητα','Friends and community'),[
     row('community',T('Κοινότητα','Community'),T('Ψάρια άλλων ψαράδων, χωρίς θέση','Other anglers’ catches, no locations'),'#community'),
     row('people',T('Φίλοι','Friends'),T('Κοινά ψάρια και σημεία με φίλους','Share catches and spots with friends'),'#friends')]));
@@ -92,7 +92,7 @@ function mineTab(page){
 function sheetOf(title,body){ return B.sheet({title:title,body:body}); }
 function settingsTab(page){
   var sf=ls.get('alkyon-safe',null)||{}, n=Object.assign({on:false},ls.get('alkyon-notify',{}));
-  var uLab=function(k){ var v=U&&U.cfg&&U.cfg[k], o=U&&U.options&&U.options[k], m=o&&o.filter(function(x){ return x[0]===v; })[0]; return m?m[1]:v; }, uSum=U&&U.cfg?['wind','wave','temp'].map(uLab).filter(Boolean).join(' · '):'';
+  var uLab=function(k){ var v=U&&U.cfg&&U.cfg[k], o=U&&U.options&&U.options[k], m=o&&o.filter(function(x){ return x[0]===v; })[0]; return m?m[1]:v; }, uSum=U&&U.cfg?['wind','wave','depth','temp'].filter(function(k){ return k!=='depth'||U.cfg.depth!=='m'; }).map(uLab).filter(Boolean).join(' · '):'';
   page.append(group(T('Ψάρεμα','Fishing'),[
     row('type',T('Τύπος ψαρέματος','Fishing type'),(B.PROF[B.prof()]||'')+(ls.raw&&ls.raw('alkyon-askfp')==='"0"'?'':''),null,function(){ var body=h('div',{class:'bform'},
         h('div',{class:'ptiles',role:'group','aria-label':T('Τύπος ψαρέματος','Fishing type')},Object.keys(B.PROF).map(function(k){ return h('button',{type:'button',class:'ptile','aria-pressed':String(B.prof()===k),onclick:function(){ try{ localStorage.setItem('alkyon-fprof',k); }catch(e){} B.emit('store','alkyon-fprof'); B.toast(T('Ο βαθμός και οι προτάσεις προσαρμόστηκαν.','The score and suggestions were adjusted.')); B.closeSheet(); draw(); }},h('span',{class:'pti',html:B.profBadge?B.profBadge(k):''}),h('b',{text:B.PROF[k]})); })),
@@ -118,7 +118,7 @@ function signOutSheet(){ var sh, msg=h('p',{class:'sub',role:'status'});
     h('button',{class:'btn full',type:'button',text:T('Αποσύνδεση · κράτα τα δεδομένα εδώ','Sign out · keep data here'),onclick:function(){ go(false); }}),
     h('button',{class:'btn full del',type:'button',text:T('Αποσύνδεση και διαγραφή από αυτό το κινητό','Sign out and remove from this phone'),onclick:function(){ go(true); }}),
     h('p',{class:'foot',text:T('Η διαγραφή γίνεται μόνο αν ο συγχρονισμός πετύχει. Όταν ξανασυνδεθείς, τα δεδομένα επιστρέφουν από τον λογαριασμό.','Removal only happens if the sync succeeds. When you sign in again, your data comes back from the account.')}),msg)}); }
-function unitsSheet(){ var body=h('div',{class:'bform'}), L={wind:T('Άνεμος','Wind'),wave:T('Κύμα','Waves'),temp:T('Θερμοκρασία','Temperature'),press:T('Πίεση','Pressure'),dist:T('Απόσταση','Distance'),coord:T('Συντεταγμένες','Coordinates')};
+function unitsSheet(){ var body=h('div',{class:'bform'}), L={wind:T('Άνεμος','Wind'),wave:T('Κύμα','Waves'),depth:T('Βάθος','Depth'),temp:T('Θερμοκρασία','Temperature'),press:T('Πίεση','Pressure'),dist:T('Απόσταση','Distance'),coord:T('Συντεταγμένες','Coordinates')};
   Object.keys(L).forEach(function(k){ if(!U.options[k]) return; body.append(h('h3',{class:'h3',text:L[k]}),B.seg(U.options[k].map(function(o){ return [o[0],o[1]]; }),U.cfg[k],function(v){ U.set(k,v); B.emit('store','alkyon-units'); draw(); },L[k])); });
   sheetOf(T('Μονάδες','Units'),body); }
 function accountTab(page,s){

@@ -54,7 +54,7 @@ B.spotSummary=function(sp){
     if(b.time){ var x=+b.time.slice(0,2), k=x<10?T('πρωί','morning'):x<15?T('μεσημέρι','midday'):x<20?T('απόγευμα','evening'):T('νύχτα','night'); o.hr[k]=(o.hr[k]||0)+1; } if(b.date){ var mm=MON[+b.date.slice(5,7)-1]; o.mo[mm]=(o.mo[mm]||0)+1; } });
   var rows=[[T('Ψάρια εδώ','Catches here'),arr.length+(o.kg?' · '+B.num(o.kg,1)+' kg':'')]], f=function(m){ return top(m,3).map(function(k){ return k+' ×'+m[k]; }).join(', '); };
   if(Object.keys(o.sp).length) rows.push([T('Είδη','Species'),f(o.sp)]); if(Object.keys(o.bait).length) rows.push([T('Δολώματα','Baits'),f(o.bait)]); if(Object.keys(o.tech).length) rows.push([T('Τεχνικές','Techniques'),f(o.tech)]);
-  if(o.dmin!=null) rows.push([T('Βάθος','Depth'),o.dmin===o.dmax?o.dmin+' m':o.dmin+'–'+o.dmax+' m']); if(Object.keys(o.hr).length) rows.push([T('Ώρα','Time'),top(o.hr,2).join(', ')]); if(Object.keys(o.mo).length) rows.push([T('Μήνες','Months'),top(o.mo,3).join(', ')]);
+  if(o.dmin!=null) rows.push([T('Βάθος','Depth'),(window.AlkyonUnits&&AlkyonUnits.depthRange?AlkyonUnits.depthRange(o.dmin,o.dmax):(o.dmin===o.dmax?o.dmin+' m':o.dmin+'–'+o.dmax+' m'))]); if(Object.keys(o.hr).length) rows.push([T('Ώρα','Time'),top(o.hr,2).join(', ')]); if(Object.keys(o.mo).length) rows.push([T('Μήνες','Months'),top(o.mo,3).join(', ')]);
   return rows;
 };
 })();

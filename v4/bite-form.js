@@ -112,7 +112,7 @@ B.biteForm=function(edit,opt){
       var w=(b.bait||'').trim(); if(w&&!sb[w]&&nb<6){ sb[w]=1; nb++; baitChips.append(h('button',{type:'button',class:'chip sm',text:w,onclick:function(){ bait.value=w; }})); } });
     spChips.hidden=!n; baitChips.hidden=!nb; })();
   var many=h('input',{type:'checkbox'}), cnt=h('input',{type:'number',min:'2',max:'999',inputmode:'numeric',placeholder:'2'});
-  var kg=h('input',{type:'number',step:'0.01',min:'0',inputmode:'decimal',placeholder:'0,0'}), len=h('input',{type:'number',step:'0.5',min:'0',inputmode:'decimal',placeholder:'cm'}), dep=h('input',{type:'number',step:'0.5',min:'0',inputmode:'decimal',placeholder:'m'});
+  var kg=h('input',{type:'number',step:'0.01',min:'0',inputmode:'decimal',placeholder:'0,0'}), len=h('input',{type:'number',step:'0.5',min:'0',inputmode:'decimal',placeholder:'cm'}), dep=h('input',{type:'number',step:'0.5',min:'0',inputmode:'decimal',placeholder:window.AlkyonUnits&&AlkyonUnits.depthUnit?AlkyonUnits.depthUnit():'m'});
   /* ψαροντούφεκο: ορατότητα που είδες (μαθαίνει την εκτίμηση της Πρόγνωσης) */
   var vis=h('input',{type:'number',step:'1',min:'0',max:'60',inputmode:'numeric',placeholder:'m'});
   var when=h('input',{type:'datetime-local',value:nowLocal()});
@@ -142,7 +142,7 @@ B.biteForm=function(edit,opt){
   file.addEventListener('change',function(){ var fs=[].slice.call(file.files||[]); file.value=''; Promise.all(fs.map(function(f){ return S.resize(f).catch(function(){ return null; }); })).then(function(bl){ bl.filter(Boolean).forEach(function(b){ photos.push(b); }); phDirty=true; drawPh(); if(aiBox&&aiBox.run&&!sp.value.trim()&&photos.length) setTimeout(function(){ aiBox.run(); },150); }); });
   drawPh();
   /* επεξεργασία: γέμισμα */
-  if(e){ sp.value=e.species||''; if(+e.cnt>1){ many.checked=true; cnt.value=e.cnt; } kg.value=e.kg!=null?e.kg:''; len.value=e.len!=null?e.len:''; dep.value=e.depth!=null?e.depth:''; vis.value=e.vis!=null?e.vis:'';
+  if(e){ sp.value=e.species||''; if(+e.cnt>1){ many.checked=true; cnt.value=e.cnt; } kg.value=e.kg!=null?e.kg:''; len.value=e.len!=null?e.len:''; dep.value=e.depth!=null?(window.AlkyonUnits&&AlkyonUnits.depthOut?AlkyonUnits.depthOut(e.depth):e.depth):''; vis.value=e.vis!=null?e.vis:'';
     when.value=(e.date||'')+'T'+(e.time||'12:00'); bait.value=e.bait||''; tech.value=e.tech||''; notes.value=e.notes||''; rel.checked=!!e.rel; priv.checked=!!e.priv;
     Promise.all(S.phKeys(e).map(function(k){ return S.Photos.get(k).catch(function(){ return null; }); })).then(function(bl){ photos=bl.filter(Boolean).concat(photos); drawPh(); }); }
   var cntRow=h('div',{class:'inl',hidden:!many.checked},field(T('Πόσα ψάρια','How many'),cnt));
@@ -192,7 +192,7 @@ B.biteForm=function(edit,opt){
     B.speciesPick?h('button',{class:'linkbtn',type:'button',text:'📖 '+T('Διάλεξε από τη λίστα ειδών','Pick from the species list'),onclick:function(){ B.speciesPick(function(nm){ sp.value=nm; law(); }); }}):null,
     lawNote,
     h('label',{class:'tg'},many,h('span',{text:T('Πολλά ψάρια μαζί (μία εγγραφή)','Several fish together (one entry)')})),cntRow,
-    (sizeRow=h('div',{class:'g3',hidden:miss.checked},field(T('Βάρος (kg)','Weight (kg)'),kg),field(T('Μήκος (cm)','Length (cm)'),len),field(T('Βάθος (m)','Depth (m)'),dep))),
+    (sizeRow=h('div',{class:'g3',hidden:miss.checked},field(T('Βάρος (kg)','Weight (kg)'),kg),field(T('Μήκος (cm)','Length (cm)'),len),field(T('Βάθος','Depth')+' ('+(window.AlkyonUnits&&AlkyonUnits.depthUnit?AlkyonUnits.depthUnit():'m')+')',dep))),
     kgEst,
     prof==='spear'?h('label',{class:'fld'},h('span',{text:T('Ορατότητα νερού (m)','Water visibility (m)')}),vis,h('small',{text:T('Πόσα μέτρα έβλεπες. Έτσι η Πρόγνωση μαθαίνει τα νερά σου.','How many metres you could see. This teaches the Forecast your waters.')})):null,
     field(T('Πότε','When'),when),
@@ -227,7 +227,7 @@ B.biteForm=function(edit,opt){
     var kb=(window.SPKB||[]).filter(function(k){ return k.n.toLowerCase()===name.toLowerCase()||(k.en||'').toLowerCase()===name.toLowerCase(); })[0];
     rememberTech(tech.value);
     rec=Object.assign({},e||{},{date:date,time:time,tz:-new Date().getTimezoneOffset(),species:name,latin:kb?kb.l:(pickLa||latinOf(name)||(e&&e.latin)||''),bait:bait.value.trim(),tech:tech.value.trim(),
-      depth:num(dep),kg:num(kg),len:num(len),notes:notes.value.trim(),place:place,lat:lat,lon:lon,src:e?(e.src||'app'):'v4'}); if(kgAuto&&rec.kg!=null) rec.kgEst=true; else delete rec.kgEst;
+      depth:(window.AlkyonUnits&&AlkyonUnits.depthIn?AlkyonUnits.depthIn(num(dep)):num(dep)),kg:num(kg),len:num(len),notes:notes.value.trim(),place:place,lat:lat,lon:lon,src:e?(e.src||'app'):'v4'}); if(kgAuto&&rec.kg!=null) rec.kgEst=true; else delete rec.kgEst;
     if(many.checked) rec.cnt=Math.floor(+cnt.value); else delete rec.cnt;
     var vv=num(vis); if(prof==='spear'&&vv!=null&&vv>0){ rec.vis=vv; if(!(e&&e.vis===vv&&e.visEst)){ var ve=B.clarityEst&&lat!=null?B.clarityEst(lat,lon,date,time):null; if(ve) rec.visEst=ve; else delete rec.visEst; } } else { delete rec.vis; delete rec.visEst; }
     if(miss.checked){ rec.miss=true; if(!e) rec.src='miss'; } else delete rec.miss;
@@ -346,7 +346,7 @@ B.speciesFill=function(sid,done){ var S=st(), fin=function(){ if(done){ var d=do
   var top=Object.keys(cnt).sort(function(a,c){ return cnt[c]-cnt[a]; }).slice(0,6), left=list.length, sub=h('p',{class:'sub'});
   function upd(){ sub.textContent=left?left+T(left===1?' ψάρι χωρίς είδος':' ψάρια χωρίς είδος',left===1?' catch without a species':' catches without a species'):T('Όλα έχουν είδος ✓','All have a species ✓'); }
   var rows=h('div',{class:'spfill'});
-  list.forEach(function(b){ var done1=false, row=h('div',{class:'spf'}), lab=h('b',{text:(b.time||'')+(b.troll&&b.troll.kn!=null?' · '+B.num(b.troll.kn,1)+' kn':'')+(b.depth!=null?' · '+b.depth+' m':'')});
+  list.forEach(function(b){ var done1=false, row=h('div',{class:'spf'}), lab=h('b',{text:(b.time||'')+(b.troll&&b.troll.kn!=null?' · '+B.num(b.troll.kn,1)+' kn':'')+(b.depth!=null?' · '+(window.AlkyonUnits&&AlkyonUnits.depth?AlkyonUnits.depth(b.depth):b.depth+' m'):'')});
     var ch=h('div',{class:'chips'});
     function set(name){ var cur=S.get('bites',b.id); if(!cur) return; var la=(typeof latinOf==='function')?latinOf(name):''; S.save('bites',Object.assign({},cur,{species:name,latin:la||cur.latin||''})); B.emit('store','alkyon-bites');
       if(!done1){ done1=true; left--; } row.classList.add('ok'); lab.textContent=lab.textContent.split(' ✓')[0]+' ✓ '+name; upd(); }

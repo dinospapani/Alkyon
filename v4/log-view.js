@@ -72,7 +72,7 @@ function detail(b){
   var body=h('div',{class:'det'});
   if(B.pest(b)) body.append(h('p',{class:'lawnote warn pestw',text:PEST_W()}));
   var keys=S().phKeys(b); if(keys.length){ var gal=h('div',{class:'gal'}); keys.forEach(function(k){ S().Photos.get(k).then(function(bl){ if(bl) gal.append(h('img',{src:URL.createObjectURL(bl),alt:b.species||''})); }).catch(function(){}); }); body.append(gal); }
-  var rows=[[T('Πότε','When'),when(b,true)],[T('Μέγεθος','Size'),sizeTxt(b)||'–'],[T('Πού','Where'),b.place||(typeof b.lat==='number'?b.lat.toFixed(5)+', '+b.lon.toFixed(5):'–')],[T('Βάθος','Depth'),b.depth!=null?b.depth+' m':'–'],
+  var rows=[[T('Πότε','When'),when(b,true)],[T('Μέγεθος','Size'),sizeTxt(b)||'–'],[T('Πού','Where'),b.place||(typeof b.lat==='number'?b.lat.toFixed(5)+', '+b.lon.toFixed(5):'–')],[T('Βάθος','Depth'),b.depth!=null?(window.AlkyonUnits&&AlkyonUnits.depth?AlkyonUnits.depth(b.depth):b.depth+' m'):'–'],
     [T('Δόλωμα','Bait'),b.bait||'–'],[T('Τεχνική','Technique'),b.tech||'–'],
     b.troll?[T('Συρτή','Trolling'),[b.troll.kn!=null?B.num(b.troll.kn,1)+' kn':'',b.troll.hd!=null?b.troll.hd+'°':'',b.troll.lead?b.troll.lead+' g':'',b.troll.leads?b.troll.leads+T(' μολύβια',' leads')+(b.troll.auto?T(' (αυτόματα)',' (auto)'):'')+(b.troll.dl!=null?' · ~'+Math.round(b.troll.dl/1.83)+T(' οργ.',' fm'):''):'',b.troll.lb!=null?T('δόλωμα ~','lure ~')+b.troll.lb+T(' m πίσω από τη βάρκα',' m behind the boat'):''].filter(Boolean).join(' · ')||'✓']:null,
     [T('Άνεμος','Wind'),b.wind!=null?U.wind(b.wind)+(b.hist?' ('+T('εκτίμηση','estimate')+')':''):'–'],[T('Κύμα','Waves'),b.wave!=null?U.wave(b.wave):'–'],[T('Πίεση','Pressure'),b.press!=null?U.press(b.press):'–'],[T('Θάλασσα','Sea temp'),b.sst!=null?U.temp(b.sst):'–']];

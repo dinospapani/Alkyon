@@ -457,6 +457,8 @@ function draw(){
   for(var a2=0;a2<gw;a2++) gLon[a2]=map.containerPointToLatLng([a2*G,0]).lng;
   for(var gy=0;gy<gh;gy++) for(var gx=0;gx<gw;gx++){ if(field(gLat[gy],gLon[gx],fv)){ GH[gy*gw+gx]=fv[0]; GA[gy*gw+gx]=fv[1]; } }
   var labels=[];
+  /* 1.6.8: οι ετικέτες κύματος δεν μπαίνουν πάνω στα βέλη των ρευμάτων ή στα σημάδια */
+  var mcR=map.getContainer().getBoundingClientRect(), occ=[].map.call(document.querySelectorAll('#lmap .mk.cur .cw,#lmap .mk.fish,#lmap .mk.spot i'),function(e){ var r=e.getBoundingClientRect(); return [r.left-mcR.left,r.top-mcR.top,r.right-mcR.left,r.bottom-mcR.top]; });
   ctx.lineCap='round'; ctx.lineJoin='round';
   BOUNDS.forEach(function(lvB){
     var segs=contour(GH,GA,gw,gh,G,lvB); if(!segs.length) return;
@@ -469,6 +471,7 @@ function draw(){
       if(cx<36||cy<70||cx>sz.x-36||cy>sz.y-70) continue;
       if(land){ var bad=false; [[0,0],[-26,-9],[26,-9],[-26,9],[26,9]].forEach(function(o3){ if(bad) return; var ll=map.containerPointToLatLng([cx+o3[0],cy+o3[1]]); if(land(ll.lat,ll.lng)!==0) bad=true; }); if(bad) continue; }
       if(labels.some(function(l){ return (l.x-cx)*(l.x-cx)+(l.y-cy)*(l.y-cy)<110*110; })) continue;
+      if(occ.some(function(o){ return cx+32>o[0]-4&&cx-32<o[2]+4&&cy+10>o[1]-4&&cy-10<o[3]+4; })) continue;
       labels.push({x:cx,y:cy,v:lvB}); nl++;
     }
   });
@@ -517,6 +520,7 @@ function depthSync(){
   if(el){ el.hidden=!(on&&dm>0); el.textContent=T('Τα βάθη φαίνονται ως γραμμές όσο είναι ανοιχτή η κατάσταση θάλασσας.','Depths are shown as lines while sea state is on.'); }
 }
 function swap(){ var a=cvs[cur], b=cvs[1-cur]; a.classList.remove('nt'); b.classList.remove('nt'); b.style.opacity='1'; a.style.opacity='0'; cur=1-cur; }
+window.addEventListener('alkyon-curs',function(){ later(); });
 function later(ev){ if(ev&&ev.detail&&ev.detail.t) curT=ev.detail.t; clearTimeout(drawT); drawT=setTimeout(draw,60); }
 function hide(){ clearTimeout(drawT); cvs.forEach(function(c){ c.classList.add('nt'); c.style.opacity='0'; }); }
 function onWindStop(){ if(on){ ownWind=false; stop(); } }
