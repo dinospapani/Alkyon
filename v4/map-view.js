@@ -78,7 +78,10 @@ function drawData(){
   function cluster(items,ll){ var out=[]; items.forEach(function(it){ var p=map.project(ll(it),z), hit=null;
       for(var i=0;i<out.length;i++){ var c=out[i]; if(Math.abs(c.x-p.x)<R&&Math.abs(c.y-p.y)<R){ hit=c; break; } }
       if(hit){ hit.a.push(it); hit.x=(hit.x*(hit.a.length-1)+p.x)/hit.a.length; hit.y=(hit.y*(hit.a.length-1)+p.y)/hit.a.length; } else out.push({x:p.x,y:p.y,a:[it]}); });
-    return out.map(function(c){ return {ll:map.unproject(L.point(c.x,c.y),z),a:c.a}; }); }
+    /* 1.6.6: ο δείκτης μπαίνει πάνω στο πραγματικό σημείο που είναι πιο κοντά στο κέντρο της ομάδας (όχι στον μέσο όρο, που σε κάβο έπεφτε στη στεριά) */
+    return out.map(function(c){ var best=null, bd=1e18, pool=c.a.filter(function(it){ return !it.miss; }); if(!pool.length) pool=c.a;
+      pool.forEach(function(it){ var p=map.project(ll(it),z), d=(p.x-c.x)*(p.x-c.x)+(p.y-c.y)*(p.y-c.y); if(d<bd){ bd=d; best=it; } });
+      return {ll:best?ll(best):map.unproject(L.point(c.x,c.y),z),a:c.a}; }); }
   function spread(a,ll){ var b=L.latLngBounds(a.map(ll)); return b.getNorthEast().distanceTo(b.getSouthWest()); }
   if(cfg.spots){ var sps=S().raw('spots').filter(function(sp){ return !sp.deleted&&typeof sp.lat==='number'; }), sll=function(sp){ return L.latLng(sp.lat,sp.lon); };
     cluster(sps,sll).forEach(function(c){ if(c.a.length===1){ var sp=c.a[0]; L.marker([sp.lat,sp.lon],{icon:icon('spot k-'+spotKind(sp),'<i></i><b>'+esc(sp.name||'')+'</b>'),keyboard:true,title:sp.name||''}).on('click',function(){ spotSheet(sp); }).addTo(gSpots); return; }

@@ -6,8 +6,8 @@
 var B=window.AK, h=B.h, T=B.T, ls=B.ls;
 function raw(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
 function put(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
-var SIDE={shore:{n:T('Ακτή','Shore'),d:T('Παραλία · Μόλος · Βράχια · Φράγμα','Beach · Pier · Rocks · Dam'),img:'alk-card-shore.jpg'},
-  boat:{n:T('Σκάφος','Offshore'),d:T('Θάλασσα · Κύμα · MOB · SOS','Open sea · Waves · MOB · SOS'),img:'alk-card-boat.jpg'}};
+var SIDE={shore:{n:T('Ακτή','Shore'),d:T('Μόλος · Βράχια · Λίμνη','Beach · Rocks · Dam'),img:'alk-card-shore.jpg'},
+  boat:{n:T('Σκάφος','Offshore'),d:T('Θάλασσα · MOB · SOS','Open sea · MOB · SOS'),img:'alk-card-boat.jpg'}};
 /* εικονίδια γραμμής (ίδιο στυλ με την υπόλοιπη εφαρμογή) */
 var IC={rod:'<path d="M4 20L18.5 5.5"/><path d="M18.5 5.5c1.2-1.2 2.5-.4 2.5 1v5"/><circle cx="7.5" cy="16.5" r="2.2"/><path d="M21 11.5v2.5a1.5 1.5 0 0 1-3 0"/>',
   spear:'<path d="M2 14h13"/><path d="M15 12.5h3l4 1.5-4 1.5h-3z"/><path d="M5 14v3.5M8 14v2"/><path d="M2 11.5l2.5 2.5L2 16.5"/>',
@@ -52,7 +52,7 @@ B.startPick=function(){
   go.addEventListener('click',function(){ put('alkyon-fside',st.s); put('alkyon-fprof',st.p); put('alkyon-fprof-done','1'); put('alkyon-askfp',ask.checked?'0':'1'); B.emit('store','alkyon-fprof'); close(); });
   var pg=h('div',{class:'sppage',role:'dialog','aria-modal':'true','aria-label':T('Πού ψαρεύεις σήμερα;','Where are you fishing today?')},
     h('div',{class:'sphero',style:{backgroundImage:'url(alk-hero-boat.jpg)'}},h('span',{class:'spheroshade'}),
-      h('button',{class:'spskip',type:'button',text:T('Αργότερα','Later'),onclick:close}),brand(),
+      h('button',{class:'spskip',type:'button',text:T('Παράλειψη','Skip'),title:T('Κλείσιμο χωρίς αλλαγή: θα ξαναρωτήσει την επόμενη φορά','Close without changes: it will ask again next time'),onclick:close}),brand(),
       h('div',{class:'sptitle'},h('h1',{text:T('Πού ψαρεύεις σήμερα;','Where are you fishing today?')}),h('p',{text:T('Διάλεξε περιβάλλον και τρόπο ψαρέματος','Choose your setting and how you fish')}))),
     h('div',{class:'spbody'},picker(st,lab),
       h('label',{class:'spask'},ask,h('span',{class:'spbox',html:CHK}),h('span',{text:T('Να μη ρωτάει κάθε φορά','Don’t ask every time')})),

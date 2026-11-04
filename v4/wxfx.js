@@ -61,17 +61,17 @@ function render(){
   if(mode==='sea'&&!(Sx&&Sx.ready&&Sx.ready())){ fillCv.style.opacity='0'; clearTimeout(waitT); waitT=setTimeout(render,1500); return; }
   /* 1.6.1: κοντά (zoom ≥ 10), όπου υπάρχει η λεπτομερής ακτή (Κύπρος/Ελλάδα), το κύμα κόβεται ακριβώς στην ακτογραμμή αντί για «σκαλοπάτια» */
   var bb0=map.getBounds(), rk=[bb0.getSouth(),bb0.getNorth(),bb0.getWest(),bb0.getEast()].map(function(v){ return v.toFixed(3); }).join(','), rings=null;
-  if(mode==='sea'&&map.getZoom()>=10&&Sx&&Sx.landRings){ if(RC.k===rk) rings=RC.r; else if(RC.p!==rk){ RC.p=rk; Sx.landRings({s:bb0.getSouth()-0.05,n:bb0.getNorth()+0.05,w:bb0.getWest()-0.05,e:bb0.getEast()+0.05}).then(function(r){ RC={k:rk,r:r&&r.length?r:null,p:null}; if(r&&r.length) later(30); }).catch(function(){ RC.p=null; }); } }
+  if(map.getZoom()>=10&&Sx&&Sx.landRings){ /* 1.6.6: και για τον άνεμο, ώστε να φαίνεται η στεριά */ if(RC.k===rk) rings=RC.r; else if(RC.p!==rk){ RC.p=rk; Sx.landRings({s:bb0.getSouth()-0.05,n:bb0.getNorth()+0.05,w:bb0.getWest()-0.05,e:bb0.getEast()+0.05}).then(function(r){ RC={k:rk,r:r&&r.length?r:null,p:null}; if(r&&r.length) later(30); }).catch(function(){ RC.p=null; }); } }
   for(var yy=0;yy<bh;yy++) for(var xx=0;xx<bw;xx++){
     var la=lat[yy], lo=lon[xx], c=null, a=0, o=(yy*bw+xx)*4;
     if(mode==='sea'){ if(!rings&&land(la,lo)===1) continue; var m=Sx.modelAt(la,lo); if(!m) continue; c=wvcol(m.h); a=0.82; }
-    else { var v=Wx.sample(la,lo); if(!v) continue; c=wcol(v.sp); a=0.62; }
+    else { var v=Wx.sample(la,lo); if(!v) continue; c=wcol(v.sp); a=(!rings&&land(la,lo)===1)?0.14:0.62; } /* 1.6.6: πάνω στη στεριά πολύ αχνό */
     d[o]=c[0]; d[o+1]=c[1]; d[o+2]=c[2]; d[o+3]=Math.round(255*a); any=true;
   }
   px.putImageData(im,0,0);
   fx.imageSmoothingEnabled=true; try{ fx.imageSmoothingQuality='high'; }catch(e){}
   fx.drawImage(pc,0,0,bw,bh,0,0,bw*st*dpr,bh*st*dpr);
-  if(rings){ fx.save(); fx.setTransform(dpr,0,0,dpr,0,0); fx.globalCompositeOperation='destination-out'; fx.beginPath();
+  if(rings){ fx.save(); fx.setTransform(dpr,0,0,dpr,0,0); fx.globalCompositeOperation='destination-out'; if(mode==='wind') fx.globalAlpha=0.78; fx.beginPath();
     rings.forEach(function(r){ var xy=r.xy; for(var i=0;i<xy.length;i+=2){ var q=map.latLngToContainerPoint([xy[i+1],xy[i]]); if(i) fx.lineTo(q.x,q.y); else fx.moveTo(q.x,q.y); } fx.closePath(); });
     fx.fill('nonzero'); fx.restore(); }
   fillCv.style.opacity=any?'1':'0';

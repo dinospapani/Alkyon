@@ -5,7 +5,7 @@
 
 /* ---------- γλώσσα ---------- */
 var LANG='el';
-try{ LANG=localStorage.getItem('alkyon-lang')||((navigator.language||'el').slice(0,2)==='el'?'el':'en'); }catch(e){}
+try{ LANG=localStorage.getItem('alkyon-lang')||'el'; /* 1.6.6: πάντα Ελληνικά εκτός αν διαλέξεις English στο Προφίλ */ }catch(e){}
 if(LANG!=='el'&&LANG!=='en') LANG='el';
 window.LANG=LANG;
 document.documentElement.lang=LANG;

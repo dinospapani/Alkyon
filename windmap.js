@@ -288,6 +288,7 @@ function seed(){
   clear();
 }
 function np(){ var s=map.getSize(); return {x:Math.random()*s.x,y:Math.random()*s.y,age:Math.floor(Math.random()*40)}; }
+function onLand(la,lo){ var X=window.AlkyonExposure; try{ return !!(X&&X.isLand&&X.isLand(la,lo)===1); }catch(e){ return false; } }
 var RM=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 function loop(ts){
   raf=0; if(!on||!grid||!shown||document.hidden){ if(on&&grid&&shown) raf=requestAnimationFrame(loop); return; }
@@ -298,14 +299,14 @@ function loop(ts){
     var p=parts[i], ll=map.containerPointToLatLng([p.x,p.y]), v=sample(ll.lat,ll.lng);
     if(!v||p.age--<=0){ parts[i]=np(); parts[i].age=40+Math.floor(Math.random()*30); continue; }
     var nx=p.x+v.u*sc, ny=p.y-v.v*sc;
-    var sea=seaOn();
+    var sea=seaOn(), lf=onLand(ll.lat,ll.lng)?0.3:1; /* 1.6.6: αχνές γραμμές πάνω στη στεριά, για να φαίνεται */
     if(window.ALKYON_WINDY){ /* v31z520: όπως το Windy: λευκά σωματίδια πάνω στο χρωματιστό πεδίο, ορατά και στον ασθενή άνεμο */
       /* v31z524: η εικόνα δείχνει την ένταση: δυνατός άνεμος = πυκνές, μακριές, παχιές γραμμές· άπνοια = λίγες, κοντές, αχνές */
       if(p.vis==null) p.vis=Math.random();
       nx=p.x+v.u*sc*1.15; ny=p.y-v.v*sc*1.15;
       if(p.vis>Math.min(1,0.18+v.sp/16)){ p.x=nx; p.y=ny; if(nx<0||ny<0||nx>s.x||ny>s.y){ parts[i]=np(); parts[i].age=40+Math.floor(Math.random()*30); } continue; }
-      ctx.strokeStyle='#ffffff'; ctx.globalAlpha=Math.min(0.95,0.3+v.sp/22); ctx.lineWidth=0.7+Math.min(2.3,v.sp/11); }
-    else { ctx.strokeStyle=sea?'#ffffff':col(v.sp); ctx.globalAlpha=sea?0.7:0.9; ctx.lineWidth=sea?1.3:1.6; }
+      ctx.strokeStyle='#ffffff'; ctx.globalAlpha=lf*Math.min(0.95,0.3+v.sp/22); ctx.lineWidth=0.7+Math.min(2.3,v.sp/11); }
+    else { ctx.strokeStyle=sea?'#ffffff':col(v.sp); ctx.globalAlpha=lf*(sea?0.7:0.9); ctx.lineWidth=sea?1.3:1.6; }
     ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(nx,ny); ctx.stroke();
     p.x=nx; p.y=ny; if(nx<0||ny<0||nx>s.x||ny>s.y){ parts[i]=np(); parts[i].age=40+Math.floor(Math.random()*30); }
   }
