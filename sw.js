@@ -1,7 +1,7 @@
 // Network first for the app's own files so updates arrive at once; cache is the offline fallback.
 // Weather APIs and fonts are cross-origin and always go straight to the network.
 importScripts('forecast.js');
-const V = 'alkyon-1.7.5';
+const V = 'alkyon-1.7.6';
 const CFG = 'alkyon-cfg';
 /* 1.4.2: η κλασική αποσύρθηκε, οπότε εδώ μένουν μόνο οι σελίδες της ρίζας (ανακατεύθυνση στο v4/) και τα εικονίδια.
    Τα αρχεία της εφαρμογής τα κρατά για offline το v4/sw.js. Πριν κατέβαιναν εδώ ~6 MB σε κάθε ενημέρωση. */
@@ -31,7 +31,7 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const u = new URL(e.request.url);
   if (e.request.method === 'GET' && u.origin !== location.origin && /(^|\.)(arcgisonline\.com|tile\.openstreetmap\.org|openseamap\.org)$/.test(u.hostname)) {
-    e.respondWith(caches.open('alkyon-tiles').then(c => c.match(e.request.url, { ignoreVary: true })).then(r => r || fetch(e.request)));
+    e.respondWith(caches.open('alkyon-tiles').then(c => c.match(e.request.url, { ignoreVary: true, ignoreSearch: true })).then(r => r || fetch(e.request)));
     return;
   }
   if (e.request.method !== 'GET' || u.origin !== location.origin) return;

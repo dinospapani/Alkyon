@@ -204,6 +204,7 @@ B.tripStart=function(o){ o=o&&typeof o==='object'?o:null; /* v31z541: o.where = 
 B.tripSheet=function(){
   var s=load(); if(!s.active){ B.tripStart(); return; }
   var t=B.trip.track(), sm=summary(s), lt=late(s), body=h('div',{class:'bform'}), sh;
+  if(B.biteForm) body.append(h('button',{class:'btn pri full',type:'button',text:'+ '+T('Νέο ψάρι','New catch'),onclick:function(){ sh.close(); setTimeout(function(){ B.biteForm(); },120); }}));
   body.append(h('div',{class:'card tripcard'+(lt?' late':''),style:{margin:'0'}},h('b',{text:lt?T('Πέρασε η ώρα επιστροφής (','Past your return time (')+hm(s.due)+')':T('Επιστροφή στις ','Back at ')+hm(s.due)+' ('+T('σε ','in ')+dur(s.due-Date.now())+')'}),
     h('p',{class:'sub',style:{margin:'4px 0 0'},text:[T('Έξοδος ','Out ')+dur(Date.now()-s.start),t&&t.m>=100?B.num(t.m/1000,1)+' km':'',sm.n+' '+T('ψάρια','catches')+(sm.kg?', '+B.num(sm.kg,1)+' kg':'')].filter(Boolean).join(' · ')}),
     srv?h('p',{class:'sub',style:{margin:'6px 0 0'},text:srv}):null));
@@ -217,7 +218,7 @@ B.tripSheet=function(){
 var bar=null;
 function paintBar(){
   var s=load(); if(!bar){ bar=h('button',{class:'tripbar',type:'button',onclick:function(){ B.tripSheet(); }}); document.body.appendChild(bar); }
-  document.body.classList.toggle('ontrip',!!s.active); bar.hidden=!s.active; if(!s.active) return;
+  document.body.classList.toggle('ontrip',!!s.active); bar.hidden=true; /* 1.7.6: η κατάσταση φαίνεται στο κεντρικό κουμπί */ if(!s.active) return;
   var lt=late(s); bar.classList.toggle('late',lt);
   bar.textContent=(lt?T('Πέρασε η ώρα επιστροφής ','Past return time ')+hm(s.due)+T(' · πάτα εδώ',' · tap here'):T('Σε έξοδο · επιστροφή ','On a trip · back at ')+hm(s.due)+' ('+dur(s.due-Date.now())+')');
 }

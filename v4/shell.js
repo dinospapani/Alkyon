@@ -25,11 +25,14 @@ function nav(){
     if(!t){ /* v31z525: το κεντρικό κουμπί ξεκινά έξοδο (με το εικονίδιο του τύπου σου)· κατά την έξοδο γίνεται «+» για νέο ψάρι.
                Παρατεταμένο πάτημα: νέο ψάρι χωρίς έξοδο ή καταγραφή με φωνή. */
       var lp=null, lpDone=false, fab=h('button',{class:'fab',type:'button',onclick:function(ev){ if(lpDone){ lpDone=false; ev.preventDefault(); return; }
-        if(onTrip()){ if(B.biteForm) B.biteForm(); } else if(B.tripStart){ if((location.hash||'')!=='#map') location.hash='#map'; setTimeout(function(){ B.tripStart(); },location.hash==='#map'?0:350); } }});
+        if(onTrip()){ if(B.tripSheet) B.tripSheet(); } else if(B.tripStart){ if((location.hash||'')!=='#map') location.hash='#map'; setTimeout(function(){ B.tripStart(); },location.hash==='#map'?0:350); } }});
       function onTrip(){ return !!(B.trip&&B.trip.active&&B.trip.active()); }
-      function paint(){ var tr=onTrip(); fab.classList.toggle('fabtrip',!tr); fab.innerHTML=tr?B.iconSvg('plus'):(B.profIcon?B.profIcon(B.prof()):B.iconSvg('plus'));
-        fab.setAttribute('aria-label',tr?T('Νέο ψάρι. Κράτα πατημένο για φωνή.','New catch. Long-press for voice.'):T('Έναρξη εξόδου. Κράτα πατημένο για νέο ψάρι ή φωνή.','Start a trip. Long-press for a new catch or voice.')); }
-      paint(); B.on('trip',function(){ setTimeout(paint,50); }); B.on('store',function(k){ if(k==='alkyon-fprof') paint(); }); window.addEventListener('focus',paint);
+      /* 1.7.6: σε έξοδο το κεντρικό κουμπί γίνεται πράσινο «σε έξοδο» με τον χρόνο που μένει (κόκκινο αν πέρασε η ώρα)· πάτημα: η έξοδος (τέλος, +30′, SOS, νέο ψάρι). Η πράσινη μπάρα έφυγε. */
+      function left(){ try{ var s=B.trip.state(); if(!s||!s.due) return ['',false]; var ms=s.due-Date.now(), lt=ms<0, m=Math.round(Math.abs(ms)/60000), hh=Math.floor(m/60); return [(lt?'+':'')+(hh?hh+':'+B.pad(m%60):m+'′'),lt]; }catch(e){ return ['',false]; } }
+      function paint(){ var tr=onTrip(), L=tr?left():null; fab.classList.toggle('fabtrip',true); fab.classList.toggle('fabon',tr); fab.classList.toggle('late',!!(L&&L[1]));
+        fab.innerHTML=(B.profIcon?B.profIcon(B.prof()):B.iconSvg('plus'))+(tr&&L[0]?'<i class="fabt">'+L[0]+'</i>':'');
+        fab.setAttribute('aria-label',tr?(L[1]?T('Πέρασε η ώρα επιστροφής. Πάτα για την έξοδο.','Past return time. Tap for the trip.'):T('Σε έξοδο, μένουν ','On a trip, left ')+L[0]+T('. Πάτα για την έξοδο· κράτα πατημένο για φωνή.','. Tap for the trip; long-press for voice.')):T('Έναρξη εξόδου. Κράτα πατημένο για νέο ψάρι ή φωνή.','Start a trip. Long-press for a new catch or voice.')); }
+      paint(); setInterval(function(){ if(onTrip()) paint(); },30000); B.on('trip',function(){ setTimeout(paint,50); }); B.on('store',function(k){ if(k==='alkyon-fprof') paint(); }); window.addEventListener('focus',paint);
       function menu(){ var body=h('div',{class:'fabmenu'},
           h('button',{type:'button',class:'li',onclick:function(){ B.closeSheet(); if(B.biteForm) B.biteForm(); }},h('span',{class:'ic',html:B.iconSvg('plus')}),h('span',{class:'tx'},h('b',{text:T('Νέο ψάρι','New catch')}),h('small',{text:T('Καταγραφή χωρίς έξοδο (ή για παλιό ψάρι)','Log without a trip (or a past catch)')}))),
           B.voice&&B.voice.ok?h('button',{type:'button',class:'li',onclick:function(){ B.closeSheet(); B.voice.log(); }},h('span',{class:'ic',html:B.voice.MIC}),h('span',{class:'tx'},h('b',{text:T('Πες το','Say it')}),h('small',{text:T('«λαβράκι δύο κιλά»','“sea bass two kilos”')}))):null,

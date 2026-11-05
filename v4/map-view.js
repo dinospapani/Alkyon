@@ -4,7 +4,8 @@
 'use strict';
 var B=window.AK, h=B.h, T=B.T, EN=B.EN, ls=B.ls;
 var root=null, map=null, layers={}, base=null, sea=null, me=null, meAcc=null, watch=null, gSpots=null, gFish=null;
-var TILES={sat:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',osm:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',sea:'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png'};
+/* 1.7.6: blankTile=false: όπου το Esri δεν έχει εικόνα (ανοιχτή θάλασσα, μεγάλο ζουμ) δεν στέλνει το γκρι «Map data not yet available»· από κάτω φαίνεται η ίδια περιοχή από μικρότερο ζουμ */
+var TILES={sat:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}?blankTile=false',osm:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',sea:'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png'};
 B.tileTpl={sat:TILES.sat,sea:TILES.sea}; /* v31z550: για το κατέβασμα πριν την έξοδο (prefetch.js, sw.js) */
 var cfg=Object.assign({base:'sat',sea:true,spots:true,fish:true,zones:true,depth:false,mpa:false,dams:B.prof()==='lake',wind:false},ls.get('alkyon-v4-map',{}));
 var DAMS=[
@@ -34,7 +35,10 @@ function leaflet(){ zones(); if(window.L) return Promise.resolve(window.L); if(l
 
 B.leaflet=leaflet; /* v31z532: και για τον μικρό χάρτη επιλογής σημείου (coordpick) */
 function icon(cls,html){ return L.divIcon({className:'mk '+cls,html:html||'',iconSize:null}); }
-function drawBase(){ if(base) map.removeLayer(base); base=L.tileLayer(TILES[cfg.base],{maxZoom:19,maxNativeZoom:cfg.base==='sat'?18:19,attribution:cfg.base==='sat'?'Esri':'© OpenStreetMap'}).addTo(map); base.bringToBack();
+var baseLo=null, NOIMG='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+function drawBase(){ if(base) map.removeLayer(base); if(baseLo){ map.removeLayer(baseLo); baseLo=null; }
+  if(cfg.base==='sat'){ baseLo=L.tileLayer(TILES.sat,{maxZoom:19,maxNativeZoom:11,errorTileUrl:NOIMG,zIndex:0}).addTo(map); baseLo.bringToBack(); }
+  base=L.tileLayer(TILES[cfg.base],{maxZoom:19,maxNativeZoom:cfg.base==='sat'?18:19,errorTileUrl:cfg.base==='sat'?NOIMG:'',zIndex:1,attribution:cfg.base==='sat'?'Esri':'© OpenStreetMap'}).addTo(map); base.bringToBack(); if(baseLo) baseLo.bringToBack();
   if(sea){ map.removeLayer(sea); sea=null; } if(cfg.sea) sea=L.tileLayer(TILES.sea,{maxZoom:19,maxNativeZoom:18,opacity:.9}).addTo(map); }
 /* ---------- «Πού πιάνω»: πυκνότητα των δικών σου ψαριών, με φίλτρο μήνα και είδους ---------- */
 var gHeat=null, heatPill=null;
@@ -654,7 +658,7 @@ function modePaint(){ if(!root) return; var m=md.m;
   else if(m==='anchor'){ var a=md.anc||ls.get('alkyon-anchor',null)||{}, dd=a.d!=null?a.d:null, bad=dd!=null&&a.r&&dd>a.r;
     md.el.className='mcpanel anc'+(bad?' bad':''); md.el.append(cell(T('ΑΠΟ ΤΗΝ ΑΓΚΥΡΑ','FROM ANCHOR'),dd!=null?String(dd):'…','m · '+T('όριο ','limit ')+(a.r||'–')+' m'+(dd!=null?(bad?T(' · ΣΕΡΝΕΙ',' · DRAGGING'):T(' · δεν σέρνει',' · holding')):''),'wide')); tgt(); }
   else { if(B.troll&&B.troll.on&&B.troll.on()){ md.el.className='mcpanel off'; md.chip.hidden=false; return; }
-    md.el.className='mcpanel fish'; md.el.append(cell(T('ΤΑΧΥΤΗΤΑ','SPEED'),kn!=null?B.num(kn,1):'–','kn'),cell(T('ΒΥΘΟΣ ΚΑΤΩ ΣΟΥ','DEPTH BELOW'),md.dep?(U&&U.depthP?U.depthP(md.dep)[0]:String(Math.round(md.dep))):(md.dep===false?'–':(navigator.onLine===false?T('χωρίς σήμα','offline'):'…')),md.dep?(U&&U.depthP?U.depthP(md.dep)[1]+(U.cfg.depth!=='m'?' · '+Math.round(md.dep)+' m':''):'m'):'')); tgt(); }
+    md.el.className='mcpanel fish'; md.el.append(cell(T('ΤΑΧΥΤΗΤΑ','SPEED'),kn!=null?B.num(kn,1):'–','kn'),cell(T('ΒΥΘΟΣ ΚΑΤΩ ΣΟΥ','DEPTH BELOW'),!fixNow?T('χωρίς GPS','no GPS'):md.dep?(U&&U.depthP?U.depthP(md.dep)[0]:String(Math.round(md.dep))):(md.dep===false?T('–','–'):(navigator.onLine===false?T('χωρίς σήμα','offline'):'…')),md.dep?(U&&U.depthP?U.depthP(md.dep)[1]+(U.cfg.depth!=='m'?' · '+Math.round(md.dep)+' m':''):'m'):'')); tgt(); }
   md.chip.hidden=!md.el.classList.contains('off')&&!!md.el.className.match(/run|fish|anc/); }
 B.mapMode=function(){ return md.m; };
 function mapUI(){ return ls.get('alkyon-v4-mapui','')||''; }
