@@ -257,7 +257,7 @@ function alarm(txt,sub){
 function silence(){ if(alarmT){ clearInterval(alarmT); alarmT=null; } if(abar) abar.hidden=true; over=0; }
 function onAnchor(c){ var a=anc(); if(!a) return; lastAn=Date.now(); if(c.accuracy&&c.accuracy>Math.max(30,a.r*0.7)) return;
   var d=dist([a.lat,a.lon],[c.latitude,c.longitude]); a.d=Math.round(d);
-  if(d>a.r){ over++; if(over>=2) alarm(T('Η άγκυρα σέρνει!','Anchor dragging!'),T('Απόσταση ','Distance ')+Math.round(d)+' m · '+T('όριο ','limit ')+a.r+' m'); } else { over=0; if(alarmT&&d<a.r*0.85) silence(); }
+  if(d>a.r){ over++; if(over>=2&&B.say) B.say(T('Η άγκυρα σέρνει, ','Anchor dragging, ')+Math.round(d)+T(' μέτρα',' metres'),'anchor','drag',30000); if(over>=2) alarm(T('Η άγκυρα σέρνει!','Anchor dragging!'),T('Απόσταση ','Distance ')+Math.round(d)+' m · '+T('όριο ','limit ')+a.r+' m'); } else { over=0; if(alarmT&&d<a.r*0.85) silence(); }
   B.emit('anchor',a); }
 setInterval(function(){ var a=anc(); if(a&&lastAn&&Date.now()-lastAn>120000&&!alarmT) alarm(T('Χάθηκε το GPS','GPS lost'),T('Ο συναγερμός άγκυρας δεν μπορεί να ελέγξει τη θέση.','The anchor alarm cannot check the position.')); },20000);
 B.anchor=anc;
