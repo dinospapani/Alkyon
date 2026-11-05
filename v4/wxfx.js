@@ -144,6 +144,7 @@ function readout(){
     else if(land(c.lat,c.lng)===1) parts2.push('<span class="rgi"><small>'+T('Κύμα','Waves')+'</small><span class="rv"><em>'+T('στεριά','land')+'</em></span></span>'); }
   var sv=B.sstAt?B.sstAt(c.lat,c.lng):null; if(sv!=null) parts2.push('<span class="rgi"><small>'+T('Νερό','Water')+'</small><span class="rv"><b>'+(U&&U.temp?U.temp(sv,1):B.num(sv,1)+'°')+'</b></span></span>');
   roEl.innerHTML=parts2.join('<span class="rsep"></span>')||'<span class="rgi"><em>'+(window.AlkyonWindErr?(window.AlkyonWindErr==='429'?T('Ο άνεμος δεν ήρθε (όριο πηγής) · ξανά σε 3′','No wind data (source limit) · retry in 3′'):T('Ο άνεμος δεν ήρθε · ξανά σε 3′','No wind data · retry in 3′')):T('Φόρτωση…','Loading…'))+'</em></span>';
+  if(B.mcBarNow) try{ B.mcBarNow(); }catch(e){} /* 1.8.2: η μπάρα του καθαρού χάρτη μαζί με τον σταυρό, χωρίς καθυστέρηση (και όταν τρέχει η ώρα) */
   var nb=document.createElement('button'); nb.type='button'; nb.className='rnum'; nb.setAttribute('aria-pressed',String(numsOn)); nb.setAttribute('aria-label',T('Αριθμοί πάνω στον χάρτη','Numbers on the map')); nb.textContent='123';
   nb.addEventListener('click',function(){ numsOn=!numsOn; B.ls.set('alkyon-v4-wxnums',numsOn); drawLabels(); }); roEl.append(nb);
 }

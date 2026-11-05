@@ -671,10 +671,12 @@ function mcBarHTML(){ if(!map||!B.wxAt) return ''; var U=window.AlkyonUnits, me=
   function it(deg,col,val){ var m=/^(.*?)\s*([^\d\s.,]+)$/.exec(String(val)); return '<span class="mbi">'+(deg!=null&&A?A(deg,col,17):'')+'<b>'+(m?m[1]+'<small>'+m[2]+'</small>':val)+'</b></span>'; }
   if(v.wsp!=null) out.push(it(v.wdir!=null?(v.wdir+180)%360:null,'currentColor',U&&U.wind?U.wind(v.wsp):Math.round(v.wsp)+' kn'));
   if(v.hs!=null) out.push(it(v.hdir!=null?(v.hdir+180)%360:null,'#2a8fd0',U&&U.wave?U.wave(v.hs):B.num(v.hs,1)+' m'));
-  var cu=B.curNear?B.curNear(c.lat,c.lng):null; if(cu&&cu.kn>=0.05) out.push(it(cu.dir,'#e0890f',B.num(cu.kn,1)+' kn'));
+  /* το ρεύμα είναι μόνο για «τώρα»: όταν η μπάρα ώρας δείχνει άλλη ώρα, δεν φαίνεται */ var wm=window.AlkyonWindMap, hr=null; try{ hr=wm&&wm.shown&&wm.shown()&&wm.hour?wm.hour():null; }catch(e){} var later2=hr&&Math.abs(Date.parse(hr+'Z')-Date.now())>2*3600e3;
+  var cu=!later2&&B.curNear?B.curNear(c.lat,c.lng):null; if(cu&&cu.kn>=0.05) out.push(it(cu.dir,'#e0890f',B.num(cu.kn,1)+' kn'));
   if(!out.length) return '';
   return '<span class="mbw" title="'+(me?T('Στη θέση σου','At your position'):T('Στον σταυρό στο κέντρο','At the centre cross'))+'">'+(me?'📍':'✛')+'</span>'+out.join(''); }
-var mcBarT=null;
+var mcBarT=null, mcBarRaf=0;
+B.mcBarNow=function(){ if(mcBarRaf||!mcBar||!document.body.classList.contains('mapclean')) return; mcBarRaf=requestAnimationFrame(function(){ mcBarRaf=0; var tx=mcBar&&mcBar.querySelector('.mct'); if(!tx) return; var bh=mcBarHTML(); if(bh&&tx.innerHTML!==bh) tx.innerHTML=bh; }); };
 function mcPaint(){ if(!mcBar||!mcRefs) return; var ic=mcBar.querySelector('.mci'), tx=mcBar.querySelector('.mct'); ic.replaceChildren();
   [].forEach.call(mcRefs.qc.children,function(b){ var on=false; try{ on=!!b._g(); }catch(e){} if(on){ var sp=b.querySelector('span'); if(sp) ic.append(h('span',{html:sp.innerHTML})); } });
   if(!ic.children.length) ic.append(h('span',{class:'mcl',text:T('Στρώματα','Layers')})); var bh=document.body.classList.contains('mapclean')?mcBarHTML():''; if(bh) tx.innerHTML=bh; else tx.textContent=mcSum(); if(mcDr&&!mcBuilding){ clearTimeout(mcRT); mcRT=setTimeout(mcDrFill,120); } }
@@ -691,7 +693,7 @@ function cleanSetup(el,qc,seab,bar){ mcRefs={qc:qc,seab:seab,bar:bar}; document.
   ['pointerup','pointercancel'].forEach(function(ev){ edge.addEventListener(ev,function(){ ex=null; }); });
   el.append(edge);
   function barLater(){ clearTimeout(mcBarT); mcBarT=setTimeout(mcPaint,250); }
-  (function hk(n){ if(map){ try{ map.on('moveend',barLater); }catch(e){} } else if(n<40) setTimeout(function(){ hk(n+1); },500); })(0); window.addEventListener('alkyon-wxchange',barLater); window.addEventListener('alkyon-curs',barLater); setInterval(function(){ if(document.body.classList.contains('mapclean')&&root) mcPaint(); },15000);
+  (function hk(n){ if(map){ try{ map.on('moveend',barLater); }catch(e){} } else if(n<40) setTimeout(function(){ hk(n+1); },500); })(0); window.addEventListener('alkyon-wxchange',barLater); window.addEventListener('alkyon-curs',barLater); window.addEventListener('alkyon-windhour',function(){ B.mcBarNow(); }); setInterval(function(){ if(document.body.classList.contains('mapclean')&&root) mcPaint(); },15000);
   el.append(mcBar); var oq=B.qpaint; B.qpaint=function(){ oq&&oq(); mcPaint(); }; setTimeout(mcPaint,500); setTimeout(mcPaint,2600);
   if(!mapUI()) setTimeout(mcAsk,900); }
 function mcAsk(){ if(mapUI()||!root) return; var sh;
@@ -770,7 +772,9 @@ function mcDrFill2(){ var pan=mcDr.querySelector('.mcpan'), keep=pan.scrollTop; 
   [].forEach.call(pan.querySelectorAll('.lacts .li'),function(b){ b.addEventListener('click',function(){ mcClose(); },true); });
   pan.append(h('div',{class:'mcfoot'},h('button',{type:'button',class:'chip sm',text:T('Κλασικός χάρτης','Classic map'),onclick:function(){ mcClose(); B.setMapUI('classic'); B.toast(T('Κλασικός χάρτης. Για τον καθαρό: Προφίλ › Ρυθμίσεις › Χάρτης.','Classic map. For the clean one: Profile › Settings › Map.')); }}),h('span',{class:'mchd'})));
   pan.scrollTop=keep; }
-function placeOrient(){ var o=document.getElementById('bOrient'), sb=root&&root.querySelector('.seabar'); if(o&&sb&&o.parentNode!==sb) sb.append(o); }
+/* 1.8.2: κρατάμε το κουμπί: όταν ξαναμπαίνεις στον χάρτη, η στήλη (seabar) φτιάχνεται από την αρχή και το κουμπί έμενε στην παλιά (χανόταν το NU/CU/HU) */
+var oBtn=null;
+function placeOrient(){ var o=document.getElementById('bOrient')||oBtn, sb=root&&root.querySelector('.seabar'); if(o) oBtn=o; if(o&&sb&&o.parentNode!==sb) sb.append(o); }
 function moreSheet(){ var sh, rb=document.getElementById('bRuler'), ab=document.querySelector('.attrbtn'), ron=rb&&rb.getAttribute('aria-pressed')==='true';
   var it=function(ic,t,s,fn){ return h('button',{class:'li',type:'button',onclick:function(){ sh.close(); setTimeout(fn,120); }},h('span',{class:'ic',html:ic}),h('span',{class:'tx'},h('b',{text:t}),s?h('small',{text:s}):null),B.icon('chev')); };
   var RU='<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="8" width="20" height="8" rx="1.5" transform="rotate(-35 12 12)"/><path d="M8 9l1.5 2M11 7l1.5 2M14 5l1.5 2" transform="rotate(0)"/></svg>';
