@@ -319,3 +319,24 @@ svg.pwc{width:100%;height:auto}
 .card.under .usub{margin:0;padding:0;background:none;box-shadow:none;border:0}
 .card.under .usub:not([hidden])~.usub:not([hidden]){margin-top:16px;padding-top:14px;border-top:1px solid var(--line,rgba(0,0,0,.08))}
 .card.under .usub h2{font-size:16px;margin-top:0}
+/* ================= 1.8.6: Πρόγνωση, πιο καθαρή ================= */
+.fcpage .top h1.lt{font-size:26px!important;letter-spacing:-.01em}
+.fcpage .place b{max-width:72vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* μέρες: από σήμερα, με εικονίδιο καιρού· οι περασμένες πίσω από το «‹» */
+.dstrip:not(.showpast) .dtile.past{display:none!important}
+.dstrip .dpast{flex:0 0 30px;align-self:stretch;border:0;border-radius:14px;background:var(--surface-2);color:var(--ink-2);font:800 18px var(--font);cursor:pointer;scroll-snap-align:start}
+.dtile .dwx{font-size:17px;line-height:1;margin:1px 0 -1px}
+/* «γιατί» κάτω από την καλύτερη ώρα */
+.hero .hwhy2{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 2px}
+.hero .hwhy2 .hz{font:700 12.5px var(--font);padding:5px 10px;border-radius:12px;background:var(--surface-2);color:var(--ink)}
+.hero .hwhy2 .hz.up{background:color-mix(in srgb,var(--good) 14%,var(--surface));color:color-mix(in srgb,var(--good) 70%,var(--ink))}
+.hero .hwhy2 .hz.down{background:color-mix(in srgb,var(--poor) 14%,var(--surface));color:color-mix(in srgb,var(--poor) 75%,var(--ink))}
+/* «Τώρα»: βελάκι κατεύθυνσης ανέμου */
+.nwc .nwar{display:inline-block;width:16px;height:16px;margin-right:3px;vertical-align:-1px}
+.nwc .nwar svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+/* «Ανά ώρα»: η σελήνη ως λεπτή μωβ γραμμή στη βάση, για να μη μπερδεύεται με τις καλές ώρες */
+.hb.moon{background:color-mix(in srgb,var(--ink-3) 45%,transparent);box-shadow:inset 0 -5px 0 #9b8cf0}
+.hb.best.moon{background:var(--accent)}
+.hleg .moon::before{height:4px!important;border-radius:2px!important;margin-top:4px}
+/* θερμοκλινές: διάγραμμα */
+.thchart{margin:6px 0 2px;color:var(--ink)}

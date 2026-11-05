@@ -26,6 +26,12 @@ function ringsFor(map){ var Sx=S(); if(!Sx||!Sx.landRings||map.getZoom()<7) retu
     Sx.landRings({s:pb[0],n:pb[1],w:pb[2],e:pb[3]}).then(function(r){ if(RC.pb!==pb) return; RC.bb=pb; RC.r=r&&r.length?r:null; RC.pb=null; later(30); if(typeof sstDraw==='function'&&sstOn) setTimeout(sstDraw,60); }).catch(function(){ if(RC.pb===pb) RC.pb=null; }); }
   return null; }
 /* μόνο η πραγματική ακτή (όχι οι ευθείες στα όρια των πλακιδίων 1°, όπου κόβονται τα περιγράμματα) */
+/* 1.8.5: στεριά ή θάλασσα με την ακριβή ακτογραμμή (όταν έχει φορτωθεί για εκεί)· null = δεν ξέρουμε */
+B.landExact=function(lat,lng){ if(!RC.bb||!RC.r||lat<RC.bb[0]||lat>RC.bb[1]||lng<RC.bb[2]||lng>RC.bb[3]) return null; var ins=false;
+  RC.r.forEach(function(r){ var b=r.b; if(b&&(lng<b[0]||lng>b[2]||lat<b[1]||lat>b[3])) return; var xy=r.xy, n=xy.length/2, c=false;
+    for(var i=0,j=n-1;i<n;j=i++){ var xi=xy[2*i], yi=xy[2*i+1], xj=xy[2*j], yj=xy[2*j+1]; if(((yi>lat)!==(yj>lat))&&(lng<(xj-xi)*(lat-yi)/(yj-yi)+xi)) c=!c; }
+    if(c) ins=!ins; });
+  return ins; };
 function onEdge(v){ return Math.abs(v-Math.round(v))<1e-5; }
 function ringStroke(cx,map,rings){ cx.beginPath(); rings.forEach(function(r){ var xy=r.xy, n=xy.length/2, pen=false, lx=0, ly=0;
     for(var k=0;k<=n;k++){ var i=(k%n)*2, j=((k+n-1)%n)*2, lo=xy[i], la=xy[i+1], plo=xy[j], pla=xy[j+1], q=map.latLngToContainerPoint([la,lo]);
@@ -335,6 +341,10 @@ window.addEventListener('alkyon-wxchange',function(){ if(window.AlkyonWindErr) l
 window.addEventListener('alkyon-seareg',function(){ later(60); roLater(); });
 window.addEventListener('alkyon-curs',function(){ if(numsOn) setTimeout(drawLabels,50); });
 new MutationObserver(sync).observe(document.body,{attributes:true,attributeFilter:['class']});
+/* 1.8.6: στον καθαρό χάρτη οι μέρες κάτω από τη μπάρα ώρας φαίνονται μόνο όσο την πιάνεις (και 4″ μετά) */
+(function(){ var tm=null; function show(){ var d=document.getElementById('ndMapDock'); if(!d) return; d.classList.add('dshow'); clearTimeout(tm); tm=setTimeout(function(){ d.classList.remove('dshow'); },4000); }
+  document.addEventListener('pointerdown',function(e){ if(e.target&&e.target.closest&&e.target.closest('#ndMapDock .wxdays, #ndWindSl, #ndWindPlay')) show(); },true);
+  document.addEventListener('input',function(e){ if(e.target&&e.target.id==='ndWindSl') show(); },true); })();
 var dkT=setInterval(function(){ var d=document.getElementById('ndMapDock'); if(!d) return; clearInterval(dkT); new MutationObserver(function(){ days(); }).observe(d,{childList:true,subtree:true}); days(); },1000);
 setInterval(function(){ if(seaOn()&&mapOn()&&(!fillCv||fillCv.style.opacity==='0')) later(10); },4000);
 setTimeout(function(){ if(sstOn&&mapOn()) sstLoad(true); },3000);

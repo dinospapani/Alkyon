@@ -875,3 +875,41 @@ body.mapclean.maptrip .mcbar .mct{gap:5px}body.mapclean.maptrip .mcbar{padding:0
 /* 1.8.4: κάρτα ΨΑΡΕΥΩ με τρίτη στήλη ΡΕΥΜΑ */
 .mcpanel.fish.f3{grid-template-columns:1fr 1.25fr 1fr}
 .mcpanel .mpc b svg{vertical-align:-2px;margin-right:3px}
+/* ================= 1.8.6: καθαρός χάρτης, λιγότερος θόρυβος ================= */
+/* ένα κουμπί «ψάρι» (κράτημα: χαμένο, λαγοκέφαλος, μεγάλα κουμπιά, διαγραφή) · τα «0» δεν φαίνονται */
+.fishbtns .fb b.z{display:none!important}
+body.mapclean .fishbtns .fbp,body.mapclean .fishbtns .fbm,body.mapclean .fishbtns .fbx{display:none!important}
+.fishmenu .li.miss .ic{color:#d9442f}
+/* μπάρα ώρας: μία λεπτή γραμμή· οι μέρες μόνο όσο την πιάνεις */
+body.mapclean #ndMapDock .wxdays{display:none}
+body.mapclean #ndMapDock.dshow .wxdays{display:block}
+body.mapclean #ndMapDock #ndWindPanel .btn.ghost:not(:last-child){display:none!important}
+body.mapclean #wxLeg{padding:6px 12px 0;gap:8px}
+body.mapclean #wxLeg .wlr>b,body.mapclean #wxLeg>b{font-size:10px}
+body.mapclean #wxLeg .wlbar{height:5px;border-radius:3px}
+body.mapclean #wxLeg .wltk{height:12px;font-size:9.5px}
+body.mapclean #ndWindPanel{padding-top:2px!important;padding-bottom:6px!important}
+body.mapclean #ndWindPanel .btn{min-height:34px!important;min-width:34px!important}
+body.mapclean #ndWindLab{font-size:12px!important;margin-top:2px!important}
+body.mapclean #ndWindPanel .note{display:none}
+/* κάρτα «Σημείο»: μικρή λωρίδα */
+body.mapclean #wxCard .wch{padding:6px 10px 2px!important}
+body.mapclean #wxCard .wcg{gap:6px!important}
+body.mapclean #wxCard .wcc{padding:6px 8px!important;min-height:0!important}
+body.mapclean #wxCard .wcc .wcs+.wcs{display:none!important}
+body.mapclean #wxCard .wcc .wcs{font-size:11px!important}
+body.mapclean #wxCard .wcc small{font-size:9.5px!important}
+body.mapclean #wxCard .wcc b{font-size:17px!important}
+body.mapclean #wxCard .wcc .wcar{width:16px!important;height:16px!important}
+body.mapclean #wxCard .wcf{padding:4px 12px 6px!important;font-size:12px}
+/* βέλη ρευμάτων: χρώμα ανάλογα με τη δύναμη, μικρότερος αριθμός */
+body.mapclean .mk.cur .cw b{font-size:10px!important;opacity:.85}
+.mk.cur.weak .cw i{color:#8fd3ff}.mk.cur.mid .cw i{color:#ffc24a}.mk.cur.strong .cw i{color:#ff7a3d}
+/* κάρτα ΨΑΡΕΥΩ/ΑΓΚΥΡΑ: ανοιχτόχρωμη τη μέρα, όπως η μπάρα (σκούρα στη νύχτα) */
+html:not(.night) body.mapclean .mcpanel{background:rgba(255,255,255,.96)!important;color:var(--ink,#0b1f2a)!important;box-shadow:0 6px 18px rgba(0,0,0,.22)!important}
+html:not(.night) body.mapclean .mcpanel i{opacity:.6}
+html:not(.night) body.mapclean .mcpanel .mph{background:#eef2f3!important;color:#b8511d!important}
+html:not(.night) body.mapclean .mcpanel.fish .mpc:nth-child(2) b{color:#1d6fa3!important}
+html:not(.night) body.mapclean .mcpanel .mpto{border-top-color:rgba(0,0,0,.1)!important}
+html:not(.night) body.mapclean .mcpanel.anc b{color:#1f9a55!important}
+html:not(.night) body.mapclean .mcpanel.anc.bad{background:rgba(190,30,30,.95)!important;color:#fff!important}
