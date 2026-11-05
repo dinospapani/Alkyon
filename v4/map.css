@@ -989,3 +989,10 @@ html.night .trside{background:#1a0000;color:#fff}html.night .trside .tsc{backgro
 .trside .tsmin{all:unset;cursor:pointer;width:30px;height:24px;margin:-2px 4px -2px -4px;border-radius:8px;text-align:center;font:900 15px/24px var(--font);background:var(--surface-2);color:var(--ink)}
 .trside .tsh{justify-content:flex-start}.trside .tsh span{margin-left:auto}
 .trside.mini .tsv,.trside.mini .tsbig,.trside.mini .tsiso,.trside.mini .tsup,.trside.mini .tsdep,.trside.mini .tsn,.trside.mini .tsg{display:none}
+/* 1.8.14 */
+.trside .tsv{cursor:pointer}
+.trside .tsiso{cursor:pointer}
+.trside .tsisoset{font-size:12.5px;color:var(--tr-deep)}
+.trside .tsb .btn.pri{flex:2.2 1 0!important}
+.trside .tsvw{display:flex;gap:6px;margin-top:4px}.trside .tsvw .chip{flex:1;justify-content:center;min-height:28px;font-size:12px}
+.trside.mini .tsvw{display:none}
