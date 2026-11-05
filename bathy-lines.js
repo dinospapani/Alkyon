@@ -145,7 +145,7 @@ function draw(g,step){
       var ch=chains[c]; if(ch.length<3) continue;
       var pts=ch.map(function(p){ return [g.y0+g.dy*(p.y+.5), g.x0+g.dx*(p.x+.5)]; }); /* κέντρο κελιού */
       pts=chaikin(pts);
-      L.polyline(pts,{renderer:rend,color:major?majorC:minorC,weight:major?2:1,opacity:major?.95:.75,interactive:false,smoothFactor:1}).addTo(group); nlines++;
+      L.polyline(pts,{renderer:rend,color:major?majorC:minorC,weight:major?1.6:0.8,opacity:major?(sat?.8:.9):(sat?.4:.6), /* 1.8.6: πιο λεπτές, λιγότερο λευκό στον δορυφόρο */interactive:false,smoothFactor:1}).addTo(group); nlines++;
       if(major&&pts.length>14&&labels<40){
         var m=pts[Math.floor(pts.length/2)];
         /* 1.8.4: οι αριθμοί δεν μπαίνουν ο ένας πάνω στον άλλο (τουλάχιστον ~70 px μεταξύ τους) */

@@ -147,7 +147,16 @@ function render(p,f){
     row.appendChild(el('span',{style:'width:84px;flex:none;text-align:right'},fmtKm(d.km)));
     wrap.appendChild(row);
   });
-  box.appendChild(wrap);
+  /* 1.8.6: ροδέλα (σαν ανεμολόγιο): κάθε κομμάτι = πόσο ανοιχτή είναι η θάλασσα από εκεί. Η λίστα μένει από κάτω, κλειστή. */
+  var Rr=104, cx=150, cy=128, sv='<svg viewBox="0 0 300 258" width="100%" style="max-width:340px;display:block;margin:4px auto 0" role="img" aria-label="'+T('Έκθεση ανά κατεύθυνση','Exposure by direction')+'"><circle cx="'+cx+'" cy="'+cy+'" r="'+Rr+'" fill="currentColor" opacity=".05"/><circle cx="'+cx+'" cy="'+cy+'" r="'+(Rr/2)+'" fill="none" stroke="currentColor" opacity=".12"/>';
+  r.dirs.forEach(function(d){ var L=level(d.km), a0=(d.i*22.5-11.25-90)*Math.PI/180, a1=(d.i*22.5+11.25-90)*Math.PI/180, rr=Math.max(9,Rr*Math.sqrt(d.km/Math.max(mx,1)));
+    sv+='<path d="M'+cx+','+cy+' L'+(cx+rr*Math.cos(a0)).toFixed(1)+','+(cy+rr*Math.sin(a0)).toFixed(1)+' A'+rr.toFixed(1)+','+rr.toFixed(1)+' 0 0 1 '+(cx+rr*Math.cos(a1)).toFixed(1)+','+(cy+rr*Math.sin(a1)).toFixed(1)+' Z" fill="'+cols[L.k]+'" opacity="'+(d.i===cur?1:.8)+'" stroke="'+(d.i===cur?'#0b1f2a':'#fff')+'" stroke-width="'+(d.i===cur?2.5:1.5)+'"><title>'+names[d.i]+' · '+fmtKm(d.km)+'</title></path>'; });
+  [0,4,8,12].forEach(function(i){ var am=(i*22.5-90)*Math.PI/180; sv+='<text x="'+(cx+(Rr+15)*Math.cos(am)).toFixed(1)+'" y="'+(cy+(Rr+15)*Math.sin(am)+5).toFixed(1)+'" font-size="14" font-weight="800" text-anchor="middle" fill="currentColor">'+names[i]+'</text>'; });
+  if(cd){ var ac=(cur*22.5-90)*Math.PI/180; sv+='<path d="M'+(cx+(Rr+2)*Math.cos(ac)).toFixed(1)+','+(cy+(Rr+2)*Math.sin(ac)).toFixed(1)+' L'+(cx+(Rr-14)*Math.cos(ac-0.08)).toFixed(1)+','+(cy+(Rr-14)*Math.sin(ac-0.08)).toFixed(1)+' L'+(cx+(Rr-14)*Math.cos(ac+0.08)).toFixed(1)+','+(cy+(Rr-14)*Math.sin(ac+0.08)).toFixed(1)+' Z" fill="#0b1f2a"/>'; }
+  sv+='<circle cx="'+cx+'" cy="'+cy+'" r="4" fill="currentColor"/></svg>';
+  var rose=el('div'); rose.innerHTML=sv; box.appendChild(rose);
+  box.appendChild(el('p',{style:'margin:2px 0 6px;font-size:12px;opacity:.75;text-align:center'},T('Κόκκινο = ανοιχτό (κύμα από εκεί) · πράσινο = προστατευμένο · ▲ ο άνεμος τώρα','Red = open (waves from there) · green = sheltered · ▲ the wind now')));
+  var dl=el('details'); dl.appendChild(el('summary',{style:'cursor:pointer;font-size:13px;font-weight:600;margin:2px 0 4px'},T('Αριθμοί ανά κατεύθυνση','Numbers by direction'))); dl.appendChild(wrap); box.appendChild(dl);
   var warn=[];
   if(r.coastKm<1.5) warn.push(T('Είσαι πολύ κοντά στην ακτή (<1,5 km): εκεί το ενεργό fetch είναι αναξιόπιστο.','You are very close to shore (<1.5 km): effective fetch is unreliable there.'));
   if(r.moved>0) warn.push(T('Το σημείο ήταν στην ξηρά, χρησιμοποιήθηκε η κοντινότερη θάλασσα ('+r.moved.toFixed(1)+' km).','The point was on land; nearest sea used ('+r.moved.toFixed(1)+' km).'));
