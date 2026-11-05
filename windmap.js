@@ -127,8 +127,8 @@ function label(){
   var el=document.getElementById('ndWindLab'); if(!el||!hours.length) return; refreshTap();
   var t=hours[hi], ms=Date.parse(t+'Z'), s;
   try{ s=new Date(ms).toLocaleString(EN?'en-GB':'el-GR',{weekday:'short',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Nicosia'}); }catch(e){ s=t.slice(11,16)+'Z'; }
-  var c=map.getCenter(), v=sample(c.lat,c.lng);
-  el.textContent=s+(v?' · '+T('κέντρο χάρτη: ','map centre: ')+dn(v.dir)+' '+W(v.sp):'');
+  var c=(window.AK&&window.AK.crossLL)||map.getCenter(), v=sample(c.lat,c.lng); /* 1.8.3: στον σταυρό (που δεν είναι πάντα στο κέντρο) */
+  el.textContent=s+(v?' · '+T('στον σταυρό: ','at the cross: ')+dn(v.dir)+' '+W(v.sp):'');
   var ag=document.getElementById('ndWindAg'); if(ag){ var a=agree(c.lat,c.lng); ag.replaceChildren();
     if(!a){ ag.textContent=grid&&grid.m.length<2?T('Διαθέσιμο μόνο ένα μοντέλο: δεν μπορεί να μετρηθεί η διαφωνία.','Only one model available: agreement cannot be measured.'):''; }
     else{ var lvTxt=[T('Τα μοντέλα συμφωνούν','Models agree'),T('Μέτρια διαφωνία μοντέλων','Moderate disagreement'),T('Μεγάλη διαφωνία: χαμηλή βεβαιότητα','Large disagreement: low confidence')][a.lv];

@@ -135,7 +135,8 @@ function readout(){
   if(!roEl){ roEl=document.createElement('div'); roEl.className='wxread'; roEl.setAttribute('aria-live','polite'); document.body.append(roEl); }
   var mc=map.getContainer(); mc=mc.parentNode&&mc.parentNode.classList.contains('mapbox')?mc.parentNode:mc; /* στο πλαίσιο, όχι στον χάρτη που γυρίζει σε CU/HU */ if(!crEl||crEl.parentNode!==mc){ crEl=document.createElement('div'); crEl.className='wxcross'; crEl.setAttribute('aria-hidden','true'); mc.append(crEl); }
   roEl.hidden=false; crEl.hidden=false;
-  var c=map.getCenter(), U=window.AlkyonUnits, Wx=W(), Sx=S(), parts2=[];
+  /* 1.8.3: ο σταυρός στη μέση του ελεύθερου χώρου (ανάμεσα στην κάρτα ΨΑΡΕΥΩ/μπάρα πάνω και την κάρτα/μπάρα ώρας κάτω), για να μην κρύβεται· οι τιμές είναι για εκεί */
+  var c=crossAt(mc), U=window.AlkyonUnits, Wx=W(), Sx=S(), parts2=[];
   if(wOn){ var v=Wx&&Wx.sample?Wx.sample(c.lat,c.lng):null; if(v){ var wp=U&&U.windP?U.windP(v.sp):[String(Math.round(v.sp)),'kn'], col='rgb('+wcol(v.sp).map(Math.round).join(',')+')';
     parts2.push('<span class="rgi"><small>'+T('Άνεμος','Wind')+'</small><span class="rv">'+arrowSvg((v.dir+180)%360,'#fff',18)+'<b>'+wp[0]+' '+wp[1]+'</b>'+(wp[1]!=='kn'?'<em>'+Math.round(v.sp)+' kn</em>':'')+'<em>'+COMPn(v.dir)+'</em><i style="background:'+col+'"></i></span></span>'); } }
   if(sOn){ var hh=null, dd=null, tp=null, r=null; try{ r=Sx&&Sx.pointInfo?Sx.pointInfo(c.lat,c.lng):null; }catch(e){} if(r&&r.hs>=0){ hh=r.hs; dd=r.wdir; tp=r.period; } else { var m=Sx&&Sx.modelAt?Sx.modelAt(c.lat,c.lng):null; if(m){ hh=m.h; dd=m.dir; tp=m.tp; } }
@@ -154,6 +155,13 @@ B.wxAt=function(lat,lng){ var o={}, Wx=W(), Sx=S();
   if(seaOn()){ try{ var r=Sx&&Sx.pointInfo?Sx.pointInfo(lat,lng):null; if(r&&r.hs>=0){ o.hs=r.hs; o.hdir=r.wdir; } else { var m=Sx&&Sx.modelAt?Sx.modelAt(lat,lng):null; if(m){ o.hs=m.h; o.hdir=m.dir; } } }catch(e){} }
   return o; };
 B.arrowSvg=arrowSvg;
+function crossAt(mc){ var R=mc.getBoundingClientRect(), top=R.top, bot=R.bottom;
+  function vis(e){ if(!e||e.hidden) return null; var cs=getComputedStyle(e); if(cs.display==='none'||cs.visibility==='hidden') return null; var r=e.getBoundingClientRect(); return r.width&&r.height?r:null; }
+  if(document.body.classList.contains('mapclean')) ['.mcbar','.mcpanel','.mcmode'].forEach(function(s2){ var r=vis(document.querySelector(s2)); if(r&&r.bottom>top&&r.bottom<R.top+R.height*0.5) top=r.bottom; });
+  var dk=vis(document.getElementById('ndMapDock')), nv=vis(document.querySelector('.nav')); if(dk&&dk.top<bot) bot=dk.top; else if(nv&&nv.top<bot) bot=nv.top;
+  var rot=mc.classList.contains('mrot'), x=R.width/2, y=(top+bot)/2-R.top; if(rot||bot-top<120){ x=R.width/2; y=R.height/2; }
+  crEl.style.left=Math.round(x)+'px'; crEl.style.top=Math.round(y)+'px';
+  var ll; try{ ll=rot?map.getCenter():map.containerPointToLatLng([x,y]); }catch(e){ ll=map.getCenter(); } B.crossLL=ll; return ll; }
 function roLater(){ if(roRaf) return; roRaf=requestAnimationFrame(function(){ roRaf=0; try{ readout(); }catch(e){} }); }
 var numsOn=B.ls.get('alkyon-v4-wxnums',false)===true;
 function drawLabels(){
