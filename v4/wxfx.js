@@ -147,6 +147,12 @@ function readout(){
   var nb=document.createElement('button'); nb.type='button'; nb.className='rnum'; nb.setAttribute('aria-pressed',String(numsOn)); nb.setAttribute('aria-label',T('Αριθμοί πάνω στον χάρτη','Numbers on the map')); nb.textContent='123';
   nb.addEventListener('click',function(){ numsOn=!numsOn; B.ls.set('alkyon-v4-wxnums',numsOn); drawLabels(); }); roEl.append(nb);
 }
+/* 1.8.1: τιμές σε οποιοδήποτε σημείο, για τη μπάρα του καθαρού χάρτη (άνεμος/κύμα με κατεύθυνση· dir = από πού έρχεται) */
+B.wxAt=function(lat,lng){ var o={}, Wx=W(), Sx=S();
+  if(windOn()){ try{ var v=Wx&&Wx.sample?Wx.sample(lat,lng):null; if(v){ o.wsp=v.sp; o.wdir=v.dir; } }catch(e){} }
+  if(seaOn()){ try{ var r=Sx&&Sx.pointInfo?Sx.pointInfo(lat,lng):null; if(r&&r.hs>=0){ o.hs=r.hs; o.hdir=r.wdir; } else { var m=Sx&&Sx.modelAt?Sx.modelAt(lat,lng):null; if(m){ o.hs=m.h; o.hdir=m.dir; } } }catch(e){} }
+  return o; };
+B.arrowSvg=arrowSvg;
 function roLater(){ if(roRaf) return; roRaf=requestAnimationFrame(function(){ roRaf=0; try{ readout(); }catch(e){} }); }
 var numsOn=B.ls.get('alkyon-v4-wxnums',false)===true;
 function drawLabels(){

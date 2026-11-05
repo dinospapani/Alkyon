@@ -51,15 +51,16 @@ function paint(){
   var main=document.createElement('div'); main.className='rmain';
   if(P.length<2){ var hint=document.createElement('div'); hint.className='rhint';
     hint.innerHTML='<b>'+(P.length?T('Πάτα στον χάρτη το επόμενο σημείο','Tap the next point on the map'):T('Πάτα στον χάρτη για να μετρήσεις','Tap the map to measure'))+'</b><small>'+
-      (meStart?T('Αρχή: η θέση σου · ','Start: your position · '):'')+T('σέρνεις ένα σημείο για να το μετακινήσεις, το πατάς για να το σβήσεις','drag a point to move it, tap it to remove it')+'</small>';
+      (meStart?T('Αρχή: η θέση σου · ','Start: your position · '):T('◎ = αρχή από τη θέση σου · ','◎ = start from your position · '))+T('σέρνεις ένα σημείο για να το μετακινήσεις, το πατάς για να το σβήσεις','drag a point to move it, tap it to remove it')+'</small>';
     main.append(hint); }
   else { var d=document.createElement('div'); d.className='rnum'; d.setAttribute('aria-live','polite');
     d.innerHTML='<b>'+fmtD(t)+'</b><small>'+nm(t)+'</small>';
     var info=document.createElement('div'); info.className='rinfo';
-    info.innerHTML='<span><i>'+T('Πορεία','Heading')+'</i>'+dirT(last)+'</span><span><i>'+(speed()?T('Με '+speed().toFixed(1)+' kn','At '+speed().toFixed(1)+' kn'):T('Με '+v+' kn','At '+v+' kn'))+'</i>'+hm(mins)+'</span><span><i>'+T('Βάθος','Depth')+'</i>'+fmtDep(dep[P.length-1])+'</span>';
+    info.innerHTML='<span><i>'+T('Πορεία','Heading')+'</i>'+dirT(last)+'</span><span><i>'+(speed()?T('Χρόνος με '+speed().toFixed(1)+' kn','Time at '+speed().toFixed(1)+' kn'):T('Χρόνος με '+v+' kn','Time at '+v+' kn'))+'</i>'+hm(mins)+'</span><span><i>'+T('Βάθος','Depth')+'</i>'+fmtDep(dep[P.length-1])+'</span>';
     main.append(d,info); }
   var acts=document.createElement('div'); acts.className='racts';
-  if(!speed()) acts.append(b(v+' kn',T('Ταχύτητα για τον χρόνο','Speed for the time'),function(){ var L2=[3,5,8,12,20], k=L2.indexOf(+v); kn=L2[(k+1)%L2.length]; paint(); },'sp'));
+  /* η ταχύτητα με την οποία υπολογίζεται ο χρόνος (όταν το GPS δεν δίνει δική σου ταχύτητα): πάτα για 3 → 5 → 8 → 12 → 20 kn */
+  if(!speed()) acts.append(b('⏱ '+v+' kn',T('Ο χρόνος υπολογίζεται με '+v+' κόμβους. Πάτα για άλλη ταχύτητα.','Time is worked out at '+v+' knots. Tap for another speed.'),function(){ var L2=[3,5,8,12,20], k=L2.indexOf(+v); kn=L2[(k+1)%L2.length]; paint(); },'sp'));
   if(P.length) acts.append(b('↶',T('Αναίρεση τελευταίου σημείου','Undo last point'),function(){ P.pop(); dep.length=P.length; if(!P.length) meStart=false; drawAll(); paint(); }));
   if(!P.length||!meStart) acts.append(b('◎',T('Αρχή από τη θέση μου','Start from my position'),useMe));
   if(P.length) acts.append(b('⌫',T('Καθαρισμός','Clear'),function(){ P=[]; dep=[]; meStart=false; drawAll(); paint(); }));
@@ -75,9 +76,7 @@ function onClick(e){ if(!on) return; add(e.latlng); }
 function start(){
   if(on) return; on=true; btn.setAttribute('aria-pressed','true'); btn.classList.add('on'); P=[]; dep=[]; meStart=false; kn=null;
   document.body.classList.add('ruling'); map.on('click',onClick); try{ map.closePopup(); }catch(e){} paint();
-  /* σε έξοδο ή με πρόσφατη θέση: αρχή αυτόματα από εσένα */
-  var f=null; try{ f=window.AK&&AK.trip&&AK.trip.fix&&AK.trip.fix(); }catch(e){}
-  if(f&&Date.now()-f.t<120000){ P=[L.latLng(f.lat,f.lon)]; dep=[undefined]; meStart=true; drawAll(); paint(); fetchDep(0); }
+  /* 1.8.1: ξεκινά από το πρώτο σημείο που πατάς· από τη θέση σου μόνο με το κουμπί ◎ */
 }
 function stop(){
   on=false; btn.setAttribute('aria-pressed','false'); btn.classList.remove('on'); map.off('click',onClick); document.body.classList.remove('ruling');

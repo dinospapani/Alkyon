@@ -296,6 +296,10 @@ function mwBox(){ mwEl=h('div',{class:'mapwx',role:'button','aria-label':T('Κα
 
 /* ---------- θαλάσσια ρεύματα (Open-Meteo Marine, μοντέλο ~8 km· ενδεικτικό, όχι μέτρηση) ---------- */
 var curT=0, curKey='', curData=[];
+/* 1.8.1: το κοντινότερο ρεύμα (μέχρι ~12 km) για τη μπάρα: {kn, dir (προς τα πού πάει)} */
+B.curNear=function(lat,lon){ if(!cfg.cur||!curData||!curData.length) return null; var best=null, bd=1e9;
+  curData.forEach(function(q){ var c=q&&q.current; if(!c||c.ocean_current_velocity==null||c.ocean_current_direction==null||q.latitude==null) return; var d=hav({lat:lat,lon:lon},{lat:q.latitude,lon:q.longitude}); if(d<bd){ bd=d; best={kn:c.ocean_current_velocity/1.852,dir:c.ocean_current_direction}; } });
+  return bd<12000?best:null; };
 function currents(force){
   clearTimeout(curT); if(!map) return;
   if(!cfg.cur){ if(ov.cur){ map.removeLayer(ov.cur); ov.cur=null; try{ window.dispatchEvent(new Event('alkyon-curs')); }catch(e){} } curKey=''; return; }
@@ -565,7 +569,7 @@ function layersSheet(o){ o=o&&o.into?o:{}; /* 1.7.4: o.into = μέσα στο μ
     tile('sats',T('Νερό δορυφόρου','Satellite water'),T('θερμοκρ. 1 km, χθες','temp. 1 km, yesterday'),function(){ return !!cfg.sats; },function(v){ cfg.sats=v; saveCfg(); drawSat(); if(v) setTimeout(function(){ satNote('sst'); },900); }),
     tile('depth',T('Δομή βυθού','Seabed'),T('drop-offs, υψώματα','drop-offs, rises'),function(){ return !!(B.seabed&&B.seabed.on()); },function(v){ if(B.seabed) B.seabed.set(v); }),
     tile('st',T('Σταθμοί','Stations'),T('πραγματικές μετρήσεις','measured'),function(){ return pressed('bWindSt'); },setStations,!ready),
-    tile('card',T('Κάρτα καιρού','Weather card'),T('πάνω στον χάρτη','on the map'),function(){ return ls.get('alkyon-v4-mapwx',true)!==false; },function(v){ ls.set('alkyon-v4-mapwx',v); drawMw(); })]);
+    o.into?null /* 1.8.1: στον καθαρό χάρτη η «κάρτα καιρού» είναι η μπάρα πάνω */:tile('card',T('Κάρτα καιρού','Weather card'),T('πάνω στον χάρτη','on the map'),function(){ return ls.get('alkyon-v4-mapwx',true)!==false; },function(v){ ls.set('alkyon-v4-mapwx',v); drawMw(); })]);
   /* βάθη: πλακίδιο + επιλογή τρόπου */
   var dm=dmode(), dl=(window.AlkyonDense&&AlkyonDense.mode())||ls.get('alkyon-dl','std'), dbox=h('div',{class:'ldepth'});
   function dpaint(){ dbox.replaceChildren(B.seg([['0',T('Κλειστά','Off')],['1',T('Χρώματα','Colours')],['2',T('Γραμμές','Lines')]],String(dm),function(v){ dm=+v; setDepth(dm,dm===2?dl:null); dpaint(); paint(); },T('Βάθη θάλασσας','Sea depths')));
@@ -663,9 +667,17 @@ B.setMapUI=function(v){ ls.set('alkyon-v4-mapui',v); document.body.classList.tog
 function mcSum(){ var c=nowCond(), U=window.AlkyonUnits, out=[]; var wr=document.querySelector('.wxread'); if(wr&&wr.offsetParent!==null||wr&&document.body.classList.contains('mapclean')){ var bs=[].map.call(wr.querySelectorAll('.rgi b'),function(x){ return x.textContent.trim(); }).filter(Boolean); if(bs.length) return bs.slice(0,2).join(' · '); } if(!c) return '';
   if(c.wind!=null) out.push((c.dir!=null?COMP[Math.round((((c.dir%360)+360)%360)/45)%8]+' ':'')+(U?U.wind(c.wind):Math.round(c.wind)+' kn')+(c.gust!=null&&c.gust>=c.wind+5?' ('+(U?U.wind(c.gust):Math.round(c.gust))+')':''));
   if(c.wave!=null) out.push(U?U.wave(c.wave):B.num(c.wave,1)+' m'); if(c.sst!=null&&out.length<2) out.push(U?U.temp(c.sst):Math.round(c.sst)+'°'); return out.join(' · '); }
+function mcBarHTML(){ if(!map||!B.wxAt) return ''; var U=window.AlkyonUnits, me=fixNow&&Date.now()-fixNow.t<120000&&document.body.classList.contains('ontrip'), c=me?{lat:fixNow.lat,lng:fixNow.lon}:map.getCenter(), v=B.wxAt(c.lat,c.lng), out=[], A=B.arrowSvg;
+  function it(deg,col,val){ var m=/^(.*?)\s*([^\d\s.,]+)$/.exec(String(val)); return '<span class="mbi">'+(deg!=null&&A?A(deg,col,17):'')+'<b>'+(m?m[1]+'<small>'+m[2]+'</small>':val)+'</b></span>'; }
+  if(v.wsp!=null) out.push(it(v.wdir!=null?(v.wdir+180)%360:null,'currentColor',U&&U.wind?U.wind(v.wsp):Math.round(v.wsp)+' kn'));
+  if(v.hs!=null) out.push(it(v.hdir!=null?(v.hdir+180)%360:null,'#2a8fd0',U&&U.wave?U.wave(v.hs):B.num(v.hs,1)+' m'));
+  var cu=B.curNear?B.curNear(c.lat,c.lng):null; if(cu&&cu.kn>=0.05) out.push(it(cu.dir,'#e0890f',B.num(cu.kn,1)+' kn'));
+  if(!out.length) return '';
+  return '<span class="mbw" title="'+(me?T('Στη θέση σου','At your position'):T('Στον σταυρό στο κέντρο','At the centre cross'))+'">'+(me?'📍':'✛')+'</span>'+out.join(''); }
+var mcBarT=null;
 function mcPaint(){ if(!mcBar||!mcRefs) return; var ic=mcBar.querySelector('.mci'), tx=mcBar.querySelector('.mct'); ic.replaceChildren();
   [].forEach.call(mcRefs.qc.children,function(b){ var on=false; try{ on=!!b._g(); }catch(e){} if(on){ var sp=b.querySelector('span'); if(sp) ic.append(h('span',{html:sp.innerHTML})); } });
-  if(!ic.children.length) ic.append(h('span',{class:'mcl',text:T('Στρώματα','Layers')})); tx.textContent=mcSum(); if(mcDr&&!mcBuilding){ clearTimeout(mcRT); mcRT=setTimeout(mcDrFill,120); } }
+  if(!ic.children.length) ic.append(h('span',{class:'mcl',text:T('Στρώματα','Layers')})); var bh=document.body.classList.contains('mapclean')?mcBarHTML():''; if(bh) tx.innerHTML=bh; else tx.textContent=mcSum(); if(mcDr&&!mcBuilding){ clearTimeout(mcRT); mcRT=setTimeout(mcDrFill,120); } }
 function cleanSetup(el,qc,seab,bar){ mcRefs={qc:qc,seab:seab,bar:bar}; document.body.classList.toggle('mapclean',mapUI()==='clean');
   mcBar=h('button',{class:'mcbar',type:'button',hidden:mapUI()!=='clean','aria-label':T('Στρώματα και εργαλεία (πάτα ή σύρε αριστερά)','Layers and tools (tap or swipe left)'),onclick:function(){ if(!mcBar._sw) mcOpen(); mcBar._sw=false; }},
     h('span',{class:'mci'}),h('span',{class:'mct'}),h('span',{class:'mcv',html:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>'}));
@@ -678,6 +690,8 @@ function cleanSetup(el,qc,seab,bar){ mcRefs={qc:qc,seab:seab,bar:bar}; document.
   edge.addEventListener('pointermove',function(e){ if(ex!=null&&ex-e.clientX>16){ ex=null; edge._sw=true; if(!mcDr) mcOpen(); } });
   ['pointerup','pointercancel'].forEach(function(ev){ edge.addEventListener(ev,function(){ ex=null; }); });
   el.append(edge);
+  function barLater(){ clearTimeout(mcBarT); mcBarT=setTimeout(mcPaint,250); }
+  (function hk(n){ if(map){ try{ map.on('moveend',barLater); }catch(e){} } else if(n<40) setTimeout(function(){ hk(n+1); },500); })(0); window.addEventListener('alkyon-wxchange',barLater); window.addEventListener('alkyon-curs',barLater); setInterval(function(){ if(document.body.classList.contains('mapclean')&&root) mcPaint(); },15000);
   el.append(mcBar); var oq=B.qpaint; B.qpaint=function(){ oq&&oq(); mcPaint(); }; setTimeout(mcPaint,500); setTimeout(mcPaint,2600);
   if(!mapUI()) setTimeout(mcAsk,900); }
 function mcAsk(){ if(mapUI()||!root) return; var sh;

@@ -852,3 +852,23 @@ body.mapclean .mcpanel.run{top:calc(var(--safe-t,0px) + 76px)!important}
 .mcpan .mcgrp .ltile:disabled{opacity:.5}
 /* 1.8.0: η λαβή πιο ψηλά, να μην πέφτει πάνω στα κουμπιά ψαριών δεξιά */
 body.mapclean.mapon .mcedge{top:37%;z-index:32}
+/* 1.8.1: μπάρα με κατεύθυνση: ✛/📍 · ↗ άνεμος · ↗ κύμα · ↗ ρεύμα */
+body.mapclean .mcbar .mct{display:flex;align-items:center;gap:10px;overflow:hidden}
+.mcbar .mbw{font-size:13px;opacity:.7;flex:none}
+.mcbar .mbi{display:inline-flex;align-items:center;gap:3px;flex:none}
+.mcbar .mbi b{font:800 14.5px var(--font);white-space:nowrap}
+.mcbar .mbi svg{flex:none}
+/* 1.8.1: πιο πολύς χώρος για τη μπάρα σε έξοδο: μικρότερα στρογγυλά κουμπιά, χωρίς το βελάκι της μπάρας (υπάρχει η λαβή δεξιά) */
+body.mapclean .mcbar .mcv{display:none}
+body.mapclean .mcbar{padding:0 10px 0 12px!important}
+body.mapclean.maptrip .seabar .mobbtn,body.mapclean.maptrip .seabar .mo-btn,body.mapclean.maptrip .mapbar .gpsb{width:46px;height:46px}
+body.mapclean.maptrip .seabar{right:66px;gap:8px;top:calc(var(--safe-t,0px) + 15px)!important}
+body.mapclean.maptrip .mapbar{top:calc(var(--safe-t,0px) + 15px)!important}
+body.mapclean.maptrip .mcbar{right:120px!important}
+body.mapclean.maptrip.ontrip .mcbar{right:174px!important}
+body.mapclean.maptrip .mcbar .mct{gap:7px}
+body.mapclean.maptrip .mcbar .mbi b{font-size:13.5px}
+body.mapclean.maptrip .mcbar .mbi{gap:2px}
+body.mapclean.maptrip .mcbar .mbw{font-size:11px}
+.mcbar .mbi b small{font:700 10.5px var(--font);margin-left:1px;opacity:.75}
+body.mapclean.maptrip .mcbar .mct{gap:5px}body.mapclean.maptrip .mcbar{padding:0 6px 0 10px!important}
