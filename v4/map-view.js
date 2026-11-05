@@ -4,8 +4,7 @@
 'use strict';
 var B=window.AK, h=B.h, T=B.T, EN=B.EN, ls=B.ls;
 var root=null, map=null, layers={}, base=null, sea=null, me=null, meAcc=null, watch=null, gSpots=null, gFish=null;
-/* 1.7.6: blankTile=false: όπου το Esri δεν έχει εικόνα (ανοιχτή θάλασσα, μεγάλο ζουμ) δεν στέλνει το γκρι «Map data not yet available»· από κάτω φαίνεται η ίδια περιοχή από μικρότερο ζουμ */
-var TILES={sat:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}?blankTile=false',osm:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',sea:'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png'};
+var TILES={sat:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',osm:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',sea:'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png'};
 B.tileTpl={sat:TILES.sat,sea:TILES.sea}; /* v31z550: για το κατέβασμα πριν την έξοδο (prefetch.js, sw.js) */
 var cfg=Object.assign({base:'sat',sea:true,spots:true,fish:true,zones:true,depth:false,mpa:false,dams:B.prof()==='lake',wind:false},ls.get('alkyon-v4-map',{}));
 var DAMS=[
@@ -35,10 +34,8 @@ function leaflet(){ zones(); if(window.L) return Promise.resolve(window.L); if(l
 
 B.leaflet=leaflet; /* v31z532: και για τον μικρό χάρτη επιλογής σημείου (coordpick) */
 function icon(cls,html){ return L.divIcon({className:'mk '+cls,html:html||'',iconSize:null}); }
-var baseLo=null, NOIMG='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-function drawBase(){ if(base) map.removeLayer(base); if(baseLo){ map.removeLayer(baseLo); baseLo=null; }
-  if(cfg.base==='sat'){ baseLo=L.tileLayer(TILES.sat,{maxZoom:19,maxNativeZoom:11,errorTileUrl:NOIMG,zIndex:0}).addTo(map); baseLo.bringToBack(); }
-  base=L.tileLayer(TILES[cfg.base],{maxZoom:19,maxNativeZoom:cfg.base==='sat'?18:19,errorTileUrl:cfg.base==='sat'?NOIMG:'',zIndex:1,attribution:cfg.base==='sat'?'Esri':'© OpenStreetMap'}).addTo(map); base.bringToBack(); if(baseLo) baseLo.bringToBack();
+/* 1.7.7: πίσω στο σίγουρο (η 1.7.6 με blankTile=false έδειξε μαύρο χάρτη στο κινητό) */
+function drawBase(){ if(base) map.removeLayer(base); base=L.tileLayer(TILES[cfg.base],{maxZoom:19,maxNativeZoom:cfg.base==='sat'?18:19,attribution:cfg.base==='sat'?'Esri':'© OpenStreetMap'}).addTo(map); base.bringToBack();
   if(sea){ map.removeLayer(sea); sea=null; } if(cfg.sea) sea=L.tileLayer(TILES.sea,{maxZoom:19,maxNativeZoom:18,opacity:.9}).addTo(map); }
 /* ---------- «Πού πιάνω»: πυκνότητα των δικών σου ψαριών, με φίλτρο μήνα και είδους ---------- */
 var gHeat=null, heatPill=null;
@@ -670,23 +667,33 @@ function mcPaint(){ if(!mcBar||!mcRefs) return; var ic=mcBar.querySelector('.mci
   [].forEach.call(mcRefs.qc.children,function(b){ var on=false; try{ on=!!b._g(); }catch(e){} if(on){ var sp=b.querySelector('span'); if(sp) ic.append(h('span',{html:sp.innerHTML})); } });
   if(!ic.children.length) ic.append(h('span',{class:'mcl',text:T('Στρώματα','Layers')})); tx.textContent=mcSum(); if(mcDr&&!mcBuilding){ clearTimeout(mcRT); mcRT=setTimeout(mcDrFill,120); } }
 function cleanSetup(el,qc,seab,bar){ mcRefs={qc:qc,seab:seab,bar:bar}; document.body.classList.toggle('mapclean',mapUI()==='clean');
-  mcBar=h('button',{class:'mcbar',type:'button',hidden:mapUI()!=='clean','aria-label':T('Στρώματα και εργαλεία (σύρε κάτω ή πάτα)','Layers and tools (swipe down or tap)'),onclick:function(){ if(!mcBar._sw) mcOpen(); mcBar._sw=false; }},
-    h('span',{class:'mci'}),h('span',{class:'mct'}),h('span',{class:'mcv',html:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>'}));
-  var y0=null; mcBar.addEventListener('pointerdown',function(e){ y0=e.clientY; try{ mcBar.setPointerCapture(e.pointerId); }catch(x){} });
-  mcBar.addEventListener('pointermove',function(e){ if(y0!=null&&e.clientY-y0>24){ y0=null; mcBar._sw=true; mcOpen(); } });
+  mcBar=h('button',{class:'mcbar',type:'button',hidden:mapUI()!=='clean','aria-label':T('Στρώματα και εργαλεία (πάτα ή σύρε αριστερά)','Layers and tools (tap or swipe left)'),onclick:function(){ if(!mcBar._sw) mcOpen(); mcBar._sw=false; }},
+    h('span',{class:'mci'}),h('span',{class:'mct'}),h('span',{class:'mcv',html:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>'}));
+  var y0=null, x0=null; mcBar.addEventListener('pointerdown',function(e){ y0=e.clientY; x0=e.clientX; try{ mcBar.setPointerCapture(e.pointerId); }catch(x){} });
+  mcBar.addEventListener('pointermove',function(e){ if(y0!=null&&(e.clientY-y0>24||x0-e.clientX>24)){ y0=null; mcBar._sw=true; mcOpen(); } });
   ['pointerup','pointercancel'].forEach(function(ev){ mcBar.addEventListener(ev,function(){ y0=null; }); });
   el.append(mcBar); var oq=B.qpaint; B.qpaint=function(){ oq&&oq(); mcPaint(); }; setTimeout(mcPaint,500); setTimeout(mcPaint,2600);
   if(!mapUI()) setTimeout(mcAsk,900); }
 function mcAsk(){ if(mapUI()||!root) return; var sh;
-  function opt(v,img,t,s){ return h('button',{type:'button',class:'mcopt',onclick:function(){ B.setMapUI(v); sh.close(true); if(v==='clean') B.toast(T('Σύρε τη μπάρα πάνω προς τα κάτω (ή πάτα την) για στρώματα και εργαλεία.','Swipe the top bar down (or tap it) for layers and tools.'),5000); }},h('span',{class:'mcpic '+img}),h('b',{text:t}),h('small',{text:s})); }
+  function opt(v,img,t,s){ return h('button',{type:'button',class:'mcopt',onclick:function(){ B.setMapUI(v); sh.close(true); if(v==='clean') B.toast(T('Πάτα τη μπάρα πάνω (ή σύρε την αριστερά) για στρώματα και εργαλεία· ο χάρτης φαίνεται δίπλα.','Tap the top bar (or swipe it left) for layers and tools; the map stays visible beside it.'),5000); }},h('span',{class:'mcpic '+img}),h('b',{text:t}),h('small',{text:s})); }
   sh=B.sheet({title:T('Πώς θες τον χάρτη;','How do you want the map?'),body:h('div',null,h('div',{class:'mcopts'},
-    opt('clean','cl',T('Καθαρός','Clean'),T('Μία μπάρα πάνω· στρώματα και εργαλεία σε μενού που σέρνεις κάτω','One bar on top; layers and tools in a pull-down menu')),
+    opt('clean','cl',T('Καθαρός','Clean'),T('Μία μπάρα πάνω· στρώματα και εργαλεία σε πλαϊνό μενού, με τον χάρτη να φαίνεται δίπλα','One bar on top; layers and tools in a side menu, with the map visible beside it')),
     opt('classic','cs',T('Κλασικός','Classic'),T('Όλα τα κουμπιά πάνω στον χάρτη, όπως πριν','All buttons on the map, as before'))),
     h('p',{class:'foot',text:T('Αλλάζει όποτε θες: Προφίλ › Ρυθμίσεις › Χάρτης.','Change any time: Profile › Settings › Map.')})),onclose:function(){ if(!mapUI()) ls.set('alkyon-v4-mapui','classic'); }}); }
-function mcClose(){ if(!mcDr) return; var d=mcDr; mcDr=null; d.classList.remove('open'); setTimeout(function(){ d.remove(); },220); }
+/* 1.7.8: πλαϊνό μενού από δεξιά (όπως το Windy): ο χάρτης μένει ζωντανός αριστερά και μετακινείται ώστε το κέντρο του να πέφτει στη λωρίδα
+   που φαίνεται· κάθε διακόπτης αλλάζει τον χάρτη αμέσως. Κλείνει: σύρσιμο δεξιά, πάτημα στη λωρίδα, «πίσω» του κινητού, Esc. */
+var mcShift=0;
+function mcClose(fromPop){ if(!mcDr) return; var d=mcDr; mcDr=null; d.classList.remove('open'); setTimeout(function(){ d.remove(); },240);
+  if(mcShift&&map){ try{ map.panBy([-mcShift,0],{animate:true,duration:.25}); }catch(e){} } mcShift=0;
+  if(!fromPop&&history.state&&history.state.mcd){ try{ history.back(); }catch(e){} } }
+window.addEventListener('popstate',function(){ if(mcDr) mcClose(true); });
 function mcOpen(){ if(mcDr) return mcClose(); mcDr=h('div',{class:'mcdrw'}); var dim=h('div',{class:'mcdim',onclick:mcClose}), pan=h('div',{class:'mcpan',role:'dialog','aria-label':T('Στρώματα και εργαλεία','Layers and tools')});
-  mcDr.append(dim,pan); document.body.append(mcDr); mcDrFill(); requestAnimationFrame(function(){ if(mcDr) mcDr.classList.add('open'); });
-  var y0=null; pan.addEventListener('pointerdown',function(e){ if(e.target.closest('button')) return; y0=e.clientY; }); pan.addEventListener('pointermove',function(e){ if(y0!=null&&y0-e.clientY>40){ y0=null; mcClose(); } }); pan.addEventListener('pointerup',function(){ y0=null; });
+  mcDr.append(dim,pan); document.body.append(mcDr); mcDrFill(); requestAnimationFrame(function(){ if(!mcDr) return; mcDr.classList.add('open');
+    var w=pan.getBoundingClientRect().width||0; if(map&&w>0&&w<window.innerWidth){ mcShift=Math.round(w/2); try{ map.panBy([mcShift,0],{animate:true,duration:.25}); }catch(e){ mcShift=0; } } });
+  try{ history.pushState({mcd:1},''); }catch(e){}
+  var p0=null; pan.addEventListener('pointerdown',function(e){ p0={x:e.clientX,y:e.clientY}; });
+  pan.addEventListener('pointermove',function(e){ if(!p0) return; var dx=e.clientX-p0.x, dy=e.clientY-p0.y; if(dx>60&&Math.abs(dx)>Math.abs(dy)*1.5){ p0=null; mcClose(); } });
+  ['pointerup','pointercancel'].forEach(function(ev){ pan.addEventListener(ev,function(){ p0=null; }); });
   var esc=function(e){ if(e.key==='Escape'){ mcClose(); document.removeEventListener('keydown',esc); } }; document.addEventListener('keydown',esc); }
 function mcDrFill(){ if(!mcDr||!mcRefs) return; mcBuilding=true; try{ mcDrFill2(); }catch(e){ try{ console.warn('mcDrFill',e); }catch(x){} } mcBuilding=false; }
 function mcDrFill2(){ var pan=mcDr.querySelector('.mcpan'), keep=pan.scrollTop; pan.replaceChildren();
@@ -710,7 +717,7 @@ function mcDrFill2(){ var pan=mcDr.querySelector('.mcpan'), keep=pan.scrollTop; 
     anc:'<svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2"/><path d="M12 7v14M5 13a7 7 0 0 0 14 0M8 10h8"/></svg>',info:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>',
     bell:'<svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>'};
   var TL=[];
-  function tool(el,lab,fb,fn,on){ if(el===false) return; TL.push(tile(ico(el,fb),lab,on==null?null:on,function(){ mcClose(); setTimeout(fn,80); })); }
+  function tool(el,lab,fb,fn,on){ if(el===false) return; TL.push(tile(ico(el,fb),lab,on==null?null:on,function(){ mcClose(); setTimeout(fn,250); })); }
   var tr=q('.trbtn'); if(tr||B.troll) tool(tr,T('Συρτή','Trolling'),'',function(){ if(tr) tr.click(); else B.troll.sheet(); },!!(B.troll&&B.troll.on&&B.troll.on()));
   var an=q('.ancbtn'); if(an) tool(an,T('Άγκυρα','Anchor'),IC.anc,function(){ an.click(); },!!ls.get('alkyon-anchor',null));
   var ru=document.getElementById('bRuler'); if(ru) tool(ru,T('Χάρακας','Ruler'),'',function(){ ru.click(); });

@@ -798,3 +798,18 @@ body.mapclean.mode-run .sstleg,body.mapclean.mode-fish .sstleg,body.mapclean.mod
 body.mapclean.ontrip .seabar>.mo-btn{display:flex!important}
 /* 1.7.6: η πράσινη μπάρα εξόδου έφυγε· η κατάσταση είναι στο κεντρικό κουμπί */
 .tripbar{display:none!important}
+/* 1.7.8: πλαϊνό μενού από δεξιά· αριστερά μένει ζωντανός ο χάρτης (χωρίς σκοτείνιασμα) */
+.mcdrw .mcdim{background:transparent!important;right:min(74vw,400px)}
+.mcdrw .mcpan{left:auto!important;right:0!important;top:0!important;bottom:0!important;width:min(74vw,400px);max-height:none!important;padding:calc(var(--safe-t,0px) + 16px) 12px calc(var(--safe-b,0px) + 20px) 14px!important;border-radius:24px 0 0 24px!important;transform:translateX(104%)!important;transition:transform .24s ease-out!important;box-shadow:-10px 0 34px rgba(0,0,0,.38)!important;overscroll-behavior:contain}
+.mcdrw.open .mcpan{transform:none!important}
+.mcdrw{pointer-events:none}.mcdrw .mcdim,.mcdrw .mcpan{pointer-events:auto}
+.mcpan .mcg5{gap:6px!important}
+.mcpan .mcg5 .mctile{min-height:64px!important;padding:8px 2px!important}
+.mcpan .mcg5 .mctile b{font-size:10.5px!important}
+.mcpan .mcg5 .mctile .mcti svg{width:22px!important;height:22px!important}
+.mcpan .mcg3 .mctile{min-height:72px!important}
+.mcpan .mcg3 .mctile b{font-size:12px!important}
+.mcpan .mcps{gap:6px!important}.mcpan .mcpre{padding:8px 10px!important}.mcpan .mcpre b{font-size:13px!important}
+.mcpan h4{margin-top:12px!important}
+/* η λωρίδα του χάρτη: μια λεπτή σκιά στην άκρη δείχνει ότι εκεί κλείνει */
+body:has(.mcdrw.open) .mo-btn{visibility:hidden}
