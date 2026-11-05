@@ -948,3 +948,7 @@ body.trside-on.mapclean.mapon .mcedge{top:58%}
 body:not(.mapclean) .trside{top:calc(var(--safe-t,0px) + 128px)} /* 1.8.8: κλασικός χάρτης, κάτω από τη μπάρα καιρού */
 .trside .tssim{display:flex;align-items:center;gap:6px;margin:-2px 0 6px;padding:4px 6px 4px 10px;border-radius:10px;background:#fff4c2;color:#5a4500}.trside .tssim b{flex:1;font-size:13px;letter-spacing:.02em}.trside .tssim .btn{min-height:30px!important;padding:0 10px!important}
 html.night .trside .tssim{background:#3a2a00;color:#fff}
+body.mapon.trsim .fishbtns{display:flex} /* 1.8.9: ψάρι και στη δοκιμή */
+.leaflet-tooltip.simtip{background:#d84315;color:#fff;border:0;border-radius:8px;font-weight:800;font-size:12px;padding:2px 8px;box-shadow:0 2px 6px rgba(0,0,0,.3)}.leaflet-tooltip.simtip:before{display:none}
+.trside .tsup{display:block;width:100%;margin:4px 0 0;padding:6px;border:0;background:none;color:var(--accent,#c2410c);font-weight:700;font-size:13px;text-align:left}
+.simsum h4{margin:14px 0 6px;font-size:13px}.simsum .simsv{border-radius:10px;overflow:hidden;background:#eef6fb}

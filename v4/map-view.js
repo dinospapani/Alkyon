@@ -276,7 +276,7 @@ function headFix(lat,lon,gh,gs){
   if(!youPrev) youPrev=[lat,lon];
   if(youHead!=null){ try{ window.dispatchEvent(new CustomEvent('alkyon-head',{detail:{head:youHead}})); }catch(e){} var el=me&&me.getElement&&me.getElement(); if(el){ el.classList.add('hd'); el.style.setProperty('--hd',Math.round(youHead)+'deg'); } }
 }
-function followMe(lat,lon){ if(!map||!root||!follow||!document.body.classList.contains('ontrip')||Date.now()<followPause) return; try{ map.panTo([lat,lon],{animate:true,duration:.6}); }catch(e){} }
+function followMe(lat,lon){ if(document.body.classList.contains('trsim')) return; /* 1.8.10: στη δοκιμή συρτής ο χάρτης ακολουθεί τη ψεύτικη βάρκα */ if(!map||!root||!follow||!document.body.classList.contains('ontrip')||Date.now()<followPause) return; try{ map.panTo([lat,lon],{animate:true,duration:.6}); }catch(e){} }
 
 /* ---------- κάρτα καιρού πάνω στον χάρτη (ίδια στοιχεία με την κλασική mapwx.js, επιλογή στο alkyon-mapwx-items) ---------- */
 var MWK='alkyon-mapwx-items', MWDEF=['wind','press','sst'], mwEl=null, mwEdit=false;
@@ -808,7 +808,7 @@ function mount(el){
   if(!mbtns){ mbtns=h('div',{class:'mapbtns'}); hookBtns(); }
   var bar=h('div',{class:'mapbar'},
     h('button',{class:'iconbtn',type:'button','aria-label':T('Στρώματα','Layers'),html:B.iconSvg('map'),onclick:layersSheet}),
-    (gpsBtn=h('button',{class:'iconbtn gpsb',type:'button','aria-label':T('Η θέση μου','My position'),html:B.iconSvg('gps'),onclick:function(){ followPause=0; setFollow(true); locate(true); }})),
+    (gpsBtn=h('button',{class:'iconbtn gpsb',type:'button','aria-label':T('Η θέση μου','My position'),html:B.iconSvg('gps'),onclick:function(){ var sf=B.troll&&B.troll.sim&&B.troll.sim.on()&&B.troll.sim.fix(); if(sf){ B.troll.sim.follow(); try{ map.setView([sf.lat,sf.lon],Math.max(map.getZoom(),14)); }catch(e){} return; } followPause=0; setFollow(true); locate(true); }})),
     h('button',{class:'iconbtn gearbtn',hidden:!gearAtSea(),type:'button','aria-label':T('Εργαλεία: παραγάδι, δίχτυ, ζεμπίλι','Gear: longline, net, pot'),html:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h18M3 12h18M3 17h18M7 4v16M12 4v16M17 4v16"/></svg>',onclick:function(){ if(B.gearPanel) B.gearPanel(); }}),
     mbtns,
     /* v31z531: ειδοποιήσεις και από τον χάρτη (κόκκινος αριθμός = αδιάβαστες) */

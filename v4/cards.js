@@ -307,7 +307,7 @@ B.voice={ok:!!SR,fill:voiceFill,log:voiceLog,parse:parseVoice,MIC:MIC};
 var VC={on:false,rec:null,last:0,pauseTo:0,ok:!!SR};
 var VC_CATCH=/(^|\s)(ψαρι|ψαρακι|επιασα|πιασαμε|πιασα|catch|caught|fish|got one)(\s|$)/, VC_MISS=/(^|\s)(τσιμπησε|τσιμπημα|χαθηκε|εφυγε|εφαγε|bite|lost it|lost|missed)(\s|$)/;
 function vcN(t){ return String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zα-ω0-9\s]/g,' ').replace(/\s+/g,' ').trim(); }
-function vcWanted(){ return !!B.ls.get('alkyon-vcmd',false)&&!!(B.trip&&B.trip.active&&B.trip.active()); }
+function vcWanted(){ return !!B.ls.get('alkyon-vcmd',false)&&(!!(B.trip&&B.trip.active&&B.trip.active())||!!(B.troll&&B.troll.sim&&B.troll.sim.on())); }
 function vcHandle(alts){ var now=Date.now(); if(now<VC.pauseTo||now-VC.last<4000) return; try{ if(window.speechSynthesis&&speechSynthesis.speaking) return; }catch(e){}
   var t=alts.map(vcN).join(' | '); if(VC_MISS.test(t)){ VC.last=now; B.quickRec(true,null,null,true); if(B.say) B.say(T('Χαμένο, το έγραψα','Lost one, logged'),null,'vcm',0); B.toast(T('🎤 Τσίμπημα γράφτηκε','🎤 Bite logged')); }
   else if(VC_CATCH.test(t)){ VC.last=now; B.quickRec(false,null,null,true); if(B.say) B.say(T('Το έγραψα','Logged'),null,'vcc',0); B.toast(T('🎤 Ψάρι γράφτηκε εκεί που είναι το δόλωμα','🎤 Catch logged where the lure is')); } }
