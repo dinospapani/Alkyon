@@ -317,8 +317,10 @@ function lurePath(f,lb){ var out=[], step=15; if(!f||lb==null) return out;
   if(hdg!=null) for(var a=step;a<=300;a+=step){ var p=dest(f.lat,f.lon,hdg,a); out.push({x:a,lat:p[0],lon:p[1]}); }
   out.forEach(function(q){ q.d=gD(q.lat,q.lon); }); return out; }
 var PULL=5, SETTLE=15;   /* ″ ανά μολύβι όταν μαζεύεις/αφήνεις · ″ μέχρι να «κάτσει» η πετονιά */
-function advise(c,f){ SV.adv=null; if(c.mode!=='bottom'||!c.dep||c.dep.st!=='set'||!f) return; var v=vEff(); if(v==null||v<0.8) return;
+function advise(c,f){ SV.adv=null; if(c.mode!=='bottom'||!c.dep||c.dep.st!=='set'||!f) return; var v=vEff();
+  if(v==null||v<0.8){ var vr=+rigOf(c).v0||+c.v0||3, gw=geo(c,vr); SV.prof=gw?{P:lurePath(f,gw.lb*(+c.calB||1)),lb:gw.lb,dl:gw.dl,n:nLeads(c),v:vr,pre:1}:null; SV.adv={act:'wait'}; return; } /* 1.8.8: χωρίς ταχύτητα: διάγραμμα με την ταχύτητα της αρματωσιάς, χωρίς συμβουλές */
   var n=nLeads(c), g=geo(c,v); if(!g) return; var lb=g.lb*(+c.calB||1), P=lurePath(f,lb); SV.prof={P:P,lb:lb,dl:g.dl,n:n,v:v}; if(!P.length) return;
+  if(spd!=null&&(spd>c.max||spd<c.min)){ SV.adv={act:'spd',hi:spd>c.max}; return; } /* 1.8.8: πρώτα η ταχύτητα· τα μολύβια μετά, όταν μπεις στα όρια */
   var vms=v*0.514, lureX=-lb, worst=null, deeper=null;
   P.forEach(function(q){ if(q.d==null||q.x<lureX-1) return; var s=q.x-lureX, tReach=s/vms, need=needN(c,v,q.d);
     if(need<n&&(!worst||need<worst.need||(need===worst.need&&tReach<worst.t))){ if(tReach<=150) worst={need:need,t:tReach,d:q.d,x:q.x}; }
@@ -369,26 +371,29 @@ function svgSide(){ var p=SV.prof, c=cfg(), W=360,H=150, x0=6,x1=W-26, y0=18, y1
   g+='<text x="'+(X(xmin)+4).toFixed(1)+'" y="'+(y1-4)+'" font-size="9" fill="#fff">'+Math.round(xmin)+' m</text><text x="'+(X(xmax)-4).toFixed(1)+'" y="'+(y1-4)+'" font-size="9" text-anchor="end" fill="#fff">+'+Math.round(xmax)+' m</text></svg>';
   return g; }
 function micB(){ var V=B.voiceCmd; if(!V||!V.ok) return null; var on=V.wanted(); return h('button',{type:'button',class:'btn sm '+(on?'pri':'ghost'),text:on?'🎤 ON':'🎤',title:T('Φωνή: «ψάρι» / «τσίμπησε» γράφει αμέσως','Voice: “fish” / “bite” logs at once'),onclick:function(){ V.set(!V.wanted()); B.toast(V.wanted()?T('🎤 Ακούω: πες «ψάρι» ή «τσίμπησε»','🎤 Listening: say “fish” or “bite”'):T('🎤 Κλειστό','🎤 Off'),4000); paintSide(); }}); }
-function paintSide(){ var c=cfg(), show=on()&&c.mode==='bottom'&&document.body.classList.contains('mapclean')&&document.body.classList.contains('mapon');
+function paintSide(){ var c=cfg(), show=on()&&c.mode==='bottom'&&document.body.classList.contains('mapon'); /* 1.8.8: και στον κλασικό χάρτη */
   if(!show){ if(side) side.hidden=true; document.body.classList.remove('trside-on'); return; }
   if(!side){ side=h('div',{class:'trside',role:'status','aria-live':'polite'}); document.body.append(side); } side.hidden=false; document.body.classList.add('trside-on');
   var dst=c.dep?c.dep.st:null, v=vEff(), kids=[];
   kids.push(h('div',{class:'tsh'},h('b',{text:T('ΣΥΡΤΗ ΒΥΘΟΥ','BOTTOM TROLLING')+(dst==='drop'?T(' · ΡΙΧΝΩ',' · LETTING OUT'):'')}),
-    h('span',{text:(spd!=null?B.num(spd,1)+' kn':'– kn')+(SV.stw!=null?T(' · στο νερό ',' · through water ')+B.num(SV.stw,1):'')})));
-  if(dst==='drop'){ var gd=MET.n?geo(Object.assign({},c,{auto:false,leads:MET.n,dep:null}),v):null;
+    h('span',{class:'tsk'+(spd!=null&&spd>c.max?' hi':spd!=null&&spd<c.min?' lo':''),text:(spd!=null?B.num(spd,1)+' kn':'– kn')+(SV.stw!=null?T(' · στο νερό ',' · through water ')+B.num(SV.stw,1):'')})));
+  /* 1.8.8: ταχύτητα εκτός ορίων φαίνεται και στην κάρτα (όχι μόνο φωνή/δόνηση/μήνυμα) */
+  if(spd!=null&&(spd>c.max||spd<c.min)) kids.push(h('div',{class:'tsspd '+(spd>c.max?'hi':'lo'),text:(spd>c.max?T('⚠ Πολύ γρήγορα · όριο ','⚠ Too fast · limit '):T('⚠ Πολύ αργά · όριο ','⚠ Too slow · limit '))+B.num(c.min,1)+'–'+B.num(c.max,1)+' kn'}));
+  if(dst==='drop'){ if(SV.prof&&MET.n) kids.push(h('div',{class:'tsv',html:svgSide()})); var gd=MET.n?geo(Object.assign({},c,{auto:false,leads:MET.n,dep:null}),v):null;
     kids.push(h('div',{class:'tsg'},cellS(T('ΕΞΩ','OUT'),String(MET.n),T('μολύβια','leads')),cellS(T('ΔΟΛΩΜΑ','LURE'),gd?'~'+fa(gd.dl):'–',T('οργ.','fm')),cellS(T('ΣΤΑΜΑΤΑ ΣΤΑ','STOP AT'),recN!=null?String(recN):'…','',recD!=null?T('βυθός εκεί ','bottom there ')+faTxt(recD):'')));
     kids.push(h('div',{class:'tsm'},h('button',{type:'button',class:'btn sm',text:MET.paused?'▶':'⏸',onclick:function(){ MET.paused=!MET.paused; if(!MET.tm&&!MET.paused) metStart(); paintSide(); }}),
       h('button',{type:'button',class:'btn sm ghost',text:T('πιο αργά','slower'),onclick:function(){ metPace(0.5); }}),h('span',{text:'⏱ '+B.num(metIv(),1)+'″/'+T('μολύβι','lead')}),h('button',{type:'button',class:'btn sm ghost',text:T('πιο γρήγορα','faster'),onclick:function(){ metPace(-0.5); }})));
     kids.push(h('div',{class:'tsb'},h('button',{type:'button',class:'btn sm ghost',text:'−',onclick:function(){ setLeads(-1); paintSide(); }}),h('button',{type:'button',class:'btn sm ghost',text:'+',onclick:function(){ setLeads(1); paintSide(); }}),h('button',{type:'button',class:'btn pri sm',text:T('Στον βυθό ✓','On the bottom ✓'),onclick:function(){ setDown(recN!=null?recN:MET.n||null); }}),h('button',{type:'button',class:'btn ghost sm',text:T('Άκυρο','Cancel'),onclick:cancelDrop})));
   } else if(dst==='set'){ var p=SV.prof, a=SV.adv, n=nLeads(c);
-    if(p) kids.push(h('div',{class:'tsv',html:svgSide()}));
-    var nxt=a&&a.act==='up'?cellS(a.t<=0?T('ΤΩΡΑ','NOW'):T('ΣΕ ','IN ')+a.t+'″','↑ −'+a.k,T('μολύβια','leads'),'','warn'):a&&a.act==='down'?cellS(T('ΒΑΘΑΙΝΕΙ','DEEPER'),'↓ +'+a.k,T('μολύβια','leads'),'','deep'):cellS(T('ΜΠΡΟΣΤΑ','AHEAD'),'✓','',T('κράτα','hold'),'ok');
+    var sv=p?svgSide():''; if(sv) kids.push(h('div',{class:'tsv',html:sv})); else kids.push(h('p',{class:'tsn',text:!SV.grid?T('Φορτώνω τον βυθό γύρω σου… (στη στεριά δεν υπάρχει βυθός)','Loading the depth around you… (no seabed on land)'):T('Δεν βρίσκω βυθό εδώ: είσαι στη στεριά ή πολύ κοντά στην ακτή.','No seabed here: you are on land or very close to shore.')}));
+    if(p&&p.pre&&sv) kids.push(h('p',{class:'tsn',text:T('Χωρίς ταχύτητα (GPS): το διάγραμμα δείχνει την αρματωσιά στα ','No speed (GPS): the diagram shows the rig at ')+B.num(p.v,1)+T(' kn. Ζωντανά μόλις κινηθείς πάνω από 0,8 kn.',' kn. Live once you move above 0.8 kn.')}));
+    var nxt=a&&a.act==='wait'?cellS(T('ΜΠΡΟΣΤΑ','AHEAD'),'–','',T('περιμένω ταχύτητα','waiting for speed')):!a?cellS(T('ΜΠΡΟΣΤΑ','AHEAD'),'–','',T('περιμένω βυθό','waiting for depth')):a.act==='spd'?cellS(T('ΠΡΩΤΑ','FIRST'),a.hi?'↓ kn':'↑ kn','',a.hi?T('κατέβασε ταχύτητα','slow down'):T('ανέβασε ταχύτητα','speed up'),'warn'):a&&a.act==='up'?cellS(a.t<=0?T('ΤΩΡΑ','NOW'):T('ΣΕ ','IN ')+a.t+'″','↑ −'+a.k,T('μολύβια','leads'),'','warn'):a&&a.act==='down'?cellS(T('ΒΑΘΑΙΝΕΙ','DEEPER'),'↓ +'+a.k,T('μολύβια','leads'),'','deep'):cellS(T('ΜΠΡΟΣΤΑ','AHEAD'),'✓','',T('κράτα','hold'),'ok');
     kids.push(h('div',{class:'tsg'},cellS(T('ΜΟΛΥΒΙΑ','LEADS'),String(n),''),cellS(T('ΔΟΛΩΜΑ','LURE'),p?'~'+fa(p.dl):'–',T('οργ.','fm'),p&&p.P.length?(function(){ var q=p.P[0]; return q&&q.d!=null?T('βυθός ','bottom ')+faTxt(q.d):''; })():''),nxt));
     var iso=SV.iso; if(iso) kids.push(h('div',{class:'tsiso'},h('span',{text:T('Ισοβαθής ','Contour ')+iso.iso+T(' οργ. · τώρα ~',' fm · now ~')+Math.round(iso.now)}),h('b',{text:iso.side==='L'?T('↰ λίγο αριστερά','↰ a little left'):iso.side==='R'?T('λίγο δεξιά ↱','a little right ↱'):T('πάνω της ✓','on it ✓')})));
     kids.push(h('div',{class:'tsb'},h('button',{type:'button',class:'btn sm ghost',text:'− 1',onclick:function(){ setLeads(-1); sideTick(); }}),h('button',{type:'button',class:'btn sm ghost',text:'+ 1',onclick:function(){ setLeads(1); sideTick(); }}),h('button',{type:'button',class:'btn sm',text:T('Ακούμπησε','Touched'),onclick:function(){ touched(); sideTick(); }}),micB(),h('button',{type:'button',class:'btn ghost sm',text:'⚙',title:T('Ρυθμίσεις συρτής','Trolling settings'),onclick:sheet})));
-    if(!SV.grid) kids.push(h('p',{class:'tsn',text:T('Φορτώνω τον χάρτη βυθού γύρω σου…','Loading the depth chart around you…')}));
     if(SV.turn>25) kids.push(h('p',{class:'tsn warn',text:T('Στροφή: το δόλωμα κατεβαίνει','Turning: the lure is sinking')}));
-  } else kids.push(h('div',{class:'tsb'},h('p',{class:'tsn',text:T('Πάτα «Ρίχνω» μόλις πέσει το πρώτο μολύβι.','Tap “Let out” as the first lead goes in.')}),h('button',{type:'button',class:'btn pri sm',text:T('Ρίχνω','Let out'),onclick:dropSheet}),micB(),h('button',{type:'button',class:'btn ghost sm',text:'⚙',onclick:sheet})));
+  } else { if(SV.prof&&SV.prof.pre) kids.push(h('div',{class:'tsv',html:svgSide()}),h('p',{class:'tsn',text:T('Προεπισκόπηση με ','Preview with ')+SV.prof.n+T(' μολύβια. Ζωντανά μόλις ρίξεις.',' leads. Live once you let out.')})); else kids.push(h('p',{class:'tsn',text:T('Το διάγραμμα βγαίνει όταν κινείσαι (πάνω από 0,8 kn) και φορτώσει ο βυθός.','The diagram shows once you are moving (above 0.8 kn) and the depth chart loads.')}));
+    kids.push(h('div',{class:'tsb'},h('p',{class:'tsn',text:T('Πάτα «Ρίχνω» μόλις πέσει το πρώτο μολύβι.','Tap “Let out” as the first lead goes in.')}),h('button',{type:'button',class:'btn pri sm',text:T('Ρίχνω','Let out'),onclick:dropSheet}),micB(),h('button',{type:'button',class:'btn ghost sm',text:'⚙',onclick:sheet}))); }
   side.replaceChildren.apply(side,kids); }
 function cellS(lab,big,unit,sub,cls){ return h('div',{class:'tsc'+(cls?' '+cls:'')},h('small',{text:lab}),h('b',null,big,unit?h('em',{text:' '+unit}):null),sub?h('i',{text:sub}):null); }
 /* σημάδι «δόλωμα» στον χάρτη, πάνω στη διαδρομή πίσω σου */
@@ -397,7 +402,8 @@ function lureMark(){ var L=window.L, C=window.AlkyonCore, m=C&&C.map&&C.map(); i
   if(!on()||c.mode!=='bottom'||!q||!c.dep){ if(lureMk){ try{ m.removeLayer(lureMk); }catch(e){} lureMk=null; } return; }
   if(!lureMk) lureMk=L.circleMarker([q.lat,q.lon],{radius:7,color:'#0b1f2a',weight:2,fillColor:'#ffd23f',fillOpacity:1,interactive:false}).addTo(m); else lureMk.setLatLng([q.lat,q.lon]); }
 function sideTick(){ if(!on()){ paintSide(); return; } var c=cfg(), f=B.trip&&B.trip.fix&&B.trip.fix(); if(!f){ paintSide(); return; }
-  measure(); gridFor(f); SV.stw=stwOf(f); turnCheck(); advise(c,f); isoGuide(c,f); if(c.dep&&c.dep.st==='drop'&&f){ var gl=geo(Object.assign({},c,{auto:false,leads:Math.max(1,MET.n),dep:null}),vEff()); if(gl){ var lp=lurePath(f,gl.lb*(+c.calB||1)); SV.prof={P:lp,lb:gl.lb,dl:gl.dl,n:MET.n,v:vEff()}; } } paintSide(); lureMark(); }
+  measure(); gridFor(f); SV.stw=stwOf(f); turnCheck(); advise(c,f); isoGuide(c,f); if(c.dep&&c.dep.st==='drop'&&f){ var gl=geo(Object.assign({},c,{auto:false,leads:Math.max(1,MET.n),dep:null}),vEff()); if(gl){ var lp=lurePath(f,gl.lb*(+c.calB||1)); SV.prof={P:lp,lb:gl.lb,dl:gl.dl,n:MET.n,v:vEff()}; } } if(!c.dep&&c.mode==='bottom'){ var v0=vEff(), gi=v0!=null&&v0>=0.8?geo(c,v0):null; SV.prof=gi?{P:lurePath(f,gi.lb*(+c.calB||1)),lb:gi.lb,dl:gi.dl,n:gi.n,v:v0,pre:1}:null; } /* 1.8.8: προεπισκόπηση πριν ρίξεις */
+  paintSide(); lureMark(); }
 /* «Τι δούλεψε» στη συρτή βυθού: από τα ψάρια σου, σε ποια βάθη/μολύβια/ταχύτητες πιάνεις */
 function worked(){ var S=B.store; if(!S) return null; var b=S.raw('bites').filter(function(x){ return !x.deleted&&x.troll&&x.troll.m==='bottom'&&x.troll.leads; }); if(b.length<2) return null;
   function rng(a){ a=a.filter(function(v){ return v!=null&&isFinite(v); }).sort(function(x,y){ return x-y; }); if(!a.length) return null; var lo=a[Math.floor(a.length*0.2)], hi=a[Math.min(a.length-1,Math.ceil(a.length*0.8)-1)]; return [lo,hi]; }

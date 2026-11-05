@@ -938,3 +938,11 @@ html.night .trside{background:#1a0000;color:#fff;box-shadow:0 0 0 2px #fff}html.
 .trside .tsb{display:flex;gap:6px;margin-top:6px;align-items:center}.trside .tsb .btn{flex:1 1 0;min-width:0;padding-left:6px!important;padding-right:6px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:38px!important}.trside .tsb .btn.pri,.trside .tsb .btn:nth-child(3){flex:2 1 0}.trside .tsb .tsn{flex:2;margin:0}
 body.trside-on .trwrap{display:none!important}
 body.trside-on.mapclean.mapon .mcedge{top:58%}
+
+/* 1.8.8: ταχύτητα εκτός ορίων στην κάρτα συρτής */
+.trside .tsk.hi,.trside .tsk.lo{color:#c62828;font-weight:800}
+.trside .tsspd{margin:6px 0 2px;padding:8px 10px;border-radius:12px;font-weight:800;font-size:15px;color:#fff;background:#c62828;animation:tsspd 1.2s ease-in-out infinite alternate}
+.trside .tsspd.lo{background:#e65100}
+@keyframes tsspd{from{opacity:1}to{opacity:.72}}
+@media (prefers-reduced-motion:reduce){.trside .tsspd{animation:none}}
+body:not(.mapclean) .trside{top:calc(var(--safe-t,0px) + 128px)} /* 1.8.8: κλασικός χάρτης, κάτω από τη μπάρα καιρού */
