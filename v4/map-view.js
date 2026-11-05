@@ -672,6 +672,12 @@ function cleanSetup(el,qc,seab,bar){ mcRefs={qc:qc,seab:seab,bar:bar}; document.
   var y0=null, x0=null; mcBar.addEventListener('pointerdown',function(e){ y0=e.clientY; x0=e.clientX; try{ mcBar.setPointerCapture(e.pointerId); }catch(x){} });
   mcBar.addEventListener('pointermove',function(e){ if(y0!=null&&(e.clientY-y0>24||x0-e.clientX>24)){ y0=null; mcBar._sw=true; mcOpen(); } });
   ['pointerup','pointercancel'].forEach(function(ev){ mcBar.addEventListener(ev,function(){ y0=null; }); });
+  /* 1.7.9: λαβή στη δεξιά άκρη (όπως το Edge panel της Samsung): πάτα την ή σύρε την αριστερά για το μενού */
+  var edge=h('button',{class:'mcedge',type:'button','aria-label':T('Στρώματα και εργαλεία','Layers and tools'),onclick:function(){ if(!edge._sw) mcOpen(); edge._sw=false; }},h('span',{html:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>'}));
+  var ex=null; edge.addEventListener('pointerdown',function(e){ ex=e.clientX; try{ edge.setPointerCapture(e.pointerId); }catch(x){} });
+  edge.addEventListener('pointermove',function(e){ if(ex!=null&&ex-e.clientX>16){ ex=null; edge._sw=true; if(!mcDr) mcOpen(); } });
+  ['pointerup','pointercancel'].forEach(function(ev){ edge.addEventListener(ev,function(){ ex=null; }); });
+  el.append(edge);
   el.append(mcBar); var oq=B.qpaint; B.qpaint=function(){ oq&&oq(); mcPaint(); }; setTimeout(mcPaint,500); setTimeout(mcPaint,2600);
   if(!mapUI()) setTimeout(mcAsk,900); }
 function mcAsk(){ if(mapUI()||!root) return; var sh;
@@ -728,21 +734,24 @@ function mcDrFill2(){ var pan=mcDr.querySelector('.mcpan'), keep=pan.scrollTop; 
   tool(q('.bellb'),T('Ειδοποιήσεις','Notifications'),IC.bell,function(){ location.hash='#inbox'; });
   if(B.saySheet) tool(null,T('Φωνή εφαρμογής','App voice'),IC.voice,function(){ B.saySheet(); },!!(B.sayCfg&&B.sayCfg().on));
   var ab=document.querySelector('.attrbtn'); if(ab) tool(null,T('Πηγές χάρτη','Map sources'),IC.info,function(){ ab.click(); });
-  sec(T('Εργαλεία','Tools'),h('div',{class:'mcg3'},TL));
+  var toolsEl=h('div',{class:'mcgrp'},h('h4',{text:T('Εργαλεία','Tools')}),h('div',{class:'mcg3'},TL)); /* 1.7.9: μπαίνει στη σειρά πιο κάτω */
   /* όλα τα υπόλοιπα: ίδιο περιεχόμενο με «Στρώματα χάρτη», σε ομάδες που ανοιγοκλείνουν */
   var tmp=h('div'), r=layersSheet({into:tmp}), OPEN=ls.get('alkyon-v4-mcopen',{}), grp=null, groups={}, pend=[];
+  /* 1.7.9: χωρίς ακορντεόν: όλα φαίνονται, σε σειρά σημαντικότητας. Μόνο το Υπόμνημα (μεγάλο) ανοιγοκλείνει. */
+  var LEG=T('Υπόμνημα','Legend'), MAPG=T('Χάρτης και βάθη','Map and depths'), WXG=T('Καιρός και θάλασσα','Weather and sea');
+  var MERGE={}; MERGE[T('Χάρτης','Map type')]=MAPG; MERGE[T('Αέρας πάνω στη στεριά','Wind over land')]=MAPG; MERGE[T('Βάθη θάλασσας','Sea depths')]=MAPG; MERGE[T('Πού να πάω','Where to go')]=WXG;
+  function group(t){ if(groups[t]) return groups[t]; var g;
+    if(t===LEG){ g=h('details',{class:'mcacc'}); if(OPEN[t]) g.open=true; g.append(h('summary',{text:t})); g.addEventListener('toggle',function(){ var o=ls.get('alkyon-v4-mcopen',{}); o[t]=g.open?1:0; ls.set('alkyon-v4-mcopen',o); }); }
+    else g=h('div',{class:'mcgrp'},h('h4',{text:t})); groups[t]=g; return g; }
   [].slice.call(r.body.children).forEach(function(el){
-    if(el.classList&&el.classList.contains('lyh')){ var t=el.textContent, MERGE={}; MERGE[T('Αέρας πάνω στη στεριά','Wind over land')]=T('Χάρτης','Map type'); MERGE[T('Βάθη θάλασσας','Sea depths')]=T('Χάρτης','Map type'); MERGE[T('Πού να πάω','Where to go')]=T('Καιρός και θάλασσα','Weather and sea');
-      var into=MERGE[t]&&groups[MERGE[t]]; if(into){ grp=into; grp.append(h('div',{class:'mcsub',text:t})); return; }
-      if(t===T('Πού να πάω','Where to go')){ grp=h('div'); pend.push(grp); return; }
-      if(t===T('Χάρτης','Map type')) t=T('Χάρτης και βάθη','Map and depths');
-      grp=h('details',{class:'mcacc'}); if(OPEN[t]) grp.open=true;
-      (function(g,tt){ g.append(h('summary',{text:tt})); g.addEventListener('toggle',function(){ var o=ls.get('alkyon-v4-mcopen',{}); o[tt]=g.open?1:0; ls.set('alkyon-v4-mcopen',o); }); })(grp,t);
-      groups[el.textContent]=grp; if(t!==el.textContent) groups[t]=grp; pan.append(grp);
-      if(el.textContent===T('Καιρός και θάλασσα','Weather and sea')) pend.forEach(function(x){ [].slice.call(x.childNodes).forEach(function(n){ grp.append(n); }); });
-      return; }
+    if(el.classList&&el.classList.contains('lyh')){ var t=el.textContent, gt=MERGE[t]||t; var had=!!groups[gt]; grp=group(gt);
+      if(gt!==t&&(had||t!==T('Χάρτης','Map type'))) grp.append(h('div',{class:'mcsub',text:t})); return; }
     if(el.classList&&el.classList.contains('foot')) return;
     (grp||pan).append(el); });
+  var ORDER=[WXG,'@tools',T('Τα δικά μου','My data'),MAPG,T('Θάλασσα και κανόνες','Sea and rules'),T('Ενέργειες','Actions'),LEG];
+  var legEl=groups[LEG]||null;
+  ORDER.forEach(function(k){ if(k==='@tools') pan.append(toolsEl); else if(groups[k]){ pan.append(groups[k]); delete groups[k]; } });
+  Object.keys(groups).forEach(function(k){ if(legEl&&legEl.parentNode===pan) pan.insertBefore(groups[k],legEl); else pan.append(groups[k]); });
   /* ενέργειες (μαγαζιά, εισαγωγή, νέο σημείο…): κλείνουν το μενού */
   [].forEach.call(pan.querySelectorAll('.lacts .li'),function(b){ b.addEventListener('click',function(){ mcClose(); },true); });
   pan.append(h('div',{class:'mcfoot'},h('button',{type:'button',class:'chip sm',text:T('Κλασικός χάρτης','Classic map'),onclick:function(){ mcClose(); B.setMapUI('classic'); B.toast(T('Κλασικός χάρτης. Για τον καθαρό: Προφίλ › Ρυθμίσεις › Χάρτης.','Classic map. For the clean one: Profile › Settings › Map.')); }}),h('span',{class:'mchd'})));

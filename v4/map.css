@@ -813,3 +813,40 @@ body.mapclean.ontrip .seabar>.mo-btn{display:flex!important}
 .mcpan h4{margin-top:12px!important}
 /* η λωρίδα του χάρτη: μια λεπτή σκιά στην άκρη δείχνει ότι εκεί κλείνει */
 body:has(.mcdrw.open) .mo-btn{visibility:hidden}
+/* 1.7.9: καθαρός χάρτης. Πάνω δεξιά σε μία γραμμή: MOB · NU/CU/HU · θέση μου. Η μπάρα αριστερά, ανοιχτόχρωμη, μόνο με άνεμο και κύμα.
+   Λαβή στη δεξιά άκρη για το μενού. */
+body.mapclean .seabar{left:auto!important;right:74px;top:calc(var(--safe-t,0px) + 12px)!important;flex-direction:row!important;align-items:center;gap:10px;width:auto!important}
+body.mapclean .seabar .mobbtn{width:52px;height:52px;font-size:13px;border-width:2px}
+body.mapclean .seabar .mo-btn{width:52px;height:52px}
+body.mapclean .mapbar{top:calc(var(--safe-t,0px) + 12px)!important}
+body.mapclean .mapbar .gpsb{width:52px;height:52px}
+body.mapclean .mcbar{left:12px!important;right:74px!important;top:calc(var(--safe-t,0px) + 12px)!important;margin:0!important;max-width:none!important;height:52px;background:var(--surface,#fff)!important;color:var(--ink,#0b1f2a)!important;box-shadow:var(--shadow,0 4px 14px rgba(0,0,0,.22))!important;padding:0 12px 0 16px!important;justify-content:flex-start}
+body.mapclean.maptrip .mcbar{right:136px!important}
+body.mapclean.maptrip.ontrip .mcbar{right:198px!important}
+body.mapclean .mcbar .mci{display:none!important}
+body.mapclean .mcbar .mct{text-align:left!important;font:800 15px var(--font)!important;color:inherit}
+body.mapclean .mcbar .mcv svg{stroke:currentColor!important;opacity:.6}
+body.mapclean .mcbar::after{display:none}
+html.night body.mapclean .mcbar{background:#1a0000!important;color:#fff!important;box-shadow:0 0 0 2px #fff!important}
+.mcedge{display:none}
+body.mapclean.mapon .mcedge{display:flex;position:fixed;right:0;top:52%;z-index:31;width:26px;height:84px;margin-top:-42px;align-items:center;justify-content:center;padding:0;border:0;border-radius:14px 0 0 14px;background:var(--surface,#fff);color:var(--ink,#0b1f2a);opacity:.92;box-shadow:-2px 2px 10px rgba(0,0,0,.25);touch-action:none}
+.mcedge svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.6}
+body:has(.mcdrw.open) .mcedge,body.ruling .mcedge,body.mappick .mcedge,body.replaying .mcedge{display:none!important}
+html.night .mcedge{background:#1a0000;color:#fff;box-shadow:0 0 0 1px #fff}
+/* κάρτα ΨΑΡΕΥΩ/ΑΓΚΥΡΑ: τώρα που το MOB είναι δεξιά, πιάνει όλο το πλάτος κάτω από την πάνω γραμμή */
+body.mapclean .mcpanel{left:12px!important;right:12px!important;top:calc(var(--safe-t,0px) + 76px)!important}
+body.mapclean .mcpanel.run{top:calc(var(--safe-t,0px) + 76px)!important}
+/* μενού: ομάδες πάντα ανοιχτές */
+.mcpan .mcgrp{border-top:1px solid var(--line,rgba(0,0,0,.08));margin-top:10px}
+.mcpan .mcgrp>h4{margin:14px 2px 6px!important}
+.mcpan .mcgrp .lgrid{grid-template-columns:1fr;gap:0}
+.mcpan .mcgrp .ltile{display:grid;grid-template-columns:36px 1fr;grid-template-rows:auto auto;column-gap:12px;row-gap:1px;align-content:center;min-height:56px;padding:8px 60px 8px 4px;border:0;border-bottom:1px solid var(--line,rgba(0,0,0,.06));border-radius:0;background:none;box-shadow:none;text-align:left;position:relative}
+.mcpan .mcgrp .ltile .lic{width:36px;height:36px;margin:0;grid-row:1/3;align-self:center}
+.mcpan .mcgrp .ltile b{grid-column:2;font-size:15px;text-align:left}
+.mcpan .mcgrp .ltile small{grid-column:2;font-size:12px;text-align:left;padding:0}
+.mcpan .mcgrp .ltile::after{content:'';position:absolute;right:4px;top:50%;width:44px;height:26px;margin-top:-13px;border-radius:13px;background:var(--line,#cfd6da)}
+.mcpan .mcgrp .ltile::before{content:'';position:absolute;right:24px;top:50%;width:20px;height:20px;margin-top:-10px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);z-index:1;transition:right .15s}
+.mcpan .mcgrp .ltile[aria-pressed="true"]::after{background:var(--accent)}
+.mcpan .mcgrp .ltile[aria-pressed="true"]::before{right:7px}
+.mcpan .mcgrp .ltile[aria-pressed="true"] .lic{background:var(--accent);color:#fff}
+.mcpan .mcgrp .ltile:disabled{opacity:.5}
