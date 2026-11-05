@@ -850,3 +850,5 @@ body.mapclean .mcpanel.run{top:calc(var(--safe-t,0px) + 76px)!important}
 .mcpan .mcgrp .ltile[aria-pressed="true"]::before{right:7px}
 .mcpan .mcgrp .ltile[aria-pressed="true"] .lic{background:var(--accent);color:#fff}
 .mcpan .mcgrp .ltile:disabled{opacity:.5}
+/* 1.8.0: η λαβή πιο ψηλά, να μην πέφτει πάνω στα κουμπιά ψαριών δεξιά */
+body.mapclean.mapon .mcedge{top:37%;z-index:32}
