@@ -251,7 +251,7 @@ function costSheet(t,done){
 /* ---------- φωνή ---------- */
 var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 function vlang(){ var v=B.ls.get('alkyon-vlang',null); return v==='en-US'||v==='el-GR'?v:(EN?'en-US':'el-GR'); }
-function listen(cb){
+function listen(cb){ if(B.voiceCmd&&B.voiceCmd.pause) B.voiceCmd.pause(8000);
   if(!SR){ B.toast(T('Η φωνητική καταγραφή δεν υποστηρίζεται σε αυτόν τον browser.','Voice input is not supported in this browser.')); return; }
   var rec=new SR(); rec.lang=vlang(); rec.interimResults=false; rec.maxAlternatives=3;
   B.toast(T('Μίλα τώρα… π.χ. «συναγρίδα τρία κιλά»','Speak now… e.g. “dentex three kilos”'));
@@ -302,5 +302,24 @@ B.cards={fish:function(b){ preview(fishCard(b),'alkyon-fish.png',(SN(b.species)|
   year:function(y){ preview(yearCard(y),'alkyon-'+y+'.png',T('Η χρονιά μου στο ψάρεμα','My fishing year')+' '+y); },
   cost:costSheet,costOf:costOf,yearData:yearData};
 B.voice={ok:!!SR,fill:voiceFill,log:voiceLog,parse:parseVoice,MIC:MIC};
+/* 1.8.7: φωνητικές εντολές σε έξοδο (alkyon-vcmd): το κινητό ακούει συνέχεια και με «ψάρι / έπιασα / catch» γράφει ψάρι,
+   με «τσίμπησε / χάθηκε / bite / lost» τσίμπημα, αμέσως, στη θέση του δολώματος αν κάνεις συρτή. Ό,τι λέει η ίδια η εφαρμογή αγνοείται. */
+var VC={on:false,rec:null,last:0,pauseTo:0,ok:!!SR};
+var VC_CATCH=/(^|\s)(ψαρι|ψαρακι|επιασα|πιασαμε|πιασα|catch|caught|fish|got one)(\s|$)/, VC_MISS=/(^|\s)(τσιμπησε|τσιμπημα|χαθηκε|εφυγε|εφαγε|bite|lost it|lost|missed)(\s|$)/;
+function vcN(t){ return String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zα-ω0-9\s]/g,' ').replace(/\s+/g,' ').trim(); }
+function vcWanted(){ return !!B.ls.get('alkyon-vcmd',false)&&!!(B.trip&&B.trip.active&&B.trip.active()); }
+function vcHandle(alts){ var now=Date.now(); if(now<VC.pauseTo||now-VC.last<4000) return; try{ if(window.speechSynthesis&&speechSynthesis.speaking) return; }catch(e){}
+  var t=alts.map(vcN).join(' | '); if(VC_MISS.test(t)){ VC.last=now; B.quickRec(true,null,null,true); if(B.say) B.say(T('Χαμένο, το έγραψα','Lost one, logged'),null,'vcm',0); B.toast(T('🎤 Τσίμπημα γράφτηκε','🎤 Bite logged')); }
+  else if(VC_CATCH.test(t)){ VC.last=now; B.quickRec(false,null,null,true); if(B.say) B.say(T('Το έγραψα','Logged'),null,'vcc',0); B.toast(T('🎤 Ψάρι γράφτηκε εκεί που είναι το δόλωμα','🎤 Catch logged where the lure is')); } }
+function vcLoop(){ if(!VC.on||!SR) return; if(Date.now()<VC.pauseTo){ setTimeout(vcLoop,1000); return; }
+  var r; try{ r=new SR(); }catch(e){ VC.on=false; return; } r.lang=vlang(); r.continuous=true; r.interimResults=false; r.maxAlternatives=3;
+  r.onresult=function(e){ for(var i=e.resultIndex;i<e.results.length;i++){ var res=e.results[i]; if(!res.isFinal) continue; var alts=[]; for(var k=0;k<res.length;k++) alts.push(res[k].transcript); vcHandle(alts); } };
+  r.onerror=function(e){ if(e.error==='not-allowed'||e.error==='service-not-allowed'){ VC.on=false; B.ls.set('alkyon-vcmd',false); B.toast(T('Οι φωνητικές εντολές χρειάζονται άδεια μικροφώνου.','Voice commands need microphone permission.')); B.emit('vcmd'); } };
+  r.onend=function(){ VC.rec=null; if(VC.on) setTimeout(vcLoop,350); };
+  try{ r.start(); VC.rec=r; }catch(e){ VC.rec=null; setTimeout(vcLoop,2000); } }
+function vcSync(){ var want=vcWanted()&&!document.hidden; if(want&&!VC.on){ VC.on=true; vcLoop(); } else if(!want&&VC.on){ VC.on=false; try{ VC.rec&&VC.rec.stop(); }catch(e){} } }
+B.voiceCmd={ok:!!SR,on:function(){ return VC.on; },wanted:function(){ return !!B.ls.get('alkyon-vcmd',false); },set:function(v){ B.ls.set('alkyon-vcmd',!!v); vcSync(); B.emit('vcmd'); },
+  pause:function(ms){ VC.pauseTo=Date.now()+(ms||6000); try{ VC.rec&&VC.rec.abort(); }catch(e){} },test:vcHandle};
+B.on('trip',function(){ setTimeout(vcSync,300); }); document.addEventListener('visibilitychange',vcSync); setInterval(vcSync,15000); setTimeout(vcSync,2500);
 B.shareSpots=shareSpots;
 })();

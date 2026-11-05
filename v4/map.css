@@ -913,3 +913,28 @@ html:not(.night) body.mapclean .mcpanel.fish .mpc:nth-child(2) b{color:#1d6fa3!i
 html:not(.night) body.mapclean .mcpanel .mpto{border-top-color:rgba(0,0,0,.1)!important}
 html:not(.night) body.mapclean .mcpanel.anc b{color:#1f9a55!important}
 html:not(.night) body.mapclean .mcpanel.anc.bad{background:rgba(190,30,30,.95)!important;color:#fff!important}
+/* ================= 1.8.7: συρτή βυθού, πλάγια όψη (καθαρός χάρτης) ================= */
+.trside{position:fixed;left:12px;right:12px;top:calc(var(--safe-t,0px) + 76px);z-index:29;max-width:520px;margin:0 auto;padding:8px 10px 8px;border-radius:18px;background:rgba(255,255,255,.97);color:var(--ink,#0b1f2a);box-shadow:0 6px 18px rgba(0,0,0,.22)}
+.trside[hidden]{display:none}
+body:not(.mapon) .trside,body.ruling .trside,body.mappick .trside,body.replaying .trside{display:none!important}
+body.trside-on .mcpanel,body.trside-on .mcmode{display:none!important}
+.trside .tsh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:0 2px 2px}
+.trside .tsh b{font:800 11px var(--font);letter-spacing:.06em;color:#b8511d}
+.trside .tsh span{font:700 12px var(--font);color:var(--ink-2)}
+.trside .tsv svg{display:block;color:var(--ink)}
+.trside .tsg{display:grid;grid-template-columns:1fr 1fr 1.2fr;gap:6px;margin-top:4px}
+.trside .tsc{background:var(--surface-2,#f2f5f6);border-radius:12px;padding:5px 8px;min-width:0}
+.trside .tsc small{display:block;font:800 9.5px var(--font);letter-spacing:.05em;color:var(--ink-2)}
+.trside .tsc b{font:900 20px/1.1 var(--font)}.trside .tsc b em{font:700 11px var(--font);font-style:normal;opacity:.75}
+.trside .tsc i{display:block;font:600 10.5px var(--font);font-style:normal;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trside .tsc.warn{background:#fff1e6}.trside .tsc.warn b,.trside .tsc.warn small{color:#c2541f}
+.trside .tsc.deep{background:#e9f3fb}.trside .tsc.deep b{color:#1d6fa3}
+.trside .tsc.ok b{color:#1f9a55}
+.trside .tsm{display:flex;align-items:center;gap:6px;margin-top:6px;font:700 12px var(--font)}
+.trside .tsm span{flex:1;text-align:center}
+.trside .tsiso{display:flex;justify-content:space-between;gap:8px;margin-top:6px;font:600 12px var(--font)}.trside .tsiso b{color:#1d6fa3}
+.trside .tsn{margin:4px 2px 0;font:600 11.5px var(--font);color:var(--ink-2)}.trside .tsn.warn{color:#c2541f}
+html.night .trside{background:#1a0000;color:#fff;box-shadow:0 0 0 2px #fff}html.night .trside .tsc{background:#2a0000}
+.trside .tsb{display:flex;gap:6px;margin-top:6px;align-items:center}.trside .tsb .btn{flex:1 1 0;min-width:0;padding-left:6px!important;padding-right:6px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:38px!important}.trside .tsb .btn.pri,.trside .tsb .btn:nth-child(3){flex:2 1 0}.trside .tsb .tsn{flex:2;margin:0}
+body.trside-on .trwrap{display:none!important}
+body.trside-on.mapclean.mapon .mcedge{top:58%}
