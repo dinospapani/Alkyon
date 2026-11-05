@@ -632,7 +632,7 @@ function modeTick(){ var on=autoOn()&&document.body.classList.contains('ontrip')
     var run=md.m==='run'?!(md.slow&&now-md.slow>30000):!!(md.fast&&now-md.fast>20000);
     m=md.over||(a&&a.lat!=null?'anchor':(run&&!trol?'run':'fish')); }
   md.kn=kn; if(m!==md.m){ ['run','fish','anchor'].forEach(function(x){ document.body.classList.toggle('mode-'+x,m===x); }); md.m=m; }
-  if(m==='fish'&&fixNow&&B.depthAt&&now-md.depAt>20000&&!(B.troll&&B.troll.on&&B.troll.on())){ md.depAt=now; var q={lat:fixNow.lat,lon:fixNow.lon}; B.depthAt(q.lat,q.lon).then(function(v){ md.dep=v; md.depPos=q; modePaint(); }).catch(function(){}); }
+  if(m==='fish'&&fixNow&&B.depthAt&&now-md.depAt>20000&&!(B.troll&&B.troll.on&&B.troll.on())){ md.depAt=now; var q={lat:fixNow.lat,lon:fixNow.lon}; B.depthAt(q.lat,q.lon).then(function(v){ md.dep=v==null?false:v; md.depPos=q; modePaint(); }).catch(function(){ md.dep=false; modePaint(); }); }
   modePaint(); }
 setInterval(modeTick,5000);
 B.on&&B.on('anchor',function(a){ md.anc=a||null; modeTick(); });
@@ -654,7 +654,7 @@ function modePaint(){ if(!root) return; var m=md.m;
   else if(m==='anchor'){ var a=md.anc||ls.get('alkyon-anchor',null)||{}, dd=a.d!=null?a.d:null, bad=dd!=null&&a.r&&dd>a.r;
     md.el.className='mcpanel anc'+(bad?' bad':''); md.el.append(cell(T('ΑΠΟ ΤΗΝ ΑΓΚΥΡΑ','FROM ANCHOR'),dd!=null?String(dd):'…','m · '+T('όριο ','limit ')+(a.r||'–')+' m'+(dd!=null?(bad?T(' · ΣΕΡΝΕΙ',' · DRAGGING'):T(' · δεν σέρνει',' · holding')):''),'wide')); tgt(); }
   else { if(B.troll&&B.troll.on&&B.troll.on()){ md.el.className='mcpanel off'; md.chip.hidden=false; return; }
-    md.el.className='mcpanel fish'; md.el.append(cell(T('ΤΑΧΥΤΗΤΑ','SPEED'),kn!=null?B.num(kn,1):'–','kn'),cell(T('ΒΥΘΟΣ ΚΑΤΩ ΣΟΥ','DEPTH BELOW'),md.dep!=null?(U&&U.depthP?U.depthP(md.dep)[0]:String(Math.round(md.dep))):(navigator.onLine===false?T('χωρίς σήμα','offline'):'…'),md.dep!=null?(U&&U.depthP?U.depthP(md.dep)[1]+(U.cfg.depth!=='m'?' · '+Math.round(md.dep)+' m':''):'m'):'')); tgt(); }
+    md.el.className='mcpanel fish'; md.el.append(cell(T('ΤΑΧΥΤΗΤΑ','SPEED'),kn!=null?B.num(kn,1):'–','kn'),cell(T('ΒΥΘΟΣ ΚΑΤΩ ΣΟΥ','DEPTH BELOW'),md.dep?(U&&U.depthP?U.depthP(md.dep)[0]:String(Math.round(md.dep))):(md.dep===false?'–':(navigator.onLine===false?T('χωρίς σήμα','offline'):'…')),md.dep?(U&&U.depthP?U.depthP(md.dep)[1]+(U.cfg.depth!=='m'?' · '+Math.round(md.dep)+' m':''):'m'):'')); tgt(); }
   md.chip.hidden=!md.el.classList.contains('off')&&!!md.el.className.match(/run|fish|anc/); }
 B.mapMode=function(){ return md.m; };
 function mapUI(){ return ls.get('alkyon-v4-mapui','')||''; }
@@ -696,7 +696,9 @@ function mcDrFill2(){ var pan=mcDr.querySelector('.mcpan'), keep=pan.scrollTop; 
   function preset(want){ /* σειρά: άνεμος, κύμα, ρεύματα, νερό, βάθη */ want.forEach(function(w,i){ var b=chips[i]; if(!b||w==null) return; var on=false; try{ on=!!b._g(); }catch(e){} if(on!==w) b.click(); }); setTimeout(mcPaint,200); setTimeout(mcPaint,1200); }
   var cur=chips.map(function(b){ try{ return !!b._g(); }catch(e){ return false; } }), is=function(w){ return w.every(function(x,i){ return x==null||x===cur[i]; }); };
   var PS=[[T('Συρτή βυθού','Bottom trolling'),[false,false,true,null,true]],[T('Καιρός','Weather'),[true,true,false,null,null]],[T('Νερό και μέτωπα','Water and fronts'),[false,false,true,true,null]],[T('Καθαρός','Plain'),[false,false,false,false,null]]];
-  sec(T('Έτοιμα','Presets'),h('div',{class:'mcrow'},PS.map(function(p){ return h('button',{type:'button',class:'chip','aria-pressed':String(is(p[1])),text:p[0],onclick:function(){ preset(p[1]); }}); })));
+  var NM=[T('άνεμος','wind'),T('κύμα','waves'),T('ρεύματα','currents'),T('νερό','water'),T('βάθη','depths')];
+  sec(T('Έτοιμα','Presets'),h('div',{class:'mcps'},PS.map(function(p){ var on=p[1].map(function(w,i){ return w?NM[i]:null; }).filter(Boolean);
+    return h('button',{type:'button',class:'mcpre','aria-pressed':String(is(p[1])),onclick:function(){ preset(p[1]); }},h('b',{text:p[0]}),h('small',{text:on.length?on.join(' + '):T('μόνο ο χάρτης','just the map')})); })));
   /* εργαλεία: μόνο όσα «κάνουν» κάτι (τα στρώματα είναι πιο κάτω) */
   var seab=mcRefs.seab, bar=mcRefs.bar, q=function(sel){ return seab.querySelector(sel)||bar.querySelector(sel)||document.querySelector(sel); };
   var ico=function(el,fb){ var v=el&&el.querySelector('svg'); return v?v.outerHTML:fb; };
@@ -717,10 +719,17 @@ function mcDrFill2(){ var pan=mcDr.querySelector('.mcpan'), keep=pan.scrollTop; 
   var ab=document.querySelector('.attrbtn'); if(ab) tool(null,T('Πηγές χάρτη','Map sources'),IC.info,function(){ ab.click(); });
   sec(T('Εργαλεία','Tools'),h('div',{class:'mcg3'},TL));
   /* όλα τα υπόλοιπα: ίδιο περιεχόμενο με «Στρώματα χάρτη», σε ομάδες που ανοιγοκλείνουν */
-  var tmp=h('div'), r=layersSheet({into:tmp}), OPEN=ls.get('alkyon-v4-mcopen',{}), grp=null;
+  var tmp=h('div'), r=layersSheet({into:tmp}), OPEN=ls.get('alkyon-v4-mcopen',{}), grp=null, groups={}, pend=[];
   [].slice.call(r.body.children).forEach(function(el){
-    if(el.classList&&el.classList.contains('lyh')){ var t=el.textContent; grp=h('details',{class:'mcacc'}); if(OPEN[t]) grp.open=true;
-      grp.append(h('summary',{text:t})); grp.addEventListener('toggle',function(){ var o=ls.get('alkyon-v4-mcopen',{}); o[t]=grp.open?1:0; ls.set('alkyon-v4-mcopen',o); }); pan.append(grp); return; }
+    if(el.classList&&el.classList.contains('lyh')){ var t=el.textContent, MERGE={}; MERGE[T('Αέρας πάνω στη στεριά','Wind over land')]=T('Χάρτης','Map type'); MERGE[T('Βάθη θάλασσας','Sea depths')]=T('Χάρτης','Map type'); MERGE[T('Πού να πάω','Where to go')]=T('Καιρός και θάλασσα','Weather and sea');
+      var into=MERGE[t]&&groups[MERGE[t]]; if(into){ grp=into; grp.append(h('div',{class:'mcsub',text:t})); return; }
+      if(t===T('Πού να πάω','Where to go')){ grp=h('div'); pend.push(grp); return; }
+      if(t===T('Χάρτης','Map type')) t=T('Χάρτης και βάθη','Map and depths');
+      grp=h('details',{class:'mcacc'}); if(OPEN[t]) grp.open=true;
+      (function(g,tt){ g.append(h('summary',{text:tt})); g.addEventListener('toggle',function(){ var o=ls.get('alkyon-v4-mcopen',{}); o[tt]=g.open?1:0; ls.set('alkyon-v4-mcopen',o); }); })(grp,t);
+      groups[el.textContent]=grp; if(t!==el.textContent) groups[t]=grp; pan.append(grp);
+      if(el.textContent===T('Καιρός και θάλασσα','Weather and sea')) pend.forEach(function(x){ [].slice.call(x.childNodes).forEach(function(n){ grp.append(n); }); });
+      return; }
     if(el.classList&&el.classList.contains('foot')) return;
     (grp||pan).append(el); });
   /* ενέργειες (μαγαζιά, εισαγωγή, νέο σημείο…): κλείνουν το μενού */

@@ -766,3 +766,31 @@ body.mapclean.mode-run .sstleg,body.mapclean.mode-fish .sstleg,body.mapclean.mod
 .mcpan .mcacc .lgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .mcpan .mcrow .chip[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
 .mcpan .mcg3 .mctile svg,.mcpan .mcg5 .mctile svg{width:26px;height:26px}
+/* 1.7.5: μενού: λίστα με διακόπτες αντί για μεγάλα πλακίδια, έτοιμα με εξήγηση, μικρότερη κάρτα ΨΑΡΕΥΩ */
+.mcpan .mcacc .lgrid{grid-template-columns:1fr;gap:0}
+.mcpan .mcacc .ltile{flex-direction:row;align-items:center;justify-content:flex-start;gap:12px;min-height:56px;padding:8px 4px;border:0;border-bottom:1px solid var(--line,rgba(0,0,0,.06));border-radius:0;background:none;box-shadow:none;text-align:left;position:relative}
+.mcpan .mcacc .ltile .lic{width:36px;height:36px;margin:0;flex:none}
+.mcpan .mcacc .ltile b{font-size:15px;flex:none}
+.mcpan .mcacc .ltile small{font-size:12px;flex:1;min-width:0;padding-right:56px}
+.mcpan .mcacc .ltile::after{content:'';position:absolute;right:4px;top:50%;width:44px;height:26px;margin-top:-13px;border-radius:13px;background:var(--line,#cfd6da);box-shadow:inset 0 0 0 2px transparent;transition:background .15s}
+.mcpan .mcacc .ltile::before{content:'';position:absolute;right:24px;top:50%;width:20px;height:20px;margin-top:-10px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);z-index:1;transition:right .15s}
+.mcpan .mcacc .ltile[aria-pressed="true"]::after{background:var(--accent)}
+.mcpan .mcacc .ltile[aria-pressed="true"]::before{right:7px}
+.mcpan .mcacc .ltile[aria-pressed="true"] .lic{background:var(--accent);color:#fff}
+.mcpan .mcacc .ltile:disabled{opacity:.5}
+.mcpan .mcacc .lbase{gap:8px}
+.mcpan .mcsub{margin:14px 2px 6px;font:800 11px var(--font);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+.mcpan .mcps{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mcpan .mcpre{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;border:1.5px solid var(--line,#d5dbde);border-radius:14px;background:none;color:var(--ink);text-align:left;cursor:pointer}
+.mcpan .mcpre b{font:800 14px var(--font)}.mcpan .mcpre small{font:600 11.5px var(--font);color:var(--ink-2)}
+.mcpan .mcpre[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--surface)}.mcpan .mcpre[aria-pressed="true"] small{color:inherit;opacity:.8}
+.mcpanel{top:calc(var(--safe-t,0px) + 80px)!important;left:88px!important;right:12px!important;padding:8px 12px!important;gap:4px 12px!important;border-radius:18px!important}
+.mcpanel b{font-size:22px!important}.mcpanel small{font-size:12px!important}.mcpanel i{font-size:9.5px!important}
+.mcpanel .mph{padding:2px 8px!important;font-size:9.5px!important}
+.mcpanel.run{left:12px!important;top:calc(var(--safe-t,0px) + 132px)!important}.mcpanel.run b{font-size:28px!important}
+.mcpan .mcacc .ltile{display:grid;grid-template-columns:36px 1fr;grid-template-rows:auto auto;column-gap:12px;row-gap:1px;align-content:center;padding-right:60px}
+.mcpan .mcacc .ltile .lic{grid-row:1/3;align-self:center}
+.mcpan .mcacc .ltile b,.mcpan .mcacc .ltile small{grid-column:2;padding-right:0;text-align:left}
+.mcpanel .mpc{display:block!important}.mcpanel .mpc i{display:block}
+.mcpanel .mpc b{display:inline}.mcpanel .mpc small{display:inline;margin-left:4px}
+.mcpanel .mpto{font-size:12.5px!important;padding-top:5px!important}
