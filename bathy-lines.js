@@ -137,7 +137,7 @@ function draw(g,step){
   for(var i=0;i<g.data.length;i++){ var v=g.data[i]; if(v>0){ if(v>mx) mx=v; if(v<mn) mn=v; } }
   if(mx<=0) return 0;
   var cp=g.data; blur(g);
-  var first=Math.max(step,Math.ceil(mn/step)*step), last=Math.min(Math.floor(mx/step)*step,step*MAXLEVELS), sat=satBase(), nlines=0, labels=0;
+  var first=Math.max(step,Math.ceil(mn/step)*step), last=Math.min(Math.floor(mx/step)*step,step*MAXLEVELS), sat=satBase(), nlines=0, labels=0, placed=[];
   var minorC=sat?'#8fd8ff':'#2f7fc0', majorC=sat?'#ffffff':'#0a3a6a';
   for(var lv=first;lv<=last;lv+=step){
     var major=(lv/step)%5===0, chains=contour(g,lv);
@@ -148,6 +148,8 @@ function draw(g,step){
       L.polyline(pts,{renderer:rend,color:major?majorC:minorC,weight:major?2:1,opacity:major?.95:.75,interactive:false,smoothFactor:1}).addTo(group); nlines++;
       if(major&&pts.length>14&&labels<40){
         var m=pts[Math.floor(pts.length/2)];
+        /* 1.8.4: οι αριθμοί δεν μπαίνουν ο ένας πάνω στον άλλο (τουλάχιστον ~70 px μεταξύ τους) */
+        var mp=null; try{ mp=map.latLngToContainerPoint(m); }catch(e){} if(mp&&placed.some(function(q){ return Math.abs(q.x-mp.x)<70&&Math.abs(q.y-mp.y)<26; })) continue; if(mp) placed.push(mp);
         L.marker(m,{interactive:false,keyboard:false,icon:L.divIcon({className:'dlbl'+(sat?' sat':''),html:'<span>'+lv+'</span>',iconSize:[26,14],iconAnchor:[13,7]})}).addTo(group); labels++;
       }
     }

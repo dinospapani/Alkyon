@@ -11,15 +11,20 @@ window.ALKYON_WINDY=true;
 var WVC=[[0,[206,238,242]],[0.25,[160,216,232]],[0.5,[112,186,222]],[0.75,[78,154,208]],[1,[58,122,194]],[1.5,[50,90,172]],[2,[56,64,152]],[3,[96,58,140]],[4.5,[150,64,110]],[6,[176,72,96]],[9,[201,143,143]]];
 function wvcol(h){ if(!(h>0)) return WVC[0][1].slice(); for(var i=1;i<WVC.length;i++){ if(h<=WVC[i][0]){ var a=WVC[i-1], b=WVC[i], t=(h-a[0])/(b[0]-a[0]); return [a[1][0]+(b[1][0]-a[1][0])*t,a[1][1]+(b[1][1]-a[1][1])*t,a[1][2]+(b[1][2]-a[1][2])*t]; } } return WVC[WVC.length-1][1].slice(); }
 window.ALKYON_WAVEGRAD=wvcol; B.waveColor=wvcol;
-var RC={k:null,r:null,p:null}; /* 1.6.1: ακτογραμμή για την τρέχουσα θέα */
+var RC={bb:null,r:null,pb:null}; /* 1.6.1: ακτογραμμή για την τρέχουσα θέα */
 /* 1.7.4: ακτογραμμή σε κάθε ζουμ από 7 (όχι μόνο ≥ 10), ώστε άνεμος/κύμα/νερό να κόβονται στην ακτή χωρίς «σκαλοπάτια».
    Αέρας πάνω στη στεριά (alkyon-v4-landwx): 'mid' (προεπιλογή, ~40%) · 'faint' (~15%) · 'full' (όπως το Windy). */
 function landWx(){ var v=B.ls.get('alkyon-v4-landwx','mid'); return v==='faint'||v==='full'?v:'mid'; }
 B.landWx=function(v){ if(v==null) return landWx(); B.ls.set('alkyon-v4-landwx',v); later(20); try{ window.dispatchEvent(new CustomEvent('alkyon-wxchange')); }catch(e){} };
 window.AlkyonLandWx=landWx;
-function ringsFor(map){ var Sx=S(); if(!Sx||!Sx.landRings||map.getZoom()<7) return null; var bb0=map.getBounds(), rk=[bb0.getSouth(),bb0.getNorth(),bb0.getWest(),bb0.getEast()].map(function(v){ return v.toFixed(3); }).join(',');
-  if(RC.k===rk) return RC.r; if(RC.p!==rk){ RC.p=rk; Sx.landRings({s:bb0.getSouth()-0.05,n:bb0.getNorth()+0.05,w:bb0.getWest()-0.05,e:bb0.getEast()+0.05}).then(function(r){ RC={k:rk,r:r&&r.length?r:null,p:null}; if(r&&r.length){ later(30); if(typeof sstDraw==='function'&&sstOn) setTimeout(sstDraw,60); } }).catch(function(){ RC.p=null; }); }
-  return RC.k===rk?RC.r:null; }
+/* 1.8.4: η ακτογραμμή κρατιέται για μια μεγαλύτερη περιοχή (±0,5°) και ξαναχρησιμοποιείται όσο η θέα είναι μέσα της. Πριν, κάθε μικρή κίνηση
+   ζητούσε καινούργια και στο μεταξύ ο χάρτης έδειχνε «σκαλοπάτια» (χοντρό πλέγμα στεριάς). */
+function ringsFor(map){ var Sx=S(); if(!Sx||!Sx.landRings||map.getZoom()<7) return null; var b=map.getBounds(), s0=b.getSouth(), n0=b.getNorth(), w0=b.getWest(), e0=b.getEast();
+  function cov(bb){ return bb&&s0>=bb[0]&&n0<=bb[1]&&w0>=bb[2]&&e0<=bb[3]; }
+  if(cov(RC.bb)) return RC.r;
+  if(!cov(RC.pb)){ var P=Math.max(0.5,(n0-s0)*0.5), pb=[s0-P,n0+P,w0-P,e0+P]; RC.pb=pb;
+    Sx.landRings({s:pb[0],n:pb[1],w:pb[2],e:pb[3]}).then(function(r){ if(RC.pb!==pb) return; RC.bb=pb; RC.r=r&&r.length?r:null; RC.pb=null; later(30); if(typeof sstDraw==='function'&&sstOn) setTimeout(sstDraw,60); }).catch(function(){ if(RC.pb===pb) RC.pb=null; }); }
+  return null; }
 /* μόνο η πραγματική ακτή (όχι οι ευθείες στα όρια των πλακιδίων 1°, όπου κόβονται τα περιγράμματα) */
 function onEdge(v){ return Math.abs(v-Math.round(v))<1e-5; }
 function ringStroke(cx,map,rings){ cx.beginPath(); rings.forEach(function(r){ var xy=r.xy, n=xy.length/2, pen=false, lx=0, ly=0;
@@ -80,11 +85,11 @@ function render(){
   if(mode==='sea'&&!(Sx&&Sx.ready&&Sx.ready())){ fillCv.style.opacity='0'; clearTimeout(waitT); waitT=setTimeout(render,1500); return; }
   /* 1.6.1: κοντά (zoom ≥ 10), όπου υπάρχει η λεπτομερής ακτή (Κύπρος/Ελλάδα), το κύμα κόβεται ακριβώς στην ακτογραμμή αντί για «σκαλοπάτια» */
   var bb0=map.getBounds(), rk=[bb0.getSouth(),bb0.getNorth(),bb0.getWest(),bb0.getEast()].map(function(v){ return v.toFixed(3); }).join(','), rings=null, LW=landWx();
-  ringsFor(map); if(RC.k===rk) rings=RC.r;
+  rings=ringsFor(map); var ringsWait=!rings&&!!RC.pb;
   for(var yy=0;yy<bh;yy++) for(var xx=0;xx<bw;xx++){
     var la=lat[yy], lo=lon[xx], c=null, a=0, o=(yy*bw+xx)*4;
     if(mode==='sea'){ if(!rings&&land(la,lo)===1) continue; var m=Sx.modelAt(la,lo); if(!m) continue; c=wvcol(m.h); a=0.82; }
-    else { var v=Wx.sample(la,lo); if(!v) continue; c=wcol(v.sp); a=(!rings&&LW!=='full'&&land(la,lo)===1)?(LW==='faint'?0.14:0.38):0.62; }
+    else { var v=Wx.sample(la,lo); if(!v) continue; c=wcol(v.sp); a=(!rings&&!ringsWait&&LW!=='full'&&land(la,lo)===1)?(LW==='faint'?0.14:0.38):0.62; }
     d[o]=c[0]; d[o+1]=c[1]; d[o+2]=c[2]; d[o+3]=Math.round(255*a); any=true;
   }
   px.putImageData(im,0,0);
@@ -171,10 +176,11 @@ function drawLabels(){
   var c=labCv.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0); c.clearRect(0,0,sz.x,sz.y);
   var wOn=windOn(), sOn=seaOn(); if(!mapOn()||(!wOn&&!sOn)){ labCv.style.opacity='0'; return; }
   var Wx=W(), Sx=S(), U=window.AlkyonUnits, dock=document.getElementById('ndMapDock'), bot=sz.y-(dock&&!dock.hidden?dock.getBoundingClientRect().height+40:40)-60, top=125;
-  var gx=sz.x<500?118:140, gy=104, row=0; c.font='800 12.5px system-ui,-apple-system,Segoe UI,Roboto,sans-serif'; c.textBaseline='middle'; c.lineCap='round'; c.lineJoin='round';
+  /* 1.8.4: λιγότερα κουτάκια (πιο αραιά), για να φαίνεται ο χάρτης· όχι πάνω στον σταυρό */ var gx=sz.x<500?170:200, gy=150, row=0, cxp=null; try{ if(B.crossLL) cxp=map.latLngToContainerPoint(B.crossLL); }catch(e){} c.font='800 12px system-ui,-apple-system,Segoe UI,Roboto,sans-serif'; c.textBaseline='middle'; c.lineCap='round'; c.lineJoin='round';
   /* v31z526: οι αριθμοί δεν μπαίνουν πάνω στα βελάκια των ρευμάτων */
   var mc0=map.getContainer(), mr=mc0.getBoundingClientRect(), avoid=[].map.call(document.querySelectorAll('#lmap .mk.cur .cw,#lmap .mk.fish,#lmap .mk.spot i,#lmap .mk.me i'),function(e){ var r=e.getBoundingClientRect(); return [r.left-mr.left,r.top-mr.top,r.right-mr.left,r.bottom-mr.top]; });
   for(var y=top;y<=bot;y+=gy,row++) for(var x=(row%2?gx*0.75:gx*0.25);x<sz.x-20;x+=gx){
+    if(cxp&&Math.abs(x-cxp.x)<80&&Math.abs(y-cxp.y)<50) continue;
     if(avoid.some(function(a){ return x+48>a[0]-6&&x-48<a[2]+6&&y+22>a[1]-6&&y-22<a[3]+6; })) continue;
     if([[-46,-20],[46,-20],[-46,20],[46,20],[0,0]].some(function(d){ var el=document.elementFromPoint(mr.left+x+d[0],mr.top+y+d[1]); return el&&(!mc0.contains(el)||!!el.closest('.leaflet-control,.wxread,.mapwx,button,.mk.fish,.mk.spot,.mk.dam,.mk.best,.mk.me')); })) continue;
     var ll=map.containerPointToLatLng([x,y]), isL=land(ll.lat,ll.lng)===1, lines=[];
@@ -183,7 +189,7 @@ function drawLabels(){
       if(hh!=null){ var g=Sx.grad?Sx.grad(hh):[52,168,120]; lines.push({deg:dd!=null?(dd+180)%360:null,txt:(U&&U.wave?U.wave(hh):B.num(hh,1)+' m'),col:g,wave:1,r:4+Math.min(5,hh*3.5)}); } }
     if(!lines.length) continue;
     var w=0; lines.forEach(function(l){ w=Math.max(w,c.measureText(l.txt).width); }); var bw=w+34, bh=lines.length*19+8, bx=x-bw/2, by=y-bh/2;
-    c.fillStyle='rgba(12,22,32,.78)'; rr(c,bx,by,bw,bh,9); c.fill();
+    c.fillStyle='rgba(12,22,32,.68)'; rr(c,bx,by,bw,bh,9); c.fill();
     lines.forEach(function(l,i){ var cy=by+4+i*19+9.5, col='rgb('+l.col.map(Math.round).join(',')+')';
       c.strokeStyle=l.wave?'#7fd3ff':'#fff'; c.lineWidth=1.4+(l.r-4)*0.25; if(l.deg!=null) arrowPath(c,bx+12,cy,l.deg,l.r); else { c.fillStyle='#7fd3ff'; c.fillRect(bx+7,cy-1,10,2); }
       c.fillStyle='#fff'; c.textAlign='left'; c.fillText(l.txt,bx+23,cy+0.5);
@@ -252,7 +258,7 @@ function sstDraw(){
   if(!sstOn||!mapOn()||!sstG){ sstCv.style.opacity='0'; B.sstLegend&&B.sstLegend(null); return; }
   var st=8, gw=Math.ceil(sz.x/st)+1, gh=Math.ceil(sz.y/st)+1, V=new Float32Array(gw*gh), A=new Uint8Array(gw*gh), lo=1e9, hi=-1e9, lat=[], lon=[];
   for(var y=0;y<gh;y++) lat.push(map.containerPointToLatLng([0,y*st]).lat); for(var x=0;x<gw;x++) lon.push(map.containerPointToLatLng([x*st,0]).lng);
-  var bbS=map.getBounds(), rkS=[bbS.getSouth(),bbS.getNorth(),bbS.getWest(),bbS.getEast()].map(function(v){ return v.toFixed(3); }).join(','); ringsFor(map); var rgS=RC.k===rkS?RC.r:null;
+  var bbS=map.getBounds(), rkS=[bbS.getSouth(),bbS.getNorth(),bbS.getWest(),bbS.getEast()].map(function(v){ return v.toFixed(3); }).join(','); var rgS=ringsFor(map);
   for(var yy=0;yy<gh;yy++) for(var xx=0;xx<gw;xx++){ if(!rgS&&land(lat[yy],lon[xx])===1) continue; var v=sstAt(lat[yy],lon[xx]); if(v==null) continue; var q=yy*gw+xx; V[q]=v; A[q]=1; if(v<lo) lo=v; if(v>hi) hi=v; }
   if(hi<lo){ sstCv.style.opacity='0'; B.sstLegend&&B.sstLegend(null); return; }
   var FIX=B.ls.get('alkyon-v4-sstscale','local')==='fixed', mid=(lo+hi)/2, span=FIX?16:Math.max(2,hi-lo), l0=FIX?14:mid-span/2, pc=document.createElement('canvas'); pc.width=gw; pc.height=gh; var px=pc.getContext('2d'), im=px.createImageData(gw,gh), d=im.data;

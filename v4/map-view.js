@@ -671,7 +671,10 @@ function modePaint(){ if(!root) return; var m=md.m;
   else if(m==='anchor'){ var a=md.anc||ls.get('alkyon-anchor',null)||{}, dd=a.d!=null?a.d:null, bad=dd!=null&&a.r&&dd>a.r;
     md.el.className='mcpanel anc'+(bad?' bad':''); md.el.append(cell(T('ΑΠΟ ΤΗΝ ΑΓΚΥΡΑ','FROM ANCHOR'),dd!=null?String(dd):'…','m · '+T('όριο ','limit ')+(a.r||'–')+' m'+(dd!=null?(bad?T(' · ΣΕΡΝΕΙ',' · DRAGGING'):T(' · δεν σέρνει',' · holding')):''),'wide')); tgt(); }
   else { if(B.troll&&B.troll.on&&B.troll.on()){ md.el.className='mcpanel off'; md.chip.hidden=false; return; }
-    md.el.className='mcpanel fish'; md.el.append(cell(T('ΤΑΧΥΤΗΤΑ','SPEED'),kn!=null?B.num(kn,1):'–','kn'),cell(T('ΒΥΘΟΣ ΚΑΤΩ ΣΟΥ','DEPTH BELOW'),!fixNow?T('χωρίς GPS','no GPS'):md.dep?(U&&U.depthP?U.depthP(md.dep)[0]:String(Math.round(md.dep))):(md.dep===false?T('–','–'):(navigator.onLine===false?T('χωρίς σήμα','offline'):'…')),md.dep?(U&&U.depthP?U.depthP(md.dep)[1]+(U.cfg.depth!=='m'?' · '+Math.round(md.dep)+' m':''):'m'):'')); tgt(); }
+    /* 1.8.4: και το ρεύμα στη θέση σου (πόσο και προς τα πού σε σπρώχνει) */
+    var cuF=fixNow&&B.curNear?B.curNear(fixNow.lat,fixNow.lon):null, cuC=null;
+    if(cuF&&cuF.kn>=0.05){ cuC=h('div',{class:'mpc'},h('i',{text:T('ΡΕΥΜΑ','CURRENT')}),h('b',{html:(B.arrowSvg?B.arrowSvg(cuF.dir,'#f0a640',18):'')+B.num(cuF.kn,1)}),h('small',{text:'kn '+COMP[Math.round(cuF.dir/45)%8]})); }
+    md.el.className='mcpanel fish'+(cuC?' f3':''); md.el.append(cell(T('ΤΑΧΥΤΗΤΑ','SPEED'),kn!=null?B.num(kn,1):'–','kn'),cell(T('ΒΥΘΟΣ ΚΑΤΩ ΣΟΥ','DEPTH BELOW'),!fixNow?T('χωρίς GPS','no GPS'):md.dep?(U&&U.depthP?U.depthP(md.dep)[0]:String(Math.round(md.dep))):(md.dep===false?T('–','–'):(navigator.onLine===false?T('χωρίς σήμα','offline'):'…')),md.dep?(U&&U.depthP?U.depthP(md.dep)[1]+(U.cfg.depth!=='m'?' · '+Math.round(md.dep)+' m':''):'m'):'')); if(cuC) md.el.append(cuC); tgt(); }
   md.chip.hidden=!md.el.classList.contains('off')&&!!md.el.className.match(/run|fish|anc/); }
 B.mapMode=function(){ return md.m; };
 function mapUI(){ return ls.get('alkyon-v4-mapui','')||''; }
@@ -679,7 +682,9 @@ B.setMapUI=function(v){ ls.set('alkyon-v4-mapui',v); document.body.classList.tog
 function mcSum(){ var c=nowCond(), U=window.AlkyonUnits, out=[]; var wr=document.querySelector('.wxread'); if(wr&&wr.offsetParent!==null||wr&&document.body.classList.contains('mapclean')){ var bs=[].map.call(wr.querySelectorAll('.rgi b'),function(x){ return x.textContent.trim(); }).filter(Boolean); if(bs.length) return bs.slice(0,2).join(' · '); } if(!c) return '';
   if(c.wind!=null) out.push((c.dir!=null?COMP[Math.round((((c.dir%360)+360)%360)/45)%8]+' ':'')+(U?U.wind(c.wind):Math.round(c.wind)+' kn')+(c.gust!=null&&c.gust>=c.wind+5?' ('+(U?U.wind(c.gust):Math.round(c.gust))+')':''));
   if(c.wave!=null) out.push(U?U.wave(c.wave):B.num(c.wave,1)+' m'); if(c.sst!=null&&out.length<2) out.push(U?U.temp(c.sst):Math.round(c.sst)+'°'); return out.join(' · '); }
-function mcBarHTML(){ if(!map||!B.wxAt) return ''; var U=window.AlkyonUnits, me=fixNow&&Date.now()-fixNow.t<120000&&document.body.classList.contains('ontrip'), c=me?{lat:fixNow.lat,lng:fixNow.lon}:(B.crossLL||map.getCenter()), v=B.wxAt(c.lat,c.lng), out=[], A=B.arrowSvg, onLand=isLandAt(c.lat,c.lng);
+function mcBarHTML(){ if(!map||!B.wxAt) return ''; var U=window.AlkyonUnits, me=fixNow&&Date.now()-fixNow.t<120000&&document.body.classList.contains('ontrip'), c=me?{lat:fixNow.lat,lng:fixNow.lon}:(B.crossLL||map.getCenter()), v=B.wxAt(c.lat,c.lng), out=[], A=B.arrowSvg;
+  /* 1.8.4: αν η θέση σου είναι έξω από την περιοχή που φαίνεται (δεν υπάρχουν τιμές εκεί), δείχνει τον σταυρό */ if(me&&v.wsp==null&&v.hs==null){ me=false; c=B.crossLL||map.getCenter(); v=B.wxAt(c.lat,c.lng); }
+  var onLand=isLandAt(c.lat,c.lng);
   function it(deg,col,val){ var m=/^(.*?)\s*([^\d\s.,]+)$/.exec(String(val)); return '<span class="mbi">'+(deg!=null&&A?A(deg,col,17):'')+'<b>'+(m?m[1]+'<small>'+m[2]+'</small>':val)+'</b></span>'; }
   if(v.wsp!=null) out.push(it(v.wdir!=null?(v.wdir+180)%360:null,'currentColor',U&&U.wind?U.wind(v.wsp):Math.round(v.wsp)+' kn'));
   if(v.hs!=null&&!onLand) out.push(it(v.hdir!=null?(v.hdir+180)%360:null,'#2a8fd0',U&&U.wave?U.wave(v.hs):B.num(v.hs,1)+' m'));

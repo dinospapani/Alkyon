@@ -872,3 +872,6 @@ body.mapclean.maptrip .mcbar .mbi{gap:2px}
 body.mapclean.maptrip .mcbar .mbw{font-size:11px}
 .mcbar .mbi b small{font:700 10.5px var(--font);margin-left:1px;opacity:.75}
 body.mapclean.maptrip .mcbar .mct{gap:5px}body.mapclean.maptrip .mcbar{padding:0 6px 0 10px!important}
+/* 1.8.4: κάρτα ΨΑΡΕΥΩ με τρίτη στήλη ΡΕΥΜΑ */
+.mcpanel.fish.f3{grid-template-columns:1fr 1.25fr 1fr}
+.mcpanel .mpc b svg{vertical-align:-2px;margin-right:3px}

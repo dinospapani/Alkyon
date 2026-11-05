@@ -142,10 +142,10 @@ function label(){
 }
 /* πλέγμα: g.lat[j], g.lon[i], g.m[k]={name,u[h],v[h]} (kn, προς τα πού πάει ο αέρας) · g.mean = μέσος όρος μοντέλων */
 function bil(A,lat,lon){
-  var g=grid, fy=(lat-g.lat[0])/(g.lat[N-1]-g.lat[0])*(N-1), fx=(lon-g.lon[0])/(g.lon[N-1]-g.lon[0])*(N-1);
-  if(!(fx>=0&&fx<=N-1&&fy>=0&&fy<=N-1)) return null;
-  var i=Math.min(N-2,Math.floor(fx)), j=Math.min(N-2,Math.floor(fy)), a=fx-i, bb=fy-j;
-  return A[j*N+i]*(1-a)*(1-bb)+A[j*N+i+1]*a*(1-bb)+A[(j+1)*N+i]*(1-a)*bb+A[(j+1)*N+i+1]*a*bb;
+  var g=grid, n=g.N||N, fy=(lat-g.lat[0])/(g.lat[n-1]-g.lat[0])*(n-1), fx=(lon-g.lon[0])/(g.lon[n-1]-g.lon[0])*(n-1);
+  if(!(fx>=0&&fx<=n-1&&fy>=0&&fy<=n-1)) return null;
+  var i=Math.min(n-2,Math.floor(fx)), j=Math.min(n-2,Math.floor(fy)), a=fx-i, bb=fy-j;
+  return A[j*n+i]*(1-a)*(1-bb)+A[j*n+i+1]*a*(1-bb)+A[(j+1)*n+i]*(1-a)*bb+A[(j+1)*n+i+1]*a*bb;
 }
 function vec(u,v){ var sp=Math.sqrt(u*u+v*v); return isFinite(sp)?{u:u,v:v,sp:sp,dir:(Math.atan2(-u,-v)*180/Math.PI+360)%360}:null; }
 function sampleSrc(src,h,lat,lon){ if(!grid) return null; var u=bil(src.u[h],lat,lon), v=bil(src.v[h],lat,lon); if(u==null||v==null) return null; return vec(u,v); }
@@ -195,6 +195,18 @@ async function fetchPx(px,set){
   var ac=new AbortController(), tm=setTimeout(function(){ ac.abort(); },30000);
   try{ var r=await fetch(u,{signal:ac.signal,headers:{apikey:SKEY,Authorization:'Bearer '+SKEY}}); if(!r.ok) throw new Error('HTTP '+r.status); var j=await r.json(); if(!j||!Array.isArray(j.data)||!Array.isArray(j.lat)||!Array.isArray(j.lon)||j.N!==N) throw new Error('badproxy'); return j; } finally{ clearTimeout(tm); }
 }
+/* 1.8.4: κοινό πλέγμα για τα νερά της Κύπρου, φτιαγμένο κάθε 3 ώρες από το GitHub (wind_build.py → κλαδί wind-data). Ένα αρχείο για όλους:
+   χωρίς όριο αιτημάτων όσο κι αν μεγαλώσουν οι χρήστες. Αν λείπει ή είναι παλιό (> 8 ώρες), πάμε στον παλιό δρόμο. */
+var ST_URL=window.ALKYON_WIND_STATIC||'https://raw.githubusercontent.com/dinospapani/alkyon/wind-data/cy-wind.json', ST_BOX=[33.0,36.4,31.0,35.8], stMem=null;
+function stInside(s,n,w,e){ return s>=ST_BOX[0]&&n<=ST_BOX[1]&&w>=ST_BOX[2]&&e<=ST_BOX[3]; }
+async function stFetch(){
+  if(stMem&&Date.now()-stMem.t<20*60e3) return stMem.j;
+  var ac=new AbortController(), tm=setTimeout(function(){ ac.abort(); },15000);
+  try{ var r=await fetch(ST_URL+'?h='+new Date().toISOString().slice(0,13),{signal:ac.signal}); if(!r.ok) throw new Error('HTTP '+r.status); var j=await r.json();
+    if(!j||j.v!==1||!Array.isArray(j.data)||j.data.length!==j.N*j.N||!j.data[0].hourly||!j.data[0].hourly.time) throw new Error('badstatic');
+    if(Date.now()-Date.parse(j.fetched_at)>8*3600e3) throw new Error('oldstatic');
+    stMem={t:Date.now(),j:j}; return j; } finally{ clearTimeout(tm); } }
+function namesOf(arr){ var H=arr[0].hourly, names=[]; Object.keys(H).forEach(function(k){ var m=k.match(/^wind_speed_10m_(.+)$/); if(m&&H['wind_direction_10m_'+m[1]]){ var ok=arr.every(function(p){ var a=p.hourly['wind_speed_10m_'+m[1]]; return a&&a.some(function(x){ return typeof x==='number'; }); }); if(ok) names.push({id:m[1],name:LABEL[m[1]]||m[1],sfx:'_'+m[1]}); } }); return names; }
 async function modelFetch(base,px){
   var err=null;
   for(var i=0;i<SETS.length;i++){
@@ -217,26 +229,28 @@ async function load(){
   var keepT=hours.length?hours[hi]:null, keepSc=panel?panel.scrollTop:0;
   if(!grid) drawPanel(T('Φόρτωση ανέμου…','Loading wind…'));
   try{
-    var px={s:s,n:n,w:w,e:e,meta:null}, mf=null, viaPx=false;
-    try{ mf=await modelFetch(base,px); viaPx=true; }catch(pe){ try{ console.warn('wind-grid',pe&&pe.message); }catch(e0){} px=null; } /* 1.7.4: αν η κοινή μνήμη απαντά 429 (κοινή IP του server), δοκιμάζουμε απευθείας από το κινητό, που έχει δικό του όριο */
+    var px={s:s,n:n,w:w,e:e,meta:null}, mf=null, viaPx=false, st=null;
+    if(stInside(s,n,w,e)){ try{ st=await stFetch(); var sn=namesOf(st.data); if(!sn.length) throw new Error('nodata'); mf={arr:st.data,names:sn}; }catch(se){ st=null; try{ console.warn('wind-static',se&&se.message); }catch(e1){} } }
+    if(!mf) try{ mf=await modelFetch(base,px); viaPx=true; }catch(pe){ try{ console.warn('wind-grid',pe&&pe.message); }catch(e0){} px=null; } /* 1.7.4: αν η κοινή μνήμη απαντά 429 (κοινή IP του server), δοκιμάζουμε απευθείας από το κινητό, που έχει δικό του όριο */
     if(id!==loadId||!on) return;
     if(!mf) mf=await modelFetch(base);
     if(id!==loadId||!on) return;
-    if(viaPx&&px&&px.meta){ lat=px.meta.lat; lon=px.meta.lon; wxSrc=px.meta.cached?(px.meta.stale?'stale':'cache'):'live'; wxAt=px.meta.fetched_at; } else { wxSrc='direct'; wxAt=null; }
-    var arr=mf.arr, names=mf.names; if(arr.length<N*N) throw new Error('short');
+    var NN=N; if(st){ lat=st.lat; lon=st.lon; NN=st.N; wxSrc='cache'; wxAt=st.fetched_at; }
+    else if(viaPx&&px&&px.meta){ lat=px.meta.lat; lon=px.meta.lon; wxSrc=px.meta.cached?(px.meta.stale?'stale':'cache'):'live'; wxAt=px.meta.fetched_at; } else { wxSrc='direct'; wxAt=null; }
+    var arr=mf.arr, names=mf.names; if(arr.length<NN*NN) throw new Error('short');
     var T0=arr[0].hourly.time, H=T0.length;
     var ms=names.map(function(nm){
-      var U=[],V=[]; for(var h=0;h<H;h++){ var uu=new Float32Array(N*N), vv=new Float32Array(N*N);
-        for(var q=0;q<N*N;q++){ var sp=arr[q].hourly['wind_speed_10m'+nm.sfx][h], d=arr[q].hourly['wind_direction_10m'+nm.sfx][h]*Math.PI/180; if(sp==null||d!=d){ sp=NaN; d=0; } uu[q]=-sp*Math.sin(d); vv[q]=-sp*Math.cos(d); }
+      var U=[],V=[]; for(var h=0;h<H;h++){ var uu=new Float32Array(NN*NN), vv=new Float32Array(NN*NN);
+        for(var q=0;q<NN*NN;q++){ var sp=arr[q].hourly['wind_speed_10m'+nm.sfx][h], d=arr[q].hourly['wind_direction_10m'+nm.sfx][h]*Math.PI/180; if(sp==null||d!=d){ sp=NaN; d=0; } uu[q]=-sp*Math.sin(d); vv[q]=-sp*Math.cos(d); }
         U.push(uu); V.push(vv); }
       return {name:nm.name,u:U,v:V};
     });
     /* μέσος όρος διανυσμάτων μόνο από τα μοντέλα που έχουν τιμή */
-    var MU=[],MV=[]; for(var h2=0;h2<H;h2++){ var mu=new Float32Array(N*N), mv=new Float32Array(N*N);
-      for(var q2=0;q2<N*N;q2++){ var su=0,sv=0,c=0; ms.forEach(function(m){ var x=m.u[h2][q2]; if(x===x){ su+=x; sv+=m.v[h2][q2]; c++; } }); mu[q2]=c?su/c:0; mv[q2]=c?sv/c:0; }
+    var MU=[],MV=[]; for(var h2=0;h2<H;h2++){ var mu=new Float32Array(NN*NN), mv=new Float32Array(NN*NN);
+      for(var q2=0;q2<NN*NN;q2++){ var su=0,sv=0,c=0; ms.forEach(function(m){ var x=m.u[h2][q2]; if(x===x){ su+=x; sv+=m.v[h2][q2]; c++; } }); mu[q2]=c?su/c:0; mv[q2]=c?sv/c:0; }
       MU.push(mu); MV.push(mv); }
     ms.forEach(function(m){ m.u.forEach(function(a){ for(var z=0;z<a.length;z++) if(a[z]!==a[z]) a[z]=0; }); m.v.forEach(function(a){ for(var z=0;z<a.length;z++) if(a[z]!==a[z]) a[z]=0; }); });
-    grid={lat:lat,lon:lon,m:ms,mean:{name:T('Μέσος όρος','Average'),u:MU,v:MV}}; hours=T0;
+    grid={lat:lat,lon:lon,N:NN,st:!!st,m:ms,mean:{name:T('Μέσος όρος','Average'),u:MU,v:MV}}; hours=T0;
     if(SEL>ms.length) SEL=0;
     var nowK=new Date().toISOString().slice(0,13); hi=0; for(var z2=0;z2<hours.length;z2++){ if(hours[z2].slice(0,13)<=nowK) hi=z2; } nowIdx=hi;
     if(keepT){ var ki=hours.indexOf(keepT); if(ki>=0) hi=ki; }
@@ -313,7 +327,7 @@ function loop(ts){
   }
   ctx.globalAlpha=1;
 }
-function moved(){ if(!on) return; clear(); clearTimeout(mvT); mvT=setTimeout(function(){ if(!on) return; var b=map.getBounds(); if(!grid||!(b.getSouth()>=grid.lat[0]-0.001&&b.getNorth()<=grid.lat[N-1]+0.001&&b.getWest()>=grid.lon[0]-0.001&&b.getEast()<=grid.lon[N-1]+0.001)||map.getBounds().getNorth()-map.getBounds().getSouth()<(grid.lat[N-1]-grid.lat[0])/3) load(); else{ seed(); label(); } },600); }
+function moved(){ if(!on) return; clear(); clearTimeout(mvT); mvT=setTimeout(function(){ if(!on) return; var b=map.getBounds(); var L1=grid?grid.lat.length-1:0, O1=grid?grid.lon.length-1:0; if(!grid||!(b.getSouth()>=grid.lat[0]-0.001&&b.getNorth()<=grid.lat[L1]+0.001&&b.getWest()>=grid.lon[0]-0.001&&b.getEast()<=grid.lon[O1]+0.001)||(!grid.st&&map.getBounds().getNorth()-map.getBounds().getSouth()<(grid.lat[L1]-grid.lat[0])/3)) load(); else{ seed(); label(); } },600); }
 function onUnits(){ if(!on) return; drawPanel(); drawStations(); label(); }
 function start(opt){ if(on) return; on=true; shown=!(opt&&opt.hidden); document.body.classList.add('ndwind'); ensure(); cv.style.display=shown?'block':'none'; btn.setAttribute('aria-pressed',String(shown)); btn.classList.toggle('on',shown); fit(); map.on('moveend zoomend resize',moved); map.getContainer().addEventListener('click',onTap,true); window.addEventListener('alkyon-units',onUnits); window.addEventListener('resize',fit); load(); }
 function stop(){ pause(); on=false; try{ window.dispatchEvent(new Event('alkyon-windstop')); }catch(e){} document.body.classList.remove('ndwind'); document.documentElement.style.removeProperty('--ndwh'); loadId++; btn.setAttribute('aria-pressed','false'); btn.classList.remove('on'); map.off('moveend zoomend resize',moved); try{ map.getContainer().removeEventListener('click',onTap,true); }catch(e){} window.removeEventListener('alkyon-units',onUnits); clearTap(); if(raf){ cancelAnimationFrame(raf); raf=0; } if(cv) cv.style.display='none'; if(panel){ panel.remove(); panel=null; } shown=false; clear(); parts=[]; var D=document.getElementById('ndMapDock'); if(D&&D._sync) D._sync(); }
