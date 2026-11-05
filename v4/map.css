@@ -952,3 +952,40 @@ body.mapon.trsim .fishbtns{display:flex} /* 1.8.9: ψάρι και στη δοκ
 .leaflet-tooltip.simtip{background:#d84315;color:#fff;border:0;border-radius:8px;font-weight:800;font-size:12px;padding:2px 8px;box-shadow:0 2px 6px rgba(0,0,0,.3)}.leaflet-tooltip.simtip:before{display:none}
 .trside .tsup{display:block;width:100%;margin:4px 0 0;padding:6px;border:0;background:none;color:var(--accent,#c2410c);font-weight:700;font-size:13px;text-align:left}
 .simsum h4{margin:14px 0 6px;font-size:13px}.simsum .simsv{border-radius:10px;overflow:hidden;background:#eef6fb}
+/* 1.8.13: κάρτα συρτής με τα χρώματα του θέματος (σκούρο/ανοιχτό) — πριν ήταν πάντα λευκή και στο σκούρο θέμα τα γράμματα χάνονταν */
+:root{--tr-warn-bg:#fff1e6;--tr-warn:#c2541f;--tr-deep-bg:#e9f3fb;--tr-deep:#1d6fa3;--tr-ok:#1f9a55;--tr-sim-bg:#fff4c2;--tr-sim:#5a4500;--tr-head:#b8511d}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--tr-warn-bg:#3d2414;--tr-warn:#ff9a66;--tr-deep-bg:#123a52;--tr-deep:#7cc4ee;--tr-ok:#3dbe85;--tr-sim-bg:#3a2f0a;--tr-sim:#ffe08a;--tr-head:#ff8a57}}
+:root[data-theme=dark]{--tr-warn-bg:#3d2414;--tr-warn:#ff9a66;--tr-deep-bg:#123a52;--tr-deep:#7cc4ee;--tr-ok:#3dbe85;--tr-sim-bg:#3a2f0a;--tr-sim:#ffe08a;--tr-head:#ff8a57}
+.trside{background:var(--surface,#fff);color:var(--ink,#0b1f2a)}
+.trside .tsh b{color:var(--tr-head)}
+.trside .tsc{background:var(--surface-2,#f2f5f6);color:var(--ink)}
+.trside .tsc.warn{background:var(--tr-warn-bg)}.trside .tsc.warn b,.trside .tsc.warn small,.trside .tsc.warn i{color:var(--tr-warn)}
+.trside .tsc.deep{background:var(--tr-deep-bg)}.trside .tsc.deep b,.trside .tsc.deep small{color:var(--tr-deep)}
+.trside .tsc.ok b{color:var(--tr-ok)}
+.trside .tsiso{color:var(--ink)}.trside .tsiso b{color:var(--tr-deep)}
+.trside .tssim{background:var(--tr-sim-bg);color:var(--tr-sim)}
+.trside .tsup{color:var(--accent)}
+.simsum .simsv{background:var(--surface-2)}
+html.night .trside{background:#1a0000;color:#fff}html.night .trside .tsc{background:#2a0000;color:#fff}
+.trside .tsdep{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px}.trside .tsdep span{background:var(--surface-2);border-radius:10px;padding:4px 8px;min-width:0}.trside .tsdep small{display:block;font:800 9px var(--font);letter-spacing:.05em;color:var(--ink-2)}.trside .tsdep b{font:800 15px var(--font);white-space:nowrap}
+.trside .tsc i{white-space:normal}
+/* 1.8.13: απλή κάρτα */
+.trside .tsact{margin-top:6px;padding:9px 12px;border-radius:12px;font:900 18px/1.15 var(--font);letter-spacing:.01em;background:var(--surface-2);color:var(--ink)}
+.trside .tsact.warn{background:#e8590c;color:#fff}.trside .tsact.deep{background:#1d6fa3;color:#fff}.trside .tsact.ok{background:var(--tr-ok);color:#fff}.trside .tsact.na{font-size:14px;color:var(--ink-2)}
+.trside .tsbig{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
+.trside .tsbig>div{background:var(--surface-2);border-radius:12px;padding:6px 9px;min-width:0}
+.trside .tsbig small{display:block;font:800 9.5px var(--font);letter-spacing:.05em;color:var(--ink-2)}
+.trside .tsbig b{display:block;font:900 24px/1.1 var(--font)}
+.trside .tsbig i{display:block;font:600 11px/1.25 var(--font);font-style:normal;color:var(--ink-2)}
+.trside .tsbig .bad{background:#c62828;color:#fff}.trside .tsbig .bad small,.trside .tsbig .bad i{color:#fff}
+.trside .tsn2{flex:0 0 auto;text-align:center;line-height:1;padding:0 2px}.trside .tsn2 b{display:block;font:900 20px var(--font)}.trside .tsn2 small{font:700 9.5px var(--font);color:var(--ink-2)}
+.trside .tsb .btn:nth-child(3){flex:1 1 0}.trside .tsb:has(.tsn2) .btn:nth-child(4){flex:2.2 1 0}.trside .tsb:has(.tsn2) .btn{padding-left:4px!important;padding-right:4px!important}
+/* 1.8.13: βυθόμετρο, ισοβαθής, ψάρι μπροστά */
+.trside .tsact span{display:block}.trside .tsact small{display:block;margin-top:2px;font:700 12px var(--font);opacity:.92}
+.trside .tsbig .tsbt{all:unset;box-sizing:border-box;cursor:pointer;background:var(--surface-2);border-radius:12px;padding:6px 9px;min-width:0;display:block;color:var(--ink);outline:1.5px dashed var(--line);outline-offset:-3px}
+.trside .tsbig .tsbt:active{filter:brightness(.92)}
+.trside .tsfish{margin-top:6px;padding:7px 10px;border-radius:12px;background:#1b5e20;color:#fff;font:800 13.5px var(--font)}
+.isolab span{display:inline-block;transform:translate(-50%,-50%);background:#00e5ff;color:#003040;font:900 12px var(--font);padding:2px 7px;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.35);white-space:nowrap}
+.trside .tsmin{all:unset;cursor:pointer;width:30px;height:24px;margin:-2px 4px -2px -4px;border-radius:8px;text-align:center;font:900 15px/24px var(--font);background:var(--surface-2);color:var(--ink)}
+.trside .tsh{justify-content:flex-start}.trside .tsh span{margin-left:auto}
+.trside.mini .tsv,.trside.mini .tsbig,.trside.mini .tsiso,.trside.mini .tsup,.trside.mini .tsdep,.trside.mini .tsn,.trside.mini .tsg{display:none}
