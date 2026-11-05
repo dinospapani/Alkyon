@@ -220,7 +220,17 @@ window.addEventListener('alkyon-depthmode',function(e){ dm=e&&e.detail?e.detail.
 map.on('moveend',function(){ if(active()) refresh(); });
 var bl=document.getElementById('bLayer'); if(bl) bl.addEventListener('click',function(){ setTimeout(function(){ if(active()&&cache.length) update(); },200); });
 window.AlkyonBathy={fetchGrid:fetchGrid};
-window.AlkyonDense={setMode:setMode,on:active,parse:parseTiff,contour:contour,mode:function(){ return mode; },update:update};
+/* 1.8.7: πλέγμα βάθους γύρω από ένα σημείο (για την πλάγια όψη της συρτής βυθού): ±rad μέτρα, κρατιέται όσο το σημείο είναι μέσα του */
+var areaG=null, areaP=null;
+function sampleG(g,lat,lon){ if(!g) return null; var fx=(lon-g.x0)/g.dx-0.5, fy=(lat-g.y0)/g.dy-0.5; if(fx<0||fy<0||fx>g.w-1||fy>g.h-1) return null;
+  var i=Math.floor(fx), j=Math.floor(fy), a=fx-i, b=fy-j, i1=Math.min(g.w-1,i+1), j1=Math.min(g.h-1,j+1), D=g.data;
+  var v00=D[j*g.w+i], v10=D[j*g.w+i1], v01=D[j1*g.w+i], v11=D[j1*g.w+i1]; if(!(v00>0&&v10>0&&v01>0&&v11>0)){ var m=Math.max(v00,v10,v01,v11); return m>0&&a<0.5&&b<0.5&&v00>0?v00:null; }
+  return v00*(1-a)*(1-b)+v10*a*(1-b)+v01*(1-a)*b+v11*a*b; }
+function area(lat,lon,rad){ rad=rad||2500; var dla=rad/111320, dlo=rad/(111320*Math.cos(lat*Math.PI/180)), inner={w:lon-dlo*0.45,e:lon+dlo*0.45,s:lat-dla*0.45,n:lat+dla*0.45};
+  if(areaG&&covers(areaG,inner)) return Promise.resolve(areaG); if(areaP) return areaP;
+  var b={w:+(lon-dlo).toFixed(4),e:+(lon+dlo).toFixed(4),s:+(lat-dla).toFixed(4),n:+(lat+dla).toFixed(4)};
+  areaP=fetchGrid(b,CELL).then(function(g){ areaG=g; areaP=null; return g; }).catch(function(e){ areaP=null; throw e; }); return areaP; }
+window.AlkyonDense={setMode:setMode,on:active,parse:parseTiff,contour:contour,mode:function(){ return mode; },update:update,area:area,at:sampleG,grid:function(){ return areaG; }};
 dm=window.AlkyonDepthMode?window.AlkyonDepthMode():(+C.lsGet('alkyon-depth',0)||0);
 sync();
 if(dm===2&&mode!=='std'&&window.AlkyonDepthRefresh) window.AlkyonDepthRefresh();
