@@ -1,0 +1,852 @@
+/* Alkyon 4 · Χάρτης */
+body.mapon .app{padding:0;max-width:none}
+.mapbox{position:fixed;inset:0;z-index:1;background:#0b2230;overflow:hidden}
+.lmap{position:absolute;inset:0}
+.mapbar{position:fixed;right:12px;top:calc(var(--safe-t) + 12px);z-index:20;display:flex;flex-direction:column;gap:10px}
+.mapbar .iconbtn{width:46px;height:46px}
+.cross{position:fixed;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;z-index:10;pointer-events:none;opacity:.5}
+.cross::before,.cross::after{content:"";position:absolute;background:#fff;box-shadow:0 0 2px #000}
+.cross::before{left:10px;top:0;width:2px;height:22px}.cross::after{top:10px;left:0;height:2px;width:22px}
+.tripbtn{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--nav-h) + var(--safe-b) + 22px);z-index:20;display:inline-flex;align-items:center;min-height:48px;padding:0 22px;border-radius:99px;background:var(--surface);color:var(--ink);font-weight:700;text-decoration:none;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.tripbtn.on{background:var(--good);color:#fff}
+.leaflet-container{font-family:var(--font)}
+.leaflet-control-attribution{font-size:10px;margin-bottom:calc(var(--nav-h) + var(--safe-b) + 14px)!important}
+.mk{background:none;border:0}
+.mk.spot{display:flex;align-items:center;gap:4px;translate:-9px -9px;white-space:nowrap}
+.mk.spot i{width:18px;height:18px;border-radius:50%;background:var(--accent);border:2.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.5)}
+.mk.spot b{font:700 12px var(--font);color:#fff;text-shadow:0 1px 3px #000,0 0 2px #000}
+.mk.fish{width:14px;height:14px;border-radius:50%;background:#2fb6e8;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.5);translate:-7px -7px}
+.mk.fish.many{width:24px;height:24px;translate:-12px -12px;display:grid;place-items:center}
+.mk.fish.many b{font:800 11px var(--font);color:#fff}
+.mk.me i{display:block;width:18px;height:18px;border-radius:50%;background:#1e88ff;border:3px solid #fff;box-shadow:0 0 0 6px rgba(30,136,255,.25);transform:translate(-9px,-9px)}
+.meacc{fill:#1e88ff;fill-opacity:.08;stroke:#1e88ff;stroke-opacity:.3;stroke-width:1}
+.mk.dam{display:flex;flex-direction:column;align-items:center;translate:-50% -50%}
+.mk.dam b{display:grid;place-items:center;min-width:34px;height:24px;padding:0 6px;border-radius:12px;background:#1c6e8c;color:#fff;font:800 11.5px var(--font);border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.5)}
+.mk.dam.poor b{background:var(--poor)}
+.mk.dam i{font:700 11px var(--font);font-style:normal;color:#fff;text-shadow:0 1px 3px #000;white-space:nowrap;margin-top:2px}
+.mk.wind{display:flex;flex-direction:column;align-items:center;translate:-50% -50%;pointer-events:none}
+.mk.wind i{font:900 20px/1 var(--font);font-style:normal;color:#fff;text-shadow:0 0 3px #000,0 0 6px #000;display:block}
+.mk.wind b{font:800 11px var(--font);color:#fff;background:rgba(10,38,51,.75);padding:1px 5px;border-radius:6px}
+.mk.wind.fair b{background:var(--fair);color:#1a1200}.mk.wind.poor b{background:var(--poor)}
+/* έξοδος */
+.tripbar{position:fixed;left:12px;right:12px;bottom:calc(var(--nav-h) + var(--safe-b) + 16px);z-index:45;max-width:536px;margin:0 auto;min-height:44px;padding:0 16px;border:0;border-radius:14px;background:var(--good);color:#fff;font:700 14.5px var(--font);box-shadow:0 8px 22px rgba(0,0,0,.3);text-align:left}
+.tripbar[hidden]{display:none}
+.tripbar.late{background:var(--poor);animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.75}}
+body.ontrip .app{padding-bottom:calc(var(--nav-h) + var(--safe-b) + 52px)}
+body.ontrip .tripbtn{display:none}
+.seabar{position:fixed;left:12px;top:calc(var(--safe-t) + 12px);z-index:20;display:flex;flex-direction:column;gap:10px}
+.mobbtn{display:none;width:58px;height:58px;border-radius:50%;border:3px solid #fff;background:#ff3b30;color:#fff;font:900 15px var(--font);box-shadow:0 6px 16px rgba(0,0,0,.4)}
+body.maptrip .mobbtn{display:block}
+.ancbtn{font-size:20px;width:46px;height:46px}
+.mk.mob b{display:block;padding:3px 7px;border-radius:8px;background:#ff3b30;color:#fff;font:900 12px var(--font);border:2px solid #fff;transform:translate(-50%,-50%)}
+.ancalarm{position:fixed;left:12px;right:12px;top:calc(var(--safe-t) + 12px);z-index:200;max-width:540px;margin:0 auto;padding:14px;border-radius:16px;background:#c62828;color:#fff;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.ancalarm[hidden]{display:none}
+.ancalarm b{display:block;font-size:20px}.ancalarm span{display:block;margin:4px 0 10px}
+.btn.sos{background:#c62828;color:#fff;font-size:18px;font-weight:800;min-height:54px}
+.tripcard.late{background:var(--poor-bg)}
+.micmap{display:none;width:52px;height:52px;margin-left:3px}
+body.maptrip .micmap{display:inline-grid}
+/* μονάδες καιρού της κλασικής (άνεμος, κατάσταση θάλασσας, σταθμοί, γραμμές βάθους) */
+:root{--navh:calc(var(--nav-h) + 8px);--card:var(--surface)}
+.mapbtns{display:flex;flex-direction:column;gap:10px}
+.mapbtns .mbtn{display:inline-grid;place-items:center;width:46px;height:46px;border-radius:50%;border:0;background:var(--surface);color:var(--ink);box-shadow:var(--shadow);padding:0}
+.mapbtns .mbtn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.mapbtns .mbtn[aria-pressed=true]{background:var(--accent);color:#fff}
+#bWindSt{display:none!important}
+body:not(.mapon) #ndMapDock,body:not(.mapon) #dlChips{display:none!important}
+#ndMapDock{z-index:40!important;background:var(--surface)!important;color:var(--ink)!important;border-color:var(--line)!important;max-width:540px;margin:0 auto}
+#ndMapDock .btn{min-height:40px;padding:0 12px;font-size:14px;border-radius:12px}
+#ndMapDock .btn.ghost{background:var(--surface-2);color:var(--ink);box-shadow:none}
+#ndMapDock .note{color:var(--ink-2);margin:4px 0 0;line-height:1.4}
+#ndMapDock label.f{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--ink-2)}
+#ndMapDock select{min-height:38px;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);padding:0 8px;font-size:14px}
+#ndMapDock input[type=range]{accent-color:var(--accent)}
+body.mapon:has(#ndMapDock:not([hidden])) .tripbtn{bottom:calc(var(--nav-h) + var(--safe-b) + 40px + var(--ndwh,0px))}
+#dlChips{position:absolute;left:12px;top:calc(var(--safe-t) + 74px);z-index:800;display:flex;flex-wrap:wrap;gap:6px;align-items:center;max-width:calc(100% - 90px);pointer-events:none}
+#dlChips[hidden]{display:none}
+#dlChips>*{pointer-events:auto}
+#dlChips button{font:650 12.5px/1 var(--font);padding:8px 11px;border-radius:99px;border:0;background:rgba(10,38,51,.82);color:#fff}
+#dlChips button[aria-pressed=true]{background:var(--accent)}
+#dlChips .dlst{font:600 11.5px/1.2 var(--font);color:#fff;background:rgba(10,38,51,.7);padding:5px 9px;border-radius:10px}
+#dlChips .dlst:empty{display:none}
+body.maptrip #dlChips{top:calc(var(--safe-t) + 200px)}
+.tgsub{display:block;font-size:12.5px;font-weight:500;color:var(--ink-2);margin-top:2px}
+#bPorts{display:none!important}
+/* λιμάνια */
+.leaflet-popup-content .pop b{display:block;font-size:15px;margin-bottom:3px}
+.pop .pk{color:#4B6570;font-size:13px}
+.pop .pbtns{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.pop .pb{min-height:36px;padding:0 12px;border-radius:10px;border:0;background:#E4572E;color:#fff;font:650 13px var(--font)}
+.pop .pb.g{background:#E9F0EF;color:#0A2633}
+.pop .pb.pgo{background:#0A2633}
+.leaflet-tooltip.lbl{background:var(--surface);color:var(--ink);border:1px solid var(--line);font-weight:600}
+/* πήγαινε εκεί */
+.dtbar{position:fixed;left:12px;right:70px;top:calc(var(--safe-t) + 12px);z-index:21;display:flex;align-items:center;gap:10px;padding:10px 10px 10px 12px;border-radius:16px;background:rgba(10,38,51,.92);color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.3);max-width:440px}
+.dtbar[hidden]{display:none}
+.dtbar .dtic svg{width:22px;height:22px;fill:#E4572E}
+.dtbar .dtmain{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.dtbar .dtname{font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dtbar .dtinfo{font-size:13.5px;font-weight:600;font-variant-numeric:tabular-nums;opacity:.92}
+.dtbar .dtx{flex:none;width:36px;height:36px;border-radius:50%;border:0;background:rgba(255,255,255,.16);color:#fff;font-size:16px}
+body.hasdt .seabar{top:calc(var(--safe-t) + 84px)}
+body.maptrip.hasdt .dtbar{top:calc(var(--safe-t) + 70px)}
+.mk.dtgt i{display:block;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:#E4572E;border:4px solid #fff;box-shadow:0 0 0 3px rgba(228,87,46,.35),0 2px 6px rgba(0,0,0,.4)}
+/* κουμπιά ψαριού κατά την έξοδο */
+.fishbtns{display:none;position:fixed;right:12px;bottom:calc(var(--nav-h) + var(--safe-b) + 76px);z-index:22;flex-direction:column;gap:12px}
+body.maptrip .fishbtns{display:flex}
+.fb{position:relative;width:64px;height:64px;border-radius:50%;border:3px solid #fff;display:grid;place-items:center;box-shadow:0 6px 16px rgba(0,0,0,.35);touch-action:manipulation;-webkit-user-select:none;user-select:none}
+.fb svg{width:36px;height:27px}
+.fb.fbc{background:#1f9d6b;color:#fff}
+.fb.fbm{background:#d64532;color:#fff}
+.fb b{position:absolute;top:-6px;right:-6px;min-width:24px;height:24px;padding:0 6px;border-radius:12px;background:#fff;color:#0A2633;font:800 13px/24px var(--font);box-shadow:0 1px 4px rgba(0,0,0,.3)}
+body.mapon:has(#ndMapDock:not([hidden])) .fishbtns{bottom:calc(var(--nav-h) + var(--safe-b) + 40px + var(--ndwh,0px))}
+.dlpb{height:8px;border-radius:99px;background:var(--surface-2);overflow:hidden;margin:6px 0}
+.dlpb i{display:block;height:100%;background:var(--accent)}
+/* γραμμή επιστροφής */
+.rtwrap{position:fixed;left:12px;bottom:calc(var(--nav-h) + var(--safe-b) + 76px);z-index:21;display:flex;flex-direction:column;align-items:flex-start;gap:6px;max-width:calc(100% - 110px)}
+body:not(.maptrip) .rtwrap{display:none}
+.rtchip{min-height:40px;padding:0 14px;border:0;border-radius:99px;background:rgba(10,38,51,.9);color:#fff;font:650 13.5px var(--font);box-shadow:0 4px 12px rgba(0,0,0,.3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.rtchip[hidden]{display:none}
+.rtchip.warn{background:#b7791f}
+.rtchip.bad{background:#c53030}
+.rtmsg{padding:8px 12px;border-radius:12px;background:rgba(10,38,51,.9);color:#fff;font-size:13px;line-height:1.35}
+.rtmsg[hidden]{display:none}
+
+/* βέλος πορείας στη θέση σου */
+.mk.me.hd i::after{content:"";position:absolute;left:50%;top:-14px;width:0;height:0;margin-left:-6px;border:6px solid transparent;border-bottom:10px solid #1e88ff;transform-origin:6px 23px;transform:rotate(var(--hd,0deg))}
+.mk.me i{position:relative}
+/* προσανατολισμός χάρτη (NU / CU / HU) κατά την έξοδο */
+.mo-btn{position:fixed;left:12px;top:calc(var(--safe-t) + 210px);z-index:710;width:52px;height:52px;border-radius:50%;border:0;background:var(--surface);color:var(--ink);font:800 14px/1 var(--font);box-shadow:var(--shadow)}
+.mo-btn.on{background:var(--accent);color:#fff}
+.mo-btn.wait{opacity:.7}
+body:not(.ontrip) .mo-btn,body:not(.mapon) .mo-btn{display:none!important}
+body.hasdt .mo-btn{top:calc(var(--safe-t) + 282px)}
+.mapbox.mrot .leaflet-marker-icon:not(.mk)>div:not(.you){transform:rotate(var(--mc,0deg))}
+.mapbox.mrot .leaflet-popup{rotate:var(--mc,0deg);transition:opacity .2s linear,rotate .35s linear}
+/* v31z526: η αντίστροφη περιστροφή (για να μένουν όρθια τα σημάδια) γίνεται γύρω από το σημείο του σημαδιού, όχι γύρω από τη γωνία του χάρτη.
+   Η θέση μου / το σκάφος δεν γυρίζει αντίστροφα: σε CU/HU ήδη δείχνει προς τα πάνω. */
+.mapbox.mrot .leaflet-marker-icon.mk:not(.me):not(.rpboat)>*{rotate:var(--mc,0deg);transform-origin:0 0}
+#bNav{display:none!important}
+.zonewarn.navwarn{position:fixed;left:12px;right:12px;top:calc(var(--safe-t) + 70px);z-index:30;padding:12px 14px;border-radius:14px;color:#fff;font-weight:700;font-size:14px;box-shadow:0 6px 18px rgba(0,0,0,.35);max-width:540px;margin:0 auto}
+.zonewarn[hidden]{display:none}
+.navpopw .note{font-size:12.5px;color:#4B6570}
+.navpopw .btn{min-height:34px;padding:0 10px;font-size:13px;border-radius:10px}
+/* κάρτα καιρού */
+.mapwx{position:fixed;left:76px;right:70px;top:calc(var(--safe-t) + 12px);z-index:19;display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;justify-content:center;padding:8px 12px;border-radius:16px;background:color-mix(in srgb,var(--surface) 92%,transparent);box-shadow:var(--shadow);max-width:400px;margin:0 auto;cursor:pointer}
+.mapwx[hidden]{display:none}
+.mapwx .mw{display:flex;flex-direction:column;align-items:center;line-height:1.15}
+.mapwx .mw b{font-size:14.5px;font-weight:750;white-space:nowrap}
+.mapwx .mw span{font-size:11px;color:var(--ink-2)}
+.mapwx .mwempty{font-size:12.5px;color:var(--ink-2)}
+.mapwx .mwopt{min-height:32px;padding:0 10px;border-radius:99px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);font:600 12.5px var(--font)}
+.mapwx .mwopt[aria-pressed=true]{background:var(--accent);color:#fff;border-color:transparent}
+.mapwx .mwopt.ok{background:var(--ink);color:var(--bg)}
+body.hasdt .mapwx{top:calc(var(--safe-t) + 84px)}
+/* ρεύματα */
+.mk.cur{pointer-events:none}
+.mk.cur .cw{display:flex;flex-direction:column;align-items:center;transform:translate(-50%,-50%)}
+.mk.cur i{display:block;font-style:normal;font-weight:900;font-size:22px;line-height:1;color:#8fe3ff;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+.mk.cur.mid i{color:#ffd166}.mk.cur.strong i{color:#ff6b5a}
+.mk.cur b{font-size:11px;font-weight:800;color:#fff;background:rgba(10,38,51,.75);padding:1px 5px;border-radius:6px;white-space:nowrap}
+/* στρώματα χάρτη: πλακίδια */
+.lyr .lyh{margin:18px 2px 10px;font-size:13px;font-weight:750;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-2)}
+.lyr .lyh:first-child{margin-top:0}
+.lbase{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.lbt{display:flex;flex-direction:column;gap:8px;align-items:stretch;padding:0;border:0;background:none;color:var(--ink);font:650 14.5px var(--font);text-align:center}
+.lbt .lprev{display:block;height:78px;border-radius:16px;border:3px solid transparent;box-shadow:var(--shadow);background-size:cover;background-position:center}
+.lbt.sat .lprev{background:radial-gradient(circle at 30% 40%,#3e5a3a 0 18%,transparent 19%),radial-gradient(circle at 70% 70%,#6b5a3a 0 22%,transparent 23%),linear-gradient(135deg,#0b3b57,#155b75 55%,#5a6b45 56%,#8a7a52)}
+.lbt.osm .lprev{background:linear-gradient(90deg,transparent 47%,#f3c86b 47% 53%,transparent 53%),linear-gradient(0deg,transparent 60%,#fff 60% 65%,transparent 65%),linear-gradient(135deg,#aad3df 0 40%,#f2efe9 40%)}
+.lbt[aria-pressed=true] .lprev{border-color:var(--accent)}
+.lbt[aria-pressed=true] b{color:var(--accent)}
+.lgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.ltile{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:4px;min-height:96px;padding:12px 6px;border-radius:16px;border:2px solid transparent;background:var(--surface);box-shadow:var(--shadow);color:var(--ink);text-align:center;transition:background .15s,border-color .15s}
+.ltile .lic{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:var(--surface-2);color:var(--ink-2);margin-bottom:2px}
+.ltile .lic svg,.lacts .lic svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.ltile b{font-size:13.5px;font-weight:700;line-height:1.2}
+.ltile small{font-size:11.5px;color:var(--ink-2);line-height:1.2}
+.ltile[aria-pressed=true]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--surface))}
+.ltile[aria-pressed=true] .lic{background:var(--accent);color:#fff}
+.ltile:disabled{opacity:.5}
+.ldepth{display:flex;flex-direction:column;gap:8px}
+.lacts .lic{display:grid;place-items:center;color:var(--ink-2)}
+/* κατά την έξοδο η θέση σου γίνεται βαρκάκι που γυρίζει με την πορεία (όπως η κλασική) */
+body.ontrip .mk.me i{width:34px;height:34px;border:0;border-radius:0;box-shadow:none;transform:translate(-17px,-17px) rotate(var(--hd,0deg));transition:transform .4s linear;filter:drop-shadow(0 2px 3px rgba(0,0,0,.55));background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 1.5C22 8 24.5 17 22.5 30H9.5C7.5 17 10 8 16 1.5z' fill='%23ff6a2a' stroke='%23fff' stroke-width='2.4' stroke-linejoin='round'/%3E%3Crect x='12' y='15' width='8' height='8' rx='1.5' fill='%23fff' stroke='%23123' stroke-width='.8'/%3E%3Cpath d='M16 5.5v6' stroke='%23fff' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E") center/contain no-repeat}
+body.ontrip .mk.me.hd i::after{display:none}
+/* σημείο παρατεταμένου πατήματος */
+.mk.tapdot i{display:block;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:rgba(228,87,46,.25);border:3px solid #E4572E;box-shadow:0 0 0 6px rgba(228,87,46,.18)}
+.pmhead{display:flex;flex-direction:column;gap:4px;margin:0 2px 14px}
+.pmc{font-size:19px;font-variant-numeric:tabular-nums}
+.pmsub{color:var(--ink-2);font-size:13.5px}
+.pmgrid .ltile{min-height:84px}
+.pmgrid .ltile.go .lic{background:#1f9d6b;color:#fff}
+.pmgrid .ltile.bad .lic{background:#d64532;color:#fff}
+/* κουμπί έναρξης εξόδου με βαρκάκι */
+.tripbtn{gap:10px;background:var(--accent)!important;color:#fff!important;font-weight:750;box-shadow:0 8px 22px rgba(228,87,46,.45)!important;padding:0 22px 0 14px}
+.tripbtn .tbic{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.22)}
+.tripbtn .tbic svg{width:22px;height:22px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* ειδοποιήσεις εξόδου (πίεση, μπαταρία) */
+.tripal{position:fixed;left:12px;right:12px;top:calc(var(--safe-t) + 12px);z-index:150;max-width:540px;margin:0 auto;display:flex;gap:10px;align-items:flex-start;padding:12px 12px 12px 14px;border-radius:14px;background:#b26a00;color:#fff;font:600 14px/1.4 var(--font);box-shadow:0 10px 26px rgba(0,0,0,.4)}
+.tripal.bat{background:#c62828}
+.tripal span{flex:1}
+.tripal .x{flex:none;width:32px;height:32px;border:0;border-radius:50%;background:rgba(255,255,255,.2);color:#fff;font-size:15px}
+/* ψαροντούφεκο στην έξοδο */
+.spdock{position:fixed;left:12px;bottom:calc(var(--nav-h) + var(--safe-b) + 76px);z-index:22;display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+.spbuoy{min-height:40px;padding:0 14px;border-radius:20px;border:2px solid #ffb300;background:var(--surface);color:var(--ink);font:700 14px var(--font);box-shadow:var(--shadow)}
+.spbuoy.ok{border-color:var(--good);background:var(--good);color:#fff}
+.spdive{min-width:132px;min-height:64px;padding:8px 14px;border:0;border-radius:18px;background:var(--sea);color:#fff;display:flex;flex-direction:column;align-items:flex-start;box-shadow:0 8px 22px rgba(0,0,0,.35);text-align:left}
+.spdive b{font:800 24px/1.1 var(--font);font-variant-numeric:tabular-nums}
+.spdive small{font:600 11.5px var(--font);opacity:.85}
+.spdive.on{background:#0d47a1}
+.spdive.over{background:#c62828;animation:spblink 1s infinite}
+@keyframes spblink{50%{filter:brightness(1.35)}}
+.ruok{position:fixed;inset:0;z-index:300;background:rgba(160,0,0,.92);display:flex;align-items:center;justify-content:center;padding:24px}
+.ruc{width:100%;max-width:420px;display:flex;flex-direction:column;gap:14px;color:#fff;text-align:center}
+.ruc h2{margin:0;font:800 34px var(--font)}
+.ruc p{margin:0;font:600 18px var(--font)}
+.ruc .btn.big{min-height:64px;font-size:20px}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin:4px 0 8px}
+.lgrow{display:flex;align-items:center;gap:10px;font:500 13.5px var(--font);color:var(--ink-2);min-height:30px}
+.lgs{flex:none;width:30px;display:grid;place-items:center}
+.lg{display:inline-grid;place-items:center}
+.lg.me{width:16px;height:16px;border-radius:50%;background:#1e88ff;border:3px solid #fff;box-shadow:0 0 0 4px rgba(30,136,255,.25)}
+.lg.fish{width:13px;height:13px;border-radius:50%;background:#2fb6e8;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.lg.fish.many{width:22px;height:22px;font:800 10.5px var(--font);color:#fff}
+.lg.spot{width:16px;height:16px;border-radius:50%;background:var(--accent);border:2.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.lg.mob{padding:2px 4px;border-radius:5px;background:#e53935;color:#fff;font:800 9px var(--font)}
+.lg.zn{width:24px;height:16px;border-radius:4px;border:2px solid var(--c);background:color-mix(in srgb,var(--c) 30%,transparent)}
+/* καθαρότερος χάρτης: δεξιά μόνο Στρώματα, Θέση, Μέτρηση· τα υπόλοιπα στα γρήγορα στρώματα και στο μενού */
+.mapbtns #bNav,.mapbtns #bWindSt,.mapbtns #bPorts,.mapbtns #bWind,.mapbtns #bSeaState{display:none!important}
+.mapbar .gearbtn[hidden]{display:none}
+.mchips{position:fixed;left:70px;right:70px;top:calc(var(--safe-t) + 14px);z-index:19;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;justify-content:safe center;padding:2px}
+.mchips::-webkit-scrollbar{display:none}
+.mchip{flex:none;display:inline-flex;align-items:center;gap:5px;height:36px;padding:0 11px 0 8px;border:0;border-radius:18px;background:var(--surface);color:var(--ink);box-shadow:var(--shadow);font:650 13px var(--font);white-space:nowrap}
+.mchip span{display:grid;place-items:center}
+.mchip svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.mchip[aria-pressed=true]{background:var(--accent);color:#fff}
+body:not(.mapon) .mchips{display:none}
+.mapwx{top:calc(var(--safe-t) + 60px)}
+body.hasdt .mchips{top:calc(var(--safe-t) + 84px)}
+body.hasdt .mapwx{top:calc(var(--safe-t) + 130px)}
+body.maptrip.hasdt .mchips{top:calc(var(--safe-t) + 140px)}
+body.maptrip.hasdt .mapwx{top:calc(var(--safe-t) + 186px)}
+.mchips{justify-content:center;gap:6px}
+.mchip{flex-direction:column;justify-content:center;gap:1px;width:60px;height:48px;padding:0;border-radius:14px;font:650 10.5px var(--font)}
+.mchip svg{width:19px;height:19px}
+.mchips{gap:5px;left:66px;right:66px}.mchip{width:56px}
+/* ===== ομοιομορφία χάρτη ===== */
+/* γρήγορα στρώματα: ίδιο υλικό με τα στρογγυλά κουμπιά· ενεργό = πορτοκαλί περίγραμμα και εικονίδιο */
+.mchips{top:calc(var(--safe-t) + 12px)}
+.mchip{height:46px;background:var(--surface);color:var(--ink-2);box-shadow:var(--shadow);border-radius:14px}
+.mchip[aria-pressed=true]{background:var(--surface);color:var(--accent);box-shadow:inset 0 0 0 2px var(--accent),var(--shadow)}
+.mchip b{font-weight:700}
+/* ρεύματα: βέλος και αριθμός, χωρίς σκούρα κουτάκια */
+.mk.cur i{display:grid;place-items:center;width:22px;height:22px;font-size:0}
+.mk.cur i svg{width:20px;height:20px;fill:none;stroke:#8fe3ff;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 1px 2px rgba(0,0,0,.85))}
+.mk.cur.mid i svg{stroke:#ffd166}.mk.cur.strong i svg{stroke:#ff6b5a}
+.mk.cur b{background:none;padding:0;font:800 10.5px var(--font);color:#fff;text-shadow:0 1px 2px #000,0 0 3px rgba(0,0,0,.8)}
+/* ονόματα σημείων: ίδια γραμματοσειρά, πιο ευανάγνωστα */
+.mk.spot b{font:700 12px var(--font);padding:1px 6px;border-radius:6px;background:rgba(6,20,32,.55);text-shadow:none}
+/* κατάσταση θάλασσας / άνεμος: ίδιο στυλ κάρτας με την υπόλοιπη εφαρμογή */
+#ndMapDock{left:12px!important;right:12px!important;max-width:536px;margin:0 auto;border-radius:18px!important;border:0!important;background:var(--surface)!important;color:var(--ink)!important;box-shadow:0 10px 30px rgba(0,0,0,.35)!important;font-family:var(--font)}
+#ndMapDock .btn.ghost.sm,#ndMapDock button.btn{min-width:36px!important;min-height:36px!important;height:36px;border-radius:12px!important;border:0!important;background:var(--surface-2)!important;color:var(--ink)!important;font:650 13px var(--font)!important;box-shadow:none!important}
+#ndMapDock b{font-weight:750}
+#ndSeaLeg{padding:10px 12px 8px!important;font-size:12.5px!important}
+#ndSeaLeg .ndslh{gap:10px!important;align-items:center}
+#ndSeaLeg .ndslh>div{height:6px!important}
+#ndMapDock>div+div{border-top:1px solid var(--line)!important}
+#ndWindPanel{padding:8px 12px 10px!important}
+#ndWindSl{accent-color:var(--accent)}
+.tripbtn{white-space:nowrap;max-width:calc(100vw - 40px);min-height:50px;font-size:16px}
+.tripbtn{border:0!important}
+/* ομάδες σημείων */
+.mk.spot.grp{translate:-14px -14px}
+.mk.spot.grp i{width:28px;height:28px;display:grid;place-items:center;font:800 12px var(--font);font-style:normal;color:#fff}
+.mk.fish.many{box-shadow:0 0 0 4px rgba(47,182,232,.3),0 1px 3px rgba(0,0,0,.5)}
+/* σταυρός κέντρου: μόνο όταν μετράς απόσταση (εκεί προστίθενται τα σημεία της μέτρησης) */
+.cross{display:none}
+body:has(#bRuler[aria-pressed=true]) .cross{display:block;opacity:.8}
+/* έναρξη εξόδου: απλή μορφή */
+.tstart{gap:14px}
+.tcontact{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border:0;border-radius:16px;background:var(--surface-2);color:var(--ink);text-align:left;font-family:var(--font)}
+.tcontact .tci{flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center}
+.tcontact.ok .tci{background:var(--good-bg);color:var(--good)}.tcontact.warn .tci{background:var(--fair-bg);color:var(--fair)}
+.tcontact .tci svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.tcontact .tx{display:flex;flex-direction:column;gap:2px;min-width:0}
+.tcontact .tx b{font-size:15px}.tcontact .tx small{font-size:12.5px;color:var(--ink-2)}
+.tstart .chips{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:0}
+.tstart .chips .chip{min-width:0;justify-content:center;padding:0}
+.ttime{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;font:600 14px var(--font);color:var(--ink-2)}
+.ttime input{width:auto;min-width:120px;text-align:center;font-weight:700}
+.tmore{border-top:1px solid var(--line);padding-top:2px}
+.tmore>summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;min-height:44px;font:650 14.5px var(--font);color:var(--accent)}
+.tmore>summary::-webkit-details-marker{display:none}
+.tmore>summary::after{content:"";width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);margin-right:6px}
+.tmore[open]>summary::after{transform:rotate(-135deg)}
+.tmore[open]{display:flex;flex-direction:column;gap:12px}
+.tgo{min-height:54px;font-size:16.5px}
+/* ψάρια με χρώμα ανά είδος (όπως η κλασική) */
+.mk.fish{--g:#2b8c7a}
+.mk.fish.g-grouper{--g:#8d5a2b}.mk.fish.g-bass{--g:#3f78a8}.mk.fish.g-sparid{--g:#c59a12}.mk.fish.g-pelagic{--g:#1d55c4}.mk.fish.g-ceph{--g:#8e44ad}.mk.fish.g-mullet{--g:#d9472b}.mk.fish.g-other{--g:#2b8c7a}
+.mk.fish.sym{width:28px;height:28px;translate:-14px -14px;display:grid;place-items:center;border-radius:50%;background:#fff;border:3px solid var(--g);color:var(--g);box-shadow:0 1px 4px rgba(0,0,0,.5)}
+.mk.fish.sym svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.mk.fish.sym.ph{box-shadow:0 0 0 2px #fff,0 0 0 4px var(--accent),0 1px 4px #0008}
+.mk.fish.sym.rel{border-style:dashed}
+.mk.fish.sym.sp{border-style:double;border-width:4px}
+.mk.fish.sym.lk{border-radius:9px}
+.mk.fish.many{background:var(--g);box-shadow:0 0 0 3px #fff,0 0 0 6px color-mix(in srgb,var(--g) 35%,transparent),0 1px 4px rgba(0,0,0,.5)}
+.mk.fish.miss{width:22px;height:22px;translate:-11px -11px;display:grid;place-items:center;border-radius:50%;background:#fff;border:2px solid #d64532;color:#d64532;font:900 12px/1 var(--font);box-shadow:0 1px 3px rgba(0,0,0,.45)}
+.mk.fish.miss b{color:#d64532;font-size:11px}
+/* σημεία με χρώμα ανά τύπο */
+.mk.spot.k-reef i{background:#b5532c}.mk.spot.k-sand i{background:#d9b44a}.mk.spot.k-wreck i{background:#37474f;border-radius:3px}.mk.spot.k-ledge i{background:#6d4c9f}.mk.spot.k-current i{background:#1e88c9}.mk.spot.k-port i{background:#2e7d4f}
+.lg.fg{width:16px;height:16px;border-radius:50%;background:#fff;border:3px solid var(--g)}
+.lg.fmiss{width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid #d64532;color:#d64532;font:900 9px/1 var(--font);display:inline-grid;place-items:center}
+.legend{grid-template-columns:1fr}
+@media (min-width:380px){.legend{grid-template-columns:1fr 1fr}}
+/* επανάληψη εξόδου */
+.mk.rpboat i{display:block;width:30px;height:30px;transform:translate(-15px,-15px) rotate(var(--hd,0deg));filter:drop-shadow(0 2px 3px rgba(0,0,0,.6));background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 1.5C22 8 24.5 17 22.5 30H9.5C7.5 17 10 8 16 1.5z' fill='%23ff6a2a' stroke='%23fff' stroke-width='2.4' stroke-linejoin='round'/%3E%3Crect x='12' y='15' width='8' height='8' rx='1.5' fill='%23fff'/%3E%3C/svg%3E") center/contain no-repeat}
+.mk.pop{animation:mkpop .35s ease-out}
+@keyframes mkpop{0%{scale:.2}70%{scale:1.25}100%{scale:1}}
+.rpbar{position:fixed;left:12px;right:12px;bottom:calc(var(--nav-h) + var(--safe-b) + 14px);z-index:46;max-width:536px;margin:0 auto;padding:10px 14px 12px;border-radius:18px;background:var(--surface);color:var(--ink);box-shadow:0 10px 30px rgba(0,0,0,.4)}
+.rph{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.rph small{color:var(--ink-2)}
+.rpc{display:flex;align-items:center;gap:10px;margin-top:6px}
+.rpc input{flex:1;accent-color:var(--accent)}
+.rpc .iconbtn{background:var(--accent);color:#fff}
+.rptime{min-width:48px;text-align:right;font-variant-numeric:tabular-nums}
+.rpcnt{display:block;margin-top:4px;font-size:13px;color:var(--ink-2)}
+body.replaying .tripbtn,body.replaying .tripbar,body.replaying #ndMapDock{display:none!important}
+/* «Πού πιάνω» */
+.heatpill{position:fixed;left:12px;bottom:calc(var(--nav-h) + var(--safe-b) + 84px);z-index:21;display:flex;align-items:center;gap:10px;max-width:60vw;padding:8px 14px 8px 10px;border:0;border-radius:16px;background:var(--surface);color:var(--ink);box-shadow:var(--shadow);text-align:left;font-family:var(--font)}
+.heatpill[hidden]{display:none}
+.heatpill .hpd{flex:none;width:26px;height:12px;border-radius:6px;background:linear-gradient(90deg,#fdd835,#fb8c00,#e53935)}
+.heatpill .tx{display:flex;flex-direction:column;min-width:0}.heatpill b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.heatpill small{font-size:11.5px;color:var(--ink-2)}
+body.maptrip .heatpill{display:none}
+/* v31z519: κάρτα σημείου + πιο λεπτό κάτω πλαίσιο καιρού */
+#ndSeaLeg .ndslh,#ndSeaLeg .ndslx,#ndSeaPt,#ndSeaDep{display:none!important}
+#ndSeaLeg{padding:7px 12px 6px!important}
+#ndSeaSt{display:flex;align-items:center;gap:8px;margin:0!important;font:600 12px var(--font)!important;color:var(--ink-2)}
+#ndSeaSt::before{content:"";flex:none;width:34px;height:6px;border-radius:3px;background:linear-gradient(90deg,#34a878 0 15%,#f0c850 45%,#ee883e 70%,#d04248)}
+#ndSeaSt:empty{display:none}
+#ndSeaLeg:has(#ndSeaSt:empty){display:none}
+#ndWindPanel{padding:6px 10px 7px!important}
+#ndWindLab{font:600 12px var(--font)!important;color:var(--ink-2);margin-top:2px!important}
+#wxCard{padding:10px 12px 8px}
+#wxCard .wch{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+#wxCard .wch b{font:750 15px var(--font)}
+#wxCard .wch span{flex:1;color:var(--ink-2);font:600 12.5px var(--font)}
+#ndMapDock #wxCard .wcx{width:32px;height:32px;min-width:32px!important;min-height:32px!important;border:0;border-radius:50%;background:var(--surface-2);color:var(--ink);font:700 14px var(--font);cursor:pointer}
+#wxCard .wcg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+#wxCard .wcc{display:flex;flex-direction:column;gap:2px;min-width:0;padding:8px 9px;border-radius:12px;background:var(--surface-2);text-align:left;border:0;color:var(--ink);font-family:var(--font)}
+#wxCard .wcc small{font:750 10.5px var(--font);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+#wxCard .wcv{display:flex;align-items:center;gap:4px;min-height:26px}
+#wxCard .wcv b{font:800 18px/1.1 var(--font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#wxCard .wcar{width:20px;height:20px;flex:none}
+#wxCard .wcs{font:600 11.5px/1.3 var(--font);color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#wxCard .wcs.wclv{color:var(--ink);display:flex;align-items:center;gap:5px}
+#wxCard .wcs.wclv::before{content:"";width:8px;height:8px;border-radius:50%;flex:none;background:var(--lv)}
+#wxCard .wcoff{cursor:pointer;border:1px dashed var(--line);background:transparent}
+#wxCard .wcoff>b{font:800 18px var(--font);color:var(--accent)}
+#wxCard .wcf{display:flex;align-items:center;gap:8px;margin-top:6px;min-height:30px}
+#wxCard .wccur{display:flex;align-items:center;gap:4px;font:600 12px var(--font);color:var(--ink-2);flex:1;min-width:0}
+#wxCard .wccur svg{width:16px;height:16px;flex:none}
+#ndMapDock #wxCard .wcmore{margin-left:auto;border:0;background:none;color:var(--accent);font:700 13px var(--font);padding:4px 2px;cursor:pointer;min-height:30px}
+.wcrows{display:flex;flex-direction:column}
+.wcr{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
+.wcr span{color:var(--ink-2);flex:none}
+.wcr b{text-align:right;font-weight:650}
+.wcsh{margin:16px 0 8px;font-size:14px}
+.wcleg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.wcleg span{display:flex;flex-direction:column;gap:2px;font-size:12px}
+.wcleg i{height:8px;border-radius:4px}
+.wcleg small{color:var(--ink-2)}
+#ndSeaSt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block!important}
+#ndSeaSt::before{display:inline-block;vertical-align:1px;margin-right:8px}
+#ndMapDock:has(#wxCard) #ndWindLab{display:none}
+#wxCard .wch .wcmore{margin-left:auto}
+/* v31z520: κουμπί για να φύγει η διαδρομή/το σημείο από τον χάρτη */
+.revchip{position:fixed;left:50%;transform:translateX(-50%);top:calc(var(--safe-t) + 74px);z-index:19;display:flex;align-items:center;gap:4px;padding:4px 4px 4px 14px;border-radius:999px;background:var(--surface);color:var(--ink);box-shadow:0 6px 18px rgba(0,0,0,.3);max-width:calc(100vw - 150px);font:700 13px var(--font)}
+.revchip .rvt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.revchip::before{content:"";width:14px;height:4px;border-radius:2px;background:#ff8a50;flex:none;margin-right:4px}
+.revchip button{width:34px;height:34px;border-radius:50%;border:0;background:var(--surface-2);color:var(--ink);font:700 13px var(--font);flex:none;cursor:pointer}
+.revchip .rvp{color:var(--accent)}
+body:not(.mapon) .revchip,body.replaying .revchip{display:none}
+.revchip{top:calc(var(--safe-t) + 118px)}
+body:has(.mapwx[hidden]) .revchip,body:not(:has(.mapwx)) .revchip{top:calc(var(--safe-t) + 70px)}
+/* v31z520: μέρες κάτω από τη μπάρα ώρας (σαν το Windy) */
+.wxdays{position:relative;height:24px;margin:2px 52px 0 50px;font:700 10.5px var(--font);color:var(--ink-2)}
+.wxdays button{position:absolute;top:0;white-space:nowrap;transform:translateX(0);border:0;background:none;color:inherit;font:inherit;padding:3px 8px 7px 0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.wxdays button.tick{padding-left:5px;border-left:1.5px solid var(--line)}
+.wxdays button:last-of-type{max-width:60px;overflow:hidden}
+.wxdays button:active{color:var(--accent)}
+.wxdays button.on{color:var(--accent)}
+.wxdays i.now{position:absolute;top:-10px;width:2px;height:8px;border-radius:1px;background:var(--accent);transform:translateX(-1px)}
+#ndWindPanel>.note{display:none}
+#ndWindPanel:has(button[aria-expanded=true])>.note{display:block}
+/* v31z521: θερμοκρασία νερού */
+.sstleg{position:fixed;left:50%;transform:translateX(-50%);top:calc(var(--safe-t) + 118px);z-index:18;width:min(330px,calc(100vw - 150px));padding:7px 10px;border-radius:14px;background:color-mix(in srgb,var(--surface) 92%,transparent);color:var(--ink);box-shadow:0 6px 18px rgba(0,0,0,.25);font:600 11px var(--font)}
+body:has(.mapwx[hidden]) .sstleg,body:not(:has(.mapwx)) .sstleg{top:calc(var(--safe-t) + 70px)}
+body:has(.revchip) .sstleg{display:none}
+body:not(.mapon) .sstleg,.sstleg[hidden]{display:none}
+.sstleg .slt{display:flex;align-items:center;gap:6px}
+.sstleg .slt b{font:800 12px var(--font);white-space:nowrap}
+.sstleg .slb{flex:1;height:8px;border-radius:4px}
+.sstleg small{display:flex;align-items:center;gap:6px;margin-top:4px;color:var(--ink-2);line-height:1.25}
+.sstleg .slf{width:18px;height:3px;border-radius:2px;background:#ffd23f;flex:none;box-shadow:0 0 0 1px rgba(0,0,0,.25)}
+#wxCard .wcsst{display:flex;align-items:center;gap:5px;font:650 12px var(--font);color:var(--ink);flex:1}
+#wxCard .wcsst i{width:8px;height:8px;border-radius:50%;flex:none}
+.mchips{gap:4px;left:66px;right:66px}
+.mchip{width:50px;font-size:10px}
+.mchips{left:64px;right:64px}
+.mchip{width:46px}
+/* v31z521: κλίμακα ανέμου/κύματος (σαν το Windy) */
+#wxLeg{display:flex;align-items:center;gap:10px;padding:7px 12px 4px}
+#wxLeg>b{font:750 11px var(--font);color:var(--ink-2);white-space:nowrap}
+#wxLeg .wlw{flex:1;min-width:0}
+#wxLeg .wlbar{height:9px;border-radius:5px}
+#wxLeg .wltk{position:relative;height:14px;font:700 10px var(--font);color:var(--ink-2)}
+#wxLeg .wltk span{position:absolute;top:2px;transform:translateX(-50%)}
+#wxLeg .wltk span:first-child{transform:none}
+#ndMapDock:has(#wxLeg) #ndSeaLeg{display:none!important}
+#wxLeg{display:block;padding:6px 12px 2px}
+#wxLeg .wlr{display:flex;align-items:center;gap:10px;margin-bottom:2px}
+#wxLeg .wlr>b{font:750 11px var(--font);color:var(--ink-2);white-space:nowrap;min-width:72px}
+#wxLeg .wlr .wlw{flex:1;min-width:0}
+/* v31z525: δομή βυθού */
+.mk.peak{display:flex;flex-direction:column;align-items:center;transform:translate(-50%,-70%);pointer-events:auto}
+.mk.peak i{font-style:normal;color:#ffd23f;font-size:16px;line-height:1;text-shadow:0 0 3px #000,0 0 6px #000}
+.mk.peak b{font:800 10.5px var(--font);color:#fff;background:rgba(12,22,32,.8);border-radius:6px;padding:1px 5px;margin-top:1px;white-space:nowrap}
+.sbleg{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--nav-h,64px) + var(--safe-b,0px) + 30px + var(--ndwh,0px) + 60px);z-index:18;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;max-width:calc(100vw - 24px);padding:7px 12px;border-radius:14px;background:color-mix(in srgb,var(--surface) 92%,transparent);color:var(--ink);box-shadow:0 6px 18px rgba(0,0,0,.25);font:600 11px var(--font)}
+.sbleg b{font:800 11.5px var(--font)}
+.sbleg .sbk{display:inline-flex;align-items:center;gap:4px;color:var(--ink-2)}
+.sbleg .sbk i{width:12px;height:8px;border-radius:2px}
+.sbleg .sbk em{font-style:normal;color:#ffd23f;text-shadow:0 0 2px #000}
+.sbleg small{flex-basis:100%;color:var(--ink-2)}
+body:not(.mapon) .sbleg,.sbleg[hidden]{display:none}
+/* v31z525: σταυρός κέντρου + μπάρα ενδείξεων (σαν το Windy) */
+.wxcross{position:absolute;left:50%;top:50%;width:44px;height:44px;margin:-22px 0 0 -22px;z-index:450;pointer-events:none;
+  background:linear-gradient(#fff,#fff) 50% 0/2px 14px no-repeat,linear-gradient(#fff,#fff) 50% 100%/2px 14px no-repeat,linear-gradient(#fff,#fff) 0 50%/14px 2px no-repeat,linear-gradient(#fff,#fff) 100% 50%/14px 2px no-repeat;filter:drop-shadow(0 0 1.5px rgba(0,0,0,.9))}
+.wxcross::after{content:"";position:absolute;left:50%;top:50%;width:4px;height:4px;margin:-2px 0 0 -2px;border-radius:50%;background:#fff}
+.wxcross[hidden],.wxread[hidden]{display:none}
+.wxread{position:fixed;left:66px;right:66px;top:calc(var(--safe-t) + 66px);z-index:19;display:flex;align-items:center;justify-content:center;gap:10px;padding:7px 8px 7px 12px;border-radius:16px;background:rgba(12,22,32,.86);color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.35);font-family:var(--font)}
+.wxread .rgi{display:flex;flex-direction:column;gap:1px;min-width:0}
+.wxread small{font:700 9.5px var(--font);letter-spacing:.06em;text-transform:uppercase;opacity:.7}
+.wxread .rv{display:flex;align-items:center;gap:4px;white-space:nowrap}
+.wxread .rv b{font:800 15px var(--font)}
+.wxread .rv em{font:650 11.5px var(--font);font-style:normal;opacity:.8}
+.wxread .rv i{width:6px;height:14px;border-radius:2px;margin-left:2px}
+.wxread .rsep{width:1px;align-self:stretch;background:rgba(255,255,255,.18)}
+.wxread .rnum{margin-left:auto;flex:none;height:30px;padding:0 8px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:transparent;color:#fff;font:800 11px var(--font);cursor:pointer}
+.wxread .rnum[aria-pressed=true]{background:var(--accent);border-color:var(--accent)}
+body.wxro .mapwx{display:none!important}
+body:not(.mapon) .wxread{display:none}
+/* αποδόσεις: μικρό ⓘ */
+.leaflet-control-attribution{display:none!important}
+.attrbtn{position:fixed;left:10px;bottom:calc(var(--nav-h,64px) + var(--safe-b,0px) + 22px);z-index:17;width:24px;height:24px;border-radius:50%;border:0;background:rgba(12,22,32,.55);color:#fff;font:700 13px/24px var(--font);padding:0;cursor:pointer;opacity:.75}
+body:not(.mapon) .attrbtn{display:none}
+.attrbody{font-size:13px;line-height:1.6;margin-bottom:8px}
+.attrbody a{color:var(--accent)}
+.attrbtn{bottom:auto;top:calc(var(--safe-t) + 74px);left:23px;width:22px;height:22px;font-size:12px;line-height:22px;opacity:.6}
+/* v31z525: σημάδι θέσης κατά την έξοδο ανάλογα με τον τύπο ψαρέματος (βάρκα μένει όπως ήταν) */
+body.ontrip[data-tprof=shore] .mk.me i{width:38px;height:38px;transform:translate(-19px,-19px);background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'%3E%3Ccircle cx='18' cy='18' r='15.5' fill='%23fff' stroke='%23ff6a2a' stroke-width='3'/%3E%3Cg transform='translate%286 6%29' fill='none' stroke='%23d94a1c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 21l3.5-4.5 2.5 2 3-3.5 3.5 6'/%3E%3Cpath d='M6.5 16L19 3.5'/%3E%3Cpath d='M19 3.5c1.4 3 1.6 7.5.6 11'/%3E%3Ccircle cx='19.4' cy='16.4' r='1.4'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat}
+body.ontrip[data-tprof=lake] .mk.me i{width:38px;height:38px;transform:translate(-19px,-19px);background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'%3E%3Ccircle cx='18' cy='18' r='15.5' fill='%23fff' stroke='%23ff6a2a' stroke-width='3'/%3E%3Cg transform='translate%286 6%29' fill='none' stroke='%23d94a1c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 19c2-1.2 4-1.2 6 0s4 1.2 6 0 4-1.2 6 0'/%3E%3Cpath d='M5 17V8M7.5 17v-5.5'/%3E%3Cpath d='M16 15.5a2 2 0 1 0 0-.1'/%3E%3Cpath d='M16 13.5V9'/%3E%3Cpath d='M16 9L21 4'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat}
+body.ontrip[data-tprof=spear] .mk.me i{width:38px;height:38px;transform:translate(-19px,-19px);background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'%3E%3Ccircle cx='18' cy='18' r='15.5' fill='%23fff' stroke='%231e88ff' stroke-width='3'/%3E%3Cg transform='translate%286 6%29' fill='none' stroke='%231565c0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 11h15'/%3E%3Cpath d='M17 8.5l5 2.5-5 2.5'/%3E%3Cpath d='M5 11v5.5h2.5L9 11'/%3E%3Cpath d='M3 6.5c1.5-1.8 4.5-1.8 6 0'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat}
+body.ontrip[data-tprof=shore] .mk.me.hd i::after,body.ontrip[data-tprof=lake] .mk.me.hd i::after,body.ontrip[data-tprof=spear] .mk.me.hd i::after{display:none}
+/* v31z525b: επαγγελματικά σήματα θέσης ανά τύπο (δίσκος με διαβάθμιση, λευκό δαχτυλίδι, δέσμη κατεύθυνσης) */
+body.ontrip[data-tprof=shore] .mk.me i{width:46px;height:46px;transform:translate(-23px,-23px);background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cdefs%3E%3ClinearGradient id='pshore' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%233cc58a'/%3E%3Cstop offset='1' stop-color='%231f8a5c'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='24' cy='24' r='22' fill='%231f8a5c' fill-opacity='.18'/%3E%3Ccircle cx='24' cy='24' r='16.5' fill='%23fff'/%3E%3Ccircle cx='24' cy='24' r='14.5' fill='url%28%23pshore%29'/%3E%3Cg transform='translate%2813.2 13.2%29 scale%28.9%29'%3E%3Cpath d='M4.2 20.6L18.6 4.4' stroke='%23fff' stroke-width='2.2' stroke-linecap='round' fill='none'/%3E%0A%3Ccircle cx='7.6' cy='16.9' r='2.3' fill='%23fff'/%3E%3Ccircle cx='7.6' cy='16.9' r='.9' fill='%231f8a5c'/%3E%0A%3Cpath d='M18.6 4.4c1.5 3.4 1.7 7.8.9 11.6' stroke='%23fff' stroke-width='1.1' fill='none' stroke-linecap='round'/%3E%0A%3Cpath d='M19.5 16v1.6a1.5 1.5 0 0 1-3 0' stroke='%23fff' stroke-width='1.3' fill='none' stroke-linecap='round'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat;filter:drop-shadow(0 2px 4px rgba(0,0,0,.45))}
+body.ontrip[data-tprof=lake] .mk.me i{width:46px;height:46px;transform:translate(-23px,-23px);background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cdefs%3E%3ClinearGradient id='plake' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%232ec4c4'/%3E%3Cstop offset='1' stop-color='%23138a9a'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='24' cy='24' r='22' fill='%23138a9a' fill-opacity='.18'/%3E%3Ccircle cx='24' cy='24' r='16.5' fill='%23fff'/%3E%3Ccircle cx='24' cy='24' r='14.5' fill='url%28%23plake%29'/%3E%3Cg transform='translate%2813.2 13.2%29 scale%28.9%29'%3E%3Cpath d='M12 3.2v5' stroke='%23fff' stroke-width='1.6' stroke-linecap='round'/%3E%0A%3Cpath d='M12 7.6c2.4 0 3.9 2.2 3.9 4.6S14.3 16.6 12 16.6 8.1 14.6 8.1 12.2 9.6 7.6 12 7.6z' fill='%23fff'/%3E%0A%3Cpath d='M8.2 12.4h7.6' stroke='%23138a9a' stroke-width='1.6'/%3E%0A%3Cpath d='M3.5 19.3c1.4-.9 2.8-.9 4.2 0s2.8.9 4.3 0 2.8-.9 4.2 0 2.8.9 4.3 0' stroke='%23fff' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat;filter:drop-shadow(0 2px 4px rgba(0,0,0,.45))}
+body.ontrip[data-tprof=spear] .mk.me i{width:46px;height:46px;transform:translate(-23px,-23px);background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cdefs%3E%3ClinearGradient id='pspear' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%233d9bff'/%3E%3Cstop offset='1' stop-color='%231565c0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='24' cy='24' r='22' fill='%231565c0' fill-opacity='.18'/%3E%3Ccircle cx='24' cy='24' r='16.5' fill='%23fff'/%3E%3Ccircle cx='24' cy='24' r='14.5' fill='url%28%23pspear%29'/%3E%3Cg transform='translate%2813.2 13.2%29 scale%28.9%29'%3E%3Cpath d='M3.6 10.4c0-1.6 1.3-2.8 2.9-2.8h11c1.6 0 2.9 1.2 2.9 2.8v2.4c0 1.7-1.4 3-3 3h-1.8c-1 0-1.6-.6-2.1-1.4l-.6-1c-.4-.6-1.4-.6-1.8 0l-.6 1c-.5.8-1.1 1.4-2.1 1.4H6.6c-1.6 0-3-1.3-3-3z' fill='%23fff'/%3E%0A%3Crect x='5.6' y='9.4' width='4.8' height='3.6' rx='1.2' fill='%231565c0'/%3E%3Crect x='13.6' y='9.4' width='4.8' height='3.6' rx='1.2' fill='%231565c0'/%3E%0A%3Cpath d='M20.4 11.5h.6c.6 0 1 .4 1 1V20' stroke='%23fff' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat;filter:drop-shadow(0 2px 4px rgba(0,0,0,.45))}
+body.ontrip[data-tprof=shore] .mk.me.hd i::before{content:"";position:absolute;left:50%;top:50%;width:90px;height:90px;margin:-45px 0 0 -45px;border-radius:50%;background:conic-gradient(from calc(var(--hd,0deg) - 28deg),rgba(31,138,92,.42) 0deg,rgba(31,138,92,0) 56deg,transparent 56deg);-webkit-mask:radial-gradient(circle,#000 0 44%,transparent 70%);mask:radial-gradient(circle,#000 0 44%,transparent 70%);z-index:-1}
+body.ontrip[data-tprof=lake] .mk.me.hd i::before{content:"";position:absolute;left:50%;top:50%;width:90px;height:90px;margin:-45px 0 0 -45px;border-radius:50%;background:conic-gradient(from calc(var(--hd,0deg) - 28deg),rgba(19,138,154,.42) 0deg,rgba(19,138,154,0) 56deg,transparent 56deg);-webkit-mask:radial-gradient(circle,#000 0 44%,transparent 70%);mask:radial-gradient(circle,#000 0 44%,transparent 70%);z-index:-1}
+body.ontrip[data-tprof=spear] .mk.me.hd i::before{content:"";position:absolute;left:50%;top:50%;width:90px;height:90px;margin:-45px 0 0 -45px;border-radius:50%;background:conic-gradient(from calc(var(--hd,0deg) - 28deg),rgba(21,101,192,.42) 0deg,rgba(21,101,192,0) 56deg,transparent 56deg);-webkit-mask:radial-gradient(circle,#000 0 44%,transparent 70%);mask:radial-gradient(circle,#000 0 44%,transparent 70%);z-index:-1}
+.tripbtn .tbic:has(svg[viewBox="0 0 48 48"]){background:none;width:38px;height:38px}
+.tripbtn .tbic svg[viewBox="0 0 48 48"]{width:38px;height:38px;stroke:none;filter:drop-shadow(0 1px 3px rgba(0,0,0,.3))}
+/* v31z525c: σήμα θέσης με εικονογράφηση ανά τύπο */
+body.ontrip[data-tprof=shore] .mk.me i{width:50px;height:50px;transform:translate(-25px,-25px);background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Cdefs%3E%3CclipPath id='m'%3E%3Ccircle cx='26' cy='26' r='21.5'/%3E%3C/clipPath%3E%3C/defs%3E%3Ccircle cx='26' cy='26' r='25' fill='%23fff'/%3E%3Cg clip-path='url%28%23m%29'%3E%3Cg transform='translate%284.5 4.5%29 scale%28.672%29'%3E%3Cdefs%3E%3ClinearGradient id='sS' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%237cc7e8'/%3E%3Cstop offset='.6' stop-color='%23b9e2ef'/%3E%3Cstop offset='1' stop-color='%23ffe2b8'/%3E%3C/linearGradient%3E%0A%3ClinearGradient id='sW' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%233aa6b9'/%3E%3Cstop offset='1' stop-color='%231d6f8a'/%3E%3C/linearGradient%3E%0A%3ClinearGradient id='sR' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%236d7a83'/%3E%3Cstop offset='1' stop-color='%233a444b'/%3E%3C/linearGradient%3E%3C/defs%3E%0A%3Crect width='64' height='64' fill='url%28%23sS%29'/%3E%0A%3Cpath d='M0 33c8-3 14-2 20 0s12 2 18-.5 14-3 26 .5V40H0z' fill='%238fb9a3' opacity='.55'/%3E%0A%3Crect y='38' width='64' height='26' fill='url%28%23sW%29'/%3E%0A%3Cpath d='M4 44c3-.7 6-.7 9 0M26 48c3-.7 6-.7 9 0M10 55c3-.7 6-.7 9 0' stroke='%23a8e3ef' stroke-width='1.1' stroke-linecap='round' fill='none' opacity='.8'/%3E%0A%3Cpath d='M34 64l3-14 6-5 7 2 5-6 9 3v20z' fill='url%28%23sR%29'/%3E%3Cpath d='M37 50l6-5 7 2 5-6 9 3' stroke='%238a979f' stroke-width='1' fill='none' stroke-linejoin='round'/%3E%0A%3Cpath d='M52 64c-1-6 1-11 6-13l6 2v11z' fill='%232e373d'/%3E%0A%3Ccircle cx='48.6' cy='25.6' r='2.6' fill='%231f2a33'/%3E%0A%3Cpath d='M47 28.5c-1.6.6-2.4 2-2.4 4l.3 6.5h3.6l.6 5.6h2l.2-5.8 1.4-.4-.4-6.8c-.2-2-1.5-3.3-3.3-3.4z' fill='%231f2a33'/%3E%0A%3Cpath d='M45.4 41.6l-.6 4.8h1.8l1-4.6M49.6 41.6l.3 4.8h1.8l-.4-4.8' fill='%231f2a33'/%3E%0A%3Cpath d='M47.3 31.8l-4.6 2.6' stroke='%231f2a33' stroke-width='1.8' stroke-linecap='round'/%3E%0A%3Cpath d='M43.4 34.6Q30 12 14 9.5' stroke='%232b1d14' stroke-width='1.3' fill='none' stroke-linecap='round'/%3E%0A%3Cpath d='M14 9.5c-2.6 8-3.5 18-3 28.8' stroke='%23ffffff' stroke-width='.5' fill='none' opacity='.95'/%3E%0A%3Ccircle cx='11' cy='38.6' r='1.5' fill='%23ff5a3c'/%3E%3Cpath d='M8.2 39.4c1.8-.5 3.6-.5 5.6 0' stroke='%23d4f3f8' stroke-width='.8' fill='none'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat;filter:drop-shadow(0 3px 5px rgba(0,0,0,.5))}
+body.ontrip[data-tprof=lake] .mk.me i{width:50px;height:50px;transform:translate(-25px,-25px);background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Cdefs%3E%3CclipPath id='m'%3E%3Ccircle cx='26' cy='26' r='21.5'/%3E%3C/clipPath%3E%3C/defs%3E%3Ccircle cx='26' cy='26' r='25' fill='%23fff'/%3E%3Cg clip-path='url%28%23m%29'%3E%3Cg transform='translate%284.5 4.5%29 scale%28.672%29'%3E%3Cdefs%3E%3ClinearGradient id='lS' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%239fe0d6'/%3E%3Cstop offset='1' stop-color='%23e7f7e9'/%3E%3C/linearGradient%3E%0A%3ClinearGradient id='lW' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%233cb4a8'/%3E%3Cstop offset='1' stop-color='%2315707a'/%3E%3C/linearGradient%3E%3C/defs%3E%0A%3Crect width='64' height='64' fill='url%28%23lS%29'/%3E%0A%3Cpath d='M0 30c7-6 14-8 22-4s12-5 20-4 14 6 22 3v9H0z' fill='%235aa883'/%3E%3Cpath d='M0 33c10-3 18-2 26 0s16 1 24-1 10 0 14 1v3H0z' fill='%233f8f6d'/%3E%0A%3Crect y='35' width='64' height='29' fill='url%28%23lW%29'/%3E%0A%3Cellipse cx='32' cy='47' rx='11' ry='3' fill='none' stroke='%23bff0e6' stroke-width='1' opacity='.75'/%3E%0A%3Cellipse cx='32' cy='47' rx='17' ry='4.8' fill='none' stroke='%23bff0e6' stroke-width='.8' opacity='.45'/%3E%0A%3Cpath d='M32 32v6' stroke='%232b2b2b' stroke-width='1.2' stroke-linecap='round'/%3E%0A%3Cpath d='M32 37.4c3 0 4.6 2.6 4.6 5.4H27.4c0-2.8 1.6-5.4 4.6-5.4z' fill='%23ff4b3e'/%3E%3Cpath d='M27.4 42.8h9.2c0 2.6-2 4.4-4.6 4.4s-4.6-1.8-4.6-4.4z' fill='%23ffffff'/%3E%0A%3Cpath d='M32 32Q40 18 58 12' stroke='%232b1d14' stroke-width='.6' fill='none' opacity='.0'/%3E%0A%3Cpath d='M6 64V40M9.5 64V44M3 64V47M58 64V42M61 64V46' stroke='%232f6b3f' stroke-width='1.6' stroke-linecap='round'/%3E%0A%3Crect x='4.8' y='35' width='2.6' height='8' rx='1.3' fill='%236b4428'/%3E%3Crect x='56.8' y='37' width='2.6' height='8' rx='1.3' fill='%236b4428'/%3E%0A%3Cpath d='M9.5 44c2-3 4-4 6-4M3 47c-1-2-1-4 0-6M61 46c1.6-2.6 2-4.4 1.4-6.6' stroke='%233f8a4f' stroke-width='1.3' fill='none' stroke-linecap='round'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat;filter:drop-shadow(0 3px 5px rgba(0,0,0,.5))}
+body.ontrip[data-tprof=spear] .mk.me i{width:50px;height:50px;transform:translate(-25px,-25px);background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Cdefs%3E%3CclipPath id='m'%3E%3Ccircle cx='26' cy='26' r='21.5'/%3E%3C/clipPath%3E%3C/defs%3E%3Ccircle cx='26' cy='26' r='25' fill='%23fff'/%3E%3Cg clip-path='url%28%23m%29'%3E%3Cg transform='translate%284.5 4.5%29 scale%28.672%29'%3E%3Cdefs%3E%3ClinearGradient id='uW' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%233fb7e6'/%3E%3Cstop offset='.5' stop-color='%231b78b8'/%3E%3Cstop offset='1' stop-color='%230c3d6e'/%3E%3C/linearGradient%3E%0A%3ClinearGradient id='uR' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23ffffff' stop-opacity='.35'/%3E%3Cstop offset='1' stop-color='%23ffffff' stop-opacity='0'/%3E%3C/linearGradient%3E%3C/defs%3E%0A%3Crect width='64' height='64' fill='url%28%23uW%29'/%3E%0A%3Cpath d='M10 0l-6 40h6L18 0zM30 0l-4 44h5L37 0zM48 0l2 38h5L56 0z' fill='url%28%23uR%29'/%3E%0A%3Cpath d='M0 58c6-3 10-2 15 1s10 2 15 0 9-3 14 0 12 3 20 0v5H0z' fill='%230a2f52'/%3E%0A%3Cpath d='M44 60c0-3 1-5 3-7M48 60c1-4 3-6 5-8' stroke='%231f8a5c' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%0A%3Cg transform='rotate%28-8 32 32%29'%3E%0A%3Cpath d='M10.5 30.5c2.8-1.6 6-2 9.5-1.6l13 1.4c2 .2 3.2 1.4 3.4 3l-.4 1.4-15.8 .2-9.2-1.2z' fill='%231e2a36'/%3E%0A%3Cpath d='M3 32.8l7.5-2.3.8 3.9L3 36.6z' fill='%232bd1c4'/%3E%3Cpath d='M4.6 29.6l5.9 1 .4 2-6.6 0z' fill='%232bd1c4' opacity='.8'/%3E%0A%3Ccircle cx='38.6' cy='31.6' r='3.4' fill='%231e2a36'/%3E%3Crect x='38.8' y='29.6' width='4.4' height='2.8' rx='1' fill='%239fe7ff' stroke='%231e2a36' stroke-width='.8'/%3E%0A%3Cpath d='M37 27.8c-.3-2.6.5-4.6 2.6-5.6' stroke='%23ffcc33' stroke-width='1.3' fill='none' stroke-linecap='round'/%3E%0A%3Cpath d='M34 33.6l4 1.6h2' stroke='%231e2a36' stroke-width='1.6' stroke-linecap='round'/%3E%0A%3Cpath d='M38 35.6h20' stroke='%23cfd8de' stroke-width='1.1'/%3E%3Cpath d='M40 34.6h7v2.2h-7z' fill='%233a3a3a'/%3E%3Cpath d='M58 35.6l3-1.3v2.6z' fill='%23e9eef2'/%3E%0A%3C/g%3E%0A%3Ccircle cx='44' cy='18' r='1.4' fill='none' stroke='%23d8f6ff' stroke-width='.8'/%3E%3Ccircle cx='46.5' cy='13' r='1' fill='none' stroke='%23d8f6ff' stroke-width='.7'/%3E%3Ccircle cx='43' cy='9' r='.8' fill='none' stroke='%23d8f6ff' stroke-width='.6'/%3E%0A%3Cpath d='M51 48.5c2-1.6 4.4-1.6 6.4 0-2 1.6-4.4 1.6-6.4 0zM57.2 48.5l2-1.4v2.8z' fill='%23ffd166'/%3E%0A%3Cpath d='M16 50.5c1.6-1.2 3.4-1.2 5 0-1.6 1.2-3.4 1.2-5 0zM21 50.5l1.6-1.1v2.2z' fill='%23c9e9f5'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat;filter:drop-shadow(0 3px 5px rgba(0,0,0,.5))}
+.tripbtn .tbic:has(svg[viewBox="0 0 64 64"]){background:none;width:38px;height:38px}
+.tripbtn .tbic svg[viewBox="0 0 64 64"]{width:38px;height:38px;border-radius:11px;stroke:none;box-shadow:0 0 0 2px rgba(255,255,255,.85)}
+/* v31z525: στη στεριά και στη λίμνη δεν χρειάζονται MOB και άγκυρα */
+body[data-tprof=shore] .mobbtn,body[data-tprof=lake] .mobbtn,body[data-tprof=shore] .ancbtn,body[data-tprof=lake] .ancbtn{display:none!important}
+.tripbtn .tbic:has(img.pbph){background:none;width:38px;height:38px}
+.tripbtn .tbic img.pbph{width:38px;height:38px;border-radius:11px;box-shadow:0 0 0 2px rgba(255,255,255,.9)}
+/* σήμα θέσης με φωτογραφία (ακτή, ψαροντούφεκο) */
+body.ontrip[data-tprof=shore] .mk.me i{background:url("alk-th-shorerod.jpg") center/cover no-repeat;border-radius:50%;box-shadow:0 0 0 3px #fff,0 3px 8px rgba(0,0,0,.5);width:44px;height:44px;transform:translate(-22px,-22px);filter:none}
+body.ontrip[data-tprof=spear] .mk.me i{background:url("alk-th-spear.jpg") center/cover no-repeat;border-radius:50%;box-shadow:0 0 0 3px #fff,0 3px 8px rgba(0,0,0,.5);width:44px;height:44px;transform:translate(-22px,-22px);filter:none}
+body.ontrip[data-tprof=shore] .mk.me.hd i::before,body.ontrip[data-tprof=spear] .mk.me.hd i::before{width:96px;height:96px;margin:-48px 0 0 -48px}
+/* v31z525: το «Έναρξη εξόδου» είναι πλέον το κεντρικό κουμπί */
+.tripbtn{display:none!important}
+body.ontrip[data-tprof=lake] .mk.me i{background:url("alk-th-lake.jpg") center/cover no-repeat;border-radius:50%;box-shadow:0 0 0 3px #fff,0 3px 8px rgba(0,0,0,.5);width:44px;height:44px;transform:translate(-22px,-22px);filter:none}
+body.ontrip[data-tprof=lake] .mk.me.hd i::before{width:96px;height:96px;margin:-48px 0 0 -48px}
+/* v31z526 · προσανατολισμός χάρτη: πυξίδα + μικρή ετικέτα (NU/CU/HU) αντί για σκέτα γράμματα */
+.mo-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0}
+.mo-btn .moi{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.6}
+.mo-btn .moi path{fill:currentColor;stroke:none;opacity:.45}
+.mo-btn .moi .mon{fill:#e5484d;opacity:1}
+.mo-btn.on .moi .mon{fill:#fff}
+.mo-btn b{font:800 9.5px/1 var(--font);letter-spacing:.04em;opacity:.8}
+/* v31z526 · ρεύματα: μονάδα, για να μη μπερδεύονται με το κύμα */
+.mk.cur b small{font-size:8.5px;font-weight:700;opacity:.85}
+/* v31z526 · η κλίμακα θερμοκρασίας νερού κάτω από τη μπάρα ενδείξεων (όχι από πίσω της) */
+body.wxro .sstleg{top:calc(var(--safe-t) + 126px)}
+/* μπάρα ενδείξεων με άνεμο + κύμα + νερό: χωρίς τα δευτερεύοντα (kn, κατεύθυνση, περίοδος) για να χωράει μαζί με το «123» */
+.wxread:has(.rgi~.rgi~.rgi) .rv em{display:none}
+.wxread .rgi{min-width:0}
+.wxcross{z-index:460}
+/* v31z526 · αριστερή στήλη (MOB, μικρόφωνο, άγκυρα, προσανατολισμός) στον ίδιο κάθετο άξονα και με ίσες αποστάσεις */
+.seabar{width:58px;align-items:center}
+.micmap{margin-left:0}
+.ancbtn{width:52px;height:52px}
+.mo-btn{left:15px;top:calc(var(--safe-t) + 204px)}
+body.hasdt .mo-btn{top:calc(var(--safe-t) + 276px)}
+body[data-tprof=shore] .mo-btn,body[data-tprof=lake] .mo-btn{top:calc(var(--safe-t) + 74px)}
+body.hasdt[data-tprof=shore] .mo-btn,body.hasdt[data-tprof=lake] .mo-btn{top:calc(var(--safe-t) + 146px)}
+body:not(.maptrip) .mo-btn{top:calc(var(--safe-t) + 74px)}
+/* ⓘ πηγές: κάτω από τη δεξιά στήλη (στην αριστερή κρυβόταν πίσω από MOB / μικρόφωνο / προσανατολισμό) */
+.attrbtn{left:auto;right:24px;top:calc(var(--safe-t) + 242px)}
+body:has(.mapbar .gearbtn:not([hidden])) .attrbtn{top:calc(var(--safe-t) + 298px)}
+/* κλίμακα νερού κάτω από τη μπάρα ενδείξεων· πιο ισχυρός κανόνας από το body:has(.mapwx[hidden]) */
+body.wxro .sstleg.sstleg.sstleg{top:calc(var(--safe-t) + 126px)}
+/* v31z527 · κλίμακα «Δομή βυθού» πάνω από την κάρτα «Πού πιάνω» όταν φαίνονται και οι δύο */
+body:has(.heatpill:not([hidden])):not(.maptrip) .sbleg{bottom:calc(var(--nav-h,64px) + var(--safe-b,0px) + 152px + var(--ndwh,0px))}
+/* v31z528 · Στρώματα χάρτη: χαμηλά οριζόντια πλακίδια (εικονίδιο + κείμενο), δύο ανά σειρά, ίδιο ύψος όλα → μισό μήκος */
+.lyr .lgrid{grid-template-columns:1fr 1fr;gap:8px}
+.lyr .ltile{flex-direction:row;align-items:center;justify-content:flex-start;gap:10px;min-height:60px;padding:8px 10px;border-radius:14px;text-align:left;border-width:1.5px}
+.lyr .ltile .lic{flex:none;width:36px;height:36px;border-radius:10px;margin:0}
+.lyr .ltile .lic svg{width:20px;height:20px}
+.lyr .ltile b,.lyr .ltile small{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lyr .ltile b{font-size:14px}
+.lyr .ltile small{font-size:12px;margin-top:1px}
+.lyr .ltile>b{flex:1 1 auto}
+.lyr .ltile{display:grid;grid-template-columns:36px minmax(0,1fr);grid-template-rows:auto auto;column-gap:10px;row-gap:0;align-content:center}
+.lyr .ltile .lic{grid-row:1 / span 2}
+.lyr .ltile small:empty{display:none}
+.lyr .lyh{margin:18px 2px 8px}
+.lyr .lbase{gap:10px}
+.lyr .lbt .lprev{height:70px;background-color:#1d4a5e;background-size:cover;background-position:center}
+.lyr .lbt.osm .lprev{background-color:#e8e4dc}
+.lyr .lbt .lprev.real{background-repeat:no-repeat}
+@media (max-width:340px){.lyr .lgrid{grid-template-columns:1fr}}
+.lyr .ldepth{margin-bottom:0}.lyr .ldepth .seg{margin-bottom:0}
+/* v31z535 · πυξίδα όταν ο χάρτης έχει γυριστεί με δύο δάχτυλα: η βελόνα δείχνει τον βορρά, πάτημα = βορράς πάνω */
+.mo-n{position:fixed;left:15px;top:calc(var(--safe-t) + 74px);z-index:710;width:52px;height:52px;border-radius:50%;border:0;background:var(--surface);color:var(--ink);box-shadow:var(--shadow);padding:0;display:grid;place-items:center;cursor:pointer}
+.mo-n[hidden]{display:none}
+.mo-n svg{width:30px;height:30px;transform:rotate(var(--nr,0deg));transition:transform .1s linear}
+.mo-n .nn{fill:#e5484d}.mo-n .ns{fill:currentColor;opacity:.35}
+.mo-n b{position:absolute;font:800 9px/1 var(--font);top:3px;left:50%;transform:translateX(-50%) rotate(0);opacity:0}
+body:not(.mapon) .mo-n{display:none!important}
+/* v31z536 · κουμπί θέσης: τονισμένο όσο ο χάρτης σε ακολουθεί στην έξοδο */
+.mapbar .gpsb.fol{color:var(--accent)}
+.mapbar .gpsb.fol svg{stroke-width:2.4}
+/* v31z542 · λαγοκέφαλος / έφαγε το δόλωμα: μικρότερο κουμπί πάνω από τα δύο ψάρια */
+.fb.fbp{position:absolute;right:calc(100% + 12px);top:7px;width:50px;height:50px;background:#6c4fa3;color:#fff;border-width:2.5px}
+.fb.fbp .fbpi{font-size:24px;line-height:1}
+.fb.fbp b{top:-7px;right:-9px;min-width:21px;height:21px;font-size:11.5px;line-height:21px}
+body:has(.mapbar .nightb:not([hidden])) .attrbtn{top:calc(var(--safe-t) + 298px)}
+body:has(.mapbar .nightb:not([hidden])):has(.mapbar .gearbtn:not([hidden])) .attrbtn{top:calc(var(--safe-t) + 354px)}
+/* v31z545 · κουμπί «μεγάλα κουμπιά» αριστερά από το πράσινο ψάρι */
+.fb.fbx{position:absolute;right:calc(100% + 12px);bottom:7px;width:50px;height:50px;background:var(--surface);color:var(--ink);border-width:2.5px}
+.fb.fbx svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2}
+/* οθόνη μεγάλων κουμπιών */
+.bigtrip{position:fixed;inset:0;z-index:3000;background:var(--bg);display:flex;flex-direction:column;padding:calc(var(--safe-t) + 12px) 14px calc(var(--safe-b) + 14px);gap:12px}
+.bthead{display:flex;align-items:center;justify-content:space-between}.bthead b{font-size:22px;font-weight:800}
+.btx{width:52px;height:52px;border-radius:50%;border:0;background:var(--surface);color:var(--ink);box-shadow:var(--shadow);display:grid;place-items:center}
+.btx svg{width:24px;height:24px;stroke:currentColor;stroke-width:2.4;fill:none;stroke-linecap:round}
+.btinfo{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btinfo div{background:var(--surface);border-radius:14px;padding:10px 10px 8px;box-shadow:var(--shadow);min-width:0}
+.btinfo b{display:block;font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btinfo small{display:block;font-size:12px;color:var(--ink-2);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btgrid{flex:1;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:12px;min-height:0}
+.btb{position:relative;border:0;border-radius:24px;color:#fff;font:800 20px/1.1 var(--font);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;touch-action:manipulation;-webkit-user-select:none;user-select:none;box-shadow:0 6px 16px rgba(0,0,0,.25);transition:transform .12s}
+.btb:active{transform:scale(.97)}
+.btb .bti{font-size:52px;line-height:1}
+.btb b{position:absolute;top:10px;right:12px;min-width:34px;height:34px;padding:0 8px;border-radius:17px;background:rgba(255,255,255,.95);color:#0A2633;font:800 18px/34px var(--font)}
+.bt-fish{background:#1f9d6b}.bt-miss{background:#d64532}.bt-pest{background:#6c4fa3}
+.bt-mob{background:#0A2633;border:3px solid #f2c94c}.bt-mob .bti{font-size:40px;letter-spacing:.04em;color:#f2c94c}
+.bt-mob.hold{background:#7a1d10}
+.btb.ok::after{content:'✓';position:absolute;inset:0;display:grid;place-items:center;font-size:90px;background:rgba(0,0,0,.25);border-radius:24px}
+.btfoot{margin:0;font-size:12.5px;color:var(--ink-2);text-align:center}
+/* v31z545 · φίλοι σε έξοδο */
+.mk.frlive{display:flex;align-items:center;gap:4px;transform:translate(-17px,-17px)}
+.mk.frlive i{width:34px;height:34px;border-radius:50%;background:#6c4fa3;color:#fff;border:3px solid #fff;display:grid;place-items:center;font:800 15px/1 var(--font);font-style:normal;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.mk.frlive b{padding:2px 7px;border-radius:9px;background:rgba(10,20,30,.78);color:#fff;font:700 11.5px/1.4 var(--font);white-space:nowrap}
+.frpop b{display:block;font-size:14px}.frpop small{color:#666}
+/* v31z550: φωνή στα μεγάλα κουμπιά */
+.btb.bt-voice{width:100%;min-height:74px;margin-top:12px;flex-direction:row;gap:12px;justify-content:center;background:var(--surface);color:var(--ink)}
+.btb.bt-voice .bti{width:30px;height:30px;display:grid;place-items:center}
+.btb.bt-voice .bti svg{width:28px;height:28px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
+
+/* 1.2.2: καλύτερα σημεία */
+.mk.best{display:flex;flex-direction:column;align-items:center;transform:translate(-50%,-50%);pointer-events:auto;cursor:pointer}
+.mk.best i{font:900 15px/1 var(--font);font-style:normal;color:#0b0f14;background:#f6b744;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.45)}
+.mk.best b{font:800 10.5px var(--font);color:#fff;background:rgba(12,22,32,.85);border-radius:6px;padding:1px 5px;margin-top:2px}
+.bsw{margin:6px 0 10px 18px;padding:0}.bsw li{margin:3px 0}
+/* 1.2.4: λίστα «Καλύτερα σημεία» μέσα στον χάρτη (ίδια με την .opps της Πρόγνωσης) */
+.opps .opl{display:flex;flex-direction:column;gap:6px;margin:10px 0}
+.opps .opr{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border:0;border-radius:14px;background:var(--surface-2);color:var(--ink);text-align:left;font-family:var(--font);cursor:pointer}
+.opps .ops{flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font:800 15px var(--font);color:#fff;background:#8a96a3}
+.opps .ops.hi{background:#2e9e6a}.opps .ops.mid{background:#d79a2b}
+.opps .opt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.opps .opt b{font:700 13.5px var(--font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.opps .opt small{font:600 12px/1.3 var(--font);color:var(--ink-2)}
+.opps .opr svg{width:18px;height:18px;flex:none;opacity:.5}
+.bsPill{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 104px);z-index:900;border:0;border-radius:999px;padding:10px 16px;font:800 14px var(--font);color:#0b0f14;background:#f6b744;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+body:not(.mapon) .bsPill{display:none}
+body:has(.sheet) .bsPill{display:none}
+.bsf{margin:4px 0 8px;font:600 14px/1.4 var(--font)}
+
+/* 1.5.3: η ετικέτα «Διαδρομή / Σημείο ✕» κάτω από την ένδειξη ανέμου/κύματος, όχι πάνω της */
+body:has(.wxread:not([hidden])) .revchip{top:calc(var(--safe-t) + 124px)}
+body.hasdt:has(.wxread:not([hidden])) .revchip{top:calc(var(--safe-t) + 178px)}
+/* 1.5.3: επιλογή σημείου στον κανονικό χάρτη */
+.mpkbar{position:fixed;left:12px;right:12px;bottom:calc(var(--safe-b,0px) + 92px);z-index:40;display:flex;flex-direction:column;gap:8px;padding:14px;border-radius:20px;background:var(--surface);color:var(--ink);box-shadow:0 10px 30px rgba(0,0,0,.4);max-height:42vh;overflow:auto}
+.mpkbar .mpkh{display:flex;flex-direction:column;gap:2px}.mpkbar .mpkh b{font:800 16px var(--font)}.mpkbar .mpkh small{opacity:.75}
+.mpkbar input[type=text]{width:100%;box-sizing:border-box}
+.mpkbar .acts{display:flex;gap:8px}.mpkbar .acts .btn{flex:1}
+body.mappick .fishbtns,body.mappick .tripbtn,body.mappick .seabar,body.mappick .heatpill,body.mappick .revchip,body.mappick .rtwrap,body.mappick #ndMapDock,body.mappick .dtbar{display:none!important}
+body.mappick .cross{opacity:1!important;display:block!important}
+.mpkbar .acts{flex-direction:row!important;display:flex!important}
+
+/* 1.6.0: συρτή */
+.trpill{position:fixed;left:12px;bottom:calc(var(--safe-b,0px) + 168px);z-index:21;display:grid;grid-template-columns:auto auto;align-items:baseline;column-gap:6px;padding:8px 14px;border-radius:18px;border:0;background:rgba(12,22,32,.9);color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.35);font-family:var(--font);text-align:left;cursor:pointer}
+.trpill small{grid-column:1/3;font:700 9.5px var(--font);letter-spacing:.06em;text-transform:uppercase;opacity:.75}
+.trpill b{font:800 34px/1 var(--font)}.trpill em{font:650 12px var(--font);font-style:normal;opacity:.85}.trpill i{grid-column:1/3;font:600 11px var(--font);font-style:normal;opacity:.8}
+.trpill.ok b{color:#3ddc97}.trpill.lo b{color:#ffb020}.trpill.hi b{color:#ff5a4d}.trpill.na b{color:#cfd8e0}
+.trpill.lo,.trpill.hi{box-shadow:0 0 0 2px currentColor,0 6px 18px rgba(0,0,0,.35)}.trpill.lo{color:#ffb020}.trpill.hi{color:#ff5a4d}
+.trpill.lo small,.trpill.lo em,.trpill.lo i,.trpill.hi small,.trpill.hi em,.trpill.hi i{color:#fff}
+body:not(.mapon) .trpill,body.mappick .trpill,body.replaying .trpill{display:none}
+.trpill[hidden]{display:none}
+.trbtn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+body.trolling .trbtn{background:var(--accent);color:#fff}
+.trsheet .trest{margin:6px 0 10px;padding:10px 12px;border-radius:12px;background:var(--surface-2);font:600 13px var(--font)}
+.mk.trlab b{display:inline-block;transform:translate(-50%,-150%);padding:1px 6px;border-radius:8px;background:rgba(12,22,32,.85);color:#ffd166;font:700 10.5px var(--font);white-space:nowrap}
+
+/* 1.6.1: αριστερή στήλη: η συρτή μόνο σε έξοδο, ίδιο μέγεθος με τα άλλα· ο προσανατολισμός μπαίνει στη στήλη (πριν έπεφτε πάνω στην άγκυρα) */
+.seabar .trbtn{width:52px;height:52px}
+body:not(.maptrip) .seabar .trbtn{display:none}
+.seabar .mo-btn{position:static!important;top:auto!important;left:auto!important}
+/* δεξιά στήλη: χάρακας, ειδοποιήσεις και πηγές μέσα στο «⋯»· ο χάρακας φαίνεται μόνο όταν είναι ανοιχτός, για να τον κλείσεις */
+.mapbar .bellb,.attrbtn{display:none!important}
+.mapbtns #bRuler{display:none}
+.mapbtns #bRuler[aria-pressed=true]{display:inline-grid}
+.morebtn{position:relative}.morebtn svg{width:22px;height:22px;fill:currentColor;stroke:none}
+/* 1.6.1: πιο χαμηλή μπάρα ώρας (έπιανε ~20% της οθόνης) */
+#ndMapDock>div{padding-top:6px!important;padding-bottom:6px!important}
+#ndMapDock .btn.ghost.sm,#ndMapDock button.btn{min-width:34px!important;min-height:34px!important;height:34px}
+#ndMapDock .note{font-size:12px!important;margin-top:2px!important}
+/* 1.6.1: στα Στρώματα τα ονόματα σε δύο γραμμές αντί να κόβονται («Καλύτερα ση…», «Νερό δορυφ…») */
+.lyr .ltile b,.lyr .ltile small{white-space:normal!important;text-overflow:clip!important;overflow:visible!important;line-height:1.2;overflow-wrap:anywhere}
+.lyr .ltile small{display:-webkit-box!important;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden!important}
+
+/* 1.6.2: ένδειξη συρτής βυθού: μολύβια − / + δίπλα στην ταχύτητα, βυθός με προειδοποίηση */
+.trwrap{position:fixed;left:12px;bottom:calc(var(--safe-b,0px) + 168px);z-index:21;display:flex;align-items:stretch;gap:6px}
+.trwrap .trpill{position:static}
+.trwrap[hidden]{display:none}
+body:not(.mapon) .trwrap,body.mappick .trwrap,body.replaying .trwrap{display:none}
+.trpill .trbot{font-weight:700}.trpill .trbot.warn{color:#ff5a4d}
+.trleads{display:grid;grid-template-columns:44px;grid-template-rows:44px auto auto 44px;justify-items:center;align-items:center;padding:4px;border-radius:18px;background:rgba(12,22,32,.9);color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.trleads button{width:44px;height:44px;border-radius:14px;border:0;background:rgba(255,255,255,.12);color:#fff;font:800 22px/1 var(--font);cursor:pointer}
+.trleads b{font:800 20px/1 var(--font)}.trleads small{font:600 9.5px var(--font);opacity:.75;text-transform:uppercase;letter-spacing:.04em}
+html.night .trleads button{background:#1a0000;box-shadow:0 0 0 2px #fff}
+/* 1.6.2: μολύβια κάτω από την ταχύτητα (στα πλάγια έπεφτε πάνω στα κουμπιά ψαριού) */
+.trwrap{flex-direction:column;align-items:stretch;max-width:min(230px,calc(100vw - 180px))}
+.trwrap .trpill{width:auto}
+.trwrap .trpill i{white-space:normal}
+.trleads{grid-template-columns:44px auto auto 44px;grid-template-rows:44px;column-gap:8px;justify-content:space-between;padding:4px}
+
+/* 1.6.4: Καλύτερα σημεία: τεχνική και ώρες */
+.bslab{margin:12px 2px 4px;font:700 12px var(--font);color:var(--ink-2);text-transform:uppercase;letter-spacing:.05em}
+.bstech,.bswin{flex-wrap:wrap}
+
+/* 1.6.5: βάθος δίπλα στην ταχύτητα (οργιές και μέτρα) · προφίλ βυθού */
+.trpill .trdep{grid-column:1/3;display:flex;align-items:baseline;gap:6px;margin:2px 0}
+.trpill .trdep small{grid-column:auto;font:700 9.5px var(--font);opacity:.75}
+.trpill .trdep b{font:800 22px/1 var(--font);color:#9fd4ee}.trpill .trdep em{font:650 12px var(--font);font-style:normal;opacity:.85}
+.trpill .trdep.warn b{color:#ff5a4d}
+.tprofw{overflow-x:auto;border-radius:14px;background:var(--surface-2);padding:6px}
+.tprof{display:block;width:100%;min-width:320px;height:auto}
+.tprof .pg{stroke:var(--line);stroke-width:1}.tprof .pt{fill:var(--ink-2);font:600 19px var(--font)}
+.tprof .pb{fill:#8a6a44;fill-opacity:.55;stroke:#6b4f2e;stroke-width:1.5}
+.tprof .pl{fill:none;stroke:#ff8a50;stroke-width:2.5;stroke-dasharray:6 4}
+.tprof .pf{fill:#3ddc97;stroke:#fff;stroke-width:2}
+.tleg{display:flex;gap:14px;margin:8px 2px;font:600 12px var(--font);color:var(--ink-2)}
+.tleg span::before{content:'';display:inline-block;width:14px;height:8px;border-radius:2px;margin-right:6px;vertical-align:1px}
+.tleg .lb::before{background:#8a6a44}.tleg .ll::before{background:#ff8a50;height:3px}.tleg .lf::before{background:#3ddc97;width:8px;border-radius:50%}
+/* 1.7.0: ρίξιμο συρτής βυθού: «Σταμάτα στα Ν», «Στον βυθό ✓», «Ακούμπησε» */
+.trleads{grid-template-rows:44px auto;row-gap:6px}
+.trleads .trgo,.trleads .trtouch{grid-column:1/-1;width:100%;height:40px;border-radius:12px;font:800 14px var(--font);background:#E4572E;color:#fff}
+.trleads .trtouch{background:rgba(255,255,255,.14);box-shadow:inset 0 0 0 1.5px #ff8a6b}
+.trdrop{display:flex;flex-direction:column;gap:6px;padding:10px 10px 8px;border-radius:18px;background:rgba(12,22,32,.94);color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.trdrop>small{font:800 10px var(--font);letter-spacing:.08em;opacity:.8}
+.trdrop .trdn{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;gap:6px}
+.trdrop .trdn button{grid-row:1;width:44px;height:44px;border-radius:14px;border:0;background:rgba(255,255,255,.12);color:#fff;font:800 22px/1 var(--font)}
+.trdrop .trdn button:first-child{grid-column:1}.trdrop .trdn button:last-child{grid-column:3}
+.trdrop .trdn b{grid-column:2;grid-row:1;text-align:center;font:900 40px/1 var(--font);color:#ffd166}
+.trdrop .trdn span{grid-column:2;grid-row:2;text-align:center;font:700 11px var(--font);opacity:.8;margin-top:-2px}
+.trdrop em{font:600 12px var(--font);font-style:normal;opacity:.9}
+.trdrop .trdb{display:flex;gap:6px}.trdrop .trdb .btn.pri{flex:1;min-height:44px}.trdrop .trdb .btn.ghost{background:rgba(255,255,255,.12)!important;color:#fff!important;border:0!important;min-height:44px}
+html.night .trdrop .trdn b{color:#fff}
+/* 1.7.1: νέος χάρακας: σημεία με πάτημα, μικρή μπάρα κάτω, η μπάρα εξόδου κρύβεται όσο μετράς */
+body.ruling .tripbar,body.ruling .trwrap{display:none!important}
+#ndRuler{position:fixed;left:10px;right:10px;bottom:calc(var(--nav-h,64px) + var(--safe-b,0px) + 12px);z-index:950;max-width:560px;margin:0 auto;display:flex;flex-direction:column;align-items:stretch;gap:8px;padding:10px 10px 10px 14px;border-radius:18px;background:var(--surface,#fff);color:var(--ink,#111);box-shadow:0 6px 22px rgba(0,0,0,.28)}
+#ndRuler .rmain{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+#ndRuler .rhint b{display:block;font:800 15px/1.25 var(--font)}#ndRuler .rhint small{display:block;font:500 12px/1.3 var(--font);color:var(--ink-2)}
+#ndRuler .rnum{display:flex;align-items:baseline;gap:8px;white-space:nowrap}#ndRuler .rnum b{font:900 26px/1 var(--font);color:var(--accent)}#ndRuler .rnum small{font:700 13px var(--font);color:var(--ink-2)}
+#ndRuler .rinfo{display:flex;gap:18px;flex-wrap:wrap;font:700 13px/1.2 var(--font)}#ndRuler .rinfo span{display:flex;flex-direction:column}#ndRuler .rinfo i{font:600 10px var(--font);font-style:normal;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-2)}
+#ndRuler .racts{display:flex;gap:6px;justify-content:flex-end}#ndRuler .racts .rb{flex:1;max-width:64px}#ndRuler .racts .rb.sp{max-width:none;flex:1.4}
+#ndRuler .rb{min-width:44px;height:44px;border-radius:14px;border:0;background:var(--surface-2,#eef1f3);color:var(--ink,#111);font:800 18px/1 var(--font);cursor:pointer;padding:0 10px}
+#ndRuler .rb.sp{font-size:13px}#ndRuler .rb.x{background:var(--ink,#111);color:var(--surface,#fff)}
+.rulpt .rp{width:30px;height:30px;border-radius:50%;background:#E8743B;border:3px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.45);color:#fff;font:800 12px/24px system-ui;text-align:center;cursor:grab}
+.rulpt .rp.a{background:#2a7de1}
+.rultag .rt{display:inline-block;width:max-content;transform:translate(-50%,-50%);background:#3b2a12;color:#ffd27a;border-radius:8px;padding:3px 8px;font:700 12px system-ui;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.5)}
+.rultag .rt.d{transform:translate(-50%,-190%);background:#0d2c40;color:#9fd4ee}
+html.night #ndRuler{background:#1a0000;color:#fff;box-shadow:0 0 0 2px #fff}html.night #ndRuler .rb{background:#2a0000;color:#fff}
+.trsheet .trhint{margin:8px 0 4px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--accent) 10%,var(--surface-2));font:500 13px/1.4 var(--font)}
+/* 1.7.2: «Καθαρός» χάρτης */
+body.mapclean .mchips,body.mapclean .mapwx,body.mapclean .wxread{display:none!important}
+body.mapclean .mapbar>*:not(.gpsb){display:none!important}
+body.mapclean .seabar>*:not(.mobbtn){display:none!important}
+.mcbar{position:fixed;left:84px;right:76px;top:calc(var(--safe-t,0px) + 16px);z-index:30;height:52px;max-width:420px;margin:0 auto;display:flex;align-items:center;gap:10px;padding:0 12px 4px 16px;border:0;border-radius:26px;background:rgba(12,22,32,.9);color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.35);font:700 14px var(--font);cursor:pointer;touch-action:none}
+.mcbar[hidden]{display:none}
+body:not(.mapon) .mcbar,body.mappick .mcbar,body.replaying .mcbar,body.ruling .mcbar{display:none!important}
+.mcbar::after{content:'';position:absolute;left:50%;bottom:6px;width:32px;height:4px;margin-left:-16px;border-radius:2px;background:rgba(255,255,255,.35)}
+.mcbar .mci{display:flex;gap:6px;align-items:center}.mcbar .mci span{display:flex}.mcbar .mci svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:1.9}
+.mcbar .mcl{font:700 13px var(--font);opacity:.85}
+.mcbar .mct{flex:1;min-width:0;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:800 14px var(--font)}
+.mcbar .mcv svg{width:18px;height:18px;fill:none;stroke:#fff;stroke-width:2.4;opacity:.8}
+.mcdrw{position:fixed;inset:0;z-index:960}
+.mcdrw .mcdim{position:absolute;inset:0;background:rgba(0,0,0,.35);opacity:0;transition:opacity .2s}
+.mcdrw .mcpan{position:absolute;left:0;right:0;top:0;max-height:86vh;overflow:auto;padding:calc(var(--safe-t,0px) + 18px) 16px 12px;border-radius:0 0 26px 26px;background:var(--surface,#fff);color:var(--ink);box-shadow:0 12px 40px rgba(0,0,0,.4);transform:translateY(-104%);transition:transform .22s ease-out;touch-action:pan-y}
+.mcdrw.open .mcdim{opacity:1}.mcdrw.open .mcpan{transform:none}
+.mcpan h4{margin:12px 2px 8px;font:800 12px var(--font);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+.mcpan .mcg5{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}.mcpan .mcg3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mcpan .mctile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:72px;padding:8px 4px;border:0;border-radius:16px;background:var(--surface-2);color:var(--ink);font:700 12px/1.15 var(--font);text-align:center;cursor:pointer}
+.mcpan .mctile[aria-pressed="true"]{background:var(--accent);color:#fff}
+.mcpan .mcti{display:flex}.mcpan .mcti svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8}
+.mcpan .mcrow{display:flex;gap:8px;flex-wrap:wrap}
+.mcpan .mcfoot{display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:14px}
+.mcpan .mchd{width:44px;height:5px;border-radius:3px;background:var(--line,#c7d0d5)}
+.mcopts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mcopt{display:flex;flex-direction:column;gap:6px;padding:10px;border:0;border-radius:16px;background:var(--surface-2);color:var(--ink);text-align:left;cursor:pointer}
+.mcopt b{font:800 16px var(--font)}.mcopt small{font:500 12px/1.3 var(--font);color:var(--ink-2)}
+.mcpic{height:120px;border-radius:12px;background:#3d79a8;position:relative;overflow:hidden}
+.mcpic.cl::before{content:'';position:absolute;left:18%;right:18%;top:10px;height:16px;border-radius:8px;background:rgba(12,22,32,.85)}
+.mcpic.cs::before{content:'';position:absolute;left:8px;right:8px;top:8px;height:14px;background:repeating-linear-gradient(90deg,#fff 0 22px,transparent 22px 27px);border-radius:6px}
+.mcpic.cs::after{content:'';position:absolute;left:8px;top:30px;width:16px;height:76px;background:repeating-linear-gradient(180deg,#fff 0 14px,transparent 14px 19px);border-radius:6px;box-shadow:96px 0 0 #fff}
+html.night .mcbar{background:#1a0000;box-shadow:0 0 0 2px #fff}html.night .mcdrw .mcpan{background:#120000;color:#fff}
+/* 1.7.3: οθόνη που αλλάζει μόνη της (καθαρός χάρτης) */
+.mcmode{position:fixed;left:50%;transform:translateX(-50%);top:calc(var(--safe-t,0px) + 74px);z-index:31;border:0;border-radius:14px;padding:5px 12px;background:var(--surface,#fff);color:var(--accent);font:800 11px var(--font);letter-spacing:.06em;box-shadow:0 2px 8px rgba(0,0,0,.25);cursor:pointer}
+body:not(.mapclean) .mcmode,body:not(.mapclean) .mcpanel,body:not(.mapon) .mcmode,body:not(.mapon) .mcpanel,body.ruling .mcmode,body.ruling .mcpanel{display:none!important}
+.mcpanel{position:fixed;left:12px;right:12px;top:calc(var(--safe-t,0px) + 132px);z-index:29;max-width:520px;margin:0 auto;border-radius:22px;background:rgba(12,22,32,.94);color:#fff;padding:12px 16px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.mcpanel.off{display:none}
+.mcpanel.fish{grid-template-columns:1fr 1.4fr}
+.mcpanel .mph{grid-column:1/-1;justify-self:start;border:0;border-radius:10px;padding:3px 9px;background:rgba(255,255,255,.14);color:#ffd166;font:800 10px var(--font);letter-spacing:.07em;cursor:pointer}
+.mcpanel .mpc{display:flex;flex-direction:column;min-width:0}.mcpanel .mpc.wide{grid-column:1/-1}
+.mcpanel i{font:800 10px var(--font);font-style:normal;letter-spacing:.06em;opacity:.7}
+.mcpanel b{font:900 30px/1.08 var(--font)}.mcpanel small{font:700 13px var(--font);opacity:.85}
+.mcpanel.fish .mpc:nth-child(2) b{color:#9fd4ee}
+.mcpanel .mpto{grid-column:1/-1;display:flex;justify-content:space-between;gap:8px;border-top:1px solid rgba(255,255,255,.15);padding-top:8px;font:700 14px var(--font)}
+.mcpanel.anc b{color:#3ad07a}.mcpanel.anc.bad{background:rgba(160,20,20,.95)}.mcpanel.anc.bad b{color:#fff}
+body.mapclean.mode-run .fishbtns,body.mapclean.mode-run .dtbar,body.mapclean.mode-fish .dtbar,body.mapclean.mode-anchor .dtbar{display:none!important}
+html.night .mcpanel{background:#1a0000;box-shadow:0 0 0 2px #fff}
+/* 1.7.4: υπόμνημα θερμοκρασίας: τιμή στο σταυρό και κλίμακα */
+.sstleg .slr{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px;pointer-events:auto}
+.sstleg .slh{font:800 13px var(--font)}
+.sstleg .slsc{border:0;border-radius:10px;padding:5px 9px;background:var(--surface-2);color:var(--ink);font:700 11px var(--font);cursor:pointer;pointer-events:auto}
+body.mapclean .sstleg{top:calc(var(--safe-t,0px) + 76px)}
+body.mapclean.mode-run .sstleg,body.mapclean.mode-fish .sstleg,body.mapclean.mode-anchor .sstleg{top:auto;bottom:calc(var(--nav-h,64px) + var(--safe-b,0px) + 210px)}
+/* 1.7.4: δομημένο μενού (ακορντεόν) */
+.mcpan .mcacc{border-top:1px solid var(--line,rgba(0,0,0,.08));margin-top:8px}
+.mcpan .mcacc>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;padding:14px 2px;font:800 15px var(--font);cursor:pointer;min-height:48px}
+.mcpan .mcacc>summary::-webkit-details-marker{display:none}
+.mcpan .mcacc>summary::after{content:'';width:9px;height:9px;border-right:2.2px solid currentColor;border-bottom:2.2px solid currentColor;transform:rotate(45deg);margin-right:6px;transition:transform .2s;opacity:.7}
+.mcpan .mcacc[open]>summary::after{transform:rotate(-135deg)}
+.mcpan .mcacc>*:not(summary){margin-bottom:12px}
+.mcpan .mcacc .lgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mcpan .mcrow .chip[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.mcpan .mcg3 .mctile svg,.mcpan .mcg5 .mctile svg{width:26px;height:26px}
+/* 1.7.5: μενού: λίστα με διακόπτες αντί για μεγάλα πλακίδια, έτοιμα με εξήγηση, μικρότερη κάρτα ΨΑΡΕΥΩ */
+.mcpan .mcacc .lgrid{grid-template-columns:1fr;gap:0}
+.mcpan .mcacc .ltile{flex-direction:row;align-items:center;justify-content:flex-start;gap:12px;min-height:56px;padding:8px 4px;border:0;border-bottom:1px solid var(--line,rgba(0,0,0,.06));border-radius:0;background:none;box-shadow:none;text-align:left;position:relative}
+.mcpan .mcacc .ltile .lic{width:36px;height:36px;margin:0;flex:none}
+.mcpan .mcacc .ltile b{font-size:15px;flex:none}
+.mcpan .mcacc .ltile small{font-size:12px;flex:1;min-width:0;padding-right:56px}
+.mcpan .mcacc .ltile::after{content:'';position:absolute;right:4px;top:50%;width:44px;height:26px;margin-top:-13px;border-radius:13px;background:var(--line,#cfd6da);box-shadow:inset 0 0 0 2px transparent;transition:background .15s}
+.mcpan .mcacc .ltile::before{content:'';position:absolute;right:24px;top:50%;width:20px;height:20px;margin-top:-10px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);z-index:1;transition:right .15s}
+.mcpan .mcacc .ltile[aria-pressed="true"]::after{background:var(--accent)}
+.mcpan .mcacc .ltile[aria-pressed="true"]::before{right:7px}
+.mcpan .mcacc .ltile[aria-pressed="true"] .lic{background:var(--accent);color:#fff}
+.mcpan .mcacc .ltile:disabled{opacity:.5}
+.mcpan .mcacc .lbase{gap:8px}
+.mcpan .mcsub{margin:14px 2px 6px;font:800 11px var(--font);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+.mcpan .mcps{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mcpan .mcpre{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;border:1.5px solid var(--line,#d5dbde);border-radius:14px;background:none;color:var(--ink);text-align:left;cursor:pointer}
+.mcpan .mcpre b{font:800 14px var(--font)}.mcpan .mcpre small{font:600 11.5px var(--font);color:var(--ink-2)}
+.mcpan .mcpre[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--surface)}.mcpan .mcpre[aria-pressed="true"] small{color:inherit;opacity:.8}
+.mcpanel{top:calc(var(--safe-t,0px) + 80px)!important;left:88px!important;right:12px!important;padding:8px 12px!important;gap:4px 12px!important;border-radius:18px!important}
+.mcpanel b{font-size:22px!important}.mcpanel small{font-size:12px!important}.mcpanel i{font-size:9.5px!important}
+.mcpanel .mph{padding:2px 8px!important;font-size:9.5px!important}
+.mcpanel.run{left:12px!important;top:calc(var(--safe-t,0px) + 132px)!important}.mcpanel.run b{font-size:28px!important}
+.mcpan .mcacc .ltile{display:grid;grid-template-columns:36px 1fr;grid-template-rows:auto auto;column-gap:12px;row-gap:1px;align-content:center;padding-right:60px}
+.mcpan .mcacc .ltile .lic{grid-row:1/3;align-self:center}
+.mcpan .mcacc .ltile b,.mcpan .mcacc .ltile small{grid-column:2;padding-right:0;text-align:left}
+.mcpanel .mpc{display:block!important}.mcpanel .mpc i{display:block}
+.mcpanel .mpc b{display:inline}.mcpanel .mpc small{display:inline;margin-left:4px}
+.mcpanel .mpto{font-size:12.5px!important;padding-top:5px!important}
+/* 1.7.6: Πυξίδα NU/CU/HU πάντα δίπλα σου σε έξοδο, και στον καθαρό χάρτη (κάτω από το MOB) */
+body.mapclean.ontrip .seabar>.mo-btn{display:flex!important}
+/* 1.7.6: η πράσινη μπάρα εξόδου έφυγε· η κατάσταση είναι στο κεντρικό κουμπί */
+.tripbar{display:none!important}
+/* 1.7.8: πλαϊνό μενού από δεξιά· αριστερά μένει ζωντανός ο χάρτης (χωρίς σκοτείνιασμα) */
+.mcdrw .mcdim{background:transparent!important;right:min(74vw,400px)}
+.mcdrw .mcpan{left:auto!important;right:0!important;top:0!important;bottom:0!important;width:min(74vw,400px);max-height:none!important;padding:calc(var(--safe-t,0px) + 16px) 12px calc(var(--safe-b,0px) + 20px) 14px!important;border-radius:24px 0 0 24px!important;transform:translateX(104%)!important;transition:transform .24s ease-out!important;box-shadow:-10px 0 34px rgba(0,0,0,.38)!important;overscroll-behavior:contain}
+.mcdrw.open .mcpan{transform:none!important}
+.mcdrw{pointer-events:none}.mcdrw .mcdim,.mcdrw .mcpan{pointer-events:auto}
+.mcpan .mcg5{gap:6px!important}
+.mcpan .mcg5 .mctile{min-height:64px!important;padding:8px 2px!important}
+.mcpan .mcg5 .mctile b{font-size:10.5px!important}
+.mcpan .mcg5 .mctile .mcti svg{width:22px!important;height:22px!important}
+.mcpan .mcg3 .mctile{min-height:72px!important}
+.mcpan .mcg3 .mctile b{font-size:12px!important}
+.mcpan .mcps{gap:6px!important}.mcpan .mcpre{padding:8px 10px!important}.mcpan .mcpre b{font-size:13px!important}
+.mcpan h4{margin-top:12px!important}
+/* η λωρίδα του χάρτη: μια λεπτή σκιά στην άκρη δείχνει ότι εκεί κλείνει */
+body:has(.mcdrw.open) .mo-btn{visibility:hidden}
+/* 1.7.9: καθαρός χάρτης. Πάνω δεξιά σε μία γραμμή: MOB · NU/CU/HU · θέση μου. Η μπάρα αριστερά, ανοιχτόχρωμη, μόνο με άνεμο και κύμα.
+   Λαβή στη δεξιά άκρη για το μενού. */
+body.mapclean .seabar{left:auto!important;right:74px;top:calc(var(--safe-t,0px) + 12px)!important;flex-direction:row!important;align-items:center;gap:10px;width:auto!important}
+body.mapclean .seabar .mobbtn{width:52px;height:52px;font-size:13px;border-width:2px}
+body.mapclean .seabar .mo-btn{width:52px;height:52px}
+body.mapclean .mapbar{top:calc(var(--safe-t,0px) + 12px)!important}
+body.mapclean .mapbar .gpsb{width:52px;height:52px}
+body.mapclean .mcbar{left:12px!important;right:74px!important;top:calc(var(--safe-t,0px) + 12px)!important;margin:0!important;max-width:none!important;height:52px;background:var(--surface,#fff)!important;color:var(--ink,#0b1f2a)!important;box-shadow:var(--shadow,0 4px 14px rgba(0,0,0,.22))!important;padding:0 12px 0 16px!important;justify-content:flex-start}
+body.mapclean.maptrip .mcbar{right:136px!important}
+body.mapclean.maptrip.ontrip .mcbar{right:198px!important}
+body.mapclean .mcbar .mci{display:none!important}
+body.mapclean .mcbar .mct{text-align:left!important;font:800 15px var(--font)!important;color:inherit}
+body.mapclean .mcbar .mcv svg{stroke:currentColor!important;opacity:.6}
+body.mapclean .mcbar::after{display:none}
+html.night body.mapclean .mcbar{background:#1a0000!important;color:#fff!important;box-shadow:0 0 0 2px #fff!important}
+.mcedge{display:none}
+body.mapclean.mapon .mcedge{display:flex;position:fixed;right:0;top:52%;z-index:31;width:26px;height:84px;margin-top:-42px;align-items:center;justify-content:center;padding:0;border:0;border-radius:14px 0 0 14px;background:var(--surface,#fff);color:var(--ink,#0b1f2a);opacity:.92;box-shadow:-2px 2px 10px rgba(0,0,0,.25);touch-action:none}
+.mcedge svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.6}
+body:has(.mcdrw.open) .mcedge,body.ruling .mcedge,body.mappick .mcedge,body.replaying .mcedge{display:none!important}
+html.night .mcedge{background:#1a0000;color:#fff;box-shadow:0 0 0 1px #fff}
+/* κάρτα ΨΑΡΕΥΩ/ΑΓΚΥΡΑ: τώρα που το MOB είναι δεξιά, πιάνει όλο το πλάτος κάτω από την πάνω γραμμή */
+body.mapclean .mcpanel{left:12px!important;right:12px!important;top:calc(var(--safe-t,0px) + 76px)!important}
+body.mapclean .mcpanel.run{top:calc(var(--safe-t,0px) + 76px)!important}
+/* μενού: ομάδες πάντα ανοιχτές */
+.mcpan .mcgrp{border-top:1px solid var(--line,rgba(0,0,0,.08));margin-top:10px}
+.mcpan .mcgrp>h4{margin:14px 2px 6px!important}
+.mcpan .mcgrp .lgrid{grid-template-columns:1fr;gap:0}
+.mcpan .mcgrp .ltile{display:grid;grid-template-columns:36px 1fr;grid-template-rows:auto auto;column-gap:12px;row-gap:1px;align-content:center;min-height:56px;padding:8px 60px 8px 4px;border:0;border-bottom:1px solid var(--line,rgba(0,0,0,.06));border-radius:0;background:none;box-shadow:none;text-align:left;position:relative}
+.mcpan .mcgrp .ltile .lic{width:36px;height:36px;margin:0;grid-row:1/3;align-self:center}
+.mcpan .mcgrp .ltile b{grid-column:2;font-size:15px;text-align:left}
+.mcpan .mcgrp .ltile small{grid-column:2;font-size:12px;text-align:left;padding:0}
+.mcpan .mcgrp .ltile::after{content:'';position:absolute;right:4px;top:50%;width:44px;height:26px;margin-top:-13px;border-radius:13px;background:var(--line,#cfd6da)}
+.mcpan .mcgrp .ltile::before{content:'';position:absolute;right:24px;top:50%;width:20px;height:20px;margin-top:-10px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);z-index:1;transition:right .15s}
+.mcpan .mcgrp .ltile[aria-pressed="true"]::after{background:var(--accent)}
+.mcpan .mcgrp .ltile[aria-pressed="true"]::before{right:7px}
+.mcpan .mcgrp .ltile[aria-pressed="true"] .lic{background:var(--accent);color:#fff}
+.mcpan .mcgrp .ltile:disabled{opacity:.5}
