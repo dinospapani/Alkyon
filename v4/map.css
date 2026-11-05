@@ -750,3 +750,19 @@ body:not(.mapclean) .mcmode,body:not(.mapclean) .mcpanel,body:not(.mapon) .mcmod
 .mcpanel.anc b{color:#3ad07a}.mcpanel.anc.bad{background:rgba(160,20,20,.95)}.mcpanel.anc.bad b{color:#fff}
 body.mapclean.mode-run .fishbtns,body.mapclean.mode-run .dtbar,body.mapclean.mode-fish .dtbar,body.mapclean.mode-anchor .dtbar{display:none!important}
 html.night .mcpanel{background:#1a0000;box-shadow:0 0 0 2px #fff}
+/* 1.7.4: υπόμνημα θερμοκρασίας: τιμή στο σταυρό και κλίμακα */
+.sstleg .slr{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px;pointer-events:auto}
+.sstleg .slh{font:800 13px var(--font)}
+.sstleg .slsc{border:0;border-radius:10px;padding:5px 9px;background:var(--surface-2);color:var(--ink);font:700 11px var(--font);cursor:pointer;pointer-events:auto}
+body.mapclean .sstleg{top:calc(var(--safe-t,0px) + 76px)}
+body.mapclean.mode-run .sstleg,body.mapclean.mode-fish .sstleg,body.mapclean.mode-anchor .sstleg{top:auto;bottom:calc(var(--nav-h,64px) + var(--safe-b,0px) + 210px)}
+/* 1.7.4: δομημένο μενού (ακορντεόν) */
+.mcpan .mcacc{border-top:1px solid var(--line,rgba(0,0,0,.08));margin-top:8px}
+.mcpan .mcacc>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;padding:14px 2px;font:800 15px var(--font);cursor:pointer;min-height:48px}
+.mcpan .mcacc>summary::-webkit-details-marker{display:none}
+.mcpan .mcacc>summary::after{content:'';width:9px;height:9px;border-right:2.2px solid currentColor;border-bottom:2.2px solid currentColor;transform:rotate(45deg);margin-right:6px;transition:transform .2s;opacity:.7}
+.mcpan .mcacc[open]>summary::after{transform:rotate(-135deg)}
+.mcpan .mcacc>*:not(summary){margin-bottom:12px}
+.mcpan .mcacc .lgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mcpan .mcrow .chip[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.mcpan .mcg3 .mctile svg,.mcpan .mcg5 .mctile svg{width:26px;height:26px}

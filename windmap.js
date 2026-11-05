@@ -218,7 +218,7 @@ async function load(){
   if(!grid) drawPanel(T('Φόρτωση ανέμου…','Loading wind…'));
   try{
     var px={s:s,n:n,w:w,e:e,meta:null}, mf=null, viaPx=false;
-    try{ mf=await modelFetch(base,px); viaPx=true; }catch(pe){ try{ console.warn('wind-grid',pe&&pe.message); }catch(e0){} if(/429/.test(String(pe&&pe.message))) throw pe; px=null; }
+    try{ mf=await modelFetch(base,px); viaPx=true; }catch(pe){ try{ console.warn('wind-grid',pe&&pe.message); }catch(e0){} px=null; } /* 1.7.4: αν η κοινή μνήμη απαντά 429 (κοινή IP του server), δοκιμάζουμε απευθείας από το κινητό, που έχει δικό του όριο */
     if(id!==loadId||!on) return;
     if(!mf) mf=await modelFetch(base);
     if(id!==loadId||!on) return;
@@ -240,11 +240,12 @@ async function load(){
     if(SEL>ms.length) SEL=0;
     var nowK=new Date().toISOString().slice(0,13); hi=0; for(var z2=0;z2<hours.length;z2++){ if(hours[z2].slice(0,13)<=nowK) hi=z2; } nowIdx=hi;
     if(keepT){ var ki=hours.indexOf(keepT); if(ki>=0) hi=ki; }
-    drawPanel(); if(panel&&keepSc) panel.scrollTop=keepSc; seed(); if(!raf) loop(0); loadStations();
+    window.AlkyonWindErr=null; drawPanel(); if(panel&&keepSc) panel.scrollTop=keepSc; seed(); if(!raf) loop(0); loadStations();
   }catch(err){ if(id===loadId&&on){
     if(N>7&&!(err&&err.message==='nodata')){ N=7; grid=null; loadId++; return load(); }
     var m=String(err&&err.message||''), lim=/429/.test(m), why=lim?T(' Το όριο της πηγής (Open-Meteo) εξαντλήθηκε, δοκίμασε ξανά σε λίγα λεπτά.',' The data source (Open-Meteo) rate limit was reached. Try again in a few minutes.'):(/abort/i.test(m)?T(' Η πηγή άργησε να απαντήσει.',' The source was too slow.'):(m?' ('+m+')':''));
-    grid=null; drawPanel(T('Ο άνεμος δεν φορτώθηκε.','Wind did not load.')+why); clear(); } }
+    grid=null; window.AlkyonWindErr=lim?'429':'fail'; try{ window.dispatchEvent(new CustomEvent('alkyon-wxchange')); }catch(e2){} drawPanel(T('Ο άνεμος δεν φορτώθηκε.','Wind did not load.')+why); clear();
+    /* 1.7.4: νέα προσπάθεια μόνη της σε 3′ (όχι πιο συχνά, για να μη γεμίζει το όριο) */ clearTimeout(window._wRetry); window._wRetry=setTimeout(function(){ if(on&&!grid){ loadId++; load(); } },180000); } }
 }
 /* Μετρήσεις σταθμών (METAR αεροδρομίων): περνούν από συνάρτηση στο Supabase, γιατί η πηγή δεν επιτρέπει κλήση απευθείας από browser. */
 var SUPA='https://sgfohmqwdwtkhtrebnix.supabase.co', SKEY='sb_publishable_LGuwvrvLnAj1CF22Q6g9vg_4OImZYbA';
@@ -299,7 +300,7 @@ function loop(ts){
     var p=parts[i], ll=map.containerPointToLatLng([p.x,p.y]), v=sample(ll.lat,ll.lng);
     if(!v||p.age--<=0){ parts[i]=np(); parts[i].age=40+Math.floor(Math.random()*30); continue; }
     var nx=p.x+v.u*sc, ny=p.y-v.v*sc;
-    var sea=seaOn(), lf=onLand(ll.lat,ll.lng)?0.3:1; /* 1.6.6: αχνές γραμμές πάνω στη στεριά, για να φαίνεται */
+    var sea=seaOn(), LWm=window.AlkyonLandWx?AlkyonLandWx():'mid', lf=LWm==='full'?1:onLand(ll.lat,ll.lng)?(LWm==='faint'?0.3:0.6):1; /* 1.6.6: αχνές γραμμές πάνω στη στεριά, για να φαίνεται */
     if(window.ALKYON_WINDY){ /* v31z520: όπως το Windy: λευκά σωματίδια πάνω στο χρωματιστό πεδίο, ορατά και στον ασθενή άνεμο */
       /* v31z524: η εικόνα δείχνει την ένταση: δυνατός άνεμος = πυκνές, μακριές, παχιές γραμμές· άπνοια = λίγες, κοντές, αχνές */
       if(p.vis==null) p.vis=Math.random();

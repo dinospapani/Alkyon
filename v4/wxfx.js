@@ -12,6 +12,25 @@ var WVC=[[0,[206,238,242]],[0.25,[160,216,232]],[0.5,[112,186,222]],[0.75,[78,15
 function wvcol(h){ if(!(h>0)) return WVC[0][1].slice(); for(var i=1;i<WVC.length;i++){ if(h<=WVC[i][0]){ var a=WVC[i-1], b=WVC[i], t=(h-a[0])/(b[0]-a[0]); return [a[1][0]+(b[1][0]-a[1][0])*t,a[1][1]+(b[1][1]-a[1][1])*t,a[1][2]+(b[1][2]-a[1][2])*t]; } } return WVC[WVC.length-1][1].slice(); }
 window.ALKYON_WAVEGRAD=wvcol; B.waveColor=wvcol;
 var RC={k:null,r:null,p:null}; /* 1.6.1: ακτογραμμή για την τρέχουσα θέα */
+/* 1.7.4: ακτογραμμή σε κάθε ζουμ από 7 (όχι μόνο ≥ 10), ώστε άνεμος/κύμα/νερό να κόβονται στην ακτή χωρίς «σκαλοπάτια».
+   Αέρας πάνω στη στεριά (alkyon-v4-landwx): 'mid' (προεπιλογή, ~40%) · 'faint' (~15%) · 'full' (όπως το Windy). */
+function landWx(){ var v=B.ls.get('alkyon-v4-landwx','mid'); return v==='faint'||v==='full'?v:'mid'; }
+B.landWx=function(v){ if(v==null) return landWx(); B.ls.set('alkyon-v4-landwx',v); later(20); try{ window.dispatchEvent(new CustomEvent('alkyon-wxchange')); }catch(e){} };
+window.AlkyonLandWx=landWx;
+function ringsFor(map){ var Sx=S(); if(!Sx||!Sx.landRings||map.getZoom()<7) return null; var bb0=map.getBounds(), rk=[bb0.getSouth(),bb0.getNorth(),bb0.getWest(),bb0.getEast()].map(function(v){ return v.toFixed(3); }).join(',');
+  if(RC.k===rk) return RC.r; if(RC.p!==rk){ RC.p=rk; Sx.landRings({s:bb0.getSouth()-0.05,n:bb0.getNorth()+0.05,w:bb0.getWest()-0.05,e:bb0.getEast()+0.05}).then(function(r){ RC={k:rk,r:r&&r.length?r:null,p:null}; if(r&&r.length){ later(30); if(typeof sstDraw==='function'&&sstOn) setTimeout(sstDraw,60); } }).catch(function(){ RC.p=null; }); }
+  return RC.k===rk?RC.r:null; }
+/* μόνο η πραγματική ακτή (όχι οι ευθείες στα όρια των πλακιδίων 1°, όπου κόβονται τα περιγράμματα) */
+function onEdge(v){ return Math.abs(v-Math.round(v))<1e-5; }
+function ringStroke(cx,map,rings){ cx.beginPath(); rings.forEach(function(r){ var xy=r.xy, n=xy.length/2, pen=false, lx=0, ly=0;
+    for(var k=0;k<=n;k++){ var i=(k%n)*2, j=((k+n-1)%n)*2, lo=xy[i], la=xy[i+1], plo=xy[j], pla=xy[j+1], q=map.latLngToContainerPoint([la,lo]);
+      var edge=k>0&&((Math.abs(lo-plo)<1e-6&&Math.abs(la-pla)>0.002)||(Math.abs(la-pla)<1e-6&&Math.abs(lo-plo)>0.002)); /* ευθύ οριζόντιο/κάθετο κομμάτι = όριο πλακιδίου, όχι ακτή */
+      if(k===0||edge||!pen){ cx.moveTo(q.x,q.y); pen=true; lx=q.x; ly=q.y; continue; }
+      if(Math.abs(q.x-lx)<1.2&&Math.abs(q.y-ly)<1.2&&k<n) continue; cx.lineTo(q.x,q.y); lx=q.x; ly=q.y; } }); }
+/* μονοπάτι ακτογραμμής στον καμβά, με αραίωση (σημεία πιο κοντά από 1.2 px παραλείπονται: ίδια εικόνα, πολύ πιο γρήγορα σε μακρινό ζουμ) */
+function ringPath(cx,map,rings){ cx.beginPath(); rings.forEach(function(r){ var xy=r.xy, lx=null, ly=null, n=0;
+    for(var i=0;i<xy.length;i+=2){ var q=map.latLngToContainerPoint([xy[i+1],xy[i]]); if(n&&Math.abs(q.x-lx)<1.2&&Math.abs(q.y-ly)<1.2&&i<xy.length-2) continue; if(n) cx.lineTo(q.x,q.y); else cx.moveTo(q.x,q.y); lx=q.x; ly=q.y; n++; }
+    cx.closePath(); }); }
 var map=null, fillCv=null, dashCv=null, dctx=null, parts=[], raf=0, last=0, rt=0, waitT=0, sig='';
 var RM=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 function W(){ return window.AlkyonWindMap; }
@@ -60,20 +79,25 @@ function render(){
   var Sx=S(), Wx=W(), G=Sx&&Sx.grad;
   if(mode==='sea'&&!(Sx&&Sx.ready&&Sx.ready())){ fillCv.style.opacity='0'; clearTimeout(waitT); waitT=setTimeout(render,1500); return; }
   /* 1.6.1: κοντά (zoom ≥ 10), όπου υπάρχει η λεπτομερής ακτή (Κύπρος/Ελλάδα), το κύμα κόβεται ακριβώς στην ακτογραμμή αντί για «σκαλοπάτια» */
-  var bb0=map.getBounds(), rk=[bb0.getSouth(),bb0.getNorth(),bb0.getWest(),bb0.getEast()].map(function(v){ return v.toFixed(3); }).join(','), rings=null;
-  if(map.getZoom()>=10&&Sx&&Sx.landRings){ /* 1.6.6: και για τον άνεμο, ώστε να φαίνεται η στεριά */ if(RC.k===rk) rings=RC.r; else if(RC.p!==rk){ RC.p=rk; Sx.landRings({s:bb0.getSouth()-0.05,n:bb0.getNorth()+0.05,w:bb0.getWest()-0.05,e:bb0.getEast()+0.05}).then(function(r){ RC={k:rk,r:r&&r.length?r:null,p:null}; if(r&&r.length) later(30); }).catch(function(){ RC.p=null; }); } }
+  var bb0=map.getBounds(), rk=[bb0.getSouth(),bb0.getNorth(),bb0.getWest(),bb0.getEast()].map(function(v){ return v.toFixed(3); }).join(','), rings=null, LW=landWx();
+  ringsFor(map); if(RC.k===rk) rings=RC.r;
   for(var yy=0;yy<bh;yy++) for(var xx=0;xx<bw;xx++){
     var la=lat[yy], lo=lon[xx], c=null, a=0, o=(yy*bw+xx)*4;
     if(mode==='sea'){ if(!rings&&land(la,lo)===1) continue; var m=Sx.modelAt(la,lo); if(!m) continue; c=wvcol(m.h); a=0.82; }
-    else { var v=Wx.sample(la,lo); if(!v) continue; c=wcol(v.sp); a=(!rings&&land(la,lo)===1)?0.14:0.62; } /* 1.6.6: πάνω στη στεριά πολύ αχνό */
+    else { var v=Wx.sample(la,lo); if(!v) continue; c=wcol(v.sp); a=(!rings&&LW!=='full'&&land(la,lo)===1)?(LW==='faint'?0.14:0.38):0.62; }
     d[o]=c[0]; d[o+1]=c[1]; d[o+2]=c[2]; d[o+3]=Math.round(255*a); any=true;
   }
   px.putImageData(im,0,0);
   fx.imageSmoothingEnabled=true; try{ fx.imageSmoothingQuality='high'; }catch(e){}
   fx.drawImage(pc,0,0,bw,bh,0,0,bw*st*dpr,bh*st*dpr);
-  if(rings){ fx.save(); fx.setTransform(dpr,0,0,dpr,0,0); fx.globalCompositeOperation='destination-out'; if(mode==='wind') fx.globalAlpha=0.78; fx.beginPath();
-    rings.forEach(function(r){ var xy=r.xy; for(var i=0;i<xy.length;i+=2){ var q=map.latLngToContainerPoint([xy[i+1],xy[i]]); if(i) fx.lineTo(q.x,q.y); else fx.moveTo(q.x,q.y); } fx.closePath(); });
-    fx.fill('nonzero'); fx.restore(); }
+  if(rings){ fx.save(); fx.setTransform(dpr,0,0,dpr,0,0); ringPath(fx,map,rings);
+    var er=mode==='wind'?(LW==='full'?0:LW==='faint'?0.78:0.38):1;
+    if(er>=1){ fx.globalCompositeOperation='destination-out'; fx.fill('nonzero'); }
+    else if(er>0){ /* μερικό σβήσιμο: πρώτα μάσκα στεριάς σε ξεχωριστό καμβά (αδιαφανής, ώστε οι ενώσεις των κομματιών να μη φαίνονται σαν γραμμές), μετά μία φορά με διαφάνεια */
+      var mk=document.createElement('canvas'); mk.width=fillCv.width; mk.height=fillCv.height; var mx=mk.getContext('2d'); mx.setTransform(dpr,0,0,dpr,0,0); ringPath(mx,map,rings); mx.fillStyle='#000'; mx.fill('nonzero'); fx.setTransform(1,0,0,1,0,0); fx.globalCompositeOperation='destination-out'; fx.globalAlpha=er; fx.drawImage(mk,0,0); fx.setTransform(dpr,0,0,dpr,0,0); }
+    /* λεπτή ακτογραμμή: ξεχωρίζει πού τελειώνει η θάλασσα και με χρώμα από πάνω */
+    if(mode==='wind'){ fx.globalCompositeOperation='source-over'; fx.globalAlpha=1; ringStroke(fx,map,rings); fx.strokeStyle='rgba(255,255,255,.55)'; fx.lineWidth=1; fx.stroke(); }
+    fx.restore(); }
   fillCv.style.opacity=any?'1':'0';
   if(mode==='sea'&&any) startAnim();
 }
@@ -119,7 +143,7 @@ function readout(){
       parts2.push('<span class="rgi"><small>'+T('Κύμα','Waves')+'</small><span class="rv">'+(dd!=null?arrowSvg((dd+180)%360,'#9fdcff',18):'')+'<b>'+(U&&U.wave?U.wave(hh):B.num(hh,1)+' m')+'</b>'+(dd!=null?'<em>'+COMPn(dd)+'</em>':'')+(tp>=2?'<em>'+Math.round(tp)+' s</em>':tp>0?'<em>'+T('κυματάκι','chop')+'</em>':'') /* 1.6.8: κάτω από 2 s δεν λέει κάτι */+'<i style="background:'+gc+'"></i></span></span>'); }
     else if(land(c.lat,c.lng)===1) parts2.push('<span class="rgi"><small>'+T('Κύμα','Waves')+'</small><span class="rv"><em>'+T('στεριά','land')+'</em></span></span>'); }
   var sv=B.sstAt?B.sstAt(c.lat,c.lng):null; if(sv!=null) parts2.push('<span class="rgi"><small>'+T('Νερό','Water')+'</small><span class="rv"><b>'+(U&&U.temp?U.temp(sv,1):B.num(sv,1)+'°')+'</b></span></span>');
-  roEl.innerHTML=parts2.join('<span class="rsep"></span>')||'<span class="rgi"><em>'+T('Φόρτωση…','Loading…')+'</em></span>';
+  roEl.innerHTML=parts2.join('<span class="rsep"></span>')||'<span class="rgi"><em>'+(window.AlkyonWindErr?(window.AlkyonWindErr==='429'?T('Ο άνεμος δεν ήρθε (όριο πηγής) · ξανά σε 3′','No wind data (source limit) · retry in 3′'):T('Ο άνεμος δεν ήρθε · ξανά σε 3′','No wind data · retry in 3′')):T('Φόρτωση…','Loading…'))+'</em></span>';
   var nb=document.createElement('button'); nb.type='button'; nb.className='rnum'; nb.setAttribute('aria-pressed',String(numsOn)); nb.setAttribute('aria-label',T('Αριθμοί πάνω στον χάρτη','Numbers on the map')); nb.textContent='123';
   nb.addEventListener('click',function(){ numsOn=!numsOn; B.ls.set('alkyon-v4-wxnums',numsOn); drawLabels(); }); roEl.append(nb);
 }
@@ -213,11 +237,13 @@ function sstDraw(){
   if(!sstOn||!mapOn()||!sstG){ sstCv.style.opacity='0'; B.sstLegend&&B.sstLegend(null); return; }
   var st=8, gw=Math.ceil(sz.x/st)+1, gh=Math.ceil(sz.y/st)+1, V=new Float32Array(gw*gh), A=new Uint8Array(gw*gh), lo=1e9, hi=-1e9, lat=[], lon=[];
   for(var y=0;y<gh;y++) lat.push(map.containerPointToLatLng([0,y*st]).lat); for(var x=0;x<gw;x++) lon.push(map.containerPointToLatLng([x*st,0]).lng);
-  for(var yy=0;yy<gh;yy++) for(var xx=0;xx<gw;xx++){ if(land(lat[yy],lon[xx])===1) continue; var v=sstAt(lat[yy],lon[xx]); if(v==null) continue; var q=yy*gw+xx; V[q]=v; A[q]=1; if(v<lo) lo=v; if(v>hi) hi=v; }
+  var bbS=map.getBounds(), rkS=[bbS.getSouth(),bbS.getNorth(),bbS.getWest(),bbS.getEast()].map(function(v){ return v.toFixed(3); }).join(','); ringsFor(map); var rgS=RC.k===rkS?RC.r:null;
+  for(var yy=0;yy<gh;yy++) for(var xx=0;xx<gw;xx++){ if(!rgS&&land(lat[yy],lon[xx])===1) continue; var v=sstAt(lat[yy],lon[xx]); if(v==null) continue; var q=yy*gw+xx; V[q]=v; A[q]=1; if(v<lo) lo=v; if(v>hi) hi=v; }
   if(hi<lo){ sstCv.style.opacity='0'; B.sstLegend&&B.sstLegend(null); return; }
-  var mid=(lo+hi)/2, span=Math.max(2,hi-lo), l0=mid-span/2, pc=document.createElement('canvas'); pc.width=gw; pc.height=gh; var px=pc.getContext('2d'), im=px.createImageData(gw,gh), d=im.data;
+  var FIX=B.ls.get('alkyon-v4-sstscale','local')==='fixed', mid=(lo+hi)/2, span=FIX?16:Math.max(2,hi-lo), l0=FIX?14:mid-span/2, pc=document.createElement('canvas'); pc.width=gw; pc.height=gh; var px=pc.getContext('2d'), im=px.createImageData(gw,gh), d=im.data;
   for(var k=0;k<gw*gh;k++){ if(!A[k]) continue; var c=scol((V[k]-l0)/span), o=k*4; d[o]=c[0]; d[o+1]=c[1]; d[o+2]=c[2]; d[o+3]=180; }
   px.putImageData(im,0,0); cx.imageSmoothingEnabled=true; try{ cx.imageSmoothingQuality='high'; }catch(e){} cx.drawImage(pc,0,0,gw,gh,0,0,gw*st,gh*st);
+  if(rgS){ cx.save(); ringPath(cx,map,rgS); cx.globalCompositeOperation='destination-out'; cx.fill('nonzero'); cx.restore(); } /* 1.7.4: ακριβώς στην ακτή */
   /* ισόθερμες (marching squares) και μέτωπα */
   var step=(hi-lo)<1.6?0.25:0.5, kmPx=(function(){ var a=map.containerPointToLatLng([0,sz.y/2]), b2=map.containerPointToLatLng([100,sz.y/2]); return map.distance(a,b2)/100000; })();
   var segs=[], gmax=0;
@@ -238,8 +264,9 @@ function sstDraw(){
   for(var z=0;z<segs.length&&labs.length<6;z+=Math.max(1,Math.floor(segs.length/40))){ var sg=segs[z], mx=(sg[0][0]+sg[1][0])/2, my=(sg[0][1]+sg[1][1])/2; if(mx<30||my<120||mx>sz.x-30||my>sz.y-200) continue;
     if(labs.some(function(l){ return (l[0]-mx)*(l[0]-mx)+(l[1]-my)*(l[1]-my)<90*90; })) continue; labs.push([mx,my]);
     var tx2=B.num(sg[3],step<0.5?2:1)+'°'; cx.lineWidth=3; cx.strokeStyle='rgba(10,20,30,.7)'; cx.strokeText(tx2,mx,my); cx.fillStyle='#fff'; cx.fillText(tx2,mx,my); }
-  sstCv.style.opacity='1';
-  B.sstLegend&&B.sstLegend({lo:lo,hi:hi,l0:l0,span:span,fronts:fr.length>0,gmax:gmax});
+  if(rgS){ cx.save(); ringPath(cx,map,rgS); cx.globalCompositeOperation='destination-out'; cx.fill('nonzero'); cx.restore(); }
+  sstCv.style.opacity='1'; var cc=map.getCenter(), cv=sstAt(cc.lat,cc.lng);
+  B.sstLegend&&B.sstLegend({lo:lo,hi:hi,l0:l0,span:span,fronts:fr.length>0,gmax:gmax,fixed:FIX,here:cv});
 }
 
 /* υπόμνημα θερμοκρασίας νερού: κλίμακα της περιοχής και τι είναι το μέτωπο */
@@ -249,7 +276,13 @@ B.sstLegend=function(L2){ if(!L2){ if(legEl) legEl.hidden=true; return; }
   var g=SC.map(function(c){ return 'rgb('+c[1].map(Math.round).join(',')+') '+Math.round(c[0]*100)+'%'; }).join(','), U=window.AlkyonUnits, f=function(v){ return U&&U.temp?U.temp(v,1):B.num(v,1)+'°'; };
   legEl.hidden=false; legEl.replaceChildren();
   var top=document.createElement('div'); top.className='slt'; top.innerHTML='<b></b><span class="slb" style="background:linear-gradient(90deg,'+g+')"></span><b></b>'; top.children[0].textContent=f(L2.l0); top.children[2].textContent=f(L2.l0+L2.span); legEl.append(top);
-  var nt=document.createElement('small'); nt.innerHTML='<i class="slf"></i>'; nt.append(document.createTextNode(L2.fronts?T('Μέτωπο: απότομη αλλαγή θερμοκρασίας. Εκεί συχνά μαζεύονται πελαγικά.','Front: sharp temperature change. Pelagics often gather there.'):T('Χωρίς έντονα μέτωπα σε αυτή την περιοχή.','No strong fronts in this area.'))); legEl.append(nt); };
+  var nt=document.createElement('small'); nt.innerHTML='<i class="slf"></i>'; nt.append(document.createTextNode(L2.fronts?T('Μέτωπο: απότομη αλλαγή θερμοκρασίας. Εκεί συχνά μαζεύονται πελαγικά.','Front: sharp temperature change. Pelagics often gather there.'):T('Χωρίς έντονα μέτωπα σε αυτή την περιοχή.','No strong fronts in this area.'))); legEl.append(nt);
+  /* 1.7.4: τιμή στο σταυρό + κλίμακα περιοχής ή σταθερή (ίδιο χρώμα = ίδια θερμοκρασία κάθε μέρα) */
+  var row=document.createElement('div'); row.className='slr';
+  if(L2.here!=null){ var hb=document.createElement('b'); hb.className='slh'; hb.textContent=T('Στο σταυρό: ','At the cross: ')+f(L2.here); row.append(hb); }
+  var sw=document.createElement('button'); sw.type='button'; sw.className='slsc'; sw.textContent=L2.fixed?T('Κλίμακα: σταθερή 14–30°','Scale: fixed 14–30°'):T('Κλίμακα: της περιοχής','Scale: this area');
+  sw.title=T('Σταθερή: το ίδιο χρώμα σημαίνει πάντα την ίδια θερμοκρασία. Περιοχής: δείχνει καλύτερα τις μικρές διαφορές.','Fixed: the same colour always means the same temperature. Area: shows small differences better.');
+  sw.addEventListener('click',function(){ B.ls.set('alkyon-v4-sstscale',L2.fixed?'local':'fixed'); sstDraw(); }); row.append(sw); legEl.append(row); };
 B.sst={on:function(){ return sstOn; },set:function(v){ sstOn=!!v; B.ls.set(SK,sstOn); if(sstOn) sstLoad(true); else sstDraw(); try{ window.dispatchEvent(new Event('alkyon-wxchange')); }catch(e){} },color:scol};
 /* μέρες κάτω από τη μπάρα ώρας */
 function days(){
@@ -277,6 +310,7 @@ function markDay(){ var sl=document.getElementById('ndWindSl'), box=document.que
 function sync(){ var k=[mapOn(),seaOn(),windOn()].join(); if(k!==sig){ sig=k; later(80); if(sstOn){ if(mapOn()) sstLoad(false); else sstDraw(); } } days(); }
 window.addEventListener('alkyon-windhour',function(){ markDay(); later(60); if(sstOn&&sstG){ var h=sstHour(); if(h!==sstHr){ sstHr=h; clearTimeout(sstDraw._t); sstDraw._t=setTimeout(sstDraw,150); } } });
 window.addEventListener('alkyon-windstop',function(){ later(60); });
+window.addEventListener('alkyon-wxchange',function(){ if(window.AlkyonWindErr) later(30); }); /* 1.7.4: να φύγει το «Φόρτωση…» όταν ο άνεμος αποτύχει */
 window.addEventListener('alkyon-seareg',function(){ later(60); roLater(); });
 window.addEventListener('alkyon-curs',function(){ if(numsOn) setTimeout(drawLabels,50); });
 new MutationObserver(sync).observe(document.body,{attributes:true,attributeFilter:['class']});
