@@ -38,7 +38,7 @@ check('node --check (όλα τα .js)', not bad, '; '.join(bad))
 def init(lang='el', news=None, prof='boat'):
     return ("if(!sessionStorage.__t){sessionStorage.__t=1;localStorage.clear();"
       "localStorage.setItem('alkyon-lang',%s);localStorage.setItem('alkyon-onboard','1');localStorage.setItem('alkyon-askfp','0');"
-      "localStorage.setItem('alkyon-fprof-done','1');localStorage.setItem('alkyon-fprof',%s);"
+      "localStorage.setItem('alkyon-fprof-done','1');localStorage.setItem('alkyon-fprof',%s);localStorage.setItem('alkyon-v4-mapui',JSON.stringify('classic'));"
       "localStorage.setItem('alkyon-v4-news',JSON.stringify(%s||window.ALKYON_VERSION||'9.9.9'));"
       "localStorage.setItem('alkyon-bites',JSON.stringify([{id:'b1',date:'2026-10-20',time:'07:00',species:'Λαβράκι',kg:1.2,lat:35.1,lon:32.5,_u:1}]));}"
       )%(json.dumps(lang),json.dumps(prof),json.dumps(news))
@@ -224,8 +224,8 @@ with sync_playwright() as p:
     pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(5000)
     r=pg.evaluate("()=>{ const id=AK.quickRec(false,null,null,true), x=AK.store.get('bites',id); return {kn:x.troll&&x.troll.kn, lb:x.troll&&x.troll.lb, dlon:x.boatLon-x.lon, tech:x.tech, pill:!!document.querySelector('.trpill:not([hidden])')} }")
     check('συρτή: ψάρι ~40 m πίσω πάνω στη διαδρομή', r['lb']==40 and abs(r['dlon']-0.00044)<0.00005 and abs((r['kn'] or 0)-3)<0.3 and r['pill'], r)
-    g=pg.evaluate("()=>[AK.troll.geo({mode:'bottom',auto:false,leads:12,leader:10,v0:3},3),AK.troll.geo({mode:'bottom',auto:false,leads:12,leader:10,v0:3},3.5),AK.troll.nLeads({mode:'bottom',auto:true},32*1.83)]")
-    check('συρτή βυθού αυτόματα: βυθός 32 οργιές → 31 μολύβια', g[2]==31, g[2])
+    g=pg.evaluate("()=>[AK.troll.geo({mode:'bottom',auto:false,leads:12,leader:10,v0:3},3),AK.troll.geo({mode:'bottom',auto:false,leads:12,leader:10,v0:3},3.5),AK.troll.nLeads({mode:'bottom',auto:true},25*1.83),AK.troll.nLeads({mode:'bottom',auto:true},32*1.83)]")
+    check('συρτή βυθού αυτόματα: βυθός 25 οργιές → 24 μολύβια· 32 οργιές → 30 (το μέγιστο της αρματωσιάς)', g[2]==24 and g[3]==30, g[2:])
     check('συρτή βυθού (Deep Fishing, ανά 5 οργιές): 12 μολύβια στα 3 kn = ~22 m βάθος, ~123 m πίσω· πιο γρήγορα ανεβαίνει', abs(g[0]['dl']-21.96)<0.2 and abs(g[0]['lb']-122.8)<1 and g[1]['dl']<g[0]['dl'], {k:g[0][k] for k in ('dl','lb','L','n')})
     pg.evaluate("()=>AK.speciesFill('T1')"); pg.wait_for_timeout(500)
     check('τέλος εξόδου: φόρμα ειδών για ψάρια χωρίς είδος', pg.evaluate("()=>!!document.querySelector('.sheet .spfill .spf')"))
@@ -236,6 +236,81 @@ with sync_playwright() as p:
     pk=pg.evaluate("()=>window.__pk")
     check('επιλογή σημείου: επιστρέφει το κέντρο', pk and abs(pk[0]-34.8)<0.01 and abs(pk[1]-32.5)<0.01, pk)
     check('συρτή/επιλογή χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
+
+    print('# σημάδια χάρτη στη σωστή θέση (1.6.7)')
+    bs=[{'id':'p%d'%i,'date':'2026-10-10','time':'07:00','species':'Λαβράκι','kg':1,'lat':35.05+0.012*(i%5),'lon':32.25+0.03*(i//5),'_u':i+1} for i in range(15)]
+    c=ctx(b); c.add_init_script("if(!sessionStorage.pm){sessionStorage.pm=1;localStorage.setItem('alkyon-bites',%s);localStorage.setItem('alkyon-v4-mapview',JSON.stringify({lat:35.07,lon:32.33,z:12}));localStorage.setItem('alkyon-v4-acctask','1');}"%_j.dumps(_j.dumps(bs)))
+    pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(5000)
+    r=pg.evaluate("""()=>{ const m=AlkyonCore.map(), box=document.getElementById('lmap').getBoundingClientRect(); let mx=0,n=0; m.eachLayer(l=>{ if(!l._icon||!l.getLatLng||!/\\bfish\\b/.test(l._icon.className)) return; const q=l._icon.getBoundingClientRect(), e=m.latLngToContainerPoint(l.getLatLng()); mx=Math.max(mx,Math.hypot(q.left+q.width/2-box.left-e.x,q.top+q.height/2-box.top-e.y)); n++; }); return [n,Math.round(mx)]; }""")
+    check('15 ψάρια στον χάρτη: κάθε σημάδι πάνω στη θέση του (≤2 px)', r[0]>=10 and r[1]<=2, r); c.close()
+
+    print('# συρτή βυθού: ρίξιμο → «Σταμάτα στα Ν» → «Στον βυθό» → «Ακούμπησε» (1.7.0)')
+    now=int(time.time()*1000); pts=[[34.70,32.40+i*0.000169,now-(60-i)*10000] for i in range(61)]
+    c=ctx(b); c.add_init_script("if(!sessionStorage.dr){sessionStorage.dr=1;localStorage.setItem('alkyon-safe',JSON.stringify({active:true,id:'T1',start:%d,due:%d}));localStorage.setItem('alkyon-track',JSON.stringify({id:'T1',pts:%s,m:3000}));localStorage.setItem('alkyon-v4-pos',JSON.stringify({lat:34.7,lon:32.41014,t:%d}));localStorage.setItem('alkyon-troll',JSON.stringify({on:true,mode:'bottom',min:2.5,max:3.5,auto:true}));localStorage.setItem('alkyon-v4-night',JSON.stringify('off'));localStorage.setItem('alkyon-v4-acctask','1');}"%(now-600000,now+3600000,_j.dumps(pts),now))
+    pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(5000)
+    pg.evaluate("()=>{ AK.depthAt=(la,lo)=>Promise.resolve(70.4); }")
+    pg.evaluate("()=>AK.troll.startDrop(36)"); pg.wait_for_timeout(2500)
+    r=pg.evaluate("()=>{ const d=AK.troll.cfg().dep; return [AK.troll.recommend(), d&&d.lat!=null?AK.troll.corrAt(d.lat,d.lon):null, !!(document.querySelector('.trdrop')||document.querySelector('.trside:not([hidden])'))]; }")
+    check('ρίξιμο: βυθόμετρο 36 οργ. (65.9 m), χάρτης 70.4 m → διόρθωση −4.5 m, «Σταμάτα στα» με βυθό εκεί και απόσταση', r[1] is not None and abs(r[1]+4.5)<0.3 and r[0]['n'] and r[0]['n']>=20 and r[0]['lb']>150 and abs(r[0]['d']-65.9)<0.5 and r[2], r)
+    pg.evaluate("()=>AK.troll.setDown()"); pg.wait_for_timeout(1500)
+    k=pg.evaluate("()=>{const c=AK.troll.cfg(); return [c.leads,c.auto,c.dep&&c.dep.st,!!(document.querySelector('.trtouch')||[...document.querySelectorAll('.trside button')].some(x=>/Ακούμπησε|Touched/.test(x.textContent)))]}")
+    check('«Στον βυθό ✓»: μολύβια κλειδώνουν στην πρόταση, κουμπί «Ακούμπησε»', k[0]==r[0]['n'] and k[1] is False and k[2]=='set' and k[3], k)
+    pg.evaluate("()=>AK.troll.touched()"); pg.wait_for_timeout(600)
+    t=pg.evaluate("()=>[JSON.parse(localStorage.getItem('alkyon-rigs')||'[]')[0], AK.troll.cfg().leads]")
+    check('«Ακούμπησε»: συντελεστής αρματωσιάς μαθαίνει (kD), μαζεύει 1 μολύβι', t[0].get('kD') and 0.6<=t[0]['kD']<=1.6 and t[0].get('kN')==1 and t[1]==k[0]-1, t)
+    check('ρίξιμο χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
+
+    print('# χάρακας με πάτημα στον χάρτη (1.7.1)')
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(4500)
+    pg.evaluate("()=>{ AlkyonCore.depthAt=()=>Promise.resolve(55); AlkyonRuler.start(); }"); pg.wait_for_timeout(500)
+    pg.mouse.click(120,320); pg.wait_for_timeout(300); pg.mouse.click(260,560); pg.wait_for_timeout(900)
+    r=pg.evaluate("()=>[AlkyonRuler.state(), !!document.querySelector('#ndRuler .rnum'), document.body.classList.contains('ruling'), document.querySelectorAll('.rulpt').length]")
+    check('χάρακας: 2 πατήματα = 2 σημεία, απόσταση, μπάρα, κρύβεται η μπάρα εξόδου', r[0]['n']==2 and r[0]['m']>100 and r[1] and r[2] and r[3]==2, r)
+    pg.evaluate("()=>AlkyonRuler.stop()"); check('χάρακας: κλείσιμο καθαρίζει', pg.evaluate("()=>!document.querySelector('#ndRuler')&&!document.body.classList.contains('ruling')"), None)
+    check('χάρακας χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
+
+    print('# καθαρός χάρτης: μπάρα + μενού που σέρνεις (1.7.2)')
+    c=ctx(b); c.add_init_script("if(!sessionStorage.mc){sessionStorage.mc=1;localStorage.setItem('alkyon-v4-mapui',JSON.stringify('clean'));}")
+    pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(4500)
+    r=pg.evaluate("()=>{ const vis=s=>{const e=document.querySelector(s); return !!(e&&e.getBoundingClientRect().width>0&&getComputedStyle(e).display!=='none');}; return [document.body.classList.contains('mapclean'), vis('.mcbar'), vis('.mchips'), vis('.mapbar .morebtn'), vis('.mapbar .gpsb')]; }")
+    check('καθαρός: μπάρα φαίνεται, γρήγορα στρώματα και ⋯ κρυφά, η θέση μένει', r==[True,True,False,False,True], r)
+    bx=pg.evaluate("()=>{const r=document.querySelector('.mcbar').getBoundingClientRect();return [r.left+r.width/2,r.top+r.height/2]}")
+    pg.mouse.move(bx[0],bx[1]); pg.mouse.down(); pg.mouse.move(bx[0],bx[1]+70,steps=8); pg.mouse.up(); pg.wait_for_timeout(500)
+    k=pg.evaluate("()=>[!!document.querySelector('.mcdrw'), document.querySelectorAll('.mcg5 .mctile').length, document.querySelectorAll('.mcg3 .mctile').length]")
+    check('σύρσιμο κάτω ανοίγει το μενού: 5 στρώματα + εργαλεία', k[0] and k[1]==5 and k[2]>=4, k)
+    pg.wait_for_timeout(400); sr=pg.evaluate("()=>{const r=document.querySelector('.mcpan').getBoundingClientRect();return [Math.round(r.left),Math.round(r.right),innerWidth]}")
+    check('πλαϊνό μενού από δεξιά, αριστερά φαίνεται ο χάρτης', sr[0]>=60 and abs(sr[1]-sr[2])<=2, sr)
+    check('λαβή στη δεξιά άκρη υπάρχει (κρυμμένη όσο είναι ανοιχτό το μενού)', pg.evaluate("()=>{const e=document.querySelector('.mcedge');return !!e&&getComputedStyle(e).display==='none'}"), None)
+    g=pg.evaluate("()=>[[...document.querySelectorAll('.mcpan .mcgrp>h4, .mcpan .mcacc>summary')].map(e=>e.textContent), [...document.querySelectorAll('.mcg3 .mctile b')].map(e=>e.textContent)]")
+    check('μενού: ομάδες σε σειρά (Καιρός πριν από Εργαλεία, Χάρτης και βάθη, Ενέργειες) και εργαλεία χωρίς στρώματα', all(x in g[0] for x in ['Χάρτης και βάθη','Καιρός και θάλασσα','Θάλασσα και κανόνες','Τα δικά μου','Ενέργειες']) and g[0].index('Καιρός και θάλασσα')<g[0].index('Εργαλεία')<g[0].index('Χάρτης και βάθη') and 'Βάθη θάλασσας' not in g[0] and 'Πού να πάω' not in g[0] and 'Χάρακας' in g[1] and not any('Σταθμοί' in x or 'Λιμάνια' in x for x in g[1]), g)
+    pg.evaluate("()=>document.querySelectorAll('.mcg5 .mctile')[2].click()"); pg.wait_for_timeout(500)
+    check('στρώμα από το μενού: ανάβει το ίδιο κουμπί (Ρεύματα)', pg.evaluate("()=>document.querySelectorAll('.mchips .mchip')[2].getAttribute('aria-pressed')==='true'"), None)
+    pg.evaluate("()=>document.querySelector('.mcdim').click()"); pg.wait_for_timeout(400)
+    check('πάτημα στον χάρτη κλείνει το μενού', pg.evaluate("()=>!document.querySelector('.mcdrw')"), None)
+    check('καθαρός χάρτης χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
+
+    print('# φωνή + οθόνη που αλλάζει μόνη της (1.7.3)')
+    now=int(time.time()*1000)
+    c=ctx(b); c.add_init_script("if(!sessionStorage.md){sessionStorage.md=1;localStorage.setItem('alkyon-v4-mapui',JSON.stringify('clean'));localStorage.setItem('alkyon-safe',JSON.stringify({active:true,id:'T2',start:%d,due:%d}));localStorage.setItem('alkyon-direct',JSON.stringify({lat:35.05,lon:33.35,name:'Ξέρα'}));localStorage.setItem('alkyon-v4-acctask','1');}"%(now-600000,now+3600000))
+    pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(6500)
+    r=pg.evaluate("()=>[typeof AK.say, AK.sayNum(2.5), AK.sayNum(3.5), AK.mapMode(), !!document.querySelector('.mcpanel.fish')]")
+    check('φωνή: λέει «δυόμισι/τρεισήμισι», σε έξοδο η οθόνη ΨΑΡΕΥΩ με βάθος', r[0]=='function' and r[1]=='δυόμισι' and r[2]=='τρεισήμισι' and r[3]=='fish' and r[4], r)
+    vis="()=>{const o=document.getElementById('bOrient');return !!o&&o.isConnected&&!!o.closest('.seabar')&&getComputedStyle(o).display!=='none'}"
+    v1=pg.evaluate(vis); pg.evaluate("()=>location.hash='#log'"); pg.wait_for_timeout(900); pg.evaluate("()=>location.hash='#map'"); pg.wait_for_timeout(2500)
+    check('NU/CU/HU φαίνεται σε έξοδο, και αφού ξαναμπείς στον χάρτη', v1 and pg.evaluate(vis), [v1])
+    sv=pg.evaluate("""()=>{ const N=140, g={x0:AK.lastPos().lon-0.07,y0:AK.lastPos().lat+0.07,dx:1/960,dy:-1/960,w:N,h:N,data:new Float32Array(N*N)};
+      const f0=AK.trip.fix&&AK.trip.fix()||{lat:AK.lastPos().lat,lon:AK.lastPos().lon}; g.x0=f0.lon-0.07; g.y0=f0.lat+0.07;
+      for(let j=0;j<N;j++) for(let i=0;i<N;i++){ const lon=g.x0+g.dx*(i+.5); g.data[j*N+i]=Math.max(5,60-(lon-f0.lon)*2600); }
+      window.AlkyonDense.area=()=>Promise.resolve(g); AK.trip.fix=()=>({lat:f0.lat,lon:f0.lon,t:Date.now(),spd:1.55,hd:90,acc:5});
+      const c=JSON.parse(localStorage.getItem('alkyon-troll')||'{}'); Object.assign(c,{on:true,mode:'bottom',min:2.5,max:3.5,auto:false,leads:24,dep:{st:'set',t:Date.now()-60000}}); localStorage.setItem('alkyon-troll',JSON.stringify(c)); return 1; }""")
+    for _ in range(3): pg.evaluate("()=>AK.troll.sideTick()"); pg.wait_for_timeout(400)
+    sv=pg.evaluate("()=>{ const s=AK.troll.side(), el=document.querySelector('.trside'); return [s.adv&&s.adv.act, !!(el&&!el.hidden&&el.querySelector('svg')), s.prof&&s.prof.n]; }")
+    check('συρτή βυθού: πλάγια όψη και συμβουλή μάζεψε/άφησε από τον βυθό στη διαδρομή του δολώματος', sv[0] in ('up','down') and sv[1], sv)
+    pg.evaluate("()=>{ const c=JSON.parse(localStorage.getItem('alkyon-troll')); c.on=false; c.dep=null; localStorage.setItem('alkyon-troll',JSON.stringify(c)); }")
+    pg.evaluate("()=>document.querySelector('.mcpanel .mph').click()"); pg.wait_for_timeout(800)
+    k=pg.evaluate("()=>[AK.mapMode(), document.querySelector('.mcpanel').className, document.querySelector('.mcpanel').textContent]")
+    check('ετικέτα: με το χέρι ΠΗΓΑΙΝΩ, κάρτα με απόσταση και στόχο', k[0]=='run' and 'run' in k[1] and 'Ξέρα' in k[2] and 'nm' in k[2], k)
+    check('φωνή/οθόνη χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
 
     print('# offline')
     c=ctx(b,sw=True); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(6000); pg.reload(); pg.wait_for_timeout(3000)
