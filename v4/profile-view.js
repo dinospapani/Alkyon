@@ -129,9 +129,14 @@ function unitsSheet(){ var body=h('div',{class:'bform'}), L={wind:T('Άνεμο�
   sheetOf(T('Μονάδες','Units'),body); }
 function accountTab(page,s){
   page.append(s?accountCard(s):signInCard());
-  page.append(backupCard());
-  if(B.dataCards){ var dc=B.dataCards(); page.append(dc[0]); page.append(dc[2]); }
-  var dm=dataCard(); if(dm) page.append(dm);
+  /* 1.9.4: πιο σύντομος «Λογαριασμός»: τα εργαλεία δεδομένων σε τρεις γραμμές που ανοίγουν φύλλο (ίδια κουμπιά μέσα) */
+  var IC={bk:'<path d="M12 3v12m-4-4 4 4 4-4M5 21h14"/>',xl:'<path d="M4 4h16v16H4zM4 10h16M10 4v16"/>',ck:'<path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/>'};
+  function row(ic,t,sub,fn){ return h('button',{class:'li',type:'button',onclick:fn},h('span',{class:'ic',html:'<svg viewBox="0 0 24 24" aria-hidden="true">'+IC[ic]+'</svg>'}),h('span',{class:'tx'},h('b',{text:t}),h('small',{text:sub})),B.icon('chev')); }
+  var lb=ls.get('alkyon-lastbackup',0), dcs=B.dataCards?B.dataCards():null, dm=dataCard();
+  page.append(group(T('Δεδομένα','Data'),[
+    row('bk',T('Αντίγραφο ασφαλείας','Backup'),lb?T('Τελευταίο: ','Last: ')+new Date(lb).toLocaleDateString(EN?'en-GB':'el-GR'):T('Δεν έχει γίνει ακόμα','Not done yet'),function(){ sheetOf(T('Αντίγραφο ασφαλείας','Backup'),h('div',null,backupCard())); }),
+    dcs&&dcs[0]?row('xl',T('Εξαγωγή σε Excel (CSV)','Export to Excel (CSV)'),T('Ψάρια ή έξοδοι σε αρχείο','Catches or trips in a file'),function(){ var d=B.dataCards(); sheetOf(T('Εξαγωγή σε Excel (CSV)','Export to Excel (CSV)'),h('div',null,d[0])); }):null,
+    (dcs&&dcs[2])||dm?row('ck',T('Έλεγχος και συμπλήρωση δεδομένων','Check and fill in data'),T('Ασυνέπειες, καιρός σε παλιά ψάρια','Inconsistencies, weather for old catches'),function(){ var d=B.dataCards?B.dataCards():null, m=dataCard(); sheetOf(T('Έλεγχος και συμπλήρωση','Check and fill in'),h('div',null,d&&d[2]?d[2]:null,m||null)); }):null]));
   if(s) page.append(dangerCard());
 }
 /* ---------- λογαριασμός ---------- */

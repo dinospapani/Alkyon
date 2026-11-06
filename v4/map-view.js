@@ -699,7 +699,10 @@ var mcBarT=null, mcBarRaf=0;
 B.mcBarNow=function(){ if(mcBarRaf||!mcBar||!document.body.classList.contains('mapclean')) return; mcBarRaf=requestAnimationFrame(function(){ mcBarRaf=0; var tx=mcBar&&mcBar.querySelector('.mct'); if(!tx) return; var bh=mcBarHTML(); if(bh&&tx.innerHTML!==bh) tx.innerHTML=bh; }); };
 function mcPaint(){ if(!mcBar||!mcRefs) return; var ic=mcBar.querySelector('.mci'), tx=mcBar.querySelector('.mct'); ic.replaceChildren();
   [].forEach.call(mcRefs.qc.children,function(b){ var on=false; try{ on=!!b._g(); }catch(e){} if(on){ var sp=b.querySelector('span'); if(sp) ic.append(h('span',{html:sp.innerHTML})); } });
-  if(!ic.children.length) ic.append(h('span',{class:'mcl',text:T('Στρώματα','Layers')})); var bh=document.body.classList.contains('mapclean')?mcBarHTML():''; if(bh) tx.innerHTML=bh; else tx.textContent=mcSum(); if(mcDr&&!mcBuilding){ clearTimeout(mcRT); mcRT=setTimeout(mcDrFill,120); } }
+  if(!ic.children.length) ic.append(h('span',{class:'mcl',text:T('Στρώματα','Layers')})); var bh=document.body.classList.contains('mapclean')?mcBarHTML():''; if(bh) tx.innerHTML=bh; else tx.textContent=mcSum(); if(mcDr&&!mcBuilding){ /* 1.9.3: ξαναχτίζεται μόνο αν άλλαξε κάποιο στρώμα (όχι σε κάθε μετακίνηση του χάρτη: έκανε «blink») */ var sg=mcSigNow();
+    if(sg!==mcSig){ mcSig=sg; clearTimeout(mcRT); mcRT=setTimeout(mcDrFill,120); } } }
+var mcSig='';
+function mcSigNow(){ try{ return [].map.call(mcRefs.qc.children,function(b){ var on=false; try{ on=!!b._g(); }catch(e){} return on?1:0; }).join('')+'|'+(B.night&&B.night.active&&B.night.active()?1:0)+'|'+(B.troll&&B.troll.on&&B.troll.on()?1:0)+'|'+JSON.stringify(cfg); }catch(e){ return String(Math.random()); } }
 function cleanSetup(el,qc,seab,bar){ mcRefs={qc:qc,seab:seab,bar:bar}; document.body.classList.toggle('mapclean',mapUI()==='clean');
   mcBar=h('button',{class:'mcbar',type:'button',hidden:mapUI()!=='clean','aria-label':T('Στρώματα και εργαλεία (πάτα ή σύρε)','Layers and tools (tap or swipe)'),onclick:function(){ if(!mcBar._sw) mcOpen(); mcBar._sw=false; }},
     h('span',{class:'mci'}),h('span',{class:'mct'}),h('span',{class:'mcv',html:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>'}));
@@ -712,6 +715,8 @@ function cleanSetup(el,qc,seab,bar){ mcRefs={qc:qc,seab:seab,bar:bar}; document.
   edge.addEventListener('pointermove',function(e){ if(ex!=null&&ex-e.clientX>16){ ex=null; edge._sw=true; if(!mcDr) mcOpen(); } });
   ['pointerup','pointercancel'].forEach(function(ev){ edge.addEventListener(ev,function(){ ex=null; }); });
   /* 1.9.1: η λαβή δεξιά έφυγε· το μενού ανοίγει από κάτω (πάτημα ή σύρσιμο της μπάρας πάνω) */
+  /* 1.9.3: ορατό κουμπί «Στρώματα» στη δεξιά στήλη (η μπάρα πάνω δεν έδειχνε ότι ανοίγει μενού) */
+  el.append(h('button',{class:'mclay',type:'button','aria-label':T('Στρώματα και εργαλεία','Layers and tools'),html:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 8l10 5 10-5-10-5z"/><path d="m2 13 10 5 10-5"/><path d="m2 17.5 10 5 10-5"/></svg>',onclick:function(){ mcOpen(); }}));
   function barLater(){ clearTimeout(mcBarT); mcBarT=setTimeout(mcPaint,250); }
   (function hk(n){ if(map){ try{ map.on('moveend',barLater); }catch(e){} } else if(n<40) setTimeout(function(){ hk(n+1); },500); })(0); window.addEventListener('alkyon-wxchange',barLater); window.addEventListener('alkyon-curs',barLater); window.addEventListener('alkyon-windhour',function(){ B.mcBarNow(); }); setInterval(function(){ if(document.body.classList.contains('mapclean')&&root) mcPaint(); },15000);
   el.append(mcBar); var oq=B.qpaint; B.qpaint=function(){ oq&&oq(); mcPaint(); }; setTimeout(mcPaint,500); setTimeout(mcPaint,2600);
@@ -729,10 +734,12 @@ function mcClose(fromPop){ if(!mcDr) return; var d=mcDr; mcDr=null; d.classList.
   if(mcShift&&map){ try{ map.panBy([0,-mcShift],{animate:true,duration:.25}); }catch(e){} } mcShift=0;
   if(!fromPop&&history.state&&history.state.mcd){ try{ history.back(); }catch(e){} } }
 window.addEventListener('popstate',function(){ if(mcDr) mcClose(true); });
-function mcOpen(){ if(mcDr) return mcClose(); mcDr=h('div',{class:'mcdrw'}); var dim=h('div',{class:'mcdim',onclick:mcClose}), pan=h('div',{class:'mcpan',role:'dialog','aria-label':T('Στρώματα και εργαλεία','Layers and tools')});
-  mcDr.classList.add('mcb'); mcDr.append(dim,pan); document.body.append(mcDr); mcDrFill(); requestAnimationFrame(function(){ if(!mcDr) return; mcDr.classList.add('open');
+function mcOpen(){ if(mcDr) return mcClose(); mcSig=''; mcDr=h('div',{class:'mcdrw'}); var dim=h('div',{class:'mcdim',onclick:mcClose}), pan=h('div',{class:'mcpan',role:'dialog','aria-label':T('Στρώματα και εργαλεία','Layers and tools')});
+  mcDr.classList.add('mcb'); mcDr.append(dim,pan); document.body.append(mcDr); mcDrFill(); mcSig=mcSigNow(); requestAnimationFrame(function(){ if(!mcDr) return; mcDr.classList.add('open');
     /* 1.9.0: μενού από κάτω, στη μισή οθόνη· ο χάρτης ανεβαίνει ώστε το κέντρο του να μένει στο κομμάτι που φαίνεται */
-    var hh=pan.getBoundingClientRect().height||0; if(map&&hh>0&&hh<window.innerHeight){ mcShift=Math.round(hh/2); try{ map.panBy([0,mcShift],{animate:true,duration:.25}); }catch(e){ mcShift=0; } } });
+    var hh=pan.getBoundingClientRect().height||0; if(map&&hh>0&&hh<window.innerHeight){ mcShift=Math.round(hh/2); try{ map.panBy([0,mcShift],{animate:true,duration:.25}); }catch(e){ mcShift=0; } }
+    /* 1.9.3: ο χάρτης μένει ζωντανός πάνω από το μενού: σέρνεται/ζουμάρει· ένα σκέτο πάτημα στον χάρτη κλείνει το μενού */
+    if(map){ try{ map.once('dragstart zoomstart',function(){ mcShift=0; }); setTimeout(function(){ if(mcDr) map.once('click',function(){ if(mcDr) mcClose(); }); },350); }catch(e){} } });
   try{ history.pushState({mcd:1},''); }catch(e){}
   var p0=null; pan.addEventListener('pointerdown',function(e){ p0={x:e.clientX,y:e.clientY}; });
   pan.addEventListener('pointermove',function(e){ if(!p0) return; var dx=e.clientX-p0.x, dy=e.clientY-p0.y; if(dy>70&&Math.abs(dy)>Math.abs(dx)*1.5&&pan.scrollTop<=0){ p0=null; mcClose(); } });
@@ -744,7 +751,22 @@ B.layerPv=function(k){ var P={
  wave:'<defs><linearGradient id="pvw" x1="0" x2="1"><stop offset="0" stop-color="#1f6fae"/><stop offset=".55" stop-color="#47b3a0"/><stop offset="1" stop-color="#d9583f"/></linearGradient></defs><rect width="64" height="26" fill="url(#pvw)"/><path d="M0 14c5-4 9 4 14 0s9 4 14 0 9 4 14 0 9 4 14 0 9 4 8 0" fill="none" stroke="#fff" stroke-width="1.4" opacity=".7"/>',
  cur:'<rect width="64" height="26" fill="#0d3b55"/><g fill="none" stroke="#6fe0ff" stroke-width="1.6" stroke-linecap="round"><path d="M5 18c6-6 10-6 16-8"/><path d="m18 8 3 2-2 3"/><path d="M27 20c6-6 12-8 18-8"/><path d="m42 10 3 2-3 2"/><path d="M48 9c4 0 8 1 12 3"/></g>',
  sst:'<defs><linearGradient id="pvt" x1="0" x2="1"><stop offset="0" stop-color="#2c4fd1"/><stop offset=".35" stop-color="#26b5c9"/><stop offset=".65" stop-color="#f2cf3b"/><stop offset="1" stop-color="#e2432f"/></linearGradient></defs><rect width="64" height="26" fill="url(#pvt)"/>',
- dep:'<rect width="64" height="26" fill="#e6f0f2"/><g fill="none" stroke="#3a7ca5" stroke-width="1.2"><path d="M0 6c12 6 22-4 34 2s20 0 30 2"/><path d="M0 13c12 6 22-4 34 2s20 0 30 2"/><path d="M0 20c12 6 22-4 34 2s20 0 30 2"/></g>'};
+ dep:'<rect width="64" height="26" fill="#e6f0f2"/><g fill="none" stroke="#3a7ca5" stroke-width="1.2"><path d="M0 6c12 6 22-4 34 2s20 0 30 2"/><path d="M0 13c12 6 22-4 34 2s20 0 30 2"/><path d="M0 20c12 6 22-4 34 2s20 0 30 2"/></g>',
+ sat:'<rect width="64" height="26" fill="#13324a"/><ellipse cx="14" cy="10" rx="10" ry="6" fill="#3fbf7f" opacity=".85"/><ellipse cx="44" cy="17" rx="14" ry="6" fill="#9ad94f" opacity=".85"/>',
+ food:'<rect width="64" height="26" fill="#0f3a52"/><g fill="#7ee08a"><circle cx="8" cy="9" r="2"/><circle cx="18" cy="17" r="3"/><circle cx="30" cy="8" r="2.4"/><circle cx="40" cy="18" r="2"/><circle cx="52" cy="11" r="3"/></g>',
+ best:'<rect width="64" height="26" fill="#cfe3ea"/><circle cx="16" cy="13" r="7" fill="#2E9E6B"/><circle cx="40" cy="10" r="6" fill="#D99A1E"/><circle cx="54" cy="18" r="4" fill="#D99A1E"/>',
+ stn:'<rect width="64" height="26" fill="#cfe3ea"/><g fill="#0A2633"><path d="M12 22V6h9l-2 3 2 3h-9"/><path d="M42 22V8h9l-2 3 2 3h-9"/></g>',
+ drop:'<rect width="64" height="26" fill="#e6f0f2"/><path d="M8 20 20 6l10 10 8-6 16 12z" fill="#D2452F" opacity=".35"/><path d="M8 20 20 6l10 10 8-6 16 12" fill="none" stroke="#D2452F" stroke-width="1.6"/>',
+ rules:'<defs><pattern id="pvh" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="2.2" height="5" fill="#D2452F"/></pattern></defs><rect width="64" height="26" fill="#cfe3ea"/><rect x="10" y="4" width="44" height="18" rx="4" fill="url(#pvh)" stroke="#D2452F" stroke-width="1.5"/>',
+ prot:'<rect width="64" height="26" fill="#cfe3ea"/><rect x="10" y="4" width="44" height="18" rx="9" fill="#2E9E6B" fill-opacity=".25" stroke="#2E9E6B" stroke-width="1.8"/>',
+ restr:'<rect width="64" height="26" fill="#cfe3ea"/><rect x="10" y="4" width="44" height="18" rx="4" fill="#D99A1E" fill-opacity=".2" stroke="#D99A1E" stroke-width="1.8" stroke-dasharray="4 3"/>',
+ marks:'<rect width="64" height="26" fill="#cfe3ea"/><g fill="#F0B93A" stroke="#0A2633"><circle cx="14" cy="13" r="4"/><circle cx="32" cy="9" r="4"/><circle cx="50" cy="16" r="4"/></g>',
+ ports:'<rect width="64" height="26" fill="#cfe3ea"/><path d="M0 26V14c10 0 14-8 24-8h40v20z" fill="#d9cfb4"/><circle cx="34" cy="14" r="6" fill="#0A2633"/>',
+ spot:'<rect width="64" height="26" fill="#2d5d73"/><g fill="#F0B93A"><circle cx="14" cy="10" r="3.5"/><circle cx="36" cy="17" r="3.5"/><circle cx="52" cy="8" r="3.5"/></g>',
+ catch:'<rect width="64" height="26" fill="#2d5d73"/><circle cx="12" cy="9" r="4" fill="#3DBE85"/><circle cx="28" cy="18" r="4" fill="#F06A55"/><circle cx="44" cy="10" r="4" fill="#8C7BD9"/><circle cx="56" cy="19" r="4" fill="#3DBE85"/>',
+ heat:'<defs><radialGradient id="pvg"><stop offset="0" stop-color="#ff5a36"/><stop offset=".5" stop-color="#ffc23a" stop-opacity=".8"/><stop offset="1" stop-color="#ffc23a" stop-opacity="0"/></radialGradient></defs><rect width="64" height="26" fill="#2d5d73"/><circle cx="22" cy="13" r="13" fill="url(#pvg)"/><circle cx="48" cy="12" r="9" fill="url(#pvg)"/>',
+ lost:'<rect width="64" height="26" fill="#2d5d73"/><g stroke="#F06A55" stroke-width="2" stroke-linecap="round"><path d="M10 7l6 6M16 7l-6 6M34 13l6 6M40 13l-6 6M50 5l5 5M55 5l-5 5"/></g>',
+ res:'<rect width="64" height="26" fill="#2d5d73"/><path d="M4 18h56" stroke="#D2452F" stroke-width="2.4" stroke-dasharray="6 4"/>'};
  return P[k]?'<svg viewBox="0 0 64 26" preserveAspectRatio="xMidYMid slice" aria-hidden="true">'+P[k]+'</svg>':''; };
 function mcDrFill(){ if(!mcDr||!mcRefs) return; mcBuilding=true; try{ mcDrFill2(); }catch(e){ try{ console.warn('mcDrFill',e); }catch(x){} } mcBuilding=false; }
 function mcDrFill2(){ var pan=mcDr.querySelector('.mcpan'), keep=pan.scrollTop; pan.replaceChildren();
@@ -807,10 +829,13 @@ function mcDrFill2(){ var pan=mcDr.querySelector('.mcpan'), keep=pan.scrollTop; 
   [].slice.call(pan.children).forEach(function(el){ var t='L', tx=(el.querySelector&&el.querySelector(':scope>h4,:scope>summary'))||null, nm=tx?tx.textContent:'';
     if(el===toolsEl||nm===ACT) t='T'; else if(nm===MY) t='M'; boxes[t].append(el); });
   boxes.T.append(footEl);
-  var bar=h('div',{class:'mctabs',role:'tablist'},TABS.map(function(t){ return h('button',{type:'button',role:'tab','data-t':t[0],'aria-selected':String(t[0]===cur0),onclick:function(){ ls.set('alkyon-v4-mctab',t[0]); [].forEach.call(bar.children,function(b){ b.setAttribute('aria-selected',String(b===this)); },this); TABS.forEach(function(x){ boxes[x[0]].hidden=x[0]!==t[0]; }); pan.scrollTop=0; }},t[1]); }));
+  var bar=h('div',{class:'mctabs',role:'tablist'},TABS.map(function(t){ return h('button',{type:'button',role:'tab','data-t':t[0],'aria-selected':String(t[0]===cur0),onclick:function(){ ls.set('alkyon-v4-mctab',t[0]); [].forEach.call(bar.children,function(b){ b.setAttribute('aria-selected',String(b===this)); },this); TABS.forEach(function(x){ boxes[x[0]].hidden=x[0]!==t[0]; boxes[x[0]].classList.toggle('anim',x[0]===t[0]); }); pan.scrollTop=0; }},t[1]); }));
   var head=h('div',{class:'mchead'},h('button',{type:'button',class:'mcgrab','aria-label':T('Μεγάλωσε ή μίκρυνε το μενού','Expand or shrink the menu'),onclick:function(){ mcDr&&mcDr.classList.toggle('tall'); }}),
     h('div',{class:'mchrow'},h('b',{text:T('Χάρτης','Map')}),h('button',{type:'button',class:'iconbtn mcx','aria-label':T('Κλείσιμο','Close'),html:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>',onclick:function(){ mcClose(); }})),bar);
   pan.replaceChildren(head,boxes.L,boxes.T,boxes.M);
+  /* 1.9.3: προεπισκόπηση και στις γραμμές με διακόπτη (καιρός, κανόνες, τα δικά μου) */
+  var PVN={}; [['Καλύτερα σημεία','Best spots','best'],['Τροφή','Food','food'],['Νερό δορυφόρου','Satellite water','sat'],['Δομή βυθού','Seabed structure','drop'],['Σταθμοί','Stations','stn'],['Σημεία','Spots','spot'],['Ψάρια','Catches','catch'],['Πού πιάνω','Where I catch','heat'],['Χαμένα','Lost','lost'],['Φράγματα','Dams','res'],['Απαγόρευση','No fishing','rules'],['Προστατευόμενες','Protected','prot'],['Περιορισμοί','Restrictions','restr'],['Ναυτικά σήματα','Sea marks','marks'],['Λιμάνια','Ports','ports']].forEach(function(x){ PVN[x[0]]=x[2]; PVN[x[1]]=x[2]; });
+  [].forEach.call(pan.querySelectorAll('.ltile'),function(r){ var b=r.querySelector('b'), ic=r.querySelector('.lic'); if(!b||!ic) return; var k=PVN[(b.textContent||'').trim()]; if(k&&B.layerPv(k)){ ic.classList.add('lpv'); ic.innerHTML=B.layerPv(k); } });
   pan.scrollTop=keep; }
 /* 1.8.2: κρατάμε το κουμπί: όταν ξαναμπαίνεις στον χάρτη, η στήλη (seabar) φτιάχνεται από την αρχή και το κουμπί έμενε στην παλιά (χανόταν το NU/CU/HU) */
 var oBtn=null;
@@ -951,7 +976,7 @@ function revShow(lab,trip){ if(revChip) revChip.remove();
 function applyPend(){ if(!pend||!map) return false; var q=pend; pend=null;
   revClear();
   if(q.replay&&q.tr&&q.tr.length>1){ setTimeout(function(){ replay(q.replay); },300); }
-  if(q.tr&&q.tr.length>1){ gRev=L.layerGroup([L.polyline(q.tr.map(function(p){ return [p[0],p[1]]; }),{color:'#ff8a50',weight:5,opacity:.95}),L.circleMarker(q.tr[0],{radius:7,color:'#fff',weight:3,fillColor:'#3ddc97',fillOpacity:1}),L.circleMarker(q.tr[q.tr.length-1],{radius:7,color:'#fff',weight:3,fillColor:'#ff4d4d',fillOpacity:1})]).addTo(map); map.fitBounds(L.latLngBounds(q.tr.map(function(p){ return [p[0],p[1]]; })),{padding:[40,40]}); revShow(q.lab||T('Διαδρομή εξόδου','Trip route'),q.trip||q.replay||null); }
+  if(q.tr&&q.tr.length>1){ gRev=L.layerGroup([L.polyline(q.tr.map(function(p){ return [p[0],p[1]]; }),{color:'#ff8a50',weight:5,opacity:.95}),L.circleMarker(q.tr[0],{radius:7,color:'#fff',weight:3,fillColor:'#3ddc97',fillOpacity:1}),L.circleMarker(q.tr[q.tr.length-1],{radius:7,color:'#fff',weight:3,fillColor:'#ff4d4d',fillOpacity:1})]).addTo(map); /* 1.9.3: δεν γυρνά στη θέση σου όσο βλέπεις τη διαδρομή (το κουμπί θέσης την ξανανοίγει) */ try{ setFollow(false); }catch(e){} map.fitBounds(L.latLngBounds(q.tr.map(function(p){ return [p[0],p[1]]; })),{padding:[40,40]}); revShow(q.lab||T('Διαδρομή εξόδου','Trip route'),q.trip||q.replay||null); }
   else { var lab=q.lab||T('Σημείο από το Ημερολόγιο','Point from the logbook');
     /* 1.2.4: τοποθεσίες πρόγνωσης / ευκαιρίες: αν το σημείο είναι στη στεριά (π.χ. το κέντρο μιας πόλης), δείχνει την κοντινότερη θάλασσα (έως 3 km), εκεί που ισχύει η πρόγνωση */
     if(q.sea){ try{ var X=window.AlkyonExposure, sp=X&&X.seaPoint?X.seaPoint(q.lat,q.lon):null; if(sp&&sp.moved){ q.lat=sp.lat; q.lon=sp.lon; lab+=T(' · κοντινότερη θάλασσα',' · nearest sea'); } }catch(e){} }

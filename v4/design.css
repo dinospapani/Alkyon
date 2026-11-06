@@ -24,7 +24,7 @@
 .mcpan .mctabs{display:flex;gap:4px;padding:4px;border-radius:14px;background:var(--surface-2)}
 .mcpan .mctabs button{flex:1;min-height:40px;border:0;border-radius:10px;background:none;color:var(--ink-2);font:700 14px var(--font)}
 .mcpan .mctabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.1)}
-.mcpan .mctab{animation:mcfade .18s ease}
+.mcpan .mctab.anim{animation:mcfade .18s ease}
 @keyframes mcfade{from{opacity:0}to{opacity:1}}
 .mcpan .mctab>h4:first-child,.mcpan .mctab>.mcgrp:first-child>h4{margin-top:var(--s3)}
 /* προεπισκοπήσεις στρωμάτων */
@@ -119,3 +119,80 @@ html.sunv .hero.v2{background:#fff;color:#000;outline:3px solid #000}html.sunv .
 .bigtrip .btb{border-radius:24px;box-shadow:0 6px 18px -10px rgba(0,0,0,.5);transition:transform .1s}
 .bigtrip .btb:active{transform:scale(.97)}
 .bigtrip .btb b{background:#fff;color:#0A2633;border-radius:99px;min-width:34px;padding:2px 8px;font-size:16px}
+/* 1.9.3: πιο μαζεμένες μέρες: χωράνε και οι 7 χωρίς σύρσιμο, βαθμός με λεπτή χρωματιστή γραμμή */
+.dstrip{gap:5px}
+.dstrip .dtile{flex:1 0 40px;max-width:72px;padding:7px 2px 8px;gap:2px;border-radius:14px}
+.dstrip .dtile .dn{font-size:11px}
+.dstrip .dtile .dd{font-size:16px}
+.dstrip .dtile .dsc{min-width:0;margin-top:2px;padding:0;background:none!important;font:800 14px/1.1 var(--font);color:var(--ink)!important}
+.dstrip .dtile .dsc::after{content:'';display:block;width:24px;height:4px;border-radius:3px;margin:3px auto 0;background:var(--lvc,var(--line))}
+.dstrip .dtile.lv-good{--lvc:var(--good)}.dstrip .dtile.lv-fair{--lvc:var(--fair)}.dstrip .dtile.lv-poor{--lvc:var(--poor)}
+.dstrip .dtile .dsc.no{color:var(--ink-3)!important}
+.dstrip .dtile .dw{font-size:9.5px}
+.dstrip .dpast{flex:0 0 24px}
+html.sunv .dstrip .dtile .dsc::after{height:6px}
+/* 1.9.3: κάρτες Πρόγνωσης που ανοίγουν με πάτημα */
+details.facc>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;min-height:44px}
+details.facc>summary::-webkit-details-marker{display:none}
+details.facc>summary h2{margin:0}
+details.facc>summary small{display:block;color:var(--ink-2);font-size:var(--t-s);margin-top:2px}
+details.facc .fchev{flex:none;width:10px;height:10px;border-right:2.2px solid var(--ink-3);border-bottom:2.2px solid var(--ink-3);transform:rotate(45deg);transition:transform .2s;margin-right:4px}
+details.facc[open] .fchev{transform:rotate(-135deg)}
+details.facc[open]>summary{margin-bottom:8px}
+/* ίδιο ύφος σε όλες τις κάρτες της Πρόγνωσης */
+.fcpage .card{border-radius:22px}
+.fcpage .card h2{font-size:var(--t-l);font-weight:760;letter-spacing:-.01em}
+/* 1.9.3: χρονολόγιο εξόδου */
+.list.tline{position:relative;padding-left:22px;background:none;box-shadow:none}
+.list.tline::before{content:'';position:absolute;left:9px;top:14px;bottom:14px;width:2px;background:var(--line);border-radius:2px}
+.list.tline>.tlr,.list.tline>.tlx{position:relative}
+.list.tline>.tlr::before,.list.tline>.tlx::before{content:'';position:absolute;left:-18px;top:50%;width:12px;height:12px;margin-top:-6px;border-radius:50%;background:var(--ink-3);box-shadow:0 0 0 3px var(--bg)}
+.list.tline>.tl-fish::before{background:var(--good)}.list.tline>.tl-miss::before{background:var(--poor)}.list.tline>.tl-pest::before{background:#8C7BD9}
+.list.tline>.tlx{display:flex;gap:10px;align-items:baseline;padding:8px 4px;font-size:var(--t-s);color:var(--ink-2)}
+.list.tline>.tlx b{color:var(--ink);font-variant-numeric:tabular-nums}
+.list.tline>.tlr{border-radius:14px;margin-bottom:6px;background:var(--surface)}
+/* 1.9.3: κουμπί «Στρώματα» */
+.mclay{position:fixed;z-index:30;right:12px;top:calc(var(--safe-t,0px) + 164px);width:46px;height:46px;border-radius:50%;border:0;background:var(--surface);color:var(--ink);box-shadow:0 4px 14px rgba(0,0,0,.25);display:grid;place-items:center}
+.mclay svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.mclay:active,.scrmode:active{transform:scale(.94)}
+body:not(.mapon) .mclay,body:not(.mapclean) .mclay,body.ruling .mclay,body.mappick .mclay,body.replaying .mclay,body:has(.mcdrw.open) .mclay,body:has(.sheet.on) .mclay{display:none}
+html.night .mclay{background:#1a0000;color:#ff5a45;box-shadow:0 0 0 2px #ff5a45}
+html.sunv .mclay{outline:2px solid #000}
+/* 1.9.3: με ανοιχτό το μενού ο χάρτης από πάνω σέρνεται και ζουμάρει */
+.mcdrw.mcb .mcdim{pointer-events:none!important}
+/* 1.9.3: τρία νούμερα στο Ημερολόγιο */
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 10px}
+.kpis>div{background:var(--surface);border-radius:16px;padding:10px 12px;box-shadow:var(--shadow)}
+.kpis b{display:block;font:800 21px var(--font)}.kpis span{font:600 12px var(--font);color:var(--ink-2)}
+.kpis+.sum{font-size:var(--t-xs);color:var(--ink-3);margin-top:0}
+/* κουμπί «Μεγάλα κουμπιά» στο φύλλο εξόδου */
+.btn.bigtb{display:flex;align-items:center;justify-content:center;gap:10px;min-height:56px;background:var(--good);color:#fff;font-weight:800;border:0}
+.btn.bigtb .bgi svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2}
+/* 1.9.3: προεπισκόπηση στις γραμμές με διακόπτη */
+.mcpan .ltile .lic.lpv{width:50px!important;min-width:50px;height:30px!important;margin-right:12px!important;flex:none!important;border-radius:8px;overflow:hidden;padding:0;background:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+.mcpan .ltile .lic.lpv svg{width:100%!important;height:100%!important;display:block}
+html.night .mcpan .ltile .lic.lpv{filter:grayscale(1) brightness(.6) sepia(1) hue-rotate(-38deg) saturate(6)}
+.mcpan .ltile:has(.lic.lpv){grid-template-columns:50px 1fr!important}
+.mcpan .ltile .lic.lpv{margin-right:0!important}
+/* 1.9.4: Προφίλ: το «Σημείο» στα στατιστικά σε δύο γραμμές το πολύ */
+.pstats .pst b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+/* 1.9.3: κάρτα ΨΑΡΕΥΩ/ΑΓΚΥΡΑ ακολουθεί το θέμα (σε σκούρο θέμα ήταν άσπρα γράμματα σε άσπρο φόντο) */
+html:not(.night) body.mapclean .mcpanel{background:color-mix(in srgb,var(--surface) 96%,transparent)!important;color:var(--ink)!important}
+html:not(.night) body.mapclean .mcpanel i{opacity:.75}
+html:not(.night) body.mapclean .mcpanel .mph{background:var(--surface-2)!important}
+html:not(.night) body.mapclean .mcpanel.fish .mpc:nth-child(2) b{color:var(--sea)!important}
+html.sunv body.mapclean .mcpanel{background:#000!important;color:#fff!important}
+/* 1.9.3: η καλύτερη ώρα σε μία γραμμή, χωρίς διπλή ετικέτα κύματος */
+.hero.v2 .hw{padding-right:0}
+.hero.v2 .hw b{white-space:nowrap;font-size:clamp(30px,10.5vw,44px)}
+.hero.v2:has(.hwhy2) .tag{display:none}
+/* 1.9.3: τα είδη σε μία γραμμή στην κάρτα εξόδου (η κάρτα μένει χαμηλή) */
+.li.tcard .tchips{flex-wrap:nowrap;overflow:hidden;-webkit-mask-image:linear-gradient(90deg,#000 85%,transparent);mask-image:linear-gradient(90deg,#000 85%,transparent)}
+.li.tcard .tchip{white-space:nowrap;flex:none}
+/* 1.9.3: φύλλο συρτής: − [μολύβια] + στην ίδια γραμμή, μεγάλα κουμπιά· αέρας ανάμεσα στους διακόπτες */
+.fld.ldfld{display:grid;grid-template-columns:1fr auto;column-gap:8px;align-items:center}
+.fld.ldfld>span{grid-column:1/-1}
+.fld.ldfld>.chips{display:flex;flex-wrap:nowrap;gap:8px;margin:0}
+.fld.ldfld>.chips .chip{width:52px;height:52px;padding:0;font-size:22px;font-weight:800;justify-content:center}
+.sheet .tg{margin:10px 0}
+.sheet .tg+.fld,.sheet .tg+label{margin-top:14px}

@@ -38,8 +38,15 @@ function cycle(){ var m=scr();
   if(m==='norm'){ ls.set(SK,true); applySun(); B.toast(T('Οθόνη για ήλιο: μαύρο σε λευκό, μέγιστη αντίθεση.','Sun screen: black on white, maximum contrast.')); }
   else if(m==='sun'){ ls.set(SK,false); ls.set(OV,{k:tripId()||today(),v:true}); apply(); applySun(); B.toast(T('Νυχτερινή οθόνη: κόκκινη, για τα μάτια στο σκοτάδι.','Night screen: red, to keep your night vision.')); }
   else { ls.set(OV,{k:tripId()||today(),v:false}); apply(); applySun(); B.toast(T('Κανονική οθόνη.','Normal screen.')); } }
-function mountS(){ if(sbtn&&sbtn.isConnected){ paintS(); return; } sbtn=h('button',{class:'scrmode',type:'button',onclick:cycle}); sbtn.style.top='calc(var(--safe-t,0px) + 164px)'; document.body.append(sbtn); paintS(); }
+function mountS(){ if(sbtn&&sbtn.isConnected){ paintS(); return; } sbtn=h('button',{class:'scrmode',type:'button',onclick:cycle}); sbtn.style.top='calc(var(--safe-t,0px) + 222px)'; setTimeout(lay,50); document.body.append(sbtn); paintS(); }
 B.screenMode={get:scr,cycle:cycle};
+/* 1.9.3: τα κουμπιά δεξιά (Στρώματα, οθόνη) και η ετικέτα «Διαδρομή εξόδου» μπαίνουν κάτω από την κάρτα ΨΑΡΕΥΩ/ΣΕ ΚΙΝΗΣΗ, όχι από πάνω της */
+function lay(){ if(!document.body.classList.contains('mapon')) return; var p=document.querySelector('.mcpanel'), pb=0;
+  if(p){ var cs=getComputedStyle(p), r=p.getBoundingClientRect(); if(cs.display!=='none'&&cs.visibility!=='hidden'&&r.height>0) pb=Math.round(r.bottom); }
+  var st=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-t'))||0, top1=Math.max(st+164,pb?pb+12:0);
+  var ly=document.querySelector('.mclay'); if(ly) ly.style.top=top1+'px'; if(sbtn) sbtn.style.top=(ly&&getComputedStyle(ly).display!=='none'?top1+58:top1)+'px';
+  var rc=document.querySelector('.revchip'); if(rc){ rc.style.top=''; if(pb){ var rr=rc.getBoundingClientRect(); if(rr.top<pb+6) rc.style.top=(pb+10)+'px'; } } }
+setInterval(lay,600); window.addEventListener('resize',lay);
 B.night={mode:mode,set:function(m){ ls.set(K,m); ls.set(OV,null); apply(); },active:function(){ return active; },apply:apply};
 var deb=null; try{ new MutationObserver(function(){ clearTimeout(deb); deb=setTimeout(function(){ apply(); mountBtn(); mountS(); applySun(); },250); }).observe(document.body,{attributes:true,attributeFilter:['class'],childList:true}); }catch(e){}
 window.addEventListener('hashchange',function(){ setTimeout(mountBtn,400); });

@@ -245,7 +245,7 @@ function ribbon48(fc,d){ var days=(fc.days||[]), i=days.indexOf(d); if(i<0) retu
   if(now>=0) g+='<line x1="'+(now*bw+bw/2)+'" x2="'+(now*bw+bw/2)+'" y1="0" y2="36" stroke="var(--ink)" stroke-width=".35" stroke-dasharray="1 1"/>';
   g+='<rect class="rbsel" x="0" y=".3" width="'+bw+'" height="35.7" rx=".8" fill="none" stroke="var(--accent)" stroke-width=".6" vector-effect="non-scaling-stroke"/>';
   svg.innerHTML=g;
-  var axis=h('div',{class:'rbax'}); hs.forEach(function(o,j){ if(o.x.hr%6===0) axis.append(h('span',{style:{left:(j*bw)+'%'},text:o.x.hr===0?B.dayName(o.d.date,td).slice(0,3):B.pad(o.x.hr)})); });
+  var axis=h('div',{class:'rbax'}); hs.forEach(function(o,j){ if(o.x.hr%6===0) axis.append(h('span',{style:{left:(j*bw)+'%'},text:o.x.hr===0?new Date(o.d.date+'T12:00:00').toLocaleDateString(EN?'en-GB':'el-GR',{weekday:'short'}).replace('.',''):B.pad(o.x.hr)})); });
   var lab=h('div',{class:'rblab','aria-live':'polite'}), sel=sel0;
   function paint(){ var o=hs[sel], x=o.x, r=svg.querySelector('.rbsel'); r.setAttribute('x',String(sel*bw)); if(o.d.date===st.day&&st.hourSet) try{ st.hourSet(x.hr); }catch(e){}
     lab.replaceChildren(h('b',{text:(o.d.date===td?T('Σήμερα ','Today '):B.dayName(o.d.date,td)+' ')+B.pad(x.hr)+':00'}),' · '+T('βαθμός ','score ')+(x.score!=null?x.score:'–')+(x.wind!=null?' · '+U.windP(x.wind).join(' '):'')+(x.wave!=null?' · '+U.waveP(x.wave).join(' '):'')+(x.safe===false?' · ':''),x.safe===false?h('b',{class:'rbbad',text:T('εκτός ορίων','outside limits')}):''); }
@@ -365,7 +365,7 @@ function dayView(page,fc,d){
   var fh=focusHours(d), tg=seaTag({wave:avgOf(fh,'wave'),wind:avgOf(fh,'wind')});
   hero.append(h('div',{class:'hv'},h('h2',{text:verdict(d)}))); /* 1.8.6: ο βαθμός φαίνεται ήδη στη μέρα πάνω· εδώ μπαίνει το «γιατί» */
   /* 1.9.0: σκούρα κάρτα με δαχτυλίδι βαθμού (όπως στο σχέδιο v2) */
-  hero.classList.add('v2'); if(d.best!=null){ var R=34, C=2*Math.PI*R, sc=Math.max(0,Math.min(100,d.best)); hero.append(h('div',{class:'hring',role:'img','aria-label':T('Βαθμός ημέρας ','Day score ')+sc,html:'<svg viewBox="0 0 84 84" aria-hidden="true"><circle cx="42" cy="42" r="'+R+'" fill="none" stroke="rgba(255,255,255,.16)" stroke-width="8"/><circle cx="42" cy="42" r="'+R+'" fill="none" stroke="var(--lv)" stroke-width="8" stroke-linecap="round" stroke-dasharray="'+(C*sc/100).toFixed(1)+' '+C.toFixed(1)+'" transform="rotate(-90 42 42)"/><text x="42" y="50" text-anchor="middle" font-size="23" font-weight="800" fill="#fff">'+sc+'</text></svg>'})); }
+  hero.classList.add('v2'); if(d.best!=null&&d.why!=='night'&&!(d.best===0&&!d.safe)){ var R=34, C=2*Math.PI*R, sc=Math.max(0,Math.min(100,d.best)); hero.append(h('div',{class:'hring',role:'img','aria-label':T('Βαθμός ημέρας ','Day score ')+sc,html:'<svg viewBox="0 0 84 84" aria-hidden="true"><circle cx="42" cy="42" r="'+R+'" fill="none" stroke="rgba(255,255,255,.16)" stroke-width="8"/><circle cx="42" cy="42" r="'+R+'" fill="none" stroke="var(--lv)" stroke-width="8" stroke-linecap="round" stroke-dasharray="'+(C*sc/100).toFixed(1)+' '+C.toFixed(1)+'" transform="rotate(-90 42 42)"/><text x="42" y="50" text-anchor="middle" font-size="23" font-weight="800" fill="#fff">'+sc+'</text></svg>'})); }
   if(d.safe&&d.win) hero.append(h('div',{class:'hw'},h('span',{text:T('Καλύτερη ώρα','Best time')}),h('b',{text:win(d)})));
   else if(!d.safe){ var why=unsafeWhy(d); if(why) hero.append(h('p',{class:'hwhy',text:why.charAt(0).toUpperCase()+why.slice(1)+'.'})); }
   /* σήμερα δεν βγαίνει: δείξε την επόμενη καλή μέρα */
@@ -421,8 +421,10 @@ function dayView(page,fc,d){
   var rr=[[T('Ανατολή','Sunrise'),B.hm(d.rise)],[T('Δύση','Sunset'),B.hm(d.set)],[T('Σελήνη','Moon'),moonName(d.f)],[T('Φωτισμός','Illumination'),Math.round(((1-Math.cos(2*Math.PI*d.f))/2)*100)+'%']];
   if(sm){ var mj=(sm.maj||[]).filter(function(m){ return m>=0&&m<1440; }).map(B.hm), mn=(sm.min||[]).filter(function(m){ return m>=0&&m<1440; }).map(B.hm);
     if(mj.length) rr.push([T('Κύριες περίοδοι','Major periods'),mj.join(', ')]); if(mn.length) rr.push([T('Δευτερεύουσες','Minor periods'),mn.join(', ')]); }
-  ms.append(h('div',{class:'rows one'},rr.map(function(r){ return h('div',{class:'row'},h('span',{text:r[0]}),h('b',{text:r[1]})); })));
-  page.append(ms);
+  /* 1.9.3: κάρτα που ανοίγει με πάτημα· κλειστή δείχνει ανατολή, δύση, σελήνη σε μία γραμμή */
+  var smd=h('details',{class:'card facc'}); if(ls.get('alkyon-v4-smopen',false)) smd.open=true; smd.addEventListener('toggle',function(){ ls.set('alkyon-v4-smopen',smd.open); });
+  smd.append(h('summary',null,h('span',null,h('h2',{text:T('Ήλιος και σελήνη','Sun and moon')}),h('small',{text:'↑ '+B.hm(d.rise)+' · ↓ '+B.hm(d.set)+' · '+moonName(d.f)})),h('i',{class:'fchev'})),h('div',{class:'rows one'},rr.map(function(r){ return h('div',{class:'row'},h('span',{text:r[0]}),h('b',{text:r[1]})); })));
+  page.append(smd);
   /* έκθεση της ακτής ανά κατεύθυνση ανέμου και swell (ίδιος υπολογισμός με την κλασική, exposure.js) — μόνο για σήμερα, θάλασσα */
   if(isToday&&B.prof()!=='lake'&&window.AlkyonExposure){ var ex=h('div',{class:'expo'},h('div',{id:'fcDays',hidden:true})); page.append(ex); tidyExpo(ex);
     setTimeout(function(){ try{ window.dispatchEvent(new CustomEvent('alkyon-fcloaded',{detail:{place:{lat:p.lat,lon:p.lon,name:p.name||''},fc:fc}})); }catch(e){} },0); }

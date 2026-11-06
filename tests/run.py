@@ -285,7 +285,9 @@ with sync_playwright() as p:
     check('μενού: Επίπεδα (Καιρός, Χάρτης και βάθη, Κανόνες, Υπόμνημα) · Εργαλεία (+Ενέργειες) · Τα δικά μου· εργαλεία χωρίς στρώματα', all(x in g[0] for x in ['Χάρτης και βάθη','Καιρός και θάλασσα','Θάλασσα και κανόνες']) and g[0].index('Καιρός και θάλασσα')<g[0].index('Χάρτης και βάθη') and 'Εργαλεία' in g[1] and 'Ενέργειες' in g[1] and g[2]==['Τα δικά μου'] and 'Βάθη θάλασσας' not in g[0] and 'Πού να πάω' not in g[0] and 'Χάρακας' in g[3] and not any('Σταθμοί' in x or 'Λιμάνια' in x for x in g[3]), g)
     pg.evaluate("()=>document.querySelectorAll('.mcg5 .mctile')[2].click()"); pg.wait_for_timeout(500)
     check('στρώμα από το μενού: ανάβει το ίδιο κουμπί (Ρεύματα)', pg.evaluate("()=>document.querySelectorAll('.mchips .mchip')[2].getAttribute('aria-pressed')==='true'"), None)
-    pg.evaluate("()=>document.querySelector('.mcdim').click()"); pg.wait_for_timeout(400)
+    pg.mouse.move(195,250); pg.mouse.down(); pg.mouse.move(120,200,steps=6); pg.mouse.up(); pg.wait_for_timeout(500)
+    check('ο χάρτης σέρνεται με ανοιχτό το μενού, το μενού μένει ανοιχτό (1.9.3)', pg.evaluate("()=>!!document.querySelector('.mcdrw.open')"), None)
+    pg.mouse.click(195,250); pg.wait_for_timeout(500)
     check('πάτημα στον χάρτη κλείνει το μενού', pg.evaluate("()=>!document.querySelector('.mcdrw')"), None)
     check('καθαρός χάρτης χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
 
@@ -314,8 +316,9 @@ with sync_playwright() as p:
 
     print('# νέα εμφάνιση (1.9.0)')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(3500)
-    r=pg.evaluate("()=>{const s=document.querySelector('.ribbon .rbsvg'); return [!!document.querySelector('.hero.v2 .hring'), !!s, s?s.querySelectorAll('rect[height]').length:0, (document.querySelector('.ribbon .rblab')||{}).textContent||'']}")
-    check('Πρόγνωση: σκούρα κάρτα με δαχτυλίδι και «Πότε να βγω» (48 ώρες)', r[0] and r[1] and r[2]>=40, r)
+    r=pg.evaluate("()=>{const s=document.querySelector('.ribbon .rbsvg'); return [!!document.querySelector('.hero.v2'), !!s, s?s.querySelectorAll('rect[height]').length:0, (document.querySelector('.ribbon .rblab')||{}).textContent||'']}")
+    check('Πρόγνωση: σκούρα κάρτα και «Πότε να βγω» (48 ώρες)', r[0] and r[1] and r[2]>=40, r)
+    check('«Ήλιος και σελήνη» ανοίγει με πάτημα (1.9.3)', pg.evaluate("()=>!!document.querySelector('details.facc>summary h2')"), None)
     bx=pg.evaluate("()=>{document.querySelector('.ribbon .rbsvg').scrollIntoView({block:'center'}); const r=document.querySelector('.ribbon .rbsvg').getBoundingClientRect();return [r.left,r.top+r.height/2,r.width]}")
     pg.mouse.move(bx[0]+bx[2]*0.1,bx[1]); pg.mouse.down(); pg.mouse.move(bx[0]+bx[2]*0.8,bx[1],steps=6)
     l2=pg.evaluate("()=>document.querySelector('.ribbon .rblab').textContent"); pg.mouse.up(); pg.wait_for_timeout(600)
@@ -327,6 +330,9 @@ with sync_playwright() as p:
         pg.evaluate("()=>document.querySelector('.scrmode').click()"); pg.wait_for_timeout(500)
     m.append(pg.evaluate("()=>[document.documentElement.classList.contains('sunv'),document.documentElement.classList.contains('night'),(document.querySelector('.scrmode')||{}).dataset?.m]"))
     check('κουμπί οθόνης: κανονική → ήλιος → νύχτα → κανονική', [x[2] for x in m]==['norm','sun','night','norm'] and m[1][0] and m[2][1] and not m[3][0] and not m[3][1], m)
+    c2=ctx(b); c2.add_init_script("if(!sessionStorage.ml){sessionStorage.ml=1;localStorage.setItem('alkyon-v4-mapui',JSON.stringify('clean'));}"); p2=page(c2); p2.goto(BASE+'/v4/#map'); p2.wait_for_timeout(4000)
+    v=p2.evaluate("()=>{const e=document.querySelector('.mclay'); const ok=!!e&&getComputedStyle(e).display!=='none'; e&&e.click(); return ok}"); p2.wait_for_timeout(600)
+    check('κουμπί «Στρώματα» φαίνεται στον χάρτη και ανοίγει το μενού (1.9.3)', v and p2.evaluate("()=>!!document.querySelector('.mcdrw.open')"), v); c2.close()
     check('νέα εμφάνιση χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
 
     c=ctx(b); now=int(time.time()*1000); td=time.strftime('%Y-%m-%d')
@@ -336,6 +342,7 @@ with sync_playwright() as p:
     pg.evaluate("()=>{const b=[...document.querySelectorAll('#main .seg button, #main [role=tab]')].find(x=>/Έξοδοι/.test(x.textContent)); b&&b.click()}"); pg.wait_for_timeout(700)
     k=pg.evaluate("()=>[!!document.querySelector('.tcard canvas.tmap'), (()=>{const e=document.querySelector('.tcard'); e&&e.click(); return 1})()]"); pg.wait_for_timeout(700)
     check('Ημερολόγιο: κάρτα εξόδου με μικρό χάρτη, και μεγάλος χάρτης στην έξοδο (1.9.2)', k[0] and pg.evaluate("()=>!!document.querySelector('.sheet .tstory canvas')"), k)
+    check('έξοδος σε χρονολόγιο: ξεκίνησες → επιστροφή (1.9.3)', pg.evaluate("()=>document.querySelectorAll('.sheet .tline .tlx').length")==2, None)
     check('κάρτες εξόδων χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
 
     print('# απογραφή: τίποτα δεν λείπει από την προηγούμενη έκδοση')
