@@ -413,7 +413,7 @@ function hourRows(hr){
   return [
     [T('Άνεμος','Wind'),hr.wind!=null?[U.windP(hr.wind)[0]+' ',h('small',{text:U.windP(hr.wind)[1]+' '+dirTxt(hr.dir)})]:'–'],
     [T('Ριπές','Gusts'),val(U.windP(hr.gust))],
-    lake?null:[T('Κύμα','Waves'),hr.wave!=null?[U.waveP(hr.wave)[0],h('small',{text:U.waveP(hr.wave)[1]+(hr.period?' · '+Math.round(hr.period)+' s':'')})]:'–'],
+    lake?null:[T('Κύμα','Waves'),hr.wave!=null?[U.waveP(hr.wave)[0],h('small',{text:U.waveP(hr.wave)[1]+(hr.period?' · '+Math.round(hr.period)+' s':'')+(hr.waveOff!=null?T(' · ανοιχτά ',' · offshore ')+U.wave(hr.waveOff):''),title:hr.waveOff!=null?T('Ο άνεμος έρχεται από τη στεριά: εδώ το κύμα είναι μικρότερο απ’ ό,τι ανοιχτά','Wind from land: smaller waves here than offshore'):''})]:'–'],
     lake?null:[T('Θάλασσα','Sea temp'),val(U.tempP(hr.sst))],
     [T('Πίεση','Pressure'),P?[(P[1]==='hPa'?String(Math.round(hr.pres)):P[0]),h('small',{text:(P[1]==='hPa'?'':P[1]+' ')+({fast:'↓↓',slow:'↘',rise:'↗',stable:'→'}[hr.ptrend]||''),title:trendTxt(hr.ptrend)})]:'–'],
     [T('Αέρας','Air temp'),val(U.tempP(hr.temp))],
@@ -640,7 +640,8 @@ function pwFill(body,v,p,fc,rk){
     var twN=function(x){ var ds=loc(x.t).slice(0,10), dy=days.filter(function(z){ return z.date===ds; })[0]; if(!dy) return false; var m=(Date.parse(loc(x.t).slice(0,16)+':00Z')-Date.parse(ds+'T00:00:00Z'))/60000; return Math.abs(m-dy.rise)<=90||Math.abs(m-dy.set)<=90; };
     var parts=up.map(function(x){ var ds=loc(x.s).slice(0,10); return (ds!==td?B.dayName(ds,td).toLowerCase()+' ':'')+hmm(x.s)+'–'+hmm(x.e)+' '+(x.kind==='major'?T('κύρια','major'):T('δευτερεύουσα','minor'))+(twN(x)?' ★':''); });
     var cur=moonAt(now);
-    out.push(h('p',{class:'sub',style:{margin:'6px 0 0'},text:T('Σελήνη ','Moon ')+Math.round(ph.illum*100)+'%'+(ph.illum<0.1||ph.illum>0.9?T(' (κοντά σε νέα σελήνη ή πανσέληνο)',' (near new or full moon)'):'')+'. '+(cur?T('Τώρα: ','Now: ')+mLbl(cur)+'. ':'')+(parts.length?T('Επόμενες: ','Next: ')+parts.join(', ')+'.':'')+(parts.some(function(x){ return /★/.test(x); })?T(' ★ = μαζί με αυγή ή σούρουπο.',' ★ = together with dawn or dusk.'):'')}));
+    /* 1.9.11: οι περίοδοι σελήνης φαίνονται ήδη στην πάνω κάρτα· εδώ μόνο αν είσαι μέσα σε περίοδο τώρα */
+    if(cur) out.push(h('p',{class:'sub',style:{margin:'6px 0 0'},text:T('Σελήνη: τώρα ','Moon: now ')+mLbl(cur)+'.'}));
   }
   out.push(h('div',{class:'pwl'},h('span',{class:'k1',text:T('Πίεση','Pressure')}),h('span',{class:'k2',text:T('Άνεμος, ριπές','Wind, gusts')}),hasM?h('span',{class:'k3',text:T('Σελήνη','Moon')}):null),
     h('p',{class:'foot',style:{margin:'8px 0 0'},text:T('Συνεχής γραμμή: τελευταίες 24 ώρες. Διακεκομμένη: πρόγνωση. Τα βέλη δείχνουν προς πού φυσά ο άνεμος. Σύρε το δάχτυλο πάνω στο γράφημα για κάθε ώρα.','Solid line: last 24 hours. Dashed: forecast. Arrows show where the wind blows to. Drag across the chart to see each hour.')}));

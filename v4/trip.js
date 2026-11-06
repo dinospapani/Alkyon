@@ -119,7 +119,13 @@ function start(o){
   var d=load(), s=Object.assign({},d,{active:true,id:'trip-'+Date.now().toString(36),route:o.route||'',due:o.due,autoExt:0,sosAt:0,pgStart:0,pgEnd:0,last:null,start:Date.now(),startDate:B.store?todayStr():'',cond0:cond0(),sil:o.sil||0,noAlert:!o.notify,synced:undefined});
   save(s); ls.set('alkyon-track',null); watch(); startTimer();
   /* 1.6.1: με την έναρξη κατεβαίνουν χάρτης και πρόγνωση γύρω από τη θέση σου (αν υπάρχει σήμα και το επιτρέπει η ρύθμιση), για να δουλεύουν χωρίς σήμα */
-  try{ var pp=B.lastPos(); if(B.prefetch&&pp&&B.prefetch.mode()!=='off') B.prefetch.run({date:s.startDate||new Date().toISOString().slice(0,10),lat:pp.lat,lon:pp.lon}); }catch(e){}
+  try{ var pp=B.lastPos(); if(B.prefetch&&pp){ var pl0={date:s.startDate||new Date().toISOString().slice(0,10),lat:pp.lat,lon:pp.lon};
+    /* 1.9.11: αν η περιοχή δεν είναι αποθηκευμένη και δεν μπορεί να κατέβει αυτόματα (ρύθμιση «Όχι»/«Μόνο WiFi» ή χωρίς σήμα), υπενθύμιση με κουμπί */
+    var cov=(ls.get('alkyon-offl',[])||[]).some(function(r){ return pp.lat>=r.s&&pp.lat<=r.nn&&pp.lon>=r.w&&pp.lon<=r.e&&Date.now()-(r.t||0)<30*864e5; });
+    var p0=B.prefetch.mode()!=='off'?B.prefetch.run(pl0):Promise.resolve(null);
+    p0.then(function(o){ if(o&&o.tiles) B.toast(T('📥 Ο χάρτης της περιοχής αποθηκεύτηκε για χωρίς σήμα.','📥 The map of this area is saved for no signal.'),4000); else if(!o&&!cov) setTimeout(function(){
+      B.toast(navigator.onLine===false?T('⚠ Ο χάρτης εδώ δεν είναι αποθηκευμένος και δεν έχεις σήμα. Ο χάρτης μπορεί να μη φαίνεται.','⚠ The map here is not saved and there is no signal. The map may not show.'):T('📥 Ο χάρτης εδώ δεν είναι αποθηκευμένος για χωρίς σήμα.','📥 The map here is not saved for no signal.'),9000,
+        navigator.onLine===false?null:{label:T('Κατέβασμα','Download'),fn:function(){ B.toast(T('Κατεβαίνει ο χάρτης…','Downloading the map…'),3000); B.prefetch.run(pl0,true).then(function(o2){ B.toast(o2&&o2.tiles?T('📥 Έτοιμο: ο χάρτης αποθηκεύτηκε.','📥 Done: the map is saved.'):T('Δεν κατέβηκε ο χάρτης. Δοκίμασε ξανά με σήμα.','The map did not download. Try again with signal.'),4000); }); }}); },4500); }); } }catch(e){}
   /* v31z543: στέλνει στον server όρια και λιμάνι, για ειδοποιήσεις καιρού / επιστροφής με κλειστό κινητό */
   try{ if(B.pushSync) B.pushSync(); }catch(e){}
   pushContact().then(trackPos).then(pushTrip);

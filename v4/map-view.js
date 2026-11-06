@@ -688,10 +688,20 @@ function modePaint(){ if(!root) return; var m=md.m;
   else if(m==='anchor'){ var a=md.anc||ls.get('alkyon-anchor',null)||{}, dd=a.d!=null?a.d:null, bad=dd!=null&&a.r&&dd>a.r;
     md.el.className='mcpanel anc'+(bad?' bad':''); md.el.append(cell(T('ΑΠΟ ΤΗΝ ΑΓΚΥΡΑ','FROM ANCHOR'),dd!=null?String(dd):'…','m · '+T('όριο ','limit ')+(a.r||'–')+' m'+(dd!=null?(bad?T(' · ΣΕΡΝΕΙ',' · DRAGGING'):T(' · δεν σέρνει',' · holding')):''),'wide')); tgt(); }
   else { if(B.troll&&B.troll.on&&B.troll.on()){ md.el.className='mcpanel off'; md.chip.hidden=false; return; }
-    /* 1.8.4: και το ρεύμα στη θέση σου (πόσο και προς τα πού σε σπρώχνει) */
-    var cuF=fixNow&&B.curNear?B.curNear(fixNow.lat,fixNow.lon):null, cuC=null;
-    if(cuF&&cuF.kn>=0.05){ cuC=h('div',{class:'mpc'},h('i',{text:T('ΡΕΥΜΑ','CURRENT')}),h('b',{html:(B.arrowSvg?B.arrowSvg(cuF.dir,'#f0a640',18):'')+B.num(cuF.kn,1)}),h('small',{text:'kn '+COMP[Math.round(cuF.dir/45)%8]})); }
-    md.el.className='mcpanel fish'+(cuC?' f3':''); md.el.append(cell(T('ΤΑΧΥΤΗΤΑ','SPEED'),kn!=null?B.num(kn,1):'–','kn'),cell(T('ΒΥΘΟΣ ΚΑΤΩ ΣΟΥ','DEPTH BELOW'),!fixNow?T('χωρίς GPS','no GPS'):md.dep?(U&&U.depthP?U.depthP(md.dep)[0]:String(Math.round(md.dep))):(md.dep===false?T('–','–'):(navigator.onLine===false?T('χωρίς σήμα','offline'):'…')),md.dep?(U&&U.depthP?U.depthP(md.dep)[1]+(U.cfg.depth!=='m'?' · '+Math.round(md.dep)+' m':''):'m'):'')); if(cuC) md.el.append(cuC); tgt(); }
+    /* 1.9.11: όπως στη v2: ΤΑΧΥΤΗΤΑ · ΒΥΘΟΣ · ΕΠΙΣΤΡΟΦΗ, και από κάτω ρεύμα και ψάρια της εξόδου */
+    var cuF=fixNow&&B.curNear?B.curNear(fixNow.lat,fixNow.lon):null;
+    var hasDep=!!md.dep||(md.dep!==false&&!!fixNow&&navigator.onLine!==false);
+    var ts=null; try{ ts=B.trip&&B.trip.state&&B.trip.state(); }catch(e){} var due=ts&&ts.active&&ts.due?ts.due:null;
+    var cells=[cell(T('ΤΑΧΥΤΗΤΑ','SPEED'),kn!=null?B.num(kn,1):'–','kn')];
+    if(hasDep) cells.push(cell(T('ΒΥΘΟΣ','DEPTH'),md.dep?(U&&U.depthP?U.depthP(md.dep)[0]:String(Math.round(md.dep))):'…',md.dep?(U&&U.depthP?U.depthP(md.dep)[1]:'m'):'','dep'));
+    if(due){ var left=Math.round((due-Date.now())/60000), dt=new Date(due), late=left<0;
+      cells.push(cell(T('ΕΠΙΣΤΡΟΦΗ','BACK BY'),B.pad(dt.getHours())+':'+B.pad(dt.getMinutes()),late?T('αργείς ','late ')+(-left<60?(-left)+'′':Math.floor(-left/60)+T('ω','h')):(left<60?T('σε ','in ')+left+'′':T('σε ','in ')+Math.floor(left/60)+T('ω ','h ')+B.pad(left%60)+'′'),late?'late':'')); }
+    md.el.className='mcpanel fish c'+cells.length; cells.forEach(function(c0){ md.el.append(c0); });
+    var c=B.tripCounts?B.tripCounts():null, row=[];
+    if(cuF&&cuF.kn>=0.05) row.push(h('span',{class:'mpr',html:T('ρεύμα ','current ')+B.num(cuF.kn,1)+' kn '+(B.arrowSvg?B.arrowSvg(cuF.dir,'#f0a640',15):COMP[Math.round(cuF.dir/45)%8])}));
+    if(c&&(c.n||c.miss)) row.push(h('span',{class:'mpr mpf',text:'🐟 '+c.n+(c.miss?' · ✕ '+c.miss:'')}));
+    if(row.length) md.el.append(h('div',{class:'mprow'},row));
+    tgt(); }
   md.chip.hidden=!md.el.classList.contains('off')&&!!md.el.className.match(/run|fish|anc/); }
 B.mapMode=function(){ return md.m; };
 function mapUI(){ return ls.get('alkyon-v4-mapui','')||''; }
@@ -734,13 +744,8 @@ function cleanSetup(el,qc,seab,bar){ mcRefs={qc:qc,seab:seab,bar:bar}; document.
   /* 1.9.7: η λαβή στη δεξιά άκρη έφυγε· το μενού ανοίγει από το κουμπί «Στρώματα» ή τη μπάρα πάνω */
   /* 1.9.6: ορατό κουμπί «Στρώματα» στη δεξιά στήλη (ανοίγει το ίδιο πλαϊνό μενού) */
   var lay=h('button',{class:'mclay',type:'button','aria-label':T('Στρώματα και εργαλεία','Layers and tools'),html:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 8l10 5 10-5-10-5z"/><path d="m2 13 10 5 10-5"/><path d="m2 17.5 10 5 10-5"/></svg>',onclick:function(){ mcOpen(); }}); el.append(lay);
-  /* 1.9.8: γρήγορο κουμπί Μέρα/Νύχτα κάτω από τα «Στρώματα» (φαίνεται στην έξοδο ή όταν είναι ανοιχτή η νυχτερινή) */
-  var MOON='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>', SUN='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
-  var nb=h('button',{class:'mclay mcnight',type:'button',onclick:function(){ var N=B.night; if(!N) return; if(N.toggle) N.toggle(); else N.set(N.active()?'off':'on'); setTimeout(nbPaint,50); }}); el.append(nb);
-  function nbPaint(){ var N=B.night, on=!!(N&&N.active&&N.active()), tr=false; try{ var s0=B.trip&&B.trip.state(); tr=!!(s0&&s0.active); }catch(e){}
-    nb.hidden=!(on||tr); nb.innerHTML=on?SUN:MOON; nb.setAttribute('aria-label',on?T('Μέρα (κλείσιμο νυχτερινής)','Day (night mode off)'):T('Νύχτα (κόκκινη οθόνη)','Night (red screen)')); nb.setAttribute('aria-pressed',String(on)); }
-  nbPaint(); setInterval(nbPaint,3000);
-  function layPos(){ if(!lay.isConnected) return; var p=document.querySelector('.mcpanel'), pb=0; if(p){ var cs=getComputedStyle(p), r=p.getBoundingClientRect(); if(cs.display!=='none'&&r.height>0) pb=Math.round(r.bottom); } var st=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-t'))||0; lay.style.top=Math.max(st+76,pb?pb+12:0)+'px'; if(typeof nb!=='undefined') nb.style.top=(parseFloat(lay.style.top)+58)+'px'; var rc=document.querySelector('.revchip'); if(rc){ rc.style.top=''; if(pb){ var rr=rc.getBoundingClientRect(); if(rr.top<pb+6) rc.style.top=(pb+10)+'px'; } } }
+  /* 1.9.11: το κουμπί Μέρα/Νύχτα έφυγε από τον χάρτη· είναι στο μενού › Εργαλεία (πρώτο) */
+  function layPos(){ if(!lay.isConnected) return; var p=document.querySelector('.mcpanel'), pb=0; if(p){ var cs=getComputedStyle(p), r=p.getBoundingClientRect(); if(cs.display!=='none'&&r.height>0) pb=Math.round(r.bottom); } var st=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-t'))||0; lay.style.top=Math.max(st+76,pb?pb+12:0)+'px'; var rc=document.querySelector('.revchip'); if(rc){ rc.style.top=''; if(pb){ var rr=rc.getBoundingClientRect(); if(rr.top<pb+6) rc.style.top=(pb+10)+'px'; } } }
   setInterval(layPos,700); setTimeout(layPos,300);
   function barLater(){ clearTimeout(mcBarT); mcBarT=setTimeout(mcPaint,250); }
   (function hk(n){ if(map){ try{ map.on('moveend',barLater); }catch(e){} } else if(n<40) setTimeout(function(){ hk(n+1); },500); })(0); window.addEventListener('alkyon-wxchange',barLater); window.addEventListener('alkyon-curs',barLater); window.addEventListener('alkyon-windhour',function(){ B.mcBarNow(); }); setInterval(function(){ if(document.body.classList.contains('mapclean')&&root) mcPaint(); },15000);
@@ -801,11 +806,11 @@ function mcDrFill2(){ var pan=mcDr.querySelector('.mcpan'), keep=pan.scrollTop; 
     bell:'<svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>'};
   var TL=[];
   function tool(el,lab,fb,fn,on){ if(el===false) return; TL.push(tile(ico(el,fb),lab,on==null?null:on,function(){ mcClose(); setTimeout(fn,250); })); }
+  var ni=q('.nightb'); if(ni||B.night) tool(ni,(B.night&&B.night.active&&B.night.active()?T('Μέρα','Day'):T('Νυχτερινή','Night')),IC.night,function(){ if(ni) ni.click(); else if(B.night.toggle) B.night.toggle(); else B.night.set(B.night.active()?'off':'on'); },!!(B.night&&B.night.active&&B.night.active()));
   var tr=q('.trbtn'); if(tr||B.troll) tool(tr,T('Συρτή','Trolling'),'',function(){ if(tr) tr.click(); else B.troll.sheet(); },!!(B.troll&&B.troll.on&&B.troll.on()));
   var an=q('.ancbtn'); if(an) tool(an,T('Άγκυρα','Anchor'),IC.anc,function(){ an.click(); },!!ls.get('alkyon-anchor',null));
   var ru=document.getElementById('bRuler'); if(ru) tool(ru,T('Χάρακας','Ruler'),'',function(){ ru.click(); });
   var mi=q('.micmap'); if(mi) tool(mi,T('Φωνητική καταγραφή','Voice log'),'',function(){ mi.click(); });
-  var ni=q('.nightb'); if(ni||B.night) tool(ni,T('Νυχτερινή','Night'),IC.night,function(){ if(ni) ni.click(); else B.night.set(B.night.active()?'off':'on'); },!!(B.night&&B.night.active&&B.night.active()));
   var orb=document.getElementById('bOrient'); if(orb) tool(orb,T('Πυξίδα','Compass'),'',function(){ orb.click(); });
   /* 1.9.7: «Παραγάδι, δίχτυ, ζεμπίλι» πάντα στα Εργαλεία (έφυγε από τις Ενέργειες) */
   var gb=q('.gearbtn'); if(B.gearPanel) tool(gb||null,T('Παραγάδι, δίχτυ','Longline, net'),'<svg viewBox="0 0 24 24"><path d="M3 7h18M3 12h18M3 17h18M7 4v16M12 4v16M17 4v16"/></svg>',function(){ B.gearPanel(); });
