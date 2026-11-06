@@ -1069,3 +1069,13 @@ button.cknum{cursor:pointer}button.cknum:active{filter:brightness(.92)}
 .ck .ckseg{position:static!important;display:flex;margin:6px;background:var(--ck-pn2)!important;border-radius:12px;padding:3px}
 .ck .ckseg button{flex:1;text-align:center;padding:9px 4px!important;font-size:13px!important;color:var(--ck-mut)!important}
 .ck .ckseg button.on{background:var(--ck-ink)!important;color:var(--ck-bg)!important}
+/* 1.8.21 */
+.ck button.ckcmd{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:12px;border-radius:18px;padding:12px 14px;color:#fff;min-height:84px}
+.ck button.ckcmd.na{color:var(--ck-mut);background:var(--ck-pn2)}
+.ck .ckib.auto{position:relative}.ck .ckib.auto:after{content:'A';position:absolute;right:4px;bottom:3px;font:900 9px var(--font);color:var(--ck-mut)}
+.ck .ckmini.big{border:0;border-radius:0;background:transparent;min-height:0}.ck .ckmini.big svg{max-height:none}
+.ck .ckseg button{font-size:12.5px!important}
+.trside.ck.red{--ck-bg:#0a0000;--ck-pn:#1a0000;--ck-pn2:#2a0404;--ck-ink:#ff6b5b;--ck-mut:#b23a2e;--ck-line:#3a0a0a;--ck-up:#ff3b2b;--ck-dn:#b0281d;--ck-ok:#d13a2a;--ck-bad:#ff1a1a}
+.trside.ck.red .ckcmd,.trside.ck.red .ckf.ok,.trside.ck.red .ckfish{background:#5a0a06!important;color:#ffb3a8}
+.trside.ck.red .ckdv,.trside.ck.red .ckmini{filter:sepia(1) saturate(4) hue-rotate(-50deg) brightness(.75)}
+.trside.ck.red .cknum.hl b{color:#ff6b5b}
