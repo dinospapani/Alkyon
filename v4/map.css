@@ -1054,3 +1054,18 @@ button.cknum{cursor:pointer}button.cknum:active{filter:brightness(.92)}
 }
 .trside .tsfull{margin-left:6px}
 .ck .ckfb{display:grid;grid-template-columns:1.6fr 1fr;gap:8px}.ck .ckf{all:unset;cursor:pointer;box-sizing:border-box;height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:8px;font:900 18px var(--font);color:#fff}.ck .ckf.ok{background:#1b8f4e}.ck .ckf.miss{background:var(--ck-pn2);color:var(--ck-ink);border:1px solid var(--ck-line);font-size:15px}.ck .ckf .ico svg{width:24px;height:24px}
+/* 1.8.19: γυάλισμα οθόνης συρτής */
+.ck .cknum i{white-space:normal;line-height:1.2}
+.ck .ckct b{white-space:nowrap}.ck .ckbig2{font-size:34px;letter-spacing:-.01em}
+.ck .ckmini{all:unset;cursor:pointer;display:block;flex:1 1 auto;min-height:120px;border-radius:16px;background:var(--ck-pn);border:1px solid var(--ck-line);color:var(--ck-mut);overflow:hidden}
+.ck .ckmini svg{display:block;width:100%;height:100%;max-height:260px}
+.ck .ckcmd.up{background:linear-gradient(135deg,#ff7a3d,#e8531b)}.ck .ckcmd.dn{background:linear-gradient(135deg,#2f9bff,#1673d6)}.ck .ckcmd.ok,.ck .ckcmd:not(.up):not(.dn):not(.na){background:linear-gradient(135deg,#22c97f,#139a5d)}
+.ck.sun .ckcmd.up{background:linear-gradient(135deg,#e8531b,#c43c08)}.ck.sun .ckcmd.dn{background:linear-gradient(135deg,#1673d6,#0a56ad)}
+.ck .cknum{transition:border-color .3s,background .3s}
+.ck .ckb.main{box-shadow:0 0 0 3px rgba(255,106,43,.12) inset}
+.ck .ckf.ok{background:linear-gradient(135deg,#22a35d,#157a43)}
+@media (orientation:landscape) and (max-height:500px){ .ck .ckmini{display:none} }
+.trside.ck>*{flex-shrink:0}.trside.ck>.ckmini{flex:1 1 auto}
+.ck .ckseg{position:static!important;display:flex;margin:6px;background:var(--ck-pn2)!important;border-radius:12px;padding:3px}
+.ck .ckseg button{flex:1;text-align:center;padding:9px 4px!important;font-size:13px!important;color:var(--ck-mut)!important}
+.ck .ckseg button.on{background:var(--ck-ink)!important;color:var(--ck-bg)!important}

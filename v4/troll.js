@@ -402,12 +402,12 @@ function svgSide(o){ o=o||{}; var SUN=!!o.sun; var p=SV.prof, W=360,H=o.H||164, 
   /* 1.8.14: όψη σαν βυθόμετρο: σκούρο νερό, πλέγμα βαθών, «ηχώ» βυθού, καθαρά σημάδια βάρκας και δολώματος */
   var xs=p.P.map(function(q){ return q.x; }), xmin=Math.min.apply(null,xs), xmax=Math.max.apply(null,xs), ds=p.P.filter(function(q){ return q.d!=null; }).map(function(q){ return q.d; });
   if(!ds.length) return ''; var zoom=viewMode()==='zoom', dmn=Math.min(Math.min.apply(null,ds),p.dl), dmx=Math.max(Math.max.apply(null,ds),p.dl);
-  var q0z=p.P[0]&&p.P[0].d!=null?p.P[0].d:dmn, z0=zoom?Math.max(0,Math.min(q0z,p.dl)-7*FATH):0, zmax=zoom?z0+10*FATH:Math.ceil((dmx*1.12+2)/(5*FATH))*5*FATH;
+  var q0z=p.P[0]&&p.P[0].d!=null?p.P[0].d:dmn, dlz=Math.min(q0z,p.dl), bmx=Math.max.apply(null,p.P.filter(function(q){ return q.d!=null&&q.x>=-p.lb-30&&q.x<=60; }).map(function(q){ return q.d; }).concat([q0z])), z0=zoom?Math.max(0,dlz-3*FATH):0, zmax=zoom?Math.max(z0+10*FATH,bmx+1.5*FATH):Math.ceil((dmx*1.12+2)/(5*FATH))*5*FATH; /* 1.8.19: το zoom δείχνει πάντα και το δόλωμα και τον βυθό από κάτω του */
   var X=function(x){ return x0+(x1-x0)*(x-xmin)/Math.max(1,xmax-xmin); }, Y=function(z){ return y0+(y1-y0)*Math.min(1,Math.max(0,z-z0)/Math.max(1,zmax-z0)); };
   var id='s'+Math.random().toString(36).slice(2,7);
   var g='<svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" font-family="inherit" aria-label="'+T('Πλάγια όψη: βυθός, πετονιά και δόλωμα','Side view: bottom, line and lure')+'"><defs>'
    +'<linearGradient id="w'+id+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+(SUN?'#e6f3fa':'#0f3a55')+'"/><stop offset="1" stop-color="'+(SUN?'#bcdcee':'#06192a')+'"/></linearGradient>'
-   +'<linearGradient id="b'+id+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b8743a"/><stop offset=".18" stop-color="#7a4a26"/><stop offset="1" stop-color="#2b1a10"/></linearGradient>'
+   +'<linearGradient id="b'+id+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+(SUN?'#d09a6c':'#b8743a')+'"/><stop offset=".18" stop-color="'+(SUN?'#b07c55':'#7a4a26')+'"/><stop offset="1" stop-color="'+(SUN?'#80583b':'#2b1a10')+'"/></linearGradient>'
    +'<clipPath id="c'+id+'"><rect x="'+x0+'" y="'+y0+'" width="'+(x1-x0)+'" height="'+(y1-y0)+'" rx="6"/></clipPath></defs>';
   g+='<rect x="'+x0+'" y="'+y0+'" width="'+(x1-x0)+'" height="'+(y1-y0)+'" rx="6" fill="url(#w'+id+')"/><g clip-path="url(#c'+id+')">';
   /* πλέγμα βαθών */
@@ -433,14 +433,14 @@ function svgSide(o){ o=o||{}; var SUN=!!o.sun; var p=SV.prof, W=360,H=o.H||164, 
   if(bD!=null) g+='<line x1="'+bx.toFixed(1)+'" y1="'+by.toFixed(1)+'" x2="'+bx.toFixed(1)+'" y2="'+Y(bD).toFixed(1)+'" stroke="#ffffff" stroke-width=".8" stroke-dasharray="1.5 2.5" opacity=".7"/>';
   /* δόλωμα */
   g+='<circle cx="'+lx.toFixed(1)+'" cy="'+ly.toFixed(1)+'" r="8" fill="#ffd23f" opacity=".25"/><circle cx="'+lx.toFixed(1)+'" cy="'+ly.toFixed(1)+'" r="4.5" fill="#ffd23f" stroke="#1a1300" stroke-width="1.2"/>';
-  if(zoom) g+='<text x="'+(x0+6)+'" y="'+(y0+11)+'" font-size="10.5" font-weight="700" fill="'+(SUN?'#24404f':'#9fd3ef')+'" letter-spacing=".06em">ZOOM '+Math.round(z0/FATH)+'–'+Math.round(zmax/FATH)+T(' ΟΡΓ.',' FM')+'</text>';
-  g+='<text x="'+(X(0)+4).toFixed(1)+'" y="'+(y0+11)+'" font-size="10" font-weight="700" fill="'+(SUN?'#24404f':'#9fd3ef')+'" letter-spacing=".08em" opacity=".8">'+T('ΜΠΡΟΣΤΑ ▸','AHEAD ▸')+'</text>';
+  if(zoom&&!o.H) g+='<text x="'+(x0+6)+'" y="'+(y0+11)+'" font-size="10.5" font-weight="700" fill="'+(SUN?'#24404f':'#9fd3ef')+'" letter-spacing=".06em">ZOOM '+Math.round(z0/FATH)+'–'+Math.round(zmax/FATH)+T(' ΟΡΓ.',' FM')+'</text>';
+  if(!o.H) g+='<text x="'+(X(0)+4).toFixed(1)+'" y="'+(y0+11)+'" font-size="10" font-weight="700" fill="'+(SUN?'#24404f':'#9fd3ef')+'" letter-spacing=".08em" opacity=".8">'+T('ΜΠΡΟΣΤΑ ▸','AHEAD ▸')+'</text>';
   g+='</g>';
   /* βάρκα */
   g+='<path d="M'+(bx-12).toFixed(1)+','+(y0-4)+' L'+(bx+12).toFixed(1)+','+(y0-4)+' L'+(bx+8).toFixed(1)+','+(y0+3)+' L'+(bx-8).toFixed(1)+','+(y0+3)+' Z" fill="#ff7a4d" stroke="#1a0a04" stroke-width=".8"/><rect x="'+(bx-3).toFixed(1)+'" y="'+(y0-9)+'" width="6" height="5" rx="1" fill="#e6f1f2"/>';
   /* αριθμοί */
   if(bD!=null) g+=svgNum(bx,Math.min(y1-9,Y(bD)+12),String(fB(bD)),'#ffffff','#0b1f2a');
-  if(lD0!=null) g+=svgNum(Math.max(x0+14,lx),Math.min(y1-9,Y(lD0)+13),String(fB(lD0)),'#3b2616','#ffd9b8');
+  if(lD0!=null&&Math.abs(lx-bx)>34) g+=svgNum(Math.max(x0+14,lx),Math.min(y1-9,Y(lD0)+13),String(fB(lD0)),'#3b2616','#ffd9b8');
   g+=svgNum(Math.max(x0+14,lx),Math.max(y0+9,ly-15),String(lD0!=null&&dlv>=lD0-0.01?fB(lD0):Math.round(dlv/FATH)),'#ffd23f','#1a1300');
   /* άξονες */
   for(var z2=zs;z2<=zmax+0.1;z2+=zst) g+='<text x="'+(W-3)+'" y="'+(Y(z2)+3).toFixed(1)+'" font-size="11" text-anchor="end" fill="currentColor" opacity=".7">'+Math.round(z2/FATH)+'</text>';
@@ -603,7 +603,7 @@ function svgGlide(o){ o=o||{}; var SUN=!!o.sun; var p=SV.prof; if(!p||!p.P) retu
   var W=360,H=o.H||128,ml=26,mr=6,mt=8,mb=18, top=Math.max(tg+3,4), bot=-2; [].concat(fut,past).forEach(function(g){ top=Math.max(top,Math.min(10,g[1]+1)); }); top=Math.ceil(top);
   var X=function(t){ return ml+(t+60)/180*(W-ml-mr); }, Y=function(hh){ hh=Math.max(bot,Math.min(top,hh)); return mt+(top-hh)/(top-bot)*(H-mt-mb); };
   var gid='g'+Math.random().toString(36).slice(2,7);
-  var g='<svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="'+T('Ύψος δολώματος από τον βυθό','Lure height above the bottom')+'"><defs><linearGradient id="w'+gid+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+(SUN?'#e6f3fa':'#0f3a55')+'"/><stop offset="1" stop-color="'+(SUN?'#cfe6f3':'#0a2a40')+'"/></linearGradient><linearGradient id="b'+gid+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9a5a2c"/><stop offset="1" stop-color="#2b1a10"/></linearGradient></defs>';
+  var g='<svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="'+T('Ύψος δολώματος από τον βυθό','Lure height above the bottom')+'"><defs><linearGradient id="w'+gid+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+(SUN?'#e6f3fa':'#0f3a55')+'"/><stop offset="1" stop-color="'+(SUN?'#cfe6f3':'#0a2a40')+'"/></linearGradient><linearGradient id="b'+gid+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+(SUN?'#c4936a':'#9a5a2c')+'"/><stop offset="1" stop-color="'+(SUN?'#8a6346':'#2b1a10')+'"/></linearGradient></defs>';
   g+='<rect x="'+ml+'" y="'+mt+'" width="'+(W-ml-mr)+'" height="'+(H-mb-mt)+'" rx="6" fill="url(#w'+gid+')"/>';
   g+='<rect x="'+ml+'" y="'+Y(0).toFixed(1)+'" width="'+(W-ml-mr)+'" height="'+(H-mb-Y(0)).toFixed(1)+'" fill="url(#b'+gid+')"/>';
   for(var gk=1;gk<=top;gk+=top>6?2:1) g+='<line x1="'+ml+'" y1="'+Y(gk).toFixed(1)+'" x2="'+(W-mr)+'" y2="'+Y(gk).toFixed(1)+'" stroke="#7fb8d8" stroke-width=".6" stroke-dasharray="2 4" opacity=".3"/>';
@@ -620,8 +620,8 @@ function svgGlide(o){ o=o||{}; var SUN=!!o.sun; var p=SV.prof; if(!p||!p.P) retu
   for(var k=0;k<=top;k+=top>6?2:1) g+='<text x="'+(ml-4)+'" y="'+(Y(k)+3).toFixed(1)+'" font-size="11" text-anchor="end" fill="currentColor">'+k+'</text>';
   if(!o.H) g+='<text x="'+(ml+5)+'" y="'+(mt+11)+'" font-size="10" font-weight="700" letter-spacing=".06em" fill="'+(SUN?'#24404f':'#9fd3ef')+'">'+T('BOTTOM LOCK · ΟΡΓ. ΠΑΝΩ ΑΠΟ ΒΥΘΟ','BOTTOM LOCK · FM ABOVE BOTTOM')+'</text>';
   [[-60,'−60″'],[0,T('τώρα','now')],[60,'+1′'],[120,'+2′']].forEach(function(a){ g+='<text x="'+X(a[0]).toFixed(1)+'" y="'+(H-5)+'" font-size="11" text-anchor="middle" fill="currentColor">'+a[1]+'</text>'; });
-  g+='<text x="'+(W-mr-3)+'" y="'+(Y(0)+11).toFixed(1)+'" font-size="10.5" text-anchor="end" fill="#ffd9b8">'+T('βυθός · κάτω από εδώ = σέρνεται','bottom · below = dragging')+'</text>';
-  g+='<text x="'+(W-mr-3)+'" y="'+(Y(tg+1)+10).toFixed(1)+'" font-size="11" font-weight="800" text-anchor="end" fill="'+(SUN?'#08804a':'#5ff0a8')+'">'+T('στόχος','target')+'</text></svg>';
+  g+='<text x="'+(W-mr-3)+'" y="'+(Y(0)+11).toFixed(1)+'" font-size="10.5" text-anchor="end" fill="#ffd9b8">'+(o.H?T('ΒΥΘΟΣ','BOTTOM'):T('βυθός · κάτω από εδώ = σέρνεται','bottom · below = dragging'))+'</text>';
+  g+='<text x="'+(W-mr-3)+'" y="'+(Y(tg+1)+10).toFixed(1)+'" font-size="'+(o.H?13:11)+'" font-weight="900" text-anchor="end" fill="'+(SUN?'#08804a':'#5ff0a8')+'">'+(o.H?T('ΣΤΟΧΟΣ ','TARGET ')+B.num(tg,1):T('στόχος','target'))+'</text></svg>';
   return g; }
 function viewMode(){ return ls.get('alkyon-trview','glide'); }
 /* ===== 1.8.18: ΟΘΟΝΗ «ΣΥΡΤΗ ΒΥΘΟΥ» (σαν chartplotter / PFD): διάγραμμα, 3 μεγάλα νούμερα, μία εντολή, μεγάλα κουμπιά ===== */
@@ -632,13 +632,26 @@ var ICO={menu:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke
  mic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>',
  iso:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 9c3-3 6 3 9 0s6 3 9 0M3 15c3-3 6 3 9 0s6 3 9 0"/></svg>',
  up:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V5M6 11l6-6 6 6"/></svg>',
- fish:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 12c3-4 7-6 11-6 4 0 7 3 8 6-1 3-4 6-8 6-4 0-8-2-11-6Z"/></svg>'};
+ fish:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3.5 12c2.6-3.6 6-5.5 9.6-5.5 3.3 0 5.6 2.1 6.4 5.5-.8 3.4-3.1 5.5-6.4 5.5-3.6 0-7-1.9-9.6-5.5Z"/><path d="M3.6 12 .8 8.2v7.6L3.6 12Z"/><circle cx="15.6" cy="10.8" r="1.1" fill="#000" opacity=".55"/></svg>'};
 function icoB(name,title,fn,cls){ return h('button',{type:'button',class:'ckib'+(cls?' '+cls:''),title:title,'aria-label':title,html:ICO[name],onclick:fn}); }
 function cockOn(){ return ls.get('alkyon-trcock',true)!==false; }
 function ckRing(frac,txt){ var r=26,cc=2*Math.PI*r; return '<svg viewBox="0 0 64 64" width="64" height="64"><circle cx="32" cy="32" r="'+r+'" stroke="rgba(255,255,255,.35)" stroke-width="6" fill="none"/><circle cx="32" cy="32" r="'+r+'" stroke="#fff" stroke-width="6" fill="none" stroke-dasharray="'+(cc*Math.max(0,Math.min(1,frac))).toFixed(1)+' '+cc.toFixed(1)+'" transform="rotate(-90 32 32)" stroke-linecap="round"/><text x="32" y="38" text-anchor="middle" font-size="17" font-weight="900" fill="#fff">'+txt+'</text></svg>'; }
 function ckNum(lab,big,sub,cls,fn){ return h(fn?'button':'div',{type:fn?'button':null,class:'cknum'+(cls?' '+cls:''),onclick:fn||null},h('small',{text:lab}),h('b',{text:big}),sub?(sub.nodeType?sub:h('i',{text:sub})):null); }
 function tgtPick(){ var c=cfg(), sh, cur=tgt(); var row=h('div',{class:'ckopts'},[0.5,1,1.5,2,3].map(function(v){ return h('button',{type:'button',class:'ckopt'+(Math.abs(v-cur)<0.01?' on':''),text:B.num(v,1),onclick:function(){ var q=cfg(); q.tgt=v; put(q); sh.close(); sideTick(); B.toast(T('Στόχος: ','Target: ')+B.num(v,1)+T(' οργ. πάνω από τον βυθό',' fm above the bottom'),3500); }}); }));
   sh=B.sheet({title:T('Πόσο πάνω από τον βυθό;','How high above the bottom?'),body:h('div',{class:'bform'},row,h('p',{class:'trhint',text:T('Σε οργιές. Αλλάζουν αμέσως η πράσινη ζώνη, τα «Μάζεψε/Άφησε» και το «Σταμάτα στα».','In fathoms. The green band, “bring in / let out” and “stop at” change at once.')}))}); }
+/* 1.8.19: μικρός χάρτης μέσα στην οθόνη συρτής: η βάρκα στο κέντρο με την πλώρη πάνω, το ίχνος πίσω, το δόλωμα, σημεία με ψάρι, βόρειο βέλος */
+function ckMini(){ var f=tFix(); if(!f) return null; var W=360,H=150, R=Math.max(250,Math.min(900,(SV.prof&&SV.prof.lb||200)*1.6)), sc=(H/2-12)/R, hd=(hdg!=null?hdg:(f.hd||0))*Math.PI/180;
+  var P=function(la,lo){ var dx=(lo-f.lon)*111320*Math.cos(f.lat*Math.PI/180), dy=(la-f.lat)*110540, x=dx*Math.cos(hd)-dy*Math.sin(hd), y=dx*Math.sin(hd)+dy*Math.cos(hd); return [W/2+x*sc,H/2-y*sc]; };
+  var g='<svg viewBox="0 0 '+W+' '+H+'" width="100%" class="ckmm" role="img" aria-label="'+T('Μικρός χάρτης','Mini map')+'">';
+  g+='<circle cx="'+W/2+'" cy="'+H/2+'" r="'+(H/2-12)+'" fill="none" stroke="currentColor" opacity=".18" stroke-dasharray="3 4"/><circle cx="'+W/2+'" cy="'+H/2+'" r="'+((H/2-12)/2)+'" fill="none" stroke="currentColor" opacity=".12" stroke-dasharray="3 4"/>';
+  var tr=tTrack(), pts=tr&&tr.pts?tr.pts.slice(-400):[]; if(pts.length>1){ var d=''; pts.forEach(function(q,i){ var xy=P(q[0],q[1]); d+=(i?'L':'M')+xy[0].toFixed(1)+','+xy[1].toFixed(1); }); g+='<path d="'+d+'" fill="none" stroke="#ff7a4d" stroke-width="2.5" stroke-linejoin="round" opacity=".85"/>'; }
+  if(LT.pts&&LT.pts.length>1){ for(var i=1;i<LT.pts.length;i++){ var a=LT.pts[i-1], b=LT.pts[i]; if(a[2]==='x'||b[2]==='x') continue; var A=P(a[0],a[1]), Bp=P(b[0],b[1]); if(Math.abs(A[0]-W/2)>W||Math.abs(A[1]-H/2)>H) continue; g+='<line x1="'+A[0].toFixed(1)+'" y1="'+A[1].toFixed(1)+'" x2="'+Bp[0].toFixed(1)+'" y2="'+Bp[1].toFixed(1)+'" stroke="'+(LTC[b[2]]||'#999')+'" stroke-width="4" stroke-linecap="round"/>'; } }
+  fishSpots().forEach(function(sp){ var xy=P(sp.lat,sp.lon); if(xy[0]<6||xy[0]>W-6||xy[1]<6||xy[1]>H-6) return; g+='<circle cx="'+xy[0].toFixed(1)+'" cy="'+xy[1].toFixed(1)+'" r="6" fill="#1b8f4e" stroke="#fff" stroke-width="1.5"/>'; });
+  var q0=SV.prof&&SV.prof.P&&SV.prof.P[0]; if(q0){ var L0=P(q0.lat,q0.lon); g+='<circle cx="'+L0[0].toFixed(1)+'" cy="'+L0[1].toFixed(1)+'" r="9" fill="#ffd23f" opacity=".3"/><circle cx="'+L0[0].toFixed(1)+'" cy="'+L0[1].toFixed(1)+'" r="5" fill="#ffd23f" stroke="#1a1300" stroke-width="1.2"/>'; }
+  g+='<path d="M'+W/2+','+(H/2-10)+' L'+(W/2+7)+','+(H/2+8)+' L'+W/2+','+(H/2+4)+' L'+(W/2-7)+','+(H/2+8)+' Z" fill="#ff7a4d" stroke="#fff" stroke-width="1.5"/>';
+  var nx=W-22, ny=20, na=-hd; g+='<g transform="translate('+nx+','+ny+') rotate('+(na*180/Math.PI).toFixed(1)+')"><path d="M0,-11 L5,4 L0,1 L-5,4 Z" fill="#e53935"/><text x="0" y="14" text-anchor="middle" font-size="10" font-weight="900" fill="currentColor" transform="rotate('+(-na*180/Math.PI).toFixed(1)+' 0 10)">N</text></g>';
+  g+='<text x="8" y="'+(H-8)+'" font-size="11" font-weight="800" fill="currentColor" opacity=".75">'+Math.round(R)+' m</text></svg>';
+  return h('button',{type:'button',class:'ckmini',title:T('Άνοιξε τον χάρτη','Open the map'),html:g,onclick:function(){ ls.set('alkyon-trcock',false); document.body.classList.remove('trck'); paintSide(); }}); }
 function paintCock(c,dst,v){ var sun=!!ls.get('alkyon-trsun',false); side.className='trside ck'+(sun?' sun':''); document.body.classList.add('trck');
   var K2=[], p=SV.prof, a=SV.adv, n=nLeads(c);
   K2.push(h('div',{class:'cktop'},icoB('menu',T('Ρυθμίσεις συρτής','Trolling settings'),sheet),h('b',{text:T('ΣΥΡΤΗ ΒΥΘΟΥ','BOTTOM TROLLING')}),
@@ -650,13 +663,13 @@ function paintCock(c,dst,v){ var sun=!!ls.get('alkyon-trsun',false); side.classN
   /* διάγραμμα */
   var vm=viewMode(), DO={H:vm==='glide'?230:240,sun:sun}, sv=p?(vm==='glide'?(svgGlide(DO)||svgSide(DO)):svgSide(DO)):'';
   K2.push(h('div',{class:'ckdia'},sv?h('div',{class:'ckdv',html:sv}):h('div',{class:'ckdv ckempty',text:!SV.grid?T('Φορτώνω τον βυθό γύρω σου…','Loading the depth around you…'):T('Το διάγραμμα βγαίνει όταν κινείσαι (πάνω από 0,8 kn).','The diagram shows once you move (above 0.8 kn).')}),
-    h('div',{class:'ckseg'},[['side',T('Κανονικό','Normal')],['zoom','Zoom'],['glide','Lock']].map(function(o){ return h('button',{type:'button',class:vm===o[0]?'on':'',text:o[1],onclick:function(){ ls.set('alkyon-trview',o[0]); paintSide(); }}); }))));
+    h('div',{class:'ckseg'},[['side',T('Κανονικό','Normal')],['zoom',T('Zoom βυθού','Bottom zoom')],['glide','Bottom lock']].map(function(o){ return h('button',{type:'button',class:vm===o[0]?'on':'',text:o[1],onclick:function(){ ls.set('alkyon-trview',o[0]); paintSide(); }}); }))));
   var q0=p&&p.P&&p.P[0], bl=q0?q0.d:null, bb=null; if(p&&p.P) p.P.forEach(function(q){ if(q.x===0) bb=q.d; }); if(bb==null) bb=depth;
   var hh=p&&bl!=null?(bl-p.dl)/FATH:null, tg=tgt();
   if(dst==='drop'){ var gd=MET.n?geo(Object.assign({},c,{auto:false,leads:MET.n,dep:null}),v):null;
     K2.push(h('div',{class:'cknums'},ckNum(T('ΕΞΩ','OUT'),String(MET.n),T('μολύβια','leads')),ckNum(T('ΣΤΑΜΑΤΑ ΣΤΑ','STOP AT'),recN!=null?String(recN):'…',recD!=null?T('βυθός εκεί ','bottom there ')+fB(recD)+T(' οργ.',' fm'):'','hl'),ckNum(T('ΒΥΘΟΣ','BOTTOM'),bb!=null?String(fB(bb)):'–',bb!=null?T('οργ. · ','fm · ')+Math.round(bb)+' m':'',null,sounderSheet)));
-    K2.push(h('div',{class:'ckcmd dn'},h('div',{class:'ckct'},h('b',{text:T('↓ ΑΦΗΝΩ ','↓ OUT ')+MET.n+(recN?'/'+recN:'')}),h('i',{text:(gd?T('δόλωμα ~','lure ~')+Math.round(gd.dl/FATH)+T(' οργ. · ',' fm · '):'')+'⏱ '+B.num(metIv(),1)+'″/'+T('μολύβι','lead')})),
-      h('div',{class:'ckmet'},h('button',{type:'button',text:MET.paused?'▶':'❚❚',onclick:function(){ MET.paused=!MET.paused; if(!MET.tm&&!MET.paused) metStart(); paintSide(); }}),h('button',{type:'button',text:'−½″',onclick:function(){ metPace(-0.5); }}),h('button',{type:'button',text:'+½″',onclick:function(){ metPace(0.5); }}))));
+    K2.push(h('div',{class:'ckcmd dn'},h('div',{class:'ckct'},h('b',null,T('↓ ΑΦΗΝΩ ','↓ OUT '),h('span',{class:'ckbig2',text:MET.n+(recN?' / '+recN:'')})),h('i',{text:(gd?T('δόλωμα ~','lure ~')+Math.round(gd.dl/FATH)+T(' οργ. · ',' fm · '):'')+B.num(metIv(),1)+T('″ ανά μολύβι','″ per lead')}))));
+    K2.push(h('div',{class:'ckrow'},h('button',{type:'button',class:'ckc',text:MET.paused?T('▶ Συνέχεια','▶ Resume'):T('❚❚ Παύση','❚❚ Pause'),onclick:function(){ MET.paused=!MET.paused; if(!MET.tm&&!MET.paused) metStart(); paintSide(); }}),h('button',{type:'button',class:'ckc',text:T('Πιο γρήγορα','Faster'),onclick:function(){ metPace(-0.5); }}),h('button',{type:'button',class:'ckc',text:T('Πιο αργά','Slower'),onclick:function(){ metPace(0.5); }})));
     K2.push(h('div',{class:'ckbtn'},h('button',{type:'button',class:'ckb',text:'−',onclick:function(){ setLeads(-1); paintSide(); }}),h('button',{type:'button',class:'ckb main',text:T('Στον βυθό ✓','On the bottom ✓'),onclick:function(){ setDown(recN!=null?recN:MET.n||null); }}),h('button',{type:'button',class:'ckb',text:'+',onclick:function(){ setLeads(1); paintSide(); }})));
     K2.push(h('div',{class:'ckrow'},h('button',{type:'button',class:'ckc',text:T('Άκυρο','Cancel'),onclick:cancelDrop})));
   } else if(dst==='set'){
@@ -682,9 +695,10 @@ function paintCock(c,dst,v){ var sun=!!ls.get('alkyon-trsun',false); side.classN
       h('button',{type:'button',class:'ckc',onclick:function(){ cancelDrop(); upLog(); B.toast(T('Μαζεμένη. Πάτα «Ρίχνω» όταν ξαναρίχνεις.','Brought in. Tap “Let out” when you let out again.'),5000); sideTick(); }},h('span',{class:'ico',html:ICO.up}),h('span',{text:T('Μάζεψα','Brought in')}))));
     if(SV.iso) K2.push(h('div',{class:'ckiso',text:T('Ισοβαθής ','Contour ')+c.iso+T(' οργ. · τώρα ',' fm · now ')+(SV.iso.now!=null?Math.round(SV.iso.now):'–')+' · '+(SV.iso.side==='L'?T('↰ αριστερά','↰ left'):SV.iso.side==='R'?T('δεξιά ↱','right ↱'):T('πάνω της ✓','on it ✓'))}));
   } else {
-    K2.push(h('div',{class:'cknums'},ckNum(T('ΜΟΛΥΒΙΑ','LEADS'),bb!=null?String(n):'–',T('θα χρειαστείς','you will need')),ckNum(T('ΣΤΟΧΟΣ','TARGET'),B.num(tg,1),T('οργ. πάνω από βυθό ▾','fm above bottom ▾'),'hl',tgtPick),ckNum(T('ΒΥΘΟΣ','BOTTOM'),bb!=null?String(fB(bb)):'–',bb!=null?T('οργ. · ','fm · ')+Math.round(bb)+' m ✎':'',null,sounderSheet)));
+    K2.push(h('div',{class:'cknums'},ckNum(T('ΜΟΛΥΒΙΑ','LEADS'),bb!=null?String(n):'–',T('θα θέλεις','you need')),ckNum(T('ΣΤΟΧΟΣ','TARGET'),B.num(tg,1),T('οργ. πάνω ▾','fm above ▾'),'hl',tgtPick),ckNum(T('ΒΥΘΟΣ','BOTTOM'),bb!=null?String(fB(bb)):'–',bb!=null?T('οργ. · ','fm · ')+Math.round(bb)+' m ✎':'',null,sounderSheet)));
     K2.push(h('button',{type:'button',class:'ckgo',onclick:dropSheet},h('b',{text:T('↓ ΡΙΧΝΩ','↓ LET OUT')}),h('i',{text:T('πάτα μόλις πέσει το πρώτο μολύβι','tap as soon as the first lead goes in')})));
   }
+  var mmn=ckMini(); if(mmn) K2.push(mmn);
   side.replaceChildren.apply(side,K2); }
 function micB(){ var V=B.voiceCmd; if(!V||!V.ok) return null; var on=V.wanted(); return h('button',{type:'button',class:'btn sm '+(on?'pri':'ghost'),text:on?'🎤 ON':'🎤',title:T('Φωνή: «ψάρι» / «τσίμπησε» γράφει αμέσως','Voice: “fish” / “bite” logs at once'),onclick:function(){ V.set(!V.wanted()); B.toast(V.wanted()?T('🎤 Ακούω: πες «ψάρι» ή «τσίμπησε»','🎤 Listening: say “fish” or “bite”'):T('🎤 Κλειστό','🎤 Off'),4000); paintSide(); }}); }
 function paintSide(){ var c=cfg(), show=on()&&c.mode==='bottom'&&document.body.classList.contains('mapon'); /* 1.8.8: και στον κλασικό χάρτη */
@@ -754,6 +768,7 @@ B.on('track',check);
 B.on('trip',function(){ if(!tripOn()&&!SIM) rlFinish(); }); /* 1.8.12 */
 B.on('trip',function(){ if(!tripOn()&&cfg().on){ var q=cfg(); q.on=false; q.auto=true; q.dep=null; q.iso=null; q.isoFix=false; recN=null; ls.set(K,q); depth=null; depthL=null; } paint(); }); /* 1.6.3: στο τέλος της εξόδου ξανά «αυτόματα» */
 setInterval(function(){ if(on()) check(); },10000);
+setInterval(function(){ if(!(side&&!side.hidden&&cockOn())) return; if(on()&&cfg().mode==='bottom'&&cfg().dep&&cfg().dep.st==='set'){ measure(); sideTick(); } },1000); /* 1.8.19: πιο ομαλή ανανέωση στην οθόνη συρτής */
 setInterval(function(){ if(on()){ measure(); speedCheck(); } if(on()&&cfg().mode==='bottom') sideTick(); else { paintSide(); lureMark(); try{ lureTrail(cfg()); contourDraw(cfg(),null); }catch(e){} } },2000); /* 1.8.7 · 1.8.12: και ταχύτητα κάθε 2″ */
 setTimeout(paint,1500);
 })();
