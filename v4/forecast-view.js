@@ -247,12 +247,12 @@ function ribbon48(fc,d){ var days=(fc.days||[]), i=days.indexOf(d); if(i<0) retu
   svg.innerHTML=g;
   var axis=h('div',{class:'rbax'}); hs.forEach(function(o,j){ if(o.x.hr%6===0) axis.append(h('span',{style:{left:(j*bw)+'%'},text:o.x.hr===0?B.dayName(o.d.date,td).slice(0,3):B.pad(o.x.hr)})); });
   var lab=h('div',{class:'rblab','aria-live':'polite'}), sel=sel0;
-  function paint(){ var o=hs[sel], x=o.x, r=svg.querySelector('.rbsel'); r.setAttribute('x',String(sel*bw));
+  function paint(){ var o=hs[sel], x=o.x, r=svg.querySelector('.rbsel'); r.setAttribute('x',String(sel*bw)); if(o.d.date===st.day&&st.hourSet) try{ st.hourSet(x.hr); }catch(e){}
     lab.replaceChildren(h('b',{text:(o.d.date===td?T('Σήμερα ','Today '):B.dayName(o.d.date,td)+' ')+B.pad(x.hr)+':00'}),' · '+T('βαθμός ','score ')+(x.score!=null?x.score:'–')+(x.wind!=null?' · '+U.windP(x.wind).join(' '):'')+(x.wave!=null?' · '+U.waveP(x.wave).join(' '):'')+(x.safe===false?' · ':''),x.safe===false?h('b',{class:'rbbad',text:T('εκτός ορίων','outside limits')}):''); }
   function pick(e){ var r=svg.getBoundingClientRect(); if(!r.width) return; sel=Math.max(0,Math.min(W-1,Math.floor((e.clientX-r.left)/r.width*W))); paint(); }
   var dn=false; svg.addEventListener('pointerdown',function(e){ dn=true; try{ svg.setPointerCapture(e.pointerId); }catch(x){} pick(e); });
   svg.addEventListener('pointermove',function(e){ if(dn) pick(e); });
-  svg.addEventListener('pointerup',function(){ if(!dn) return; dn=false; var o=hs[sel]; st.hour=o.x.hr; if(o.d.date!==st.day){ var bar=root&&root.querySelector('.dstrip'); st.day=o.d.date; if(bar) swapDay(bar,o.d.date); else draw(); } else { var old=root&&root.querySelector('.dwrap'); if(old){ var nw=h('div',{class:'dwrap'}); dayBody(nw,st.fc,st.day); old.replaceWith(nw); } } });
+  svg.addEventListener('pointerup',function(){ if(!dn) return; dn=false; var o=hs[sel]; st.hour=o.x.hr; if(o.d.date!==st.day){ var bar=root&&root.querySelector('.dstrip'); st.day=o.d.date; if(bar) swapDay(bar,o.d.date); else draw(); } else if(!st.hourSet){ var old=root&&root.querySelector('.dwrap'); if(old){ var nw=h('div',{class:'dwrap'}); dayBody(nw,st.fc,st.day); old.replaceWith(nw); } } });
   svg.addEventListener('pointercancel',function(){ dn=false; });
   svg.setAttribute('role','slider'); svg.setAttribute('tabindex','0'); svg.setAttribute('aria-label',T('Ώρα για τα επόμενα δύο 24ωρα','Hour over the next 48 hours'));
   svg.addEventListener('keydown',function(e){ if(e.key==='ArrowRight'){ sel=Math.min(W-1,sel+1); paint(); } if(e.key==='ArrowLeft'){ sel=Math.max(0,sel-1); paint(); } });
@@ -378,7 +378,7 @@ function dayView(page,fc,d){
   var rz=d.safe?reasons(d).slice(0,3):[]; if(rz.length) hero.append(h('div',{class:'hwhy2'},rz.map(function(r){ return h('span',{class:'hz '+r[0]},(r[0]==='up'?'↑ ':r[0]==='down'?'↓ ':'')+String(r[1]).replace(/\.$/,'')); })));
   if(d.date>=td&&!(isToday&&d.why==='night')) hero.append(planBtn(d));
   page.append(hero);
-  if(d.date>=td) try{ var rb=ribbon48(fc,d); if(rb) page.append(rb); }catch(e){ try{ console.warn('ribbon48',e); }catch(x){} }
+  st.ribOk=null; if(d.date>=td) try{ var rb=ribbon48(fc,d); if(rb){ page.append(rb); st.ribOk=d.date; } }catch(e){ try{ console.warn('ribbon48',e); }catch(x){} }
   /* ψαροντούφεκο: ορατότητα νερού (δορυφόρος όταν υπάρχει, αλλιώς εκτίμηση από κύμα και βροχή) */
   if(B.prof()==='spear'&&B.clarityCard){ var cc=B.clarityCard(fc,d,st.place,isToday,isToday?nh:null); if(cc) page.append(cc); }
   /* v31z545: θερμοκλινές (σκάφος και ψαροντούφεκο), μόνο για σήμερα */
@@ -466,6 +466,8 @@ function hourCard(fc,d,selH,nh){
   scrub(box,function(fx){ set(Math.floor(fx*hs.length)); });
   box.addEventListener('keydown',function(e){ if(e.key==='ArrowLeft'){ set(cur-1); e.preventDefault(); } else if(e.key==='ArrowRight'){ set(cur+1); e.preventDefault(); } });
   var si=0; hs.forEach(function(q,j){ if(q.hr===selH) si=j; }); set(si);
+  /* 1.9.2: όταν υπάρχει το «Πότε να βγω», οι 24 μπάρες δεν επαναλαμβάνονται: η λωρίδα πάνω διαλέγει την ώρα εδώ */
+  st.hourSet=null; if(st.ribOk===d.date){ st.hourSet=function(hr){ hs.forEach(function(q,j){ if(q.hr===hr) set(j); }); }; c.classList.add('ribbed'); }
   c.append(h('div',{class:'hbw'},box,h('div',{class:'axis'},['00','06','12','18','23'].map(function(t){ return h('span',{text:t}); }))),
     h('div',{class:'hleg'},h('span',{class:'k best',text:T('καλύτερες ώρες','best hours')}),h('span',{class:'k moon',text:T('σελήνη','moon')}),h('span',{class:'k bad',text:T('πάνω από τα όρια','over your limits')})),head,huLine,rows);
   return c;

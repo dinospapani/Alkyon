@@ -701,7 +701,7 @@ function mcPaint(){ if(!mcBar||!mcRefs) return; var ic=mcBar.querySelector('.mci
   [].forEach.call(mcRefs.qc.children,function(b){ var on=false; try{ on=!!b._g(); }catch(e){} if(on){ var sp=b.querySelector('span'); if(sp) ic.append(h('span',{html:sp.innerHTML})); } });
   if(!ic.children.length) ic.append(h('span',{class:'mcl',text:T('Στρώματα','Layers')})); var bh=document.body.classList.contains('mapclean')?mcBarHTML():''; if(bh) tx.innerHTML=bh; else tx.textContent=mcSum(); if(mcDr&&!mcBuilding){ clearTimeout(mcRT); mcRT=setTimeout(mcDrFill,120); } }
 function cleanSetup(el,qc,seab,bar){ mcRefs={qc:qc,seab:seab,bar:bar}; document.body.classList.toggle('mapclean',mapUI()==='clean');
-  mcBar=h('button',{class:'mcbar',type:'button',hidden:mapUI()!=='clean','aria-label':T('Στρώματα και εργαλεία (πάτα ή σύρε αριστερά)','Layers and tools (tap or swipe left)'),onclick:function(){ if(!mcBar._sw) mcOpen(); mcBar._sw=false; }},
+  mcBar=h('button',{class:'mcbar',type:'button',hidden:mapUI()!=='clean','aria-label':T('Στρώματα και εργαλεία (πάτα ή σύρε)','Layers and tools (tap or swipe)'),onclick:function(){ if(!mcBar._sw) mcOpen(); mcBar._sw=false; }},
     h('span',{class:'mci'}),h('span',{class:'mct'}),h('span',{class:'mcv',html:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>'}));
   var y0=null, x0=null; mcBar.addEventListener('pointerdown',function(e){ y0=e.clientY; x0=e.clientX; try{ mcBar.setPointerCapture(e.pointerId); }catch(x){} });
   mcBar.addEventListener('pointermove',function(e){ if(y0!=null&&(e.clientY-y0>24||x0-e.clientX>24)){ y0=null; mcBar._sw=true; mcOpen(); } });
@@ -711,15 +711,15 @@ function cleanSetup(el,qc,seab,bar){ mcRefs={qc:qc,seab:seab,bar:bar}; document.
   var ex=null; edge.addEventListener('pointerdown',function(e){ ex=e.clientX; try{ edge.setPointerCapture(e.pointerId); }catch(x){} });
   edge.addEventListener('pointermove',function(e){ if(ex!=null&&ex-e.clientX>16){ ex=null; edge._sw=true; if(!mcDr) mcOpen(); } });
   ['pointerup','pointercancel'].forEach(function(ev){ edge.addEventListener(ev,function(){ ex=null; }); });
-  el.append(edge);
+  /* 1.9.1: η λαβή δεξιά έφυγε· το μενού ανοίγει από κάτω (πάτημα ή σύρσιμο της μπάρας πάνω) */
   function barLater(){ clearTimeout(mcBarT); mcBarT=setTimeout(mcPaint,250); }
   (function hk(n){ if(map){ try{ map.on('moveend',barLater); }catch(e){} } else if(n<40) setTimeout(function(){ hk(n+1); },500); })(0); window.addEventListener('alkyon-wxchange',barLater); window.addEventListener('alkyon-curs',barLater); window.addEventListener('alkyon-windhour',function(){ B.mcBarNow(); }); setInterval(function(){ if(document.body.classList.contains('mapclean')&&root) mcPaint(); },15000);
   el.append(mcBar); var oq=B.qpaint; B.qpaint=function(){ oq&&oq(); mcPaint(); }; setTimeout(mcPaint,500); setTimeout(mcPaint,2600);
   if(!mapUI()) setTimeout(mcAsk,900); }
 function mcAsk(){ if(mapUI()||!root) return; var sh;
-  function opt(v,img,t,s){ return h('button',{type:'button',class:'mcopt',onclick:function(){ B.setMapUI(v); sh.close(true); if(v==='clean') B.toast(T('Πάτα τη μπάρα πάνω (ή σύρε την αριστερά) για στρώματα και εργαλεία· ο χάρτης φαίνεται δίπλα.','Tap the top bar (or swipe it left) for layers and tools; the map stays visible beside it.'),5000); }},h('span',{class:'mcpic '+img}),h('b',{text:t}),h('small',{text:s})); }
+  function opt(v,img,t,s){ return h('button',{type:'button',class:'mcopt',onclick:function(){ B.setMapUI(v); sh.close(true); if(v==='clean') B.toast(T('Πάτα τη μπάρα πάνω για στρώματα και εργαλεία· το μενού ανοίγει από κάτω και ο χάρτης φαίνεται από πάνω.','Tap the top bar for layers and tools; the menu opens from the bottom and the map stays visible above.'),5000); }},h('span',{class:'mcpic '+img}),h('b',{text:t}),h('small',{text:s})); }
   sh=B.sheet({title:T('Πώς θες τον χάρτη;','How do you want the map?'),body:h('div',null,h('div',{class:'mcopts'},
-    opt('clean','cl',T('Καθαρός','Clean'),T('Μία μπάρα πάνω· στρώματα και εργαλεία σε πλαϊνό μενού, με τον χάρτη να φαίνεται δίπλα','One bar on top; layers and tools in a side menu, with the map visible beside it')),
+    opt('clean','cl',T('Καθαρός','Clean'),T('Μία μπάρα πάνω· στρώματα και εργαλεία σε μενού από κάτω, με τον χάρτη να φαίνεται από πάνω','One bar on top; layers and tools in a menu from the bottom, with the map visible above')),
     opt('classic','cs',T('Κλασικός','Classic'),T('Όλα τα κουμπιά πάνω στον χάρτη, όπως πριν','All buttons on the map, as before'))),
     h('p',{class:'foot',text:T('Αλλάζει όποτε θες: Προφίλ › Ρυθμίσεις › Χάρτης.','Change any time: Profile › Settings › Map.')})),onclose:function(){ if(!mapUI()) ls.set('alkyon-v4-mapui','classic'); }}); }
 /* 1.7.8: πλαϊνό μενού από δεξιά (όπως το Windy): ο χάρτης μένει ζωντανός αριστερά και μετακινείται ώστε το κέντρο του να πέφτει στη λωρίδα

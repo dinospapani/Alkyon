@@ -280,7 +280,7 @@ with sync_playwright() as p:
     check('σύρσιμο κάτω ανοίγει το μενού: 5 στρώματα + εργαλεία', k[0] and k[1]==5 and k[2]>=4, k)
     pg.wait_for_timeout(400); sr=pg.evaluate("()=>{const r=document.querySelector('.mcpan').getBoundingClientRect();return [Math.round(r.top),Math.round(r.bottom),innerHeight,document.querySelectorAll('.mctabs [role=tab]').length]}")
     check('μενού από κάτω στη μισή οθόνη (ο χάρτης φαίνεται πάνω), 3 καρτέλες (1.9.0)', sr[0]>=sr[2]*0.4 and abs(sr[1]-sr[2])<=2 and sr[3]==3, sr)
-    check('λαβή στη δεξιά άκρη υπάρχει (κρυμμένη όσο είναι ανοιχτό το μενού)', pg.evaluate("()=>{const e=document.querySelector('.mcedge');return !!e&&getComputedStyle(e).display==='none'}"), None)
+    check('χωρίς τη λαβή στη δεξιά άκρη (1.9.1)', pg.evaluate("()=>!document.querySelector('.mcedge')"), None)
     g=pg.evaluate("()=>{const q=t=>[...document.querySelectorAll('.mctab[data-t='+t+'] .mcgrp>h4, .mctab[data-t='+t+'] .mcacc>summary')].map(e=>e.textContent); return [q('L'),q('T'),q('M'),[...document.querySelectorAll('.mcg3 .mctile b')].map(e=>e.textContent)]}")
     check('μενού: Επίπεδα (Καιρός, Χάρτης και βάθη, Κανόνες, Υπόμνημα) · Εργαλεία (+Ενέργειες) · Τα δικά μου· εργαλεία χωρίς στρώματα', all(x in g[0] for x in ['Χάρτης και βάθη','Καιρός και θάλασσα','Θάλασσα και κανόνες']) and g[0].index('Καιρός και θάλασσα')<g[0].index('Χάρτης και βάθη') and 'Εργαλεία' in g[1] and 'Ενέργειες' in g[1] and g[2]==['Τα δικά μου'] and 'Βάθη θάλασσας' not in g[0] and 'Πού να πάω' not in g[0] and 'Χάρακας' in g[3] and not any('Σταθμοί' in x or 'Λιμάνια' in x for x in g[3]), g)
     pg.evaluate("()=>document.querySelectorAll('.mcg5 .mctile')[2].click()"); pg.wait_for_timeout(500)
@@ -328,6 +328,15 @@ with sync_playwright() as p:
     m.append(pg.evaluate("()=>[document.documentElement.classList.contains('sunv'),document.documentElement.classList.contains('night'),(document.querySelector('.scrmode')||{}).dataset?.m]"))
     check('κουμπί οθόνης: κανονική → ήλιος → νύχτα → κανονική', [x[2] for x in m]==['norm','sun','night','norm'] and m[1][0] and m[2][1] and not m[3][0] and not m[3][1], m)
     check('νέα εμφάνιση χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
+
+    c=ctx(b); now=int(time.time()*1000); td=time.strftime('%Y-%m-%d')
+    trk=[[35.04+0.001*i,32.40+0.0012*i] for i in range(30)]
+    c.add_init_script("if(!sessionStorage.lc){sessionStorage.lc=1;localStorage.setItem('alkyon-trips',%s);}"%json.dumps(json.dumps([{'id':'t1','sid':'S1','date':td,'startMs':now-4*3600000,'endMs':now-3600000,'spot':'Λατσί','prof':'boat','count':1,'km':5,'track':trk,'_u':1}])))
+    pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(2500)
+    pg.evaluate("()=>{const b=[...document.querySelectorAll('#main .seg button, #main [role=tab]')].find(x=>/Έξοδοι/.test(x.textContent)); b&&b.click()}"); pg.wait_for_timeout(700)
+    k=pg.evaluate("()=>[!!document.querySelector('.tcard canvas.tmap'), (()=>{const e=document.querySelector('.tcard'); e&&e.click(); return 1})()]"); pg.wait_for_timeout(700)
+    check('Ημερολόγιο: κάρτα εξόδου με μικρό χάρτη, και μεγάλος χάρτης στην έξοδο (1.9.2)', k[0] and pg.evaluate("()=>!!document.querySelector('.sheet .tstory canvas')"), k)
+    check('κάρτες εξόδων χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
 
     print('# απογραφή: τίποτα δεν λείπει από την προηγούμενη έκδοση')
     import inventory

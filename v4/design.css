@@ -94,3 +94,28 @@ html.sunv .hero.v2{background:#fff;color:#000;outline:3px solid #000}html.sunv .
 .ribbon .rblg{display:flex;flex-wrap:wrap;gap:12px;font-size:var(--t-xs);color:var(--ink-2);margin-top:6px}
 .ribbon .rblg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 .ribbon .rblg i.hx{background:repeating-linear-gradient(45deg,var(--poor) 0 2px,transparent 2px 4px)}
+/* 1.9.2: «Ανά ώρα» χωρίς διπλές μπάρες όταν υπάρχει το «Πότε να βγω» */
+.hcard.ribbed .hbw,.hcard.ribbed .hleg{display:none}
+.hcard.ribbed .hsel{margin-top:4px}
+/* 1.9.2: Ημερολόγιο: κάρτες εξόδων με μικρό χάρτη */
+.list .li.tcard{display:flex;align-items:stretch;gap:0;padding:0;overflow:hidden;min-height:104px;border-radius:20px;margin-bottom:10px;background:var(--surface);box-shadow:var(--shadow)}
+.li.tcard .tmap{flex:none;display:block;border-radius:0}
+.li.tcard .tx{flex:1;min-width:0;padding:12px 8px 12px 14px;display:flex;flex-direction:column;justify-content:center;gap:2px}
+.li.tcard .tx b{font-size:var(--t-m)}
+.li.tcard .tchips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.li.tcard .tchip{background:var(--surface-2);border-radius:99px;padding:3px 9px;font:600 12px var(--font);color:var(--ink-2)}
+.li.tcard .tc{align-self:flex-start;margin:12px 14px 0 4px;font:800 22px var(--font);color:var(--good);background:none;min-width:0;width:auto;height:auto}
+.li.tcard .tc.z{color:var(--ink-3)}
+.tstory{margin:0 0 12px}.tstory .tmap{border-radius:18px;width:100%!important;height:auto!important}
+.tstory .tslg{display:flex;flex-wrap:wrap;gap:12px;font-size:var(--t-xs);color:var(--ink-2);margin-top:6px}
+.tstory .tslg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.swp:has(.tcard){margin-bottom:10px;border-radius:20px;overflow:hidden}.swp .li.tcard{margin-bottom:0}
+/* 1.9.2: ο τίτλος μόνος του (Προφίλ) αριστερά, όπως στις άλλες σελίδες */
+.top>.lt:only-child{margin-left:0;margin-right:auto}
+/* Προφίλ: κάρτα λογαριασμού σαν την κάρτα της Πρόγνωσης */
+.pfacct,.profile .acct{border-radius:22px}
+/* Μεγάλα κουμπιά εξόδου: ίδιο ύφος με το σχέδιο */
+.bigtrip .btgrid{gap:10px}
+.bigtrip .btb{border-radius:24px;box-shadow:0 6px 18px -10px rgba(0,0,0,.5);transition:transform .1s}
+.bigtrip .btb:active{transform:scale(.97)}
+.bigtrip .btb b{background:#fff;color:#0A2633;border-radius:99px;min-width:34px;padding:2px 8px;font-size:16px}
