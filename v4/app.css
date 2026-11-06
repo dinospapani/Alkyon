@@ -651,3 +651,38 @@ html.night .raintile{filter:grayscale(1) brightness(1.4)}
 .bform.tstart .ttime input{min-height:44px;padding-top:6px;padding-bottom:6px}
 .bform.tstart .twhere input{min-height:46px}
 .bform.tstart .tmore summary{padding-top:6px;padding-bottom:6px}
+
+/* 1.9.9: κουμπιά πάνω από το «ψάρι» (κράτημα) */
+.fdial{position:fixed;inset:0;z-index:60;background:rgba(4,14,20,.42);opacity:0;transition:opacity .15s}
+.fdial.on{opacity:1}
+.fdcol{position:absolute;right:12px;bottom:120px;display:flex;flex-direction:column;align-items:flex-end;gap:10px;max-width:calc(100vw - 24px)}
+.fdi{display:flex;align-items:center;gap:10px;min-height:52px;padding:0 18px 0 14px;border:0;border-radius:26px;background:var(--surface);color:var(--ink);font:inherit;font-size:16.5px;box-shadow:0 4px 16px rgba(0,0,0,.28);transform:translateY(8px);transition:transform .15s}
+.fdial.on .fdi{transform:none}
+.fdi b{font-weight:650;white-space:nowrap}
+.fdic{width:26px;height:26px;display:grid;place-items:center;font-size:21px;line-height:1}
+.fdic svg{width:26px;height:20px}
+.fdi.miss .fdic{color:#d64535}
+.fdi.catch{background:#2f8f5b;color:#fff;min-height:58px;font-size:17.5px}
+.fdn{font-style:normal;font-weight:700;font-size:13px;min-width:22px;height:22px;border-radius:11px;display:grid;place-items:center;background:rgba(0,0,0,.12);padding:0 6px}
+.fdi.catch .fdn{background:rgba(255,255,255,.25)}
+html.night .fdi{background:#000;color:#ff5a45;box-shadow:0 0 0 2px #ff5a45}
+html.night .fdi.catch{background:#1a0000}
+
+/* 1.9.9: πλακίδιο μέρας εκτός ορίων: δείχνει την τιμή (π.χ. 0,8 m) αντί για «—» */
+.dtile .dsc.no.nov{color:var(--poor,#c0392b);font-size:14px;letter-spacing:-.2px;white-space:nowrap}
+
+/* 1.9.10: Πρόγνωση: πτυσσόμενες κάρτες, ήλιος/σελήνη στην πάνω κάρτα, «χαλάει μετά τις» */
+.fold{padding:0}
+.fold>summary{list-style:none;display:flex;align-items:center;gap:12px;padding:16px 18px;cursor:pointer;min-height:56px}
+.fold>summary::-webkit-details-marker{display:none}
+.fold .fdt{flex:1;display:flex;flex-direction:column;gap:2px}
+.fold .fdt b{font-size:18px;font-weight:750}
+.fold .fdt small{font-size:13.5px;color:var(--ink-2);font-weight:500}
+.fold .fdo{width:10px;height:10px;border-right:2.4px solid var(--ink-2);border-bottom:2.4px solid var(--ink-2);transform:rotate(45deg);margin:-4px 6px 0 0;transition:transform .15s}
+.fold[open] .fdo{transform:rotate(-135deg);margin-top:4px}
+.fold>:not(summary){margin:0 18px 16px}
+.fold .expo #fcExposure>h3:first-child{display:none}
+.hero .hsun{display:flex;flex-wrap:wrap;gap:4px 12px;margin:10px 0 0;font-size:13.5px;color:var(--ink-2);font-weight:550}
+.hero .hworse{margin:8px 0 0;font-size:14.5px;font-weight:650;color:var(--fair,#b7791f)}
+html.night .fold .fdo{border-color:currentColor}
+.fold .card,.fold #fcExposure{background:none!important;box-shadow:none!important;border:0!important;padding:0!important;margin:0!important}

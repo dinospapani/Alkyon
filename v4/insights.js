@@ -40,7 +40,7 @@ B.bestDaysCard=function(now){
   var c=h('section',{class:'card simcard'},h('h2',{text:T('Σε σχέση με τις καλύτερες μέρες σου','Compared with your best days')}),
     h('div',{class:'simhead'},h('b',{text:p+'%'}),h('span',{text:p>=75?T('Πολύ κοντά στις συνθήκες των καλών ψαρεμάτων σου.','Very close to the conditions of your good days.'):p>=55?T('Μέτρια ομοιότητα με τις καλές σου μέρες.','Moderate similarity to your good days.'):T('Διαφορετικές συνθήκες από τις καλές σου μέρες.','Different from your good days.')})));
   rows.slice(0,3).forEach(function(x){ var g=x.g, worst=x.r.diff.slice().sort(function(a,b){ return b.d-a.d; })[0];
-    c.append(h('div',{class:'lyrow'},h('b',{text:g.date.split('-').reverse().join('/')}),h('span',{text:g.n+(g.n===1?T(' ψάρι',' catch'):T(' ψάρια',' catches'))+(g.kg?' · '+B.num(g.kg,1)+' kg':'')+' · '+Math.round(x.r.p*100)+'%'+(worst&&worst.d>0.35?' · '+nm[worst.k]+': '+B.num(worst.b,1)+' → '+B.num(worst.a,1)+' '+worst.u:'')}))); });
+    c.append(h('div',{class:'lyrow'},h('b',{text:g.date.split('-').reverse().join('/')+' '}),h('span',{text:g.n+(g.n===1?T(' ψάρι',' catch'):T(' ψάρια',' catches'))+(g.kg?' · '+B.num(g.kg,1)+' kg':'')+' · '+Math.round(x.r.p*100)+'%'+(worst&&worst.d>0.35?' · '+nm[worst.k]+': '+B.num(worst.b,1)+' → '+B.num(worst.a,1)+' '+worst.u:'')}))); });
   c.append(h('p',{class:'foot',text:T('Από ','From ')+days.length+T(' μέρες με καταγεγραμμένες συνθήκες. Ενδεικτικό, όχι εγγύηση.',' days with recorded conditions. Indicative only.')})); return c;
 };
 /* τι έπιασες σε ένα σημείο (για το φύλλο του σημείου στον χάρτη) */

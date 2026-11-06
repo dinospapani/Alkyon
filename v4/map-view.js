@@ -898,17 +898,23 @@ function mount(el){
   /* v31z545: μεγάλα κουμπιά (βρεγμένα χέρια, γάντια, κύμα) */
   var bBig=h('button',{class:'fb fbx',type:'button','aria-label':T('Μεγάλα κουμπιά','Big buttons'),html:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>',onclick:function(){ if(B.bigTrip) B.bigTrip.open(); }});
   /* 1.8.6: στον καθαρό χάρτη ένα κουμπί «ψάρι»: πάτημα = ψάρι, κράτημα = χαμένο, λαγοκέφαλος, μεγάλα κουμπιά, διαγραφή τελευταίου */
-  function fishMenu(){ var sh, c=B.tripCounts?B.tripCounts():{n:0,miss:0,pest:0};
-    function it(ic,t,sub,fn,cls){ return h('button',{type:'button',class:'li'+(cls?' '+cls:''),onclick:function(){ sh.close(); setTimeout(fn,120); }},h('span',{class:'ic',html:ic}),h('span',{class:'tx'},h('b',{text:t}),sub?h('small',{text:sub}):null)); }
-    var MISS='<svg viewBox="0 0 32 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">'+FB+'<path d="M5 22L27 2" stroke-width="2.6" stroke-linecap="round"/></svg>', CATCH='<svg viewBox="0 0 32 24" fill="currentColor">'+FB+'</svg>';
-    var body=h('div',{class:'fabmenu fishmenu'},
-      it(CATCH,T('Έπιασα ψάρι','Caught a fish'),c.n?T('σήμερα: ','today: ')+c.n:'',function(){ B.biteForm(); }),
-      it(MISS,T('Τσίμπησε αλλά χάθηκε','Bite but lost'),c.miss?T('σήμερα: ','today: ')+c.miss:T('γράφεται αμέσως με θέση και ώρα','saved at once with place and time'),function(){ B.quickRec(true); },'miss'),
-      it('<span style="font-size:22px">🐡</span>',T('Λαγοκέφαλος ή έφαγε το δόλωμα','Toadfish or bait taken'),c.pest?T('σήμερα: ','today: ')+c.pest:T('δεν μετράει στα ψάρια','not counted as a catch'),function(){ if(B.pestSheet) B.pestSheet(); }),
-      it('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>',T('Μεγάλα κουμπιά','Big buttons'),T('για βρεγμένα χέρια ή γάντια','for wet hands or gloves'),function(){ if(B.bigTrip) B.bigTrip.open(); }),
-      B.voiceCmd&&B.voiceCmd.ok?it('<span style="font-size:22px">🎤</span>',B.voiceCmd.wanted()?T('Φωνητικές εντολές: ανοιχτές','Voice commands: on'):T('Φωνητικές εντολές','Voice commands'),T('πες «ψάρι» ή «τσίμπησε» και γράφεται αμέσως','say “fish” or “bite” and it is logged at once'),function(){ B.voiceCmd.set(!B.voiceCmd.wanted()); B.toast(B.voiceCmd.wanted()?T('🎤 Ακούω: «ψάρι» / «τσίμπησε»','🎤 Listening: “fish” / “bite”'):T('🎤 Κλειστό','🎤 Off'),4000); }):null,
-      c.n||c.miss?it('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>',T('Διαγραφή του τελευταίου','Delete the last one'),'',function(){ B.quickUndo(false); }):null);
-    sh=B.sheet({title:T('Καταγραφή','Log'),body:body}); }
+  /* 1.9.9: κράτημα στο «ψάρι» = κουμπιά που ανοίγουν πάνω από το ψάρι (όπως στην πρόταση v2), αντί για φύλλο «Καταγραφή» */
+  function fishMenu(){ var c=B.tripCounts?B.tripCounts():{n:0,miss:0,pest:0}; var old=document.querySelector('.fdial'); if(old){ old.remove(); return; }
+    var fb=document.querySelector('.fb.fbc'), r=fb?fb.getBoundingClientRect():null;
+    var ov=h('div',{class:'fdial',role:'dialog','aria-label':T('Καταγραφή','Log')}), col=h('div',{class:'fdcol'});
+    function close(){ ov.classList.remove('on'); setTimeout(function(){ ov.remove(); },160); document.removeEventListener('keydown',key); }
+    function key(e){ if(e.key==='Escape') close(); }
+    function it(ic,t,n,fn,cls){ col.append(h('button',{type:'button',class:'fdi'+(cls?' '+cls:''),onclick:function(e){ e.stopPropagation(); close(); setTimeout(fn,120); }},h('span',{class:'fdic',html:ic}),h('b',{text:t}),n?h('i',{class:'fdn',text:String(n)}):null)); }
+    var MISS='<svg viewBox="0 0 32 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round">'+FB+'<path d="M5 22L27 2" stroke-width="2.8" stroke-linecap="round"/></svg>', CATCH='<svg viewBox="0 0 32 24" fill="currentColor">'+FB+'</svg>';
+    if(c.n||c.miss) it('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>',T('Διαγραφή του τελευταίου','Delete the last one'),0,function(){ B.quickUndo(false); },'undo');
+    if(B.voiceCmd&&B.voiceCmd.ok) it('🎤',B.voiceCmd.wanted()?T('Φωνή: ανοιχτή (πες «ψάρι»)','Voice: on (say “fish”)'):T('Πες το: «ψάρι» / «τσίμπησε»','Say it: “fish” / “bite”'),0,function(){ B.voiceCmd.set(!B.voiceCmd.wanted()); B.toast(B.voiceCmd.wanted()?T('🎤 Ακούω: «ψάρι» / «τσίμπησε»','🎤 Listening: “fish” / “bite”'):T('🎤 Κλειστό','🎤 Off'),4000); });
+    it('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>',T('Μεγάλα κουμπιά','Big buttons'),0,function(){ if(B.bigTrip) B.bigTrip.open(); });
+    it('🐡',T('Λαγοκέφαλος / έφαγε το δόλωμα','Toadfish / bait taken'),c.pest,function(){ if(B.pestSheet) B.pestSheet(); });
+    it(MISS,T('Χάθηκε','Lost'),c.miss,function(){ B.quickRec(true); },'miss');
+    it(CATCH,T('Έπιασα ψάρι','Caught a fish'),c.n,function(){ if(B.troll&&B.troll.on&&B.troll.on()) catchNow(); else B.biteForm(); },'catch');
+    ov.append(col); ov.addEventListener('click',close); document.addEventListener('keydown',key);
+    if(r){ col.style.bottom=Math.max(90,window.innerHeight-r.top+12)+'px'; col.style.right=Math.max(12,window.innerWidth-r.right)+'px'; }
+    document.body.append(ov); requestAnimationFrame(function(){ ov.classList.add('on'); }); }
   fishb=h('div',{class:'fishbtns'},bPest,bMiss,bCatch,bBig); fishCounts();
   el.replaceChildren(box,cross,bar,qc,heatPill,trip,seab,dtBarEl(),fishb,mwBox()); placeOrient(); setTimeout(placeOrient,1500); cleanSetup(el,qc,seab,bar);
   if(B.smartChip){ var rc=h('div',{class:'rtwrap'}); B.smartChip().forEach(function(n){ rc.append(n); }); el.append(rc); }
