@@ -726,17 +726,26 @@ function mcAsk(){ if(mapUI()||!root) return; var sh;
    που φαίνεται· κάθε διακόπτης αλλάζει τον χάρτη αμέσως. Κλείνει: σύρσιμο δεξιά, πάτημα στη λωρίδα, «πίσω» του κινητού, Esc. */
 var mcShift=0;
 function mcClose(fromPop){ if(!mcDr) return; var d=mcDr; mcDr=null; d.classList.remove('open'); setTimeout(function(){ d.remove(); },240);
-  if(mcShift&&map){ try{ map.panBy([-mcShift,0],{animate:true,duration:.25}); }catch(e){} } mcShift=0;
+  if(mcShift&&map){ try{ map.panBy([0,-mcShift],{animate:true,duration:.25}); }catch(e){} } mcShift=0;
   if(!fromPop&&history.state&&history.state.mcd){ try{ history.back(); }catch(e){} } }
 window.addEventListener('popstate',function(){ if(mcDr) mcClose(true); });
 function mcOpen(){ if(mcDr) return mcClose(); mcDr=h('div',{class:'mcdrw'}); var dim=h('div',{class:'mcdim',onclick:mcClose}), pan=h('div',{class:'mcpan',role:'dialog','aria-label':T('Στρώματα και εργαλεία','Layers and tools')});
-  mcDr.append(dim,pan); document.body.append(mcDr); mcDrFill(); requestAnimationFrame(function(){ if(!mcDr) return; mcDr.classList.add('open');
-    var w=pan.getBoundingClientRect().width||0; if(map&&w>0&&w<window.innerWidth){ mcShift=Math.round(w/2); try{ map.panBy([mcShift,0],{animate:true,duration:.25}); }catch(e){ mcShift=0; } } });
+  mcDr.classList.add('mcb'); mcDr.append(dim,pan); document.body.append(mcDr); mcDrFill(); requestAnimationFrame(function(){ if(!mcDr) return; mcDr.classList.add('open');
+    /* 1.9.0: μενού από κάτω, στη μισή οθόνη· ο χάρτης ανεβαίνει ώστε το κέντρο του να μένει στο κομμάτι που φαίνεται */
+    var hh=pan.getBoundingClientRect().height||0; if(map&&hh>0&&hh<window.innerHeight){ mcShift=Math.round(hh/2); try{ map.panBy([0,mcShift],{animate:true,duration:.25}); }catch(e){ mcShift=0; } } });
   try{ history.pushState({mcd:1},''); }catch(e){}
   var p0=null; pan.addEventListener('pointerdown',function(e){ p0={x:e.clientX,y:e.clientY}; });
-  pan.addEventListener('pointermove',function(e){ if(!p0) return; var dx=e.clientX-p0.x, dy=e.clientY-p0.y; if(dx>60&&Math.abs(dx)>Math.abs(dy)*1.5){ p0=null; mcClose(); } });
+  pan.addEventListener('pointermove',function(e){ if(!p0) return; var dx=e.clientX-p0.x, dy=e.clientY-p0.y; if(dy>70&&Math.abs(dy)>Math.abs(dx)*1.5&&pan.scrollTop<=0){ p0=null; mcClose(); } });
   ['pointerup','pointercancel'].forEach(function(ev){ pan.addEventListener(ev,function(){ p0=null; }); });
   var esc=function(e){ if(e.key==='Escape'){ mcClose(); document.removeEventListener('keydown',esc); } }; document.addEventListener('keydown',esc); }
+/* 1.9.0: μικρή προεπισκόπηση για κάθε στρώμα (πώς θα φαίνεται στον χάρτη) */
+B.layerPv=function(k){ var P={
+ wind:'<rect width="64" height="26" fill="#2b7bb9"/><rect x="22" width="22" height="26" fill="#3fae8a"/><rect x="44" width="20" height="26" fill="#e3b33b"/><g stroke="#fff" stroke-width="1.6" stroke-linecap="round" opacity=".9"><path d="M6 8h10M12 16h12M30 9h12M36 18h10M50 7h9M48 15h10"/></g>',
+ wave:'<defs><linearGradient id="pvw" x1="0" x2="1"><stop offset="0" stop-color="#1f6fae"/><stop offset=".55" stop-color="#47b3a0"/><stop offset="1" stop-color="#d9583f"/></linearGradient></defs><rect width="64" height="26" fill="url(#pvw)"/><path d="M0 14c5-4 9 4 14 0s9 4 14 0 9 4 14 0 9 4 14 0 9 4 8 0" fill="none" stroke="#fff" stroke-width="1.4" opacity=".7"/>',
+ cur:'<rect width="64" height="26" fill="#0d3b55"/><g fill="none" stroke="#6fe0ff" stroke-width="1.6" stroke-linecap="round"><path d="M5 18c6-6 10-6 16-8"/><path d="m18 8 3 2-2 3"/><path d="M27 20c6-6 12-8 18-8"/><path d="m42 10 3 2-3 2"/><path d="M48 9c4 0 8 1 12 3"/></g>',
+ sst:'<defs><linearGradient id="pvt" x1="0" x2="1"><stop offset="0" stop-color="#2c4fd1"/><stop offset=".35" stop-color="#26b5c9"/><stop offset=".65" stop-color="#f2cf3b"/><stop offset="1" stop-color="#e2432f"/></linearGradient></defs><rect width="64" height="26" fill="url(#pvt)"/>',
+ dep:'<rect width="64" height="26" fill="#e6f0f2"/><g fill="none" stroke="#3a7ca5" stroke-width="1.2"><path d="M0 6c12 6 22-4 34 2s20 0 30 2"/><path d="M0 13c12 6 22-4 34 2s20 0 30 2"/><path d="M0 20c12 6 22-4 34 2s20 0 30 2"/></g>'};
+ return P[k]?'<svg viewBox="0 0 64 26" preserveAspectRatio="xMidYMid slice" aria-hidden="true">'+P[k]+'</svg>':''; };
 function mcDrFill(){ if(!mcDr||!mcRefs) return; mcBuilding=true; try{ mcDrFill2(); }catch(e){ try{ console.warn('mcDrFill',e); }catch(x){} } mcBuilding=false; }
 function mcDrFill2(){ var pan=mcDr.querySelector('.mcpan'), keep=pan.scrollTop; pan.replaceChildren();
   /* 1.7.4: δομημένο μενού. Πάνω τα συχνά (στρώματα, έτοιμα, εργαλεία), από κάτω οι ομάδες σε «ακορντεόν» (θυμάται ποιες άνοιξες). */
@@ -744,7 +753,7 @@ function mcDrFill2(){ var pan=mcDr.querySelector('.mcpan'), keep=pan.scrollTop; 
   function sec(t,el){ pan.append(h('h4',{text:t}),el); }
   var chips=[].slice.call(mcRefs.qc.children);
   var L1=h('div',{class:'mcg5'}); chips.forEach(function(b){ var on=false; try{ on=!!b._g(); }catch(e){} var sp=b.querySelector('span'), lb=b.querySelector('b');
-    L1.append(tile(sp?sp.innerHTML:'',lb?lb.textContent:'',on,function(){ b.click(); setTimeout(mcPaint,150); setTimeout(mcPaint,1000); })); });
+    var tl=tile(sp?sp.innerHTML:'',lb?lb.textContent:'',on,function(){ b.click(); setTimeout(mcPaint,150); setTimeout(mcPaint,1000); }); var pk=['wind','wave','cur','sst','dep'][L1.children.length]; if(pk&&B.layerPv) tl.insertBefore(h('span',{class:'mcpv',html:B.layerPv(pk)}),tl.firstChild); tl.classList.add('pvt'); L1.append(tl); });
   sec(T('Στρώματα','Layers'),L1);
   function preset(want){ /* σειρά: άνεμος, κύμα, ρεύματα, νερό, βάθη */ want.forEach(function(w,i){ var b=chips[i]; if(!b||w==null) return; var on=false; try{ on=!!b._g(); }catch(e){} if(on!==w) b.click(); }); setTimeout(mcPaint,200); setTimeout(mcPaint,1200); }
   var cur=chips.map(function(b){ try{ return !!b._g(); }catch(e){ return false; } }), is=function(w){ return w.every(function(x,i){ return x==null||x===cur[i]; }); };
@@ -790,7 +799,18 @@ function mcDrFill2(){ var pan=mcDr.querySelector('.mcpan'), keep=pan.scrollTop; 
   Object.keys(groups).forEach(function(k){ if(legEl&&legEl.parentNode===pan) pan.insertBefore(groups[k],legEl); else pan.append(groups[k]); });
   /* ενέργειες (μαγαζιά, εισαγωγή, νέο σημείο…): κλείνουν το μενού */
   [].forEach.call(pan.querySelectorAll('.lacts .li'),function(b){ b.addEventListener('click',function(){ mcClose(); },true); });
-  pan.append(h('div',{class:'mcfoot'},h('button',{type:'button',class:'chip sm',text:T('Κλασικός χάρτης','Classic map'),onclick:function(){ mcClose(); B.setMapUI('classic'); B.toast(T('Κλασικός χάρτης. Για τον καθαρό: Προφίλ › Ρυθμίσεις › Χάρτης.','Classic map. For the clean one: Profile › Settings › Map.')); }}),h('span',{class:'mchd'})));
+  var footEl=h('div'); (function(){ var pp=pan; pan=footEl; pan.append(h('div',{class:'mcfoot'},h('button',{type:'button',class:'chip sm',text:T('Κλασικός χάρτης','Classic map'),onclick:function(){ mcClose(); B.setMapUI('classic'); B.toast(T('Κλασικός χάρτης. Για τον καθαρό: Προφίλ › Ρυθμίσεις › Χάρτης.','Classic map. For the clean one: Profile › Settings › Map.')); }}),h('span',{class:'mchd'}))); pan=pp; })();
+  /* 1.9.0: τρεις καρτέλες, όπως στο σχέδιο: Επίπεδα · Εργαλεία · Τα δικά μου (ίδια κουμπιά με πριν, απλώς ταξινομημένα) */
+  var TABS=[['L',T('Επίπεδα','Layers')],['T',T('Εργαλεία','Tools')],['M',T('Τα δικά μου','My data')]], cur0=ls.get('alkyon-v4-mctab','L'), boxes={};
+  TABS.forEach(function(t){ boxes[t[0]]=h('div',{class:'mctab','data-t':t[0],hidden:t[0]!==cur0}); });
+  var MY=T('Τα δικά μου','My data'), ACT=T('Ενέργειες','Actions');
+  [].slice.call(pan.children).forEach(function(el){ var t='L', tx=(el.querySelector&&el.querySelector(':scope>h4,:scope>summary'))||null, nm=tx?tx.textContent:'';
+    if(el===toolsEl||nm===ACT) t='T'; else if(nm===MY) t='M'; boxes[t].append(el); });
+  boxes.T.append(footEl);
+  var bar=h('div',{class:'mctabs',role:'tablist'},TABS.map(function(t){ return h('button',{type:'button',role:'tab','data-t':t[0],'aria-selected':String(t[0]===cur0),onclick:function(){ ls.set('alkyon-v4-mctab',t[0]); [].forEach.call(bar.children,function(b){ b.setAttribute('aria-selected',String(b===this)); },this); TABS.forEach(function(x){ boxes[x[0]].hidden=x[0]!==t[0]; }); pan.scrollTop=0; }},t[1]); }));
+  var head=h('div',{class:'mchead'},h('button',{type:'button',class:'mcgrab','aria-label':T('Μεγάλωσε ή μίκρυνε το μενού','Expand or shrink the menu'),onclick:function(){ mcDr&&mcDr.classList.toggle('tall'); }}),
+    h('div',{class:'mchrow'},h('b',{text:T('Χάρτης','Map')}),h('button',{type:'button',class:'iconbtn mcx','aria-label':T('Κλείσιμο','Close'),html:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>',onclick:function(){ mcClose(); }})),bar);
+  pan.replaceChildren(head,boxes.L,boxes.T,boxes.M);
   pan.scrollTop=keep; }
 /* 1.8.2: κρατάμε το κουμπί: όταν ξαναμπαίνεις στον χάρτη, η στήλη (seabar) φτιάχνεται από την αρχή και το κουμπί έμενε στην παλιά (χανόταν το NU/CU/HU) */
 var oBtn=null;

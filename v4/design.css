@@ -1,0 +1,96 @@
+/* Alkyon 1.9.0 · νέα εμφάνιση (πάνω από τα app/forecast/log/map.css)
+   - γραμματοσειρά μέσα στην εφαρμογή (δουλεύει χωρίς σήμα)
+   - ενιαία κλίμακα αποστάσεων/γραμμάτων
+   - μενού χάρτη από κάτω, στη μισή οθόνη, με 3 καρτέλες και προεπισκοπήσεις στρωμάτων
+   - οθόνη για ήλιο (μέγιστη αντίθεση) */
+@font-face{font-family:'Commissioner';font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/commissioner-greek.woff2) format('woff2');unicode-range:U+0370-0377,U+037A-037F,U+0384-038A,U+038C,U+038E-03A1,U+03A3-03FF,U+1F00-1FFF}
+@font-face{font-family:'Commissioner';font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/commissioner-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Commissioner';font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/commissioner-latin-ext.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+
+:root{--s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;--t-xs:12px;--t-s:13.5px;--t-m:15.5px;--t-l:18px;--t-xl:22px;--ease:cubic-bezier(.2,.8,.2,1)}
+
+/* ---------- μενού χάρτη: από κάτω, μισή οθόνη ---------- */
+.mcdrw.mcb .mcdim{background:transparent!important;right:0!important;bottom:52vh!important}
+.mcdrw.mcb.tall .mcdim{bottom:88vh!important}
+.mcdrw.mcb .mcpan{left:0!important;right:0!important;top:auto!important;bottom:0!important;width:auto!important;max-width:560px;margin:0 auto;height:52vh;max-height:none!important;padding:0 var(--s4) calc(var(--safe-b,0px) + var(--s4))!important;border-radius:26px 26px 0 0!important;transform:translateY(104%)!important;transition:transform .28s var(--ease),height .25s var(--ease)!important;box-shadow:0 -10px 34px rgba(0,0,0,.32)!important;background:var(--bg)!important;overscroll-behavior:contain}
+.mcdrw.mcb.tall .mcpan{height:88vh}
+.mcdrw.mcb.open .mcpan{transform:none!important}
+.mcpan .mchead{position:sticky;top:0;z-index:2;background:var(--bg);padding:6px 0 var(--s2);margin:0 calc(-1 * var(--s4));padding-left:var(--s4);padding-right:var(--s4)}
+.mcpan .mcgrab{display:block;width:100%;height:18px;border:0;background:none;padding:0;cursor:pointer}
+.mcpan .mcgrab::before{content:'';display:block;width:42px;height:5px;border-radius:5px;background:var(--line);margin:6px auto 0}
+.mcpan .mchrow{display:flex;align-items:center;justify-content:space-between;margin:2px 0 var(--s2)}
+.mcpan .mchrow b{font:760 var(--t-l) var(--font);letter-spacing:-.01em}
+.mcpan .mcx{width:36px;height:36px}
+.mcpan .mctabs{display:flex;gap:4px;padding:4px;border-radius:14px;background:var(--surface-2)}
+.mcpan .mctabs button{flex:1;min-height:40px;border:0;border-radius:10px;background:none;color:var(--ink-2);font:700 14px var(--font)}
+.mcpan .mctabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.mcpan .mctab{animation:mcfade .18s ease}
+@keyframes mcfade{from{opacity:0}to{opacity:1}}
+.mcpan .mctab>h4:first-child,.mcpan .mctab>.mcgrp:first-child>h4{margin-top:var(--s3)}
+/* προεπισκοπήσεις στρωμάτων */
+.mcpan .mcg5 .mctile.pvt{justify-content:flex-start;padding:6px 6px 8px;gap:5px;background:var(--surface);color:var(--ink);box-shadow:var(--shadow);outline:2px solid transparent;position:relative}
+.mcpan .mcg5 .mctile.pvt .mcti{display:none}
+.mcpan .mcpv{display:block;width:100%;height:28px;border-radius:9px;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+.mcpan .mcpv svg{width:100%!important;height:100%!important;display:block}
+.mcpan .mcg5 .mctile.pvt[aria-pressed="true"]{background:var(--surface);color:var(--ink);outline-color:var(--accent)}
+.mcpan .mcg5 .mctile.pvt[aria-pressed="true"]::after{content:'✓';position:absolute;top:2px;right:2px;width:17px;height:17px;border-radius:50%;background:var(--accent);color:#fff;font:800 11px/17px var(--font);text-align:center}
+.mcpan .mctile{transition:transform .1s}.mcpan .mctile:active{transform:scale(.95)}
+@media (max-width:380px){ .mcpan .mcg5{grid-template-columns:repeat(3,1fr)} }
+html.night .mcpan .mcpv{filter:grayscale(1) brightness(.6) sepia(1) hue-rotate(-38deg) saturate(6)}
+html.night .mcdrw.mcb .mcpan,html.night .mcpan .mchead{background:#120000!important}
+html.night .mcpan .mctabs{background:#2a0000}html.night .mcpan .mctabs button{color:#ff8a7a}html.night .mcpan .mctabs button[aria-selected="true"]{background:#000;color:#ff5a45}
+
+/* ---------- οθόνη για ήλιο: μαύρο/λευκό, χοντρά περιγράμματα ---------- */
+html.sunv{--bg:#FFFFFF;--surface:#FFFFFF;--surface-2:#F2F2F2;--ink:#000000;--ink-2:#111111;--ink-3:#333333;--line:#000000;--shadow:none}
+html.sunv body{font-weight:500}
+html.sunv .card,html.sunv .iconbtn,html.sunv .mcbar,html.sunv .mctile,html.sunv .mcpre,html.sunv .chip,html.sunv .li{box-shadow:none!important;outline:2px solid #000;outline-offset:-2px}
+html.sunv .mctile[aria-pressed="true"],html.sunv .mcpre[aria-pressed="true"],html.sunv .chip[aria-pressed="true"],html.sunv .seg button[aria-pressed="true"],html.sunv .mctabs button[aria-selected="true"]{background:#000!important;color:#FFD400!important}
+html.sunv .mcpanel{background:#000!important;box-shadow:0 0 0 3px #fff!important}
+html.sunv .mcpanel b{font-size:30px!important;color:#fff!important}
+html.sunv .mcpanel i,html.sunv .mcpanel small{opacity:1!important}
+html.sunv .mcbar{background:#fff!important;color:#000!important}
+
+/* κουμπί οθόνης (κανονική → ήλιος → νύχτα) */
+.scrmode{position:fixed;z-index:30;right:12px;width:46px;height:46px;border-radius:50%;border:0;background:var(--surface);color:var(--ink);box-shadow:0 4px 14px rgba(0,0,0,.25);display:grid;place-items:center}
+.scrmode svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+body:not(.mapon) .scrmode,body.ruling .scrmode,body.mappick .scrmode,body:has(.mcdrw.open) .scrmode,body:has(.sheet.on) .scrmode{display:none}
+html.night .scrmode{background:#1a0000;color:#ff5a45;box-shadow:0 0 0 2px #ff5a45}
+html.sunv .scrmode{outline:2px solid #000}
+
+/* κινήσεις: μόνο όταν το κινητό δεν ζητά λιγότερες */
+@media (prefers-reduced-motion:reduce){ .mcdrw.mcb .mcpan,.mcpan .mctab{transition:none!important;animation:none!important} }
+
+/* ---------- Πρόγνωση: σκούρα κάρτα με δαχτυλίδι + «Πότε να βγω» ---------- */
+.hero.v2{position:relative;background:linear-gradient(160deg,#0F4C63,#082F40);color:#fff;box-shadow:0 10px 28px -14px rgba(8,47,64,.7);padding:18px 16px 16px}
+.hero.v2 .hv{padding-right:96px}
+.hero.v2 .hv h2{color:#fff}
+.hero.v2 .hring{position:absolute;right:14px;top:14px;width:84px;height:84px}
+.hero.v2 .hring svg{width:84px;height:84px}
+.hero.v2 .hw{padding-right:96px}
+.hero.v2 .hw span,.hero.v2 .hwhy{color:rgba(255,255,255,.78)!important}
+.hero.v2 .hw b{color:#fff}
+.hero.v2 .tag{background:rgba(255,255,255,.12)!important;color:#fff!important}
+.hero.v2 .hwhy2 .hz{background:rgba(255,255,255,.12);color:#fff}
+.hero.v2 .hwhy2 .hz.up{background:color-mix(in srgb,var(--good) 30%,transparent);color:#fff}
+.hero.v2 .hwhy2 .hz.down{background:color-mix(in srgb,var(--poor) 34%,transparent);color:#fff}
+.hero.v2 .planbtn{border-color:rgba(255,255,255,.3);color:#fff}
+.hero.v2 .planbtn small{color:rgba(255,255,255,.75)}
+.hero.v2 .planbtn .pli{background:rgba(255,255,255,.14)}
+.hero.v2 .planbtn.on{background:color-mix(in srgb,var(--good) 25%,transparent)}
+.hero.v2 .next{background:rgba(255,255,255,.1)!important;color:#fff!important}
+.hero.v2 .perschip{background:rgba(255,255,255,.14)!important;color:#fff!important}
+html.night .hero.v2{background:#1a0403;color:#ff5a45}html.night .hero.v2 *{color:#ff5a45!important}
+html.sunv .hero.v2{background:#fff;color:#000;outline:3px solid #000}html.sunv .hero.v2 *{color:#000!important}html.sunv .hero.v2 .hring text{fill:#000}
+.ribbon{padding:14px 14px 12px}
+.ribbon .rbh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:8px}
+.ribbon .rbh h3{margin:0;font-size:var(--t-l);font-weight:760}
+.ribbon .rbh small{color:var(--ink-3);font-size:var(--t-xs);font-weight:600}
+.ribbon .rbwrap{position:relative;padding-bottom:18px}
+.ribbon .rbsvg{display:block;width:100%;height:96px;touch-action:none;cursor:pointer;border-radius:8px}
+.ribbon .rbax{position:absolute;left:0;right:0;bottom:0;height:16px;font:700 11px var(--font);color:var(--ink-3)}
+.ribbon .rbax span{position:absolute;top:2px}
+.ribbon .rblab{font-size:var(--t-s);color:var(--ink-2);margin-top:4px;min-height:20px}
+.ribbon .rblab b{color:var(--ink)}.ribbon .rblab .rbbad{color:var(--poor)}
+.ribbon .rblg{display:flex;flex-wrap:wrap;gap:12px;font-size:var(--t-xs);color:var(--ink-2);margin-top:6px}
+.ribbon .rblg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.ribbon .rblg i.hx{background:repeating-linear-gradient(45deg,var(--poor) 0 2px,transparent 2px 4px)}

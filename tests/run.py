@@ -278,11 +278,11 @@ with sync_playwright() as p:
     pg.mouse.move(bx[0],bx[1]); pg.mouse.down(); pg.mouse.move(bx[0],bx[1]+70,steps=8); pg.mouse.up(); pg.wait_for_timeout(500)
     k=pg.evaluate("()=>[!!document.querySelector('.mcdrw'), document.querySelectorAll('.mcg5 .mctile').length, document.querySelectorAll('.mcg3 .mctile').length]")
     check('σύρσιμο κάτω ανοίγει το μενού: 5 στρώματα + εργαλεία', k[0] and k[1]==5 and k[2]>=4, k)
-    pg.wait_for_timeout(400); sr=pg.evaluate("()=>{const r=document.querySelector('.mcpan').getBoundingClientRect();return [Math.round(r.left),Math.round(r.right),innerWidth]}")
-    check('πλαϊνό μενού από δεξιά, αριστερά φαίνεται ο χάρτης', sr[0]>=60 and abs(sr[1]-sr[2])<=2, sr)
+    pg.wait_for_timeout(400); sr=pg.evaluate("()=>{const r=document.querySelector('.mcpan').getBoundingClientRect();return [Math.round(r.top),Math.round(r.bottom),innerHeight,document.querySelectorAll('.mctabs [role=tab]').length]}")
+    check('μενού από κάτω στη μισή οθόνη (ο χάρτης φαίνεται πάνω), 3 καρτέλες (1.9.0)', sr[0]>=sr[2]*0.4 and abs(sr[1]-sr[2])<=2 and sr[3]==3, sr)
     check('λαβή στη δεξιά άκρη υπάρχει (κρυμμένη όσο είναι ανοιχτό το μενού)', pg.evaluate("()=>{const e=document.querySelector('.mcedge');return !!e&&getComputedStyle(e).display==='none'}"), None)
-    g=pg.evaluate("()=>[[...document.querySelectorAll('.mcpan .mcgrp>h4, .mcpan .mcacc>summary')].map(e=>e.textContent), [...document.querySelectorAll('.mcg3 .mctile b')].map(e=>e.textContent)]")
-    check('μενού: ομάδες σε σειρά (Καιρός πριν από Εργαλεία, Χάρτης και βάθη, Ενέργειες) και εργαλεία χωρίς στρώματα', all(x in g[0] for x in ['Χάρτης και βάθη','Καιρός και θάλασσα','Θάλασσα και κανόνες','Τα δικά μου','Ενέργειες']) and g[0].index('Καιρός και θάλασσα')<g[0].index('Εργαλεία')<g[0].index('Χάρτης και βάθη') and 'Βάθη θάλασσας' not in g[0] and 'Πού να πάω' not in g[0] and 'Χάρακας' in g[1] and not any('Σταθμοί' in x or 'Λιμάνια' in x for x in g[1]), g)
+    g=pg.evaluate("()=>{const q=t=>[...document.querySelectorAll('.mctab[data-t='+t+'] .mcgrp>h4, .mctab[data-t='+t+'] .mcacc>summary')].map(e=>e.textContent); return [q('L'),q('T'),q('M'),[...document.querySelectorAll('.mcg3 .mctile b')].map(e=>e.textContent)]}")
+    check('μενού: Επίπεδα (Καιρός, Χάρτης και βάθη, Κανόνες, Υπόμνημα) · Εργαλεία (+Ενέργειες) · Τα δικά μου· εργαλεία χωρίς στρώματα', all(x in g[0] for x in ['Χάρτης και βάθη','Καιρός και θάλασσα','Θάλασσα και κανόνες']) and g[0].index('Καιρός και θάλασσα')<g[0].index('Χάρτης και βάθη') and 'Εργαλεία' in g[1] and 'Ενέργειες' in g[1] and g[2]==['Τα δικά μου'] and 'Βάθη θάλασσας' not in g[0] and 'Πού να πάω' not in g[0] and 'Χάρακας' in g[3] and not any('Σταθμοί' in x or 'Λιμάνια' in x for x in g[3]), g)
     pg.evaluate("()=>document.querySelectorAll('.mcg5 .mctile')[2].click()"); pg.wait_for_timeout(500)
     check('στρώμα από το μενού: ανάβει το ίδιο κουμπί (Ρεύματα)', pg.evaluate("()=>document.querySelectorAll('.mchips .mchip')[2].getAttribute('aria-pressed')==='true'"), None)
     pg.evaluate("()=>document.querySelector('.mcdim').click()"); pg.wait_for_timeout(400)
@@ -311,6 +311,31 @@ with sync_playwright() as p:
     k=pg.evaluate("()=>[AK.mapMode(), document.querySelector('.mcpanel').className, document.querySelector('.mcpanel').textContent]")
     check('ετικέτα: με το χέρι ΠΗΓΑΙΝΩ, κάρτα με απόσταση και στόχο', k[0]=='run' and 'run' in k[1] and 'Ξέρα' in k[2] and 'nm' in k[2], k)
     check('φωνή/οθόνη χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
+
+    print('# νέα εμφάνιση (1.9.0)')
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(3500)
+    r=pg.evaluate("()=>{const s=document.querySelector('.ribbon .rbsvg'); return [!!document.querySelector('.hero.v2 .hring'), !!s, s?s.querySelectorAll('rect[height]').length:0, (document.querySelector('.ribbon .rblab')||{}).textContent||'']}")
+    check('Πρόγνωση: σκούρα κάρτα με δαχτυλίδι και «Πότε να βγω» (48 ώρες)', r[0] and r[1] and r[2]>=40, r)
+    bx=pg.evaluate("()=>{document.querySelector('.ribbon .rbsvg').scrollIntoView({block:'center'}); const r=document.querySelector('.ribbon .rbsvg').getBoundingClientRect();return [r.left,r.top+r.height/2,r.width]}")
+    pg.mouse.move(bx[0]+bx[2]*0.1,bx[1]); pg.mouse.down(); pg.mouse.move(bx[0]+bx[2]*0.8,bx[1],steps=6)
+    l2=pg.evaluate("()=>document.querySelector('.ribbon .rblab').textContent"); pg.mouse.up(); pg.wait_for_timeout(600)
+    check('«Πότε να βγω»: το σύρσιμο αλλάζει ώρα, το άφημα δείχνει την ώρα στη σελίδα', l2!=r[3] and pg.evaluate("()=>!!document.querySelector('.ribbon')"), [r[3],l2])
+    pg.evaluate("h=>location.hash=h",'#map'); pg.wait_for_timeout(3500)
+    m=[]
+    for k in range(3):
+        m.append(pg.evaluate("()=>[document.documentElement.classList.contains('sunv'),document.documentElement.classList.contains('night'),(document.querySelector('.scrmode')||{}).dataset?.m]"))
+        pg.evaluate("()=>document.querySelector('.scrmode').click()"); pg.wait_for_timeout(500)
+    m.append(pg.evaluate("()=>[document.documentElement.classList.contains('sunv'),document.documentElement.classList.contains('night'),(document.querySelector('.scrmode')||{}).dataset?.m]"))
+    check('κουμπί οθόνης: κανονική → ήλιος → νύχτα → κανονική', [x[2] for x in m]==['norm','sun','night','norm'] and m[1][0] and m[2][1] and not m[3][0] and not m[3][1], m)
+    check('νέα εμφάνιση χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
+
+    print('# απογραφή: τίποτα δεν λείπει από την προηγούμενη έκδοση')
+    import inventory
+    inv=inventory.crawl(b,BASE,ctx,page)
+    base=json.load(open(os.path.join(HERE,'inventory-base.json')))
+    mp=os.path.join(HERE,'inventory-moved.json'); moved=json.load(open(mp)) if os.path.exists(mp) else {}
+    miss=inventory.compare(base,inv,moved)
+    check('κάθε κουμπί/επιλογή της προηγούμενης έκδοσης υπάρχει ακόμα (%d στοιχεία)'%sum(len(v) for v in base.values()), not miss, miss[:30])
 
     print('# offline')
     c=ctx(b,sw=True); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(6000); pg.reload(); pg.wait_for_timeout(3000)

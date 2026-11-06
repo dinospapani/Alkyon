@@ -10,9 +10,7 @@
 <link rel="manifest" href="../manifest.webmanifest">
 <link rel="icon" href="../icon-192.png">
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Commissioner:wght@400..800&display=swap" media="print" onload="this.media='all'">
+<link rel="preload" as="font" type="font/woff2" href="fonts/commissioner-greek.woff2" crossorigin>
 <script src="../migrate.js"></script>
 <script>/* «Πού ψαρεύεις σήμερα;» ανοίγει πρώτο: κρύβει την εφαρμογή από πίσω μέχρι να φορτώσει η σελίδα επιλογής */
 try{(function(){var g=function(k){return localStorage.getItem(k);},s=JSON.parse(g('alkyon-safe')||'null');if(/#(new|trip|addfriend)/.test(location.hash)||(s&&s.active))return;
@@ -22,6 +20,7 @@ if(!g('alkyon-onboard')||!(g('alkyon-askfp')==='0'&&g('alkyon-fprof-done')))docu
 <link rel="stylesheet" href="forecast.css">
 <link rel="stylesheet" href="log.css">
 <link rel="stylesheet" href="map.css">
+<link rel="stylesheet" href="design.css">
 </head>
 <body>
 <noscript>Το Alkyon χρειάζεται JavaScript.</noscript>
