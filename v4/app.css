@@ -558,3 +558,48 @@ html.night .nav .fab.fabon{background:#1a0000;box-shadow:0 0 0 2px #fff}
 .sheet header .shtl h2{overflow:hidden;text-overflow:ellipsis}
 .sheet header .shback{margin-left:-8px;flex:none}
 input[type=range]{accent-color:var(--accent)} /* 1.8.33 */
+@font-face{font-family:'Commissioner';font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/commissioner-greek.woff2) format('woff2');unicode-range:U+0370-0377,U+037A-037F,U+0384-038A,U+038C,U+038E-03A1,U+03A3-03FF,U+1F00-1FFF}
+@font-face{font-family:'Commissioner';font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/commissioner-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Commissioner';font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/commissioner-latin-ext.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+
+
+/* 1.9.6: κουμπί «Στρώματα» στη δεξιά στήλη του χάρτη */
+.mclay{position:fixed;z-index:30;right:12px;top:calc(var(--safe-t,0px) + 76px);width:46px;height:46px;border-radius:50%;border:0;background:var(--surface);color:var(--ink);box-shadow:0 4px 14px rgba(0,0,0,.25);display:grid;place-items:center}
+.mclay svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.mclay:active{transform:scale(.94)}
+body:not(.mapon) .mclay,body:not(.mapclean) .mclay,body.ruling .mclay,body.mappick .mclay,body.replaying .mclay,body:has(.mcdrw.open) .mclay,body:has(.sheet.on) .mclay{display:none}
+html.night .mclay{background:#1a0000;color:#ff5a45;box-shadow:0 0 0 2px #ff5a45}
+/* 1.9.6: με ανοιχτό το πλαϊνό μενού ο χάρτης αριστερά σέρνεται */
+.mcdrw .mcdim{pointer-events:none!important}
+/* 1.9.6: Ημερολόγιο: κάρτες εξόδων με μικρό χάρτη, ιστορία εξόδου */
+.list .li.tcard{display:flex;align-items:stretch;gap:0;padding:0;overflow:hidden;min-height:104px;border-radius:20px;background:var(--surface);box-shadow:var(--shadow)}
+.swp:has(.tcard){margin-bottom:10px;border-radius:20px;overflow:hidden}
+.li.tcard .tmap{flex:none;display:block;border-radius:0}
+.li.tcard .tx{flex:1;min-width:0;padding:12px 8px 12px 14px;display:flex;flex-direction:column;justify-content:center;gap:2px}
+.li.tcard .tx b{font-size:15.5px}
+.li.tcard .tchips{display:flex;flex-wrap:nowrap;overflow:hidden;gap:5px;margin-top:6px;-webkit-mask-image:linear-gradient(90deg,#000 85%,transparent);mask-image:linear-gradient(90deg,#000 85%,transparent)}
+.li.tcard .tchip{background:var(--surface-2);border-radius:99px;padding:3px 9px;font:600 12px var(--font);color:var(--ink-2);white-space:nowrap;flex:none}
+.li.tcard .tc{align-self:flex-start;margin:12px 14px 0 4px;font:800 22px var(--font);color:var(--good);background:none;min-width:0;width:auto;height:auto}
+.li.tcard .tc.z{color:var(--ink-3)}
+.tstory{margin:0 0 12px}.tstory .tmap{border-radius:18px;width:100%!important;height:auto!important}
+.tstory .tslg{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--ink-2);margin-top:6px}
+.tstory .tslg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.list.tline{position:relative;padding-left:22px;background:none;box-shadow:none}
+.list.tline::before{content:'';position:absolute;left:9px;top:14px;bottom:14px;width:2px;background:var(--line);border-radius:2px}
+.list.tline>.tlr,.list.tline>.tlx{position:relative}
+.list.tline>.tlr::before,.list.tline>.tlx::before{content:'';position:absolute;left:-18px;top:50%;width:12px;height:12px;margin-top:-6px;border-radius:50%;background:var(--ink-3);box-shadow:0 0 0 3px var(--bg)}
+.list.tline>.tl-fish::before{background:var(--good)}.list.tline>.tl-miss::before{background:var(--poor)}.list.tline>.tl-pest::before{background:#8C7BD9}
+.list.tline>.tlx{display:flex;gap:10px;align-items:baseline;padding:8px 4px;font-size:13.5px;color:var(--ink-2)}
+.list.tline>.tlx b{color:var(--ink);font-variant-numeric:tabular-nums}
+.list.tline>.tlr{border-radius:14px;margin-bottom:6px;background:var(--surface)}
+/* 1.9.6: φύλλο συρτής: − [μολύβια] + στην ίδια γραμμή· κενό ανάμεσα στους διακόπτες */
+.fld.ldfld{display:grid;grid-template-columns:1fr auto;column-gap:8px;align-items:center}
+.fld.ldfld>span{grid-column:1/-1}
+.fld.ldfld>.chips{display:flex;flex-wrap:nowrap;gap:8px;margin:0}
+.fld.ldfld>.chips .chip{width:52px;height:52px;padding:0;font-size:22px;font-weight:800;justify-content:center}
+.sheet .tg{margin:10px 0}
+.sheet .tg+.fld,.sheet .tg+label{margin-top:14px}
+/* 1.9.6: Προφίλ: το «Σημείο» στα στατιστικά σε δύο γραμμές το πολύ */
+.pstats .pst b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+/* 1.9.6: ο τίτλος μόνος του (Προφίλ) αριστερά, όπως στις άλλες σελίδες */
+.top>.lt:only-child{margin-left:0;margin-right:auto}

@@ -129,7 +129,7 @@ function unitsSheet(){ var body=h('div',{class:'bform'}), L={wind:T('Άνεμο�
   sheetOf(T('Μονάδες','Units'),body); }
 function accountTab(page,s){
   page.append(s?accountCard(s):signInCard());
-  /* 1.9.4: πιο σύντομος «Λογαριασμός»: τα εργαλεία δεδομένων σε τρεις γραμμές που ανοίγουν φύλλο (ίδια κουμπιά μέσα) */
+  /* 1.9.6: πιο σύντομος «Λογαριασμός»: τα εργαλεία δεδομένων σε τρεις γραμμές που ανοίγουν φύλλο (ίδια κουμπιά μέσα) */
   var IC={bk:'<path d="M12 3v12m-4-4 4 4 4-4M5 21h14"/>',xl:'<path d="M4 4h16v16H4zM4 10h16M10 4v16"/>',ck:'<path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/>'};
   function row(ic,t,sub,fn){ return h('button',{class:'li',type:'button',onclick:fn},h('span',{class:'ic',html:'<svg viewBox="0 0 24 24" aria-hidden="true">'+IC[ic]+'</svg>'}),h('span',{class:'tx'},h('b',{text:t}),h('small',{text:sub})),B.icon('chev')); }
   var lb=ls.get('alkyon-lastbackup',0), dcs=B.dataCards?B.dataCards():null, dm=dataCard();

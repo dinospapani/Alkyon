@@ -1091,3 +1091,9 @@ body.trck .scrim{z-index:700}body.trck .sheet{z-index:701}body.trck .scrim.stk{z
 .ck button.cksp{background:none;border:0;padding:0 2px;cursor:pointer}
 /* 1.8.31: σημείωση κάτω από «Καταγραφή διαδρομής GPS» */
 .tstart .trhint{margin:4px 0 6px;padding:9px 12px;border-radius:12px;font-size:13.5px;line-height:1.35;background:color-mix(in srgb,#e8a33d 18%,var(--surface-2,#f1f4f5));color:var(--ink,#0b1f2a)}
+
+/* 1.9.5: κάρτα ΨΑΡΕΥΩ/ΣΕ ΚΙΝΗΣΗ ακολουθεί το θέμα (σε σκούρο θέμα ήταν άσπρα γράμματα σε άσπρο φόντο) */
+html:not(.night) body.mapclean .mcpanel{background:color-mix(in srgb,var(--surface) 96%,transparent)!important;color:var(--ink)!important}
+html:not(.night) body.mapclean .mcpanel i{opacity:.75}
+html:not(.night) body.mapclean .mcpanel .mph{background:var(--surface-2)!important}
+html:not(.night) body.mapclean .mcpanel.fish .mpc:nth-child(2) b{color:var(--sea)!important}

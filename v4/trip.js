@@ -207,8 +207,6 @@ B.tripSheet=function(){
   var s=load(); if(!s.active){ B.tripStart(); return; }
   var t=B.trip.track(), sm=summary(s), lt=late(s), body=h('div',{class:'bform'}), sh;
   if(B.biteForm) body.append(h('button',{class:'btn pri full',type:'button',text:'+ '+T('Νέο ψάρι','New catch'),onclick:function(){ sh.close(); setTimeout(function(){ B.biteForm(); },120); }}));
-  /* 1.9.3: τα μεγάλα κουμπιά (Ψάρι, Χάθηκε, Λαγοκέφαλος, MOB) κατευθείαν από το κεντρικό κουμπί */
-  if(B.bigTrip) body.append(h('button',{class:'btn full bigtb',type:'button',onclick:function(){ sh.close(); setTimeout(function(){ B.bigTrip.open(); },150); }},h('span',{class:'bgi',html:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>'}),T('Μεγάλα κουμπιά: Ψάρι · Χάθηκε · Λαγοκέφαλος · MOB','Big buttons: Fish · Lost · Toadfish · MOB')));
   body.append(h('div',{class:'card tripcard'+(lt?' late':''),style:{margin:'0'}},h('b',{text:lt?T('Πέρασε η ώρα επιστροφής (','Past your return time (')+hm(s.due)+')':T('Επιστροφή στις ','Back at ')+hm(s.due)+' ('+T('σε ','in ')+dur(s.due-Date.now())+')'}),
     h('p',{class:'sub',style:{margin:'4px 0 0'},text:[T('Έξοδος ','Out ')+dur(Date.now()-s.start),t&&t.m>=100?B.num(t.m/1000,1)+' km':'',sm.n+' '+T('ψάρια','catches')+(sm.kg?', '+B.num(sm.kg,1)+' kg':'')].filter(Boolean).join(' · ')}),
     srv?h('p',{class:'sub',style:{margin:'6px 0 0'},text:srv}):null));
