@@ -72,7 +72,9 @@ function chooseSend(s,kind){ var body=h('div',{class:'bform'}), sh;
 
 /* ---------- διαδρομή GPS (alkyon-track, ίδια μορφή) ---------- */
 var wid=null, wl=null;
-function gpsOn(){ return ls.raw('alkyon-gps')!=='"0"'&&ls.get('alkyon-gps','1')!=='0'; }
+function gpsOn(){ return (ls.raw('alkyon-gps')!=='"0"'&&ls.get('alkyon-gps','1')!=='0')||trollOn(); }
+/* 1.9.8: με ανοιχτή συρτή η διαδρομή γράφεται πάντα, ακόμα κι αν το «Καταγραφή διαδρομής GPS» είναι κλειστό */
+function trollOn(){ try{ return !!(B.troll&&B.troll.on&&B.troll.on()); }catch(e){ return false; } }
 function dist(a,b){ var R=6371000, r=Math.PI/180, dLa=(b[0]-a[0])*r, dLo=(b[1]-a[1])*r, x=Math.sin(dLa/2)*Math.sin(dLa/2)+Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin(dLo/2)*Math.sin(dLo/2); return 2*R*Math.asin(Math.min(1,Math.sqrt(x))); }
 function track(){ var s=load(); if(!s.active) return null; var t=ls.get('alkyon-track',null); if(!t||!Array.isArray(t.pts)||t.id!==s.id){ t={id:s.id,pts:[],m:0}; ls.set('alkyon-track',t); } return t; }
 function onPos(p){ var c=p.coords; fixP={lat:c.latitude,lon:c.longitude,t:Date.now(),spd:c.speed,hd:c.heading}; /* 1.6.0: ταχύτητα/πορεία για τη συρτή */ onAnchor(c); var t=track(); if(!t) return; if(c.accuracy&&c.accuracy>60) return;
@@ -279,4 +281,5 @@ B.mobDel=function(t){ ls.set('alkyon-mob',B.mobs().filter(function(x){ return x.
 if(load().active){ startTimer(); setTimeout(function(){ trackPos(); },2000); }
 if(anc()) lastAn=Date.now();
 setTimeout(function(){ watch(); paintBar(); },300);
+setInterval(function(){ if(load().active) watch(); },10000);
 })();

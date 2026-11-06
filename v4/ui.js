@@ -58,6 +58,13 @@ function swipeDel(content,onDel){
    κρύβεται, και το νέο έχει κουμπί ‹ που γυρίζει σε αυτό. Το ✕ (ή πάτημα έξω / σύρσιμο κάτω) κλείνει όλη την αλυσίδα, όπως πριν.
    Αν ο κώδικας κλείσει ένα φύλλο και ανοίξει αμέσως άλλο (μέσα σε ~½″), λογίζεται κι αυτό ως «από μέσα»: το νέο έχει ‹. */
 var openSheet=null, limbo=null;
+/* 1.9.8: το «πίσω» του κινητού κλείνει πρώτα το ανοιχτό φύλλο (ή γυρίζει στο προηγούμενο φύλλο), όχι τη σελίδα */
+var hEntry=false, selfBack=false, hChk=null;
+var hPush=null;
+function sheetHist(){ clearTimeout(hPush); hPush=setTimeout(function(){ if(openSheet&&!hEntry){ try{ history.pushState({alks:1},''); hEntry=true; }catch(e){} } },150); clearTimeout(hChk); hChk=setTimeout(sheetHistChk,900); }
+function sheetHistChk(){ if(openSheet||limbo){ hChk=setTimeout(sheetHistChk,800); return; } if(hEntry){ hEntry=false; if(history.state&&history.state.alks){ selfBack=true; try{ history.back(); }catch(e){ selfBack=false; } } } }
+window.addEventListener('popstate',function(){ if(selfBack){ selfBack=false; return; } if(!hEntry) return; hEntry=false;
+  if(openSheet){ var o=openSheet; try{ o.close(false,o._back&&o._back()?'back':'user'); }catch(e){} if(openSheet){ try{ history.pushState({alks:1},''); hEntry=true; }catch(e){} } } });
 function dropLimbo(){ if(!limbo) return; clearTimeout(limbo.tm); var a=limbo.api; limbo=null; a._kill(); }
 function sheet(o){
   var parent=null, back=null;
@@ -88,6 +95,7 @@ function sheet(o){
     _hide:function(){ document.removeEventListener('keydown',key); scrim.classList.remove('on'); box.classList.remove('on'); box.classList.add('shhid'); scrim.classList.add('shhid'); },
     _show:function(){ box.classList.remove('shhid'); scrim.classList.remove('shhid'); document.addEventListener('keydown',key); cbDone=false; requestAnimationFrame(function(){ scrim.classList.add('on'); box.classList.add('on'); }); },
     _kill:function(){ cb(); document.removeEventListener('keydown',key); scrim.remove(); box.remove(); if(back){ var b=back; back=null; b._kill(); } }};
+  sheetHist(); api._back=function(){ return !!back; };
   function key(e){ if(e.key==='Escape') api.close(false,back?'back':'user'); }
   document.addEventListener('keydown',key);
   scrim.addEventListener('click',function(){ api.close(false,'user'); }); x.addEventListener('click',function(){ api.close(false,'user'); });

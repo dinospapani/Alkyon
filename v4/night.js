@@ -24,7 +24,7 @@ function toggle(){ var v=!active; ls.set(OV,{k:tripId()||today(),v:v}); apply();
 function mountBtn(){ var bar=document.querySelector('.mapbar'); if(!bar) return; if(btn&&btn.isConnected) return;
   btn=h('button',{class:'iconbtn nightb',type:'button',html:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>',onclick:toggle});
   var bell=bar.querySelector('.bellb'); if(bell) bar.insertBefore(btn,bell); else bar.append(btn); paint(); }
-B.night={mode:mode,set:function(m){ ls.set(K,m); ls.set(OV,null); apply(); },active:function(){ return active; },apply:apply};
+B.night={toggle:toggle,mode:mode,set:function(m){ ls.set(K,m); ls.set(OV,null); apply(); },active:function(){ return active; },apply:apply};
 var deb=null; try{ new MutationObserver(function(){ clearTimeout(deb); deb=setTimeout(function(){ apply(); mountBtn(); },250); }).observe(document.body,{attributes:true,attributeFilter:['class'],childList:true}); }catch(e){}
 window.addEventListener('hashchange',function(){ setTimeout(mountBtn,400); });
 setInterval(apply,120000); document.addEventListener('visibilitychange',function(){ if(!document.hidden) apply(); });

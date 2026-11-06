@@ -242,7 +242,7 @@ function draw(){
       var tn=(BTYP.filter(function(t){ return t[0]===(x.type||'agm'); })[0]||[])[1]||'';
       bg.append(h('button',{type:'button',class:'bbat',onclick:function(){ batEdit(x.id); }},h('span',{class:'bbh'},h('b',{text:x.name||T('Μπαταρία','Battery')}),vs?h('span',{class:'bv '+vs[0],text:B.num(+x.v,1)+' V · '+vs[1]}):null),
         h('small',{text:[tn,x.ah?x.ah+' Ah':''].filter(Boolean).join(' · ')}),age!=null?bar(age/life,o.lv==='bad'?'bad':o.lv==='warn'?'warn':'ok'):h('span',{class:'bbar none'}),
-        h('small',{class:'bbs',text:age!=null?B.num(age,1)+T(' χρόνια',' yr')+' · '+T('αλλαγή ','replace ')+dF(nx):T('Πάτα για ημερομηνία τοποθέτησης','Tap to add the install date')}))); });
+        h('small',{class:'bbs',text:age!=null?(age<0.1?T('Καινούρια','New'):B.num(age,1)+T(' χρόνια',' yr'))+' · '+T('αλλαγή ','replace ')+dF(nx):T('Πάτα για ημερομηνία τοποθέτησης','Tap to add the install date')}))); });
     c7.append(bg,h('button',{class:'btn',type:'button',text:T('+ Μπαταρία','+ Battery'),onclick:function(){ var x=D(), id=uid(); x.bat.push({id:id,name:'',type:'agm',inst:today()}); saveB(x); draw(); batEdit(id); }}));
     page.append(c7);
   }

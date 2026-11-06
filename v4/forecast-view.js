@@ -342,8 +342,9 @@ function dayView(page,fc,d){
       h('span',{text:T('Επόμενη καλή μέρα','Next good day')}),h('b',{text:B.dayName(nx.date,td)+', '+win(nx)}),h('i',{class:'sc',text:String(nx.best)}))); }
   /* v31z550: ο δικός σου βαθμός (προσωπική πρόγνωση), μόνο όταν έχει αποδειχθεί ότι προβλέπει καλύτερα από τον μέσο όρο σου */
   var pd=d.safe?persDay(d,isToday):null; if(pd) hero.append(h('button',{type:'button',class:'perschip',onclick:function(){ st.view='mine'; st.day=null; st.hour=null; draw(); }},h('span',{text:T('Για σένα','For you')}),h('b',{text:String(pd.best)}),pd.win?h('small',{text:B.pad(pd.win.s)+':00–'+B.pad((pd.win.e+1)%24)+':00'}):null));
-  if(tg) hero.append(h('span',{class:'tag '+tg[0],text:tg[1]}));
-  var rz=d.safe?reasons(d).slice(0,3):[]; if(rz.length) hero.append(h('div',{class:'hwhy2'},rz.map(function(r){ return h('span',{class:'hz '+r[0]},(r[0]==='up'?'↑ ':r[0]==='down'?'↓ ':'')+String(r[1]).replace(/\.$/,'')); })));
+  var rz=d.safe?reasons(d).slice(0,3):[];
+  /* 1.9.7: η ετικέτα κύματος μόνο αν δεν φαίνεται ήδη στα «γιατί» από κάτω (ήταν διπλή) */
+  if(tg&&!rz.some(function(r){ return /κύμα|waves?/i.test(String(r[1])); })) hero.append(h('span',{class:'tag '+tg[0],text:tg[1]})); if(rz.length) hero.append(h('div',{class:'hwhy2'},rz.map(function(r){ return h('span',{class:'hz '+r[0]},(r[0]==='up'?'↑ ':r[0]==='down'?'↓ ':'')+String(r[1]).replace(/\.$/,'')); })));
   if(d.date>=td&&!(isToday&&d.why==='night')) hero.append(planBtn(d));
   page.append(hero);
   /* ψαροντούφεκο: ορατότητα νερού (δορυφόρος όταν υπάρχει, αλλιώς εκτίμηση από κύμα και βροχή) */
