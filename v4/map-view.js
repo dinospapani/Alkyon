@@ -133,7 +133,8 @@ var SATK='alkyon-v4-ovl';
 function satInfo(){ var c=ls.get(SATK,null); if(c&&c.v&&Date.now()-c.at<6*3600000) return Promise.resolve(c.v);
   return fetch('https://sgfohmqwdwtkhtrebnix.supabase.co/functions/v1/water-clarity?mode=layers',{headers:{apikey:'sb_publishable_LGuwvrvLnAj1CF22Q6g9vg_4OImZYbA',Authorization:'Bearer sb_publishable_LGuwvrvLnAj1CF22Q6g9vg_4OImZYbA'}})
     .then(function(r){ return r.ok?r.json():null; }).then(function(v){ if(v&&(v.chl||v.sst)) ls.set(SATK,{at:Date.now(),v:v}); return v; }).catch(function(){ return c&&c.v||null; }); }
-function drawSat(){ ['chl','sats'].forEach(function(k){ if(ov[k]){ map.removeLayer(ov[k]); ov[k]=null; } });
+function drawSat(){ if(cfg.sats){ cfg.sats=false; saveCfg(); ls.set('alkyon-v4-sstsrc','sat'); if(B.sst&&!B.sst.on()) setTimeout(function(){ B.sst&&B.sst.set(true); },500); } /* 1.9.12: το παλιό «Νερό δορυφόρου» μπήκε μέσα στο «Νερό» */
+  ['chl','sats'].forEach(function(k){ if(ov[k]){ map.removeLayer(ov[k]); ov[k]=null; } });
   if(!cfg.chl&&!cfg.sats) return;
   satInfo().then(function(v){ if(!map) return;
     var add=function(k,d){ if(!d||!d.url||ov[k]) return;
@@ -142,6 +143,21 @@ function drawSat(){ ['chl','sats'].forEach(function(k){ if(ov[k]){ map.removeLay
       ly.on('tileerror',function(){ if(u!==d.url&&++bad>=3){ u=d.url; ly.setUrl(d.url); } }); ov[k]=ly.addTo(map); };
     if(cfg.chl) add('chl',v&&v.chl); if(cfg.sats) add('sats',v&&v.sst);
     if((cfg.chl&&!(v&&v.chl))||(cfg.sats&&!(v&&v.sst))) B.toast(T('Η δορυφορική στρώση δεν είναι διαθέσιμη τώρα. Δοκίμασε αργότερα.','The satellite layer isn’t available right now. Try later.')); }); }
+/* 1.9.12: «Νερό» από δορυφόρο (χθες, 1 km) ως επιλογή μέσα στο «Νερό»· χωρίς να βάφει τη στεριά (μάσκα στεριάς ανά pixel) */
+var satW=null;
+var SatGL=null; function satGL(){ if(SatGL) return SatGL; SatGL=L.GridLayer.extend({ createTile:function(c,done){ var t=document.createElement('canvas'); t.width=t.height=256; var u=this.options.url.replace('{z}',c.z).replace('{x}',c.x).replace('{y}',c.y), img=new Image(), tried=false;
+  function mask(){ var x=t.getContext('2d'); x.drawImage(img,0,0,256,256); var LA=B.landAt; if(!LA) return; try{ var id=x.getImageData(0,0,256,256), d=id.data, n=256*Math.pow(2,c.z);
+      for(var py=0;py<256;py+=2){ var Y=c.y*256+py+1, la=Math.atan(Math.sinh(Math.PI*(1-2*Y/n)))*180/Math.PI;
+        for(var px=0;px<256;px+=2){ var lo=(c.x*256+px+1)/n*360-180; if(LA(la,lo)===1){ for(var dy=0;dy<2;dy++) for(var dx=0;dx<2;dx++) d[((py+dy)*256+px+dx)*4+3]=0; } } }
+      x.putImageData(id,0,0); }catch(e){} }
+  img.crossOrigin='anonymous'; img.onload=function(){ mask(); done(null,t); };
+  img.onerror=function(){ if(!tried){ tried=true; img=new Image(); img.onload=function(){ t.getContext('2d').drawImage(img,0,0,256,256); done(null,t); }; img.onerror=function(){ done(new Error('tile'),t); }; img.src=u; } else done(new Error('tile'),t); };
+  img.src=u; return t; } }); return SatGL; }
+B.satWater=function(on){ if(!map) return; if(!on){ if(satW){ map.removeLayer(satW); satW=null; } return; } if(satW) return;
+  satInfo().then(function(v){ var d=v&&v.sst; if(!d||!d.url){ B.toast(T('Το νερό από δορυφόρο δεν είναι διαθέσιμο τώρα. Δοκίμασε αργότερα.','Satellite water isn’t available right now. Try later.')); return; }
+    if(satW||!(B.sst&&B.sst.on())) return; satW=new (satGL())({url:d.url2||d.url,opacity:.8,maxZoom:19,maxNativeZoom:10,zIndex:250,className:'sattile',attribution:'Copernicus Marine'}).addTo(map);
+    try{ window.dispatchEvent(new Event('alkyon-satwater')); }catch(e){} }); };
+B.satWaterInfo=function(){ var c=ls.get(SATK,null); return c&&c.v&&c.v.sst||null; };
 function satNote(k){ var c=ls.get(SATK,null), d=c&&c.v&&c.v[k]; var day=d&&d.day?' · '+d.day.slice(8,10)+'/'+d.day.slice(5,7):'';
   B.toast(k==='chl'?T('Χλωροφύλλη (πλαγκτόν)','Chlorophyll (plankton)')+day+': '+T('ανοιχτό = λίγη τροφή, σκούρο πράσινο = πολλή. Εκεί που αλλάζει απότομα το χρώμα (μέτωπο) μαζεύεται η τροφή και τα ψάρια.','light = little food, dark green = a lot. Where the colour changes sharply (a front), food and fish gather.'):T('Θερμοκρασία νερού από δορυφόρο','Satellite water temperature')+day+': '+T('σκούρο = πιο κρύο, κίτρινο = πιο ζεστό','dark = colder, yellow = warmer')+(d&&d.range?' ('+d.range[0]+'–'+d.range[1]+'°C)':'')+T('. Ψάξε τα σημεία όπου αλλάζει απότομα το χρώμα (θερμικό μέτωπο).','. Look for places where the colour changes sharply (a thermal front).'),7000); }
 /* 1.9.8: ραντάρ βροχής (RainViewer, δωρεάν: οι τελευταίες 2 ώρες ανά 10′, ζουμ έως 7) · παίζει σαν ταινία, μπάρα με ώρα και ▶/❚❚ */
@@ -572,7 +588,7 @@ var LIC={rain:'<svg viewBox="0 0 24 24"><path d="M7 15a5 5 0 1 1 1.6-9.7A6 6 0 0
 function layersSheet(o){ o=o&&o.into?o:{}; /* 1.7.4: o.into = μέσα στο μενού του καθαρού χάρτη (ίδιο περιεχόμενο, χωρίς τα 4 γρήγορα στρώματα) */
   var body=h('div',{class:'lyr'}), ready=!!window.AlkyonWindMap, tiles=[];
   /* πλακίδιο: icon, τίτλος, υπότιτλος, get() → ενεργό, set(v) */
-  function tile(ic,lab,sub,get,set,dis){ var b=h('button',{type:'button',class:'ltile',disabled:!!dis,onclick:function(){ set(!get()); setTimeout(paint,60); setTimeout(paint,600); }},h('span',{class:'lic',html:LIC[ic]}),h('b',{text:lab}),sub?h('small',{text:sub}):null);
+  function tile(ic,lab,sub,get,set,dis){ var b=h('button',{type:'button',class:'ltile','data-fk':'l:'+ic,disabled:!!dis,onclick:function(){ set(!get()); setTimeout(paint,60); setTimeout(paint,600); }},h('span',{class:'lic',html:LIC[ic]}),h('b',{text:lab}),sub?h('small',{text:sub}):null);
     var t={b:b,get:get}; tiles.push(t); return b; }
   function paint(){ tiles.forEach(function(t){ var on=false; try{ on=!!t.get(); }catch(e){} t.b.setAttribute('aria-pressed',String(on)); }); if(B.qpaint) B.qpaint(); }
   function grid(title,items){ body.append(h('h3',{class:'lyh',text:title}),h('div',{class:'lgrid'},items.filter(Boolean))); }
@@ -589,12 +605,11 @@ function layersSheet(o){ o=o&&o.into?o:{}; /* 1.7.4: o.into = μέσα στο μ
   /* 1.2.2: καλύτερα σημεία από όλα τα δεδομένα */
   if(B.bestSpots) grid(T('Πού να πάω','Where to go'),[tile('best',T('Καλύτερα σημεία','Best spots'),T('καιρός, τροφή, νερό, βυθός','weather, food, water, seabed'),function(){ return B.bestSpots.on(); },function(v){ B.bestSpots.set(v); })]);
   grid(o.into?T('Καιρός και θάλασσα','Weather and sea'):T('Καιρός','Weather'),[
-    o.into?null:tile('wind',T('Άνεμος','Wind'),T('ροή, 5 μέρες','flow, 5 days'),windOn,setWind,!ready),
-    o.into?null:tile('wave',T('Κύμα','Waves'),T('ύψος, 5 μέρες','height, 5 days'),seaOn,setSeaSt,!ready),
-    o.into?null:tile('cur',T('Ρεύματα','Currents'),T('τώρα, σε kn','now, in kn'),function(){ return !!cfg.cur; },function(v){ cfg.cur=v; saveCfg(); currents(true); }),
-    o.into?null:tile('sst',T('Νερό','Water'),T('θερμοκρ., μέτωπα','temp., fronts'),function(){ return !!(B.sst&&B.sst.on()); },function(v){ if(B.sst) B.sst.set(v); }),
+    tile('wind',T('Άνεμος','Wind'),T('ροή, 5 μέρες','flow, 5 days'),windOn,setWind,!ready),
+    tile('wave',T('Κύμα','Waves'),T('ύψος, 5 μέρες','height, 5 days'),seaOn,setSeaSt,!ready),
+    tile('cur',T('Ρεύματα','Currents'),T('τώρα, σε kn','now, in kn'),function(){ return !!cfg.cur; },function(v){ cfg.cur=v; saveCfg(); currents(true); }),
+    tile('sst',T('Νερό','Water'),T('θερμοκρ., μέτωπα','temp., fronts'),function(){ return !!(B.sst&&B.sst.on()); },function(v){ if(B.sst) B.sst.set(v); }),
     tile('chl',T('Τροφή','Food'),T('χλωροφύλλη, δορυφόρος','chlorophyll, satellite'),function(){ return !!cfg.chl; },function(v){ cfg.chl=v; saveCfg(); drawSat(); if(v) setTimeout(function(){ satNote('chl'); },900); }),
-    tile('sats',T('Νερό δορυφόρου','Satellite water'),T('θερμοκρ. 1 km, χθες','temp. 1 km, yesterday'),function(){ return !!cfg.sats; },function(v){ cfg.sats=v; saveCfg(); drawSat(); if(v) setTimeout(function(){ satNote('sst'); },900); }),
     tile('depth',T('Δομή βυθού','Seabed'),T('drop-offs, υψώματα','drop-offs, rises'),function(){ return !!(B.seabed&&B.seabed.on()); },function(v){ if(B.seabed) B.seabed.set(v); }),
     tile('rain',T('Βροχή (ραντάρ)','Rain (radar)'),T('τελευταίες 2 ώρες, κινούμενο','last 2 hours, animated'),function(){ return !!cfg.rain; },function(v){ cfg.rain=v; saveCfg(); drawRain(); }),
     tile('st',T('Σταθμοί','Stations'),T('πραγματικές μετρήσεις','measured'),function(){ return pressed('bWindSt'); },setStations,!ready),
@@ -619,7 +634,7 @@ function layersSheet(o){ o=o&&o.into?o:{}; /* 1.7.4: o.into = μέσα στο μ
     tile('dam',T('Φράγματα','Reservoirs'),T('πληρότητα','levels'),function(){ return !!cfg.dams; },function(v){ cfg.dams=v; saveCfg(); drawOverlays(); })]);
   /* ενέργειες */
   var acts=h('div',{class:'list lacts'});
-  function act(ic,lab,sub,fn){ acts.append(h('button',{class:'li',type:'button',onclick:fn},h('span',{class:'ic lic',html:LIC[ic]}),h('span',{class:'tx'},h('b',{text:lab}),sub?h('small',{text:sub}):null),B.icon('chev'))); }
+  function act(ic,lab,sub,fn){ acts.append(h('button',{class:'li',type:'button','data-fk':'a:'+ic,onclick:fn},h('span',{class:'ic lic',html:LIC[ic]}),h('span',{class:'tx'},h('b',{text:lab}),sub?h('small',{text:sub}):null),B.icon('chev'))); }
   if(B.nearShops) act('shop',T('Κοντινά μαγαζιά ψαρικής','Nearby tackle shops'),T('Ανοίγει το Google Maps γύρω από τη θέση σου','Opens Google Maps around your position'),function(){ B.closeSheet(); B.nearShops(); });
   if(B.importSheet) act('imp',T('Εισαγωγή από plotter ή ρολόι','Import from plotter or watch'),'GPX · KML · CSV · FIT',function(){ B.closeSheet(); B.importSheet(); });
   act('spot',T('Νέο σημείο στο κέντρο','New spot at the centre'),T('Ή κράτα πατημένο τον χάρτη','Or long-press the map'),function(){ B.closeSheet(); spotForm(null,map.getCenter()); });
@@ -763,7 +778,7 @@ var mcShift=0;
 function mcClose(fromPop){ if(!mcDr) return; var d=mcDr; mcDr=null; d.classList.remove('open'); setTimeout(function(){ d.remove(); },240);
   if(mcShift&&map){ try{ map.panBy([-mcShift,0],{animate:true,duration:.25}); }catch(e){} } mcShift=0;
   if(!fromPop&&history.state&&history.state.mcd){ try{ history.back(); }catch(e){} } }
-window.addEventListener('popstate',function(){ if(mcDr) mcClose(true); });
+window.addEventListener('popstate',function(){ if(mcDr&&!(history.state&&history.state.mcd)) mcClose(true); }); /* 1.9.12: όταν κλείνει φύλλο πάνω από το μενού, το μενού μένει */
 /* 1.9.8: με ανοιχτό το μενού, ένα πάτημα στον χάρτη ΜΟΝΟ κλείνει το μενού· δεν φτάνει στον χάρτη (π.χ. δεν βάζει «Σημείο» με τον αέρα ανοιχτό) */
 var mcTapOn=false;
 function mcTapHook(){ if(mcTapOn||!map) return; mcTapOn=true;
@@ -789,9 +804,13 @@ function mcDrFill2(){ var pan=mcDr.querySelector('.mcpan'), keep=pan.scrollTop; 
   function tile(html,lab,on,fn,cls){ return h('button',{type:'button',class:'mctile'+(cls?' '+cls:''),'aria-pressed':on==null?null:String(!!on),onclick:fn},h('span',{class:'mcti',html:html}),h('b',{text:lab})); }
   function sec(t,el){ pan.append(h('h4',{text:t}),el); }
   var chips=[].slice.call(mcRefs.qc.children);
-  var L1=h('div',{class:'mcg5'}); chips.forEach(function(b){ var on=false; try{ on=!!b._g(); }catch(e){} var sp=b.querySelector('span'), lb=b.querySelector('b');
-    L1.append(tile(sp?sp.innerHTML:'',lb?lb.textContent:'',on,function(){ b.click(); setTimeout(mcPaint,150); setTimeout(mcPaint,1000); })); });
-  sec(T('Στρώματα','Layers'),L1);
+  /* 1.9.12: «Αγαπημένα»: ο χρήστης διαλέγει από ΟΛΟ το μενού (στρώματα, εργαλεία, ενέργειες) έως 10, με τη σειρά που θέλει */
+  var FAV=[], QN=['wind','wave','cur','sst','depth'];
+  function reg(k,lab,ic,get,run,kind){ if(!k||FAV.some(function(x){ return x.k===k; })) return; FAV.push({k:k,lab:lab,ic:ic,get:get,run:run,kind:kind}); }
+  chips.forEach(function(b,i){ var sp=b.querySelector('span'), lb=b.querySelector('b');
+    reg('q:'+(QN[i]||i),lb?lb.textContent:'',sp?sp.innerHTML:'',function(){ try{ return !!b._g(); }catch(e){ return false; } },function(){ b.click(); setTimeout(mcPaint,150); setTimeout(mcPaint,1000); },'layer'); });
+  var favHead=h('div',{class:'mcfh'},h('h4',{text:T('Αγαπημένα','Favourites')}),h('button',{type:'button',class:'mcfe',text:T('Επεξεργασία','Edit'),onclick:function(){ favEdit(FAV); }})), L1=h('div',{class:'mcg5 mcfav'});
+  pan.append(favHead,L1);
   function preset(want){ /* σειρά: άνεμος, κύμα, ρεύματα, νερό, βάθη */ want.forEach(function(w,i){ var b=chips[i]; if(!b||w==null) return; var on=false; try{ on=!!b._g(); }catch(e){} if(on!==w) b.click(); }); setTimeout(mcPaint,200); setTimeout(mcPaint,1200); }
   var cur=chips.map(function(b){ try{ return !!b._g(); }catch(e){ return false; } }), is=function(w){ return w.every(function(x,i){ return x==null||x===cur[i]; }); };
   var PS=[[T('Συρτή βυθού','Bottom trolling'),[false,false,true,null,true]],[T('Καιρός','Weather'),[true,true,false,null,null]],[T('Νερό και μέτωπα','Water and fronts'),[false,false,true,true,null]],[T('Καθαρός','Plain'),[false,false,false,false,null]]];
@@ -805,18 +824,18 @@ function mcDrFill2(){ var pan=mcDr.querySelector('.mcpan'), keep=pan.scrollTop; 
     anc:'<svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2"/><path d="M12 7v14M5 13a7 7 0 0 0 14 0M8 10h8"/></svg>',info:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>',
     bell:'<svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>'};
   var TL=[];
-  function tool(el,lab,fb,fn,on){ if(el===false) return; TL.push(tile(ico(el,fb),lab,on==null?null:on,function(){ mcClose(); setTimeout(fn,250); })); }
-  var ni=q('.nightb'); if(ni||B.night) tool(ni,(B.night&&B.night.active&&B.night.active()?T('Μέρα','Day'):T('Νυχτερινή','Night')),IC.night,function(){ if(ni) ni.click(); else if(B.night.toggle) B.night.toggle(); else B.night.set(B.night.active()?'off':'on'); },!!(B.night&&B.night.active&&B.night.active()));
-  var tr=q('.trbtn'); if(tr||B.troll) tool(tr,T('Συρτή','Trolling'),'',function(){ if(tr) tr.click(); else B.troll.sheet(); },!!(B.troll&&B.troll.on&&B.troll.on()));
-  var an=q('.ancbtn'); if(an) tool(an,T('Άγκυρα','Anchor'),IC.anc,function(){ an.click(); },!!ls.get('alkyon-anchor',null));
-  var ru=document.getElementById('bRuler'); if(ru) tool(ru,T('Χάρακας','Ruler'),'',function(){ ru.click(); });
-  var mi=q('.micmap'); if(mi) tool(mi,T('Φωνητική καταγραφή','Voice log'),'',function(){ mi.click(); });
-  var orb=document.getElementById('bOrient'); if(orb) tool(orb,T('Πυξίδα','Compass'),'',function(){ orb.click(); });
+  function tool(el,lab,fb,fn,on,key){ if(el===false) return; var run=function(){ mcClose(); setTimeout(fn,250); }; TL.push(tile(ico(el,fb),lab,on==null?null:on,run)); reg('t:'+(key||lab),lab,ico(el,fb),on==null?null:function(){ return !!on; },run,'tool'); }
+  var ni=q('.nightb'); if(ni||B.night) tool(ni,(B.night&&B.night.active&&B.night.active()?T('Μέρα','Day'):T('Νυχτερινή','Night')),IC.night,function(){ if(ni) ni.click(); else if(B.night.toggle) B.night.toggle(); else B.night.set(B.night.active()?'off':'on'); },!!(B.night&&B.night.active&&B.night.active()),'night');
+  var tr=q('.trbtn'); if(tr||B.troll) tool(tr,T('Συρτή','Trolling'),'',function(){ if(tr) tr.click(); else B.troll.sheet(); },!!(B.troll&&B.troll.on&&B.troll.on()),'troll');
+  var an=q('.ancbtn'); if(an) tool(an,T('Άγκυρα','Anchor'),IC.anc,function(){ an.click(); },!!ls.get('alkyon-anchor',null),'anchor');
+  var ru=document.getElementById('bRuler'); if(ru) tool(ru,T('Χάρακας','Ruler'),'',function(){ ru.click(); },null,'ruler');
+  var mi=q('.micmap'); if(mi) tool(mi,T('Φωνητική καταγραφή','Voice log'),'',function(){ mi.click(); },null,'voicelog');
+  var orb=document.getElementById('bOrient'); if(orb) tool(orb,T('Πυξίδα','Compass'),'',function(){ orb.click(); },null,'compass');
   /* 1.9.7: «Παραγάδι, δίχτυ, ζεμπίλι» πάντα στα Εργαλεία (έφυγε από τις Ενέργειες) */
-  var gb=q('.gearbtn'); if(B.gearPanel) tool(gb||null,T('Παραγάδι, δίχτυ','Longline, net'),'<svg viewBox="0 0 24 24"><path d="M3 7h18M3 12h18M3 17h18M7 4v16M12 4v16M17 4v16"/></svg>',function(){ B.gearPanel(); });
-  tool(q('.bellb'),T('Ειδοποιήσεις','Notifications'),IC.bell,function(){ location.hash='#inbox'; });
-  if(B.saySheet) tool(null,T('Φωνή εφαρμογής','App voice'),IC.voice,function(){ B.saySheet(); },!!(B.sayCfg&&B.sayCfg().on));
-  var ab=document.querySelector('.attrbtn'); if(ab) tool(null,T('Πηγές χάρτη','Map sources'),IC.info,function(){ ab.click(); });
+  var gb=q('.gearbtn'); if(B.gearPanel) tool(gb||null,T('Παραγάδι, δίχτυ','Longline, net'),'<svg viewBox="0 0 24 24"><path d="M3 7h18M3 12h18M3 17h18M7 4v16M12 4v16M17 4v16"/></svg>',function(){ B.gearPanel(); },null,'gear');
+  tool(q('.bellb'),T('Ειδοποιήσεις','Notifications'),IC.bell,function(){ location.hash='#inbox'; },null,'bell');
+  if(B.saySheet) tool(null,T('Φωνή εφαρμογής','App voice'),IC.voice,function(){ B.saySheet(); },!!(B.sayCfg&&B.sayCfg().on),'say');
+  var ab=document.querySelector('.attrbtn'); if(ab) tool(null,T('Πηγές χάρτη','Map sources'),IC.info,function(){ ab.click(); },null,'sources');
   var toolsEl=mcAcc(T('Εργαλεία','Tools'),ls.get('alkyon-v4-mcopen',{})); toolsEl.append(h('div',{class:'mcg3'},TL)); /* 1.7.9: μπαίνει στη σειρά πιο κάτω */
   /* όλα τα υπόλοιπα: ίδιο περιεχόμενο με «Στρώματα χάρτη», σε ομάδες που ανοιγοκλείνουν */
   var tmp=h('div'), r=layersSheet({into:tmp}), OPEN=ls.get('alkyon-v4-mcopen',{}), grp=null, groups={}, pend=[];
@@ -838,8 +857,32 @@ function mcDrFill2(){ var pan=mcDr.querySelector('.mcpan'), keep=pan.scrollTop; 
   /* ενέργειες (μαγαζιά, εισαγωγή, νέο σημείο…): κλείνουν το μενού */
   [].forEach.call(pan.querySelectorAll('.lacts .li'),function(b){ b.addEventListener('click',function(){ mcClose(); },true); });
   pan.append(h('div',{class:'mcfoot'},h('button',{type:'button',class:'chip sm',text:T('Κλασικός χάρτης','Classic map'),onclick:function(){ mcClose(); B.setMapUI('classic'); B.toast(T('Κλασικός χάρτης. Για τον καθαρό: Προφίλ › Ρυθμίσεις › Χάρτης.','Classic map. For the clean one: Profile › Settings › Map.')); }}),h('span',{class:'mchd'})));
+  [].forEach.call(pan.querySelectorAll('.ltile[data-fk]'),function(el){ var k=el.getAttribute('data-fk'); if(/^l:(wind|wave|cur|sst)$/.test(k)) return; var lb=el.querySelector('b'), ic=el.querySelector('.lic');
+    reg(k,lb?lb.textContent:'',ic?ic.innerHTML:'',function(){ return el.getAttribute('aria-pressed')==='true'; },function(){ el.click(); setTimeout(paintFav,120); setTimeout(paintFav,800); },'layer'); });
+  [].forEach.call(pan.querySelectorAll('.lacts .li[data-fk]'),function(el){ var lb=el.querySelector('b'), ic=el.querySelector('.lic'); reg(el.getAttribute('data-fk'),lb?lb.textContent:'',ic?ic.innerHTML:'',null,function(){ el.click(); },'action'); });
+  function paintFav(){ var ks=favKeys(), byK={}; FAV.forEach(function(x){ byK[x.k]=x; }); L1.replaceChildren();
+    ks.forEach(function(k){ var x=byK[k]; if(!x) return; var on=null; try{ on=x.get?!!x.get():null; }catch(e){}
+      L1.append(tile(x.ic,x.lab,on,function(){ x.run(); if(x.kind==='layer'){ setTimeout(paintFav,150); setTimeout(paintFav,900); } },x.kind!=='layer'?'mcfa':'')); });
+    if(!L1.children.length) L1.append(h('button',{type:'button',class:'mctile mcfadd',onclick:function(){ favEdit(FAV); }},h('span',{class:'mcti',text:'＋'}),h('b',{text:T('Πρόσθεσε','Add')}))); }
+  paintFav();
   mcCounts(pan); pan.addEventListener('click',function(){ setTimeout(function(){ mcCounts(pan); },400); });
   pan.scrollTop=keep; }
+var FAVK='alkyon-v4-favs', FAVD=['q:wind','q:wave','q:cur','q:sst','q:depth','t:troll','t:anchor','t:ruler','t:night'];
+function favKeys(){ var v=ls.get(FAVK,null); return Array.isArray(v)?v.slice(0,10):FAVD.slice(); }
+/* επεξεργασία αγαπημένων: ★ για προσθήκη/αφαίρεση, ↑↓ για σειρά (έως 10) */
+function favEdit(ALL){ var sel=favKeys(), sh, box=h('div',{class:'fved'}), byK={}; ALL.forEach(function(x){ byK[x.k]=x; });
+  function save(){ ls.set(FAVK,sel); }
+  function row(x,inSel,i){ var star=h('button',{type:'button',class:'fvst'+(inSel?' on':''),'aria-label':inSel?T('Αφαίρεση από τα αγαπημένα','Remove from favourites'):T('Προσθήκη στα αγαπημένα','Add to favourites'),text:inSel?'★':'☆',onclick:function(){
+      if(inSel) sel.splice(sel.indexOf(x.k),1); else { if(sel.length>=10){ B.toast(T('Έως 10 αγαπημένα. Βγάλε πρώτα ένα.','Up to 10 favourites. Remove one first.')); return; } sel.push(x.k); } save(); draw(); }});
+    var r=h('div',{class:'fvr'},h('span',{class:'fvi',html:x.ic||''}),h('b',{text:x.lab}),inSel?h('span',{class:'fvmv'},h('button',{type:'button','aria-label':T('Πάνω','Up'),text:'↑',disabled:i===0,onclick:function(){ sel.splice(i-1,0,sel.splice(i,1)[0]); save(); draw(); }}),h('button',{type:'button','aria-label':T('Κάτω','Down'),text:'↓',disabled:i===sel.length-1,onclick:function(){ sel.splice(i+1,0,sel.splice(i,1)[0]); save(); draw(); }})):null,star);
+    return r; }
+  function draw(){ box.replaceChildren(); sel=sel.filter(function(k){ return byK[k]; });
+    box.append(h('h3',{class:'h3',text:T('Αγαπημένα','Favourites')+' ('+sel.length+'/10)'}));
+    sel.forEach(function(k,i){ box.append(row(byK[k],true,i)); });
+    [['layer',T('Στρώματα','Layers')],['tool',T('Εργαλεία','Tools')],['action',T('Ενέργειες','Actions')]].forEach(function(g){ var rest=ALL.filter(function(x){ return x.kind===g[0]&&sel.indexOf(x.k)<0; }); if(!rest.length) return;
+      box.append(h('h3',{class:'h3',text:g[1]})); rest.forEach(function(x){ box.append(row(x,false,-1)); }); });
+    box.append(h('button',{type:'button',class:'btn full',text:T('Αρχικά αγαπημένα','Reset to default'),onclick:function(){ sel=FAVD.slice(); save(); draw(); }})); }
+  draw(); sh=B.sheet({title:T('Αγαπημένα στο μενού','Menu favourites'),body:box,stack:true,onclose:function(){ setTimeout(function(){ if(mcDr) mcDrFill(); else mcOpen(); },80); }}); }
 /* 1.8.2: κρατάμε το κουμπί: όταν ξαναμπαίνεις στον χάρτη, η στήλη (seabar) φτιάχνεται από την αρχή και το κουμπί έμενε στην παλιά (χανόταν το NU/CU/HU) */
 var oBtn=null;
 function placeOrient(){ var o=document.getElementById('bOrient')||oBtn, sb=root&&root.querySelector('.seabar'); if(o) oBtn=o; if(o&&sb&&o.parentNode!==sb) sb.append(o); }

@@ -143,7 +143,8 @@ function lattice(b,maxN){
 function latQ(L){ var la=[], lo=[]; for(var j=0;j<L.nla;j++) for(var i=0;i<L.nlo;i++){ la.push((L.la0+(L.la1-L.la0)*j/(L.nla-1)).toFixed(3)); lo.push((L.lo0+(L.lo1-L.lo0)*i/(L.nlo-1)).toFixed(3)); } return 'latitude='+la.join(',')+'&longitude='+lo.join(','); }
 function arrOf(j){ return j==null?null:(Array.isArray(j)?j:[j]); }
 function regionFor(b){
-  var p=0.3, s=Math.floor((b.getSouth()-p)*4)/4, n=Math.ceil((b.getNorth()+p)*4)/4, w=Math.floor((b.getWest()-p)*4)/4, e=Math.ceil((b.getEast()+p)*4)/4;
+  /* 1.9.12: μεγαλύτερο περιθώριο (μισό της οθόνης, τουλάχιστον 0,5°), για λιγότερα νέα αιτήματα όταν μετακινείς τον χάρτη */
+  var p=Math.max(0.5,Math.min(1.5,Math.max(b.getNorth()-b.getSouth(),b.getEast()-b.getWest())*0.5)), s=Math.floor((b.getSouth()-p)*4)/4, n=Math.ceil((b.getNorth()+p)*4)/4, w=Math.floor((b.getWest()-p)*4)/4, e=Math.ceil((b.getEast()+p)*4)/4;
   return {s:s,n:n,w:w,e:e,key:[s,n,w,e].join(',')};
 }
 function covers(R,b){ return R&&b.getSouth()>=R.b.s&&b.getNorth()<=R.b.n&&b.getWest()>=R.b.w&&b.getEast()<=R.b.e; }
@@ -199,15 +200,15 @@ function latSample(L,lat,lon,fn){
   if(!sw) return null; for(var z2=0;z2<acc.length;z2++) acc[z2]/=sw; return acc;
 }
 /* προετοιμασία για τη χρονική στιγμή t: διάρκειες ανά κόμβο, swell/κύμα ανά μοντέλο */
-function prep(t){
-  var P={dur:null,waves:[]}; if(!REG||!t) return P;
-  var W=REG.wind;
+function prep(t,RG){ RG=RG||REG;
+  var P={dur:null,waves:[]}; if(!RG||!t) return P;
+  var W=RG.wind;
   if(W){ var ti=W.t.indexOf(t); if(ti>=0){ var NPn=W.L.nla*W.L.nlo, out=new Float32Array(NPn);
     for(var p=0;p<NPn;p++){ var sp=W.sp[p], dr=W.dir[p], s0=sp[ti], d0=dr[ti]; if(s0==null||d0==null){ out[p]=NaN; continue; }
       var D=1, k=ti-1; for(;k>=0;k--){ var s=sp[k], d=dr[k]; if(s==null||d==null) break; if(s>=Math.max(3,0.5*s0)&&adiff(d,d0)<=45) D++; else break; }
       out[p]=(k<0)?Math.max(D,24):D; }
     P.dur={L:W.L,v:out}; } }
-  REG.waves.forEach(function(m){
+  RG.waves.forEach(function(m){
     var ti=m.t.indexOf(t); if(ti<0) return; var NPn=m.L.nla*m.L.nlo, h=new Float32Array(NPn), sh=new Float32Array(NPn), su=new Float32Array(NPn), sv=new Float32Array(NPn), tp=new Float32Array(NPn), stp=new Float32Array(NPn), wu=new Float32Array(NPn), wv=new Float32Array(NPn), ok=new Uint8Array(NPn), any=false;
     for(var p=0;p<NPn;p++){ var a=m.h[p]&&m.h[p][ti], b=m.sh[p]&&m.sh[p][ti], d=m.sd[p]&&m.sd[p][ti]; if(a==null) continue; h[p]=a; var t1=m.tp&&m.tp[p]&&m.tp[p][ti], t2=m.st&&m.st[p]&&m.st[p][ti]; tp[p]=t1==null?0:t1; stp[p]=t2==null?0:t2; var w1=m.wd&&m.wd[p]&&m.wd[p][ti]; if(w1!=null){ wu[p]=Math.sin(w1*Math.PI/180)*a; wv[p]=Math.cos(w1*Math.PI/180)*a; } sh[p]=b==null?0:b; var dd=(d==null?0:d)*Math.PI/180; su[p]=Math.sin(dd)*sh[p]; sv[p]=Math.cos(dd)*sh[p]; ok[p]=1; any=true; }
     if(any) P.waves.push({name:m.name,L:m.L,h:h,sh:sh,su:su,sv:sv,tp:tp,stp:stp,wu:wu,wv:wv,ok:ok});
@@ -317,7 +318,12 @@ function blur(V,cw,ch){
   for(y=0;y<ch;y++) for(x=0;x<cw;x++){ a=0; for(k=-2;k<=2;k++){ var yy=Math.min(ch-1,Math.max(0,y+k)); a+=t[yy*cw+x]*K[k+2]; } o[y*cw+x]=a; }
   return o;
 }
-function prepNow(){ if(PREPT!==curT||!PREP||PREP.reg!==REG){ PREP=prep(curT); PREP.reg=REG; PREPT=curT; } return PREP; }
+/* 1.9.12: όσο φορτώνει (ή αν απέτυχε, π.χ. όριο αιτημάτων) η νέα περιοχή, χρησιμοποιείται η προηγούμενη που έχει μοντέλα κύματος,
+   ώστε το χρώμα να μη σταματά σε ευθεία γραμμή */
+function regs(){ var out=[]; if(REG) out.push(REG); (window.__ndSeaRegs||[]).forEach(function(r){ if(r!==REG&&r.waves&&r.waves.length) out.push(r); }); return out; }
+function srcReg(){ var r=regs().filter(function(x){ return x.waves&&x.waves.length; })[0]; return r||REG; }
+function prepFor(R){ if(!R) return {dur:null,waves:[]}; if(!R._pp||R._pp.t!==curT||R._pp.n!==R.waves.length){ R._pp={t:curT,n:R.waves.length,P:prep(curT,R)}; } return R._pp.P; }
+function prepNow(){ var R=srcReg(); if(PREPT!==curT||!PREP||PREP.reg!==R||PREP.n!==(R&&R.waves?R.waves.length:0)){ PREP=prep(curT,R); PREP.reg=R; PREP.n=R&&R.waves?R.waves.length:0; PREPT=curT; } return PREP; }
 function pointInfo(lat,lon){
   var cl=cellAt(lat,lon); if(!cl) return null;
   var W=window.AlkyonWindMap, v=W&&W.sample?W.sample(lat,lon):null; if(!v) return null;
@@ -550,9 +556,11 @@ function stop(){
 }
 btn.addEventListener('click',function(){ on?stop():start(); });
 /* v31z520: ύψος και κατεύθυνση κύματος από τα μοντέλα, για όλη τη θάλασσα (και πέρα από τα 10 km). Για το πεδίο κύματος της v4. */
-window.AlkyonSeaState.modelAt=function(lat,lon){ if(!on||!REG) return null; var P=prepNow(), hs=0, u=0, v=0, tp=0, n=0;
+window.AlkyonSeaState.modelAt=function(lat,lon){ if(!on||!REG) return null; var RS=regs().filter(function(x){ return x.waves&&x.waves.length; });
+  for(var ri=0;ri<RS.length;ri++){ var r=modelIn(RS[ri],lat,lon); if(r) return r; } return null; };
+function modelIn(RG,lat,lon){ var b=RG.b; if(b&&(lat<b.s-0.05||lat>b.n+0.05||lon<b.w-0.05||lon>b.e+0.05)) return null; var P=prepFor(RG), hs=0, u=0, v=0, tp=0, n=0;
   P.waves.forEach(function(m){ var s=latSample(m.L,lat,lon,function(p){ return m.ok[p]?[m.h[p],m.wu[p],m.wv[p],m.tp[p]]:null; }); if(s){ hs+=s[0]; u+=s[1]; v+=s[2]; tp+=s[3]; n++; } });
-  if(!n) return null; return {h:hs/n,dir:(u||v)?(Math.atan2(u,v)*180/Math.PI+360)%360:null,tp:tp/n}; };
-window.AlkyonSeaState.ready=function(){ return !!(on&&REG&&REG.waves&&REG.waves.length); };
+  if(!n) return null; return {h:hs/n,dir:(u||v)?(Math.atan2(u,v)*180/Math.PI+360)%360:null,tp:tp/n}; }
+window.AlkyonSeaState.ready=function(){ return !!(on&&REG&&regs().some(function(x){ return x.waves&&x.waves.length; })); };
 window.AlkyonSeaState.start=start; window.AlkyonSeaState.stop=stop; window.AlkyonSeaState.pointInfo=pointInfo; window.AlkyonSeaState.clearTap=function(){ if(tapMk){ try{ map.removeLayer(tapMk); }catch(e){} tapMk=null; } tapLL=null; showPoint(); };
 })();

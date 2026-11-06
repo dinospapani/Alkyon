@@ -49,7 +49,7 @@ function S(){ return window.AlkyonSeaState; }
 function windOn(){ var w=W(); return !!(w&&w.shown&&w.shown()); }
 function seaOn(){ return document.body.classList.contains('ndsea'); }
 function mapOn(){ return document.body.classList.contains('mapon'); }
-function land(lat,lon){ var X=window.AlkyonExposure; try{ return X&&X.isLand?X.isLand(lat,lon):-1; }catch(e){ return -1; } }
+function land(lat,lon){ var X=window.AlkyonExposure, r=-1; try{ r=X&&X.isLand?X.isLand(lat,lon):-1; }catch(e){ r=-1; } if(r===-1){ try{ var M=window.AlkyonMedLand; if(M) r=M.isLand(lat,lon); }catch(e){} } return r; } /* 1.9.12: και η μάσκα Μεσογείου, για να μη βάφεται η στεριά (π.χ. Τουρκία) όταν ο χάρτης είναι μακριά */
 /* χρώματα ανέμου (κόμβοι), κοντά στην κλίμακα του Windy */
 var WC=[[0,[98,113,183]],[3,[57,97,159]],[6,[74,148,169]],[10,[77,141,123]],[14,[83,165,83]],[18,[53,159,53]],[22,[167,157,81]],[27,[159,127,58]],[33,[161,108,92]],[40,[129,58,78]],[48,[175,80,136]],[56,[117,74,147]]];
 function wcol(kn){ if(!(kn>0)) return WC[0][1]; for(var i=1;i<WC.length;i++){ if(kn<=WC[i][0]){ var a=WC[i-1], b=WC[i], t=(kn-a[0])/(b[0]-a[0]); return [a[1][0]+(b[1][0]-a[1][0])*t,a[1][1]+(b[1][1]-a[1][1])*t,a[1][2]+(b[1][2]-a[1][2])*t]; } } return WC[WC.length-1][1]; }
@@ -261,6 +261,8 @@ function sstDraw(){
   if(!ensure()) return; if(!sstCv){ sstCv=document.createElement('canvas'); sstCv.className='wxsst'; sstCv.setAttribute('aria-hidden','true'); sstCv.style.cssText='position:absolute;left:0;top:0;pointer-events:none;transition:opacity .35s'; sstPane().appendChild(sstCv); }
   var sz=map.getSize(), dpr=Math.min(window.devicePixelRatio||1,2); sstCv.width=Math.round(sz.x*dpr); sstCv.height=Math.round(sz.y*dpr); sstCv.style.width=sz.x+'px'; sstCv.style.height=sz.y+'px'; pin(sstCv);
   var cx=sstCv.getContext('2d'); cx.setTransform(dpr,0,0,dpr,0,0); cx.clearRect(0,0,sz.x,sz.y);
+  var SRC=B.ls.get('alkyon-v4-sstsrc','model')==='sat'?'sat':'model'; if(B.satWater) B.satWater(sstOn&&mapOn()&&SRC==='sat');
+  if(sstOn&&mapOn()&&SRC==='sat'){ sstCv.style.opacity='0'; var si=B.satWaterInfo?B.satWaterInfo():null; B.sstLegend&&B.sstLegend({sat:true,lo:si&&si.range?si.range[0]:15,hi:si&&si.range?si.range[1]:30,day:si&&si.day}); return; }
   if(!sstOn||!mapOn()||!sstG){ sstCv.style.opacity='0'; B.sstLegend&&B.sstLegend(null); return; }
   var st=8, gw=Math.ceil(sz.x/st)+1, gh=Math.ceil(sz.y/st)+1, V=new Float32Array(gw*gh), A=new Uint8Array(gw*gh), lo=1e9, hi=-1e9, lat=[], lon=[];
   for(var y=0;y<gh;y++) lat.push(map.containerPointToLatLng([0,y*st]).lat); for(var x=0;x<gw;x++) lon.push(map.containerPointToLatLng([x*st,0]).lng);
@@ -300,6 +302,13 @@ function sstDraw(){
 var legEl=null;
 B.sstLegend=function(L2){ if(!L2){ if(legEl) legEl.hidden=true; return; }
   if(!legEl){ legEl=document.createElement('div'); legEl.className='sstleg'; legEl.setAttribute('role','note'); document.body.append(legEl); }
+  /* 1.9.12: πηγή: μοντέλο (τώρα και πρόγνωση, με τιμές και μέτωπα) ή δορυφόρος (χθες, 1 km) */
+  function srcRow(){ var r=document.createElement('div'); r.className='slsrc'; var cur=L2.sat?'sat':'model';
+    [['model',T('Μοντέλο','Model')],['sat',T('Δορυφόρος (χθες)','Satellite (yesterday)')]].forEach(function(o){ var b=document.createElement('button'); b.type='button'; b.textContent=o[1]; b.setAttribute('aria-pressed',String(cur===o[0])); b.addEventListener('click',function(){ B.ls.set('alkyon-v4-sstsrc',o[0]); sstDraw(); }); r.append(b); }); return r; }
+  if(L2.sat){ legEl.hidden=false; legEl.replaceChildren(); var TH=['#04232f','#16357a','#4f3a9e','#87449a','#c24f80','#ee6a54','#fb9b3a','#e8fa5b'], U0=window.AlkyonUnits, f0=function(v){ return U0&&U0.temp?U0.temp(v,0):Math.round(v)+'°'; };
+    var t0=document.createElement('div'); t0.className='slt'; t0.innerHTML='<b></b><span class="slb" style="background:linear-gradient(90deg,'+TH.join(',')+')"></span><b></b>'; t0.children[0].textContent=f0(L2.lo); t0.children[2].textContent=f0(L2.hi); legEl.append(t0);
+    var n0=document.createElement('small'); n0.textContent=T('Μέτρηση δορυφόρου','Satellite measurement')+(L2.day?' '+L2.day.slice(8,10)+'/'+L2.day.slice(5,7):'')+T(' · 1 km · χωρίς πρόγνωση. Τα μέτωπα φαίνονται ως απότομη αλλαγή χρώματος.',' · 1 km · no forecast. Fronts show as a sharp colour change.'); legEl.append(n0);
+    legEl.append(srcRow()); return; }
   var g=SC.map(function(c){ return 'rgb('+c[1].map(Math.round).join(',')+') '+Math.round(c[0]*100)+'%'; }).join(','), U=window.AlkyonUnits, f=function(v){ return U&&U.temp?U.temp(v,1):B.num(v,1)+'°'; };
   legEl.hidden=false; legEl.replaceChildren();
   var top=document.createElement('div'); top.className='slt'; top.innerHTML='<b></b><span class="slb" style="background:linear-gradient(90deg,'+g+')"></span><b></b>'; top.children[0].textContent=f(L2.l0); top.children[2].textContent=f(L2.l0+L2.span); legEl.append(top);
@@ -309,8 +318,10 @@ B.sstLegend=function(L2){ if(!L2){ if(legEl) legEl.hidden=true; return; }
   if(L2.here!=null){ var hb=document.createElement('b'); hb.className='slh'; hb.textContent=T('Στο σταυρό: ','At the cross: ')+f(L2.here); row.append(hb); }
   var sw=document.createElement('button'); sw.type='button'; sw.className='slsc'; sw.textContent=L2.fixed?T('Κλίμακα: σταθερή 14–30°','Scale: fixed 14–30°'):T('Κλίμακα: της περιοχής','Scale: this area');
   sw.title=T('Σταθερή: το ίδιο χρώμα σημαίνει πάντα την ίδια θερμοκρασία. Περιοχής: δείχνει καλύτερα τις μικρές διαφορές.','Fixed: the same colour always means the same temperature. Area: shows small differences better.');
-  sw.addEventListener('click',function(){ B.ls.set('alkyon-v4-sstscale',L2.fixed?'local':'fixed'); sstDraw(); }); row.append(sw); legEl.append(row); };
-B.sst={on:function(){ return sstOn; },set:function(v){ sstOn=!!v; B.ls.set(SK,sstOn); if(sstOn) sstLoad(true); else sstDraw(); try{ window.dispatchEvent(new Event('alkyon-wxchange')); }catch(e){} },color:scol};
+  sw.addEventListener('click',function(){ B.ls.set('alkyon-v4-sstscale',L2.fixed?'local':'fixed'); sstDraw(); }); row.append(sw); legEl.append(row); legEl.append(srcRow()); };
+B.landAt=land;
+window.addEventListener('alkyon-satwater',function(){ sstDraw(); });
+B.sst={on:function(){ return sstOn; },set:function(v){ sstOn=!!v; B.ls.set(SK,sstOn); if(sstOn) sstLoad(true); sstDraw(); try{ window.dispatchEvent(new Event('alkyon-wxchange')); }catch(e){} },color:scol};
 /* μέρες κάτω από τη μπάρα ώρας */
 function days(){
   var sl=document.getElementById('ndWindSl'), Wx=W(); if(!sl||!Wx||!Wx.hours) return; var hs=Wx.hours()||[]; if(hs.length<2) return;

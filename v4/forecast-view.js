@@ -394,7 +394,13 @@ function dayView(page,fc,d){
   if(isToday&&B.lastYearCard){ var ly=B.lastYearCard(); if(ly) page.append(ly); }
   if(isToday&&B.bestDaysCard&&hr){ var bd=B.bestDaysCard({press:hr.pres,wind:hr.wind,wave:hr.wave,sst:hr.sst,temp:hr.temp}); if(bd){ var bh=bd.querySelector('h2'), pc=bd.querySelector('.simhead b'); if(bh) bh.remove(); bd.classList.remove('card'); page.append(fold('best',T('Σε σχέση με τις καλύτερες μέρες σου','Compared with your best days'),pc?pc.textContent+T(' ομοιότητα',' similar'):'',[bd])); } }
 
-  page.append(pwCard(fc,d));
+  /* 1.9.11: και η «Πίεση, άνεμος, σελήνη» πτυσσόμενη· στον τίτλο η τάση πίεσης των επόμενων 24 ωρών */
+  (function(){ var pwc=pwCard(fc,d), ph=pwc.querySelector('.pwh h2'); if(ph) ph.remove(); pwc.classList.remove('card');
+    var all=[]; (fc.days||[]).forEach(function(x){ (x.hours||[]).forEach(function(q){ if(q.pres!=null) all.push(q); }); });
+    var nowT=(fc.nowLocal||'').slice(0,13), i0=-1; all.forEach(function(q,i){ if(i0<0&&q.t&&q.t.slice(0,13)>=nowT) i0=i; });
+    var hint=T('γράφημα 24 ωρών έως 7 ημερών','chart for 24 hours to 7 days');
+    if(i0>=0&&all[i0+24]){ var dp=all[i0+24].pres-all[i0].pres; hint=(Math.abs(dp)<1.5?T('πίεση σταθερή','pressure steady'):dp>0?T('πίεση ανεβαίνει ','pressure rising ')+Math.round(dp)+' hPa':T('πίεση πέφτει ','pressure falling ')+Math.round(-dp)+' hPa')+T(' τις επόμενες 24 ώρες',' over the next 24 hours'); }
+    page.append(fold('pw',T('Πίεση, άνεμος, σελήνη','Pressure, wind, moon'),hint,[pwc])); })();
   /* 1.6.8: θερμοκρασία σε βάθος + ρεύμα σε μία κάρτα «Κάτω από την επιφάνεια» (μόνο σήμερα) */
   if(isToday){ var ug=h('section',{class:'card under'},h('h2',{text:T('Κάτω από την επιφάνεια','Below the surface')})), nU=0;
     if(B.thermoCard&&(B.prof()==='boat'||B.prof()==='spear')){ var tcd=B.thermoCard(st.place); if(tcd){ tcd.classList.remove('card'); tcd.classList.add('usub'); ug.append(tcd); nU++; } }
