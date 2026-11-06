@@ -289,7 +289,7 @@ function localAt(ms){ var d=new Date(ms); return d.getFullYear()+'-'+B.pad(d.get
 B.quickRec=function(miss,at,tms,quiet){
   var S=st(), f=(B.troll&&B.troll.sim&&B.troll.sim.on()&&B.troll.sim.fix())||(B.trip&&B.trip.fix&&B.trip.fix())||null, p=at||(tms?trackAt(tms):null)||(f&&Math.abs((tms||Date.now())-(f.t||0))<180000?f:B.lastPos()), dt=tms?localAt(tms):nowLocal(), date=dt.slice(0,10), time=dt.slice(11,16);
   var rec={date:date,time:time,tz:-new Date().getTimezoneOffset(),species:'',latin:'',bait:'',tech:'',depth:null,kg:null,len:null,notes:'',place:'',lat:null,lon:null,photo:false,src:at?(miss?'miss-map':'map'):(miss?'miss':'quick'),prof:B.prof()};
-  var tr=false; if(p){ rec.lat=+(+p.lat).toFixed(5); rec.lon=+(+p.lon).toFixed(5); tr=!at&&B.troll&&B.troll.adjust(rec); /* 1.8.7: και το τσίμπημα στη συρτή μπαίνει εκεί που είναι το δόλωμα */ if(!tr){ var ns=nearSpot(rec.lat,rec.lon); if(ns){ rec.lat=ns.lat; rec.lon=ns.lon; rec.place=ns.name||''; } } }
+  if(miss) rec.miss=true; /* 1.8.23: πριν το adjust, για το σημάδι «χαμένο» στο διάγραμμα συρτής */ var tr=false; if(p){ rec.lat=+(+p.lat).toFixed(5); rec.lon=+(+p.lon).toFixed(5); tr=!at&&B.troll&&B.troll.adjust(rec); /* 1.8.7: και το τσίμπημα στη συρτή μπαίνει εκεί που είναι το δόλωμα */ if(!tr){ var ns=nearSpot(rec.lat,rec.lon); if(ns){ rec.lat=ns.lat; rec.lon=ns.lon; rec.place=ns.name||''; } } }
   if(miss) rec.miss=true;
   var tk=lastTk(B.prof()); if(tk.length&&!miss&&!rec.tk) rec.tk=tk;
   var c=condFor(rec.lat,rec.lon,date,time); Object.keys(c).forEach(function(k){ rec[k]=c[k]; });

@@ -1005,7 +1005,7 @@ html.night .trside{background:#1a0000;color:#fff}html.night .trside .tsc{backgro
 body.trck .mcbar,body.trck .mcedge,body.trck .mcpanel,body.trck .mcmode,body.trck .fishbtns,body.trck .seabar,body.trck .trwrap{visibility:hidden}
 .ck .cktop{display:flex;align-items:center;gap:8px}
 .ck .cktop b{font:900 13px var(--font);letter-spacing:.12em;color:var(--ck-up);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ck .cksp{font:900 17px var(--font);color:var(--ck-mut)}.ck .cksp.bad{color:var(--ck-bad)}
+.ck .cksp{font:900 17px var(--font);color:var(--ck-mut);display:flex;flex-direction:column;align-items:flex-end;line-height:1.05}.ck .cksp small{font:800 11px var(--font);opacity:.85;letter-spacing:.02em}.ck .cksp.bad{color:var(--ck-bad)}
 .ck .ckib{all:unset;cursor:pointer;width:42px;height:42px;border-radius:12px;background:var(--ck-pn2);color:var(--ck-ink);display:grid;place-items:center;flex:0 0 auto}.ck .ckib svg{width:21px;height:21px}
 .ck .cksim{display:flex;align-items:center;gap:8px;background:#3a2f0a;color:#ffe08a;border-radius:12px;padding:5px 6px 5px 12px;font:800 13px var(--font)}.ck.sun .cksim{background:#fff1bf;color:#5a4500}.ck .cksim span{flex:1}
 .ck .ckwarn{background:var(--ck-bad);color:#fff;border-radius:12px;padding:9px 12px;font:900 15px var(--font);animation:tsspd 1.1s ease-in-out infinite alternate}
@@ -1079,3 +1079,13 @@ button.cknum{cursor:pointer}button.cknum:active{filter:brightness(.92)}
 .trside.ck.red .ckcmd,.trside.ck.red .ckf.ok,.trside.ck.red .ckfish{background:#5a0a06!important;color:#ffb3a8}
 .trside.ck.red .ckdv,.trside.ck.red .ckmini{filter:sepia(1) saturate(4) hue-rotate(-50deg) brightness(.75)}
 .trside.ck.red .cknum.hl b{color:#ff6b5b}
+
+/* 1.8.25: κουμπί «ΗΧΩ» πάνω στο διάγραμμα */
+.ck .ckopt2{position:absolute;right:44px;top:8px;z-index:2;display:flex;gap:6px}
+.ck .ckecho{border:1px solid rgba(255,255,255,.35);background:rgba(8,20,40,.55);color:#e8f4fb;font:800 11px var(--font);letter-spacing:.08em;padding:5px 9px;border-radius:999px;backdrop-filter:blur(4px)}
+.ck .ckecho.on{background:linear-gradient(90deg,#ff2a14,#ffe100 45%,#39d353 70%,#1d63ff);color:#061634;border-color:transparent}
+.ck.sun .ckecho:not(.on){background:rgba(255,255,255,.8);color:#0b1f2a;border-color:rgba(11,31,42,.25)}
+.ck .ckecho.one.on{background:#fff;color:#0b1f2a;border-color:#0b1f2a}
+/* 1.8.26: με την οθόνη συρτής (z 640) ανοιχτή, τα μενού (☰, στόχος, βυθόμετρο) και τα μηνύματα έμεναν από κάτω της */
+body.trck .scrim{z-index:700}body.trck .sheet{z-index:701}body.trck .scrim.stk{z-index:710}body.trck .sheet.stk{z-index:711}body.trck .toast{z-index:720}
+.ck button.cksp{background:none;border:0;padding:0 2px;cursor:pointer}
