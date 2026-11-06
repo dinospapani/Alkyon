@@ -641,3 +641,13 @@ html.night .raintile{filter:grayscale(1) brightness(1.4)}
 /* 1.9.8: κουμπί Μέρα/Νύχτα κάτω από τα «Στρώματα» */
 .mcnight[hidden]{display:none!important}
 .mcnight{top:calc(var(--safe-t,0px) + 134px)}
+
+/* 1.9.8: φύλλο «Έξοδος» χωρίς κύλιση: πιο σφιχτό */
+.bform.tstart{gap:8px}
+.bform.tstart .tcontact{padding:8px 12px}
+.bform.tstart .tcontact .tci{width:34px;height:34px}
+.bform.tstart .tg{margin:0;min-height:44px}
+.bform.tstart .tg .tgs{display:none}
+.bform.tstart .ttime input{min-height:44px;padding-top:6px;padding-bottom:6px}
+.bform.tstart .twhere input{min-height:46px}
+.bform.tstart .tmore summary{padding-top:6px;padding-bottom:6px}
