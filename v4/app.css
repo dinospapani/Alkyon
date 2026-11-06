@@ -777,3 +777,15 @@ form.bform .bfmore>summary::after{content:' ▾'}
 form.bform .bfmore[open]>summary::after{content:' ▴'}
 form.bform .bfmore>*:not(summary){margin-top:8px}
 form.bform:has(.bfsave){overflow-x:clip;overflow-y:visible}
+/* 1.9.13: νυχτερινή: έλεγχος όλων των σελίδων. Στη νυχτερινή μετράει μόνο η φωτεινότητα, οπότε κόκκινο κουμπί με σκούρα γράμματα δεν διαβαζόταν.
+   Κύρια κουμπιά, πλακίδια μενού, διακόπτες: μαύρο φόντο, λευκά γράμματα, λευκό περίγραμμα (όπως τα πατημένα) */
+html.night .btn.pri,html.night button.pri,html.night .bfsave,html.night .tgo{background:#000!important;color:#fff!important;box-shadow:inset 0 0 0 2px #fff!important;border-color:#fff!important}
+html.night .mcpan .mctile:not([aria-pressed="true"]),html.night .mcpan .mcpre:not([aria-pressed="true"]),html.night .lyr .ltile:not([aria-pressed="true"]){background:#000!important;color:#fff!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.35)!important}
+html.night .mcpan .mctile:not([aria-pressed="true"]) svg,html.night .lyr .ltile:not([aria-pressed="true"]) svg{stroke:#fff}
+html.night .mcpan .mcpre[aria-pressed="true"]{background:#000!important;color:#fff!important;box-shadow:inset 0 0 0 3px #fff!important}
+html.night .tg input{background:#000!important;box-shadow:inset 0 0 0 2px rgba(255,255,255,.35)}
+html.night .tg input::after{background:#666}
+html.night .tg input:checked{box-shadow:inset 0 0 0 2px #fff!important}
+html.night .tg input:checked::after{background:#fff}
+html.night .nwc.gw{background:#000!important;color:#fff!important;box-shadow:inset 0 0 0 2px #fff}
+html.night .fdi.catch{background:#000!important;color:#fff!important;box-shadow:0 0 0 3px #fff!important}
