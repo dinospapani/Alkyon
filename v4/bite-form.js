@@ -182,13 +182,13 @@ B.biteForm=function(edit,opt){
     else kgEst.hidden=true; }
   len.addEventListener('input',estKg); sp.addEventListener('change',estKg); kg.addEventListener('input',function(){ kgAuto=false; kgEst.hidden=true; });
   var err=h('p',{class:'err',role:'alert'});
-  var save=h('button',{class:'btn pri full',type:'submit',text:e?T('Αποθήκευση αλλαγών','Save changes'):T('Αποθήκευση','Save')});
+  var save=h('button',{class:'btn pri full bfsave',type:'submit',text:e?T('Αποθήκευση αλλαγών','Save changes'):T('Αποθήκευση','Save')});
   var form=h('form',{class:'bform',novalidate:true},
     datalist('bfBait',uniq(all.map(function(b){ return b.bait; }))),techList(prof,uniq(all.map(function(b){ return b.tech; }))),
     !e&&B.voice&&B.voice.ok?h('button',{class:'btn micbtn',type:'button',html:B.voice.MIC+'<span>'+T('Πες το','Say it')+'</span>',onclick:function(){ B.voice.fill(applyVoice); }}):null,
     gearIt?h('p',{class:'gearnote',text:T('Εργαλείο: ','Gear: ')+(gearIt.name||'')}):null,
-    h('label',{class:'tg'},miss,h('span',{text:T('Χάθηκε: τσίμπησε αλλά δεν το έβγαλα','Lost: it bit but I did not land it')})),
-    h('div',{class:'fld spfld'},h('span',{text:T('Είδος','Species')}),h('div',{class:'spwrap'},sp,spSug),spChips,h('small',{text:T('Για χαμένο ψάρι είναι προαιρετικό.','Optional for a lost fish.')})),
+    h('label',{class:'tg tgmiss'},miss,h('span',{text:T('Χάθηκε: τσίμπησε αλλά δεν το έβγαλα','Lost: it bit but I did not land it')})),
+    h('div',{class:'fld spfld'},h('span',{text:T('Είδος','Species')}),h('div',{class:'spwrap'},sp,spSug),spChips,h('small',{class:'spopt',text:T('Για χαμένο ψάρι είναι προαιρετικό.','Optional for a lost fish.')})),
     B.speciesPick?h('button',{class:'linkbtn',type:'button',text:'📖 '+T('Διάλεξε από τη λίστα ειδών','Pick from the species list'),onclick:function(){ B.speciesPick(function(nm){ sp.value=nm; law(); }); }}):null,
     lawNote,
     h('label',{class:'tg'},many,h('span',{text:T('Πολλά ψάρια μαζί (μία εγγραφή)','Several fish together (one entry)')})),cntRow,
@@ -201,10 +201,12 @@ B.biteForm=function(edit,opt){
     h('div',{class:'fld'},h('span',{text:T('Εξοπλισμός','Tackle')}),tkBox,tkDet,tkLostBox,tkSug),
     h('div',{class:'fld'},h('span',{text:T('Φωτογραφίες','Photos')}),phBox,file),
     aiSlot,
-    field(T('Σημειώσεις','Notes'),notes),
+    /* 1.9.13: σημειώσεις, ελευθέρωση, ιδιωτικό σε «Περισσότερα» (ανοιχτό αν έχουν ήδη τιμή) */
+    (function(){ var any=!!(notes.value||rel.checked||priv.checked); return h('details',{class:'bfmore',open:any||null},h('summary',{text:T('Σημειώσεις, ελευθέρωση, ιδιωτικό','Notes, released, private')}),
+      field(T('Σημειώσεις','Notes'),notes),
+      h('label',{class:'tg'},rel,h('span',{text:T('Το άφησα ελεύθερο','I released it')})),
+      h('label',{class:'tg'},priv,h('span',{text:T('Ιδιωτικό: δεν το βλέπουν οι φίλοι','Private: friends cannot see it')}))); })(),
     tripSel,
-    h('label',{class:'tg'},rel,h('span',{text:T('Το άφησα ελεύθερο','I released it')})),
-    h('label',{class:'tg'},priv,h('span',{text:T('Ιδιωτικό: δεν το βλέπουν οι φίλοι','Private: friends cannot see it')})),
     err,save,
     e?h('button',{class:'btn full del',type:'button',text:T('Διαγραφή ψαριού','Delete catch'),onclick:function(){ B.ask(T('Να διαγραφεί αυτό το ψάρι;','Delete this catch?'),T('Διαγραφή','Delete'),true).then(function(y){ if(!y) return;
       S.phKeys(e).forEach(function(k){ S.Photos.del(k).catch(function(){}); }); adjLost(e.tkLost||[],1,null); S.remove('bites',e.id); recount(e.trip); sh.close(); B.toast(T('Το ψάρι διαγράφηκε.','Catch deleted.')); }); }}):null);
