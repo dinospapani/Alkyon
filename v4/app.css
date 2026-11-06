@@ -551,3 +551,10 @@ html.night body.trolling .trbtn{background:#1a0000!important;color:#fff!importan
 .nav .fab .fabt{position:absolute;bottom:6px;left:0;right:0;text-align:center;font:800 11px/1 var(--font);font-style:normal;color:#fff;letter-spacing:.02em}
 .nav .fab.fabon.late{background:var(--poor,#d93b3b);animation:pulse 1.6s ease-in-out infinite}
 html.night .nav .fab.fabon{background:#1a0000;box-shadow:0 0 0 2px #fff}
+
+/* 1.8.32: ‹ Πίσω στα φύλλα */
+.sheet.shhid,.scrim.shhid{display:none!important}
+.sheet header .shtl{display:flex;align-items:center;gap:6px;min-width:0}
+.sheet header .shtl h2{overflow:hidden;text-overflow:ellipsis}
+.sheet header .shback{margin-left:-8px;flex:none}
+input[type=range]{accent-color:var(--accent)} /* 1.8.33 */

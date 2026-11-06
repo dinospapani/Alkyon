@@ -170,7 +170,7 @@ function draw(){
   if(b.boat.photo&&P()) P().get('boat-hero').then(function(bl){ if(bl){ cov.style.backgroundImage='url('+URL.createObjectURL(bl)+')'; cov.classList.add('ph'); } }).catch(function(){});
   page.append(hero);
   /* δείκτες: service, καύσιμο, επόμενη λήξη */
-  var eh=+s.eng.h||0, ev=+s.eng.every||0, used=eh-(+s.eng.last||0), due=dueList(b,s), nxt=due.filter(function(o){ return o.d!=null; })[0];
+  var eh=+s.eng.h||0, ev=+s.eng.every||100, /* 1.8.33: κενό «κάθε» = 100 ώρες (όπως γράφει το πεδίο), όχι «–» */ used=eh-(+s.eng.last||0), due=dueList(b,s), nxt=due.filter(function(o){ return o.d!=null; })[0];
   var gs=h('div',{class:'bgauges'});
   if(eh>0&&ev>0){ var left=Math.round(ev-used), fr=used/ev; gs.append(tile('Service',Math.round(used)+' / '+ev+' h',left<0?T('εκπρόθεσμο ','overdue ')+(-left)+' h':T('σε ','in ')+left+' h',fr,fr>=1?'bad':fr>=0.9?'warn':'ok',function(){ if(fr>=0.9) B.ask(T('Έγινε service στις ','Service done at ')+Math.round(eh)+' h;'.replace(';',T(';','?')),T('Έγινε','Done')).then(function(y){ if(y) srvDone(); }); else goTab('eng'); })); }
   else gs.append(tile('Service','–',T('Όρισε ώρες μηχανής','Set engine hours'),null,'',function(){ goTab('eng'); }));

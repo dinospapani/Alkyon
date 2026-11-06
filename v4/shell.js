@@ -45,6 +45,7 @@ function nav(){
     var a=h('a',{href:'#'+t[0],data:{v:t[0]}}); a.innerHTML=B.iconSvg(t[2]); a.append(h('span',{text:t[1]})); bar.append(a); });
   return h('nav',{class:'nav','aria-label':T('Κύρια πλοήγηση','Main navigation')},bar);
 }
+var HS=[];
 function route(){
   var name=(location.hash||'').slice(1)||'forecast';
   /* συντομεύσεις: #new = νέο ψάρι, #trip = έναρξη εξόδου */
@@ -57,8 +58,13 @@ function route(){
   if(cur===name) return;
   if(B.closeSheet) B.closeSheet();
   if(cur&&VIEWS[cur].unmount) VIEWS[cur].unmount();
+  /* 1.8.32: όταν γυρίζεις πίσω (‹ ή κουμπί πίσω του κινητού) στη σελίδα που ήσουν, γυρίζεις στο ίδιο ύψος, όχι στην κορυφή */
+  var ry=0; if(cur){ if(HS.length&&HS[HS.length-1].n===cur) HS[HS.length-1].y=window.scrollY; else HS.push({n:cur,y:window.scrollY}); }
+  if(HS.length>=2&&HS[HS.length-2].n===name){ HS.pop(); ry=HS[HS.length-1].y||0; } else if(cur) HS.push({n:name,y:0}); else HS=[{n:name,y:0}];
+  if(HS.length>12) HS=HS.slice(-12);
   cur=name; main.replaceChildren(); window.scrollTo(0,0);
   VIEWS[name].mount(main);
+  if(ry>0){ var rok=false, uT=function(){ rok=true; }; window.addEventListener('touchstart',uT,{once:true,passive:true}); [0,80,250,600,1200].forEach(function(ms){ setTimeout(function(){ if(rok||cur!==name) return; if(document.documentElement.scrollHeight>=ry+window.innerHeight*0.5){ try{ window.scrollTo(0,ry); }catch(e){} if(Math.abs(window.scrollY-ry)<=4) rok=true; } },ms); }); }
   document.title=(VIEWS[name].title||'Alkyon')+' · Alkyon';
 }
 B.remount=function(){ if(!cur||!main) return; if(VIEWS[cur].unmount) VIEWS[cur].unmount(); cur=null; route(); };

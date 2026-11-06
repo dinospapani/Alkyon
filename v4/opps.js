@@ -11,7 +11,7 @@ function spName(n){ return n&&window.spName?window.spName(n):n; }
 /* υποψήφια σημεία: πρώτα όσα παρακολουθείς, μετά τα σημεία με τα περισσότερα ψάρια */
 function cands(){
   var out=[], bs=bites();
-  (ls.get('alkyon-places',[])||[]).forEach(function(p){ if(p&&p.lat!=null&&p.watch!==false) out.push({name:p.name||T('Τοποθεσία','Place'),lat:+p.lat,lon:+p.lon,w:2}); });
+  (ls.get('alkyon-places',[])||[]).forEach(function(p){ if(p&&p.lat!=null&&p.watch!==false) out.push({name:(B.placeName?B.placeName(p):'')||p.name||T('Τοποθεσία','Place'),lat:+p.lat,lon:+p.lon,w:2}); });
   var sp=[]; try{ sp=B.store.raw('spots').filter(function(s){ return !s.deleted&&s.lat!=null; }); }catch(e){}
   sp.forEach(function(s){ var n=bs.filter(function(b){ return hav(s,b)<1500; }).length; if(n) out.push({name:s.name||T('Σημείο','Spot'),lat:s.lat,lon:s.lon,w:1,n:n}); });
   out.sort(function(a,b){ return (b.w-a.w)||((b.n||0)-(a.n||0)); });

@@ -1,5 +1,9 @@
 /* Alkyon 4 · πυρήνας: γλώσσα, αποθήκευση, γεγονότα, δημιουργία στοιχείων, θέση.
    Τα δεδομένα είναι κοινά με την κλασική έκδοση (ίδια κλειδιά localStorage, ίδια μορφή εγγραφών). */
+/* 1.8.33: append/prepend/replaceChildren αγνοούν null/undefined/false. Ο DOM γράφει αλλιώς «null» στην οθόνη
+   (π.χ. «Όρια ασφαλείας: null», «Αναγνώριση ψαριού: null») όπου ένα προαιρετικό στοιχείο δεν υπάρχει. */
+(function(){ ['append','prepend','replaceChildren'].forEach(function(m){ [Element.prototype,DocumentFragment.prototype].forEach(function(P){ var o=P[m]; if(!o||o.__alk) return;
+  var f=function(){ var a=[]; for(var i=0;i<arguments.length;i++){ var x=arguments[i]; if(x!=null&&x!==false) a.push(x); } return o.apply(this,a); }; f.__alk=1; P[m]=f; }); }); })();
 (function(){
 'use strict';
 

@@ -22,7 +22,12 @@ function R(){ return Math.PI/180; }
 function dist(a,b){ var r=R(), dLa=(b[0]-a[0])*r, dLo=(b[1]-a[1])*r, x=Math.sin(dLa/2)*Math.sin(dLa/2)+Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin(dLo/2)*Math.sin(dLo/2); return 2*6371000*Math.asin(Math.min(1,Math.sqrt(x))); }
 function dest(lat,lon,brg,m){ var r=R(), d=m/6371000, a=lat*r, o=lon*r, b=brg*r, a2=Math.asin(Math.sin(a)*Math.cos(d)+Math.cos(a)*Math.sin(d)*Math.cos(b)), o2=o+Math.atan2(Math.sin(b)*Math.sin(d)*Math.cos(a),Math.cos(d)-Math.sin(a)*Math.sin(a2)); return [a2/r,o2/r]; }
 function brg(a,b){ var r=R(), y=Math.sin((b[1]-a[1])*r)*Math.cos(b[0]*r), x=Math.cos(a[0]*r)*Math.sin(b[0]*r)-Math.sin(a[0]*r)*Math.cos(b[0]*r)*Math.cos((b[1]-a[1])*r); return (Math.atan2(y,x)/r+360)%360; }
-function tFix(){ if(SIM) return SIM.fix; return B.trip&&B.trip.fix&&B.trip.fix(); } /* 1.8.9: η δοκιμή αλλάζει μόνο ό,τι βλέπει η συρτή, όχι την έξοδο */
+/* 1.8.30: η συρτή έχει δικό της GPS όσο είναι ανοιχτή. Αν στην έξοδο είναι κλειστή η «Καταγραφή διαδρομής GPS», η έξοδος δεν
+   παρακολουθεί τη θέση, και η συρτή έμενε χωρίς ταχύτητα («– kn») ακόμα και με το αυτοκίνητο. Παίρνει την πιο πρόσφατη θέση από τις δύο. */
+var OWN={wid:null,f:null};
+function ownGps(need){ if(need&&OWN.wid==null&&navigator.geolocation){ try{ OWN.wid=navigator.geolocation.watchPosition(function(p){ var c=p.coords; OWN.f={lat:c.latitude,lon:c.longitude,t:Date.now(),spd:c.speed,hd:c.heading,acc:c.accuracy}; },function(){},{enableHighAccuracy:true,maximumAge:5000,timeout:30000}); }catch(e){} }
+  if(!need&&OWN.wid!=null){ try{ navigator.geolocation.clearWatch(OWN.wid); }catch(e){} OWN.wid=null; OWN.f=null; } }
+function tFix(){ if(SIM) return SIM.fix; var a=B.trip&&B.trip.fix&&B.trip.fix(), b=OWN.f; return b&&(!a||!a.t||b.t>a.t)?b:a; } /* 1.8.9: η δοκιμή αλλάζει μόνο ό,τι βλέπει η συρτή, όχι την έξοδο */
 function tTrack(){ if(SIM) return {id:SIM.id,pts:SIM.trk}; return B.trip&&B.trip.track&&B.trip.track(); }
 function pts(){ var t=tTrack(); return t&&Array.isArray(t.pts)?t.pts:[]; }
 
@@ -36,6 +41,10 @@ function measure(){ var f=tFix(), p=pts(), now=Date.now(), s=null, hd=null;
   if(f&&f.spd!=null&&f.spd>=0&&now-f.t<15000){ s=f.spd*1.94384; if(f.hd!=null&&f.spd>0.6) hd=f.hd; }
   if(p.length>1){ var last=p[p.length-1], i=p.length-2; while(i>0&&last[2]-p[i][2]<25000) i--; var a=p[i], dt=(last[2]-a[2])/1000;
     if(dt>=4&&now-last[2]<30000){ var d=dist(a,last); if(s==null) s=d/dt*1.94384; if(hd==null&&d>8) hd=brg(a,last); } }
+  /* 1.8.29: σταματημένος: τα κινητά συνήθως δεν δίνουν ταχύτητα όταν δεν κινείσαι, και το ίχνος δεν παίρνει νέα σημεία → έδειχνε «– kn».
+     Αν το GPS δουλεύει (πρόσφατη θέση) και δεν μετακινήθηκες πάνω από ~10 m σε 20″, η ταχύτητα είναι 0 */
+  if(s==null&&f&&now-f.t<30000){ SV.fx=(SV.fx||[]).filter(function(q){ return now-q[2]<40000; }); var lf=SV.fx[SV.fx.length-1]; if(!lf||lf[2]!==f.t) SV.fx.push([f.lat,f.lon,f.t]);
+    var o=SV.fx.filter(function(q){ return f.t-q[2]>=15000; }).pop(); if(o){ var dd=dist(o,[f.lat,f.lon]), dts=(f.t-o[2])/1000; s=dd<10?0:dd/dts*1.94384; } else if(SV.fx.length>=1&&spd==null) s=0; }
   if(s!=null) spd=spd==null?s:spd*0.5+s*0.5; else if(p.length&&now-p[p.length-1][2]>60000) spd=0;
   if(hd!=null) hdg=hd; }
 /* 1.8.12: ειδοποίηση ταχύτητας πιο σίγουρη: μετά από 12″ εκτός ορίων (όχι 20″), δεν μηδενίζει από μια στιγμιαία μέτρηση μέσα στα όρια
@@ -49,7 +58,7 @@ function speedCheck(c,now){ c=c||cfg(); now=now||Date.now(); if(spd==null) retur
     try{ navigator.vibrate&&navigator.vibrate(spd<c.min?[400,150,400]:[150,100,150,100,150]); }catch(e){}
     B.toast((spd<c.min?T('Συρτή: πολύ αργά · ','Trolling: too slow · '):T('Συρτή: πολύ γρήγορα · ','Trolling: too fast · '))+B.num(spd,1)+' kn ('+c.min+'–'+c.max+')',6000);
     if(B.say) B.say(T('Ταχύτητα ','Speed ')+B.sayNum(spd)+(spd<c.min?T(', ανέβασε',', speed up'):T(', κατέβασε',', slow down')),'speed','sp',40000); notify((spd<c.min?T('Πολύ αργά ','Too slow '):T('Πολύ γρήγορα ','Too fast '))+B.num(spd,1)+' kn ('+c.min+'–'+c.max+')'); } }
-function check(){ if(!on()){ outSince=0; return; } measure(); var c=cfg(), now=Date.now();
+function check(){ ownGps(on()&&!SIM&&!document.hidden); if(!on()){ outSince=0; return; } measure(); var c=cfg(), now=Date.now();
   speedCheck(c,now);
   var dc=c.dep, dropping=c.mode==='bottom'&&dc&&dc.st==='drop';
   if(B.depthAt&&now-depthAt>(dropping?8000:15000)){ var f=tFix()||B.lastPos(); if(f){ depthAt=now;
@@ -92,7 +101,9 @@ function arch(x,y,op){ return '<g opacity="'+op+'"><path d="M'+(x-7).toFixed(1)+
 function crAt(P,x){ var n=P.length; if(!n) return null; if(x<=P[0][0]) return P[0][1]; if(x>=P[n-1][0]) return P[n-1][1]; var i=0; while(i<n-2&&P[i+1][0]<=x) i++;
   var p0=P[Math.max(0,i-1)][1], p1=P[i][1], p2=P[i+1][1], p3=P[Math.min(n-1,i+2)][1], t=(x-P[i][0])/Math.max(1e-6,P[i+1][0]-P[i][0]), t2=t*t, t3=t2*t;
   return 0.5*((2*p1)+(-p0+p2)*t+(2*p0-5*p1+4*p2-p3)*t2+(-p0+3*p1-3*p2+p3)*t3); }
-function trueOn(){ return ls.get('alkyon-trtrue',false)===true; }
+/* 1.8.30: το 1:1 είναι «ματιά»: δεν θυμάται τη ρύθμιση, κλείνει όταν αλλάζεις όψη, και μόνο στο Κανονικό */
+var TRUE1=false; try{ localStorage.removeItem('alkyon-trtrue'); }catch(e){}
+function trueOn(){ return TRUE1&&viewMode()==='side'; }
 function vnz(x){ var i=Math.floor(x), f=x-i, a=hsh(i), b=hsh(i+1), u=f*f*(3-2*f); return a+(b-a)*u; } /* ομαλός θόρυβος 1D: «σκληρότητα» βυθού κατά μήκος */
 function hsh2(a,b){ var x=Math.sin(a*127.1+b*311.7+74.7)*43758.5453; return x-Math.floor(x); }
 var EPAL=[[.13,[10,26,85]],[.2,[18,44,160]],[.28,[31,111,255]],[.37,[25,195,255]],[.47,[47,224,122]],[.57,[255,225,0]],[.67,[255,154,0]],[.77,[255,58,20]],[.88,[196,20,30]],[9,[122,16,32]]];
@@ -768,8 +779,8 @@ function paintCock(c,dst,v){ var sm=ls.get('alkyon-trsun','auto'), night=documen
   var tdD=depthL!=null?depthL:depth, td=tooDeep(c,vEff(),tdD); if(td) K2.push(h('div',{class:'ckwarn',text:T('⚠ ΠΟΛΥ ΒΑΘΙΑ για την αρματωσιά: βυθός ','⚠ TOO DEEP for the rig: bottom ')+fB(tdD)+T(' οργ., με όλα τα ',' fm, with all ')+td.mx+T(' μολύβια φτάνει ~',' leads it reaches ~')+Math.round(td.dl/FATH)+T(' οργ.',' fm')}));
   /* διάγραμμα */
   var vm=viewMode(), DO={H:vm==='glide'?230:240,sun:sun}, sv=vm==='map'?null:(p?(vm==='glide'?(svgGlide(DO)||svgSide(DO)):svgSide(DO)):''), mapEl=vm==='map'?ckMini(true):null;
-  K2.push(h('div',{class:'ckdia'},sv&&!mapEl?h('div',{class:'ckopt2'},vm!=='glide'?h('button',{type:'button',class:'ckecho one'+(trueOn()?' on':''),title:T('Πραγματική κλίμακα (ύψος = μήκος)','True scale (height = length)'),text:'1:1',onclick:function(){ ls.set('alkyon-trtrue',!trueOn()); paintSide(); }}):null,h('button',{type:'button',class:'ckecho'+(echoOn()?' on':''),title:T('Όψη βυθομέτρου (ηχώ)','Sounder look (echo)'),text:T('ΗΧΩ','ECHO'),onclick:function(){ ls.set('alkyon-trecho',!echoOn()); paintSide(); }})):null,mapEl?mapEl:sv?h('div',{class:'ckdv',html:sv}):h('div',{class:'ckdv ckempty',text:!SV.grid?T('Φορτώνω τον βυθό γύρω σου…','Loading the depth around you…'):T('Το διάγραμμα βγαίνει όταν κινείσαι (πάνω από 0,8 kn).','The diagram shows once you move (above 0.8 kn).')}),
-    h('div',{class:'ckseg'},[['side',T('Κανονικό','Normal')],['zoom','Zoom'],['glide','Lock'],['map',T('Χάρτης','Map')]].map(function(o){ return h('button',{type:'button',class:vm===o[0]?'on':'',text:o[1],onclick:function(){ ls.set('alkyon-trview',o[0]); paintSide(); }}); }))));
+  K2.push(h('div',{class:'ckdia'},sv&&!mapEl?h('div',{class:'ckopt2'},vm==='side'?h('button',{type:'button',class:'ckecho one'+(trueOn()?' on':''),title:T('Πραγματική κλίμακα (ύψος = μήκος)','True scale (height = length)'),text:'1:1',onclick:function(){ TRUE1=!TRUE1; paintSide(); }}):null,h('button',{type:'button',class:'ckecho'+(echoOn()?' on':''),title:T('Όψη βυθομέτρου (ηχώ)','Sounder look (echo)'),text:T('ΗΧΩ','ECHO'),onclick:function(){ ls.set('alkyon-trecho',!echoOn()); paintSide(); }})):null,mapEl?mapEl:sv?h('div',{class:'ckdv',html:sv}):h('div',{class:'ckdv ckempty',text:!SV.grid?T('Φορτώνω τον βυθό γύρω σου…','Loading the depth around you…'):T('Το διάγραμμα βγαίνει όταν κινείσαι (πάνω από 0,8 kn).','The diagram shows once you move (above 0.8 kn).')}),
+    h('div',{class:'ckseg'},[['side',T('Κανονικό','Normal')],['zoom','Zoom'],['glide','Lock'],['map',T('Χάρτης','Map')]].map(function(o){ return h('button',{type:'button',class:vm===o[0]?'on':'',text:o[1],onclick:function(){ TRUE1=false; ls.set('alkyon-trview',o[0]); paintSide(); }}); }))));
   var q0=p&&p.P&&p.P[0], bl=q0?q0.d:null, bb=null; if(p&&p.P) p.P.forEach(function(q){ if(q.x===0) bb=q.d; }); if(bb==null) bb=depth;
   var hh=p&&bl!=null?(bl-p.dl)/FATH:null, tg=tgt();
   if(dst==='drop'){ var gd=MET.n?geo(Object.assign({},c,{auto:false,leads:MET.n,dep:null}),v):null;
@@ -783,7 +794,7 @@ function paintCock(c,dst,v){ var sm=ls.get('alkyon-trsun','auto'), night=documen
       ckNum(T('ΔΟΛΩΜΑ ↑ ΒΥΘΟ','LURE ↑ BOTTOM'),hh==null?'–':hh<0.4?T('ΒΥΘΟΣ','BOTTOM'):B.num(Math.round(hh*10)/10,1),h('i',{class:'cktg'},T('στόχος ','target '),h('u',{text:B.num(tg,1)+T(' οργ.',' fm')}),' ▾'),hh!=null&&hh<0.4?'bad':hh!=null&&hh<=tg+1.5?'hl':'hi',tgtPick),
       ckNum(T('ΒΥΘΟΣ','BOTTOM'),bb!=null?String(fB(bb)):'–',bb!=null?T('οργ. · ','fm · ')+Math.round(bb)+' m ✎':'',null,sounderSheet)));
     var cls='ok', big, sub='', ring=null;
-    if(!a||a.act==='wait'){ cls='na'; big=!a?T('Περιμένω βυθό…','Waiting for depth…'):T('Περιμένω ταχύτητα…','Waiting for speed…'); }
+    if(!a||a.act==='wait'){ cls='na'; big=!a?T('Περιμένω βυθό…','Waiting for depth…'):spd==null?T('Περιμένω GPS…','Waiting for GPS…'):T('Σταματημένος','Stopped'); if(a&&spd!=null) sub=T('Ξεκινάει όταν πας πάνω από 0,8 kn','Starts once you go above 0.8 kn'); }
     else if(a.act==='spd'){ cls='up'; big=a.hi?T('↓ ΚΟΨΕ ΤΑΧΥΤΗΤΑ','↓ SLOW DOWN'):T('↑ ΑΝΕΒΑΣΕ ΤΑΧΥΤΗΤΑ','↑ SPEED UP'); sub=B.num(c.min,1)+'–'+B.num(c.max,1)+' kn'; }
     else if(a.act==='up'){ cls='up'; big=T('↑ ΜΑΖΕΨΕ ','↑ BRING IN ')+a.k; sub=(a.need?'→ '+a.need+T(' μολύβια',' leads'):'')+(a.d!=null?T(' · βυθός ',' · bottom ')+fB(a.d)+T(' οργ.',' fm'):'')+(a.t>0?T(' · ξεκίνα σε ',' · start in ')+a.t+'″':'')+(a.dur?T(' · θέλει ~',' · takes ~')+(a.dur+Math.round(tSettle()))+'″':'')+(a.late?T(' · ⚠ αργείς ',' · ⚠ late by ')+a.late+'″':''); ring=a.t>0?[Math.min(1,a.t/90),a.t+'″']:[1,T('ΤΩΡΑ','NOW')]; }
     else if(a.act==='down'){ cls='dn'; big=T('↓ ΑΦΗΣΕ ','↓ LET OUT ')+a.k+T(' ΤΩΡΑ',' NOW'); sub=(a.need?'→ '+a.need+T(' μολύβια',' leads'):'')+(a.d!=null?T(' · βυθός ',' · bottom ')+fB(a.d)+T(' οργ.',' fm'):'')+(a.dur?T(' · ~',' · ~')+a.dur+T('″ να τα αφήσεις','″ to let them out'):''); }
@@ -880,6 +891,7 @@ B.on('track',check);
 B.on('trip',function(){ if(!tripOn()&&!SIM) rlFinish(); }); /* 1.8.12 */
 B.on('trip',function(){ if(!tripOn()&&cfg().on){ var q=cfg(); q.on=false; q.auto=true; q.dep=null; q.iso=null; q.isoFix=false; recN=null; ls.set(K,q); depth=null; depthL=null; } paint(); }); /* 1.6.3: στο τέλος της εξόδου ξανά «αυτόματα» */
 setInterval(function(){ if(on()) check(); },10000);
+setInterval(function(){ ownGps(on()&&!SIM&&!document.hidden); },4000); /* 1.8.30: δικό της GPS μόνο όσο είναι ανοιχτή η συρτή */
 setInterval(function(){ if(!(side&&!side.hidden&&cockOn())) return; if(on()&&cfg().mode==='bottom'&&cfg().dep&&cfg().dep.st==='set'){ measure(); sideTick(); } },1000); /* 1.8.19: πιο ομαλή ανανέωση στην οθόνη συρτής */
 setInterval(function(){ if(on()){ measure(); speedCheck(); } if(on()&&cfg().mode==='bottom') sideTick(); else { paintSide(); lureMark(); try{ lureTrail(cfg()); contourDraw(cfg(),null); }catch(e){} } },2000); /* 1.8.7 · 1.8.12: και ταχύτητα κάθε 2″ */
 setTimeout(paint,1500);

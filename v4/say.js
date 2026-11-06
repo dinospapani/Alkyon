@@ -22,7 +22,7 @@ function say(text,kind,key,gap){ var c=cfg(); if(!SS||!c.on||!text||(kind&&c.k[k
 function num(x){ x=Math.round(x*2)/2; if(window.LANG==='en') return String(x).replace('.5',' and a half'); var W=['μηδέν','ένα','δύο','τρία','τέσσερα','πέντε','έξι','επτά','οκτώ','εννιά','δέκα']; var n=Math.floor(x), half=x-n>=0.5;
   if(!half) return n<=10?W[n]:String(n); return ({0:'μισό',1:'ενάμισι',2:'δυόμισι',3:'τρεισήμισι',4:'τεσσερισήμισι',5:'πεντέμισι',6:'εξήμισι'})[n]||(n+' και μισό'); }
 function sheet(){ var c=cfg(), sh;
-  function sw(lab,sub,get,set){ var i=h('input',{type:'checkbox',checked:!!get()}); i.addEventListener('change',function(){ set(i.checked); }); return h('label',{class:'chk'},i,h('span',null,h('b',{text:lab}),sub?h('small',{text:sub}):null)); }
+  function sw(lab,sub,get,set){ var i=h('input',{type:'checkbox',checked:!!get()}); i.addEventListener('change',function(){ set(i.checked); }); return h('label',{class:'tg'},i,h('span',null,h('b',{text:lab}),sub?h('small',{class:'tgs',text:sub}):null)); }
   var h=B.h; var body=h('div',{class:'bform'},
     sw(T('Φωνητικές ειδοποιήσεις','Voice announcements'),T('Από το ηχείο του κινητού ή ακουστικό/Bluetooth','From the phone speaker or headphones/Bluetooth'),function(){ return c.on; },function(v){ c.on=v; put(c); }),
     sw(T('Συρτή βυθού','Bottom trolling'),T('«Σταμάτα στα 30», «Στον βυθό», «Βαράει βυθό, μάζεψε 2»','“Stop at 30”, “On the bottom”, “Hitting bottom, bring in 2”'),function(){ return c.k.troll; },function(v){ c.k.troll=v; put(c); }),

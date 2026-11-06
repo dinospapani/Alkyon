@@ -231,7 +231,8 @@ function logCard(box,p,r,cd,cur,m){
     function ok(){ ex.textContent=T('Αντιγράφηκε ✓','Copied ✓'); }
     try{ navigator.clipboard.writeText(txt).then(ok,function(){ ex.textContent=T('Αποτυχία αντιγραφής','Copy failed'); }); }catch(e){ ex.textContent=T('Αποτυχία αντιγραφής','Copy failed'); }
   });
-  w.appendChild(ex); box.appendChild(w); paint();
+  /* 1.8.33: το κουμπί JSON (εργαλείο ανάπτυξης) κρύβεται· εμφανίζεται μόνο με ?dev */
+  if(/[?&]dev\b/.test(location.search)) w.appendChild(ex); box.appendChild(w); paint();
 }
 function fmtKm(k){ return k<10?k.toFixed(1)+' km':Math.round(k)+' km'; }
 window.addEventListener('alkyon-fcloaded',function(ev){

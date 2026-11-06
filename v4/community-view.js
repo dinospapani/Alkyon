@@ -19,7 +19,7 @@ function load(reset){
   rest('community_posts?select=*,likes:community_likes(count),comments:community_comments(count)&order=created_at.desc&limit='+PAGE+'&offset='+F.offset+(F.mine?'&user_id=eq.'+esc(uid()):'')).then(function(r){ return r.json(); }).then(function(arr){
     if(arr.length<PAGE) F.end=true; F.offset+=arr.length; F.items=F.items.concat(arr); var ids=arr.map(function(p){ return p.id; });
     if(!ids.length) return; return rest('community_likes?select=post_id&user_id=eq.'+esc(uid())+'&post_id=in.('+ids.join(',')+')').then(function(r){ return r.json(); }).then(function(l){ l.forEach(function(x){ F.liked[x.post_id]=1; }); }).catch(function(){}); })
-    .catch(function(e){ F.err=/HTTP 404|relation|does not exist/i.test(String(e&&e.message))?T('Η κοινότητα δεν έχει ενεργοποιηθεί ακόμη στη βάση δεδομένων.','Community is not enabled yet in the database.'):T('Δεν φόρτωσε. Έλεγξε τη σύνδεση.','Could not load. Check your connection.'); })
+    .catch(function(e){ F.err=/HTTP 404|relation|does not exist/i.test(String(e&&e.message))?T('Η Κοινότητα ανοίγει σύντομα. Μέχρι τότε μοιράσου ψάρια και σημεία με τους Φίλους σου.','Community is opening soon. Until then, share catches and spots with your Friends.'):T('Δεν φόρτωσε. Έλεγξε τη σύνδεση.','Could not load. Check your connection.'); })
     .then(function(){ F.loading=false; draw(); });
 }
 function cnt(p,k){ return (p[k]&&p[k][0]&&p[k][0].count)||0; }

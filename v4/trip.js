@@ -82,7 +82,7 @@ function onPos(p){ var c=p.coords; fixP={lat:c.latitude,lon:c.longitude,t:Date.n
   ls.set('alkyon-track',t); B.emit('track'); }
 function watch(){
   var s=load(), need=(s.active&&gpsOn())||!!anc();
-  if(need&&wid==null&&navigator.geolocation){ try{ wid=navigator.geolocation.watchPosition(onPos,function(e){ if(e&&e.code===1){ ls.set('alkyon-gps','0'); B.toast(T('Δεν δόθηκε άδεια θέσης. Η διαδρομή απενεργοποιήθηκε.','Location permission denied. Route recording is off.')); } },{enableHighAccuracy:true,maximumAge:5000,timeout:30000}); }catch(e){} }
+  if(need&&wid==null&&navigator.geolocation){ try{ wid=navigator.geolocation.watchPosition(onPos,function(e){ if(e&&e.code===1){ ls.set('alkyon-gps','0'); ls.set('alkyon-gps-auto','1'); /* 1.8.31: κλειστό από άρνηση άδειας, όχι από εσένα → ξαναρωτάει στην επόμενη έξοδο */ B.toast(T('Δεν δόθηκε άδεια θέσης. Η διαδρομή απενεργοποιήθηκε.','Location permission denied. Route recording is off.')); } },{enableHighAccuracy:true,maximumAge:5000,timeout:30000}); }catch(e){} }
   if(!need&&wid!=null){ try{ navigator.geolocation.clearWatch(wid); }catch(e){} wid=null; }
   /* οθόνη αναμμένη κατά την έξοδο και με συναγερμό άγκυρας */
   var wake=(s.active||!!anc())&&ls.get('alkyon-wake',true)!==false;
@@ -182,7 +182,7 @@ B.tripStart=function(o){ o=o&&typeof o==='object'?o:null; /* v31z541: o.where = 
   if(rv&&bad.indexOf(rv.toLowerCase())>=0) rv='';
   var rt=h('input',{type:'text',maxlength:'80',value:rv,placeholder:T('π.χ. Πωμός, ύφαλος','e.g. Pomos, reef'),autocomplete:'off',autocapitalize:'sentences',name:'alk-trip-where',enterkeyhint:'done',spellcheck:'false'});
   var sil=h('select',{class:'select'}); [[0,T('Χωρίς','Off')],[30,T('Μετά από 30 λεπτά','After 30 minutes')],[60,T('Μετά από 60 λεπτά','After 60 minutes')],[90,T('Μετά από 90 λεπτά','After 90 minutes')]].forEach(function(o){ sil.append(h('option',{value:String(o[0]),text:o[1]})); }); sil.value=String(d.sil!=null?d.sil:60);
-  var nt=h('input',{type:'checkbox',checked:true}), gp=h('input',{type:'checkbox',checked:gpsOn()});
+  var nt=h('input',{type:'checkbox',checked:true}), gpAuto=ls.get('alkyon-gps-auto','0')==='1', gp=h('input',{type:'checkbox',checked:gpsOn()||gpAuto});
   var c=hasContact(d), logged=!!Cl(), ex=B.tripStartExtras?B.tripStartExtras(rt):null;
   /* απλή μορφή: επαφή σε μία γραμμή, πότε γυρνάς, πού πας, ειδοποίηση· τα υπόλοιπα στο «Περισσότερα» */
   var SH='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>';
@@ -192,11 +192,13 @@ B.tripStart=function(o){ o=o&&typeof o==='object'?o:null; /* v31z541: o.where = 
   var tmRow=h('label',{class:'ttime'},h('span',{text:T('Επιστροφή έως','Back by')}),tm);
   var more=h('details',{class:'tmore'},h('summary',{text:T('Περισσότερες ρυθμίσεις','More settings')}),
     h('label',{class:'fld'},h('span',{text:T('Αν χαθεί η επαφή με το κινητό','If contact with the phone is lost')}),sil,h('small',{text:T('Αν το κινητό σταματήσει να στέλνει σήμα για τόσο χρόνο, σε ρωτά στο Telegram και μετά ειδοποιεί την επαφή.','If the phone stops sending a signal this long, it asks you on Telegram, then alerts your contact.')})),
-    h('label',{class:'tg'},gp,h('span',{text:T('Καταγραφή διαδρομής GPS (περισσότερη μπαταρία)','Record GPS route (uses more battery)')})),ex?ex.nodes:null);
+    ex?ex.nodes:null);
+  /* 1.8.31: έξω από τις «Περισσότερες ρυθμίσεις», για να φαίνεται */
+  var gpRow=h('div',null,h('label',{class:'tg'},gp,h('span',{text:T('Καταγραφή διαδρομής GPS (περισσότερη μπαταρία)','Record GPS route (uses more battery)')})),gpAuto?h('p',{class:'trhint warn',text:T('Την προηγούμενη φορά το κινητό δεν έδωσε άδεια θέσης και η καταγραφή έκλεισε. Ξανατσεκάρισμένη: αν σε ρωτήσει το κινητό, πάτα «Να επιτρέπεται».','Last time the phone did not allow location and recording turned off. Ticked again: if the phone asks, tap “Allow”.')}):null);
   var go=h('button',{class:'btn pri full tgo',type:'button',text:'▶ '+T('Έναρξη εξόδου','Start trip'),onclick:function(){ if(!tm.value){ B.toast(T('Βάλε ώρα επιστροφής.','Set a return time.')); return; }
-    ls.set('alkyon-gps',gp.checked?'1':'0'); if(ex&&ex.apply) ex.apply(); sh.close(); start({due:toMs(tm.value),route:rt.value.trim(),sil:+sil.value||0,notify:nt.checked}); }});
+    ls.set('alkyon-gps',gp.checked?'1':'0'); ls.set('alkyon-gps-auto','0'); if(ex&&ex.apply) ex.apply(); sh.close(); start({due:toMs(tm.value),route:rt.value.trim(),sil:+sil.value||0,notify:nt.checked}); }});
   var body=h('div',{class:'bform tstart'},info,h('div',{class:'fld'},h('span',{text:T('Πόση ώρα θα λείψεις;','How long will you be out?')}),chips,tmRow),h('label',{class:'fld'},h('span',{text:T('Πού πας (προαιρετικό)','Where (optional)')}),rt),
-    c?h('label',{class:'tg'},nt,h('span',{text:T('Ειδοποίηση της επαφής μου σε αυτή την έξοδο','Alert my contact on this trip')})):null,B.liveToggle?B.liveToggle():null,more,go);
+    c?h('label',{class:'tg'},nt,h('span',{text:T('Ειδοποίηση της επαφής μου σε αυτή την έξοδο','Alert my contact on this trip')})):null,B.liveToggle?B.liveToggle():null,gpRow,more,go);
   /* v31z542: συχνοί λαγοκέφαλοι εδώ; (από τα δικά σου τσιμπήματα σε 400 m) */
   try{ var me=B.lastPos(), pn=B.pestHere&&me?B.pestHere(me.lat,me.lon):null; if(pn) body.insertBefore(h('p',{class:'pesthint',text:'🐡 '+T('Συχνοί λαγοκέφαλοι εδώ (','Toadfish are common here (')+pn[0]+T(' στα ',' of ')+pn[1]+T(' τσιμπήματά σου). Πάρε συρματόλινα ή χοντρό παράμαλλο και προτίμησε τεχνητά από μαλακό δόλωμα.',' of your bites). Bring wire or a heavy leader and prefer lures to soft bait.')}),go); }catch(e){}
   var sh=B.sheet({title:T('Έξοδος για ψάρεμα','Fishing trip'),body:body});

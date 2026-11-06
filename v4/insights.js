@@ -9,8 +9,8 @@ function money(v){ return '€'+B.num(v,v%1?2:0); }
 function phase(b){ try{ return Math.round(PF.moonPhase(B.biteMs(b)).f*8)%8; }catch(e){ return null; } }
 
 B.moonCard=function(list){
-  var bs=(list||bites()).filter(function(b){ return b.date; }), c=h('section',{class:'card'},h('h2',{text:T('Τα ψάρια σου ανά φάση σελήνης','Your catches by moon phase')}));
-  if(bs.length<12){ c.append(h('p',{class:'sub',text:T('Χρειάζονται τουλάχιστον 12 ψάρια για να βγει εικόνα. Έχεις ','You need at least 12 catches. You have ')+bs.length+'.'})); return c; }
+  var bs=(list||bites()).filter(function(b){ return b.date&&!b.miss&&!(B.pest&&B.pest(b)); }), nfs=bs.reduce(function(x,b){ return x+Math.max(1,Math.floor(+b.cnt)||1); },0), c=h('section',{class:'card'},h('h2',{text:T('Τα ψάρια σου ανά φάση σελήνης','Your catches by moon phase')}));
+  if(bs.length<12){ c.append(h('p',{class:'sub',text:T('Χρειάζονται τουλάχιστον 12 καταγραφές ψαριών σε διαφορετικές στιγμές για να βγει εικόνα. Έχεις ','You need at least 12 catch entries at different times. You have ')+bs.length+(nfs!==bs.length?T(' ('+nfs+' ψάρια)',' ('+nfs+' fish)'):'')+'.'})); return c; }
   var cnt=[0,0,0,0,0,0,0,0]; bs.forEach(function(b){ var i=phase(b); if(i!=null) cnt[i]++; }); var tot=bs.length, mx=Math.max.apply(null,cnt);
   cnt.forEach(function(n,i){ c.append(h('div',{class:'bar'},h('span',{class:'bl',text:EMO[i]+' '+PHN[i]}),h('span',{class:'bt'},h('i',{style:{width:(mx?n/mx*100:0)+'%'}})),h('span',{class:'bv',text:n+' · '+Math.round(n/tot*100)+'%'}))); });
   c.append(h('p',{class:'foot',text:T('Περισσότερα ψάρια: ','Most catches: ')+PHN[cnt.indexOf(mx)]+' ('+Math.round(mx/tot*100)+'%). '+T('Αν ήταν τυχαίο, κάθε φάση θα είχε περίπου 12%. Όσο πιο λίγα τα ψάρια, τόσο λιγότερο σίγουρο.','If random, each phase would be about 12%. Fewer catches means less certainty.')}));

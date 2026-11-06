@@ -53,31 +53,51 @@ function swipeDel(content,onDel){
   return w;
 }
 
-/* φύλλο από κάτω: sheet({title, body:Node}) → {close} */
-var openSheet=null;
+/* φύλλο από κάτω: sheet({title, body:Node}) → {close}
+   1.8.32: «‹ Πίσω». Όταν ένα φύλλο ανοίγει από μέσα από άλλο (π.χ. «Στείλε το σχέδιο» → WhatsApp/SMS), το προηγούμενο δεν χάνεται:
+   κρύβεται, και το νέο έχει κουμπί ‹ που γυρίζει σε αυτό. Το ✕ (ή πάτημα έξω / σύρσιμο κάτω) κλείνει όλη την αλυσίδα, όπως πριν.
+   Αν ο κώδικας κλείσει ένα φύλλο και ανοίξει αμέσως άλλο (μέσα σε ~½″), λογίζεται κι αυτό ως «από μέσα»: το νέο έχει ‹. */
+var openSheet=null, limbo=null;
+function dropLimbo(){ if(!limbo) return; clearTimeout(limbo.tm); var a=limbo.api; limbo=null; a._kill(); }
 function sheet(o){
-  var parent=null; if(o.stack&&openSheet){ parent=openSheet; } else if(openSheet) openSheet.close(true);
+  var parent=null, back=null;
+  if(o.stack&&openSheet){ parent=openSheet; }
+  else if(openSheet){ back=openSheet; back._hide(); }
+  else if(limbo&&Date.now()-limbo.t<600){ back=limbo.api; clearTimeout(limbo.tm); limbo=null; }
+  else dropLimbo();
   var scrim=h('div',{class:'scrim'+(parent?' stk':'')}), box=h('section',{class:'sheet'+(parent?' stk':''),role:'dialog','aria-modal':'true','aria-label':o.title});
   var x=h('button',{class:'iconbtn',type:'button','aria-label':T('Κλείσιμο','Close'),html:iconSvg('close')});
-  box.append(h('div',{class:'grab'}),h('header',null,h('h2',{text:o.title}),x),h('div',{class:'body'},o.body));
+  var bk=back?h('button',{class:'iconbtn shback',type:'button','aria-label':T('Πίσω','Back'),html:iconSvg('back')}):null;
+  box.append(h('div',{class:'grab'}),h('header',null,bk?h('div',{class:'shtl'},bk,h('h2',{text:o.title})):h('h2',{text:o.title}),x),h('div',{class:'body'},o.body));
   document.body.append(scrim,box);
-  var prevFocus=document.activeElement;
+  var prevFocus=document.activeElement, cbDone=false;
+  function cb(){ if(cbDone) return; cbDone=true; if(o.onclose) try{ o.onclose(); }catch(e){} }
   requestAnimationFrame(function(){ scrim.classList.add('on'); box.classList.add('on'); var f=box.querySelector(o.focus||'.body button,.body input'); if(f&&o.focus) f.focus(); });
-  var api={close:function(quick){
+  function out(quick){ scrim.classList.remove('on'); box.classList.remove('on'); setTimeout(function(){ scrim.remove(); box.remove(); },quick?0:260); }
+  var api={close:function(quick,how){
     if(openSheet!==api) return; openSheet=parent; document.removeEventListener('keydown',key);
-    scrim.classList.remove('on'); box.classList.remove('on');
-    setTimeout(function(){ scrim.remove(); box.remove(); },quick?0:260);
-    try{ if(prevFocus&&prevFocus.focus) prevFocus.focus(); }catch(e){}
-    if(o.onclose) o.onclose(); }, el:box};
-  function key(e){ if(e.key==='Escape') api.close(); }
+    cb();
+    if(how==='back'&&back){ out(true); back._show(); openSheet=back; return; }
+    if(how==='user'||how==='hard'){ out(quick); if(back) back._kill(); if(how==='hard') dropLimbo(); try{ if(prevFocus&&prevFocus.focus) prevFocus.focus(); }catch(e){} return; }
+    /* από τον κώδικα: κρατιέται λίγο, ώστε ένα φύλλο που ανοίγει αμέσως μετά να μπορεί να γυρίσει εδώ */
+    if(parent){ out(quick); return; }
+    dropLimbo(); scrim.classList.remove('on'); box.classList.remove('on'); box.classList.add('shhid'); scrim.classList.add('shhid'); cbDone=false;
+    limbo={api:api,t:Date.now(),tm:setTimeout(function(){ if(limbo&&limbo.api===api){ limbo=null; api._kill(); } },650)};
+    try{ if(prevFocus&&prevFocus.focus) prevFocus.focus(); }catch(e){} },
+    el:box,
+    _hide:function(){ document.removeEventListener('keydown',key); scrim.classList.remove('on'); box.classList.remove('on'); box.classList.add('shhid'); scrim.classList.add('shhid'); },
+    _show:function(){ box.classList.remove('shhid'); scrim.classList.remove('shhid'); document.addEventListener('keydown',key); cbDone=false; requestAnimationFrame(function(){ scrim.classList.add('on'); box.classList.add('on'); }); },
+    _kill:function(){ cb(); document.removeEventListener('keydown',key); scrim.remove(); box.remove(); if(back){ var b=back; back=null; b._kill(); } }};
+  function key(e){ if(e.key==='Escape') api.close(false,back?'back':'user'); }
   document.addEventListener('keydown',key);
-  scrim.addEventListener('click',function(){ api.close(); }); x.addEventListener('click',function(){ api.close(); });
+  scrim.addEventListener('click',function(){ api.close(false,'user'); }); x.addEventListener('click',function(){ api.close(false,'user'); });
+  if(bk) bk.addEventListener('click',function(){ api.close(false,'back'); });
   /* κλείσιμο σέρνοντας τη λαβή προς τα κάτω */
   var y0=null, dy=0, grab=box.querySelector('.grab'), hd=box.querySelector('header');
   [grab,hd].forEach(function(z){
     z.addEventListener('touchstart',function(e){ y0=e.touches[0].clientY; dy=0; box.style.transition='none'; },{passive:true});
     z.addEventListener('touchmove',function(e){ if(y0==null) return; dy=Math.max(0,e.touches[0].clientY-y0); box.style.transform='translateY('+dy+'px)'; },{passive:true});
-    z.addEventListener('touchend',function(){ box.style.transition=''; box.style.transform=''; if(dy>90) api.close(); y0=null; });
+    z.addEventListener('touchend',function(){ box.style.transition=''; box.style.transform=''; if(dy>90) api.close(false,'user'); y0=null; });
   });
   openSheet=api; return api;
 }
@@ -109,5 +129,5 @@ function ask(q,okText,danger){ return new Promise(function(res){ var done=false;
   ok.addEventListener('click',function(){ done=true; sh.close(); res(true); }); no.addEventListener('click',function(){ sh.close(); });
 }); }
 
-Object.assign(B,{icon:icon,iconSvg:iconSvg,toast:toast,swipeDel:swipeDel,sheet:sheet,closeSheet:function(){ if(openSheet) openSheet.close(true); },seg:seg,longPress:longPress,ask:ask});
+Object.assign(B,{icon:icon,iconSvg:iconSvg,toast:toast,swipeDel:swipeDel,sheet:sheet,closeSheet:function(){ if(openSheet) openSheet.close(true,'hard'); dropLimbo(); },sheetBack:function(){ if(openSheet&&openSheet.el.querySelector('.shback')){ openSheet.close(false,'back'); return true; } return false; },seg:seg,longPress:longPress,ask:ask});
 })();

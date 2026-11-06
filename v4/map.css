@@ -1089,3 +1089,5 @@ button.cknum{cursor:pointer}button.cknum:active{filter:brightness(.92)}
 /* 1.8.26: με την οθόνη συρτής (z 640) ανοιχτή, τα μενού (☰, στόχος, βυθόμετρο) και τα μηνύματα έμεναν από κάτω της */
 body.trck .scrim{z-index:700}body.trck .sheet{z-index:701}body.trck .scrim.stk{z-index:710}body.trck .sheet.stk{z-index:711}body.trck .toast{z-index:720}
 .ck button.cksp{background:none;border:0;padding:0 2px;cursor:pointer}
+/* 1.8.31: σημείωση κάτω από «Καταγραφή διαδρομής GPS» */
+.tstart .trhint{margin:4px 0 6px;padding:9px 12px;border-radius:12px;font-size:13.5px;line-height:1.35;background:color-mix(in srgb,#e8a33d 18%,var(--surface-2,#f1f4f5));color:var(--ink,#0b1f2a)}

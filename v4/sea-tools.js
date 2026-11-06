@@ -16,7 +16,7 @@ function emodDepth(lat,lon){
       return fetch('https://ows.emodnet-bathymetry.eu/wms?'+q,{signal:to(9000)}).then(function(r){ return r.ok?r.json():null; }).then(function(j){ var p=j&&j.features&&j.features[0]&&j.features[0].properties; if(p){ for(var k in p){ var v=num(p[k]); if(v!=null&&v<0) return Math.round(-v); } } return null; }).catch(function(){ return null; }); });
 }
 var dcache={};
-B.depthAt=function(lat,lon){ var k=lat.toFixed(4)+','+lon.toFixed(4); if(dcache[k]!=null) return Promise.resolve(dcache[k]); return emodDepth(lat,lon).then(function(d){ if(d!=null) dcache[k]=d; return d; }).catch(function(){ return null; }); };
+B.depthAt=function(lat,lon){ /* 1.8.33: στη στεριά το EMODnet δίνει το υψόμετρο (π.χ. 150 στην Πάφο) σαν «βάθος» → κανένα βάθος */ try{ if(B.landExact&&B.landExact(lat,lon)===true) return Promise.resolve(null); }catch(e){} var k=lat.toFixed(4)+','+lon.toFixed(4); if(dcache[k]!=null) return Promise.resolve(dcache[k]); return emodDepth(lat,lon).then(function(d){ if(d!=null) dcache[k]=d; return d; }).catch(function(){ return null; }); };
 
 /* βάθος στα ψάρια με θέση και χωρίς βάθος: στο παρασκήνιο, λίγα κάθε φορά */
 var dBusy=false, dTm=null, tried={};

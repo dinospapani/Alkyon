@@ -61,7 +61,7 @@ function load(p){
   var chain=Promise.resolve(); ks.forEach(function(k){ chain=chain.then(function(){ return one(k); }); });
   return Promise.all([pa,pr,pm,chain]).then(function(){
     var yrs=[]; for(var k=0;k<=NY;k++){ var f=shiftY(from,k), t=shiftY(today,k); yrs.push({y:new Date(t).getUTCFullYear(),k:k,cur:summ(D,f,t),nxt:k?summ(D,addD(t,1),addD(t,WIN)):null}); }
-    var v={place:p.name||'',from:from,to:today,yrs:yrs,errs:errs,seaFrom:floor};
+    var v={place:(B.placeName?B.placeName(p):'')||p.name||'',from:from,to:today,yrs:yrs,errs:errs,seaFrom:floor};
     if(yrs[0].cur.n||yrs[1].cur.n) ls.set(CK,{k:key,v:v}); return v; }); }
 
 /* ---------- υπολογισμοί ---------- */
@@ -118,7 +118,7 @@ B.yearsCard=function(){
     var has=MET.filter(function(m){ return v.yrs.some(function(y){ return y.cur[m[0]]!=null; }); }); if(!has.some(function(m){ return m[0]===met; })) met=has[0]?has[0][0]:'ta';
     var chips=h('div',{class:'chips yrchips'}), chart=h('div',{class:'yrch'}), cap=h('p',{class:'yrcap'});
     has.forEach(function(m){ chips.append(h('button',{type:'button',class:'chip sm','aria-pressed':String(m[0]===met),text:m[2],onclick:function(){ met=m[0]; ls.set('alkyon-v4-yrsmet',met); [].forEach.call(chips.children,function(c){ c.setAttribute('aria-pressed',String(c===this)); },this); draw(); }})); });
-    function draw(){ var vals=v.yrs.slice().reverse().map(function(y){ return [y.y,y.cur[met]]; }), nums=vals.map(function(x){ return x[1]; }).filter(function(x){ return x!=null; });
+    function draw(){ var vals=v.yrs.slice().reverse().map(function(y){ return [y.y,y.cur[met]]; }); while(vals.length>1&&vals[0][1]==null) vals.shift(); /* 1.8.33: χωρίς άδεια κουτάκια για χρονιές που δεν έχουν δεδομένα (π.χ. θερμοκρασία νερού πριν το 2023) */ var nums=vals.map(function(x){ return x[1]; }).filter(function(x){ return x!=null; });
       chart.replaceChildren(); if(!nums.length){ cap.textContent=''; return; }
       var lo=Math.min.apply(null,nums), hi=Math.max.apply(null,nums), base=(met==='windy'||met==='rain'||met==='wave')?0:lo-(hi-lo||1)*0.6, av=mean(past.map(function(y){ return y.cur[met]; }));
       vals.forEach(function(x){ var cur=x[0]===v.yrs[0].y, ht=x[1]==null?0:Math.max(4,Math.round(100*(x[1]-base)/Math.max(0.001,hi-base)));

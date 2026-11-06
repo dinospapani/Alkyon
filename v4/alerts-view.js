@@ -61,7 +61,7 @@ function draw(){
   /* 1.1.0 / 1.1.2: «Καλό ψάρεμα αύριο/σήμερα»: το προηγούμενο βράδυ (προεπιλογή), το πρωί, και τα δύο ή κλειστό */
   var mv=n.morning===false?'off':n.morning===true||n.morning==null?'eve':n.morning;
   var moL=h('div',{class:'tg moseg'},h('span',null,T('Μήνυμα για καλή μέρα','Message for a good day'),h('small',{class:'tgs',text:T('Μόνο όταν κάποια τοποθεσία σου έχει καλό βαθμό: ποια και ποια ώρα. Βράδυ = 19:00–23:00 για την επόμενη μέρα. Πρωί = 07:00–10:00 για σήμερα.','Only when one of your places scores well: which and when. Evening = 19:00–23:00 for the next day. Morning = 07:00–10:00 for today.')})),
-    B.seg([['eve',T('Βράδυ πριν','Evening before')],['morn',T('Πρωί','Morning')],['both',T('Και τα δύο','Both')],['off',T('Όχι','Off')]],mv,function(v){ var q=nt(); q.morning=v; setNt(q); sync(); },T('Πότε','When')));
+    B.seg([['eve',T('Βράδυ','Evening')],['morn',T('Πρωί','Morning')],['both',T('Και τα 2','Both')],['off',T('Όχι','Off')]],mv,function(v){ var q=nt(); q.morning=v; setNt(q); sync(); },T('Πότε','When')));
   /* v31z545: μέτωπα θερμοκρασίας κοντά στις τοποθεσίες */
   var fr=h('input',{type:'checkbox',checked:n.front!==false}); fr.addEventListener('change',function(){ var q=nt(); q.front=fr.checked; setNt(q); sync(); });
   var frL=B.prof()==='lake'?null:h('label',{class:'tg'},fr,h('span',null,T('Μέτωπα θερμοκρασίας νερού','Water temperature fronts'),h('small',{class:'tgs',text:T('Όταν σχηματίζεται απότομη αλλαγή θερμοκρασίας κοντά στις τοποθεσίες σου (εκεί συχνά μαζεύονται πελαγικά).','When a sharp temperature change forms near your places (pelagics often gather there).')})));
@@ -78,7 +78,7 @@ function draw(){
   /* τοποθεσίες */
   var c3=h('section',{class:'card'+(n.on?'':' dim')},h('h2',{text:T('Για ποιες τοποθεσίες','For which places')}),h('p',{class:'sub',style:{margin:'-4px 0 8px'},text:T('Προσθέτεις τοποθεσίες από την Πρόγνωση.','Add places from the Forecast.')}));
   places().forEach(function(p){ var sw=h('input',{type:'checkbox',checked:p.watch!==false}); sw.addEventListener('change',function(){ if(p.id==='gps'){ var q=nt(); q.gpsWatch=sw.checked; setNt(q); } else { var a=ls.get('alkyon-places',[])||[]; a.forEach(function(x){ if(x.id===p.id) x.watch=sw.checked; }); ls.set('alkyon-places',a); } sync(); });
-    c3.append(h('label',{class:'tg'},sw,h('span',{text:p.name}))); });
+    c3.append(h('label',{class:'tg'},sw,h('span',{text:(p.id!=='gps'&&B.placeName)?B.placeName(p):p.name}))); });
   page.append(c3);
   page.append(h('div',{class:'acts'},h('button',{class:'btn',type:'button',text:T('Δοκιμαστική ειδοποίηση','Test notification'),onclick:function(){ if(!('Notification' in window)||Notification.permission!=='granted'){ B.toast(T('Άνοιξε πρώτα τις ειδοποιήσεις.','Turn on notifications first.')); return; }
     reg().then(function(r){ var t=T('Δοκιμή Alkyon','Alkyon test'), b=T('Οι ειδοποιήσεις δουλεύουν.','Notifications work.'); if(r) r.showNotification(t,{body:b,icon:'../icon-192.png',tag:'alk-test',data:{url:ROOT,bc:{kind:'info',full:b}}}); else new Notification(t,{body:b}); }); }})));
