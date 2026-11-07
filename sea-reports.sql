@@ -56,3 +56,6 @@ do $$ begin
     perform cron.schedule('sea-reports-clean', '17 3 * * *', $c$delete from public.sea_reports where created_at < now() - interval '7 days'$c$);
   end if;
 end $$;
+
+-- 1.9.24: η συνάρτηση trigger δεν καλείται απ' έξω
+revoke execute on function public.sea_reports_before() from public, anon, authenticated;

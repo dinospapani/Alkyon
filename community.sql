@@ -124,3 +124,7 @@ create policy "community update own" on storage.objects for update to authentica
 drop policy if exists "community delete own" on storage.objects;
 create policy "community delete own" on storage.objects for delete to authenticated
   using (bucket_id = 'community' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- 1.9.24: οι συναρτήσεις trigger δεν καλούνται απ' έξω
+revoke execute on function public.community_rate() from public, anon, authenticated;
+revoke execute on function public.community_report_check() from public, anon, authenticated;

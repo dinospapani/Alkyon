@@ -73,3 +73,8 @@ begin
 end $$;
 drop trigger if exists port_notes_before on public.port_notes;
 create trigger port_notes_before before insert or update on public.port_notes for each row execute function public.port_notes_before();
+
+-- 1.9.24: η συνάρτηση trigger δεν καλείται απ' έξω· το is_admin μόνο για συνδεδεμένους
+revoke execute on function public.port_notes_before() from public, anon, authenticated;
+revoke execute on function public.is_admin() from public, anon;
+grant execute on function public.is_admin() to authenticated;
