@@ -18,6 +18,7 @@ import sys, os, re, io, json, math, time, glob, shutil, datetime as dt, urllib.r
 import numpy as np
 
 BASE = os.environ.get('DOM_RADAR_URL', 'https://www.dom.org.cy/RADAR_DATA/')
+BASE2 = 'https://agromet.dom.org.cy/uploads/radars/'   # εκεί δείχνουν οι ειδοποιήσεις WIS2 (origin)
 BOX = (29.60, 32.70, 36.00, 36.90)          # W, S, E, N: ~250 km γύρω από την Κύπρο, ώστε να φαίνεται η βροχή πριν φτάσει
 W_PX = 720                                   # πλάτος εικόνας· το ύψος βγαίνει από την προβολή
 KEEP = 12                                    # εικόνες (≈2 ώρες ανά 10′)
@@ -320,6 +321,7 @@ def build_frame(files, LON, LAT, debug):
     return acc, used, ts
 
 def main():
+    global BASE
     args = sys.argv[1:]
     if not args: print(__doc__); sys.exit(1)
     out = args[0]; prev = None; local = []
@@ -354,6 +356,10 @@ def main():
             groups.setdefault(k, []).append((os.path.basename(p), p))
     else:
         urls = listing(BASE)
+        if not urls:   # δεύτερη πηγή: ο φάκελος που δείχνουν οι ειδοποιήσεις
+            b0 = BASE; BASE = BASE2
+            try: urls = listing(BASE2)
+            finally: BASE = b0
         debug['listed'] = len(urls); debug['sample'] = urls[-8:]; debug['pages'] = LISTLOG
         if not urls and LISTEN_S > 0:
             urls = mqtt_links(LISTEN_S, debug)
@@ -378,7 +384,7 @@ def main():
         for name, src in groups[k]:
             if isinstance(src, str) and src.startswith('http'):
                 try: files.append((name, fetch(src, 120)))
-                except Exception as e: log('get fail', src, e)
+                except Exception as e: log('get fail', src, e); debug.setdefault('get_errors', []).append(src[-90:] + ' → ' + repr(e)[:160])
             else: files.append((name, src))
         z, used, ts = build_frame(files, LON, LAT, debug)
         if not used: log('no reflectivity in', [n for n, _ in files]); continue
