@@ -926,10 +926,15 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   const secret = Deno.env.get('CRON_SECRET');
   const E = k => Deno.env.get(k) || '';
+  /* 1.9.25: τα κλειδιά VAPID πρέπει να είναι base64url χωρίς «=» (το web-push απέρριπτε το κλειδί και δεν έφευγε καμία ειδοποίηση).
+     Καθαρίζουμε κενά/εισαγωγικά, μετατρέπουμε + / σε - _ και κόβουμε τα = ώστε να δουλεύει όπως κι αν αποθηκεύτηκε. */
+  const V = k => E(k).trim().replace(/^["']|["']$/g, '').replace(/\s+/g, '').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  /* και το token του Telegram χωρίς κενά/εισαγωγικά/«bot» μπροστά */
+  const TGT = () => E('TELEGRAM_BOT_TOKEN').trim().replace(/^["']|["']$/g, '').replace(/^bot/i, '');
   const env = {
     SUPABASE_URL: E('SUPABASE_URL'),
     SUPABASE_SERVICE_KEY: E('SERVICE_KEY') || E('SUPABASE_SERVICE_ROLE_KEY'),
-    TELEGRAM_BOT_TOKEN: E('TELEGRAM_BOT_TOKEN'),
+    TELEGRAM_BOT_TOKEN: TGT(),
   };
   const isCron = !!secret && req.headers.get('x-cron-secret') === secret;
   if (!isCron) {
@@ -944,7 +949,7 @@ Deno.serve(async (req) => {
         if (!u.ok) return J({ ok: false, error: 'unauthorized' }, 401);
         const uid = (await u.json()).id; if (!uid) return J({ ok: false, error: 'unauthorized' }, 401);
         if (!(E('VAPID_PUBLIC') && E('VAPID_PRIVATE'))) return J({ ok: false, error: 'VAPID secrets missing' });
-        if (!vapidSet) { webpush.setVapidDetails('https://dinospapani.github.io/Alkyon/', E('VAPID_PUBLIC'), E('VAPID_PRIVATE')); vapidSet = true; }
+        if (!vapidSet) { webpush.setVapidDetails('https://dinospapani.github.io/Alkyon/', V('VAPID_PUBLIC'), V('VAPID_PRIVATE')); vapidSet = true; }
         const sr = await fetch(env.SUPABASE_URL + '/rest/v1/push_subs?user_id=eq.' + encodeURIComponent(uid) + '&select=id,sub,checked_at,turn', { headers: { apikey: env.SUPABASE_SERVICE_KEY, Authorization: 'Bearer ' + env.SUPABASE_SERVICE_KEY } });
         const subs = sr.ok ? await sr.json() : [];
         let sent = 0, gone = 0, err = '';
@@ -969,7 +974,7 @@ Deno.serve(async (req) => {
   let wp = null;
   if (E('VAPID_PUBLIC') && E('VAPID_PRIVATE')) {
     try {
-      if (!vapidSet) { webpush.setVapidDetails('https://dinospapani.github.io/Alkyon/', E('VAPID_PUBLIC'), E('VAPID_PRIVATE')); vapidSet = true; }
+      if (!vapidSet) { webpush.setVapidDetails('https://dinospapani.github.io/Alkyon/', V('VAPID_PUBLIC'), V('VAPID_PRIVATE')); vapidSet = true; }
       wp = webpush;
     } catch (e) { console.log('VAPID: ' + e.message); }
   }
