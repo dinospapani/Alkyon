@@ -745,7 +745,7 @@ html.night .mcpanel,html.night .mcpanel i,html.night .mcpanel small,html.night .
 /* 1.9.13: οθόνη «Συρτή βυθού» χωρίς κύλιση: το διάγραμμα παίρνει όσο χώρο μένει, τα υπόλοιπα πιο σφιχτά· κουμπί «Τέλος» πάνω */
 .trside.ck{gap:6px!important}
 .trside.ck>*{flex:none}
-.trside.ck>.ckdia{flex:1 1 0;min-height:100px;display:flex;flex-direction:column}
+.trside.ck>.ckdia{flex:1 1 0;min-height:max(190px,30vh);display:flex;flex-direction:column}
 .ck .ckdia>.ckdv{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center}
 .ck .ckdia>.ckdv svg{height:100%;max-height:100%;width:100%}
 .ck .ckdia>.ckmini{flex:1 1 auto}

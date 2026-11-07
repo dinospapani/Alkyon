@@ -1124,3 +1124,6 @@ html.night .mk.srmk.sr-ripple i{background:#555}
 html.night .mk.srmk.sr-rough i{background:#aaa}html.night .mk.srmk.sr-rough i svg{stroke:#000}
 html.night .mk.srmk.sr-danger i{background:#fff;border-color:#000}html.night .mk.srmk.sr-danger i svg{stroke:#000}
 html.night .srb.sr-calm i{background:#000;outline:1px solid #fff}html.night .srb.sr-ripple i{background:#555}html.night .srb.sr-rough i{background:#aaa}html.night .srb.sr-danger i{background:#fff}
+/* 1.9.22: στη στεριά */
+.ck .ckland{background:#2b3b4d;color:#fff;border-radius:12px;padding:9px 12px;font:800 14px var(--font);line-height:1.3}
+html.night .ck .ckland{background:#000;outline:1px solid #fff;outline-offset:-1px}
