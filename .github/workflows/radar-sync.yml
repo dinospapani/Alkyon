@@ -6,7 +6,7 @@ name: Radar sync (DoM Cyprus)
 on:
   workflow_dispatch:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "7,27,47 * * * *"   # κάθε 20′, σε λεπτά με λιγότερη κίνηση στο GitHub
 
 permissions:
   contents: write
@@ -18,7 +18,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 16
     steps:
       - uses: actions/checkout@v5
 
