@@ -173,7 +173,7 @@ function rainBarMake(){
     h('button',{type:'button',class:'rbp','aria-label':T('Αναπαραγωγή/παύση','Play/pause'),text:'❚❚',onclick:function(){ rainPlay=!rainPlay; this.textContent=rainPlay?'❚❚':'▶'; }}),
     h('span',{class:'rbt'},h('i',{text:rainSrc==='dom'?T('Ραντάρ ΤΜ Κύπρου','DoM Cyprus radar'):T('Ραντάρ βροχής','Rain radar')}),h('b',{text:''}),h('small',{text:''})),
     h('input',{type:'range',min:'0',max:String(rainFr.length-1),value:String(rainFr.length-1),'aria-label':T('Ώρα ραντάρ','Radar time'),oninput:function(){ rainPlay=false; rainBar.querySelector('.rbp').textContent='▶'; rainShow(+this.value); }}),
-    inCyR()?h('button',{type:'button',class:'rbs','aria-label':T('Αλλαγή πηγής ραντάρ','Switch radar source'),title:rainSrc==='dom'?T('Πήγαινε στο RainViewer','Switch to RainViewer'):T('Πήγαινε στο ραντάρ ΤΜ Κύπρου','Switch to DoM Cyprus radar'),text:'⇄',onclick:function(){ ls.set('alkyon-v4-rainsrc',rainSrc==='dom'?'rv':'auto'); drawRain(); }}):null,
+    inCyR()?h('button',{type:'button',class:'rbs','aria-label':T('Αλλαγή πηγής ραντάρ','Switch radar source'),title:rainSrc==='dom'?T('Πήγαινε στο RainViewer','Switch to RainViewer'):T('Πήγαινε στο ραντάρ ΤΜ Κύπρου','Switch to DoM Cyprus radar'),text:'⇄',onclick:function(){ ls.set('alkyon-v4-rainsrc',rainSrc==='dom'?'rv':'dom'); drawRain(); }}):null,
     h('button',{type:'button',class:'rbx','aria-label':T('Κλείσιμο ραντάρ','Close radar'),text:'✕',onclick:function(){ cfg.rain=false; saveCfg(); rainStop(); }}));
   document.body.append(rainBar); rainShow(rainFr.length-1);
   rainT=setInterval(function(){ if(!rainPlay||!rainL.length) return; rainShow((rainI+1)%rainL.length); },700); }
@@ -183,17 +183,19 @@ function rainRV(){ rainSrc='rv';
     rainL=rainFr.map(function(f){ return L.tileLayer(rainHost+f.path+'/256/{z}/{x}/{y}/2/1_1.png',{opacity:0,maxZoom:19,maxNativeZoom:7,zIndex:260,className:'raintile',attribution:'RainViewer'}).addTo(map); });
     rainBarMake();
   }).catch(function(){ B.toast(T('Το ραντάρ βροχής δεν είναι διαθέσιμο τώρα (χρειάζεται σύνδεση).','The rain radar isn’t available right now (needs a connection).')); }); }
-function rainDom(){
+function rainDom(force){
   return fetch(DOMR+'radar.json?t='+Math.floor(Date.now()/120000),{cache:'no-store'}).then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(j){
     var fr=(j.frames||[]).slice(-12); if(!fr.length) throw 0;
     var tm=function(t){ return Date.UTC(+t.slice(0,4),+t.slice(4,6)-1,+t.slice(6,8),+t.slice(8,10),+t.slice(10,12))/1000; };
-    if(Date.now()/1000-tm(fr[fr.length-1].t)>45*60) throw 0;
+    var age=Math.round((Date.now()/1000-tm(fr[fr.length-1].t))/60);
+    if(force&&age>360) throw 0;
+    if(!force&&age>100){ if(!rainDom.told){ rainDom.told=1; B.toast(T('Το ραντάρ ΤΜ Κύπρου δεν έχει πρόσφατη εικόνα (τελευταία πριν ','The DoM Cyprus radar has no recent image (last one ')+(age>=120?Math.floor(age/60)+T(' ώρ.',' h'):age+'′')+T('). Δείχνω RainViewer· με «⇄» βλέπεις την τελευταία του ΤΜ.',' ago). Showing RainViewer; «⇄» shows the latest DoM image.')); } throw 0; } /* 1.9.23: έως 100′ (το ραντάρ Πάφου στέλνει αραιά και το GitHub καθυστερεί) */
     if(!cfg.rain||!map) return true; rainStop(); rainSrc='dom';
     rainFr=fr.map(function(f){ return {time:tm(f.t)}; });
     rainL=fr.map(function(f){ return L.imageOverlay(DOMR+f.img,j.bounds,{opacity:0,interactive:false,className:'raintile domradar',attribution:T('Ραντάρ: Τμήμα Μετεωρολογίας Κύπρου','Radar: Cyprus Department of Meteorology')}).addTo(map); });
     rainBarMake(); return true; }); }
 function drawRain(){ rainStop(); if(!cfg.rain||!map) return;
-  if(ls.get('alkyon-v4-rainsrc','auto')!=='rv'&&inCyR()) rainDom().catch(function(){ if(cfg.rain&&map&&!rainL.length) rainRV(); });
+  var rsrc=ls.get('alkyon-v4-rainsrc','auto'); if(rsrc!=='rv'&&inCyR()) rainDom(rsrc==='dom').catch(function(){ if(cfg.rain&&map&&!rainL.length) rainRV(); });
   else rainRV(); }
 function drawOverlays(){
   if(!map) return;
