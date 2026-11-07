@@ -104,6 +104,26 @@ def mqtt_links(seconds, debug):
         if r == 'canonical' and n not in names: names.add(n); canon.append(h)
     return canon
 
+S3 = 'https://wis2globalcache.s3.amazonaws.com/'
+S3P = 'data/cy-dom/data/core/weather/experimental/surface-based-observations/radar/'
+def s3_links(debug):
+    """η παγκόσμια cache του WIS2 σε S3: αν επιτρέπει λίστα, παίρνουμε όλα τα αρχεία των τελευταίων ωρών (γεμίζουν και τα κενά)"""
+    out, tok, info = [], None, {'ok': False}
+    try:
+        for _ in range(10):
+            q = {'list-type': '2', 'prefix': S3P + 'LONGRANGE_', 'max-keys': '1000'}
+            if tok: q['continuation-token'] = tok
+            x = fetch(S3 + '?' + urllib.parse.urlencode(q), 60).decode('utf-8', 'replace')
+            out += [S3 + k for k in re.findall(r'<Key>([^<]+\.h5)</Key>', x)]
+            m = re.search(r'<NextContinuationToken>([^<]+)</NextContinuationToken>', x)
+            if not m: break
+            tok = m.group(1)
+        info['ok'] = True; info['n'] = len(out)
+    except Exception as e:
+        info['error'] = repr(e)[:200]
+    debug['s3'] = info
+    return out
+
 TS_RES = [re.compile(r'(20\d{2})(\d{2})(\d{2})[T_\-]?(\d{2})(\d{2})(\d{2})?'),
           re.compile(r'(20\d{2})[\-_](\d{2})[\-_](\d{2})[T_\- ](\d{2})[:\-_]?(\d{2})')]
 def ts_of_name(name):
@@ -361,6 +381,10 @@ def main():
             try: urls = listing(BASE2)
             finally: BASE = b0
         debug['listed'] = len(urls); debug['sample'] = urls[-8:]; debug['pages'] = LISTLOG
+        if not urls:
+            s3 = s3_links(debug); now_ = dt.datetime.now(dt.timezone.utc)
+            urls = [u for u in s3 if ts_of_name(u) and (now_ - ts_of_name(u)).total_seconds() / 60 <= MAX_AGE_MIN]
+            if urls: log('from S3', len(urls))
         if not urls and LISTEN_S > 0:
             urls = mqtt_links(LISTEN_S, debug)
             if urls: log('from WIS2', urls)
