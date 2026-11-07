@@ -469,6 +469,18 @@ with sync_playwright() as p:
     pg.evaluate("()=>{AK.troll.landHere(34.80,32.45); AK.troll.landHere(34.70,32.45);}"); pg.wait_for_timeout(3000)
     r=pg.evaluate("()=>[AK.troll.landHere(34.80,32.45), AK.troll.landHere(34.70,32.45)]")
     check('συρτή: αναγνωρίζει στεριά/θάλασσα (Πάφος / ανοιχτά) (1.9.22)', r==[True,False] and not pg._errs, [r,pg._errs]); c.close()
+    for _mins,_want in ((70,1),(200,0)):
+        _t2=(_dt.datetime.now(_dt.timezone.utc)-_dt.timedelta(minutes=_mins)).strftime('%Y%m%d%H%M')
+        def _mk(_t2):
+          def radr2(route):
+            u=route.request.url
+            if 'radar.json' in u: return route.fulfill(json={'frames':[{'t':_t2,'img':'radar_'+_t2+'.png'}],'bounds':[[32.7,29.6],[36.9,36.0]]},headers={'Access-Control-Allow-Origin':'*'})
+            return route.fulfill(body=_png,content_type='image/png')
+          return radr2
+        c=ctx(b); c.add_init_script("if(!sessionStorage.rd){sessionStorage.rd=1;localStorage.setItem('alkyon-v4-mapui',JSON.stringify('clean'));localStorage.setItem('alkyon-v4-map',JSON.stringify({base:'sat',sea:false,zones:false,rain:true}));}")
+        c.route('**/raw.githubusercontent.com/dinospapani/alkyon/radar-data/**',_mk(_t2)); pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(5000)
+        n=pg.evaluate("()=>document.querySelectorAll('.domradar').length")
+        check('ραντάρ ΤΜ: εικόνα %d′ → %s (1.9.23)'%(_mins,'ΤΜ' if _want else 'RainViewer'), n==_want and not pg._errs, [n,pg._errs]); c.close()
     print('# offline')
     c=ctx(b,sw=True); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(6000); pg.reload(); pg.wait_for_timeout(3000)
     c.set_offline(True)
