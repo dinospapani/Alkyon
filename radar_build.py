@@ -23,7 +23,15 @@ W_PX = 560                                   # πλάτος εικόνας· τ�
 KEEP = 12                                    # εικόνες (≈2 ώρες ανά 10′)
 MAX_NEW = 4                                  # το πολύ τόσες νέες χρονικές στιγμές ανά εκτέλεση
 MAX_AGE_MIN = 150
-UA = {'User-Agent': 'Alkyon-radar/1.0 (+https://dinospapani.github.io/Alkyon)'}
+UA = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36 Alkyon-radar/1.1',
+      'Accept': 'text/html,application/xhtml+xml,application/octet-stream,*/*;q=0.8'}
+# WIS2: όταν η λίστα του φακέλου δεν επιτρέπεται (403), οι διευθύνσεις των αρχείων έρχονται από τις ειδοποιήσεις MQTT των παγκόσμιων brokers
+BROKERS = ['globalbroker.meteo.fr', 'wis2globalbroker.nws.noaa.gov', 'gb.wis.cma.cn', 'globalbroker.inmet.gov.br']
+TOPICS = ['cache/a/wis2/cy-dom/data/core/weather/experimental/surface-based-observations/radar/#',
+          'cache/a/wis2/cy-dom/data/core/weather/experimental/surface-based-observations/radar',
+          'origin/a/wis2/cy-dom/data/core/weather/experimental/surface-based-observations/radar/#',
+          'origin/a/wis2/cy-dom/data/core/weather/experimental/surface-based-observations/radar']
+LISTEN_S = int(os.environ.get('RADAR_LISTEN_S', '300'))
 
 def log(*a): print(*a, flush=True)
 
@@ -54,6 +62,43 @@ def listing(url, depth=0, out=None):
         if H5RE.search(full.split('?')[0]): out.append(full)
         elif full.endswith('/') and depth < 3: listing(full, depth + 1, out)
     return out
+
+def mqtt_links(seconds, debug):
+    """ακούει τις ειδοποιήσεις WIS2 για το ραντάρ της Κύπρου και επιστρέφει τις διευθύνσεις των αρχείων (canonical + cache)"""
+    try:
+        import paho.mqtt.client as mqtt, ssl
+    except Exception as e:
+        debug['mqtt'] = 'no paho: ' + repr(e); return []
+    got, seen, info = [], set(), {'msgs': 0, 'broker': None, 'errors': [], 'examples': []}
+    def on_msg(c, u, m):
+        info['msgs'] += 1
+        try: j = json.loads(m.payload.decode('utf-8', 'replace'))
+        except Exception: return
+        if len(info['examples']) < 3: info['examples'].append({'topic': m.topic, 'links': (j.get('links') or [])[:4], 'props': {k: j.get('properties', {}).get(k) for k in ('data_id', 'pubtime', 'datetime')}})
+        for l in j.get('links') or []:
+            h = l.get('href') or ''
+            if h.startswith('http') and l.get('rel') in ('canonical', 'via', 'item', None) and h not in seen:
+                seen.add(h); got.append((l.get('rel'), h, (j.get('properties') or {}).get('pubtime')))
+    for host in BROKERS:
+        try:
+            c = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id='alkyon-radar-' + os.urandom(4).hex(), protocol=mqtt.MQTTv311)
+            c.username_pw_set('everyone', 'everyone'); c.tls_set(cert_reqs=ssl.CERT_REQUIRED)
+            c.on_message = on_msg
+            c.on_connect = lambda cl, u, f, rc, p=None: [cl.subscribe(t, qos=0) for t in TOPICS]
+            c.connect(host, 8883, keepalive=60); info['broker'] = host
+            c.loop_start(); t0 = time.time()
+            while time.time() - t0 < seconds:
+                time.sleep(2)
+                # αρκεί μία στιγμή και από τα δύο ραντάρ
+                if len({h for r, h, _ in got if r == 'canonical' and 'dom.org.cy' not in h}) >= 2 and time.time() - t0 > 30: break
+            c.loop_stop(); c.disconnect()
+            break
+        except Exception as e:
+            info['errors'].append(host + ': ' + repr(e)[:160])
+    debug['mqtt'] = info; debug['mqtt_links'] = [h for _, h, _ in got][:20]
+    # προτίμηση στις διευθύνσεις των global cache (όχι dom.org.cy, που δίνει 403 στο GitHub)
+    canon = [h for r, h, _ in got if r == 'canonical']
+    return sorted(canon, key=lambda h: 'dom.org.cy' in h)
 
 TS_RES = [re.compile(r'(20\d{2})(\d{2})(\d{2})[T_\-]?(\d{2})(\d{2})(\d{2})?'),
           re.compile(r'(20\d{2})[\-_](\d{2})[\-_](\d{2})[T_\- ](\d{2})[:\-_]?(\d{2})')]
@@ -240,6 +285,9 @@ def main():
     else:
         urls = listing(BASE)
         debug['listed'] = len(urls); debug['sample'] = urls[-8:]; debug['pages'] = LISTLOG
+        if not urls and LISTEN_S > 0:
+            urls = mqtt_links(LISTEN_S, debug)
+            if urls: log('from WIS2', urls)
         dated = []
         for u in urls:
             t = ts_of_name(u)
