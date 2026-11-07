@@ -118,6 +118,10 @@ on conflict (id) do update set public = true, file_size_limit = 2000000, allowed
 drop policy if exists "community upload own" on storage.objects;
 create policy "community upload own" on storage.objects for insert to authenticated
   with check (bucket_id = 'community' and (storage.foldername(name))[1] = auth.uid()::text);
+-- 1.9.24: το ανέβασμα με x-upsert χρειάζεται και SELECT (αλλιώς 400 και «Δεν στάλθηκε»)
+drop policy if exists "community read own" on storage.objects;
+create policy "community read own" on storage.objects for select to authenticated
+  using (bucket_id = 'community' and (storage.foldername(name))[1] = auth.uid()::text);
 drop policy if exists "community update own" on storage.objects;
 create policy "community update own" on storage.objects for update to authenticated
   using (bucket_id = 'community' and (storage.foldername(name))[1] = auth.uid()::text);
