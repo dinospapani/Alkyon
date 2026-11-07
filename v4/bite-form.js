@@ -183,30 +183,59 @@ B.biteForm=function(edit,opt){
   len.addEventListener('input',estKg); sp.addEventListener('change',estKg); kg.addEventListener('input',function(){ kgAuto=false; kgEst.hidden=true; });
   var err=h('p',{class:'err',role:'alert'});
   var save=h('button',{class:'btn pri full bfsave',type:'submit',text:e?T('Αποθήκευση αλλαγών','Save changes'):T('Αποθήκευση','Save')});
-  var form=h('form',{class:'bform',novalidate:true},
-    datalist('bfBait',uniq(all.map(function(b){ return b.bait; }))),techList(prof,uniq(all.map(function(b){ return b.tech; }))),
-    !e&&B.voice&&B.voice.ok?h('button',{class:'btn micbtn',type:'button',html:B.voice.MIC+'<span>'+T('Πες το','Say it')+'</span>',onclick:function(){ B.voice.fill(applyVoice); }}):null,
-    gearIt?h('p',{class:'gearnote',text:T('Εργαλείο: ','Gear: ')+(gearIt.name||'')}):null,
-    h('label',{class:'tg tgmiss'},miss,h('span',{text:T('Χάθηκε: τσίμπησε αλλά δεν το έβγαλα','Lost: it bit but I did not land it')})),
-    h('div',{class:'fld spfld'},h('span',{text:T('Είδος','Species')}),h('div',{class:'spwrap'},sp,spSug),spChips,h('small',{class:'spopt',text:T('Για χαμένο ψάρι είναι προαιρετικό.','Optional for a lost fish.')})),
-    B.speciesPick?h('button',{class:'linkbtn',type:'button',text:'📖 '+T('Διάλεξε από τη λίστα ειδών','Pick from the species list'),onclick:function(){ B.speciesPick(function(nm){ sp.value=nm; law(); }); }}):null,
-    lawNote,
-    h('label',{class:'tg'},many,h('span',{text:T('Πολλά ψάρια μαζί (μία εγγραφή)','Several fish together (one entry)')})),cntRow,
-    (sizeRow=h('div',{class:'g3',hidden:miss.checked},field(T('Βάρος (kg)','Weight (kg)'),kg),field(T('Μήκος (cm)','Length (cm)'),len),field(T('Βάθος','Depth')+' ('+(window.AlkyonUnits&&AlkyonUnits.depthUnit?AlkyonUnits.depthUnit():'m')+')',dep))),
-    kgEst,
-    prof==='spear'?h('label',{class:'fld'},h('span',{text:T('Ορατότητα νερού (m)','Water visibility (m)')}),vis,h('small',{text:T('Πόσα μέτρα έβλεπες. Έτσι η Πρόγνωση μαθαίνει τα νερά σου.','How many metres you could see. This teaches the Forecast your waters.')})):null,
-    field(T('Πότε','When'),when),
-    h('label',{class:'fld'},h('span',{text:T('Πού','Where')}),where,whereNote),cwrap,
-    h('div',{class:'g2'},field(T('Δόλωμα','Bait'),bait),field(T('Τεχνική','Technique'),tech)),baitChips,
-    h('div',{class:'fld'},h('span',{text:T('Εξοπλισμός','Tackle')}),tkBox,tkDet,tkLostBox,tkSug),
-    h('div',{class:'fld'},h('span',{text:T('Φωτογραφίες','Photos')}),phBox,file),
-    aiSlot,
-    /* 1.9.13: σημειώσεις, ελευθέρωση, ιδιωτικό σε «Περισσότερα» (ανοιχτό αν έχουν ήδη τιμή) */
-    (function(){ var any=!!(notes.value||rel.checked||priv.checked); return h('details',{class:'bfmore',open:any||null},h('summary',{text:T('Σημειώσεις, ελευθέρωση, ιδιωτικό','Notes, released, private')}),
-      field(T('Σημειώσεις','Notes'),notes),
+  /* 1.9.15: νέα φόρμα: τα βασικά σε μία οθόνη (είδος → κιλά → Αποθήκευση), ό,τι συμπληρώνεται μόνο του ή χρειάζεται σπάνια σε μία γραμμή ή στις «Λεπτομέρειες» */
+  var segF=h('button',{type:'button',class:'bfseg-b','aria-pressed':String(!miss.checked),text:'🐟 '+T('Ψάρι','Fish'),onclick:function(){ setMiss(false); }}),
+      segM=h('button',{type:'button',class:'bfseg-b miss','aria-pressed':String(miss.checked),text:'✕ '+T('Χάθηκε','Lost'),onclick:function(){ setMiss(true); }});
+  function setMiss(v){ if(miss.checked===v) return; miss.checked=v; segF.setAttribute('aria-pressed',String(!v)); segM.setAttribute('aria-pressed',String(v)); try{ miss.dispatchEvent(new Event('change')); }catch(x){} law(); }
+  var micB=!e&&B.voice&&B.voice.ok?h('button',{class:'bfic',type:'button','aria-label':T('Πες το','Say it'),title:T('Πες το','Say it'),html:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>',onclick:function(){ B.voice.fill(applyVoice); }}):null;
+  var camB=h('button',{class:'bfic',type:'button','aria-label':T('Φωτογραφία','Photo'),title:T('Φωτογραφία','Photo'),html:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',onclick:function(){ more.open=true; file.click(); }});
+  var top=h('div',{class:'bftop'},h('div',{class:'bfseg',role:'group','aria-label':T('Ψάρι ή χαμένο','Fish or lost')},segF,segM,h('label',{class:'vh'},miss,T('Χάθηκε','Lost'))),micB,camB);
+  /* πότε / πού σε μία γραμμή */
+  var wwBox=h('div',{class:'bfww',hidden:true},field(T('Πότε','When'),when),h('label',{class:'fld'},h('span',{text:T('Πού','Where')}),where,whereNote),cwrap);
+  var wwTx=h('span',{class:'bflt'});
+  function wwPaint(){ var v=when.value||'', d=v?new Date(v):null, now=Math.abs(Date.now()-(d?d.getTime():0))<6*60000;
+    var wt=now?T('Τώρα','Now'):(d?d.toLocaleDateString(EN?'en-GB':'el-GR',{day:'numeric',month:'short'})+' '+B.pad(d.getHours())+':'+B.pad(d.getMinutes()):'–');
+    var o=where.options[where.selectedIndex], wh=where.value==='gps'?T('Η θέση μου (GPS)','My position (GPS)'):(o?o.text.replace(/^★ |^📍 /,''):'');
+    var ns=where.value==='gps'&&pos?nearSpot(pos.lat,pos.lon):null; wwTx.textContent=wt+' · '+(ns?'★ '+ns.name:wh); }
+  var wwLine=h('button',{type:'button',class:'bfline',onclick:function(){ wwBox.hidden=!wwBox.hidden; wwLine.classList.toggle('open',!wwBox.hidden); }},h('span',{class:'bfll',text:T('Πότε · Πού','When · Where')}),wwTx,h('i',{text:'✎'}));
+  when.addEventListener('change',wwPaint); where.addEventListener('change',wwPaint); locP.then(function(){ wwPaint(); autoDepth(); }); wwPaint();
+  /* βάθος από τον χάρτη βυθού όταν δεν το έγραψες (εκτίμηση, σημειώνεται) */
+  var depNote=h('small',{class:'wn',hidden:true}), depAuto=false;
+  function autoDepth(){ if(e||dep.value||!pos||!B.depthAt||prof==='lake'||prof==='shore') return; B.depthAt(pos.lat,pos.lon).then(function(v){ if(v==null||v<1||dep.value) return; var U=window.AlkyonUnits, o=U&&U.depthOut?U.depthOut(v):Math.round(v);
+      dep.value=String(Math.round(o)); depAuto=true; depNote.hidden=false; depNote.textContent='≈ '+T('βάθος από τον χάρτη βυθού· γράψε το πραγματικό αν το ξέρεις','depth from the seabed chart; enter the real one if you know it'); }).catch(function(){}); }
+  dep.addEventListener('input',function(){ depAuto=false; depNote.hidden=true; });
+  /* εξοπλισμός σε μία γραμμή (τα επιλεγμένα· πάτα για αλλαγή) */
+  var tkWrap=h('div',{class:'bftk',hidden:true},tkBox,tkDet,tkLostBox,tkSug), tkTx=h('span',{class:'bflt'});
+  function tkPaint(){ var nm=tkSel.map(function(id){ var x=tkItems.filter(function(y){ return y.id===id; })[0]; return x&&x.type==='set'?x.name:null; }).filter(Boolean);
+    var other=tkSel.filter(function(id){ var x=tkItems.filter(function(y){ return y.id===id; })[0]; return x&&x.type!=='set'; }).length;
+    tkTx.textContent=nm.length?nm.join(', '):(other?other+T(' επιλεγμένα',' selected'):T('κανένας','none')); }
+  var tkLine=tkItems.length?h('button',{type:'button',class:'bfline',onclick:function(){ tkWrap.hidden=!tkWrap.hidden; tkLine.classList.toggle('open',!tkWrap.hidden); }},h('span',{class:'bfll',text:T('Εξοπλισμός','Tackle')}),tkTx,h('i',{text:'✎'})):null;
+  tkBox.addEventListener('click',function(){ setTimeout(tkPaint,30); }); tkPaint();
+  /* τεχνική: στη συρτή συμπληρώνεται μόνη της· κουμπιά δολωμάτων από το ιστορικό */
+  try{ if(!e&&!tech.value&&B.troll&&B.troll.on&&B.troll.on()){ var tc=B.troll.cfg?B.troll.cfg():null; tech.value=tc&&tc.mode==='bottom'?'Συρτή βυθού':'Συρτή αφρού'; } }catch(x){}
+  var techChips=h('div',{class:'chips qchips'}); (function(){ var u=uniq(all.map(function(b){ return b.tech; })).slice(0,4); u.forEach(function(v){ techChips.append(h('button',{type:'button',class:'chip sm',text:v,onclick:function(){ tech.value=v; [].forEach.call(techChips.children,function(c){ c.setAttribute('aria-pressed',String(c.textContent===v)); }); }})); }); techChips.hidden=!u.length; })();
+  [].forEach.call(baitChips.children,function(c){ c.addEventListener('click',function(){ [].forEach.call(baitChips.children,function(z){ z.setAttribute('aria-pressed',String(z===c)); }); }); });
+  var btRow=(baitChips.children.length||techChips.children.length)?h('div',{class:'bfbt'},baitChips.children.length?h('div',{class:'bfbtr'},h('small',{text:T('Δόλωμα','Bait')}),baitChips):null,techChips.children.length?h('div',{class:'bfbtr'},h('small',{text:T('Τεχνική','Technique')}),techChips):null):null;
+  var spLbl=h('div',{class:'bfspl'},h('span',{text:T('Είδος','Species')}),B.speciesPick?h('button',{class:'linkbtn sm',type:'button',text:'📖 '+T('Λίστα ειδών','Species list'),onclick:function(){ B.speciesPick(function(nm){ sp.value=nm; law(); }); }}):null);
+  var hasMore=!!(e&&(e.notes||e.rel||e.priv||(e.bait&&!baitChips.children.length)||+e.cnt>1));
+  var more=h('details',{class:'bfmore',open:hasMore||null},h('summary',{text:T('Λεπτομέρειες: φωτογραφίες, σημειώσεις…','Details: photos, notes…')}),
+      h('div',{class:'fld'},h('span',{text:T('Φωτογραφίες','Photos')}),phBox,file),aiSlot,
+      h('div',{class:'g2'},field(T('Δόλωμα','Bait'),bait),field(T('Τεχνική','Technique'),tech)),
+      h('label',{class:'tg'},many,h('span',{text:T('Πολλά ψάρια μαζί (μία εγγραφή)','Several fish together (one entry)')})),cntRow,
+      field(T('Σημειώσεις','Notes'),notes),tripSel,
       h('label',{class:'tg'},rel,h('span',{text:T('Το άφησα ελεύθερο','I released it')})),
-      h('label',{class:'tg'},priv,h('span',{text:T('Ιδιωτικό: δεν το βλέπουν οι φίλοι','Private: friends cannot see it')}))); })(),
-    tripSel,
+      h('label',{class:'tg'},priv,h('span',{text:T('Ιδιωτικό: δεν το βλέπουν οι φίλοι','Private: friends cannot see it')})));
+  var form=h('form',{class:'bform bf2',novalidate:true},
+    datalist('bfBait',uniq(all.map(function(b){ return b.bait; }))),techList(prof,uniq(all.map(function(b){ return b.tech; }))),
+    top,
+    gearIt?h('p',{class:'gearnote',text:T('Εργαλείο: ','Gear: ')+(gearIt.name||'')}):null,
+    h('div',{class:'fld spfld'},spLbl,h('div',{class:'spwrap'},sp,spSug),spChips,h('small',{class:'spopt',text:T('Για χαμένο ψάρι είναι προαιρετικό.','Optional for a lost fish.')})),
+    lawNote,
+    (sizeRow=h('div',{class:'g3',hidden:miss.checked},field(T('Βάρος (kg)','Weight (kg)'),kg),field(T('Μήκος (cm)','Length (cm)'),len),field(T('Βάθος','Depth')+' ('+(window.AlkyonUnits&&AlkyonUnits.depthUnit?AlkyonUnits.depthUnit():'m')+')',dep))),
+    kgEst,depNote,
+    prof==='spear'?h('label',{class:'fld'},h('span',{text:T('Ορατότητα νερού (m)','Water visibility (m)')}),vis,h('small',{text:T('Πόσα μέτρα έβλεπες. Έτσι η Πρόγνωση μαθαίνει τα νερά σου.','How many metres you could see. This teaches the Forecast your waters.')})):null,
+    wwLine,wwBox,tkLine,tkWrap,btRow,
+    more,
     err,save,
     e?h('button',{class:'btn full del',type:'button',text:T('Διαγραφή ψαριού','Delete catch'),onclick:function(){ B.ask(T('Να διαγραφεί αυτό το ψάρι;','Delete this catch?'),T('Διαγραφή','Delete'),true).then(function(y){ if(!y) return;
       S.phKeys(e).forEach(function(k){ S.Photos.del(k).catch(function(){}); }); adjLost(e.tkLost||[],1,null); S.remove('bites',e.id); recount(e.trip); sh.close(); B.toast(T('Το ψάρι διαγράφηκε.','Catch deleted.')); }); }}):null);
