@@ -18,12 +18,12 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v5
 
       - name: Python packages
-        run: pip install --quiet h5py numpy pillow
+        run: pip install --quiet h5py numpy pillow paho-mqtt
 
       - name: Previous frames
         run: |
