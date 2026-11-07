@@ -111,7 +111,7 @@ def s3_links(debug):
     out, tok, info = [], None, {'ok': False}
     try:
         for _ in range(10):
-            q = {'list-type': '2', 'prefix': S3P + 'LONGRANGE_', 'max-keys': '1000'}
+            q = {'list-type': '2', 'prefix': S3P, 'max-keys': '1000'}
             if tok: q['continuation-token'] = tok
             x = fetch(S3 + '?' + urllib.parse.urlencode(q), 60).decode('utf-8', 'replace')
             out += [S3 + k for k in re.findall(r'<Key>([^<]+\.h5)</Key>', x)]
@@ -119,6 +119,12 @@ def s3_links(debug):
             if not m: break
             tok = m.group(1)
         info['ok'] = True; info['n'] = len(out)
+        kinds = {}
+        for u in out:
+            k = re.sub(r'_?\d{12,14}.*$', '', u.rsplit('/', 1)[-1]); kinds[k] = kinds.get(k, 0) + 1
+        info['kinds'] = kinds   # ποια ραντάρ/προϊόντα υπάρχουν (π.χ. LONGRANGE_PFO)
+        # κρατάμε το LONGRANGE κάθε ραντάρ (και ό,τι άλλο ραντάρ εκτός Πάφου υπάρχει)
+        out = [u for u in out if 'LONGRANGE_' in u or 'PFO' not in u.rsplit('/', 1)[-1]]
     except Exception as e:
         info['error'] = repr(e)[:200]
     debug['s3'] = info
