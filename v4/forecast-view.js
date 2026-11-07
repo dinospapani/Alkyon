@@ -632,7 +632,12 @@ function pwFill(body,v,p,fc,rk){
     tx(Lm,mT-4,T('σελήνη','moon'),'axh mk');
     svg.appendChild(s('line',{x1:Lm,x2:W-R,y1:mT+mH,y2:mT+mH,class:'gl'}));
     try{ per=PF.solunarPeriods(t0,t1,+p.lat,+p.lon); }catch(e){ per=[]; }
-    per.forEach(function(q){ var a=Math.max(Lm,Xt(q.s)), b=Math.min(W-R,Xt(q.e)); if(b-a<0.5) return; svg.appendChild(s('rect',{x:a,y:mT,width:b-a,height:mH,rx:2,class:q.kind==='major'?'mp maj':'mp'})); });
+    /* 1.9.26: «καλή» περίοδος σελήνης = και ήπιος άνεμος (κάτω από το όριό σου) και πίεση που δεν πέφτει γρήγορα */
+    var Lw=LIM().wind, iAt=function(ms){ var b=0; pts.forEach(function(q,i){ if(Math.abs(q.t-ms)<Math.abs(pts[b].t-ms)) b=i; }); return b; };
+    per.forEach(function(q){ var mid=(q.s+q.e)/2, i=iAt(mid), w=pts[i].w, d3=i>=3?pts[i].p-pts[i-3].p:null;
+      q.wOk=w==null||w<=Lw; q.pOk=d3==null||d3>-1.5; q.good=q.wOk&&q.pOk&&mid>=t0&&mid<=t1; });
+    per.forEach(function(q){ var a=Math.max(Lm,Xt(q.s)), b=Math.min(W-R,Xt(q.e)); if(b-a<0.5) return; svg.appendChild(s('rect',{x:a,y:mT,width:b-a,height:mH,rx:2,class:(q.kind==='major'?'mp maj':'mp')+(q.good?' ok':'')}));
+      if(q.good) svg.appendChild(s('rect',{x:a,y:mT-3,width:b-a,height:3,rx:1.5,class:'mg'})); });
     var steps=Math.min(240,n*2), dm='', on=false;
     for(var k=0;k<=steps;k++){ var ms=t0+(t1-t0)*k/steps, al=PF.moonAlt(ms,+p.lat,+p.lon), xx=Xt(ms).toFixed(1);
       if(al>0){ var yy=(mT+mH-mH*Math.min(1,al/90)).toFixed(1); dm+=(on?'L':'M'+xx+' '+(mT+mH)+' L')+xx+' '+yy+' '; on=true; } else if(on){ dm+='L'+xx+' '+(mT+mH)+' '; on=false; } }
@@ -671,11 +676,17 @@ function pwFill(body,v,p,fc,rk){
     var twN=function(x){ var ds=loc(x.t).slice(0,10), dy=days.filter(function(z){ return z.date===ds; })[0]; if(!dy) return false; var m=(Date.parse(loc(x.t).slice(0,16)+':00Z')-Date.parse(ds+'T00:00:00Z'))/60000; return Math.abs(m-dy.rise)<=90||Math.abs(m-dy.set)<=90; };
     var parts=up.map(function(x){ var ds=loc(x.s).slice(0,10); return (ds!==td?B.dayName(ds,td).toLowerCase()+' ':'')+hmm(x.s)+'–'+hmm(x.e)+' '+(x.kind==='major'?T('κύρια','major'):T('δευτερεύουσα','minor'))+(twN(x)?' ★':''); });
     var cur=moonAt(now);
-    /* 1.9.11: οι περίοδοι σελήνης φαίνονται ήδη στην πάνω κάρτα· εδώ μόνο αν είσαι μέσα σε περίοδο τώρα */
-    if(cur) out.push(h('p',{class:'sub',style:{margin:'6px 0 0'},text:T('Σελήνη: τώρα ','Moon: now ')+mLbl(cur)+'.'}));
+    if(cur) out.push(h('p',{class:'sub',style:{margin:'6px 0 0'},text:T('Σελήνη: τώρα ','Moon: now ')+mLbl(cur)+(cur.good?T(', με ήπιο άνεμο και σταθερή πίεση',', with light wind and steady pressure'):cur.wOk?'':T(', αλλά ο άνεμος είναι πάνω από το όριό σου',', but wind is over your limit'))+'.'}));
+    /* 1.9.26: οι επόμενες καλές περίοδοι (σελήνη + άνεμος + πίεση)· ★ όταν πέφτουν και κοντά σε αυγή ή σούρουπο */
+    var gd=per.filter(function(x){ return x.good&&x.s>now; }).slice(0,3);
+    var lbl=function(x){ var ds=loc(x.s).slice(0,10); return (ds!==td?B.dayName(ds,td).toLowerCase()+' ':'')+hmm(x.s)+'–'+hmm(x.e)+' '+(x.kind==='major'?T('κύρια','major'):T('δευτερεύουσα','minor'))+(twN(x)?' ★':''); };
+    out.push(h('div',{class:'pwgood'},h('b',{text:T('Καλές ώρες σελήνης','Good moon times')}),
+      h('span',{text:gd.length?gd.map(lbl).join(' · '):!per.some(function(x){ return x.s>now; })?T('Οι επόμενες φαίνονται στις 3 ή 7 μέρες.','The next ones show in 3 or 7 days.'):T('Καμία στο διάστημα του γραφήματος: ή φυσά πάνω από το όριό σου ή πέφτει η πίεση.','None in this range: wind over your limit or pressure falling.')})));
+    if(gd.some(twN)) out.push(h('p',{class:'foot',style:{margin:'4px 0 0'},text:T('★ = πέφτει και κοντά σε αυγή ή σούρουπο (±90′): ο πιο δυνατός συνδυασμός.','★ = also near dawn or dusk (±90′): the strongest combination.')}));
   }
-  out.push(h('div',{class:'pwl'},h('span',{class:'k1',text:T('Πίεση','Pressure')}),h('span',{class:'k2',text:T('Άνεμος, ριπές','Wind, gusts')}),hasM?h('span',{class:'k3',text:T('Σελήνη','Moon')}):null),
-    h('p',{class:'foot',style:{margin:'8px 0 0'},text:T('Συνεχής γραμμή: τελευταίες 24 ώρες. Διακεκομμένη: πρόγνωση. Τα βέλη δείχνουν προς πού φυσά ο άνεμος. Σύρε το δάχτυλο πάνω στο γράφημα για κάθε ώρα.','Solid line: last 24 hours. Dashed: forecast. Arrows show where the wind blows to. Drag across the chart to see each hour.')}));
+  out.push(h('div',{class:'pwl'},h('span',{class:'k1',text:T('Πίεση','Pressure')}),h('span',{class:'k2',text:T('Άνεμος, ριπές','Wind, gusts')}),hasM?h('span',{class:'k3',text:T('Σελήνη: σκούρο κύρια, ανοιχτό δευτερεύουσα','Moon: dark major, light minor')}):null,hasM?h('span',{class:'k4',text:T('Καλή: και άνεμος, πίεση','Good: wind, pressure too')}):null),
+    h('p',{class:'foot',style:{margin:'8px 0 0'},text:T('Συνεχής γραμμή: τελευταίες 24 ώρες. Διακεκομμένη: πρόγνωση. Τα βέλη δείχνουν προς πού φυσά ο άνεμος. Σύρε το δάχτυλο πάνω στο γράφημα για κάθε ώρα.','Solid line: last 24 hours. Dashed: forecast. Arrows show where the wind blows to. Drag across the chart to see each hour.')}),
+    hasM?h('p',{class:'foot',style:{margin:'6px 0 0'},text:T('Τι λέει η έρευνα: η σελήνη (θεωρία Knight) έχει μικρή επίδραση στο τσίμπημα. Πολύ πιο δυνατά μετρούν η αυγή και το σούρουπο, ο άνεμος και η αλλαγή πίεσης. Γι’ αυτό στον δείκτη της εφαρμογής η κύρια περίοδος δίνει +6 και η δευτερεύουσα +3, ενώ η αυγή και το σούρουπο +14. Η φάση της σελήνης δεν μετρά στον δείκτη.','What research says: the moon (Knight\u2019s theory) has a small effect on bites. Dawn and dusk, wind and pressure change matter much more. So in the app\u2019s index a major period adds +6 and a minor +3, while dawn and dusk add +14. Moon phase is not counted.')}):null);
   body.replaceChildren.apply(body,out);
 }
 /* σύντομος λόγος για μη ασφαλή μέρα: το πιο σοβαρό */

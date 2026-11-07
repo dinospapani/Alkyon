@@ -120,7 +120,14 @@ svg.pwc{width:100%;height:auto}
 .pwc .sel{stroke:var(--ink);stroke-width:1.2;opacity:.4}
 .pwc .dot{fill:var(--surface);stroke:var(--accent);stroke-width:2.2}
 .pw .hline{margin:6px 0 0}
-.pwl .k3::before{width:10px;height:10px;border-radius:3px;background:#9b8cf0;opacity:.5}
+.pwl .k3::before{width:10px;height:10px;border-radius:3px;background:linear-gradient(90deg,rgba(155,140,240,.75) 50%,rgba(155,140,240,.3) 50%)}
+.pwl{flex-wrap:wrap;gap:6px 14px}
+.pwl .k4::before{width:12px;height:4px;border-radius:2px;background:var(--good)}
+.pwc .mp.maj{opacity:.42}
+.pwc .mp.ok{fill:#7a6ae6}
+.pwc .mg{fill:var(--good)}
+.pwgood{margin:8px 0 0;padding:8px 10px;border-radius:10px;background:var(--good-bg);font-size:14px;line-height:1.4}
+.pwgood b{display:block;font-size:13px;color:var(--good-ink);margin-bottom:2px}
 /* ανά ώρα */
 .hch{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:0 0 8px}
 .hch h2{margin:0;font-size:19px;font-weight:700}
