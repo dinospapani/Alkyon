@@ -66,6 +66,7 @@ var HELP=[
 ];
 /* έκδοση → αλλαγές (νεότερες πρώτες). Προσθέτεις γραμμή εδώ σε κάθε νέα λειτουργία. */
 var NEWS=[
+ ['1.9.24',[T('Προφίλ › Γνώση › «Επικοινωνία»: στείλε email στην ομάδα του Alkyon (alkyonfishingapp@gmail.com) για ερωτήσεις, προβλήματα ή ιδέες.','Profile › Knowledge › «Contact»: email the Alkyon team (alkyonfishingapp@gmail.com) with questions, problems or ideas.')]],
  ['1.9.23',[T('Ραντάρ ΤΜ Κύπρου: φαίνεται και όταν η τελευταία εικόνα είναι έως 100 λεπτά παλιά (πριν, πάνω από 45′ γύριζε στο RainViewer). Αν είναι πιο παλιά, σου λέει πόσο και δείχνει RainViewer· με «⇄» βλέπεις την τελευταία εικόνα του ΤΜ (έως 6 ώρες).','DoM Cyprus radar: shows even when the latest image is up to 100 minutes old (before, over 45′ it switched to RainViewer). If older, it tells you how old and shows RainViewer; «⇄» shows the latest DoM image (up to 6 hours).'),
    T('Οι εικόνες του ΤΜ μαζεύονται πιο συχνά: κάθε έλεγχος περιμένει έως 9 λεπτά για νέα εικόνα από το ραντάρ Πάφου.','DoM images are collected more often: each check waits up to 9 minutes for a new image from the Paphos radar.')]],
  ['1.9.22',[T('Συρτή: στη στεριά δεν δείχνει πια ψεύτικο «βυθό» (π.χ. 82 οργιές στην Πάφο ήταν το υψόμετρο) ούτε «Πολύ βαθιά». Γράφει «Είσαι στη στεριά» και όλα ξεκινούν μόλις μπεις στη θάλασσα.','Trolling: on land it no longer shows a fake «bottom» (e.g. 82 fm in Paphos was the elevation) or «Too deep». It says «You are on land» and everything starts once you are on the water.'),
