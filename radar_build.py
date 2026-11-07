@@ -34,15 +34,24 @@ def fetch(url, timeout=60):
         return r.read()
 
 H5RE = re.compile(r'\.(h5|hdf5|hdf|odim)(\.gz)?$', re.I)
+LISTLOG = []   # για το radar-debug.json: τι απάντησε κάθε σελίδα λίστας
 def listing(url, depth=0, out=None):
     out = out if out is not None else []
-    try: html = fetch(url).decode('utf-8', 'replace')
+    ent = {'url': url}
+    if len(LISTLOG) < 12: LISTLOG.append(ent)
+    try:
+        req = urllib.request.Request(url, headers=UA)
+        with urllib.request.urlopen(req, timeout=60) as r:
+            ent['status'] = r.status; ent['type'] = r.headers.get('Content-Type'); raw = r.read()
+        html = raw.decode('utf-8', 'replace')
     except Exception as e:
-        log('list fail', url, e); return out
-    for href in re.findall(r'href=["\']([^"\'?#]+)["\']', html, re.I):
-        full = urllib.parse.urljoin(url, href)
+        ent['error'] = repr(e)[:300]; log('list fail', url, e); return out
+    hrefs = re.findall(r'href=["\']([^"\'#]+)["\']', html, re.I)
+    ent['bytes'] = len(raw); ent['hrefs'] = hrefs[:40]; ent['snippet'] = re.sub(r'\s+', ' ', html)[:1500]
+    for href in hrefs:
+        full = urllib.parse.urljoin(url, href.split('?')[0] if not H5RE.search(href.split('?')[0]) else href)
         if not full.startswith(BASE) or len(full) <= len(url): continue   # όχι γονικοί φάκελοι ή σύνδεσμοι ταξινόμησης
-        if H5RE.search(full): out.append(full)
+        if H5RE.search(full.split('?')[0]): out.append(full)
         elif full.endswith('/') and depth < 3: listing(full, depth + 1, out)
     return out
 
@@ -230,7 +239,7 @@ def main():
             groups.setdefault(k, []).append((os.path.basename(p), p))
     else:
         urls = listing(BASE)
-        debug['listed'] = len(urls); debug['sample'] = urls[-8:]
+        debug['listed'] = len(urls); debug['sample'] = urls[-8:]; debug['pages'] = LISTLOG
         dated = []
         for u in urls:
             t = ts_of_name(u)
