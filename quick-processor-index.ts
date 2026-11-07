@@ -521,6 +521,15 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
   const stats = { linked: 0, start: 0, alert: 0, clear: 0, ping: 0, silence: 0, lowbat: 0, ok: 0, fc: 0, pa: 0 };
   const PING_WAIT_MIN = 15, LOWBAT = 10;
   const patch = (id, o) => sb(`safety_trips?id=eq.${encodeURIComponent(id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(o) });
+  // 1.9.19: τα Telegram των διαχειριστών (app_admins → το δικό τους Telegram από safety_contacts.self_chat_id)
+  let ADM = null;
+  const adminChats = async () => {
+    if (ADM) return ADM;
+    const a = (await sb('app_admins?select=user_id').catch(() => [])) || [];
+    if (!a.length) return (ADM = []);
+    const c = (await sb(`safety_contacts?user_id=in.(${a.map(x => x.user_id).join(',')})&select=self_chat_id`).catch(() => [])) || [];
+    return (ADM = c.map(x => Number(x.self_chat_id)).filter(x => x && !isNaN(x)));
+  };
   const contactOf = async uid => { const r = await sb(`safety_contacts?user_id=eq.${uid}&select=*`); return r && r[0]; };
 
   // 1) Σύνδεση επαφών Telegram: /start ΚΩΔΙΚΟΣ
@@ -531,6 +540,21 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
       for (const u of ups || []) {
         last = u.update_id;
         const cq = u.callback_query;
+        // 1.9.19: έγκριση/απόρριψη σημειώσεων λιμανιών από διαχειριστή (κουμπιά ✅/❌)
+        if (cq && typeof cq.data === 'string' && /^pn:(ok|no):[0-9a-f-]{36}$/.test(cq.data)) {
+          const chat = cq.message && cq.message.chat && cq.message.chat.id;
+          const [, act, id] = cq.data.split(':');
+          try {
+            const chats = await adminChats();
+            if (chats.includes(Number(chat))) {
+              await sb(`port_notes?id=eq.${id}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: act === 'ok' ? 'ok' : 'rejected' }) });
+              await tg('answerCallbackQuery', { callback_query_id: cq.id, text: act === 'ok' ? 'Εγκρίθηκε' : 'Απορρίφθηκε' });
+              if (cq.message) await tg('editMessageText', { chat_id: chat, message_id: cq.message.message_id, text: (cq.message.text || '') + (act === 'ok' ? '\n\n✅ Εγκρίθηκε: φαίνεται σε όλους.' : '\n\n❌ Απορρίφθηκε.') }).catch(() => null);
+              stats.pn = (stats.pn || 0) + 1;
+            } else await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Μόνο για διαχειριστές.' });
+          } catch (e) { log('port note decide: ' + e.message); }
+          continue;
+        }
         if (cq && typeof cq.data === 'string' && cq.data.startsWith('ok:')) {
           const rows = await sb(`safety_trips?id=eq.${encodeURIComponent(cq.data.slice(3))}&select=user_id`);
           const c = rows && rows[0] ? await contactOf(rows[0].user_id) : null;
@@ -672,6 +696,23 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
     await sb(`safety_trips?id=eq.${encodeURIComponent(t.id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ done_sent: true }) });
     stats.clear++;
   }
+  // 5β) 1.9.19: νέες σημειώσεις λιμανιών/ραμπών → στους διαχειριστές στο Telegram με ✅/❌
+  if (TG) {
+    try {
+      const pend = (await sb('port_notes?status=eq.pending&tg_sent=eq.false&select=*&order=created_at.asc&limit=20')) || [];
+      const chats = pend.length ? await adminChats() : [];
+      const TAG = { shallow: 'ρηχά', rocks: 'βράχια', swell: 'φουσκοθαλασσιά', slippery: 'γλιστερή ράμπα', fee: 'χρέωση', parking: 'πάρκινγκ', fuel: 'καύσιμα', water: 'νερό', crowded: 'πολύς κόσμος', good: 'καλή ράμπα', night: 'σκοτεινό τη νύχτα', wind: 'εκτεθειμένο στον άνεμο' };
+      for (const n of pend) {
+        if (!chats.length) break;
+        const text = `📝 Νέα σημείωση για ${n.port_name || 'λιμάνι/ράμπα'}\n` + (n.tags && n.tags.length ? 'Ετικέτες: ' + n.tags.map(t => TAG[t] || t).join(', ') + '\n' : '') +
+          (n.note ? `«${n.note}»\n` : '') + mapLink(n.lat, n.lon);
+        for (const chat of chats) await tg('sendMessage', { chat_id: chat, text, reply_markup: { inline_keyboard: [[{ text: '✅ Έγκριση', callback_data: 'pn:ok:' + n.id }, { text: '❌ Απόρριψη', callback_data: 'pn:no:' + n.id }]] } }).catch(e => log('port note send: ' + e.message));
+        await sb(`port_notes?id=eq.${n.id}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ tg_sent: true }) });
+        stats.pnSent = (stats.pnSent || 0) + 1;
+      }
+    } catch (e) { if (!/relation|does not exist|404/i.test(e.message)) log('port notes: ' + e.message); }
+  }
+
   // 6) Πρόγνωση: ειδοποιήσεις push για καλές μέρες ψαρέματος στις τοποθεσίες κάθε χρήστη (έλεγχος κάθε ~3 ώρες)
   if (PF && webpush) {
     const stale = new Date(Date.now() - 3 * 3600e3).toISOString();

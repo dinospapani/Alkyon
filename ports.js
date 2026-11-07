@@ -73,7 +73,9 @@ function pop(p){
   r.append(a);
   if(p.mine){ k.textContent+=' · '+T('δικό σου','yours'); var x=document.createElement('button'); x.type='button'; x.className='pb g'; x.textContent=T('Διαγραφή','Delete');
     x.addEventListener('click',function(){ mine=mine.filter(function(q){ return !(q.la===p.la&&q.lo===p.lo); }); C.lsSet(KM,mine); var id=p.la+','+p.lo+(p.n||''); if(shown[id]){ layer.removeLayer(shown[id]); delete shown[id]; } map.closePopup(); C.toast(T('Διαγράφηκε.','Deleted.')); }); r.append(x); }
-  w.appendChild(r); return w;
+  w.appendChild(r);
+  if(window.AlkyonPortNotes) try{ window.AlkyonPortNotes.attach(w,p); }catch(e){} /* Alkyon 1.9.19: σημειώσεις ψαράδων */
+  return w;
 }
 function add(p){
   var id=p.la+','+p.lo+(p.n||''); if(shown[id]) return;

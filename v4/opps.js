@@ -50,7 +50,7 @@ function dayLbl(ds){ var t=new Date(), td=t.getFullYear()+'-'+B.pad(t.getMonth()
 function whyTxt(it){ var m=it.m||{}, out=[];
   if(m.season) out.push(T('εδώ ','here ')+m.season+(m.season===1?T(' ψάρι',' catch'):T(' ψάρια',' catches'))+T(' αυτή την εποχή',' this season')+(m.sp?' ('+spName(m.sp)+')':''));
   else if(m.all) out.push(T('εδώ ','here ')+m.all+(m.all===1?T(' ψάρι συνολικά',' catch in total'):T(' ψάρια συνολικά',' catches in total')));
-  if(m.h0!=null) out.push(T('συνήθως ','usually ')+B.pad(m.h0)+':00–'+B.pad((m.h1+1)%24)+':00');
+  if(m.h0!=null) out.push(T('συνήθως πιάνεις ','you usually catch ')+B.pad(m.h0)+':00–'+B.pad((m.h1+1)%24)+':00');
   var U=window.AlkyonUnits; if(it.wind!=null) out.push((U?U.wind(it.wind):Math.round(it.wind)+' kn')+(it.wave!=null?' · '+(U?U.wave(it.wave):B.num(it.wave,1)+' m'):''));
   return out.join(' · '); }
 function notifyBest(top){
@@ -64,14 +64,16 @@ function notifyBest(top){
 /* κάρτα για την Πρόγνωση */
 B.oppsCard=function(max,opt){ opt=opt||{};
   var box=h('section',{class:'card opps','aria-label':T('Ευκαιρίες για τα σημεία σου','Chances at your spots')}), list=h('div',{class:'opl'});
-  box.append(h('div',{class:'oph'},h('h2',{text:T('Ευκαιρίες για τα σημεία σου','Chances at your spots')}),h('button',{class:'linkbtn',type:'button',text:T('Ανανέωση','Refresh'),onclick:function(){ list.replaceChildren(h('p',{class:'sub',text:T('Υπολογισμός…','Calculating…')})); compute(true).then(paint); }})),list);
+  box.append(h('div',{class:'oph'},h('h2',{text:T('Ευκαιρίες για τα σημεία σου','Chances at your spots')}),h('button',{class:'linkbtn',type:'button',text:T('Ανανέωση','Refresh'),onclick:function(){ list.replaceChildren(h('p',{class:'sub',text:T('Υπολογισμός…','Calculating…')})); compute(true).then(paint); }})),
+    /* 1.9.17: εξήγηση γιατί η ώρα και ο βαθμός εδώ διαφέρουν από την πρόγνωση της τοποθεσίας πάνω */
+    h('p',{class:'sub opx',text:T('Η πρόγνωση σε κάθε σημείο σου, με μπόνους όπου έχεις πιάσει ψάρια αυτή την εποχή. Γι’ αυτό ώρα και βαθμός μπορεί να διαφέρουν από την πρόγνωση πάνω.','The forecast at each of your spots, with a bonus where you have caught fish this season. That is why time and score can differ from the forecast above.')}),list);
   function paint(items){ list.replaceChildren(); items=(items||[]).slice(0,max||3);
     if(!items.length){ if(opt.hideEmpty){ box.hidden=true; return; } list.append(h('p',{class:'sub',text:cands().length?T('Καμία καλή και ασφαλής ευκαιρία τις επόμενες μέρες.','No good, safe chance in the coming days.'):T('Πρόσθεσε τοποθεσίες στις Ειδοποιήσεις ή σημεία με ψάρια για να βλέπεις ευκαιρίες εδώ.','Add places in Alerts or spots with catches to see chances here.')})); return; }
     box.hidden=false;
     items.forEach(function(it){ var cls=it.score>=80?'hi':it.score>=65?'mid':'lo';
       list.append(h('button',{type:'button',class:'opr',onclick:function(){ if(B.mapGo) B.mapGo(it.lat,it.lon,13,null,{lab:it.name,sea:true}); }},
         h('span',{class:'ops '+cls,text:String(it.score)}),
-        h('span',{class:'opt'},h('b',{text:it.name}),h('small',{class:'opw',text:dayLbl(it.date)+' '+B.pad(it.s)+':00–'+B.pad((it.e+1)%24)+':00'}),h('small',{text:whyTxt(it)||T('Καλές συνθήκες','Good conditions')})),B.icon?B.icon('chev'):null)); }); }
+        h('span',{class:'opt'},h('b',{text:it.name}),h('small',{class:'opw',text:dayLbl(it.date)+' '+B.pad(it.s)+':00–'+B.pad((it.e+1)%24)+':00'}),h('small',{text:whyTxt(it)||T('Καλές συνθήκες','Good conditions')}),it.base!=null&&it.score>it.base?h('small',{class:'opb',text:T('πρόγνωση ','forecast ')+it.base+' + '+(it.score-it.base)+T(' από τα ψάρια σου εκεί',' from your catches there')}):null),B.icon?B.icon('chev'):null)); }); }
   var c=ls.get(KEY,null); if(c&&c.items) paint(c.items); else list.append(h('p',{class:'sub',text:T('Υπολογισμός…','Calculating…')}));
   compute(false).then(paint);
   return box; };

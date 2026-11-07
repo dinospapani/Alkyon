@@ -827,3 +827,35 @@ html.night .bf2 .bfline{background:#000;color:#fff}
 .pstats .pst b.lng{font-size:13px;line-height:1.55}
 .pstats .pst small{min-height:2.4em}
 html.night .pstats .pst{outline:1px solid #fff;outline-offset:-1px;background:#000}
+/* 1.9.18: συντεταγμένες από εικόνα */
+.cscan .csimg{display:block;width:100%;max-height:200px;object-fit:contain;border-radius:12px;background:#000;margin-bottom:10px}
+.cscan .csbar{height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden}.cscan .csbar i{display:block;height:100%;background:var(--accent);transition:width .3s}
+.cscan .csst{display:block;margin:8px 0 4px;color:var(--ink-2)}
+.cslist{display:grid;gap:8px;margin-top:6px}
+.csopt{display:grid;gap:2px;text-align:left;padding:12px 14px;border-radius:14px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;cursor:pointer}
+.csopt b{font-size:16.5px;font-variant-numeric:tabular-nums}.csopt small{color:var(--ink-3);font-size:12px}
+.csraw pre{white-space:pre-wrap;font-size:12px;max-height:160px;overflow:auto}
+html.night .csopt{background:#000;color:#fff;border-color:#fff}
+/* 1.9.19: σημειώσεις λιμανιών */
+.pnpop{margin-top:8px;display:grid;gap:6px}
+.pnpop .pnbtn{width:100%}
+.pntags{display:flex;flex-wrap:wrap;gap:5px}
+.pnt{display:inline-flex;align-items:center;padding:4px 9px;border-radius:999px;font-size:12.5px;font-weight:700;background:var(--surface-2);color:var(--ink)}
+.pnt.bad{background:color-mix(in srgb,#d7263d 14%,var(--surface));color:#b01c30}
+.pnt.mid{background:color-mix(in srgb,#e08a00 16%,var(--surface));color:#8a5300}
+.pnt.good{background:color-mix(in srgb,#1c8c5e 15%,var(--surface));color:#136b47}
+.pntags.sm .pnt{font-size:11px;padding:2px 7px}
+.pnpick{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}
+.pnpick .chip.pnt{border:1.5px solid transparent;min-height:36px;padding:0 12px;font-size:13.5px}
+.pnpick .chip.pnt[aria-pressed=true]{border-color:currentColor;box-shadow:inset 0 0 0 1px currentColor}
+.pnform textarea{width:100%;box-sizing:border-box;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;padding:10px 12px}
+.pnlist{display:grid;gap:10px}
+.pnrow{padding:12px;border-radius:14px;background:var(--surface);box-shadow:var(--shadow);display:grid;gap:6px}
+.pnrow p{margin:0}.pnrow small{color:var(--ink-3);font-size:12px}
+.pnrow.pend{opacity:.75;border:1.5px dashed var(--line)}
+.pnacts{margin-top:4px}
+html.night .pnt,html.night .pnt.bad,html.night .pnt.mid,html.night .pnt.good{background:#000;color:#fff;outline:1px solid #fff;outline-offset:-1px}
+html.night .pnrow{background:#000;outline:1px solid #fff;outline-offset:-1px}
+/* 1.9.20: αλλαγή πηγής ραντάρ */
+.rainbar .rbs{flex:none;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:800 16px var(--font);cursor:pointer}
+.leaflet-image-layer.domradar{image-rendering:auto;transition:opacity .25s}

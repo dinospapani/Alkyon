@@ -89,6 +89,8 @@ function mineTab(page){
   page.append(group(T('Φίλοι και κοινότητα','Friends and community'),[
     row('community',T('Κοινότητα','Community'),T('Ψάρια άλλων ψαράδων, χωρίς θέση','Other anglers’ catches, no locations'),'#community'),
     row('people',T('Φίλοι','Friends'),T('Κοινά ψάρια και σημεία με φίλους','Share catches and spots with friends'),'#friends')]));
+  /* 1.9.19: διαχειριστής: σημειώσεις λιμανιών για έγκριση */
+  if(B.cloud&&B.cloud.session&&B.cloud.session()){ var cg=page.lastChild.querySelector('.list'); B.loadScripts(['portnotes.js']).then(function(){ B.portNotes.adminRow(cg,function(n){ return row('community',T('Σημειώσεις λιμανιών για έγκριση','Port notes to review'),n==null?T('Διαχειριστής','Admin'):n?n+T(' σε αναμονή',' waiting'):T('Τίποτα σε αναμονή','Nothing waiting'),null,function(){ B.portNotes.review(); }); }); }).catch(function(){}); }
   page.append(group(T('Γνώση','Knowledge'),[
     row('help',T('Πώς δουλεύει','How it works'),T('Όλες οι λειτουργίες με λίγα λόγια','Every feature in a few words'),'#help'),
     row('guide',T('Οδηγός','Guide'),T('Είδη, μεγέθη, νόμοι, κόμποι','Species, sizes, laws, knots'),'#guide'),

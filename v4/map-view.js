@@ -164,22 +164,41 @@ function satNote(k){ var c=ls.get(SATK,null), d=c&&c.v&&c.v[k]; var day=d&&d.day
 var rainL=[], rainT=null, rainI=0, rainBar=null, rainPlay=true, rainHost='', rainFr=[];
 function rainStop(){ clearInterval(rainT); rainT=null; rainL.forEach(function(l){ try{ map.removeLayer(l); }catch(e){} }); rainL=[]; if(rainBar){ rainBar.remove(); rainBar=null; } }
 function rainShow(i){ rainI=i; rainL.forEach(function(l,j){ l.setOpacity(j===i?.75:0); }); if(rainBar){ var f=rainFr[i], d=new Date(f.time*1000), ago=Math.round((Date.now()-d)/60000); rainBar.querySelector('b').textContent=B.pad(d.getHours())+':'+B.pad(d.getMinutes()); rainBar.querySelector('small').textContent=ago<=12?T('τώρα','now'):T('πριν ','')+ago+T('′','′ ago'); var r=rainBar.querySelector('input'); if(r) r.value=String(i); } }
-function drawRain(){ rainStop(); if(!cfg.rain||!map) return;
+/* 1.9.20: στην Κύπρο πρώτα το ραντάρ του Τμήματος Μετεωρολογίας (2 ραντάρ, ανά ~10′, ανάλυση ~0,6 km· radar_build.py → κλαδί radar-data).
+   Αλλού, ή αν δεν είναι φρέσκο (πάνω από 45′), το RainViewer. Στη μπάρα «⇄» αλλάζει πηγή. */
+var DOMR=window.ALKYON_RADAR_URL||'https://raw.githubusercontent.com/dinospapani/alkyon/radar-data/', DOMBOX=[33.6,30.9,36.15,35.25], rainSrc='rv';
+function inCyR(){ var c=map.getCenter(); return c.lat>DOMBOX[0]&&c.lat<DOMBOX[2]&&c.lng>DOMBOX[1]&&c.lng<DOMBOX[3]; }
+function rainBarMake(){
+  rainBar=h('div',{class:'rainbar',role:'group','aria-label':T('Ραντάρ βροχής','Rain radar')},
+    h('button',{type:'button',class:'rbp','aria-label':T('Αναπαραγωγή/παύση','Play/pause'),text:'❚❚',onclick:function(){ rainPlay=!rainPlay; this.textContent=rainPlay?'❚❚':'▶'; }}),
+    h('span',{class:'rbt'},h('i',{text:rainSrc==='dom'?T('Ραντάρ ΤΜ Κύπρου','DoM Cyprus radar'):T('Ραντάρ βροχής','Rain radar')}),h('b',{text:''}),h('small',{text:''})),
+    h('input',{type:'range',min:'0',max:String(rainFr.length-1),value:String(rainFr.length-1),'aria-label':T('Ώρα ραντάρ','Radar time'),oninput:function(){ rainPlay=false; rainBar.querySelector('.rbp').textContent='▶'; rainShow(+this.value); }}),
+    inCyR()?h('button',{type:'button',class:'rbs','aria-label':T('Αλλαγή πηγής ραντάρ','Switch radar source'),title:rainSrc==='dom'?T('Πήγαινε στο RainViewer','Switch to RainViewer'):T('Πήγαινε στο ραντάρ ΤΜ Κύπρου','Switch to DoM Cyprus radar'),text:'⇄',onclick:function(){ ls.set('alkyon-v4-rainsrc',rainSrc==='dom'?'rv':'auto'); drawRain(); }}):null,
+    h('button',{type:'button',class:'rbx','aria-label':T('Κλείσιμο ραντάρ','Close radar'),text:'✕',onclick:function(){ cfg.rain=false; saveCfg(); rainStop(); }}));
+  document.body.append(rainBar); rainShow(rainFr.length-1);
+  rainT=setInterval(function(){ if(!rainPlay||!rainL.length) return; rainShow((rainI+1)%rainL.length); },700); }
+function rainRV(){ rainSrc='rv';
   fetch('https://api.rainviewer.com/public/weather-maps.json').then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(j){ if(!cfg.rain||!map) return;
     rainHost=j.host||'https://tilecache.rainviewer.com'; rainFr=(j.radar&&j.radar.past||[]).slice(-12); if(!rainFr.length) throw 0;
     rainL=rainFr.map(function(f){ return L.tileLayer(rainHost+f.path+'/256/{z}/{x}/{y}/2/1_1.png',{opacity:0,maxZoom:19,maxNativeZoom:7,zIndex:260,className:'raintile',attribution:'RainViewer'}).addTo(map); });
-    rainBar=h('div',{class:'rainbar',role:'group','aria-label':T('Ραντάρ βροχής','Rain radar')},
-      h('button',{type:'button',class:'rbp','aria-label':T('Αναπαραγωγή/παύση','Play/pause'),text:'❚❚',onclick:function(){ rainPlay=!rainPlay; this.textContent=rainPlay?'❚❚':'▶'; }}),
-      h('span',{class:'rbt'},h('i',{text:T('Ραντάρ βροχής','Rain radar')}),h('b',{text:''}),h('small',{text:''})),
-      h('input',{type:'range',min:'0',max:String(rainFr.length-1),value:String(rainFr.length-1),'aria-label':T('Ώρα ραντάρ','Radar time'),oninput:function(){ rainPlay=false; rainBar.querySelector('.rbp').textContent='▶'; rainShow(+this.value); }}),
-      h('button',{type:'button',class:'rbx','aria-label':T('Κλείσιμο ραντάρ','Close radar'),text:'✕',onclick:function(){ cfg.rain=false; saveCfg(); rainStop(); }}));
-    document.body.append(rainBar); rainShow(rainFr.length-1);
-    rainT=setInterval(function(){ if(!rainPlay||!rainL.length) return; rainShow((rainI+1)%rainL.length); },rainI===rainFr.length-1?700:700);
+    rainBarMake();
   }).catch(function(){ B.toast(T('Το ραντάρ βροχής δεν είναι διαθέσιμο τώρα (χρειάζεται σύνδεση).','The rain radar isn’t available right now (needs a connection).')); }); }
+function rainDom(){
+  return fetch(DOMR+'radar.json?t='+Math.floor(Date.now()/120000),{cache:'no-store'}).then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(j){
+    var fr=(j.frames||[]).slice(-12); if(!fr.length) throw 0;
+    var tm=function(t){ return Date.UTC(+t.slice(0,4),+t.slice(4,6)-1,+t.slice(6,8),+t.slice(8,10),+t.slice(10,12))/1000; };
+    if(Date.now()/1000-tm(fr[fr.length-1].t)>45*60) throw 0;
+    if(!cfg.rain||!map) return true; rainStop(); rainSrc='dom';
+    rainFr=fr.map(function(f){ return {time:tm(f.t)}; });
+    rainL=fr.map(function(f){ return L.imageOverlay(DOMR+f.img,j.bounds,{opacity:0,interactive:false,className:'raintile domradar',attribution:T('Ραντάρ: Τμήμα Μετεωρολογίας Κύπρου','Radar: Cyprus Department of Meteorology')}).addTo(map); });
+    rainBarMake(); return true; }); }
+function drawRain(){ rainStop(); if(!cfg.rain||!map) return;
+  if(ls.get('alkyon-v4-rainsrc','auto')!=='rv'&&inCyR()) rainDom().catch(function(){ if(cfg.rain&&map&&!rainL.length) rainRV(); });
+  else rainRV(); }
 function drawOverlays(){
   if(!map) return;
   Object.keys(ov).forEach(function(k){ if(ov[k]){ map.removeLayer(ov[k]); ov[k]=null; } });
-  drawSat(); drawRain();
+  drawSat(); drawRain(); if(B.seaRep) B.seaRep.draw(map); /* 1.9.17 */
   if(cfg.mpa){ ov.mpa=L.tileLayer.wms('https://ows.emodnet-humanactivities.eu/wms',{layers:'nationallydesignatedareas',format:'image/png',transparent:true,opacity:.6,version:'1.3.0',attribution:'EMODnet Human Activities'}).addTo(map); }
   if(cfg.zones&&window.ZONES){ ov.zones=L.layerGroup(); window.ZONES.forEach(function(z){ L.polygon(z.p,{color:'#ff3b30',weight:1.6,dashArray:'6 5',opacity:.85,fillColor:'#ff3b30',fillOpacity:.09}) /* 1.8.6: λεπτό διακεκομμένο περίγραμμα */.on('click',function(){ B.sheet({title:z.n,body:h('div',null,h('p',{class:'p',text:z.d||''}),h('p',{class:'foot',text:T('Περιοχή όπου απαγορεύεται η αλιεία. Πηγή: Τμήμα Αλιείας. Επιβεβαίωνε πάντα την ισχύουσα νομοθεσία.','Area where fishing is prohibited. Source: Department of Fisheries. Always check the current regulations.')}))}); }).addTo(ov.zones); }); ov.zones.addTo(map); }
   if(cfg.dams){ ov.dams=L.layerGroup().addTo(map); var put=function(){ if(!ov.dams) return; ov.dams.clearLayers(); DAMS.forEach(function(d){ var lv=null; if(LV&&LV.dams) for(var n in LV.dams){ if(nrm(n)===nrm(d[0])) lv=LV.dams[n]; }
@@ -467,6 +486,7 @@ function pointMenu(ll){
     a(MI,T('Χαμένο εδώ','Lost here'),function(){ B.quickRec(true,at); },'bad'),
     a('<svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>',T('Πλήρης καταγραφή','Full catch form'),function(){ B.biteForm(null,{at:at}); }),
     a(LIC.spot,T('Σημείο εδώ','Spot here'),function(){ spotForm(null,{lat:lat,lng:lon}); }),
+    B.seaRep?a(LIC.srep,T('Πώς είναι η θάλασσα','How is the sea'),function(){ B.seaRep.form(at); }):null, /* 1.9.17 */
     a('<svg viewBox="0 0 24 24"><path d="M12 2l7 19-7-4-7 4z"/></svg>',T('Πήγαινε εκεί','Go there'),function(){ B.goTo(lat,lon,PC?PC.fmt(lat,lon):''); }),
     a('<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>',T('Πρόγνωση εδώ','Forecast here'),function(){ fcHere(T('Σημείο χάρτη','Map point'),lat,lon); }),
     window.AlkyonRuler?a('<svg viewBox="0 0 24 24"><path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/></svg>',T('Μέτρηση από εδώ','Measure from here'),function(){ map.setView([lat,lon],map.getZoom(),{animate:false}); if(!pressed('bRuler')) cbtn('bRuler').click(); setTimeout(function(){ var b=document.getElementById('ndRulAdd'); if(b) b.click(); },150); }):null,
@@ -562,7 +582,7 @@ function paintDl(){ if(!dlBox||!dlBox.isConnected) return; var rec=ls.get('alkyo
     h('div',{class:'acts'},h('button',{class:'btn pri',type:'button',text:T('Κατέβασμα','Download'),disabled:!p.ok,onclick:startDl}),rec.length?h('button',{class:'btn',type:'button',text:T('Διαγραφή','Clear'),onclick:clearDl}):null)); }
 function offlineSection(body){ dlBox=h('div',{class:'dlbox'}); body.append(h('h3',{class:'h3',text:T('Χάρτης εκτός σύνδεσης','Offline map')}),dlBox,h('p',{class:'note',text:T('Αποθηκεύονται ο χάρτης και τα βάθη που βλέπεις. Η πρόγνωση, τα σημεία, τα ψάρια και ό,τι καιρό είδες τελευταία (άνεμος, κύμα, θερμοκρασία νερού) μένουν και χωρίς σήμα. Για νέα δεδομένα καιρού χρειάζεται σύνδεση.','The map and depths you see are saved. The forecast, spots, catches and the last weather you viewed (wind, waves, water temperature) stay available without signal. New weather data needs a connection.')})); paintDl(); }
 
-var LIC={rain:'<svg viewBox="0 0 24 24"><path d="M7 15a5 5 0 1 1 1.6-9.7A6 6 0 0 1 20 9a4 4 0 0 1-2 7.5"/><path d="M8 18l-1 3M12 18l-1 3M16 18l-1 3"/></svg>',best:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1" fill="currentColor"/><path d="M12 1v3M12 20v3M1 12h3M20 12h3"/></svg>',chl:'<svg viewBox="0 0 24 24"><circle cx="7" cy="8" r="2.2"/><circle cx="15" cy="6" r="1.6"/><circle cx="12" cy="13" r="2.6"/><circle cx="18" cy="14" r="1.8"/><circle cx="8" cy="17" r="1.6"/></svg>',sats:'<svg viewBox="0 0 24 24"><path d="M4 18l4-4M10 8l6 6M7 11l6-6 6 6-6 6z"/><path d="M3 21c2 0 3-1 3-3"/></svg>',sst:'<svg viewBox="0 0 24 24"><path d="M10 13.5V5a2 2 0 0 1 4 0v8.5a4 4 0 1 1-4 0z"/><path d="M17 7h3M17 11h3"/></svg>',heat:'<svg viewBox="0 0 24 24"><path d="M12 3c2 3.5 6 6.2 6 11a6 6 0 0 1-12 0c0-3 1.6-4.9 3-6.5.3 2 1.4 3.2 2.7 3.6C11.3 8.6 11 5.7 12 3z"/></svg>',gear:'<svg viewBox="0 0 24 24"><path d="M3 7h18M3 12h18M3 17h18M7 4v16M12 4v16M17 4v16"/></svg>',
+var LIC={srep:'<svg viewBox="0 0 24 24"><path d="M2 10c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2M2 16c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2"/><circle cx="19" cy="4.5" r="2.2"/></svg>',rain:'<svg viewBox="0 0 24 24"><path d="M7 15a5 5 0 1 1 1.6-9.7A6 6 0 0 1 20 9a4 4 0 0 1-2 7.5"/><path d="M8 18l-1 3M12 18l-1 3M16 18l-1 3"/></svg>',best:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1" fill="currentColor"/><path d="M12 1v3M12 20v3M1 12h3M20 12h3"/></svg>',chl:'<svg viewBox="0 0 24 24"><circle cx="7" cy="8" r="2.2"/><circle cx="15" cy="6" r="1.6"/><circle cx="12" cy="13" r="2.6"/><circle cx="18" cy="14" r="1.8"/><circle cx="8" cy="17" r="1.6"/></svg>',sats:'<svg viewBox="0 0 24 24"><path d="M4 18l4-4M10 8l6 6M7 11l6-6 6 6-6 6z"/><path d="M3 21c2 0 3-1 3-3"/></svg>',sst:'<svg viewBox="0 0 24 24"><path d="M10 13.5V5a2 2 0 0 1 4 0v8.5a4 4 0 1 1-4 0z"/><path d="M17 7h3M17 11h3"/></svg>',heat:'<svg viewBox="0 0 24 24"><path d="M12 3c2 3.5 6 6.2 6 11a6 6 0 0 1-12 0c0-3 1.6-4.9 3-6.5.3 2 1.4 3.2 2.7 3.6C11.3 8.6 11 5.7 12 3z"/></svg>',gear:'<svg viewBox="0 0 24 24"><path d="M3 7h18M3 12h18M3 17h18M7 4v16M12 4v16M17 4v16"/></svg>',
   sat:'<svg viewBox="0 0 24 24"><path d="M3 7l6-3 6 3 6-3v13l-6 3-6-3-6 3z"/><path d="M9 4v13M15 7v13"/></svg>',
   wind:'<svg viewBox="0 0 24 24"><path d="M3 8h11a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 16h8a3 3 0 1 1-3 3"/></svg>',
   wave:'<svg viewBox="0 0 24 24"><path d="M2 8c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2"/><path d="M2 13c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2"/><path d="M2 18c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2"/></svg>',
@@ -612,6 +632,7 @@ function layersSheet(o){ o=o&&o.into?o:{}; /* 1.7.4: o.into = μέσα στο μ
     tile('chl',T('Τροφή','Food'),T('χλωροφύλλη, δορυφόρος','chlorophyll, satellite'),function(){ return !!cfg.chl; },function(v){ cfg.chl=v; saveCfg(); drawSat(); if(v) setTimeout(function(){ satNote('chl'); },900); }),
     tile('depth',T('Δομή βυθού','Seabed'),T('drop-offs, υψώματα','drop-offs, rises'),function(){ return !!(B.seabed&&B.seabed.on()); },function(v){ if(B.seabed) B.seabed.set(v); }),
     tile('rain',T('Βροχή (ραντάρ)','Rain (radar)'),T('τελευταίες 2 ώρες, κινούμενο','last 2 hours, animated'),function(){ return !!cfg.rain; },function(v){ cfg.rain=v; saveCfg(); drawRain(); }),
+    B.seaRep?tile('srep',T('Αναφορές θάλασσας','Sea reports'),T('από ψαράδες, 6 ώρες','from anglers, 6 hours'),function(){ return B.seaRep.on(); },function(v){ B.seaRep.set(v); }):null, /* 1.9.17 */
     tile('st',T('Σταθμοί','Stations'),T('πραγματικές μετρήσεις','measured'),function(){ return pressed('bWindSt'); },setStations,!ready),
     o.into?null /* 1.8.1: στον καθαρό χάρτη η «κάρτα καιρού» είναι η μπάρα πάνω */:tile('card',T('Κάρτα καιρού','Weather card'),T('πάνω στον χάρτη','on the map'),function(){ return ls.get('alkyon-v4-mapwx',true)!==false; },function(v){ ls.set('alkyon-v4-mapwx',v); drawMw(); })]);
   /* βάθη: πλακίδιο + επιλογή τρόπου */
@@ -957,6 +978,7 @@ function mount(el){
     if(c.n||c.miss) it('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>',T('Διαγραφή του τελευταίου','Delete the last one'),0,function(){ B.quickUndo(false); },'undo');
     if(B.voiceCmd&&B.voiceCmd.ok) it('🎤',B.voiceCmd.wanted()?T('Φωνή: ανοιχτή (πες «ψάρι»)','Voice: on (say “fish”)'):T('Πες το: «ψάρι» / «τσίμπησε»','Say it: “fish” / “bite”'),0,function(){ B.voiceCmd.set(!B.voiceCmd.wanted()); B.toast(B.voiceCmd.wanted()?T('🎤 Ακούω: «ψάρι» / «τσίμπησε»','🎤 Listening: “fish” / “bite”'):T('🎤 Κλειστό','🎤 Off'),4000); });
     it('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>',T('Μεγάλα κουμπιά','Big buttons'),0,function(){ if(B.bigTrip) B.bigTrip.open(); });
+    if(B.seaRep) it('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 10c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2M2 16c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2"/></svg>',T('Πώς είναι η θάλασσα εδώ','How is the sea here'),0,function(){ B.seaRep.form(fixNow?{lat:fixNow.lat,lon:fixNow.lon,gps:true}:null); }); /* 1.9.17 */
     it('🐡',T('Λαγοκέφαλος / έφαγε το δόλωμα','Toadfish / bait taken'),c.pest,function(){ if(B.pestSheet) B.pestSheet(); });
     it(MISS,T('Χάθηκε','Lost'),c.miss,function(){ B.quickRec(true); },'miss');
     it(CATCH,T('Έπιασα ψάρι','Caught a fish'),c.n,function(){ if(B.troll&&B.troll.on&&B.troll.on()) catchNow(); else B.biteForm(); },'catch');
