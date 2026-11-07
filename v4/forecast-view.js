@@ -581,6 +581,19 @@ function measured(box,p,modelNow){
   var to; try{ to=AbortSignal.timeout(10000); }catch(e){}
   fetch(SUPA+'/functions/v1/smart-api',{signal:to,headers:{apikey:SKEY,Authorization:'Bearer '+SKEY}}).then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(j){ var l=Array.isArray(j)?j:[]; ls.set('alkyon-obsp',{t:Date.now(),v:l}); show(pick(l)); }).catch(function(){});
 }
+/* 1.9.27: τι λέει η έρευνα για τη σελήνη (ώρες Knight και φάση ανά είδος) και τι δείχνουν τα δικά σου ψάρια */
+function moonResearch(){
+  var box=h('div',{class:'mres'}), mi=null; try{ mi=PF.moonInfo(spCfg()); }catch(e){}
+  box.append(h('b',{text:T('Τι λέει η έρευνα για τη σελήνη','What research says about the moon')}));
+  box.append(h('p',{text:T('Ώρες σελήνης (Knight): μικρή επίδραση. Στον βαθμό η κύρια περίοδος δίνει +6 και η δευτερεύουσα +3, ενώ η αυγή και το σούρουπο +14.','Moon times (Knight): a small effect. In the score a major period adds +6 and a minor +3, while dawn and dusk add +14.')}));
+  if(mi) box.append(h('p',null,h('span',{class:'mk',text:T('Φάση: ','Phase: ')}),EN?mi.en:mi.el,mi.src?h('small',{text:' ('+mi.src+')'}):null));
+  var m=null; try{ if(window.PP&&B.adv&&B.adv.model){ if(!pmMemo.m||Date.now()-pmMemo.t>120000) pmMemo={t:Date.now(),m:B.adv.model()}; m=pmMemo.m; } }catch(e){ m=null; }
+  var PH=[T('νέα σελήνη','new moon'),T('πρώτο τέταρτο','first quarter'),T('πανσέληνο','full moon'),T('τελευταίο τέταρτο','last quarter')];
+  if(m&&m.ready&&m.factors&&m.factors.moon){ var F=m.factors.moon, bi=0; F.forEach(function(x,i){ if(x.m>F[bi].m) bi=i; });
+    box.append(h('p',null,h('span',{class:'mk',text:T('Τα δικά σου ψάρια: ','Your catches: ')}),F[bi].m>=1.15?T('πιάνεις περισσότερα κοντά στη ','you catch more near the ')+PH[bi]+' (×'+B.num(F[bi].m,1)+T(' από τον μέσο όρο σου, ανά ώρα ψαρέματος). Αυτό μετρά στην προσωπική πρόγνωση.',' your average, per fishing hour). This counts in your personal forecast.'):T('καμία φάση δεν ξεχωρίζει ακόμα.','no phase stands out yet.')));
+  } else box.append(h('p',null,h('span',{class:'mk',text:T('Τα δικά σου ψάρια: ','Your catches: ')}),T('με αρκετές εξόδους και ψάρια στο ημερολόγιο, η προσωπική πρόγνωση μαθαίνει αν πιάνεις περισσότερα σε κάποια φάση.','with enough trips and catches in your logbook, the personal forecast learns whether you catch more in some phase.')));
+  return box;
+}
 function pwCard(fc,d){
   var rk=pwKey(), p=st.place||current(), c=h('section',{class:'card pw'});
   c.append(h('div',{class:'pwh'},h('h2',{text:T('Πίεση, άνεμος, σελήνη','Pressure, wind, moon')}),B.seg(Object.keys(PRG).map(function(k){ return [k,PRG[k].l]; }),rk,function(v){ ls.set('alkyon-pwrange',v); st.pwi=null; draw(); },T('Εύρος','Range'))));
@@ -686,7 +699,7 @@ function pwFill(body,v,p,fc,rk){
   }
   out.push(h('div',{class:'pwl'},h('span',{class:'k1',text:T('Πίεση','Pressure')}),h('span',{class:'k2',text:T('Άνεμος, ριπές','Wind, gusts')}),hasM?h('span',{class:'k3',text:T('Σελήνη: σκούρο κύρια, ανοιχτό δευτερεύουσα','Moon: dark major, light minor')}):null,hasM?h('span',{class:'k4',text:T('Καλή: και άνεμος, πίεση','Good: wind, pressure too')}):null),
     h('p',{class:'foot',style:{margin:'8px 0 0'},text:T('Συνεχής γραμμή: τελευταίες 24 ώρες. Διακεκομμένη: πρόγνωση. Τα βέλη δείχνουν προς πού φυσά ο άνεμος. Σύρε το δάχτυλο πάνω στο γράφημα για κάθε ώρα.','Solid line: last 24 hours. Dashed: forecast. Arrows show where the wind blows to. Drag across the chart to see each hour.')}),
-    hasM?h('p',{class:'foot',style:{margin:'6px 0 0'},text:T('Τι λέει η έρευνα: η σελήνη (θεωρία Knight) έχει μικρή επίδραση στο τσίμπημα. Πολύ πιο δυνατά μετρούν η αυγή και το σούρουπο, ο άνεμος και η αλλαγή πίεσης. Γι’ αυτό στον δείκτη της εφαρμογής η κύρια περίοδος δίνει +6 και η δευτερεύουσα +3, ενώ η αυγή και το σούρουπο +14. Η φάση της σελήνης δεν μετρά στον δείκτη.','What research says: the moon (Knight\u2019s theory) has a small effect on bites. Dawn and dusk, wind and pressure change matter much more. So in the app\u2019s index a major period adds +6 and a minor +3, while dawn and dusk add +14. Moon phase is not counted.')}):null);
+    hasM?moonResearch():null);
   body.replaceChildren.apply(body,out);
 }
 /* σύντομος λόγος για μη ασφαλή μέρα: το πιο σοβαρό */

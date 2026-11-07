@@ -382,3 +382,9 @@ html[data-theme="dark"] .hbars .hnight{background:rgba(0,0,0,.35)}
 .worked .row span{flex:none}
 .opps .opx{margin:0 0 8px;font-size:12.5px;line-height:1.35}
 .opps .opt small.opb{color:var(--good);font-weight:700}
+/* 1.9.27: τι λέει η έρευνα για τη σελήνη */
+.pw .mres{margin:10px 0 0;padding:10px 12px;border-radius:12px;background:var(--surface-2);font-size:13.5px;line-height:1.45;color:var(--ink-2)}
+.pw .mres>b{display:block;color:var(--ink);font-size:14px;margin-bottom:4px}
+.pw .mres p{margin:4px 0 0}
+.pw .mres .mk{font-weight:700;color:var(--ink)}
+.pw .mres small{color:var(--ink-3)}
