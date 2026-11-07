@@ -66,6 +66,8 @@ var HELP=[
 ];
 /* έκδοση → αλλαγές (νεότερες πρώτες). Προσθέτεις γραμμή εδώ σε κάθε νέα λειτουργία. */
 var NEWS=[
+ ['1.9.25',[T('Κοινότητα: ειδοποίηση όταν άλλος ψαράς ανεβάζει ψάρι (το πολύ μία ανά 30 λεπτά) και όταν κάποιος κάνει like ή σχόλιο σε δικό σου. Πατώντας την ανοίγει η Κοινότητα. Ρυθμίζεται στο Ειδοποιήσεις › Κοινότητα. Όχι 23:00–07:00.','Community: an alert when another angler posts a catch (at most one every 30 minutes) and when someone likes or comments on yours. Tapping it opens the Community. Set it in Alerts › Community. Not 23:00–07:00.'),
+   T('Το «Μοίρασμα στην κοινότητα» χωράει πλέον σε μία οθόνη: η φωτογραφία φαίνεται ολόκληρη χωρίς κύλιση.','«Share to the community» now fits on one screen: the whole photo shows without scrolling.')]],
  ['1.9.24',[T('Προφίλ › Γνώση › «Επικοινωνία»: στείλε email στην ομάδα του Alkyon (alkyonfishingapp@gmail.com) για ερωτήσεις, προβλήματα ή ιδέες.','Profile › Knowledge › «Contact»: email the Alkyon team (alkyonfishingapp@gmail.com) with questions, problems or ideas.')]],
  ['1.9.23',[T('Ραντάρ ΤΜ Κύπρου: φαίνεται και όταν η τελευταία εικόνα είναι έως 100 λεπτά παλιά (πριν, πάνω από 45′ γύριζε στο RainViewer). Αν είναι πιο παλιά, σου λέει πόσο και δείχνει RainViewer· με «⇄» βλέπεις την τελευταία εικόνα του ΤΜ (έως 6 ώρες).','DoM Cyprus radar: shows even when the latest image is up to 100 minutes old (before, over 45′ it switched to RainViewer). If older, it tells you how old and shows RainViewer; «⇄» shows the latest DoM image (up to 6 hours).'),
    T('Οι εικόνες του ΤΜ μαζεύονται πιο συχνά: κάθε έλεγχος περιμένει έως 9 λεπτά για νέα εικόνα από το ραντάρ Πάφου.','DoM images are collected more often: each check waits up to 9 minutes for a new image from the Paphos radar.')]],

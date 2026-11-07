@@ -1,7 +1,7 @@
 // Network first for the app's own files so updates arrive at once; cache is the offline fallback.
 // Weather APIs and fonts are cross-origin and always go straight to the network.
 importScripts('forecast.js');
-const V = 'alkyon-1.9.24';
+const V = 'alkyon-1.9.25';
 const CFG = 'alkyon-cfg';
 /* 1.4.2: η κλασική αποσύρθηκε, οπότε εδώ μένουν μόνο οι σελίδες της ρίζας (ανακατεύθυνση στο v4/) και τα εικονίδια.
    Τα αρχεία της εφαρμογής τα κρατά για offline το v4/sw.js. Πριν κατέβαιναν εδώ ~6 MB σε κάθε ενημέρωση. */
@@ -63,7 +63,7 @@ async function showMsg(m, src) {
   const id = m.id || ('n' + Date.now() + Math.random().toString(36).slice(2, 6));
   const it = { id, at: m.at || new Date().toISOString(), kind: m.kind || 'info', title: m.title || 'Alkyon', body: m.body || '', full: m.full || m.body || '', place: m.place || null, t: m.t || null, locs: m.locs || null, src: src || 'push' };
   await inboxAdd(it);
-  await self.registration.showNotification(it.title, { body: it.body, tag: m.tag || ('alk-' + id), renotify: true, icon: 'icon-192.png', badge: 'icon-192.png', data: { url: self.registration.scope + '#inbox=' + encodeURIComponent(id) } });
+  await self.registration.showNotification(it.title, { body: it.body, tag: m.tag || ('alk-' + id), renotify: true, icon: 'icon-192.png', badge: 'icon-192.png', data: { url: m.url && /^#[a-z]+$/.test(m.url) ? self.registration.scope + 'v4/' + m.url : self.registration.scope + '#inbox=' + encodeURIComponent(id) } }); /* 1.9.25: η Κοινότητα ανοίγει κατευθείαν */
 }
 async function runCheck() {
   const cfg = await readCfg();
@@ -144,7 +144,7 @@ self.addEventListener('notificationclick', e => {
   const url = (e.notification.data && e.notification.data.url) || self.registration.scope;
   const m = /#inbox=([^&]*)/.exec(url), id = m ? decodeURIComponent(m[1]) : null;
   e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(cs => {
-    for (const c of cs) { if ('focus' in c) { if (id) c.postMessage({ inbox: id }); return c.focus(); } }
+    for (const c of cs) { if ('focus' in c) { if (id) c.postMessage({ inbox: id }); else if ('navigate' in c && /#[a-z]+$/.test(url)) return c.navigate(url).then(w => (w || c).focus()).catch(() => c.focus()); return c.focus(); } }
     return self.clients.openWindow(url);
   }));
 });

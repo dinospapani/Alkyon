@@ -89,7 +89,7 @@ B.commShare=function(b){
   if(!sess()){ B.authSheet({reason:T('Για να μοιραστείς ψάρι στην Κοινότητα χρειάζεται λογαριασμός.','Sharing a catch to the Community needs an account.')}); return; }
   if(B.commShared(b.id)){ B.toast(T('Έχει ήδη μοιραστεί.','Already shared.')); return; }
   if(!b.species){ B.toast(T('Λείπει το είδος.','Species is missing.')); return; }
-  var blob=null, body=h('div',{class:'bform'}), prev=h('div'), withCond=false, sh;
+  var blob=null, body=h('div',{class:'bform cmshare'}), prev=h('div'), withCond=false, sh;
   (b.photo?B.store.Photos.get(b.id).catch(function(){ return null; }):Promise.resolve(null)).then(function(bl){ blob=bl; if(bl) prev.append(h('img',{class:'cmimg',alt:'',src:URL.createObjectURL(bl)})); });
   var sz=[]; if(b.kg!=null&&b.kg!=='') sz.push(b.kg+' kg'); if(b.len!=null&&b.len!=='') sz.push(b.len+' cm');
   body.append(prev,h('div',{class:'cmtitle'},h('b',{text:b.species}),sz.length?h('span',{text:sz.join(' · ')}):null));

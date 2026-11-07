@@ -529,3 +529,8 @@ html.night .wcols .wc i{background:#888}html.night .wcols .wc.pk i{background:#f
 .wcols.w12 .wc span{font-size:10px;letter-spacing:-.3px}
 html.night .sthd .stshare,html.night .recs .recmore{background:#000;color:#fff;outline:1px solid #fff;outline-offset:-1px}
 html.night .kpis .kpi{outline:1px solid #fff;outline-offset:-1px;background:#000}
+/* 1.9.25: το «Μοίρασμα στην κοινότητα» χωράει σε μία οθόνη: μικρότερη φωτογραφία (όλο το ψάρι, όχι κομμένο), πιο σύντομα κείμενα */
+.cmshare .cmimg{max-height:min(34vh,300px);object-fit:contain;background:var(--surface-2);margin-bottom:8px}
+.cmshare .cmtitle{margin:2px 0 6px}
+.cmshare .tg{margin:4px 0}
+.cmshare .sub{font-size:12.5px;line-height:1.4;margin:6px 0 10px}
