@@ -18,8 +18,8 @@ import sys, os, re, io, json, math, time, glob, shutil, datetime as dt, urllib.r
 import numpy as np
 
 BASE = os.environ.get('DOM_RADAR_URL', 'https://www.dom.org.cy/RADAR_DATA/')
-BOX = (30.90, 33.60, 35.25, 36.15)          # W, S, E, N (λίγο μεγαλύτερο από το WIS2 bbox)
-W_PX = 560                                   # πλάτος εικόνας· το ύψος βγαίνει από την προβολή
+BOX = (29.60, 32.70, 36.00, 36.90)          # W, S, E, N: ~250 km γύρω από την Κύπρο, ώστε να φαίνεται η βροχή πριν φτάσει
+W_PX = 720                                   # πλάτος εικόνας· το ύψος βγαίνει από την προβολή
 KEEP = 12                                    # εικόνες (≈2 ώρες ανά 10′)
 MAX_NEW = 4                                  # το πολύ τόσες νέες χρονικές στιγμές ανά εκτέλεση
 MAX_AGE_MIN = 150
@@ -149,7 +149,7 @@ def dump(f, maxn=120):
 
 QPREF = ['DBZH', 'TH', 'DBZ', 'DBZV', 'TV']
 # γνωστές θέσεις των ραντάρ του ΤΜ (εφεδρικά, αν το αρχείο δεν έχει /where)
-SITES = {'PFO': (34.9061, 32.6261, 1000.0), 'NAT': (34.9061, 32.6261, 1000.0), 'LCA': (34.9496, 33.5978, 70.0), 'RIZ': (34.9496, 33.5978, 70.0)}
+SITES = {'PFO': (34.77085, 32.54716, 392.0), 'NAT': (34.77085, 32.54716, 392.0)}   # από το /where των αρχείων του ΤΜ (Πάφος)
 def gamic_sweeps(f):
     """GAMIC (Enigma/FROG) HDF5: scanN/moment_K με dyn_range_min/max, scanN/how (elevation, range_step, range_samples), scanN/ray_header (αζιμούθια)"""
     wh = grp_attrs(f, 'where'); wt = grp_attrs(f, 'what'); hw = grp_attrs(f, 'how')
@@ -268,6 +268,14 @@ def polar_to_grid(sw, LON, LAT):
 # χρώματα βροχής (dBZ → RGBA), σαν τα συνηθισμένα ραντάρ
 PAL = [(10, (120, 200, 255, 110)), (15, (60, 150, 245, 150)), (20, (30, 110, 230, 175)), (25, (20, 180, 70, 190)), (30, (10, 140, 40, 200)),
        (35, (250, 225, 30, 210)), (40, (250, 160, 20, 220)), (45, (240, 70, 20, 230)), (50, (205, 0, 20, 235)), (55, (180, 0, 140, 240)), (60, (255, 255, 255, 245))]
+def despeckle(z, thr=10.0, need=3):
+    """σβήνει μεμονωμένα σημεία (θόρυβος, ηχώ εδάφους): κρατά ένα pixel μόνο αν έχει τουλάχιστον `need` γείτονες με βροχή"""
+    m = np.nan_to_num(z, nan=-99) >= thr
+    p = np.pad(m, 1).astype(np.int8)
+    nb = sum(p[1 + dy:p.shape[0] - 1 + dy, 1 + dx:p.shape[1] - 1 + dx] for dy in (-1, 0, 1) for dx in (-1, 0, 1) if dy or dx)
+    z = z.copy(); z[m & (nb < need)] = np.nan
+    return z
+
 def colorize(z):
     h_, w_ = z.shape; img = np.zeros((h_, w_, 4), np.uint8)
     for i, (t, c) in enumerate(PAL):
@@ -324,6 +332,8 @@ def main():
     if prev and os.path.exists(os.path.join(prev, 'radar.json')):
         try:
             meta = json.load(open(os.path.join(prev, 'radar.json')))
+            w0, s0, e0, n0 = BOX
+            if meta.get('bounds') != [[s0, w0], [n0, e0]]: meta = {'frames': []}   # άλλαξε το πλαίσιο: οι παλιές εικόνες δεν ταιριάζουν
             for fr in meta.get('frames', []):
                 p = os.path.join(prev, fr['img'])
                 if os.path.exists(p): shutil.copy(p, os.path.join(out, fr['img']))
@@ -375,7 +385,7 @@ def main():
         ts = ts or k or now
         tkey = ts.strftime('%Y%m%d%H%M')
         if tkey in have: continue
-        img = colorize(z)
+        img = colorize(despeckle(z))
         name = f'radar_{tkey}.png'
         Image.fromarray(img, 'RGBA').save(os.path.join(out, name), optimize=True)
         meta['frames'].append({'t': tkey, 'img': name, 'sites': used, 'max': None if np.all(np.isnan(z)) else round(float(np.nanmax(z)), 1)})
