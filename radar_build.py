@@ -90,15 +90,18 @@ def mqtt_links(seconds, debug):
             while time.time() - t0 < seconds:
                 time.sleep(2)
                 # αρκεί μία στιγμή και από τα δύο ραντάρ
-                if len({h for r, h, _ in got if r == 'canonical' and 'dom.org.cy' not in h}) >= 2 and time.time() - t0 > 30: break
+                if len({h.rsplit('/', 1)[-1] for r, h, _ in got if r == 'canonical' and 'dom.org.cy' not in h}) >= 2 and time.time() - t0 > 30: break
             c.loop_stop(); c.disconnect()
             break
         except Exception as e:
             info['errors'].append(host + ': ' + repr(e)[:160])
     debug['mqtt'] = info; debug['mqtt_links'] = [h for _, h, _ in got][:20]
     # προτίμηση στις διευθύνσεις των global cache (όχι dom.org.cy, που δίνει 403 στο GitHub)
-    canon = [h for r, h, _ in got if r == 'canonical']
-    return sorted(canon, key=lambda h: 'dom.org.cy' in h)
+    canon, names = [], set()
+    for r, h, _ in sorted(got, key=lambda x: 'dom.org.cy' in x[1]):   # ένα αντίγραφο ανά αρχείο, όχι από dom.org.cy αν υπάρχει άλλο
+        n = h.rsplit('/', 1)[-1]
+        if r == 'canonical' and n not in names: names.add(n); canon.append(h)
+    return canon
 
 TS_RES = [re.compile(r'(20\d{2})(\d{2})(\d{2})[T_\-]?(\d{2})(\d{2})(\d{2})?'),
           re.compile(r'(20\d{2})[\-_](\d{2})[\-_](\d{2})[T_\- ](\d{2})[:\-_]?(\d{2})')]
@@ -136,11 +139,60 @@ def dump(f, maxn=120):
         if a: e['attrs'] = {k: (v if not isinstance(v, (list, str)) or len(str(v)) < 200 else str(v)[:200]) for k, v in a.items()}
         out.append(e)
     e0 = {'path': '/', 'kind': 'group', 'attrs': attrs(f)}
-    out.append(e0); f.visititems(visit)
+    out.append(e0)
+    for k in f.keys():   # πρώτα what/where/how, μετά μόνο η πρώτη σάρωση
+        if not re.match(r'(scan|dataset)\d+$', k): visit(k, f[k]); (f[k].visititems(lambda n, o: visit(k + '/' + n, o)) if hasattr(f[k], 'visititems') else None)
+    first = next((k for k in f.keys() if re.match(r'(scan|dataset)\d+$', k)), None)
+    if first: visit(first, f[first]); f[first].visititems(lambda n, o: visit(first + '/' + n, o))
+    out.append({'path': '(keys)', 'kind': 'info', 'attrs': {'top': list(f.keys())[:40]}})
     return out
 
 QPREF = ['DBZH', 'TH', 'DBZ', 'DBZV', 'TV']
+# γνωστές θέσεις των ραντάρ του ΤΜ (εφεδρικά, αν το αρχείο δεν έχει /where)
+SITES = {'PFO': (34.9061, 32.6261, 1000.0), 'NAT': (34.9061, 32.6261, 1000.0), 'LCA': (34.9496, 33.5978, 70.0), 'RIZ': (34.9496, 33.5978, 70.0)}
+def gamic_sweeps(f):
+    """GAMIC (Enigma/FROG) HDF5: scanN/moment_K με dyn_range_min/max, scanN/how (elevation, range_step, range_samples), scanN/ray_header (αζιμούθια)"""
+    wh = grp_attrs(f, 'where'); wt = grp_attrs(f, 'what'); hw = grp_attrs(f, 'how')
+    site = str(hw.get('site_name', '')).upper()
+    lat, lon, hgt = wh.get('lat'), wh.get('lon'), wh.get('height', 0)
+    guessed = False
+    if lat is None or lon is None:
+        if site in SITES: lat, lon, hgt = SITES[site]; guessed = True
+    out = []
+    for sk in sorted([k for k in f.keys() if re.match(r'scan\d+$', k)], key=lambda k: int(k[4:])):
+        g = f[sk]; sh = grp_attrs(f, sk + '/how')
+        if 'elevation' not in sh: continue
+        mom = None
+        for mk in g.keys():
+            if not mk.startswith('moment_'): continue
+            a = attrs(g[mk]); m = str(a.get('moment', ''))
+            if m in ('Zh', 'UZh', 'Z', 'UZ'):
+                if mom is None or (m == 'Zh'): mom = (mk, a)
+        if not mom: continue
+        mk, a = mom
+        raw = np.array(g[mk], dtype=np.float64)
+        lo_, hi_ = float(a.get('dyn_range_min', -32)), float(a.get('dyn_range_max', 95.5))
+        nmax = 65534.0 if str(a.get('format', '')).upper() == 'UV16' or g[mk].dtype == np.uint16 else 254.0
+        val = lo_ + (raw - 1.0) * (hi_ - lo_) / nmax
+        val[raw == 0] = np.nan
+        az = None
+        if 'ray_header' in g:
+            rh = np.array(g['ray_header'])
+            try:
+                a0 = rh['azimuth_start'].astype(float); a1 = rh['azimuth_stop'].astype(float)
+                az = (a0 + ((a1 - a0) % 360.0) / 2.0) % 360.0
+            except Exception: az = None
+        ts = None
+        try: ts = dt.datetime.strptime(str(sh.get('timestamp', wt.get('date', '')))[:19], '%Y-%m-%dT%H:%M:%S').replace(tzinfo=dt.timezone.utc)
+        except Exception: pass
+        rstep = float(sh.get('range_step', 100.0)) * float(sh.get('range_samples', 1) or 1)
+        out.append(dict(elangle=float(sh['elevation']), data=val, rscale=rstep, rstart=float(sh.get('range_start', 0.0)),
+                        lat=float(lat) if lat is not None else None, lon=float(lon) if lon is not None else None, height=float(hgt or 0),
+                        ts=ts, q=str(a.get('moment')), obj='PVOL', source=site + (' (θέση από πίνακα)' if guessed else ''), az=az))
+    return out
+
 def sweeps(f):
+    if 'scan0' in f and not any(k.startswith('dataset') for k in f.keys()): return gamic_sweeps(f)
     """→ λίστα σαρώσεων με ανακλαστικότητα: (elangle, data(dBZ, nrays×nbins), rscale, rstart_m, lat, lon, height, ts)"""
     root_where = grp_attrs(f, 'where'); root_what = grp_attrs(f, 'what')
     lat0, lon0, hgt = root_where.get('lat'), root_where.get('lon'), root_where.get('height', 0)
@@ -199,8 +251,16 @@ def polar_to_grid(sw, LON, LAT):
     slant = ground / math.cos(el) if el < 0.2 else RE_EFF * np.sin(ground / RE_EFF) / np.cos(el + ground / RE_EFF)
     data = sw['data']; nrays, nbins = data.shape
     b = np.floor((slant - sw['rstart']) / sw['rscale']).astype(np.int64)
-    r = np.floor(az / (360.0 / nrays)).astype(np.int64) % nrays
-    ok = (b >= 0) & (b < nbins)
+    if sw.get('az') is not None and len(sw['az']) == nrays:
+        # οι ακτίνες δεν ξεκινούν από τον βορρά: πίνακας 0,1° → πλησιέστερη ακτίνα
+        grid_az = np.arange(3600) / 10.0
+        d = np.abs(((grid_az[:, None] - np.asarray(sw['az'])[None, :]) + 180.0) % 360.0 - 180.0)
+        lut = np.argmin(d, axis=1); ok_az = d[np.arange(3600), lut] <= 1.5
+        ai = np.floor(az * 10).astype(np.int64) % 3600
+        r = lut[ai]; az_ok = ok_az[ai]
+    else:
+        r = np.floor(az / (360.0 / nrays)).astype(np.int64) % nrays; az_ok = True
+    ok = (b >= 0) & (b < nbins) & az_ok
     out = np.full(LON.shape, np.nan)
     out[ok] = data[r[ok], b[ok]]
     return out
