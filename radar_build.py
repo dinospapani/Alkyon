@@ -31,7 +31,7 @@ TOPICS = ['cache/a/wis2/cy-dom/data/core/weather/experimental/surface-based-obse
           'cache/a/wis2/cy-dom/data/core/weather/experimental/surface-based-observations/radar',
           'origin/a/wis2/cy-dom/data/core/weather/experimental/surface-based-observations/radar/#',
           'origin/a/wis2/cy-dom/data/core/weather/experimental/surface-based-observations/radar']
-LISTEN_S = int(os.environ.get('RADAR_LISTEN_S', '300'))
+LISTEN_S = int(os.environ.get('RADAR_LISTEN_S', '540'))   # 9′: το ραντάρ Πάφου στέλνει περίπου κάθε 20–40′
 
 def log(*a): print(*a, flush=True)
 
