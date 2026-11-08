@@ -131,7 +131,11 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
       const posts = postsAll.filter(p => p.created_at > since);
       const likes = (await sb(`community_likes?created_at=gt.${enc}&select=post_id,user_id,created_at`).catch(() => [])) || [];
       const coms = (await sb(`community_comments?created_at=gt.${enc}&hidden=eq.false&select=id,post_id,user_id,author,body,created_at`).catch(() => [])) || [];
-      if (postsAll.length || likes.length || coms.length) {
+      // 1.9.65: νέες αναφορές (→ διαχειριστές) και η περίληψη της εβδομάδας (Κυριακή 20:00–20:59 Κύπρου)
+      const repsNew = (await sb(`community_reports?created_at=gt.${enc}&select=id,post_id,comment_id,reason,created_at`).catch(() => [])) || [];
+      const cyNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Nicosia' }));
+      const wkDue = cyNow.getDay() === 0 && cyNow.getHours() === 20;
+      if (postsAll.length || likes.length || coms.length || repsNew.length || wkDue) {
         const cyH = +new Date().toLocaleString('en-GB', { timeZone: 'Asia/Nicosia', hour: '2-digit', hour12: false }).slice(0, 2);
         const quietNow = cyH >= 23 || cyH < 7;
         const subsAll = (await sb('push_subs?select=id,user_id,sub,places').catch(() => [])) || [];
@@ -150,6 +154,7 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
             try { await webpush.sendNotification(r.sub, JSON.stringify({ title, body, full: body, kind, id: key, tag: 'alk-' + key.slice(0, 40), at, url: '#community' }), { TTL: 3 * 3600 }); stats.comm = (stats.comm || 0) + 1; }
             catch (e) { if (e.statusCode === 404 || e.statusCode === 410) await sb(`push_subs?id=eq.${encodeURIComponent(r.id)}`, { method: 'DELETE' }).catch(() => {}); }
           }
+          return true;
         };
         // (α) νέα ψάρια
         if (postsAll.length) {
@@ -218,6 +223,38 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
               const rows = byUser[to] || []; if (rows.length && (!flag(rows, 'commre') || (quietNow && quietOn(rows)))) continue;
               const en = isEn(rows);
               await send(to, 'cr:' + c.id, 'commre', (c.author || (en ? 'Someone' : 'Κάποιος')) + (en ? ' replied to you' : ' σου απάντησε'), body.slice(name.length + 1).trim().slice(0, 120) || (p && p.species) || '');
+            }
+          }
+        }
+        // 1.9.65: αναφορά → ειδοποίηση (εφαρμογή + Telegram) σε κάθε διαχειριστή, μία φορά ανά αναφορά
+        if (repsNew.length) {
+          const adm = (await sb('app_admins?select=user_id').catch(() => [])) || [];
+          for (const r of repsNew) {
+            let what = '';
+            if (r.post_id) { const p = ((await sb(`community_posts?id=eq.${r.post_id}&select=author,species,cond`).catch(() => [])) || [])[0]; if (p) what = (p.author || '') + ': ' + (p.cond && p.cond.q ? String(p.cond.q).slice(0, 80) : (p.species || '')); }
+            else if (r.comment_id) { const c = ((await sb(`community_comments?id=eq.${r.comment_id}&select=author,body`).catch(() => [])) || [])[0]; if (c) what = (c.author || '') + ': «' + String(c.body || '').slice(0, 100) + '»'; }
+            if (!what) continue;
+            const kindTxt = r.post_id ? 'ανάρτηση' : 'σχόλιο';
+            for (const a of adm) {
+              const ok = await send(a.user_id, 'rep:' + r.id, 'commadm', '🚩 Αναφορά σε ' + kindTxt + ' της Κοινότητας', what + ' · Κοινότητα › Αναφορές');
+              if (ok && TG) { const c = await contactOf(a.user_id).catch(() => null); if (c && c.self_chat_id) await tg('sendMessage', { chat_id: c.self_chat_id, text: '🚩 Alkyon: αναφορά σε ' + kindTxt + ' της Κοινότητας\n' + what + '\nΆνοιξε Κοινότητα › Αναφορές για απόκρυψη ή απόρριψη.' }).catch(e => log('Telegram send: ' + e.message)); }
+            }
+          }
+        }
+        // 1.9.65: περίληψη εβδομάδας (Κυριακή βράδυ), σε όσους έχουν ανοιχτά τα «νέα ψάρια»
+        if (wkDue) {
+          const wk = ((await sb(`community_posts?created_at=gt.${encodeURIComponent(new Date(Date.now() - 7 * 864e5).toISOString())}&hidden=eq.false&select=user_id,author,species,kg,cond`).catch(() => [])) || []).filter(p => !(p.cond && (p.cond.k === 'q' || p.cond.k === 'id')) && p.species);
+          if (wk.length) {
+            const day = cyNow.getFullYear() + '-' + String(cyNow.getMonth() + 1).padStart(2, '0') + '-' + String(cyNow.getDate()).padStart(2, '0');
+            const cnt = {}; let big = null; const who = new Set();
+            for (const p of wk) { who.add(p.user_id); const items = [{ s: p.species, kg: p.kg }].concat((p.cond && Array.isArray(p.cond.more) ? p.cond.more : []).filter(x => x && x.s)); for (const x of items) { cnt[x.s] = (cnt[x.s] || 0) + 1; if (+x.kg > 0 && (!big || +x.kg > big.kg)) big = { s: x.s, kg: +x.kg, a: p.author }; } }
+            const n = Object.values(cnt).reduce((a, b) => a + b, 0), top = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a]).slice(0, 3);
+            for (const uid of Object.keys(byUser)) {
+              const rows = byUser[uid]; if (!flag(rows, 'comm')) continue;
+              const en = isEn(rows), kg = v => String(v).replace('.', en ? '.' : ',') + ' kg';
+              const body = en ? `${n} catches from ${who.size} anglers. Most: ${top.map(k => k + ' (' + cnt[k] + ')').join(', ')}.` + (big ? ` Biggest: ${big.s} ${kg(big.kg)} (${big.a || ''}).` : '')
+                : `${n} ψάρια από ${who.size} ψαράδες. Περισσότερα: ${top.map(k => k + ' (' + cnt[k] + ')').join(', ')}.` + (big ? ` Μεγαλύτερο: ${big.s} ${kg(big.kg)} (${big.a || ''}).` : '');
+              await send(uid, 'wk:' + day, 'commwk', en ? '📊 This week in the Community' : '📊 Η εβδομάδα στην Κοινότητα', body);
             }
           }
         }

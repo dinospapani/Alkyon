@@ -66,6 +66,11 @@ var HELP=[
 ];
 /* έκδοση → αλλαγές (νεότερες πρώτες). Προσθέτεις γραμμή εδώ σε κάθε νέα λειτουργία. */
 var NEWS=[
+ ['1.9.65',[T('Φωτογραφία προφίλ: Προφίλ › Φωτογραφία προφίλ (ή Κοινότητα › Το προφίλ μου). Φαίνεται στις αναρτήσεις και στα σχόλιά σου.','Profile photo: Profile › Profile photo (or Community › My profile). Shown on your posts and comments.'),
+   T('Επεξεργασία δικής σου ανάρτησης (⋯ › Επεξεργασία): είδος, βάρος, μήκος, δόλωμα, τεχνική.','Edit your own post (⋯ › Edit): species, weight, length, bait, technique.'),
+   T('Like και στα σχόλια. «Πρόσκληση φίλου» με τον σύνδεσμο του Alkyon. Στο Προφίλ φαίνεται πόσες νέες αναρτήσεις έχει η Κοινότητα.','Likes on comments too. "Invite a friend" with the Alkyon link. Profile shows how many new Community posts there are.'),
+   T('Η Κοινότητα ανοίγει αμέσως (κρατά την τελευταία λίστα και τις φωτογραφίες στο κινητό, μικρές φωτογραφίες στη λίστα). Χωρίς λογαριασμό βλέπεις τις αναρτήσεις.','The Community opens instantly (keeps the last list and photos on the phone, small photos in the list). Without an account you can read posts.'),
+   T('Κυριακή βράδυ: «Η εβδομάδα στην Κοινότητα». Διαχειριστής: 🚩 Αναφορές με απόκρυψη/απόρριψη και ειδοποίηση στο Telegram.','Sunday evening: "This week in the Community". Admin: 🚩 Reports with hide/dismiss and a Telegram alert.')]],
  ['1.9.64',[T('Ειδοποιήσεις › Κοινότητα: «Ειδοποίησέ με όταν κάποιος πιάσει…» (π.χ. Καλαμάρι). Έρχεται αμέσως, χωρίς το όριο των 30′, όποια γλώσσα κι αν έγραψε ο άλλος.','Alerts › Community: "Alert me when someone catches…" (e.g. Squid). Instant, without the 30-min limit, whatever language the other angler used.'),
    T('Κοινότητα: μηνιαία πρόκληση (π.χ. «Νοέμβριος: Καλαμάρι»). Το μεγαλύτερο του μήνα κερδίζει σήμα.','Community: monthly challenge (e.g. "November: Squid"). The biggest of the month wins a badge.'),
    T('☆ για να σώζεις αναρτήσεις και «Σωσμένα» για να τις βρίσκεις.','☆ to save posts and "Saved" to find them.'),

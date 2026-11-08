@@ -607,3 +607,23 @@ html.night .kpis .kpi{outline:1px solid #fff;outline-offset:-1px;background:#000
 .cmspw{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
 .cmact{gap:6px}.cmact .cmbtn{padding:0 12px}.cmact .cmbtn.cmic{padding:0;width:38px}
 .cmpost>.chips{margin:8px 0 0;padding:0;flex-wrap:wrap;overflow:visible}
+/* 1.9.65: φωτογραφίες προφίλ, διαχειριστής, χωρίς λογαριασμό */
+.cmav{overflow:hidden}.cmav img{width:100%;height:100%;object-fit:cover;display:block}
+.cmav.sm{width:28px;height:28px;font-size:12px;flex:none}
+.phead .av{overflow:hidden}.phead .av img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit}
+.cmc{flex-direction:row;gap:10px;align-items:flex-start}
+.cmcb{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.cmcl.on{color:#e0245e!important}
+.cmtopr{display:flex;gap:8px;align-items:center}
+.cmrepb{position:relative;font-size:18px}
+.cmdot{position:absolute;top:-2px;right:-2px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#e0245e;color:#fff;font:800 11px/18px var(--font);text-align:center}
+.cmnew{display:inline-block;margin-left:8px;min-width:20px;padding:1px 7px;border-radius:10px;background:#e0245e;color:#fff;font:800 11.5px/18px var(--font);vertical-align:2px}
+.cmme{display:flex;align-items:center;gap:10px;margin:10px 0}
+.cmmeb{flex:1;min-width:0;display:flex;align-items:center;gap:10px;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.cmmeb>span:last-child{display:flex;flex-direction:column;min-width:0}.cmmeb small{color:var(--ink-3);font-size:12.5px}
+.cmanon{margin:12px 0 0;padding:14px}.cmanon .sub{margin:4px 0 10px}
+.cmrep{display:flex;gap:10px;padding:10px 0;border-top:1px solid var(--line)}.cmrep.hid{opacity:.6}
+.cmrepi{width:64px;height:64px;object-fit:cover;border-radius:10px;flex:none}
+.cmrept{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.cmrept p{margin:0;overflow-wrap:anywhere}.cmrept small{color:var(--ink-3)}
+.cmrepa{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
+.row2{display:flex;gap:8px}.row2>*{flex:1}

@@ -51,6 +51,9 @@ function world({ subs = [], notifLog = 'ok', W = calm, community = {}, meteoFail
     if (p.startsWith('safety_contacts?user_id=in.')) return res([{ self_chat_id: 99 }]);
     if (p.startsWith('community_posts?created_at')) return res(community.posts || []);
     if (p.startsWith('community_posts?species=eq.')) return res(community.best || []);
+    if (p.startsWith('community_reports?')) return res(community.reports || []);
+    if (p.startsWith('community_posts?id=eq.')) return res(community.rpost || []);
+    if (community.contact && p.startsWith('safety_contacts?user_id=eq.')) return res([{ self_chat_id: 99 }]);
     if (p.startsWith('community_likes?')) return res(community.likes || []);
     if (p.startsWith('community_comments?')) return res(community.comments || []);
     if (p.startsWith('community_posts?id=in.')) return res(community.own || []);
@@ -218,6 +221,23 @@ NOW = RealDate.parse('2026-11-09T10:00:00Z');
   check('Κοινότητα: είδος που ζήτησες → ειδοποίηση, ακόμα κι αν τα νέα ψάρια είναι κλειστά (1.9.64)', to('s5').length === 1 && to('s5')[0].kind === 'commsp' && to('s5')[0].title === '🐟 European squid στην Κοινότητα' && /Νίκος έπιασε European squid 0,8 kg/.test(to('s5')[0].body), w.sent);
   check('Κοινότητα: είδος + γενική → μία μόνο ειδοποίηση για την ίδια ανάρτηση', to('s6').length === 1 && to('s6')[0].kind === 'commsp', to('s6'));
   check('Κοινότητα: άλλο είδος → μόνο η γενική ειδοποίηση', to('s7').length === 1 && to('s7')[0].kind === 'comm', to('s7'));
+}
+
+/* ---------- Κοινότητα: αναφορές → διαχειριστής, περίληψη εβδομάδας (1.9.65) ---------- */
+{
+  NOW = RealDate.parse('2026-11-09T10:00:00Z');
+  const t = new RealDate(NOW - 20000).toISOString();
+  const w = world({ subs: [SUB([{ lat: 35, lon: 32.4 }], 'sa', 'a1')], community: { contact: true, reports: [{ id: 'r1', post_id: 'p9', created_at: t }], rpost: [{ author: 'Τάκης', species: 'Σαργός' }] } });
+  await run({ env: { SUPABASE_URL: 'https://x.supabase.co', SUPABASE_SERVICE_KEY: 'k', TELEGRAM_BOT_TOKEN: 'T' }, fetch: w.fetch, PF, webpush: w.webpush, sendMail: null, log: () => {}, only: { comm: true } });
+  check('Κοινότητα: αναφορά → ειδοποίηση και Telegram στον διαχειριστή (1.9.65)', w.sent.length === 1 && w.sent[0].kind === 'commadm' && /Τάκης: Σαργός/.test(w.sent[0].body) && w.tgSent.length === 1 && w.tgSent[0].chat_id === 99, [w.sent, w.tgSent]);
+  await run({ env: { SUPABASE_URL: 'https://x.supabase.co', SUPABASE_SERVICE_KEY: 'k', TELEGRAM_BOT_TOKEN: 'T' }, fetch: w.fetch, PF, webpush: w.webpush, sendMail: null, log: () => {}, only: { comm: true } });
+  check('Κοινότητα: η ίδια αναφορά δεν ξαναστέλνεται', w.sent.length === 1 && w.tgSent.length === 1, [w.sent.length, w.tgSent.length]);
+  NOW = RealDate.parse('2026-11-08T18:10:00Z'); // Κυριακή 20:10 Κύπρου
+  const t2 = new RealDate(NOW - 3 * 864e5).toISOString();
+  const w2 = world({ subs: [SUB([{ lat: 35, lon: 32.4 }], 's1', 'u1'), SUB([{ lat: 35, lon: 32.4, comm: 'off' }], 's2', 'u2')], community: { posts: [{ id: 'p1', user_id: 'u5', author: 'Νίκος', species: 'Συναγρίδα', kg: 4.1, created_at: t2 }, { id: 'p2', user_id: 'u6', author: 'Κώστας', species: 'Συναγρίδα', kg: 2, cond: { more: [{ s: 'Καλαμάρι', kg: 0.5 }] }, created_at: t2 }] } });
+  await run({ env: { SUPABASE_URL: 'https://x.supabase.co', SUPABASE_SERVICE_KEY: 'k' }, fetch: w2.fetch, PF, webpush: w2.webpush, sendMail: null, log: () => {}, only: { comm: true } });
+  const wk = w2.sent.filter(x => x.kind === 'commwk');
+  check('Κοινότητα: περίληψη εβδομάδας την Κυριακή το βράδυ (1.9.65)', wk.length === 1 && wk[0].sub.endpoint.endsWith('/s1') && wk[0].body === '3 ψάρια από 2 ψαράδες. Περισσότερα: Συναγρίδα (2), Καλαμάρι (1). Μεγαλύτερο: Συναγρίδα 4,1 kg (Νίκος).', wk);
 }
 
 /* ---------- σκοτάδι για καλαμάρι ---------- */
