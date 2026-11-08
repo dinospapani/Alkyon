@@ -30,7 +30,9 @@ B.coordBox=function(lat,lon,opt){ opt=opt||{};
       msg.textContent=''; B.loadScripts(['coordscan.js']).then(function(){ return B.coordScan.pick(); }).then(function(p){ if(p){ set(p.lat,p.lon); changed(); } }).catch(function(){ msg.textContent=T('Δεν φόρτωσε. Έλεγξε τη σύνδεση.','Did not load. Check the connection.'); }); }}),
     null);
   var el=h('div',{class:'cpbox'},row,opt.noMap?null:mb,tools,h('small',{class:'note cpnote',text:T('Διάλεξε μορφή (όπως στο plotter σου) ή πάτα «Επικόλληση» για συντεταγμένες ή σύνδεσμο Google Maps από το πρόχειρο.','Pick the format (as on your plotter), or tap “Paste” for coordinates or a Google Maps link from the clipboard.')}),msg,mapBox);
-  if(typeof lat==='number'&&typeof lon==='number') setTimeout(function(){ set(lat,lon); },0);
+  /* 1.9.55: η αρχική θέση μπαίνει μόνο αν στο μεταξύ δεν έχει δοθεί άλλη (αλλιώς έσβηνε το σημείο που διάλεξες στον μεγάλο χάρτη) */
+  var setN=0, set0=set; set=function(){ setN++; return set0.apply(null,arguments); };
+  if(typeof lat==='number'&&typeof lon==='number'){ var n0=setN; setTimeout(function(){ if(setN===n0) set0(lat,lon); },0); }
   if(opt.map) setTimeout(openMap,0);
   return {el:el,get:get,set:set,openMap:openMap};
 };

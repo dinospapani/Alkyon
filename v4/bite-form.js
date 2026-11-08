@@ -131,7 +131,7 @@ B.biteForm=function(edit,opt){
     var ns=nearSpot(p.lat,p.lon); whereNote.textContent=ns?T('Κοντά στο σημείο σου «','Near your spot “')+ns.name+T('». Θα αποθηκευτεί εκεί.','”. It will be saved there.'):p.lat.toFixed(5)+', '+p.lon.toFixed(5); }); }
   /* v31z521: θέση με συντεταγμένες ή διαλέγοντας στον χάρτη, όπως στην κλασική */
   var cwrap=h('div',{class:'cpwrap',hidden:true}), cbx=null;
-  function showCoord(){ if(!cbx&&B.coordBox){ var p0=(e&&typeof e.lat==='number')?{lat:e.lat,lon:e.lon}:(opt&&opt.at)||pos||B.lastPos(); cbx=B.coordBox(p0?p0.lat:undefined,p0?p0.lon:undefined); cwrap.append(cbx.el); } cwrap.hidden=false; }
+  function showCoord(pp){ if(!cbx&&B.coordBox){ var p0=pp||((e&&typeof e.lat==='number')?{lat:e.lat,lon:e.lon}:(opt&&opt.at)||pos||B.lastPos()); cbx=B.coordBox(p0?p0.lat:undefined,p0?p0.lon:undefined); cwrap.append(cbx.el); } cwrap.hidden=false; }
   where.addEventListener('change',function(){ cwrap.hidden=where.value!=='coord'; if(where.value==='gps') locNow(); else if(where.value==='coord'){ whereNote.textContent=''; showCoord(); } else whereNote.textContent=''; });
   if(!e&&opt&&opt.at){ where.value='at'; whereNote.textContent=window.AlkyonCoord?AlkyonCoord.fmt(opt.at.lat,opt.at.lon):opt.at.lat.toFixed(5)+', '+opt.at.lon.toFixed(5); }
   /* 1.9.43: «Πού» πιο εύκολο: τρία μεγάλα κουμπιά (Εδώ / Στον χάρτη / Σημείο μου), μεγάλος χάρτης σε όλη την οθόνη για να το διαλέξεις,
@@ -154,7 +154,7 @@ B.biteForm=function(edit,opt){
     function close(){ try{ mm&&mm.remove(); }catch(x){} ov.remove(); }
     ov=h('div',{class:'bpov',role:'dialog','aria-modal':'true','aria-label':T('Πού ήταν το ψάρι;','Where was the catch?')},el,h('i',{class:'bpx','aria-hidden':'true'}),
       h('div',{class:'bptop'},h('button',{type:'button',class:'iconbtn',html:B.iconSvg('close'),'aria-label':T('Κλείσιμο','Close'),onclick:close}),h('span',{text:T('Μετακίνησε τον χάρτη στο σημείο','Move the map to the spot')}),h('button',{type:'button',class:'iconbtn',html:B.iconSvg('gps'),'aria-label':T('Η θέση μου','My position'),onclick:function(){ B.locate(8000).then(function(p){ if(p&&mm) mm.setView([p.lat,p.lon],15); }); }})),
-      h('div',{class:'bpbot'},rd,h('button',{type:'button',class:'btn pri full',text:T('Εδώ ήταν','It was here'),onclick:function(){ var c=mm&&mm.getCenter(); if(!c) return; if(!cbx){ showCoord(); } cbx.set(+c.lat.toFixed(5),+c.lng.toFixed(5)); close(); setW('coord',true); }})));
+      h('div',{class:'bpbot'},rd,h('button',{type:'button',class:'btn pri full',text:T('Εδώ ήταν','It was here'),onclick:function(){ var c=mm&&mm.getCenter(); if(!c) return; var la=+c.lat.toFixed(5), lo=+c.lng.toFixed(5); if(!cbx){ showCoord({lat:la,lon:lo}); } cbx.set(la,lo); close(); setW('coord',true); }})));
     document.body.append(ov);
     (window.L?Promise.resolve():(B.leaflet?B.leaflet():Promise.resolve())).catch(function(){}).then(function(){ if(!window.L){ rd.textContent=T('Ο χάρτης δεν φόρτωσε.','The map did not load.'); return; }
       mm=L.map(el,{zoomControl:false,attributionControl:false}).setView([g0.lat,g0.lon],14);
