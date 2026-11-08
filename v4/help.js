@@ -66,6 +66,7 @@ var HELP=[
 ];
 /* έκδοση → αλλαγές (νεότερες πρώτες). Προσθέτεις γραμμή εδώ σε κάθε νέα λειτουργία. */
 var NEWS=[
+ ['1.9.66',[T('Κοινότητα: το «Τι πιάνεται αυτή την εβδομάδα» (και η περίληψη της Κυριακής) μετρά τα ψάρια που πιάστηκαν αυτή την εβδομάδα, όχι παλιά ψάρια που μοιράστηκαν τώρα. Τα είδη της κάρτας δεν κόβονται πια.','Community: "What is biting this week" (and the Sunday summary) counts fish caught this week, not old catches shared now. The card’s species no longer get cut off.')]],
  ['1.9.65',[T('Φωτογραφία προφίλ: Προφίλ › Φωτογραφία προφίλ (ή Κοινότητα › Το προφίλ μου). Φαίνεται στις αναρτήσεις και στα σχόλιά σου.','Profile photo: Profile › Profile photo (or Community › My profile). Shown on your posts and comments.'),
    T('Επεξεργασία δικής σου ανάρτησης (⋯ › Επεξεργασία): είδος, βάρος, μήκος, δόλωμα, τεχνική.','Edit your own post (⋯ › Edit): species, weight, length, bait, technique.'),
    T('Like και στα σχόλια. «Πρόσκληση φίλου» με τον σύνδεσμο του Alkyon. Στο Προφίλ φαίνεται πόσες νέες αναρτήσεις έχει η Κοινότητα.','Likes on comments too. "Invite a friend" with the Alkyon link. Profile shows how many new Community posts there are.'),

@@ -717,7 +717,8 @@ with sync_playwright() as p:
     _now=_dt.datetime.utcnow(); _d=_now.strftime('%Y-%m-%d'); _t=lambda h:(_now-_dt.timedelta(hours=h)).strftime('%Y-%m-%dT%H:%M:%SZ')
     ALL=[{'id':'a1','user_id':'u9','author':'Κώστας','species':'Συναγρίδα','kg':3,'tech':'Βυθού','bait':'Σουπιά','day':_d,'cond':{'more':[{'s':'Ροφός','kg':2.5}]},'created_at':_t(30)},
          {'id':'a3','user_id':'u8','author':'Νίκος','species':'Συναγρίδα','kg':4.1,'tech':'Jigging','day':_d,'cond':{'rel':True},'created_at':_t(5)},
-         {'id':'a2','user_id':'u8','author':'Νίκος','species':'Καλαμάρι','kg':0.6,'tech':'Eging','day':_d,'cond':{},'created_at':_t(20)}]
+         {'id':'a2','user_id':'u8','author':'Νίκος','species':'Καλαμάρι','kg':0.6,'tech':'Eging','day':_d,'cond':{},'created_at':_t(20)},
+         {'id':'a4','user_id':'u7','author':'Τάκης','species':'Σκαθάρι','kg':3,'tech':'Βυθού','day':'2025-02-26','cond':{},'created_at':_t(1)}]
     feed=[]; posts=[]; coms=[]
     c.route('**/functions/v1/quick-processor',lambda r: r.fulfill(json={'ok':True}))
     c.route('**/rest/v1/community_posts?select=id,user_id*',lambda r: r.fulfill(json=ALL))
@@ -737,6 +738,7 @@ with sync_playwright() as p:
     r=pg.evaluate("()=>{const t=[...document.querySelectorAll('.cmtop')].map(x=>x.innerText); const ps=[...document.querySelectorAll('.cmpost')].map(x=>x.innerText); return {t,ps}}")
     wk=r['t'][0] if r['t'] else ''
     check('Κοινότητα: «Τι πιάνεται αυτή την εβδομάδα» (1.9.63)', 'Τι πιάνεται' in wk and 'Συναγρίδα 2' in wk and 'Ροφός 1' in wk and '2 ψαράδες' in wk, r['t'])
+    check('Κοινότητα: παλιό ψάρι που μοιράστηκε τώρα δεν μετράει στην εβδομάδα (1.9.66)', 'Σκαθάρι' not in wk, wk)
     pg.evaluate("()=>[...document.querySelectorAll('.cmtop')].find(x=>x.innerText.includes('Κατάταξη')).querySelector('.cmtoph').click()"); pg.wait_for_timeout(300)
     bd=pg.evaluate("()=>[...document.querySelectorAll('.cmtop')].find(x=>x.innerText.includes('Κατάταξη')).innerText")
     check('Κοινότητα: κατάταξη μήνα, μεγαλύτερο ανά είδος (1.9.63)', 'Κατάταξη' in bd and bd.index('Συναγρίδα')<bd.index('Ροφός')<bd.index('Καλαμάρι') and '4,1 kg' in bd, bd)

@@ -803,7 +803,7 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
         }
         // 1.9.65: περίληψη εβδομάδας (Κυριακή βράδυ), σε όσους έχουν ανοιχτά τα «νέα ψάρια»
         if (wkDue) {
-          const wk = ((await sb(`community_posts?created_at=gt.${encodeURIComponent(new Date(Date.now() - 7 * 864e5).toISOString())}&hidden=eq.false&select=user_id,author,species,kg,cond`).catch(() => [])) || []).filter(p => !(p.cond && (p.cond.k === 'q' || p.cond.k === 'id')) && p.species);
+          const wk = ((await sb(`community_posts?created_at=gt.${encodeURIComponent(new Date(Date.now() - 7 * 864e5).toISOString())}&hidden=eq.false&select=user_id,author,species,kg,cond,day`).catch(() => [])) || []).filter(p => !(p.cond && (p.cond.k === 'q' || p.cond.k === 'id')) && p.species && (!p.day || Date.parse(p.day + 'T12:00:00Z') >= Date.now() - 7.5 * 864e5)); // 1.9.66: μόνο ψάρια που πιάστηκαν αυτή την εβδομάδα
           if (wk.length) {
             const day = cyNow.getFullYear() + '-' + String(cyNow.getMonth() + 1).padStart(2, '0') + '-' + String(cyNow.getDate()).padStart(2, '0');
             const cnt = {}; let big = null; const who = new Set();

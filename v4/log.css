@@ -627,3 +627,4 @@ html.night .kpis .kpi{outline:1px solid #fff;outline-offset:-1px;background:#000
 .cmrept{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.cmrept p{margin:0;overflow-wrap:anywhere}.cmrept small{color:var(--ink-3)}
 .cmrepa{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
 .row2{display:flex;gap:8px}.row2>*{flex:1}
+.cmtopb .chips{flex-wrap:wrap;overflow:visible}

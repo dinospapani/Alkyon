@@ -147,7 +147,9 @@ function records(){ var r={}, n={}; fishAll().forEach(function(p){ var k=p.kg!=n
   Object.keys(r).forEach(function(k){ if(n[k]<2) delete r[k]; }); return r; } /* ρεκόρ μόνο όταν υπάρχουν τουλάχιστον 2 αναρτήσεις του είδους (όπως και ο server) */
 function top(obj,n){ return Object.keys(obj).sort(function(a,b){ return obj[b]-obj[a]||a.localeCompare(b); }).slice(0,n); }
 var MON_EL=['Ιανουαρίου','Φεβρουαρίου','Μαρτίου','Απριλίου','Μαΐου','Ιουνίου','Ιουλίου','Αυγούστου','Σεπτεμβρίου','Οκτωβρίου','Νοεμβρίου','Δεκεμβρίου'], MON_EN=['January','February','March','April','May','June','July','August','September','October','November','December'];
-function weekCard(){ var since=Date.now()-7*864e5, ps=fishAll().filter(function(p){ return Date.parse(p.created_at)>=since; }); if(!ps.length) return null;
+/* 1.9.66: «αυτή την εβδομάδα» = ψάρια που ΠΙΑΣΤΗΚΑΝ τις τελευταίες 7 μέρες (ημερομηνία ψαριού), όχι παλιά ψάρια που μοιράστηκαν τώρα */
+function caughtMs(p){ var d=p.day?Date.parse(p.day+'T12:00:00'):NaN; return isFinite(d)?d:Date.parse(p.created_at); }
+function weekCard(){ var since=Date.now()-7.5*864e5, ps=fishAll().filter(function(p){ return caughtMs(p)>=since; }); if(!ps.length) return null;
   var sp={}, te={}, ba={}, ar={}, who={}; ps.forEach(function(p){ who[p.user_id]=1; catches(p).forEach(function(c){ sp[c.s]=(sp[c.s]||0)+1; }); if(p.tech) te[p.tech]=(te[p.tech]||0)+1; if(p.bait) ba[p.bait]=(ba[p.bait]||0)+1; if(p.cond&&p.cond.area) ar[p.cond.area]=(ar[p.cond.area]||0)+1; });
   var body=h('div',{class:'cmtopb'}), cr=h('div',{class:'chips'}); top(sp,6).forEach(function(k){ cr.append(h('button',{type:'button',class:'chip sm'+(F.sp===k?' on':''),text:k+' '+sp[k],onclick:function(){ setFilter('sp',F.sp===k?'':k); }})); }); body.append(cr);
   function line(lab,o){ var k=top(o,3); if(k.length) body.append(h('p',{class:'sub cmwl'},h('b',{text:lab+' '}),k.join(' · '))); }
