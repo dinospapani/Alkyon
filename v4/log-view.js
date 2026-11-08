@@ -50,7 +50,9 @@ function fish(page){
   var list=h('div');
   q.addEventListener('input',function(){ st.q=q.value; fill(); });
   var vt=h('button',{class:'iconbtn sm vtog',type:'button','aria-pressed':String(!!st.grid),'aria-label':st.grid?T('Προβολή λίστας','List view'):T('Προβολή φωτογραφιών','Photo view'),html:st.grid?'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>':'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>',onclick:function(){ st.grid=!st.grid; ls.set('alkyon-v4-loggrid',st.grid); draw(); }});
-  page.append(h('div',{class:'srow'},h('div',{class:'search'},B.icon('search'),q),vt),list);
+  /* 1.9.41: «+ Ψάρι» εδώ, για να μη χρειάζεται παρατεταμένο πάτημα στο κεντρικό κουμπί */
+  var addB=B.biteForm?h('button',{class:'iconbtn sm addfish',type:'button','aria-label':T('Νέο ψάρι','New catch'),title:T('Νέο ψάρι','New catch'),html:B.iconSvg('plus'),onclick:function(){ B.biteForm(); }}):null;
+  page.append(h('div',{class:'srow'},h('div',{class:'search'},B.icon('search'),q),vt,addB),list);
   function fill(){
     var qq=nrm(st.q), a=S().raw('bites').filter(function(b){ return !b.gear&&inRange(b.date||'')&&(!qq||nrm([b.species,b.bait,b.tech,b.place,b.notes].join(' ')).indexOf(qq)>=0); }).sort(function(a,b){ return ms(b)-ms(a); });
     if(st.nosp){ st.nosp=false; var nsA=a.filter(function(b){ return !b.species&&!b.miss&&!B.pest(b); }); a=nsA.concat(a.filter(function(b){ return nsA.indexOf(b)<0; })); }
