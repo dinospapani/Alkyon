@@ -110,7 +110,8 @@ function render(){
     if(mode==='wind'){ fx.globalCompositeOperation='source-over'; fx.globalAlpha=1; ringStroke(fx,map,rings); fx.strokeStyle='rgba(255,255,255,.55)'; fx.lineWidth=1; fx.stroke(); }
     fx.restore(); }
   fillCv.style.opacity=any?'1':'0';
-  if(mode==='sea'&&any) startAnim();
+  /* 1.9.28: κύμα + άνεμος μαζί: το χρώμα δείχνει το κύμα και οι γραμμές μόνο τον άνεμο (χωρίς τις λευκές «κορυφές» του κύματος, που μπερδεύονταν με τον άνεμο) */
+  if(mode==='sea'&&any&&!windOn()) startAnim(); else if(dashCv){ var dz=map.getSize(); dctx.clearRect(0,0,dz.x,dz.y); }
 }
 
 /* κλίμακα σαν το Windy: τι σημαίνει κάθε χρώμα, στις μονάδες σου */
@@ -130,7 +131,9 @@ function wxLegend(list){
   if(!list||!list.length){ if(wlEl){ wlEl.remove(); wlEl=null; if(D._sync) D._sync(); } return; }
   if(!wlEl||!wlEl.isConnected){ wlEl=document.createElement('div'); wlEl.id='wxLeg'; wlEl.setAttribute('role','note'); }
   var wp=document.getElementById('ndWindPanel'); if(wp&&wp.parentNode===D) D.insertBefore(wlEl,wp); else D.appendChild(wlEl);
-  wlEl.replaceChildren(); list.forEach(function(m){ wlEl.append(legRow(m)); }); if(D._sync) D._sync(); }
+  wlEl.replaceChildren(); list.forEach(function(m){ wlEl.append(legRow(m)); });
+  if(list[0]==='sea'&&windOn()){ var nt=document.createElement('small'); nt.className='wlnote'; nt.textContent=T('Χρώμα = κύμα · λευκές γραμμές = άνεμος','Colour = waves · white lines = wind'); wlEl.append(nt); }
+  if(D._sync) D._sync(); }
 /* τιμές πάνω στον χάρτη (σαν τους αριθμούς του Windy): βελάκι + ένταση ανέμου και ύψος κύματος, σε πλέγμα */
 var labCv=null;
 function arrowPath(c,x,y,deg,r){ var a=deg*Math.PI/180, dx=Math.sin(a), dy=-Math.cos(a); c.beginPath(); c.moveTo(x-dx*r,y-dy*r); c.lineTo(x+dx*r,y+dy*r); c.moveTo(x+dx*r,y+dy*r); c.lineTo(x+dx*r-(dx*0.55-dy*0.45)*r,y+dy*r-(dy*0.55+dx*0.45)*r); c.moveTo(x+dx*r,y+dy*r); c.lineTo(x+dx*r-(dx*0.55+dy*0.45)*r,y+dy*r-(dy*0.55-dx*0.45)*r); c.stroke(); }

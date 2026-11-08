@@ -166,7 +166,7 @@ function loadRegion(bounds){
     var all=new Array(pts.length), okN=0, lastErr='';
     return chunks.reduce(function(pr,ch,ci){ return pr.then(function(){ return ci?new Promise(function(r){ setTimeout(r,400); }):null; }).then(function(){
       var q='latitude='+ch.map(function(x){ return x[0]; }).join(',')+'&longitude='+ch.map(function(x){ return x[1]; }).join(',');
-      return getJ('https://marine-api.open-meteo.com/v1/marine?'+q+'&hourly=wave_height,wave_period,wave_direction,swell_wave_height,swell_wave_direction,swell_wave_period'+(model?'&models='+model:'')+'&past_hours=1&forecast_hours=121&timezone=UTC')
+      return getJ('https://marine-api.open-meteo.com/v1/marine?'+q+'&hourly=wave_height,wave_period,wave_direction,swell_wave_height,swell_wave_direction,swell_wave_period'+(model?'&models='+model:'')+'&past_hours=24&forecast_hours=121&timezone=UTC') /* 1.9.28: και οι 24 περασμένες ώρες, όπως ο άνεμος· αλλιώς στις πρώτες ώρες του slider το κύμα έμενε μόνο κοντά στην ακτή */
         .then(function(j){ var a=arrOf(j); if(!a) return; a.forEach(function(p,k){ all[ci*CH+k]=p; }); okN++; })
         .catch(function(e){ lastErr=(e&&e.message)||'error'; });
     }); },Promise.resolve()).then(function(){
@@ -209,7 +209,7 @@ function prep(t,RG){ RG=RG||REG;
       out[p]=(k<0)?Math.max(D,24):D; }
     P.dur={L:W.L,v:out}; } }
   RG.waves.forEach(function(m){
-    var ti=m.t.indexOf(t); if(ti<0) return; var NPn=m.L.nla*m.L.nlo, h=new Float32Array(NPn), sh=new Float32Array(NPn), su=new Float32Array(NPn), sv=new Float32Array(NPn), tp=new Float32Array(NPn), stp=new Float32Array(NPn), wu=new Float32Array(NPn), wv=new Float32Array(NPn), ok=new Uint8Array(NPn), any=false;
+    var ti=m.t.indexOf(t); if(ti<0){ var tm=Date.parse(t+(t.length<=13?':00':'')+'Z'), bd=3*3600e3+1; m.t.forEach(function(x,k){ var dd=Math.abs(Date.parse(x+'Z')-tm); if(dd<bd){ bd=dd; ti=k; } }); } if(ti<0) return; /* 1.9.28: κοντινότερη ώρα έως ±3 ώρες */ var NPn=m.L.nla*m.L.nlo, h=new Float32Array(NPn), sh=new Float32Array(NPn), su=new Float32Array(NPn), sv=new Float32Array(NPn), tp=new Float32Array(NPn), stp=new Float32Array(NPn), wu=new Float32Array(NPn), wv=new Float32Array(NPn), ok=new Uint8Array(NPn), any=false;
     for(var p=0;p<NPn;p++){ var a=m.h[p]&&m.h[p][ti], b=m.sh[p]&&m.sh[p][ti], d=m.sd[p]&&m.sd[p][ti]; if(a==null) continue; h[p]=a; var t1=m.tp&&m.tp[p]&&m.tp[p][ti], t2=m.st&&m.st[p]&&m.st[p][ti]; tp[p]=t1==null?0:t1; stp[p]=t2==null?0:t2; var w1=m.wd&&m.wd[p]&&m.wd[p][ti]; if(w1!=null){ wu[p]=Math.sin(w1*Math.PI/180)*a; wv[p]=Math.cos(w1*Math.PI/180)*a; } sh[p]=b==null?0:b; var dd=(d==null?0:d)*Math.PI/180; su[p]=Math.sin(dd)*sh[p]; sv[p]=Math.cos(dd)*sh[p]; ok[p]=1; any=true; }
     if(any) P.waves.push({name:m.name,L:m.L,h:h,sh:sh,su:su,sv:sv,tp:tp,stp:stp,wu:wu,wv:wv,ok:ok});
   });

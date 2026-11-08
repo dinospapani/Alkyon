@@ -319,8 +319,9 @@ function loop(ts){
       /* v31z524: η εικόνα δείχνει την ένταση: δυνατός άνεμος = πυκνές, μακριές, παχιές γραμμές· άπνοια = λίγες, κοντές, αχνές */
       if(p.vis==null) p.vis=Math.random();
       nx=p.x+v.u*sc*1.15; ny=p.y-v.v*sc*1.15;
-      if(p.vis>Math.min(1,0.18+v.sp/16)){ p.x=nx; p.y=ny; if(nx<0||ny<0||nx>s.x||ny>s.y){ parts[i]=np(); parts[i].age=40+Math.floor(Math.random()*30); } continue; }
-      ctx.strokeStyle='#ffffff'; ctx.globalAlpha=lf*Math.min(0.95,0.3+v.sp/22); ctx.lineWidth=0.7+Math.min(2.3,v.sp/11); }
+      var both=sea; /* 1.9.28: με το κύμα από κάτω: λιγότερες και πιο λεπτές γραμμές ανέμου, για να διαβάζεται και το χρώμα του κύματος */
+      if(p.vis>Math.min(1,0.18+v.sp/16)*(both?0.55:1)){ p.x=nx; p.y=ny; if(nx<0||ny<0||nx>s.x||ny>s.y){ parts[i]=np(); parts[i].age=40+Math.floor(Math.random()*30); } continue; }
+      ctx.strokeStyle='#ffffff'; ctx.globalAlpha=lf*Math.min(0.95,0.3+v.sp/22)*(both?0.8:1); ctx.lineWidth=(0.7+Math.min(2.3,v.sp/11))*(both?0.65:1); }
     else { ctx.strokeStyle=sea?'#ffffff':col(v.sp); ctx.globalAlpha=lf*(sea?0.7:0.9); ctx.lineWidth=sea?1.3:1.6; }
     ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(nx,ny); ctx.stroke();
     p.x=nx; p.y=ny; if(nx<0||ny<0||nx>s.x||ny>s.y){ parts[i]=np(); parts[i].age=40+Math.floor(Math.random()*30); }

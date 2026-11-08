@@ -153,6 +153,15 @@ function dayLab(iso){ var d=new Date(iso), t=new Date(), y=new Date(Date.now()-8
 function fcAt(pl){ var a=ls.get('alkyon-places',[])||[], hit=a.filter(function(p){ return p&&p.lat!=null&&Math.abs(p.lat-pl.lat)<0.01&&Math.abs(p.lon-pl.lon)<0.01; })[0];
   if(!hit){ hit={id:'p'+Math.round(pl.lat*100)+'_'+Math.round(pl.lon*100),name:pl.name||T('Σημείο','Spot'),lat:+(+pl.lat).toFixed(4),lon:+(+pl.lon).toFixed(4),watch:false}; a.unshift(hit); ls.set('alkyon-places',a.slice(0,10)); }
   ls.set('alkyon-fcsel',hit.id); location.hash='#forecast'; }
+/* 1.9.28: «Καλές μέρες για ψάρεμα» ανοιχτή: μία γραμμή ανά μέρα (μέρα, βαθμός, ώρα) και από κάτω οι συνθήκες, αντί για ένα συνεχές κείμενο.
+   Το σημείο γράφεται μία φορά όταν είναι το ίδιο σε όλες. */
+function goodRows(txt){
+  var L=String(txt).split('\n'), rows=[], re=/^(.+?): (.+?) · (?:δείκτης|score) (\d+) · (\d\d:\d\d–\d\d:\d\d)$/;
+  for(var i=0;i<L.length;i++){ var m=re.exec(L[i].trim()); if(m){ rows.push({pl:m[1],day:m[2],sc:+m[3],win:m[4],why:''}); } else if(rows.length&&/^\s+\S/.test(L[i])) rows[rows.length-1].why=L[i].trim(); else return null; }
+  if(rows.length<1) return null;
+  var one=rows.every(function(r){ return r.pl===rows[0].pl; }), gen=/^(Σημείο χάρτη|Map point|Η θέση μου|My location)$/;
+  return h('span',{class:'ibgood'},one&&!gen.test(rows[0].pl)?h('small',{class:'ibpl',text:'📍 '+rows[0].pl}):null,rows.map(function(r){
+    return h('span',{class:'ibday'},h('span',{class:'ibd1'},h('span',{class:'ibsc '+(r.sc>=70?'g':r.sc>=50?'m':'b'),text:String(r.sc)}),h('strong',{text:r.day}),h('span',{class:'ibw',text:r.win}),!one?h('small',{text:' · '+r.pl}):null),r.why?h('small',{class:'ibwhy',text:r.why.charAt(0).toUpperCase()+r.why.slice(1)}):null); })); }
 function ibDraw(){ var r=ib.root; if(!r) return; var page=h('div',{class:'page'}), s0=ib.seen;
   page.append(h('div',{class:'top'},h('h1',{class:'lt',text:T('Ειδοποιήσεις','Notifications')}),h('a',{class:'iconbtn',href:'#alerts','aria-label':T('Ρυθμίσεις ειδοποιήσεων','Notification settings'),html:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>'})));
   var n=nt(); if(!n.on) page.append(h('a',{class:'card ibon',href:'#alerts'},h('span',{class:'ibic',html:'<svg viewBox="0 0 24 24">'+KI.bell+'</svg>'}),h('span',{class:'tx'},h('b',{text:T('Οι ειδοποιήσεις πρόγνωσης είναι κλειστές','Forecast alerts are off')}),h('small',{text:T('Πάτα για να τις ανοίξεις: καλές μέρες, αλλαγές πίεσης και ανέμου.','Tap to turn them on: good days, pressure and wind changes.')})),B.icon('chev')));
@@ -163,7 +172,7 @@ function ibDraw(){ var r=ib.root; if(!r) return; var page=h('div',{class:'page'}
     var k=kindOf(x), id=String(x.at)+i, open=!!ib.open[id], unread=String(x.at)>s0, txt=x.full||x.body||'';
     l.append(h('button',{type:'button',class:'li ibrow'+(unread?' new':''),'aria-expanded':String(open),onclick:function(){ ib.open[id]=!open; ibDraw(); }},
       h('span',{class:'ibic k-'+k,html:'<svg viewBox="0 0 24 24" aria-hidden="true">'+KI[k]+'</svg>'}),
-      h('span',{class:'tx'},h('b',{text:x.title||T('Ειδοποίηση','Notification')}),txt?h('small',{class:open?'full':'',text:txt}):null),
+      h('span',{class:'tx'},h('b',{text:x.title||T('Ειδοποίηση','Notification')}),txt?(open&&goodRows(txt)||h('small',{class:open?'full':'',text:txt})):null),
       h('span',{class:'when',text:new Date(x.at).toLocaleTimeString(EN?'en-GB':'el-GR',{hour:'2-digit',minute:'2-digit'})})));
     /* 1.1.0: ανοιχτή ειδοποίηση με τοποθεσία → πρόγνωση εκεί ή χάρτης */
     var pl=x.place&&typeof x.place==='object'&&x.place.lat!=null?x.place:null;
