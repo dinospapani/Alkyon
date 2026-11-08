@@ -625,6 +625,9 @@ with sync_playwright() as p:
       return [!!PF.windEvent(mk([[0,315],[6,45],[6,45]])), !!PF.windEvent(mk([[6,315],[14,315],[14,315]])), !!PF.windEvent(mk([[4,0],[4,180],[4,180]])), !!PF.windEvent(mk([[9,0],[9,180],[9,180]]))]; }""")
     ok=r and len(r)==3 and [x[0] for x in r]==['k-wind','k-trip','k-good'] and not any(x[2] for x in r) and r[0][1].startswith('Wind change') and r[2][3]=='normal'
     check('ειδοποιήσεις: ένα εικονίδιο, σωστή κατηγορία, τίτλος χωρίς «…»· όχι «αλλαγή ανέμου» από νηνεμία (1.9.52)', ok and we==[False,True,False,True] and not pg._errs, [r,we,pg._errs]); c.close()
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(2500)
+    r=pg.evaluate("()=>AK.pushHeal?AK.pushHeal(true):'missing'")
+    check('ειδοποιήσεις: αυτόματη επανασύνδεση υπάρχει και δεν σπάει χωρίς άδεια (1.9.53)', r in ('off','nologin') and not pg._errs, [r,pg._errs]); c.close()
     print('# offline')
     c=ctx(b,sw=True); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(6000); pg.reload(); pg.wait_for_timeout(3000)
     c.set_offline(True)

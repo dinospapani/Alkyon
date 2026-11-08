@@ -33,6 +33,15 @@ function pushServer(){ var cl=B.cloud&&B.cloud.session()?B.cloud:null; if(!cl) r
 B.pushSync=function(){ var n=nt(); writeCfg(); return n.on?pushServer():Promise.resolve(false); };
 /* 1.0.0: νέα διεύθυνση (/Alkyon) → νέα συνδρομή push, μία φορά. Η άδεια ειδοποιήσεων μένει (ίδιος τόπος dinospapani.github.io). */
 setTimeout(function(){ try{ if(ls.get('alkyon-moved-push',0)) return; var n=nt(); writeCfg(); if(!n.on||!('Notification' in window)||Notification.permission!=='granted') return; periodic(true); pushServer().then(function(ok){ if(ok){ ls.set('alkyon-moved-push',Date.now()); var q=nt(); q.server=true; setNt(q); } }); }catch(e){} },6000);
+/* 1.9.52: αυτόματη επανασύνδεση ειδοποιήσεων (το πολύ κάθε 6 ώρες, όταν ανοίγεις την εφαρμογή). Αν ο πάροχος push (Apple/Google) είπε στον server ότι
+   η συνδρομή έληξε, ο server τη σβήνει και το κινητό έπαυε να παίρνει ειδοποιήσεις χωρίς να το ξέρει κανείς. Τώρα το κινητό το βλέπει και κάνει νέα συνδρομή. */
+function pushHeal(force){ try{ var n=nt(); if(!n.on||!('Notification' in window)||Notification.permission!=='granted') return Promise.resolve('off'); var cl=B.cloud&&B.cloud.session()?B.cloud:null; if(!cl) return Promise.resolve('nologin');
+  if(!force&&Date.now()-(ls.get('alkyon-push-heal',0)||0)<6*3600000) return Promise.resolve('recent'); ls.set('alkyon-push-heal',Date.now());
+  return getSub(false).then(function(sub){ if(!sub) return pushServer().then(function(){ return 'new'; });
+    return subId(sub).then(function(id){ return cl.rest('push_subs?id=eq.'+id+'&select=id').then(function(r){ return r.ok===false?null:r.json(); }).then(function(rows){
+      if(Array.isArray(rows)&&rows.length===0) return sub.unsubscribe().catch(function(){}).then(function(){ return pushServer(); }).then(function(){ return 'renewed'; });
+      return pushServer().then(function(){ return 'ok'; }); }); }); }).catch(function(){ return 'err'; }); }catch(e){ return Promise.resolve('err'); } }
+B.pushHeal=pushHeal; setTimeout(function(){ pushHeal(false); },6000);
 function dropServer(){ var cl=B.cloud&&B.cloud.session()?B.cloud:null; if(!cl) return Promise.resolve();
   return getSub(false).then(function(sub){ if(!sub) return; return subId(sub).then(function(id){ return cl.rest('push_subs?id=eq.'+id,{method:'DELETE'}); }); }).catch(function(){}); }
 function sync(){ var n=nt(); if(!n.on){ return writeCfg(); } msg=T('Ενημέρωση…','Updating…'); draw();
