@@ -390,3 +390,20 @@ html[data-theme="dark"] .hbars .hnight{background:rgba(0,0,0,.35)}
 .pw .mres p{margin:4px 0 0}
 .pw .mres .mk{font-weight:700;color:var(--ink)}
 .pw .mres small{color:var(--ink-3)}
+/* 1.9.30: έκθεση ακτής με χάρτη */
+#fcExposure .exv{display:flex;align-items:flex-start;gap:10px;margin:2px 0 8px;font:650 15px/1.4 var(--font);color:var(--ink)}
+#fcExposure .exchip{flex:none;padding:3px 10px;border-radius:999px;color:#fff;font:800 13px/1.5 var(--font)}
+#fcExposure .exshel{margin:0 0 6px;font-size:14px;color:var(--ink-2);line-height:1.45}
+#fcExposure .exsw{margin:0 0 8px;font-size:13px;color:var(--ink-2);line-height:1.45}
+#fcExposure .exmap{margin:6px auto 8px;max-width:360px;border-radius:16px;overflow:hidden;box-shadow:0 1px 0 var(--line),0 0 0 1px var(--line)}
+#fcExposure .exmap canvas{display:block;width:100%;height:auto;aspect-ratio:1}
+#fcExposure .exleg{display:flex;flex-wrap:wrap;gap:6px 12px;justify-content:center;font-size:12.5px;color:var(--ink-2);margin:0 0 6px}
+#fcExposure .exleg span{display:inline-flex;align-items:center;gap:5px}
+#fcExposure .exleg i{width:12px;height:12px;border-radius:3px;display:inline-block}
+#fcExposure .exhow{font-size:12.5px!important;text-align:center}
+#fcExposure .exdet{margin-top:8px;border-top:1px solid var(--line);padding-top:6px}
+#fcExposure .exdet summary{cursor:pointer;font-size:13.5px;font-weight:650;color:var(--ink-2);padding:4px 0}
+/* 1.9.30: ήλιος/σελήνη σε μία σύντομη γραμμή στο πάνω μέρος */
+.hero .hsun1{display:flex;flex-wrap:wrap;gap:4px 14px;margin:12px 0 0;font:600 14px/1.4 var(--font);color:var(--ink-2)}
+.hero .hsun1 .mj{color:#6b5bd6}
+html.night .hero .hsun1 .mj{color:inherit}

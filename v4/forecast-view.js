@@ -354,7 +354,7 @@ function dayView(page,fc,d){
       h('span',{text:T('Επόμενη καλή μέρα','Next good day')}),h('b',{text:B.dayName(nx.date,td)+', '+win(nx)}),h('i',{class:'sc',text:String(nx.best)}))); }
   /* v31z550: ο δικός σου βαθμός (προσωπική πρόγνωση), μόνο όταν έχει αποδειχθεί ότι προβλέπει καλύτερα από τον μέσο όρο σου */
   var pd=d.safe?persDay(d,isToday):null; if(pd) hero.append(h('button',{type:'button',class:'perschip',onclick:function(){ st.view='mine'; st.day=null; st.hour=null; draw(); }},h('span',{text:T('Για σένα','For you')}),h('b',{text:String(pd.best)}),pd.win?h('small',{text:B.pad(pd.win.s)+':00–'+B.pad((pd.win.e+1)%24)+':00'}):null));
-  var rz=d.safe?reasons(d).slice(0,3):[];
+  var rz=d.safe?reasons(d):[]; /* 1.9.30: όλοι οι λόγοι εδώ πάνω (έφυγε το διπλό «Γιατί αυτός ο βαθμός» από κάτω) */
   /* 1.9.7: η ετικέτα κύματος μόνο αν δεν φαίνεται ήδη στα «γιατί» από κάτω (ήταν διπλή) */
   /* 1.9.9: μέρα εκτός ορίων: όχι ετικέτα θάλασσας (το «γιατί» το λέει ήδη) */
   if(tg&&d.safe&&!rz.some(function(r){ return /κύμα|waves?/i.test(String(r[1])); })) hero.append(h('span',{class:'tag '+tg[0],text:tg[1]})); if(rz.length) hero.append(h('div',{class:'hwhy2'},rz.map(function(r){ return h('span',{class:'hz '+r[0]},(r[0]==='up'?'↑ ':r[0]==='down'?'↓ ':'')+String(r[1]).replace(/\.$/,'')); })));
@@ -363,11 +363,8 @@ function dayView(page,fc,d){
     var mj=sm0?(sm0.maj||[]).filter(function(m){ return m>=0&&m<1440; }).map(B.hm):[], mn=sm0?(sm0.min||[]).filter(function(m){ return m>=0&&m<1440; }).map(B.hm):[];
     var ill=Math.round(((1-Math.cos(2*Math.PI*d.f))/2)*100);
     /* 1.9.17: με λέξεις, όχι κωδικούς: ανατολή/δύση, φάση σελήνης, δυνατές/ασθενείς ώρες σελήνης */
-    hero.append(h('div',{class:'hsun'},
-      h('div',{class:'hsr'},h('span',{class:'hsk',text:T('Ήλιος','Sun')}),h('b',{text:T('ανατολή ','sunrise ')+B.hm(d.rise)+' · '+T('δύση ','sunset ')+B.hm(d.set)})),
-      h('div',{class:'hsr'},h('span',{class:'hsk',text:T('Σελήνη','Moon')}),h('b',{text:moonIco(d.f)+' '+moonName(d.f)+' · '+ill+'% '+T('φωτισμένη','lit')})),
-      mj.length||mn.length?h('div',{class:'hsr'},h('span',{class:'hsk',text:T('Ώρες σελήνης','Moon times')}),h('b',null,
-        mj.length?h('span',{class:'mj',text:T('κύριες ','major ')+mj.join(', ')}):null,mj.length&&mn.length?' · ':null,mn.length?h('span',{class:'mn',text:T('δευτερεύουσες ','minor ')+mn.join(', ')}):null)):null)); })();
+    /* 1.9.30: μία σύντομη γραμμή· οι ώρες σελήνης φαίνονται στο «Ανά ώρα» και στο γράφημα σελήνης */
+    hero.append(h('p',{class:'hsun1'},h('span',{text:'🌅 '+B.hm(d.rise)}),h('span',{text:'🌇 '+B.hm(d.set)}),h('span',{text:moonIco(d.f)+' '+moonName(d.f)+' '+ill+'%'}),mj.length?h('span',{class:'mj',text:T('κύρια σελήνη ','major moon ')+mj.join(', ')}):null)); })();
   if(d.date>=td&&d.safe) hero.append(planBtn(d)); /* 1.9.9: όχι «Θα βγω» σε μέρα που δεν συνιστάται έξοδος */
   page.append(hero);
   /* ψαροντούφεκο: ορατότητα νερού (δορυφόρος όταν υπάρχει, αλλιώς εκτίμηση από κύμα και βροχή) */
@@ -388,18 +385,19 @@ function dayView(page,fc,d){
           h('button',{class:'btn',type:'button',text:'🗺 '+T('Στον χάρτη','On the map'),onclick:function(){ var p=st.place||current(); if(p&&p.lat!=null&&B.mapGo) B.mapGo(p.lat,p.lon,12,null,{lab:p.name||null,sea:true}); else location.hash='#map'; }})),
         /* 1.6.1: από πού είναι η πρόγνωση (για σύγκριση με άλλες εφαρμογές, π.χ. Windy που δείχνει ένα μοντέλο) */
         h('p',{class:'nwsrc',text:T('Open-Meteo · καλύτερο μοντέλο για την περιοχή. Ο Χάρτης δείχνει μέσο όρο ECMWF, ICON και GFS.','Open-Meteo · best model for the area. The Map shows the average of ECMWF, ICON and GFS.')}));
-      page.append(nc); oppsLater=true; if(B.oppsCard) page.append(B.oppsCard(2,{hideEmpty:true})); /* 1.8.6: οι ευκαιρίες στα σημεία σου αμέσως κάτω από το «Τώρα» */ } }
+      page.append(nc); oppsLater=true; } }
 
   /* ανά ώρα: μπάρες και λεπτομέρειες της ώρας (σύρε το δάχτυλο πάνω στις μπάρες) */
   /* 1.6.8: σειρά = οι ερωτήσεις πριν βγεις: αξίζει/πότε → ασφαλές τώρα; → ποιες ώρες (και γιατί) → πού → με τι → εξέλιξη → κάτω από το νερό → ήλιος/σελήνη */
   var hSel=(isToday&&st.hour==null&&d.safe&&d.win&&d.win.s>nh)?d.win.s:selH; /* 1.9.10: το «Τώρα» φαίνεται ήδη πάνω· εδώ ανοίγει στην καλύτερη ώρα */
   var why2=reasons(d), hcd=hr?hourCard(fc,d,hSel,isToday?nh:null):null;
-  if(hcd){ if(why2.length) hcd.append(h('h3',{class:'whyh',text:T('Γιατί αυτός ο βαθμός','Why this score')}),h('ul',{class:'why'},why2.map(function(r){ return h('li',{class:r[0]},r[1]); }))); page.append(hcd); }
-  else if(why2.length) page.append(h('section',{class:'card'},h('h2',{text:T('Γιατί','Why')}),h('ul',{class:'why'},why2.map(function(r){ return h('li',{class:r[0]},r[1]); }))));
-  var ww=workedCard(d); if(ww) page.append(ww); /* v31z545 */
-  if(isToday&&B.lastYearCard){ var ly=B.lastYearCard(); if(ly) page.append(ly); }
-  if(isToday&&B.bestDaysCard&&hr){ var bd=B.bestDaysCard({press:hr.pres,wind:hr.wind,wave:hr.wave,sst:hr.sst,temp:hr.temp}); if(bd){ var bh=bd.querySelector('h2'), pc=bd.querySelector('.simhead b'); if(bh) bh.remove(); bd.classList.remove('card'); page.append(fold('best',T('Σε σχέση με τις καλύτερες μέρες σου','Compared with your best days'),pc?pc.textContent+T(' ομοιότητα',' similar'):'',[bd])); } }
-
+  if(hcd){ if(!d.safe&&why2.length) hcd.append(h('h3',{class:'whyh',text:T('Γιατί αυτός ο βαθμός','Why this score')}),h('ul',{class:'why'},why2.map(function(r){ return h('li',{class:r[0]},r[1]); }))); page.append(hcd); }
+  /* 1.9.30: σειρά κατά σημασία: απόφαση → τώρα → ανά ώρα → θα βγω → πού (σημεία σου, έκθεση ακτής) → εξέλιξη → κάτω από το νερό → σύγκριση */
+  if(oppsLater&&B.oppsCard) page.append(B.oppsCard(2,{hideEmpty:true}));
+  var p=st.place||current();
+  if(isToday&&B.prof()!=='lake'&&window.AlkyonExposure){ var ex=h('div',{class:'expo'},h('div',{id:'fcDays',hidden:true})); var wv0=hr&&hr.wave!=null&&hr.wave>=0.8; var exf=fold('expo',T('Έκθεση ακτής','Coast exposure'),T('πού είσαι απάνεμα με τον σημερινό άνεμο','where you are sheltered from today’s wind'),[ex]); if(wv0) exf.open=true; exf.hidden=true; page.append(exf); tidyExpo(ex);
+    (function(){ function sync(){ var b=ex.querySelector('#fcExposure'); exf.hidden=!b||b.hidden; } try{ new MutationObserver(sync).observe(ex,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']}); }catch(e){} setTimeout(sync,1500); })();
+    setTimeout(function(){ try{ window.dispatchEvent(new CustomEvent('alkyon-fcloaded',{detail:{place:{lat:p.lat,lon:p.lon,name:p.name||''},fc:fc}})); }catch(e){} },0); }
   /* 1.9.11: και η «Πίεση, άνεμος, σελήνη» πτυσσόμενη· στον τίτλο η τάση πίεσης των επόμενων 24 ωρών */
   (function(){ var pwc=pwCard(fc,d), ph=pwc.querySelector('.pwh h2'); if(ph) ph.remove(); pwc.classList.remove('card');
     var all=[]; (fc.days||[]).forEach(function(x){ (x.hours||[]).forEach(function(q){ if(q.pres!=null) all.push(q); }); });
@@ -416,11 +414,10 @@ function dayView(page,fc,d){
     if(B.currentCard&&B.prof()!=='lake'){ var ccd=B.currentCard(st.place||current()); if(ccd){ ccd.classList.remove('card'); ccd.classList.add('usub'); ug.append(ccd); nU++; } }
     if(nU){ var usync=function(){ ug.hidden=![].some.call(ug.querySelectorAll('.usub'),function(e){ return !e.hidden; }); }; usync();
       try{ new MutationObserver(usync).observe(ug,{subtree:true,attributes:true,attributeFilter:['hidden']}); }catch(e){} var ugh=ug.querySelector(':scope>h2'); if(ugh) ugh.remove(); ug.classList.remove('card'); var ugf=fold('under',T('Κάτω από την επιφάνεια','Below the surface'),T('θερμοκρασία σε βάθος, ρεύμα','temperature at depth, current'),[ug]); page.append(ugf); new MutationObserver(function(){ ugf.hidden=ug.hidden; }).observe(ug,{attributes:true,attributeFilter:['hidden']}); ugf.hidden=ug.hidden; } }
-  var p=st.place||current();
-  /* έκθεση της ακτής ανά κατεύθυνση ανέμου και swell (ίδιος υπολογισμός με την κλασική, exposure.js) — μόνο για σήμερα, θάλασσα */
-  if(isToday&&B.prof()!=='lake'&&window.AlkyonExposure){ var ex=h('div',{class:'expo'},h('div',{id:'fcDays',hidden:true})); var exf=fold('expo',T('Έκθεση ακτής','Coast exposure'),T('πόσο κύμα σηκώνει κάθε άνεμος εδώ','how much sea each wind builds here'),[ex]); exf.hidden=true; page.append(exf); tidyExpo(ex);
-    (function(){ function sync(){ var b=ex.querySelector('#fcExposure'); exf.hidden=!b||b.hidden; } try{ new MutationObserver(sync).observe(ex,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']}); }catch(e){} setTimeout(sync,1500); })();
-    setTimeout(function(){ try{ window.dispatchEvent(new CustomEvent('alkyon-fcloaded',{detail:{place:{lat:p.lat,lon:p.lon,name:p.name||''},fc:fc}})); }catch(e){} },0); }
+  var ww=workedCard(d); if(ww) page.append(ww); /* v31z545 */
+  if(isToday&&B.lastYearCard){ var ly=B.lastYearCard(); if(ly) page.append(ly); }
+  if(isToday&&B.bestDaysCard&&hr){ var bd=B.bestDaysCard({press:hr.pres,wind:hr.wind,wave:hr.wave,sst:hr.sst,temp:hr.temp}); if(bd){ var bh=bd.querySelector('h2'), pc=bd.querySelector('.simhead b'); if(bh) bh.remove(); bd.classList.remove('card'); page.append(fold('best',T('Σε σχέση με τις καλύτερες μέρες σου','Compared with your best days'),pc?pc.textContent+T(' ομοιότητα',' similar'):'',[bd])); } }
+
 }
 /* 24 μπάρες: πάτημα = λεπτομέρειες της ώρας. Χρώμα: καλύτερο παράθυρο, περίοδος σελήνης, μη ασφαλής ώρα. */
 function hourRows(hr){
@@ -565,7 +562,7 @@ function pwSeries(p,rk){
 }
 /* η κάρτα «Έκθεση της ακτής» (κοινός κώδικας με την κλασική): κρατά ορατά τίτλο, «Τώρα» και μπάρες, τα υπόλοιπα κείμενα σε «Λεπτομέρειες» */
 function tidyExpo(ex){ var busy=false;
-  function fix(){ var c=ex.querySelector('#fcExposure'); if(!c||busy) return; var dd=c.querySelector(':scope>details.exmore'); if(dd){ var n=dd.nextElementSibling; if(n){ busy=true; while(n){ var nx=n.nextElementSibling; dd.append(n); n=nx; } busy=false; } return; } busy=true;
+  function fix(){ var c=ex.querySelector('#fcExposure'); if(!c||busy||c.dataset.v==='2') return; /* 1.9.30: η νέα κάρτα έχει δική της σειρά */ var dd=c.querySelector(':scope>details.exmore'); if(dd){ var n=dd.nextElementSibling; if(n){ busy=true; while(n){ var nx=n.nextElementSibling; dd.append(n); n=nx; } busy=false; } return; } busy=true;
     try{ var kids=[].slice.call(c.children), h3=kids[0], bars=null; kids.forEach(function(k){ if(!bars&&k.tagName==='DIV'&&k.children.length>=8) bars=k; }); if(!h3||!bars){ busy=false; return; }
       var d=h('details',{class:'exmore'},h('summary',{text:T('Λεπτομέρειες · Πώς είναι η θάλασσα εδώ;','Details · How is the sea here?')})), now=null;
       kids.forEach(function(k){ if(k===h3||k===bars) return; if(!now&&k.tagName==='P'&&!k.classList.contains('note')){ now=k; k.classList.add('exnow'); return; } d.append(k); });
