@@ -628,3 +628,9 @@ html.night .kpis .kpi{outline:1px solid #fff;outline-offset:-1px;background:#000
 .cmrepa{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
 .row2{display:flex;gap:8px}.row2>*{flex:1}
 .cmtopb .chips{flex-wrap:wrap;overflow:visible}
+/* 1.9.67: «Άρεσε σε …» */
+.cmlkl{display:flex;align-items:center;gap:6px;margin:8px 0 0;padding:2px 0;border:0;background:none;color:var(--ink-2);font:600 13.5px var(--font);text-align:left;cursor:pointer}
+.cmlkh{color:#e0245e;font-size:14px}
+.cmlkr{display:flex;align-items:center;gap:10px;width:100%;padding:10px 0;border:0;border-top:1px solid var(--line);background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.cmlkr b{flex:1}.cmlkr small{color:var(--ink-3)}
+.cmlkr .cmav.sm{width:36px;height:36px;font-size:14px}

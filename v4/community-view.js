@@ -16,7 +16,7 @@ function needAcc(why){ B.authSheet({reason:why||T('Για like, σχόλια κ�
 function esc(s){ return encodeURIComponent(s); }
 function blocked(){ var a=ls.get('alkyon-comm-block',[]); return Array.isArray(a)?a:[]; }
 function author(){ var s=sess(); return ((s&&s.name)||T('Ψαράς','Angler')).trim().slice(0,40)||T('Ψαράς','Angler'); }
-var F={prof:{},admin:null,clk:{},cliked:{},reports:null,items:[],offset:0,end:false,loading:false,mode:'all',sp:'',tech:'',user:null,liked:{},open:{},err:'',all:null,allT:0,allBusy:0,ans:{},top:{week:true}};
+var F={pname:{},lk:{},prof:{},admin:null,clk:{},cliked:{},reports:null,items:[],offset:0,end:false,loading:false,mode:'all',sp:'',tech:'',user:null,liked:{},open:{},err:'',all:null,allT:0,allBusy:0,ans:{},top:{week:true}};
 /* 1.9.63: ακόλουθοι (συγχρονίζεται με τον λογαριασμό και στέλνεται στον server για τις ειδοποιήσεις «μόνο όσους ακολουθώ») */
 function fl(){ var a=ls.get('alkyon-comm-follow',[]); return Array.isArray(a)?a.filter(function(x){ return x&&x.u; }):[]; }
 function follows(){ return fl().map(function(x){ return x.u; }); }
@@ -64,7 +64,7 @@ function load(reset){
   rest(q).then(function(r){ return r.json(); }).then(function(arr){
     if(keep){ F.items=[]; F.cached=false; } if(arr.length<PAGE) F.end=true; F.offset+=arr.length; F.items=F.items.concat(arr); var ids=arr.map(function(p){ return p.id; });
     if(plain) try{ ls.set('alkyon-comm-cache',{t:Date.now(),items:arr.slice(0,PAGE).map(function(p){ var o=Object.assign({},p); delete o._c; return o; })}); }catch(e){}
-    if(!ids.length) return; profs(arr.map(function(p){ return p.user_id; }));
+    if(!ids.length) return; profs(arr.map(function(p){ return p.user_id; })); likers(ids).then(draw);
     if(!sess()) return;
     /* 1.9.63: «Τι ψάρι είναι;» → η απάντηση που διάλεξε ο κάτοχος (σχόλιο του κατόχου που αρχίζει με ✓) */
     var qi=arr.filter(function(p){ return p.cond&&p.cond.k==='id'; }).map(function(p){ return p.id; });
@@ -77,14 +77,29 @@ function cnt(p,k){ return (p[k]&&p[k][0]&&p[k][0].count)||0; }
 /* 1.9.65: τελευταία λίστα από την αποθήκη, για να ανοίγει αμέσως (και χωρίς σήμα) */
 function fromCache(){ var c=ls.get('alkyon-comm-cache',null); if(c&&Array.isArray(c.items)&&c.items.length&&!F.items.length){ F.items=c.items.slice(); F.cached=true; } }
 /* 1.9.65: φωτογραφίες προφίλ */
+var NAMECOL=true; /* 1.9.67: όνομα στο community_profiles (αν δεν υπάρχει ακόμη η στήλη, συνεχίζει χωρίς) */
 function profs(ids){ var need=[]; ids.forEach(function(u){ if(u&&F.prof[u]===undefined&&need.indexOf(u)<0) need.push(u); }); if(!need.length) return; need.forEach(function(u){ F.prof[u]=null; });
-  rest('community_profiles?select=user_id,avatar&user_id=in.('+need.map(esc).join(',')+')').then(function(r){ return r.json(); }).then(function(a){ var ch=0; (a||[]).forEach(function(x){ if(x.avatar){ F.prof[x.user_id]=x.avatar; ch=1; } }); if(ch) draw(); }).catch(function(){}); }
+  var q=function(c){ return rest('community_profiles?select=user_id,avatar'+(c?',name':'')+'&user_id=in.('+need.map(esc).join(',')+')').then(function(r){ return r.json(); }); };
+  (NAMECOL?q(true).catch(function(){ NAMECOL=false; return q(false); }):q(false)).then(function(a){ var ch=0; (a||[]).forEach(function(x){ if(x.avatar){ F.prof[x.user_id]=x.avatar; ch=1; } if(x.name){ F.pname[x.user_id]=x.name; ch=1; } }); if(ch) draw(); }).catch(function(){}); }
+/* το όνομά σου στο προφίλ της Κοινότητας (μία φορά ανά άνοιγμα), για να φαίνεται στη λίστα «Άρεσε σε» */
+function myProfile(){ if(!sess()||F.myp||!NAMECOL) return; F.myp=1; var o={user_id:uid(),name:author(),updated_at:new Date().toISOString()};
+  rest('community_profiles',{method:'POST',body:JSON.stringify(o),headers:{'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'}}).then(function(){ F.pname[uid()]=o.name; }).catch(function(){ F.myp=0; }); }
+/* ποιος έκανε like: όνομα από το προφίλ, αλλιώς από αναρτήσεις/σχόλια του */
+function nameOf(u){ if(F.pname[u]) return F.pname[u]; if(u===uid()) return author(); var p=(F.all||[]).concat(F.items).filter(function(x){ return x.user_id===u&&x.author; })[0]; if(p) return p.author;
+  var c=null; F.items.forEach(function(x){ (x._c||[]).forEach(function(y){ if(!c&&y.user_id===u&&y.author) c=y.author; }); }); return c||T('Ψαράς','Angler'); }
+function likers(ids){ if(!ids.length) return Promise.resolve(); return rest('community_likes?select=post_id,user_id,created_at&post_id=in.('+ids.join(',')+')&order=created_at.desc').then(function(r){ return r.json(); }).then(function(a){ ids.forEach(function(id){ F.lk[id]=[]; }); (a||[]).forEach(function(x){ (F.lk[x.post_id]=F.lk[x.post_id]||[]).push(x.user_id); }); profs((a||[]).map(function(x){ return x.user_id; })); }).catch(function(){}); }
+function likersLine(p){ var a=F.lk[p.id]; if(!a||!a.length) return null; var names=a.slice(0,2).map(nameOf), more=a.length-names.length;
+  return h('button',{type:'button',class:'cmlkl',onclick:function(){ likersSheet(p); }},h('span',{class:'cmlkh','aria-hidden':'true',text:'♥'}),T('Άρεσε σε ','Liked by ')+names.join(', ')+(more>0?T(' και '+more+(more===1?' ακόμα':' ακόμα'),' and '+more+' more'):'')); }
+function likersSheet(p){ var a=F.lk[p.id]||[], body=h('div',{class:'bform cmlks'}), sh;
+  a.forEach(function(u){ body.append(h('button',{type:'button',class:'cmlkr',onclick:function(){ sh.close(); profile(u,nameOf(u)); }},avEl(u,nameOf(u),'sm'),h('b',{text:nameOf(u)+(u===uid()?T(' (εσύ)',' (you)'):'')}),isF(u)?h('small',{text:T('ακολουθείς','following')}):null)); });
+  sh=B.sheet({title:T('Άρεσε σε ','Liked by ')+a.length,body:body}); }
+B.commLikers=likersSheet;
 function avUrl(path){ return SUPA+'/storage/v1/object/public/community/'+path; }
 function avEl(u,name,cls){ var a=F.prof[u]; var el=h('span',{class:'cmav'+(cls?' '+cls:'')}); if(a) el.append(h('img',{src:avUrl(a),alt:'',loading:'lazy'})); else el.textContent=(name||'?').charAt(0).toUpperCase(); return el; }
 B.commAvatar=function(){ var u=uid(); return u&&F.prof[u]?avUrl(F.prof[u]):(ls.get('alkyon-comm-avatar','')?avUrl(ls.get('alkyon-comm-avatar','')):''); };
 function pickAvatar(){ if(!sess()){ needAcc(); return; } var fi=h('input',{type:'file',accept:'image/*'}); fi.addEventListener('change',function(){ var f=fi.files&&fi.files[0]; if(!f) return; B.toast(T('Ανεβαίνει…','Uploading…'));
     squareJpeg(f,320).then(function(jb){ var path=uid()+'/avatar-'+Date.now().toString(36)+'.jpg', old=F.prof[uid()]||ls.get('alkyon-comm-avatar','');
-      return C().storage('POST','community/'+path,jb,'image/jpeg').then(function(r){ if(!r.ok) throw new Error('photo '+r.status); return rest('community_profiles',{method:'POST',body:JSON.stringify({user_id:uid(),avatar:path,updated_at:new Date().toISOString()}),headers:{'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'}}); })
+      return C().storage('POST','community/'+path,jb,'image/jpeg').then(function(r){ if(!r.ok) throw new Error('photo '+r.status); return rest('community_profiles',{method:'POST',body:JSON.stringify(Object.assign({user_id:uid(),avatar:path,updated_at:new Date().toISOString()},NAMECOL?{name:author()}:{})),headers:{'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'}}); })
         .then(function(){ F.prof[uid()]=path; ls.set('alkyon-comm-avatar',path); if(old&&old!==path) C().storage('DELETE','community/'+old).catch(function(){}); B.toast(T('Η φωτογραφία προφίλ άλλαξε.','Profile photo updated.')); draw(); try{ B.emit('store','alkyon-comm-avatar'); }catch(e){} }); })
     .catch(function(){ B.toast(T('Δεν ανέβηκε η φωτογραφία.','Photo upload failed.')); }); }); fi.click(); }
 function removeAvatar(){ var old=F.prof[uid()]||ls.get('alkyon-comm-avatar',''); rest('community_profiles?user_id=eq.'+esc(uid()),{method:'DELETE'}).then(function(){ if(old) C().storage('DELETE','community/'+old).catch(function(){}); F.prof[uid()]=undefined; ls.set('alkyon-comm-avatar',''); draw(); try{ B.emit('store','alkyon-comm-avatar'); }catch(e){} B.toast(T('Αφαιρέθηκε.','Removed.')); }).catch(function(){ B.toast(T('Δεν έγινε.','Failed.')); }); }
@@ -184,18 +199,19 @@ function profile(u,name){ if(!u) return; var ps=(F.all||[]).filter(function(p){ 
   body.append(badgesEl(badges(u)));
   var bk=Object.keys(best).sort(function(a,b){ return best[b]-best[a]; }).slice(0,6);
   if(bk.length){ body.append(h('h3',{text:T('Μεγαλύτερα ψάρια','Biggest fish')})); bk.forEach(function(k){ body.append(h('div',{class:'mrow'},h('span',{text:(mineRec.indexOf(k)>=0?'🏆 ':'')+k}),h('b',{text:kgTxt(best[k])}))); }); }
-  var tk=top(sp,3), tt=top(te,2); if(tk.length) body.append(h('p',{class:'sub',text:T('Πιάνει συχνότερα: ','Catches most: ')+tk.join(', ')+(tt.length?T(' · Τεχνική: ',' · Technique: ')+tt.join(', '):'')}));
+  /* 1.9.67: «Πιάνει συχνότερα» μόνο για είδη με 2+ ψάρια (αλλιώς είναι απλώς αλφαβητική λίστα) */
+  var tk=top(sp,3).filter(function(k){ return sp[k]>=2; }), tt=top(te,2); if(tk.length) body.append(h('p',{class:'sub',text:T('Πιάνει συχνότερα: ','Catches most: ')+tk.join(', ')+(tt.length?T(' · Τεχνική: ',' · Technique: ')+tt.join(', '):'')}));
   if(u===uid()&&sess()) body.append(h('div',{class:'row2'},h('button',{class:'btn pri',type:'button',text:F.prof[u]?T('Άλλαξε φωτογραφία','Change photo'):T('Βάλε φωτογραφία','Add photo'),onclick:function(){ sh.close(); pickAvatar(); }}),F.prof[u]?h('button',{class:'btn',type:'button',text:T('Αφαίρεση','Remove'),onclick:function(){ sh.close(); removeAvatar(); }}):null));
   if(u!==uid()&&sess()) body.append(h('button',{class:'btn full'+(isF(u)?'':' pri'),type:'button',text:isF(u)?T('✓ Ακολουθείς','✓ Following'):T('Ακολούθησε','Follow'),onclick:function(){ toggleFollow(u,name); sh.close(); }}));
-  body.append(h('button',{class:'btn full',type:'button',text:T('Οι αναρτήσεις του','Their posts'),onclick:function(){ sh.close(); F.user={u:u,n:name}; F.mode='all'; load(true); }}));
-  sh=B.sheet({title:name,body:body}); }
+  body.append(h('button',{class:'btn full',type:'button',text:u===uid()?T('Οι αναρτήσεις μου','My posts'):T('Οι αναρτήσεις του','Their posts'),onclick:function(){ sh.close(); F.user={u:u,n:name}; F.mode='all'; load(true); }}));
+  sh=B.sheet({title:u===uid()?T('Το προφίλ μου','My profile'):T('Προφίλ ψαρά','Angler profile'),body:body}); }
 B.commProfile=profile;
 /* 1.9.64: σήματα επιτευγμάτων (υπολογίζονται από τις αναρτήσεις του, ίδια για όλους) */
 function badges(u){ var fish=(F.all||[]).filter(function(p){ return p.user_id===u&&!isQ(p)&&p.species; }), keys={}, rel=0, big=0, sq=false;
   fish.forEach(function(p){ if(p.cond&&p.cond.rel) rel++; [{s:p.species,la:p.latin,kg:p.kg}].concat((p.cond&&Array.isArray(p.cond.more)?p.cond.more:[]).map(function(x){ return {s:x.s,kg:x.kg}; })).forEach(function(x){ var k=spKey(x.s,x.la); keys[k]=1; if(+x.kg>=5) big=1; if(k==='loligo vulgaris') sq=true; }); });
   var nsp=Object.keys(keys).length, rc=records(), nrec=Object.keys(rc).filter(function(k){ return rc[k].u===u; }).length, wins=chalWins(u);
-  return [[fish.length>=1,'🐟',T('Πρώτη ανάρτηση','First post')],[fish.length>=10,'⭐',T('10 αναρτήσεις','10 posts')],[nsp>=5,'🎣',T('5 είδη','5 species')],[nsp>=10,'🏝',T('10 είδη','10 species')],
-    [sq,'🌙',T('Πρώτο καλαμάρι','First squid')],[rel>=5,'❤',T('5 απελευθερώσεις','5 releases')],[big,'💪',T('Ψάρι 5+ kg','5+ kg fish')],[nrec>0,'🏆',T('Ρεκόρ Κοινότητας','Community record')],[wins>0,'🎯',T('Νικητής πρόκλησης','Challenge winner')+(wins>1?' ×'+wins:'')]]; }
+  return [[fish.length>=1,'🐟',T('Πρώτη ανάρτηση','First post')],[fish.length>=10,'⭐',T('10 αναρτήσεις','10 posts')],[nsp>=5,'🌊',T('5 είδη','5 species')],[nsp>=10,'🏝',T('10 είδη','10 species')],
+    [sq,'🌙',T('Πρώτο καλαμάρι','First squid')],[rel>=5,'❤',T('5 απελευθερώσεις','5 releases')],[big,'⚓',T('Ψάρι 5+ kg','5+ kg fish')],[nrec>0,'🏆',T('Ρεκόρ Κοινότητας','Community record')],[wins>0,'🎯',T('Νικητής πρόκλησης','Challenge winner')+(wins>1?' ×'+wins:'')]]; }
 function badgesEl(bs){ var n=bs.filter(function(b){ return b[0]; }).length, w=h('div',{class:'cmbadges'},h('h3',{text:T('Σήματα ','Badges ')+n+'/'+bs.length})), g=h('div',{class:'cmbg'});
   bs.forEach(function(b){ g.append(h('span',{class:'cmbadge'+(b[0]?' on':''),title:b[2]},h('span',{class:'cmbi','aria-hidden':'true',text:b[1]}),h('small',{text:b[2]}))); }); w.append(g); return w; }
 B.commBadges=badges;
@@ -239,7 +255,8 @@ B.commCompare=compare;
 function pingComm(){ try{ var s=B.cloud&&B.cloud.session&&B.cloud.session(); if(!s||!s.access_token) return;
   setTimeout(function(){ fetch('https://sgfohmqwdwtkhtrebnix.supabase.co/functions/v1/quick-processor',{method:'POST',headers:{apikey:'sb_publishable_LGuwvrvLnAj1CF22Q6g9vg_4OImZYbA','Content-Type':'application/json',Authorization:'Bearer '+s.access_token},body:JSON.stringify({action:'comm'})}).catch(function(){}); },1500); }catch(e){} }
 B.pingComm=pingComm;
-function like(p){ if(!sess()){ needAcc(); return; } var on=!!F.liked[p.id], n=cnt(p,'likes'); F.liked[p.id]=on?0:1; p.likes=[{count:Math.max(0,n+(on?-1:1))}]; draw();
+function like(p){ if(!sess()){ needAcc(); return; } myProfile(); var on=!!F.liked[p.id], n=cnt(p,'likes'); F.liked[p.id]=on?0:1;
+  var L=F.lk[p.id]||[]; F.lk[p.id]=on?L.filter(function(u){ return u!==uid(); }):[uid()].concat(L.filter(function(u){ return u!==uid(); })); p.likes=[{count:Math.max(0,n+(on?-1:1))}]; draw();
   (on?rest('community_likes?post_id=eq.'+p.id+'&user_id=eq.'+esc(uid()),{method:'DELETE'}):rest('community_likes',{method:'POST',body:JSON.stringify({post_id:p.id}),headers:{'Content-Type':'application/json',Prefer:'return=minimal'}}).then(function(r){ pingComm(); return r; }))
     .catch(function(){ F.liked[p.id]=on?1:0; p.likes=[{count:n}]; draw(); B.toast(T('Δεν έγινε. Δοκίμασε ξανά.','Failed. Try again.')); }); }
 function comments(p){ return rest('community_comments?select=*,likes:community_comment_likes(count)&post_id=eq.'+p.id+'&order=created_at.asc&limit=100').then(function(r){ return r.json(); }).then(function(c){ p._c=c; p._cerr=0; c.forEach(function(x){ F.clk[x.id]=cnt(x,'likes'); }); profs(c.map(function(x){ return x.user_id; }));
@@ -328,6 +345,7 @@ function post(p){
     h('span',{class:'cmsp'}),
     !qk?h('button',{type:'button',class:'cmbtn cmic','aria-label':T('Κοινοποίηση ως εικόνα','Share as image'),html:B.iconSvg('share')||'⤴',onclick:function(){ shareImg(p); }}):null,
     h('button',{type:'button',class:'cmbtn cmic'+(saved().indexOf(p.id)>=0?' on':''),'aria-pressed':String(saved().indexOf(p.id)>=0),'aria-label':T('Αποθήκευση','Save'),text:saved().indexOf(p.id)>=0?'★':'☆',onclick:function(){ toggleSave(p); }})));
+  var ll=likersLine(p); if(ll) card.append(ll);
   if(F.open[p.id]){ var cm=h('div',{class:'cmcom'}), ci=h('input',{type:'text',maxlength:'300',placeholder:T('Γράψε σχόλιο…','Write a comment…'),enterkeyhint:'send'});
     (p._c||[]).forEach(function(c){ var mineC=c.user_id===uid(), body=String(c.body||''), tx=h('p',{class:'noik'},h('b',{text:(c.author||T('Ψαράς','Angler'))+' '}));
       var mm=/^@(\S+(?: \S+)?)/.exec(body), who=null; if(mm){ (p._c||[]).concat([{author:p.author}]).forEach(function(o){ var a=o.author||''; if(a&&body.indexOf('@'+a)===0&&(!who||a.length>who.length)) who=a; }); }
@@ -374,7 +392,7 @@ function draw(){
   else if(!F.end&&shown.length) page.append(h('button',{class:'btn full',type:'button',text:T('Περισσότερα','More'),onclick:function(){ load(false); }}));
   root.replaceChildren(page);
 }
-B.view('community',{title:T('Κοινότητα','Community'),mount:function(el){ root=el; checkAdmin(); if(sess()) profs([uid()]); fromCache(); loadAll(); if((F.cached||!F.items.length)&&!F.loading) load(true); else draw(); seen(); },unmount:function(){ root=null; },resume:function(){ draw(); }});
+B.view('community',{title:T('Κοινότητα','Community'),mount:function(el){ root=el; checkAdmin(); myProfile(); if(sess()) profs([uid()]); fromCache(); loadAll(); if((F.cached||!F.items.length)&&!F.loading) load(true); else draw(); seen(); },unmount:function(){ root=null; },resume:function(){ draw(); }});
 
 /* ---------- μοίρασμα ενός ψαριού ---------- */
 function jpeg(blob,mx,qq){ mx=mx||1280; qq=qq||0.82; return new Promise(function(res,rej){ var u=URL.createObjectURL(blob), im=new Image(); im.onload=function(){ var s=Math.min(1,mx/Math.max(im.width,im.height)), cv=document.createElement('canvas'); cv.width=Math.round(im.width*s); cv.height=Math.round(im.height*s);
