@@ -642,6 +642,13 @@ with sync_playwright() as p:
     pg.evaluate("()=>document.querySelector('.bfsave').click()"); pg.wait_for_timeout(1500)
     r=pg.evaluate("()=>{const a=AK.store.raw('bites'); const x=a[a.length-1]; return x?[x.lat,x.lon]:null}")
     check('νέο ψάρι: το σημείο του μεγάλου χάρτη αποθηκεύεται (όχι η θέση GPS) (1.9.55)', r and abs(r[0]-35.0)>0.003 and abs(r[1]-33.3)>0.003 and not pg._errs, [r,pg._errs]); c.close()
+    inb=[{'id':'u1|sq:2026-11-09','at':'2026-11-08T07:00:00Z','kind':'good','title':'🦑 Καλαμάρια','body':'Καλύτερο: Δευ 16:00','full':'Καλύτερο: Δευ 09/11 16:00–17:00 (βαθμός 90) · σκοτάδι 17:20 ως το πρωί'},{'id':'x2','at':'2026-11-08T08:00:00Z','kind':'wind','title':'Αλλαγή ανέμου','body':'x'}]
+    c=ctx(b); c.add_init_script("localStorage.setItem('alkyon-v4-inbox',JSON.stringify(%s))"%json.dumps(inb)); pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(3000)
+    pg.evaluate("()=>AK.fromNotif('#inbox','sq:2026-11-09')"); pg.wait_for_timeout(2500)
+    r=pg.evaluate("()=>{const f=document.querySelector('.ibrow.ibfoc'); return [location.hash, !!f, f&&f.getAttribute('aria-expanded'), f&&/σκοτάδι/.test(f.textContent)]}")
+    pg.evaluate("()=>AK.fromNotif('#community',null)"); pg.wait_for_timeout(800)
+    r2=pg.evaluate("()=>location.hash")
+    check('πάτημα ειδοποίησης κινητού: ανοίγει τη σωστή σελίδα και την ειδοποίηση (1.9.57)', r==['#inbox',True,'true',True] and r2=='#community' and not pg._errs, [r,r2,pg._errs]); c.close()
     print('# offline')
     c=ctx(b,sw=True); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(6000); pg.reload(); pg.wait_for_timeout(3000)
     c.set_offline(True)

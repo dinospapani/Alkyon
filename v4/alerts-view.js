@@ -160,7 +160,12 @@ B.inboxAdd=function(title,body,kind,extra){ try{ var a=ls.get('alkyon-v4-inbox',
 function seenAt(){ return ls.get('alkyon-inbox-seen','')||''; }
 B.inboxUnread=function(){ var s=seenAt(); return (hist?Promise.resolve(hist):new Promise(function(res){ var t=setInterval(function(){ if(hist){ clearInterval(t); res(hist); } },300); if(!hist) loadHistQuiet(); setTimeout(function(){ clearInterval(t); res(hist||[]); },8000); })).then(function(a){ return a.filter(function(x){ return String(x.at)>s; }).length; }); };
 var quiet=false; function loadHistQuiet(){ if(quiet) return; quiet=true; var r0=root; root=null; try{ loadHist(); }catch(e){} root=r0; setTimeout(function(){ quiet=false; },3000); }
-var ib={root:null,open:{}};
+var ib={root:null,open:{},focus:null};
+/* 1.9.57: άνοιγμα από ειδοποίηση του κινητού: πήγαινε στη σωστή σελίδα και, στις Ειδοποιήσεις, άνοιξε αυτήν */
+function fromNotif(hash,id){ if(!/^#[a-z]+$/.test(hash||'')) hash='#inbox'; ib.focus=id&&hash==='#inbox'?String(id):null; if(location.hash!==hash) location.hash=hash; else if(hash==='#inbox'&&ib.root){ hist=null; ibDraw(); } }
+if(navigator.serviceWorker) navigator.serviceWorker.addEventListener('message',function(e){ var d=e.data||{}; if(d.open||d.inbox) fromNotif(d.open||'#inbox',d.inbox||null); });
+(function(){ try{ var n=new URLSearchParams(location.search).get('n'); if(n){ ib.focus=n; history.replaceState(null,'',location.pathname+location.hash); } }catch(e){} })();
+B.fromNotif=fromNotif;
 var KI={good:'<path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/>',press:'<circle cx="12" cy="13" r="8"/><path d="M12 13l4-4M8 5.5L6 3M16 5.5L18 3"/>',wind:'<path d="M3 8h11a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 16h8"/>',
   sea:'<path d="M2 8c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2M2 14c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2M2 20c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2"/>',trip:'<path d="M3 15h18l-2.5 4.5h-13z"/><path d="M7 15V9h7l3 6"/><path d="M10 9V5"/>',
   comm:'<path d="M12 20.5s-7.5-4.4-7.5-10A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.9c0 5.6-7.5 10-7.5 10z"/>',
@@ -189,8 +194,8 @@ function ibDraw(){ var r=ib.root; if(!r) return; var page=h('div',{class:'page'}
   if(!hist.length){ page.append(h('div',{class:'card empty'},h('h3',{text:T('Δεν υπάρχουν ειδοποιήσεις ακόμα','No notifications yet')}),h('p',{text:T('Εδώ θα βλέπεις κάθε ειδοποίηση: καλές μέρες για ψάρεμα, πίεση, άνεμο, καιρό στην έξοδο και υπενθυμίσεις.','Here you will see every notification: good fishing days, pressure, wind, weather on a trip and reminders.')}))); r.replaceChildren(page); return; }
   var last='', l=null;
   hist.slice(0,120).forEach(function(x,i){ var dl=dayLab(x.at); if(dl!==last){ last=dl; page.append(h('h3',{class:'listh',text:dl})); l=h('div',{class:'list'}); page.append(l); }
-    var k=kindOf(x), id=String(x.at)+i, open=!!ib.open[id], unread=String(x.at)>s0, txt=x.full||x.body||'';
-    l.append(h('button',{type:'button',class:'li ibrow'+(unread?' new':''),'aria-expanded':String(open),onclick:function(){ if(k==='comm'){ location.hash='#community'; return; } /* 1.9.39: like/σχόλιο → ανοίγει την Κοινότητα */ ib.open[id]=!open; ibDraw(); }},
+    var k=kindOf(x), id=String(x.at)+i, foc=ib.focus&&x.id&&(String(x.id)===ib.focus||String(x.id).slice(-ib.focus.length-1)==='|'+ib.focus); if(foc){ ib.open[id]=true; ib.focusEl=id; } var open=!!ib.open[id], unread=String(x.at)>s0, txt=x.full||x.body||'';
+    l.append(h('button',{type:'button',class:'li ibrow'+(unread?' new':'')+(ib.focusEl===id?' ibfoc':''),'data-ib':id,'aria-expanded':String(open),onclick:function(){ if(k==='comm'){ location.hash='#community'; return; } /* 1.9.39: like/σχόλιο → ανοίγει την Κοινότητα */ ib.open[id]=!open; ibDraw(); }},
       h('span',{class:'ibic k-'+k,html:'<svg viewBox="0 0 24 24" aria-hidden="true">'+KI[k]+'</svg>'}),
       h('span',{class:'tx'},h('b',{text:ibTitle(x.title)||T('Ειδοποίηση','Notification')}),txt?(open&&goodRows(txt)||h('small',{class:open?'full':'',text:txt})):null),
       h('span',{class:'when',text:new Date(x.at).toLocaleTimeString(EN?'en-GB':'el-GR',{hour:'2-digit',minute:'2-digit'})})));
@@ -200,7 +205,8 @@ function ibDraw(){ var r=ib.root; if(!r) return; var page=h('div',{class:'page'}
     else if(open&&!pl&&/good|καλ/i.test((x.kind||'')+(x.title||''))) l.append(h('div',{class:'ibacts'},h('a',{class:'btn sm pri',href:'#forecast',text:T('Άνοιγμα Πρόγνωσης','Open Forecast')})));
   });
   page.append(h('p',{class:'foot',text:T('Πάτα μια ειδοποίηση για όλο το κείμενο και για να δεις την πρόγνωση ή τον χάρτη εκεί.','Tap a notification for the full text and to see the forecast or map there.')}));
-  r.replaceChildren(page); }
+  r.replaceChildren(page);
+  if(ib.focus&&hist&&hist.length){ var fe=ib.focusEl&&r.querySelector('[data-ib="'+ib.focusEl+'"]'); if(fe) setTimeout(function(){ try{ fe.scrollIntoView({block:'center',behavior:'smooth'}); }catch(x){} },60); ib.focus=null; ib.focusEl=null; } }
 B.view('inbox',{title:T('Ειδοποιήσεις','Notifications'),mount:function(el){ ib.root=el; ib.seen=seenAt(); hist=null; ibDraw(); ls.set('alkyon-inbox-seen',new Date().toISOString()); B.emit('inbox'); },unmount:function(){ ib.root=null; },resume:function(){ ibDraw(); }});
 B.view('alerts',{title:T('Ειδοποιήσεις','Alerts'),mount:function(el){ root=el; hist=null; msg=''; draw(); },unmount:function(){ root=null; },resume:function(){ draw(); }});
 })();

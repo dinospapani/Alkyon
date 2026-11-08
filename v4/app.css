@@ -873,3 +873,5 @@ html.night .pnrow{background:#000;outline:1px solid #fff;outline-offset:-1px}
 .leaflet-image-layer.domradar{image-rendering:auto;transition:opacity .25s}
 /* 1.9.52: ειδοποιήσεις: ο τίτλος σε έως 2 γραμμές αντί να κόβεται με «…» */
 .ibrow .tx b{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.3}
+/* 1.9.57: η ειδοποίηση που πάτησες στο κινητό, τονισμένη στη λίστα */
+.ibrow.ibfoc{background:color-mix(in srgb,var(--accent) 9%,var(--surface))}
