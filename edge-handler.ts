@@ -42,6 +42,17 @@ Deno.serve(async (req) => {
         return J({ ok: true, subs: (subs || []).length, sent, gone, err, last_check: last, turn: (subs || []).some(r => r.turn === true) });
       } catch (e) { return J({ ok: false, error: e.message }, 500); }
     }
+    // 1.9.61: άμεση ειδοποίηση Κοινότητας: η εφαρμογή το καλεί αμέσως μετά από νέο ψάρι, like ή σχόλιο (ο cron κάθε 5′ μένει εφεδρικός· το notif_log εμποδίζει διπλή αποστολή)
+    if (body && body.action === 'comm') {
+      try {
+        const u = await fetch(env.SUPABASE_URL + '/auth/v1/user', { headers: { apikey: env.SUPABASE_SERVICE_KEY, Authorization: auth } });
+        if (!u.ok) return J({ ok: false, error: 'unauthorized' }, 401);
+        if (!(E('VAPID_PUBLIC') && E('VAPID_PRIVATE'))) return J({ ok: false, error: 'VAPID secrets missing' });
+        if (!vapidSet) { webpush.setVapidDetails('https://dinospapani.github.io/Alkyon/', E('VAPID_PUBLIC'), E('VAPID_PRIVATE')); vapidSet = true; }
+        const r = await run({ env, PF, webpush, sendMail: null, log: m => console.log(String(m)), only: { comm: true } });
+        return J({ ok: true, stats: r.stats });
+      } catch (e) { return J({ ok: false, error: e.message }, 500); }
+    }
     if (!body || body.action !== 'trip' || !/^[\w.-]{3,80}$/.test(String(body.id || '')) || !['start', 'end'].includes(body.phase)) return J({ ok: false, error: 'bad request' }, 400);
     try {
       const u = await fetch(env.SUPABASE_URL + '/auth/v1/user', { headers: { apikey: env.SUPABASE_SERVICE_KEY, Authorization: auth } });

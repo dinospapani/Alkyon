@@ -676,6 +676,18 @@ with sync_playwright() as p:
     pg.evaluate("()=>{const F=document.querySelector('.sheet.on .authf'), e=F.querySelector('input[type=email]'), p=F.querySelector('input[type=password]'); e.value='x+test@example.com'; p.value='secret123'; F.requestSubmit();}"); pg.wait_for_timeout(1500)
     r=pg.evaluate("()=>document.querySelector('.sheet.on .authf').innerText")
     check('εγγραφή με email που έχει ήδη λογαριασμό: το λέει αντί να περιμένει κωδικό (1.9.60)', 'Υπάρχει ήδη λογαριασμός' in r and not pg._errs, [r[-300:],pg._errs]); c.close()
+    c=ctx(b); c.add_init_script("if(!sessionStorage.cs){sessionStorage.cs=1;localStorage.setItem('alkyon-sess',JSON.stringify({access_token:'AT',refresh_token:'RT',exp:Date.now()+9e6,uid:'u1',email:'d+test@x.com'}));}")
+    hits=[]
+    def _qp(route):
+        try: hits.append(route.request.post_data or '')
+        except Exception: pass
+        route.fulfill(json={'ok':True})
+    c.route('**/functions/v1/quick-processor',_qp)
+    c.route('**/rest/v1/community_posts?select=*,likes*',lambda r: r.fulfill(json=[{'id':'p1','user_id':'u9','author':'Ψαράς','species':'Σφυρίδα','kg':3,'created_at':'2026-11-08T10:00:00Z','likes':[{'count':0}],'comments':[{'count':0}]}]))
+    c.route('**/rest/v1/community_likes*',lambda r: r.fulfill(status=201,body=''))
+    pg=page(c); pg.goto(BASE+'/v4/#community'); pg.wait_for_timeout(3000)
+    pg.evaluate("()=>{const b=document.querySelector('.cmact .cmbtn'); b&&b.click(); return !!b}"); pg.wait_for_timeout(2500)
+    check('Κοινότητα: like → άμεση ειδοποίηση στον server (1.9.61)', any('"comm"' in h for h in hits), hits); c.close()
     print('# offline')
     c=ctx(b,sw=True); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(6000); pg.reload(); pg.wait_for_timeout(3000)
     c.set_offline(True)
@@ -696,6 +708,6 @@ except Exception: _j={'ok':0,'fail':['server.mjs δεν έτρεξε: '+(_r.stde
 for _l in _r.stdout.splitlines():
     if _l.startswith('  ok   '): check('server: '+_l[7:], True, None)
 for _n in _j.get('fail',[]): check('server: '+_n, False, _r.stdout[-600:])
-check('server: τρέχουν τα tests', _j.get('ok',0)>=29, [_r.returncode,_r.stderr[-300:]])
+check('server: τρέχουν τα tests', _j.get('ok',0)>=30, [_r.returncode,_r.stderr[-300:]])
 print('\n%d ok, %d fail'%(OK[0],len(FAIL)))
 if FAIL: print('FAILED:', ', '.join(FAIL)); sys.exit(1)

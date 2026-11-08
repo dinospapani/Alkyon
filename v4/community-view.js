@@ -23,12 +23,16 @@ function load(reset){
     .then(function(){ F.loading=false; draw(); });
 }
 function cnt(p,k){ return (p[k]&&p[k][0]&&p[k][0].count)||0; }
+/* 1.9.61: άμεση ειδοποίηση των άλλων (αλλιώς ο server τη στέλνει στον επόμενο έλεγχο, έως 5′ μετά) */
+function pingComm(){ try{ var s=B.cloud&&B.cloud.session&&B.cloud.session(); if(!s||!s.access_token) return;
+  setTimeout(function(){ fetch('https://sgfohmqwdwtkhtrebnix.supabase.co/functions/v1/quick-processor',{method:'POST',headers:{apikey:'sb_publishable_LGuwvrvLnAj1CF22Q6g9vg_4OImZYbA','Content-Type':'application/json',Authorization:'Bearer '+s.access_token},body:JSON.stringify({action:'comm'})}).catch(function(){}); },1500); }catch(e){} }
+B.pingComm=pingComm;
 function like(p){ var on=!!F.liked[p.id], n=cnt(p,'likes'); F.liked[p.id]=on?0:1; p.likes=[{count:Math.max(0,n+(on?-1:1))}]; draw();
-  (on?rest('community_likes?post_id=eq.'+p.id+'&user_id=eq.'+esc(uid()),{method:'DELETE'}):rest('community_likes',{method:'POST',body:JSON.stringify({post_id:p.id}),headers:{'Content-Type':'application/json',Prefer:'return=minimal'}}))
+  (on?rest('community_likes?post_id=eq.'+p.id+'&user_id=eq.'+esc(uid()),{method:'DELETE'}):rest('community_likes',{method:'POST',body:JSON.stringify({post_id:p.id}),headers:{'Content-Type':'application/json',Prefer:'return=minimal'}}).then(function(r){ pingComm(); return r; }))
     .catch(function(){ F.liked[p.id]=on?1:0; p.likes=[{count:n}]; draw(); B.toast(T('Δεν έγινε. Δοκίμασε ξανά.','Failed. Try again.')); }); }
 function comments(p){ return rest('community_comments?select=*&post_id=eq.'+p.id+'&order=created_at.asc&limit=100').then(function(r){ return r.json(); }).then(function(c){ p._c=c; p._cerr=0; }).catch(function(){ p._c=[]; p._cerr=1; }).then(draw); }
 function comment(p,txt){ txt=(txt||'').trim(); if(!txt) return;
-  rest('community_comments',{method:'POST',body:JSON.stringify({post_id:p.id,author:author(),body:txt.slice(0,300)}),headers:{'Content-Type':'application/json',Prefer:'return=minimal'}}).then(function(){ p.comments=[{count:cnt(p,'comments')+1}]; return comments(p); })
+  rest('community_comments',{method:'POST',body:JSON.stringify({post_id:p.id,author:author(),body:txt.slice(0,300)}),headers:{'Content-Type':'application/json',Prefer:'return=minimal'}}).then(function(){ pingComm(); p.comments=[{count:cnt(p,'comments')+1}]; return comments(p); })
     .catch(function(e){ B.toast(/rate/i.test(String(e&&e.message))?T('Πολλά σχόλια σήμερα.','Too many comments today.'):T('Το σχόλιο δεν στάλθηκε.','Comment not sent.')); }); }
 function report(kind,id){ B.ask(T('Να αναφερθεί αυτό το περιεχόμενο ως ακατάλληλο;','Report this content as inappropriate?'),T('Αναφορά','Report')).then(function(y){ if(!y) return;
   rest('community_reports',{method:'POST',body:JSON.stringify(kind==='post'?{post_id:id}:{comment_id:id}),headers:{'Content-Type':'application/json',Prefer:'return=minimal'}}).then(function(){ B.toast(T('Ευχαριστούμε. Θα ελεγχθεί.','Thanks. It will be reviewed.')); },function(){ B.toast(T('Δεν στάλθηκε η αναφορά.','Report not sent.')); }); }); }
@@ -108,7 +112,7 @@ B.commShare=function(b){
       rest('community_posts?select=id&limit=1').then(function(){ if(!blob) return; return jpeg(blob).then(function(jb){ path=uid()+'/'+uuid()+'.jpg'; return C().storage('POST','community/'+path,jb,'image/jpeg'); }).then(function(r){ if(!r.ok) throw new Error('photo '+r.status); }); })
         .then(function(){ var cond=withCond?{wind:b.wind,wave:b.wave,press:b.press,ptrend:b.ptrend,sst:b.sst,temp:b.temp,moon:moonIdx(b)}:{}; Object.keys(cond).forEach(function(k){ if(cond[k]==null||cond[k]==='') delete cond[k]; else if(typeof cond[k]==='number') cond[k]=Math.round(cond[k]*10)/10; });
           return rest('community_posts',{method:'POST',body:JSON.stringify({src:b.id,author:author(),species:b.species,latin:b.latin||null,kg:b.kg!=null&&b.kg!==''?+b.kg:null,len:b.len!=null&&b.len!==''?+b.len:null,bait:b.bait||null,tech:b.tech||null,day:b.date||null,cond:cond,photo:path}),headers:{'Content-Type':'application/json',Prefer:'return=representation'}}).then(function(r){ return r.json(); }); })
-        .then(function(rows){ var s=ls.get('alkyon-comm-shared',{})||{}; s[b.id]=(rows&&rows[0]&&rows[0].id)||1; ls.set('alkyon-comm-shared',s); sh.close(); B.toast(T('Δημοσιεύτηκε στην κοινότητα.','Shared to the community.')); F.items=[]; F.end=false; F.offset=0; })
+        .then(function(rows){ pingComm(); var s=ls.get('alkyon-comm-shared',{})||{}; s[b.id]=(rows&&rows[0]&&rows[0].id)||1; ls.set('alkyon-comm-shared',s); sh.close(); B.toast(T('Δημοσιεύτηκε στην κοινότητα.','Shared to the community.')); F.items=[]; F.end=false; F.offset=0; })
         .catch(function(e){ if(path) C().storage('DELETE','community/'+path).catch(function(){}); var m=String(e&&e.message||e); go.disabled=false; go.textContent=T('Δημοσίευση','Publish');
           B.toast(/409|duplicate/i.test(m)?T('Έχει ήδη μοιραστεί.','Already shared.'):/rate/i.test(m)?T('Πολλές αναρτήσεις σήμερα.','Too many posts today.'):/404|relation|does not exist/i.test(m)?T('Η κοινότητα δεν έχει ενεργοποιηθεί ακόμη.','Community is not enabled yet.'):T('Δεν στάλθηκε. Έλεγξε τη σύνδεση.','Not sent. Check your connection.')); }); }); }});
   body.append(go); sh=B.sheet({title:T('Μοίρασμα στην κοινότητα','Share to the community'),body:body});

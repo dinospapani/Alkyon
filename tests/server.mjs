@@ -165,6 +165,16 @@ NOW = RealDate.parse('2026-11-09T10:00:00Z');
   check('άνεμος: όχι ξανά μέσα σε 4 ώρες, ακόμα κι αν άλλαξε η πρόγνωση', w2.length === 0, w2);
 }
 
+/* ---------- Κοινότητα αμέσως (only.comm, 1.9.61) ---------- */
+{
+  NOW = RealDate.parse('2026-11-09T10:00:00Z');
+  const t = new RealDate(NOW - 20000).toISOString(), store = {};
+  const w = world({ store, subs: [SUB([{ lat: 35, lon: 32.4 }], 's1', 'u1')], community: { posts: [{ id: 'p0000077-aaaa', user_id: 'u2', author: 'Νίκος', species: 'Σφυρίδα', kg: 4, created_at: t }] } });
+  const r = await run({ env: { SUPABASE_URL: 'https://x.supabase.co', SUPABASE_SERVICE_KEY: 'k' }, fetch: w.fetch, PF, webpush: w.webpush, sendMail: null, log: () => {}, only: { comm: true } });
+  check('Κοινότητα αμέσως: στέλνει μόνο το βήμα της Κοινότητας', r.ok && w.sent.length === 1 && w.sent[0].kind === 'comm' && !w.calls.some(u => u.includes('open-meteo')) && !store['backups/_system/heartbeat.json'], [w.sent, w.calls.filter(u => u.includes('open-meteo')).length]);
+  await go(world({ store, subs: [SUB([{ lat: 35, lon: 32.4 }], 's1', 'u1')], rows: w.rows, community: { posts: [{ id: 'p0000077-aaaa', user_id: 'u2', author: 'Νίκος', species: 'Σφυρίδα', kg: 4, created_at: t }] } }));
+}
+
 /* ---------- σκοτάδι για καλαμάρι ---------- */
 {
   const dw = d => { const s = PF.sunMoon(d, 35.04, 32.42, 120); return PF.darkWin(d, s.set, s.rise, 35.04, 32.42, 120); };

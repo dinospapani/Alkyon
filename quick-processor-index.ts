@@ -675,6 +675,73 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
   const nowIso = new Date().toISOString();
 
   // Άμεση ενημέρωση από την εφαρμογή (phase: start | end) για μία έξοδο ενός χρήστη. Δεν τρέχει τα υπόλοιπα βήματα.
+  // 1.9.61: το βήμα της Κοινότητας ως συνάρτηση, ώστε να τρέχει και αμέσως όταν κάποιος ανεβάζει ψάρι / κάνει like / σχόλιο
+  const commStep = async () => {
+  // 7β) 1.9.25: Κοινότητα, σαν τα κοινωνικά δίκτυα:
+  //   (α) νέο ψάρι από άλλον χρήστη → push σε όσους έχουν «Νέα στην Κοινότητα» (places[].comm !== 'off'). Αν είναι πολλά, ένα μήνυμα «3 νέα ψάρια».
+  //   (β) like ή σχόλιο σε δική σου ανάρτηση → push σε σένα (places[].commre !== 'off').
+  //   Όχι στις ώρες ησυχίας (23:00–07:00 Κύπρου). Μία φορά ανά γεγονός (notif_log, ignore-duplicates). Όριο: το (α) το πολύ μία φορά ανά 30 λεπτά ανά χρήστη.
+  if (webpush) {
+    try {
+      const since = new Date(Date.now() - 6 * 60000).toISOString();
+      const enc = encodeURIComponent(since);
+      // 1.9.56: τα νέα ψάρια των τελευταίων 2 ωρών (όχι μόνο 6′), ώστε όποιος κόπηκε από το όριο των 30′ να τα πάρει αργότερα σε ένα μήνυμα, αντί να χάνονται
+      const encP = encodeURIComponent(new Date(Date.now() - 2 * 3600000).toISOString());
+      const postsAll = (await sb(`community_posts?created_at=gt.${encP}&hidden=eq.false&select=id,user_id,author,species,kg,created_at&order=created_at.asc`).catch(() => [])) || [];
+      const posts = postsAll.filter(p => p.created_at > since);
+      const likes = (await sb(`community_likes?created_at=gt.${enc}&select=post_id,user_id,created_at`).catch(() => [])) || [];
+      const coms = (await sb(`community_comments?created_at=gt.${enc}&hidden=eq.false&select=id,post_id,user_id,author,body,created_at`).catch(() => [])) || [];
+      if (postsAll.length || likes.length || coms.length) {
+        const cyH = +new Date().toLocaleString('en-GB', { timeZone: 'Asia/Nicosia', hour: '2-digit', hour12: false }).slice(0, 2);
+        const quietNow = cyH >= 23 || cyH < 7;
+        const subsAll = (await sb('push_subs?select=id,user_id,sub,places').catch(() => [])) || [];
+        const byUser = {}; for (const r of subsAll) (byUser[r.user_id] = byUser[r.user_id] || []).push(r);
+        const flag = (rows, k) => !(rows.find(r => (r.places || []).find(p => p && p[k] === 'off')));
+        const isEn = rows => !!(rows.find(r => (r.places || []).find(p => p && p.lang === 'en')));
+        const quietOn = rows => !(rows.find(r => (r.places || []).find(p => p && p.quiet === 'off')));
+        const send = async (uid, key, kind, title, body) => {
+          const rows = byUser[uid] || []; // 1.9.56: γράφεται στο ιστορικό (Ειδοποιήσεις της εφαρμογής) ακόμα κι αν το κινητό δεν έχει ενεργή συνδρομή push
+          const at = new Date().toISOString();
+          let ins = null; try { ins = await sb('notif_log', { method: 'POST', headers: { Prefer: 'return=representation,resolution=ignore-duplicates' }, body: JSON.stringify({ id: (uid + '|' + key).slice(0, 250), user_id: uid, at, kind, title, body }) }); } catch (e) { return; }
+          if (Array.isArray(ins) && !ins.length) return;   // ήδη στάλθηκε
+          for (const r of rows) {
+            try { await webpush.sendNotification(r.sub, JSON.stringify({ title, body, full: body, kind, id: key, tag: 'alk-' + key.slice(0, 40), at, url: '#community' }), { TTL: 3 * 3600 }); stats.comm = (stats.comm || 0) + 1; }
+            catch (e) { if (e.statusCode === 404 || e.statusCode === 410) await sb(`push_subs?id=eq.${encodeURIComponent(r.id)}`, { method: 'DELETE' }).catch(() => {}); }
+          }
+        };
+        // (α) νέα ψάρια
+        if (postsAll.length) {
+          // τελευταία ειδοποίηση «νέα ψάρια» ανά χρήστη (2 ώρες): ό,τι ανέβηκε μετά από αυτήν και δεν το έχει πάρει
+          const recent = (await sb(`notif_log?kind=eq.comm&at=gt.${encP}&select=user_id,at`).catch(() => [])) || [];
+          const lastAt = {}; for (const x of recent) if (!lastAt[x.user_id] || x.at > lastAt[x.user_id]) lastAt[x.user_id] = x.at;
+          for (const uid of Object.keys(byUser)) {
+            const rows = byUser[uid]; if (!flag(rows, 'comm') || (quietNow && quietOn(rows))) continue;
+            const la = lastAt[uid] ? Date.parse(lastAt[uid]) : 0;
+            if (la && Date.now() - la < 30 * 60000) continue;                 // όριο: μία φορά ανά 30′ (τα ψάρια περιμένουν, δεν χάνονται)
+            const from = la ? new Date(la).toISOString() : since;              // από την τελευταία ειδοποίηση, αλλιώς τα 6′ όπως πριν
+            const mine = (la ? postsAll : posts).filter(p => p.user_id !== uid && p.created_at > from); if (!mine.length) continue;
+            const en = isEn(rows), p0 = mine[mine.length - 1];
+            const what = p => (p.species || '') + (p.kg ? ' ' + String(p.kg).replace('.', en ? '.' : ',') + ' kg' : '');
+            const title = mine.length > 1 ? (en ? `🐟 ${mine.length} new catches in the Community` : `🐟 ${mine.length} νέα ψάρια στην Κοινότητα`) : (en ? '🐟 New catch in the Community' : '🐟 Νέο ψάρι στην Κοινότητα');
+            const body = mine.length > 1 ? mine.slice(-3).map(p => (p.author || '') + ': ' + what(p)).join(' · ') : (p0.author || (en ? 'An angler' : 'Ένας ψαράς')) + (en ? ' caught ' : ' έπιασε ') + what(p0);
+            await send(uid, 'comm:' + mine.map(p => p.id.slice(0, 8)).join(','), 'comm', title, body);
+          }
+        }
+        // (β) like / σχόλια στις δικές μου αναρτήσεις
+        const pids = [...new Set([...likes.map(l => l.post_id), ...coms.map(c => c.post_id)])];
+        if (pids.length) {
+          const own = (await sb(`community_posts?id=in.(${pids.join(',')})&select=id,user_id,species`).catch(() => [])) || [];
+          const po = {}; for (const p of own) po[p.id] = p;
+          for (const l of likes) { const p = po[l.post_id]; if (!p || p.user_id === l.user_id) continue; const rows = byUser[p.user_id] || []; if (rows.length && (!flag(rows, 'commre') || (quietNow && quietOn(rows)))) continue;
+            const en = isEn(rows); await send(p.user_id, 'cl:' + l.post_id.slice(0, 8) + ':' + l.user_id.slice(0, 8), 'commre', en ? '❤️ Someone liked your catch' : '❤️ Άρεσε σε κάποιον το ψάρι σου', p.species || ''); }
+          for (const c of coms) { const p = po[c.post_id]; if (!p || p.user_id === c.user_id) continue; const rows = byUser[p.user_id] || []; if (rows.length && (!flag(rows, 'commre') || (quietNow && quietOn(rows)))) continue;
+            const en = isEn(rows); await send(p.user_id, 'cc:' + c.id, 'commre', (en ? '💬 New comment on your ' : '💬 Νέο σχόλιο στο ') + (p.species || (en ? 'catch' : 'ψάρι σου')), (c.author ? c.author + ': ' : '') + String(c.body || '').slice(0, 120)); }
+        }
+      }
+    } catch (e) { log('community push: ' + e.message); }
+  }
+  };
+  if (only && only.comm) { await commStep(); return { ok: true, stats }; }
   if (only) {
     const rows = (await sb(`safety_trips?id=eq.${encodeURIComponent(only.id)}&user_id=eq.${encodeURIComponent(only.uid)}&select=*`)) || [];
     const t = rows[0]; if (!t) return { ok: true, sent: 0, why: 'no trip' };
@@ -933,69 +1000,8 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
       if (sent) stats.pa++;
     }
   } catch (e) { log('Πίεση: ' + e.message); }
-  // 7β) 1.9.25: Κοινότητα, σαν τα κοινωνικά δίκτυα:
-  //   (α) νέο ψάρι από άλλον χρήστη → push σε όσους έχουν «Νέα στην Κοινότητα» (places[].comm !== 'off'). Αν είναι πολλά, ένα μήνυμα «3 νέα ψάρια».
-  //   (β) like ή σχόλιο σε δική σου ανάρτηση → push σε σένα (places[].commre !== 'off').
-  //   Όχι στις ώρες ησυχίας (23:00–07:00 Κύπρου). Μία φορά ανά γεγονός (notif_log, ignore-duplicates). Όριο: το (α) το πολύ μία φορά ανά 30 λεπτά ανά χρήστη.
-  if (webpush) {
-    try {
-      const since = new Date(Date.now() - 6 * 60000).toISOString();
-      const enc = encodeURIComponent(since);
-      // 1.9.56: τα νέα ψάρια των τελευταίων 2 ωρών (όχι μόνο 6′), ώστε όποιος κόπηκε από το όριο των 30′ να τα πάρει αργότερα σε ένα μήνυμα, αντί να χάνονται
-      const encP = encodeURIComponent(new Date(Date.now() - 2 * 3600000).toISOString());
-      const postsAll = (await sb(`community_posts?created_at=gt.${encP}&hidden=eq.false&select=id,user_id,author,species,kg,created_at&order=created_at.asc`).catch(() => [])) || [];
-      const posts = postsAll.filter(p => p.created_at > since);
-      const likes = (await sb(`community_likes?created_at=gt.${enc}&select=post_id,user_id,created_at`).catch(() => [])) || [];
-      const coms = (await sb(`community_comments?created_at=gt.${enc}&hidden=eq.false&select=id,post_id,user_id,author,body,created_at`).catch(() => [])) || [];
-      if (postsAll.length || likes.length || coms.length) {
-        const cyH = +new Date().toLocaleString('en-GB', { timeZone: 'Asia/Nicosia', hour: '2-digit', hour12: false }).slice(0, 2);
-        const quietNow = cyH >= 23 || cyH < 7;
-        const subsAll = (await sb('push_subs?select=id,user_id,sub,places').catch(() => [])) || [];
-        const byUser = {}; for (const r of subsAll) (byUser[r.user_id] = byUser[r.user_id] || []).push(r);
-        const flag = (rows, k) => !(rows.find(r => (r.places || []).find(p => p && p[k] === 'off')));
-        const isEn = rows => !!(rows.find(r => (r.places || []).find(p => p && p.lang === 'en')));
-        const quietOn = rows => !(rows.find(r => (r.places || []).find(p => p && p.quiet === 'off')));
-        const send = async (uid, key, kind, title, body) => {
-          const rows = byUser[uid] || []; // 1.9.56: γράφεται στο ιστορικό (Ειδοποιήσεις της εφαρμογής) ακόμα κι αν το κινητό δεν έχει ενεργή συνδρομή push
-          const at = new Date().toISOString();
-          let ins = null; try { ins = await sb('notif_log', { method: 'POST', headers: { Prefer: 'return=representation,resolution=ignore-duplicates' }, body: JSON.stringify({ id: (uid + '|' + key).slice(0, 250), user_id: uid, at, kind, title, body }) }); } catch (e) { return; }
-          if (Array.isArray(ins) && !ins.length) return;   // ήδη στάλθηκε
-          for (const r of rows) {
-            try { await webpush.sendNotification(r.sub, JSON.stringify({ title, body, full: body, kind, id: key, tag: 'alk-' + key.slice(0, 40), at, url: '#community' }), { TTL: 3 * 3600 }); stats.comm = (stats.comm || 0) + 1; }
-            catch (e) { if (e.statusCode === 404 || e.statusCode === 410) await sb(`push_subs?id=eq.${encodeURIComponent(r.id)}`, { method: 'DELETE' }).catch(() => {}); }
-          }
-        };
-        // (α) νέα ψάρια
-        if (postsAll.length) {
-          // τελευταία ειδοποίηση «νέα ψάρια» ανά χρήστη (2 ώρες): ό,τι ανέβηκε μετά από αυτήν και δεν το έχει πάρει
-          const recent = (await sb(`notif_log?kind=eq.comm&at=gt.${encP}&select=user_id,at`).catch(() => [])) || [];
-          const lastAt = {}; for (const x of recent) if (!lastAt[x.user_id] || x.at > lastAt[x.user_id]) lastAt[x.user_id] = x.at;
-          for (const uid of Object.keys(byUser)) {
-            const rows = byUser[uid]; if (!flag(rows, 'comm') || (quietNow && quietOn(rows))) continue;
-            const la = lastAt[uid] ? Date.parse(lastAt[uid]) : 0;
-            if (la && Date.now() - la < 30 * 60000) continue;                 // όριο: μία φορά ανά 30′ (τα ψάρια περιμένουν, δεν χάνονται)
-            const from = la ? new Date(la).toISOString() : since;              // από την τελευταία ειδοποίηση, αλλιώς τα 6′ όπως πριν
-            const mine = (la ? postsAll : posts).filter(p => p.user_id !== uid && p.created_at > from); if (!mine.length) continue;
-            const en = isEn(rows), p0 = mine[mine.length - 1];
-            const what = p => (p.species || '') + (p.kg ? ' ' + String(p.kg).replace('.', en ? '.' : ',') + ' kg' : '');
-            const title = mine.length > 1 ? (en ? `🐟 ${mine.length} new catches in the Community` : `🐟 ${mine.length} νέα ψάρια στην Κοινότητα`) : (en ? '🐟 New catch in the Community' : '🐟 Νέο ψάρι στην Κοινότητα');
-            const body = mine.length > 1 ? mine.slice(-3).map(p => (p.author || '') + ': ' + what(p)).join(' · ') : (p0.author || (en ? 'An angler' : 'Ένας ψαράς')) + (en ? ' caught ' : ' έπιασε ') + what(p0);
-            await send(uid, 'comm:' + mine.map(p => p.id.slice(0, 8)).join(','), 'comm', title, body);
-          }
-        }
-        // (β) like / σχόλια στις δικές μου αναρτήσεις
-        const pids = [...new Set([...likes.map(l => l.post_id), ...coms.map(c => c.post_id)])];
-        if (pids.length) {
-          const own = (await sb(`community_posts?id=in.(${pids.join(',')})&select=id,user_id,species`).catch(() => [])) || [];
-          const po = {}; for (const p of own) po[p.id] = p;
-          for (const l of likes) { const p = po[l.post_id]; if (!p || p.user_id === l.user_id) continue; const rows = byUser[p.user_id] || []; if (rows.length && (!flag(rows, 'commre') || (quietNow && quietOn(rows)))) continue;
-            const en = isEn(rows); await send(p.user_id, 'cl:' + l.post_id.slice(0, 8) + ':' + l.user_id.slice(0, 8), 'commre', en ? '❤️ Someone liked your catch' : '❤️ Άρεσε σε κάποιον το ψάρι σου', p.species || ''); }
-          for (const c of coms) { const p = po[c.post_id]; if (!p || p.user_id === c.user_id) continue; const rows = byUser[p.user_id] || []; if (rows.length && (!flag(rows, 'commre') || (quietNow && quietOn(rows)))) continue;
-            const en = isEn(rows); await send(p.user_id, 'cc:' + c.id, 'commre', (en ? '💬 New comment on your ' : '💬 Νέο σχόλιο στο ') + (p.species || (en ? 'catch' : 'ψάρι σου')), (c.author ? c.author + ': ' : '') + String(c.body || '').slice(0, 120)); }
-        }
-      }
-    } catch (e) { log('community push: ' + e.message); }
-  }
+  // 7β) Κοινότητα (βλ. commStep πιο πάνω· 1.9.61: καλείται και αμέσως από την εφαρμογή με action 'comm')
+  await commStep();
 
   // 7γ) 1.9.44 (1.9.47: καλύτερη ώρα, μόνο βράδια ±3 μέρες από τη νέα σελήνη): καλαμάρια γύρω από τη νέα σελήνη (μόνο όσοι το άνοιξαν: places[].squid === 'on').
   //   Οκτώβριος–Απρίλιος, 09:00–10:00 Κύπρου, από 3 μέρες πριν έως 2 μέρες μετά τη νέα σελήνη.
@@ -1159,6 +1165,17 @@ Deno.serve(async (req) => {
         }
         const last = (subs || []).map(r => r.checked_at).filter(Boolean).sort().pop() || null;
         return J({ ok: true, subs: (subs || []).length, sent, gone, err, last_check: last, turn: (subs || []).some(r => r.turn === true) });
+      } catch (e) { return J({ ok: false, error: e.message }, 500); }
+    }
+    // 1.9.61: άμεση ειδοποίηση Κοινότητας: η εφαρμογή το καλεί αμέσως μετά από νέο ψάρι, like ή σχόλιο (ο cron κάθε 5′ μένει εφεδρικός· το notif_log εμποδίζει διπλή αποστολή)
+    if (body && body.action === 'comm') {
+      try {
+        const u = await fetch(env.SUPABASE_URL + '/auth/v1/user', { headers: { apikey: env.SUPABASE_SERVICE_KEY, Authorization: auth } });
+        if (!u.ok) return J({ ok: false, error: 'unauthorized' }, 401);
+        if (!(E('VAPID_PUBLIC') && E('VAPID_PRIVATE'))) return J({ ok: false, error: 'VAPID secrets missing' });
+        if (!vapidSet) { webpush.setVapidDetails('https://dinospapani.github.io/Alkyon/', E('VAPID_PUBLIC'), E('VAPID_PRIVATE')); vapidSet = true; }
+        const r = await run({ env, PF, webpush, sendMail: null, log: m => console.log(String(m)), only: { comm: true } });
+        return J({ ok: true, stats: r.stats });
       } catch (e) { return J({ ok: false, error: e.message }, 500); }
     }
     if (!body || body.action !== 'trip' || !/^[\w.-]{3,80}$/.test(String(body.id || '')) || !['start', 'end'].includes(body.phase)) return J({ ok: false, error: 'bad request' }, 400);
