@@ -175,6 +175,22 @@ NOW = RealDate.parse('2026-11-09T10:00:00Z');
   await go(world({ store, subs: [SUB([{ lat: 35, lon: 32.4 }], 's1', 'u1')], rows: w.rows, community: { posts: [{ id: 'p0000077-aaaa', user_id: 'u2', author: 'Νίκος', species: 'Σφυρίδα', kg: 4, created_at: t }] } }));
 }
 
+/* ---------- Κοινότητα: απάντηση σε σχόλιο, πολλά ψάρια (1.9.62) ---------- */
+{
+  NOW = RealDate.parse('2026-11-09T10:00:00Z');
+  const t = new RealDate(NOW - 20000).toISOString();
+  const w = world({ subs: [SUB([{ lat: 35, lon: 32.4 }], 's1', 'u1'), SUB([{ lat: 35, lon: 32.4 }], 's3', 'u3'), SUB([{ lat: 35, lon: 32.4 }], 's4', 'u4')], community: {
+    posts: [{ id: 'p0000088-bbbb', user_id: 'u1', author: 'Ντίνος', species: 'Συναγρίδα', kg: 3, cond: { more: [{ s: 'Ροφός', kg: 2 }] }, created_at: t }],
+    comments: [{ id: 'c1', post_id: 'p1', user_id: 'u3', author: 'Νίκος Π', body: 'Ωραίο', created_at: t }, { id: 'c2', post_id: 'p1', user_id: 'u1', author: 'Ντίνος', body: '@Νίκος Π ευχαριστώ!', created_at: t }],
+    own: [{ id: 'p1', user_id: 'u1', species: 'Συναγρίδα' }] } });
+  await run({ env: { SUPABASE_URL: 'https://x.supabase.co', SUPABASE_SERVICE_KEY: 'k' }, fetch: w.fetch, PF, webpush: w.webpush, sendMail: null, log: () => {}, only: { comm: true } });
+  const rep = w.sent.filter(x => String(x.id).startsWith('cr:'));
+  check('Κοινότητα: απάντηση «@Όνομα» → ειδοποίηση σε αυτόν που απάντησαν (1.9.62)', rep.length === 1 && rep[0].sub.endpoint.endsWith('/s3') && rep[0].title === 'Ντίνος σου απάντησε' && rep[0].body === 'ευχαριστώ!', w.sent);
+  check('Κοινότητα: ο κάτοχος δεν ειδοποιείται για το δικό του σχόλιο', !w.sent.some(x => x.id === 'cc:c2'), w.sent.map(x => x.id));
+  const nw = w.sent.find(x => x.kind === 'comm' && x.sub.endpoint.endsWith('/s4'));
+  check('Κοινότητα: νέα ανάρτηση με πολλά ψάρια → «+1 ακόμα» (1.9.62)', nw && /Συναγρίδα 3 kg \+1 ακόμα/.test(nw.body), nw);
+}
+
 /* ---------- σκοτάδι για καλαμάρι ---------- */
 {
   const dw = d => { const s = PF.sunMoon(d, 35.04, 32.42, 120); return PF.darkWin(d, s.set, s.rise, 35.04, 32.42, 120); };

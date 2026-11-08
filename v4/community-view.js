@@ -42,7 +42,34 @@ function delPost(p){ B.ask(T('Να διαγραφεί η ανάρτηση από
 function delComment(p,c){ rest('community_comments?id=eq.'+c.id,{method:'DELETE'}).then(function(){ p._c=(p._c||[]).filter(function(x){ return x!==c; }); p.comments=[{count:Math.max(0,cnt(p,'comments')-1)}]; draw(); },function(){ B.toast(T('Δεν διαγράφηκε.','Not deleted.')); }); }
 
 var MOON=['🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘'];
-function ago(ts){ var m=Math.round((Date.now()-Date.parse(ts))/60000); if(m<2) return T('τώρα','now'); if(m<60) return m+T('′',' min'); var hh=Math.round(m/60); if(hh<24) return hh+T(' ώρ.',' h'); return Math.round(hh/24)+T(' ημ.',' d'); }
+function ago(ts){ var m=Math.round((Date.now()-Date.parse(ts))/60000); if(!(m>=0)) m=0; if(m<2) return T('μόλις τώρα','just now'); if(m<60) return T('πριν '+m+'′',m+' min ago'); var hh=Math.round(m/60); if(hh<24) return T('πριν '+hh+(hh===1?' ώρα':' ώρες'),hh+' h ago'); var d=Math.round(hh/24); if(d===1) return T('χθες','yesterday'); if(d<7) return T('πριν '+d+' μέρες',d+' days ago');
+  var dt=new Date(ts); return dt.getDate()+'/'+(dt.getMonth()+1)+(dt.getFullYear()!==new Date().getFullYear()?'/'+dt.getFullYear():''); }
+/* 1.9.62: άλλα ψάρια της ίδιας ανάρτησης και περιοχή (προαιρετική, χωρίς σημείο) */
+function kgTxt(v){ return String(+v).replace('.',EN?'.':',')+' kg'; }
+function moreTxt(m){ return (m||[]).map(function(x){ return (x.s||'')+(x.kg!=null?' '+kgTxt(x.kg):''); }).join(' · '); }
+/* 1.9.62: φωτογραφία σε πλήρη οθόνη, με zoom (τσίμπημα με δύο δάχτυλα ή διπλό πάτημα) */
+function viewer(src,alt){
+  var ov=h('div',{class:'cmview',role:'dialog','aria-modal':'true','aria-label':alt||T('Φωτογραφία','Photo')}), im=h('img',{src:src,alt:alt||'',draggable:'false'});
+  var x=h('button',{class:'cmvx',type:'button','aria-label':T('Κλείσιμο','Close'),text:'✕'});
+  var S={s:1,x:0,y:0}, pts={}, g=null, lastTap=0, moved=false;
+  function ap(){ im.style.transform='translate('+S.x+'px,'+S.y+'px) scale('+S.s+')'; }
+  function close(){ document.removeEventListener('keydown',key); ov.remove(); }
+  function key(e){ if(e.key==='Escape') close(); }
+  function arr(){ return Object.keys(pts).map(function(k){ return pts[k]; }); }
+  function start(){ var a=arr(); g={s:S.s,x:S.x,y:S.y}; if(a.length>1){ g.d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y)||1; g.mx=(a[0].x+a[1].x)/2; g.my=(a[0].y+a[1].y)/2; } else if(a.length){ g.mx=a[0].x; g.my=a[0].y; } }
+  ov.addEventListener('pointerdown',function(e){ if(e.target===x) return; pts[e.pointerId]={x:e.clientX,y:e.clientY}; moved=false; start(); try{ ov.setPointerCapture(e.pointerId); }catch(er){} });
+  ov.addEventListener('pointermove',function(e){ if(!pts[e.pointerId]||!g) return; pts[e.pointerId]={x:e.clientX,y:e.clientY}; var a=arr();
+    if(a.length>1){ var d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y), mx=(a[0].x+a[1].x)/2, my=(a[0].y+a[1].y)/2; S.s=Math.max(1,Math.min(5,g.s*d/g.d)); S.x=g.x+(mx-g.mx); S.y=g.y+(my-g.my); moved=true; ap(); }
+    else if(a.length===1){ var dx=a[0].x-g.mx, dy=a[0].y-g.my; if(Math.abs(dx)+Math.abs(dy)>6) moved=true; if(S.s>1){ S.x=g.x+dx; S.y=g.y+dy; ap(); } } });
+  function up(e){ if(!pts[e.pointerId]) return; delete pts[e.pointerId]; if(S.s<=1.02){ S.s=1; S.x=0; S.y=0; ap(); }
+    if(!arr().length&&!moved){ var t=Date.now(); if(t-lastTap<300){ lastTap=0; if(S.s>1){ S.s=1; S.x=0; S.y=0; } else { var r=ov.getBoundingClientRect(); S.s=2.5; S.x=(r.width/2-e.clientX)*1.5; S.y=(r.height/2-e.clientY)*1.5; } ap(); } else lastTap=t; }
+    start(); }
+  ov.addEventListener('pointerup',up); ov.addEventListener('pointercancel',up);
+  x.addEventListener('click',close); document.addEventListener('keydown',key);
+  ov.append(im,x); document.body.append(ov); try{ x.focus(); }catch(e){}
+  return ov;
+}
+B.commViewer=viewer;
 function chips(c){ var a=[]; c=c||{}; if(c.wind!=null) a.push('💨 '+Math.round(c.wind)+' kn'); if(c.wave!=null) a.push('🌊 '+B.num(c.wave,1)+' m'); if(c.press!=null) a.push(Math.round(c.press)+' hPa'); if(c.sst!=null) a.push('🌡 '+Math.round(c.sst)+'°'); if(c.moon!=null&&MOON[c.moon]) a.push(MOON[c.moon]); return a; }
 function post(p){
   var mine=p.user_id===uid(), card=h('article',{class:'card cmpost'});
@@ -51,18 +78,33 @@ function post(p){
     else body.append(h('button',{class:'btn full',type:'button',text:T('Αναφορά','Report'),onclick:function(){ sh.close(true); report('post',p.id); }}),h('button',{class:'btn full',type:'button',text:T('Απόκρυψη χρήστη','Hide this user'),onclick:function(){ var b=blocked(); b.push(p.user_id); ls.set('alkyon-comm-block',b); sh.close(); draw(); }}));
     sh=B.sheet({title:p.species||T('Ανάρτηση','Post'),body:body}); }});
   card.append(h('div',{class:'cmhd'},h('span',{class:'cmav',text:(p.author||'?').charAt(0).toUpperCase()}),h('span',{class:'cmwho'},h('b',{text:p.author||T('Ψαράς','Angler')}),h('small',{text:ago(p.created_at)})),more));
-  if(p.photo) card.append(h('img',{class:'cmimg',loading:'lazy',alt:p.species||'',src:SUPA+'/storage/v1/object/public/community/'+p.photo}));
-  var sz=[]; if(p.kg!=null) sz.push(String(+p.kg).replace('.',EN?'.':',')+' kg'); if(p.len!=null) sz.push(+p.len+' cm');
+  if(p.photo){ var src=SUPA+'/storage/v1/object/public/community/'+p.photo, tapT=null, hrt=h('span',{class:'cmheart','aria-hidden':'true',text:'♥'});
+    var ph=h('div',{class:'cmph',role:'button',tabindex:'0','aria-label':T('Φωτογραφία σε πλήρη οθόνη. Διπλό πάτημα για like.','Full-screen photo. Double tap to like.')},h('img',{class:'cmimg',loading:'lazy',alt:p.species||'',src:src}),hrt);
+    ph.addEventListener('click',function(){ if(tapT){ clearTimeout(tapT); tapT=null; if(!F.liked[p.id]) like(p); hrt.classList.remove('go'); void hrt.offsetWidth; hrt.classList.add('go'); return; }
+      tapT=setTimeout(function(){ tapT=null; viewer(src,p.species); },280); });
+    ph.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); viewer(src,p.species); } });
+    card.append(ph); }
+  var c0=p.cond||{}, more=Array.isArray(c0.more)?c0.more.filter(function(x){ return x&&x.s; }).slice(0,8):[];
+  var sz=[]; if(p.kg!=null) sz.push(kgTxt(p.kg)); if(p.len!=null) sz.push(+p.len+' cm');
   card.append(h('div',{class:'cmtitle'},h('b',{text:p.species||''}),sz.length?h('span',{text:sz.join(' · ')}):null));
+  if(more.length){ var tot=(p.kg!=null?+p.kg:0), nk=p.kg!=null?1:0; more.forEach(function(x){ if(x.kg!=null){ tot+=+x.kg; nk++; } });
+    card.append(h('p',{class:'cmmore'},h('span',{text:'+ '+moreTxt(more)}),nk>1?h('small',{text:T('Σύνολο ','Total ')+kgTxt(Math.round(tot*100)/100)}):null)); }
   var meta=[p.tech,p.bait,p.day?p.day.split('-').reverse().join('/'):''].filter(Boolean); if(meta.length) card.append(h('p',{class:'sub',style:{margin:'2px 0 0'},text:meta.join(' · ')}));
+  if(c0.area) card.append(h('p',{class:'cmarea'},h('span',{'aria-hidden':'true',text:'📍 '}),String(c0.area).slice(0,40)));
   var ch=chips(p.cond); if(ch.length){ var cr=h('div',{class:'chips',style:{margin:'8px 0 0'}}); ch.forEach(function(x){ cr.append(h('span',{class:'chip sm',text:x})); }); card.append(cr); }
   var lk=!!F.liked[p.id];
   card.append(h('div',{class:'cmact'},h('button',{type:'button',class:'cmbtn'+(lk?' on':''),'aria-pressed':String(lk),onclick:function(){ like(p); }},(lk?'♥ ':'♡ ')+cnt(p,'likes')),
-    h('button',{type:'button',class:'cmbtn','aria-expanded':String(!!F.open[p.id]),onclick:function(){ F.open[p.id]=!F.open[p.id]; if(F.open[p.id]&&!p._c) comments(p); else draw(); }},'💬 '+cnt(p,'comments'))));
-  if(F.open[p.id]){ var cm=h('div',{class:'cmcom'});
-    (p._c||[]).forEach(function(c){ cm.append(h('div',{class:'cmc'},h('p',null,h('b',{text:(c.author||'')+' '}),c.body),h('button',{type:'button',class:'linkbtn',text:c.user_id===uid()?T('Διαγραφή','Delete'):T('Αναφορά','Report'),onclick:function(){ if(c.user_id===uid()) delComment(p,c); else report('comment',c.id); }}))); });
+    h('button',{type:'button',class:'cmbtn','aria-expanded':String(!!F.open[p.id]),'aria-label':T('Σχόλια','Comments'),onclick:function(){ F.open[p.id]=!F.open[p.id]; if(F.open[p.id]&&!p._c) comments(p); else draw(); }},'💬 '+cnt(p,'comments'))));
+  if(F.open[p.id]){ var cm=h('div',{class:'cmcom'}), ci=h('input',{type:'text',maxlength:'300',placeholder:T('Γράψε σχόλιο…','Write a comment…'),enterkeyhint:'send'});
+    (p._c||[]).forEach(function(c){ var mineC=c.user_id===uid(), body=String(c.body||''), tx=h('p',{class:'noik'},h('b',{text:(c.author||T('Ψαράς','Angler'))+' '}));
+      var mm=/^@(\S+(?: \S+)?)/.exec(body), who=null; if(mm){ (p._c||[]).concat([{author:p.author}]).forEach(function(o){ var a=o.author||''; if(a&&body.indexOf('@'+a)===0&&(!who||a.length>who.length)) who=a; }); }
+      if(who){ tx.append(h('span',{class:'cmat',text:'@'+who}),body.slice(who.length+1)); } else tx.append(body);
+      var acts=h('div',{class:'cma'},c.created_at?h('small',{text:ago(c.created_at)}):null);
+      if(!mineC) acts.append(h('button',{type:'button',class:'linkbtn',text:T('Απάντηση','Reply'),onclick:function(){ ci.value='@'+(c.author||'')+' '; try{ ci.focus(); ci.setSelectionRange(ci.value.length,ci.value.length); }catch(e){} }}));
+      acts.append(h('button',{type:'button',class:'linkbtn',text:mineC?T('Διαγραφή','Delete'):T('Αναφορά','Report'),onclick:function(){ if(mineC) delComment(p,c); else report('comment',c.id); }}));
+      cm.append(h('div',{class:'cmc'},tx,acts)); });
     if(p._cerr) cm.append(h('p',{class:'sub',text:T('Τα σχόλια δεν φόρτωσαν.','Comments did not load.')}));
-    var ci=h('input',{type:'text',maxlength:'300',placeholder:T('Γράψε σχόλιο…','Write a comment…'),enterkeyhint:'send'}), f=h('form',{class:'inrow'},ci,h('button',{class:'btn sm pri',type:'submit',text:T('Αποστολή','Send')}));
+    var f=h('form',{class:'inrow'},ci,h('button',{class:'btn sm pri',type:'submit',text:T('Αποστολή','Send')}));
     f.addEventListener('submit',function(ev){ ev.preventDefault(); var v=ci.value; ci.value=''; comment(p,v); }); cm.append(f); card.append(cm); }
   return card;
 }
@@ -92,6 +134,16 @@ B.view('community',{title:T('Κοινότητα','Community'),mount:function(el)
 function jpeg(blob){ return new Promise(function(res,rej){ var u=URL.createObjectURL(blob), im=new Image(); im.onload=function(){ var s=Math.min(1,1280/Math.max(im.width,im.height)), cv=document.createElement('canvas'); cv.width=Math.round(im.width*s); cv.height=Math.round(im.height*s);
   cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height); URL.revokeObjectURL(u); cv.toBlob(function(b){ if(b) res(b); else rej(new Error('jpeg')); },'image/jpeg',0.82); }; im.onerror=function(){ URL.revokeObjectURL(u); rej(new Error('img')); }; im.src=u; }); }
 function moonIdx(b){ try{ return Math.round(PF.moonPhase(B.biteMs(b)).f*8)%8; }catch(e){ return null; } }
+/* 1.9.62: περιοχή ψαρέματος. Μόνο αν το επιλέξει ο χρήστης· προτείνεται η πιο κοντινή γνωστή περιοχή (όχι το σημείο) και τη γράφει/αλλάζει όπως θέλει */
+var AREAS=[['Λεμεσός','Limassol',34.675,33.04],['Λάρνακα','Larnaca',34.915,33.636],['Πάφος','Paphos',34.757,32.41],['Αγία Νάπα','Ayia Napa',34.982,34.0],['Πρωταράς','Protaras',35.012,34.058],
+  ['Πόλις Χρυσοχούς','Polis Chrysochous',35.036,32.425],['Λατσί','Latchi',35.04,32.39],['Πισσούρι','Pissouri',34.66,32.70],['Ζύγι','Zygi',34.73,33.34],['Μαζωτός','Mazotos',34.80,33.49],
+  ['Κάτω Πύργος','Kato Pyrgos',35.18,32.69],['Πωμός','Pomos',35.15,32.55],['Ακρωτήρι','Akrotiri',34.58,32.98],['Ορμήδεια','Ormideia',34.99,33.78],['Κόραλ Μπέι','Coral Bay',34.86,32.36],['Γκόβερνορς','Governor\'s Beach',34.71,33.27]];
+function nearArea(b){ var la=+b.lat, lo=+b.lon; if(!isFinite(la)||!isFinite(lo)||b.lat==null) return ''; var best=null, bd=1e9;
+  AREAS.forEach(function(a){ var dy=(a[2]-la)*111, dx=(a[3]-lo)*111*Math.cos(la*Math.PI/180), d=Math.hypot(dx,dy); if(d<bd){ bd=d; best=a; } });
+  return best&&bd<30?(EN?best[1]:best[0]):''; }
+B.commNearArea=nearArea;
+/* 1.9.62: τα άλλα ψάρια της ίδιας μέρας (για να μπουν στην ίδια ανάρτηση) */
+function sameDay(b){ try{ return B.store.raw('bites').filter(function(x){ return x&&x.id!==b.id&&!x.deleted&&!x.miss&&!x.gear&&x.species&&x.date===b.date&&!(B.pest&&B.pest(x)); }).sort(function(p,q){ return (+q.kg||0)-(+p.kg||0); }).slice(0,8); }catch(e){ return []; } }
 function uuid(){ return (window.crypto&&crypto.randomUUID)?crypto.randomUUID():'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
 B.commShared=function(id){ var s=ls.get('alkyon-comm-shared',{})||{}; return !!s[id]; };
 B.commShare=function(b){
@@ -103,14 +155,24 @@ B.commShare=function(b){
   var sz=[]; if(b.kg!=null&&b.kg!=='') sz.push(b.kg+' kg'); if(b.len!=null&&b.len!=='') sz.push(b.len+' cm');
   body.append(prev,h('div',{class:'cmtitle'},h('b',{text:b.species}),sz.length?h('span',{text:sz.join(' · ')}):null));
   var ch=chips({wind:b.wind,wave:b.wave,press:b.press,sst:b.sst,moon:moonIdx(b)});
+  var others=b.date?sameDay(b):[], pick={};
+  if(others.length){ var ob=h('div',{class:'cmpick'},h('b',{text:T('Και άλλα ψάρια της ίδιας μέρας','Other catches from the same day')}));
+    others.forEach(function(x){ pick[x.id]=1; var c=h('input',{type:'checkbox',checked:true}); c.addEventListener('change',function(){ pick[x.id]=c.checked?1:0; });
+      ob.append(h('label',{class:'tg'},c,h('span',{text:x.species+(x.kg!=null&&x.kg!==''?' '+kgTxt(x.kg):'')+(x.len!=null&&x.len!==''?' · '+x.len+' cm':'')}))); });
+    body.append(ob); }
+  var areaIn=h('input',{type:'text',maxlength:'40',placeholder:T('π.χ. Λεμεσός','e.g. Limassol'),value:nearArea(b),hidden:true,'aria-label':T('Περιοχή','Area')}), withArea=false, acb=h('input',{type:'checkbox'});
+  acb.addEventListener('change',function(){ withArea=acb.checked; areaIn.hidden=!withArea; if(withArea) try{ areaIn.focus(); }catch(e){} });
+  body.append(h('label',{class:'tg'},acb,h('span',{text:T('Να φαίνεται η περιοχή (π.χ. «Λεμεσός», ποτέ το σημείο)','Show the area (e.g. "Limassol", never the spot)')})),areaIn);
   if(ch.length){ var cr=h('div',{class:'chips',hidden:true}); ch.forEach(function(x){ cr.append(h('span',{class:'chip sm',text:x})); }); var cb=h('input',{type:'checkbox'}); cb.addEventListener('change',function(){ withCond=cb.checked; cr.hidden=!withCond; });
     body.append(h('label',{class:'tg'},cb,h('span',{text:T('Να φαίνονται και οι συνθήκες (άνεμος, κύμα, πίεση)','Also show conditions (wind, waves, pressure)')})),cr); }
-  body.append(h('p',{class:'sub',text:T('Θα φαίνονται: το όνομά σου, είδος, βάρος, δόλωμα και τεχνική, ημερομηνία και η φωτογραφία (και οι συνθήκες, μόνο αν το επιλέξεις). ΔΕΝ θα φαίνεται θέση ή όνομα σημείου. Πρόσεξε να μη δείχνει η φωτογραφία χαρακτηριστικό τοπίο.','Visible: your name, species, weight, bait and technique, date and the photo (conditions only if you tick the option). NO location or spot name is shared. Make sure the photo does not show a recognisable landmark.')}));
+  body.append(h('p',{class:'sub',text:T('Θα φαίνονται: το όνομά σου, είδος, βάρος, δόλωμα και τεχνική, ημερομηνία και η φωτογραφία (περιοχή και συνθήκες μόνο αν το επιλέξεις). ΔΕΝ θα φαίνεται θέση ή όνομα σημείου. Πρόσεξε να μη δείχνει η φωτογραφία χαρακτηριστικό τοπίο.','Visible: your name, species, weight, bait and technique, date and the photo (area and conditions only if you tick them). NO location or spot name is shared. Make sure the photo does not show a recognisable landmark.')}));
   var go=h('button',{class:'btn pri full',type:'button',text:T('Δημοσίευση','Publish'),onclick:function(){
     (ls.get('alkyon-comm-ok',false)?Promise.resolve(true):B.ask(T('Η ανάρτηση θα είναι ορατή σε όλους τους χρήστες του Alkyon. Δεν περιλαμβάνει θέση. Μπορείς να τη διαγράψεις όποτε θέλεις. Συνέχεια;','The post will be visible to all Alkyon users. It does not include a location. You can delete it any time. Continue?'),T('Συνέχεια','Continue'))).then(function(y){ if(!y) return; ls.set('alkyon-comm-ok',true);
       go.disabled=true; go.textContent=T('Αποστολή…','Sending…'); var path=null;
       rest('community_posts?select=id&limit=1').then(function(){ if(!blob) return; return jpeg(blob).then(function(jb){ path=uid()+'/'+uuid()+'.jpg'; return C().storage('POST','community/'+path,jb,'image/jpeg'); }).then(function(r){ if(!r.ok) throw new Error('photo '+r.status); }); })
         .then(function(){ var cond=withCond?{wind:b.wind,wave:b.wave,press:b.press,ptrend:b.ptrend,sst:b.sst,temp:b.temp,moon:moonIdx(b)}:{}; Object.keys(cond).forEach(function(k){ if(cond[k]==null||cond[k]==='') delete cond[k]; else if(typeof cond[k]==='number') cond[k]=Math.round(cond[k]*10)/10; });
+          var mo=others.filter(function(x){ return pick[x.id]; }).map(function(x){ var o={s:String(x.species).slice(0,40)}; if(x.kg!=null&&x.kg!==''&&isFinite(+x.kg)) o.kg=+x.kg; if(x.len!=null&&x.len!==''&&isFinite(+x.len)) o.len=+x.len; return o; }); if(mo.length) cond.more=mo;
+          var ar=withArea?areaIn.value.trim().slice(0,40):''; if(ar) cond.area=ar;
           return rest('community_posts',{method:'POST',body:JSON.stringify({src:b.id,author:author(),species:b.species,latin:b.latin||null,kg:b.kg!=null&&b.kg!==''?+b.kg:null,len:b.len!=null&&b.len!==''?+b.len:null,bait:b.bait||null,tech:b.tech||null,day:b.date||null,cond:cond,photo:path}),headers:{'Content-Type':'application/json',Prefer:'return=representation'}}).then(function(r){ return r.json(); }); })
         .then(function(rows){ pingComm(); var s=ls.get('alkyon-comm-shared',{})||{}; s[b.id]=(rows&&rows[0]&&rows[0].id)||1; ls.set('alkyon-comm-shared',s); sh.close(); B.toast(T('Δημοσιεύτηκε στην κοινότητα.','Shared to the community.')); F.items=[]; F.end=false; F.offset=0; })
         .catch(function(e){ if(path) C().storage('DELETE','community/'+path).catch(function(){}); var m=String(e&&e.message||e); go.disabled=false; go.textContent=T('Δημοσίευση','Publish');

@@ -127,7 +127,7 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
       const enc = encodeURIComponent(since);
       // 1.9.56: τα νέα ψάρια των τελευταίων 2 ωρών (όχι μόνο 6′), ώστε όποιος κόπηκε από το όριο των 30′ να τα πάρει αργότερα σε ένα μήνυμα, αντί να χάνονται
       const encP = encodeURIComponent(new Date(Date.now() - 2 * 3600000).toISOString());
-      const postsAll = (await sb(`community_posts?created_at=gt.${encP}&hidden=eq.false&select=id,user_id,author,species,kg,created_at&order=created_at.asc`).catch(() => [])) || [];
+      const postsAll = (await sb(`community_posts?created_at=gt.${encP}&hidden=eq.false&select=id,user_id,author,species,kg,cond,created_at&order=created_at.asc`).catch(() => [])) || [];
       const posts = postsAll.filter(p => p.created_at > since);
       const likes = (await sb(`community_likes?created_at=gt.${enc}&select=post_id,user_id,created_at`).catch(() => [])) || [];
       const coms = (await sb(`community_comments?created_at=gt.${enc}&hidden=eq.false&select=id,post_id,user_id,author,body,created_at`).catch(() => [])) || [];
@@ -161,7 +161,7 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
             const from = la ? new Date(la).toISOString() : since;              // από την τελευταία ειδοποίηση, αλλιώς τα 6′ όπως πριν
             const mine = (la ? postsAll : posts).filter(p => p.user_id !== uid && p.created_at > from); if (!mine.length) continue;
             const en = isEn(rows), p0 = mine[mine.length - 1];
-            const what = p => (p.species || '') + (p.kg ? ' ' + String(p.kg).replace('.', en ? '.' : ',') + ' kg' : '');
+            const what = p => { const more = (p.cond && Array.isArray(p.cond.more)) ? p.cond.more.length : 0; return (p.species || '') + (p.kg ? ' ' + String(p.kg).replace('.', en ? '.' : ',') + ' kg' : '') + (more ? (en ? ` +${more} more` : ` +${more} ακόμα`) : ''); };
             const title = mine.length > 1 ? (en ? `🐟 ${mine.length} new catches in the Community` : `🐟 ${mine.length} νέα ψάρια στην Κοινότητα`) : (en ? '🐟 New catch in the Community' : '🐟 Νέο ψάρι στην Κοινότητα');
             const body = mine.length > 1 ? mine.slice(-3).map(p => (p.author || '') + ': ' + what(p)).join(' · ') : (p0.author || (en ? 'An angler' : 'Ένας ψαράς')) + (en ? ' caught ' : ' έπιασε ') + what(p0);
             await send(uid, 'comm:' + mine.map(p => p.id.slice(0, 8)).join(','), 'comm', title, body);
@@ -176,6 +176,21 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
             const en = isEn(rows); await send(p.user_id, 'cl:' + l.post_id.slice(0, 8) + ':' + l.user_id.slice(0, 8), 'commre', en ? '❤️ Someone liked your catch' : '❤️ Άρεσε σε κάποιον το ψάρι σου', p.species || ''); }
           for (const c of coms) { const p = po[c.post_id]; if (!p || p.user_id === c.user_id) continue; const rows = byUser[p.user_id] || []; if (rows.length && (!flag(rows, 'commre') || (quietNow && quietOn(rows)))) continue;
             const en = isEn(rows); await send(p.user_id, 'cc:' + c.id, 'commre', (en ? '💬 New comment on your ' : '💬 Νέο σχόλιο στο ') + (p.species || (en ? 'catch' : 'ψάρι σου')), (c.author ? c.author + ': ' : '') + String(c.body || '').slice(0, 120)); }
+          // 1.9.62: απάντηση σε σχόλιο («@Όνομα …») → ειδοποίηση σε αυτόν που απάντησαν (αν δεν είναι ο ίδιος ή ο κάτοχος, που ήδη ειδοποιείται)
+          const reps = coms.filter(c => /^@\S/.test(String(c.body || '')));
+          if (reps.length) {
+            const rp = [...new Set(reps.map(c => c.post_id))];
+            const prev = (await sb(`community_comments?post_id=in.(${rp.join(',')})&hidden=eq.false&select=post_id,user_id,author`).catch(() => [])) || [];
+            for (const c of reps) {
+              const p = po[c.post_id]; const body = String(c.body || '');
+              let to = null, name = '';
+              for (const o of prev) { if (o.post_id !== c.post_id || !o.author || o.user_id === c.user_id) continue; if (body.startsWith('@' + o.author) && o.author.length > name.length) { name = o.author; to = o.user_id; } }
+              if (!to || (p && to === p.user_id)) continue;
+              const rows = byUser[to] || []; if (rows.length && (!flag(rows, 'commre') || (quietNow && quietOn(rows)))) continue;
+              const en = isEn(rows);
+              await send(to, 'cr:' + c.id, 'commre', (c.author || (en ? 'Someone' : 'Κάποιος')) + (en ? ' replied to you' : ' σου απάντησε'), body.slice(name.length + 1).trim().slice(0, 120) || (p && p.species) || '');
+            }
+          }
         }
       }
     } catch (e) { log('community push: ' + e.message); }
