@@ -200,7 +200,7 @@ function logCard(box,p,r,cd,cur,m){
   var old=box.querySelector('.sealog'); if(old) old.remove();
   var w=el('div',{'class':'sealog',style:'margin-top:10px;padding-top:8px;border-top:1px solid var(--line)'});
   w.appendChild(el('b',null,T('Πώς είναι η θάλασσα εδώ τώρα;','How is the sea here right now?')));
-  w.appendChild(el('p',{'class':'note',style:'margin:2px 0 6px'},T('Μόνο αν είσαι εκεί ή τη βλέπεις. Οι καταγραφές θα βαθμονομήσουν τον δείκτη για τους κόλπους.','Only if you are there or can see it. Entries will calibrate this index for bays.')));
+  w.appendChild(el('p',{'class':'note',style:'margin:2px 0 6px'},T('Μόνο αν είσαι εκεί ή τη βλέπεις. Μένει στη συσκευή σου για να βαθμονομήσει τον δείκτη για τους κόλπους και, αν έχεις λογαριασμό, φαίνεται και στους άλλους στον χάρτη για 6 ώρες (χωρίς όνομα).','Only if you are there or can see it. It stays on your device to calibrate this index for bays and, if you have an account, others see it on the map for 6 hours (no name).')));
   var row=el('div',{style:'display:flex;gap:6px;flex-wrap:wrap'}), st=el('p',{'class':'note',style:'margin:6px 0 0'});
   var opts=[[0,'🟢',T('Ήρεμη','Calm')],[1,'🟡',T('Κυματάκι','Choppy')],[2,'🔴',T('Ταραγμένη','Rough')]];
   var key=(+p.lat).toFixed(3)+','+(+p.lon).toFixed(3), hr=new Date().toISOString().slice(0,13);
@@ -220,7 +220,12 @@ function logCard(box,p,r,cd,cur,m){
         model:m?{wh:m.wh,wd:m.wd,wp:m.wp,sh:m.sh,sd:m.sd,sp:m.sp}:null};
       a.push(rec);
       if(!logPut(a)) st.textContent=T('Δεν αποθηκεύτηκε (γεμάτος χώρος συσκευής).','Not saved (device storage full).'); else paint();
-      try{ if(window.AlkyonCore&&window.AlkyonCore.toast) window.AlkyonCore.toast(T('Καταγράφηκε: ','Logged: ')+o[2]); }catch(e){}
+      /* 1.9.28: ένα πάτημα, δύο χρήσεις: μένει στη συσκευή (βαθμονόμηση κόλπων) και στέλνεται ως αναφορά θάλασσας σε όλους για 6 ώρες */
+      var AK=window.AK, cl=AK&&AK.cloud, ses=cl&&cl.session&&cl.session(), toast=function(x){ try{ if(AK&&AK.toast) AK.toast(x); else if(window.AlkyonCore&&window.AlkyonCore.toast) window.AlkyonCore.toast(x); }catch(e){} };
+      if(ses&&cl.rest) cl.rest('sea_reports',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({lat:+(+p.lat).toFixed(5),lon:+(+p.lon).toFixed(5),state:o[0],wind:null,note:null})})
+        .then(function(){ toast(T('Καταγράφηκε και φαίνεται σε όλους στον χάρτη για 6 ώρες: ','Logged and shown to everyone on the map for 6 hours: ')+o[2]); try{ AK.ls.set('alkyon-v4-srlast',Date.now()); }catch(e){} })
+        .catch(function(e){ toast(/wait a few/i.test(String(e&&e.message))?T('Καταγράφηκε στη συσκευή. Μόλις έστειλες αναφορά, η επόμενη σε λίγα λεπτά.','Logged on this device. You just sent a report; next one in a few minutes.'):T('Καταγράφηκε στη συσκευή: ','Logged on this device: ')+o[2]); });
+      else toast(T('Καταγράφηκε: ','Logged: ')+o[2]);
     });
     row.appendChild(b);
   });

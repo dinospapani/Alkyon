@@ -367,7 +367,7 @@ function dayView(page,fc,d){
       h('div',{class:'hsr'},h('span',{class:'hsk',text:T('Ήλιος','Sun')}),h('b',{text:T('ανατολή ','sunrise ')+B.hm(d.rise)+' · '+T('δύση ','sunset ')+B.hm(d.set)})),
       h('div',{class:'hsr'},h('span',{class:'hsk',text:T('Σελήνη','Moon')}),h('b',{text:moonIco(d.f)+' '+moonName(d.f)+' · '+ill+'% '+T('φωτισμένη','lit')})),
       mj.length||mn.length?h('div',{class:'hsr'},h('span',{class:'hsk',text:T('Ώρες σελήνης','Moon times')}),h('b',null,
-        mj.length?h('span',{class:'mj',text:T('δυνατές ','strong ')+mj.join(', ')}):null,mj.length&&mn.length?' · ':null,mn.length?h('span',{class:'mn',text:T('ασθενείς ','weak ')+mn.join(', ')}):null)):null)); })();
+        mj.length?h('span',{class:'mj',text:T('κύριες ','major ')+mj.join(', ')}):null,mj.length&&mn.length?' · ':null,mn.length?h('span',{class:'mn',text:T('δευτερεύουσες ','minor ')+mn.join(', ')}):null)):null)); })();
   if(d.date>=td&&d.safe) hero.append(planBtn(d)); /* 1.9.9: όχι «Θα βγω» σε μέρα που δεν συνιστάται έξοδος */
   page.append(hero);
   /* ψαροντούφεκο: ορατότητα νερού (δορυφόρος όταν υπάρχει, αλλιώς εκτίμηση από κύμα και βροχή) */
@@ -472,7 +472,7 @@ function hourCard(fc,d,selH,nh){
   c.append(h('p',{class:'hcap',text:T('Κάθε μπάρα είναι μία ώρα. Όσο πιο ψηλή, τόσο καλύτερη η ώρα για ψάρεμα. Πάτα ή σύρε για λεπτομέρειες.','Each bar is one hour. The taller, the better for fishing. Tap or drag for details.')}),
     h('div',{class:'hbw'},box,hasMoon?mstrip:null,h('div',{class:'axis'},['00','06','12','18','23'].map(function(t){ return h('span',{text:t}); }))),
     h('div',{class:'hleg'},d.win?h('span',{class:'k best',text:T('καλύτερες ώρες','best hours')}):null,hasBad?h('span',{class:'k bad',text:T('πάνω από τα όριά σου','over your limits')}):null,h('span',{class:'k night',text:T('νύχτα','night')}),
-      hasMoon?h('span',{class:'k mj',text:T('δυνατή σελήνη','strong moon')}):null,hasMoon&&per.some(function(x){ return x.kind!=='major'; })?h('span',{class:'k mn',text:T('ασθενής σελήνη','weak moon')}):null,
+      hasMoon?h('span',{class:'k mj',text:T('κύρια σελήνη','major moon')}):null,hasMoon&&per.some(function(x){ return x.kind!=='major'; })?h('span',{class:'k mn',text:T('δευτερεύουσα σελήνη','minor moon')}):null,
       hasPast?h('span',{class:'k past',text:T('ώρες που πέρασαν','past hours')}):null),head,huLine,rows);
   return c;
 }
@@ -532,11 +532,13 @@ function reasons(d){
   var wr=rng('wind',U.windP), vr=rng('wave',U.waveP);
   var gm=hs.reduce(function(m,q){ return typeof q.gust==='number'&&q.gust>m?q.gust:m; },-1); if(gm<0) gm=null;
   var gusty=wd!=null&&gm!=null&&gm>=17&&gm-wd>=6; /* 1.6.8: με δυνατές ριπές δεν λέμε «ήπιος άνεμος» */
-  if(wd!=null) out.push(wd<=12&&!gusty?['up',T('Ήπιος άνεμος ('+wr+')','Light wind ('+wr+')')]:wd<=12?['mid',T('Ασθενής άνεμος ('+wr+') με ριπές','Light wind ('+wr+') but gusty')]:wd<=18?['mid',T('Μέτριος άνεμος ('+wr+')','Moderate wind ('+wr+')')]:['down',T('Δυνατός άνεμος ('+wr+')','Strong wind ('+wr+')')]);
-  if(gm!=null&&gm>=17&&gm-(av('wind')||0)>=6) out.push([gm>=22?'down':'mid',T('Ριπές έως '+U.wind(gm),'Gusts up to '+U.wind(gm))]);
+  /* 1.9.28: άνεμος και ριπές σε μία ετικέτα («Άνεμος 3 Bft, ριπές έως 5 Bft») αντί για δύο που λένε το ίδιο */
+  var gx=gm!=null&&gm>=17&&gm-(wd||0)>=6, gt=gx?T(', ριπές έως ',', gusts up to ')+U.wind(gm):'', lv=function(a){ return gx&&gm>=22?'down':gx&&a==='up'?'mid':a; };
+  if(wd!=null) out.push(wd<=12&&!gx?['up',T('Ήπιος άνεμος ('+wr+')','Light wind ('+wr+')')]:wd<=12?[lv('mid'),T('Ασθενής άνεμος ('+wr+')','Light wind ('+wr+')')+gt]:wd<=18?[lv('mid'),T('Μέτριος άνεμος ('+wr+')','Moderate wind ('+wr+')')+gt]:['down',T('Δυνατός άνεμος ('+wr+')','Strong wind ('+wr+')')+gt]);
+  else if(gx) out.push([gm>=22?'down':'mid',T('Ριπές έως '+U.wind(gm),'Gusts up to '+U.wind(gm))]);
   if(wv!=null&&pf!=='lake') out.push(wv<=(pf==='spear'?0.3:0.5)?['up',T('Χαμηλό κύμα ('+vr+')','Low waves ('+vr+')')]:wv<=1?['mid',T('Λίγο κύμα ('+vr+')','Some waves ('+vr+')')]:['down',T('Ψηλό κύμα ('+vr+')','High waves ('+vr+')')]);
   /* 1.9.17: η πίεση με την τιμή της, για να μη μοιάζει να διαφωνεί με την κάρτα «Πίεση, άνεμος, σελήνη» */
-  var tr=hs[0].ptrend, pv=av('pres'), pt=pv!=null?' ('+(U.press?U.press(Math.round(pv)):Math.round(pv)+' hPa')+')':'';
+  var tr=hs[0].ptrend, pv=av('pres'), pt=pv!=null?' ('+(U.press?U.press(Math.round(pv)):Math.round(pv)+' hPa')+(d.win?' '+T('στις','at')+' '+B.pad(d.win.s)+'–'+B.pad((d.win.e+1)%24):'')+')':''; /* 1.9.28: με τις ώρες, γιατί το «Τώρα» δείχνει άλλη ώρα */
   if(tr) out.push(tr==='fast'?['down',T('Η πίεση πέφτει απότομα','Pressure falling fast')+pt]:tr==='slow'?['mid',T('Η πίεση πέφτει αργά','Pressure falling slowly')+pt]:tr==='rise'?['up',T('Η πίεση ανεβαίνει','Pressure rising')+pt]:['up',T('Σταθερή πίεση','Steady pressure')+pt]);
   if(d.win){ var s0=d.win.s*60, e0=(d.win.e+1)*60, near=function(m){ return m>=s0-60&&m<=e0+60; };
     if(near(d.rise)) out.push(['up',T('Χαράματα μέσα στο παράθυρο','Dawn falls in the window')]);
@@ -586,12 +588,16 @@ function moonResearch(){
   var box=h('div',{class:'mres'}), mi=null; try{ mi=PF.moonInfo(spCfg()); }catch(e){}
   box.append(h('b',{text:T('Τι λέει η έρευνα για τη σελήνη','What research says about the moon')}));
   box.append(h('p',{text:T('Ώρες σελήνης (Knight): μικρή επίδραση. Στον βαθμό η κύρια περίοδος δίνει +6 και η δευτερεύουσα +3, ενώ η αυγή και το σούρουπο +14.','Moon times (Knight): a small effect. In the score a major period adds +6 and a minor +3, while dawn and dusk add +14.')}));
-  if(mi) box.append(h('p',null,h('span',{class:'mk',text:T('Φάση: ','Phase: ')}),EN?mi.en:mi.el,mi.src?h('small',{text:' ('+mi.src+')'}):null));
+  var sc=spCfg(), snm=sc?(EN&&sc.l?sc.l:sc.n):null; /* 1.9.28: λέει για ποιο ψάρι μιλά */
+  if(mi) box.append(h('p',null,h('span',{class:'mk',text:T('Φάση','Phase')+(snm&&!mi.k?' ('+snm+')':'')+': '}),EN?mi.en:mi.el,mi.src?h('small',{text:' ('+mi.src+')'}):null));
   var m=null; try{ if(window.PP&&B.adv&&B.adv.model){ if(!pmMemo.m||Date.now()-pmMemo.t>120000) pmMemo={t:Date.now(),m:B.adv.model()}; m=pmMemo.m; } }catch(e){ m=null; }
   var PH=[T('νέα σελήνη','new moon'),T('πρώτο τέταρτο','first quarter'),T('πανσέληνο','full moon'),T('τελευταίο τέταρτο','last quarter')];
   if(m&&m.ready&&m.factors&&m.factors.moon){ var F=m.factors.moon, bi=0; F.forEach(function(x,i){ if(x.m>F[bi].m) bi=i; });
     box.append(h('p',null,h('span',{class:'mk',text:T('Τα δικά σου ψάρια: ','Your catches: ')}),F[bi].m>=1.15?T('πιάνεις περισσότερα κοντά στη ','you catch more near the ')+PH[bi]+' (×'+B.num(F[bi].m,1)+T(' από τον μέσο όρο σου, ανά ώρα ψαρέματος). Αυτό μετρά στην προσωπική πρόγνωση.',' your average, per fishing hour). This counts in your personal forecast.'):T('καμία φάση δεν ξεχωρίζει ακόμα.','no phase stands out yet.')));
-  } else box.append(h('p',null,h('span',{class:'mk',text:T('Τα δικά σου ψάρια: ','Your catches: ')}),T('με αρκετές εξόδους και ψάρια στο ημερολόγιο, η προσωπική πρόγνωση μαθαίνει αν πιάνεις περισσότερα σε κάποια φάση.','with enough trips and catches in your logbook, the personal forecast learns whether you catch more in some phase.')));
+  } else { var pg=m&&m.progress, nd=pg&&pg.need, lack=[];
+    /* 1.9.28: τι λείπει ακόμα, με νούμερα */
+    if(nd){ if(pg.sessions<nd.sessions) lack.push(pg.sessions+T(' από ',' of ')+nd.sessions+T(' εξόδους',' trips')); if(pg.catches<nd.catches) lack.push(pg.catches+T(' από ',' of ')+nd.catches+T(' ψάρια',' catches')); if(pg.hours<nd.hours) lack.push(B.num(pg.hours,0)+T(' από ',' of ')+nd.hours+T(' ώρες ψαρέματος',' fishing hours')); }
+    box.append(h('p',null,h('span',{class:'mk',text:T('Τα δικά σου ψάρια: ','Your catches: ')}),lack.length?T('η προσωπική πρόγνωση θα δείξει αν πιάνεις περισσότερα σε κάποια φάση όταν έχει αρκετά δεδομένα. Μέχρι τώρα: ','the personal forecast will show whether you catch more in some phase once it has enough data. So far: ')+lack.join(', ')+T(' (μετρούν οι έξοδοι με ώρα έναρξης και λήξης).',' (trips with a start and end time count).'):T('με αρκετές εξόδους και ψάρια στο ημερολόγιο, η προσωπική πρόγνωση μαθαίνει αν πιάνεις περισσότερα σε κάποια φάση.','with enough trips and catches in your logbook, the personal forecast learns whether you catch more in some phase.'))); }
   return box;
 }
 function pwCard(fc,d){
@@ -648,9 +654,13 @@ function pwFill(body,v,p,fc,rk){
     /* 1.9.26: «καλή» περίοδος σελήνης = και ήπιος άνεμος (κάτω από το όριό σου) και πίεση που δεν πέφτει γρήγορα */
     var Lw=LIM().wind, iAt=function(ms){ var b=0; pts.forEach(function(q,i){ if(Math.abs(q.t-ms)<Math.abs(pts[b].t-ms)) b=i; }); return b; };
     per.forEach(function(q){ var mid=(q.s+q.e)/2, i=iAt(mid), w=pts[i].w, d3=i>=3?pts[i].p-pts[i-3].p:null;
-      q.wOk=w==null||w<=Lw; q.pOk=d3==null||d3>-1.5; q.good=q.wOk&&q.pOk&&mid>=t0&&mid<=t1; });
+      /* 1.9.28: και κύμα/ασφάλεια από την ωριαία πρόγνωση (ίδιο όριο με την ετικέτα «Ψηλό κύμα»: πάνω από 1 m) */
+      var lk=loc(mid), dd=(fc.days||[]).filter(function(z){ return z.date===lk.slice(0,10); })[0], hh=dd&&(dd.hours||[]).filter(function(z){ return z.hr===+lk.slice(11,13); })[0];
+      var LL=LIM(); q.vOk=!hh||hh.wave==null||B.prof()==='lake'||hh.wave<=Math.min(1,LL.wave||1);
+      q.sOk=!hh||((hh.gust==null||hh.gust<=LL.gust)&&(hh.code==null||hh.code<95)); /* ριπές πάνω από το όριο ή καταιγίδα: όχι καλή ώρα */
+      q.wOk=w==null||w<=Lw; q.pOk=d3==null||d3>-1.5; q.wv=hh&&hh.wave; q.good=q.wOk&&q.pOk&&q.sOk&&mid>=t0&&mid<=t1; });
     per.forEach(function(q){ var a=Math.max(Lm,Xt(q.s)), b=Math.min(W-R,Xt(q.e)); if(b-a<0.5) return; svg.appendChild(s('rect',{x:a,y:mT,width:b-a,height:mH,rx:2,class:(q.kind==='major'?'mp maj':'mp')+(q.good?' ok':'')}));
-      if(q.good) svg.appendChild(s('rect',{x:a,y:mT-3,width:b-a,height:3,rx:1.5,class:'mg'})); });
+      if(q.good) svg.appendChild(s('rect',{x:a,y:mT-3,width:b-a,height:3,rx:1.5,class:q.vOk?'mg':'mg wv'})); });
     var steps=Math.min(240,n*2), dm='', on=false;
     for(var k=0;k<=steps;k++){ var ms=t0+(t1-t0)*k/steps, al=PF.moonAlt(ms,+p.lat,+p.lon), xx=Xt(ms).toFixed(1);
       if(al>0){ var yy=(mT+mH-mH*Math.min(1,al/90)).toFixed(1); dm+=(on?'L':'M'+xx+' '+(mT+mH)+' L')+xx+' '+yy+' '; on=true; } else if(on){ dm+='L'+xx+' '+(mT+mH)+' '; on=false; } }
@@ -689,15 +699,17 @@ function pwFill(body,v,p,fc,rk){
     var twN=function(x){ var ds=loc(x.t).slice(0,10), dy=days.filter(function(z){ return z.date===ds; })[0]; if(!dy) return false; var m=(Date.parse(loc(x.t).slice(0,16)+':00Z')-Date.parse(ds+'T00:00:00Z'))/60000; return Math.abs(m-dy.rise)<=90||Math.abs(m-dy.set)<=90; };
     var parts=up.map(function(x){ var ds=loc(x.s).slice(0,10); return (ds!==td?B.dayName(ds,td).toLowerCase()+' ':'')+hmm(x.s)+'–'+hmm(x.e)+' '+(x.kind==='major'?T('κύρια','major'):T('δευτερεύουσα','minor'))+(twN(x)?' ★':''); });
     var cur=moonAt(now);
-    if(cur) out.push(h('p',{class:'sub',style:{margin:'6px 0 0'},text:T('Σελήνη: τώρα ','Moon: now ')+mLbl(cur)+(cur.good?T(', με ήπιο άνεμο και σταθερή πίεση',', with light wind and steady pressure'):cur.wOk?'':T(', αλλά ο άνεμος είναι πάνω από το όριό σου',', but wind is over your limit'))+'.'}));
+    if(cur) out.push(h('p',{class:'sub',style:{margin:'6px 0 0'},text:T('Σελήνη: τώρα ','Moon: now ')+mLbl(cur)+(cur.good&&cur.vOk?T(', με ήπιο άνεμο, λίγο κύμα και σταθερή πίεση',', with light wind, low waves and steady pressure'):cur.good?T(', καλή για τσίμπημα, αλλά έχει ψηλό κύμα: ψάξε απάνεμο κόλπο',', good for bites, but waves are high: look for a sheltered bay'):!cur.wOk?T(', αλλά ο άνεμος είναι πάνω από το όριό σου',', but wind is over your limit'):'')+'.'}));
     /* 1.9.26: οι επόμενες καλές περίοδοι (σελήνη + άνεμος + πίεση)· ★ όταν πέφτουν και κοντά σε αυγή ή σούρουπο */
     var gd=per.filter(function(x){ return x.good&&x.s>now; }).slice(0,3);
-    var lbl=function(x){ var ds=loc(x.s).slice(0,10); return (ds!==td?B.dayName(ds,td).toLowerCase()+' ':'')+hmm(x.s)+'–'+hmm(x.e)+' '+(x.kind==='major'?T('κύρια','major'):T('δευτερεύουσα','minor'))+(twN(x)?' ★':''); };
+    var lbl=function(x){ var ds=loc(x.s).slice(0,10); return (ds!==td?B.dayName(ds,td).toLowerCase()+' ':'')+hmm(x.s)+'–'+hmm(x.e)+' '+(x.kind==='major'?T('κύρια','major'):T('δευτερεύουσα','minor'))+(twN(x)?' ★':'')+(x.vOk?'':' 🌊'+(x.wv!=null?' '+B.num(x.wv,1)+' m':'')); };
     out.push(h('div',{class:'pwgood'},h('b',{text:T('Καλές ώρες σελήνης','Good moon times')}),
       h('span',{text:gd.length?gd.map(lbl).join(' · '):!per.some(function(x){ return x.s>now; })?T('Οι επόμενες φαίνονται στις 3 ή 7 μέρες.','The next ones show in 3 or 7 days.'):T('Καμία στο διάστημα του γραφήματος: ή φυσά πάνω από το όριό σου ή πέφτει η πίεση.','None in this range: wind over your limit or pressure falling.')})));
+    /* 1.9.28: το κύμα δεν κόβει την «καλή ώρα» (το ψάρι τσιμπά ανεξάρτητα)· απλώς λέει να ψάξεις απάνεμο κόλπο */
+    if(gd.some(function(x){ return !x.vOk; })) out.push(h('p',{class:'foot',style:{margin:'4px 0 0'},text:T('🌊 = καλή ώρα για τσίμπημα, αλλά έχει ψηλό κύμα στα ανοιχτά. Ψάξε κόλπο ή μέρος απάνεμο από το κύμα (δες «Έκθεση ακτής» πιο κάτω).','🌊 = a good time for bites, but waves are high offshore. Look for a bay or a spot sheltered from the swell (see “Coast exposure” below).')}));
     if(gd.some(twN)) out.push(h('p',{class:'foot',style:{margin:'4px 0 0'},text:T('★ = πέφτει και κοντά σε αυγή ή σούρουπο (±90′): ο πιο δυνατός συνδυασμός.','★ = also near dawn or dusk (±90′): the strongest combination.')}));
   }
-  out.push(h('div',{class:'pwl'},h('span',{class:'k1',text:T('Πίεση','Pressure')}),h('span',{class:'k2',text:T('Άνεμος, ριπές','Wind, gusts')}),hasM?h('span',{class:'k3',text:T('Σελήνη: σκούρο κύρια, ανοιχτό δευτερεύουσα','Moon: dark major, light minor')}):null,hasM?h('span',{class:'k4',text:T('Καλή: και άνεμος, πίεση','Good: wind, pressure too')}):null),
+  out.push(h('div',{class:'pwl'},h('span',{class:'k1',text:T('Πίεση','Pressure')}),h('span',{class:'k2',text:T('Άνεμος, ριπές','Wind, gusts')}),hasM?h('span',{class:'k3',text:T('Σελήνη: σκούρο κύρια, ανοιχτό δευτερεύουσα','Moon: dark major, light minor')}):null,hasM?h('span',{class:'k4',text:T('Καλή: και άνεμος, πίεση','Good: wind, pressure too')}):null,hasM&&per.some(function(x){ return x.good&&!x.vOk; })?h('span',{class:'k5',text:T('Καλή, αλλά ψηλό κύμα','Good, but high waves')}):null),
     h('p',{class:'foot',style:{margin:'8px 0 0'},text:T('Συνεχής γραμμή: τελευταίες 24 ώρες. Διακεκομμένη: πρόγνωση. Τα βέλη δείχνουν προς πού φυσά ο άνεμος. Σύρε το δάχτυλο πάνω στο γράφημα για κάθε ώρα.','Solid line: last 24 hours. Dashed: forecast. Arrows show where the wind blows to. Drag across the chart to see each hour.')}),
     hasM?moonResearch():null);
   body.replaceChildren.apply(body,out);

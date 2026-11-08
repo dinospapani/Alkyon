@@ -126,6 +126,8 @@ svg.pwc{width:100%;height:auto}
 .pwc .mp.maj{opacity:.42}
 .pwc .mp.ok{fill:#7a6ae6}
 .pwc .mg{fill:var(--good)}
+.pwc .mg.wv{fill:#e0a030}
+.pwl .k5::before{width:12px;height:4px;border-radius:2px;background:#e0a030}
 .pwgood{margin:8px 0 0;padding:8px 10px;border-radius:10px;background:var(--good-bg);font-size:14px;line-height:1.4}
 .pwgood b{display:block;font-size:13px;color:var(--good-ink);margin-bottom:2px}
 /* ανά ώρα */
