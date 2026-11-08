@@ -13,6 +13,7 @@ var P={
   check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
   chev:'<path d="M9 5l7 7-7 7"/>',
   back:'<path d="M15 5l-7 7 7 7"/>',
+  share:'<path d="M12 15V3.5M7.5 8L12 3.5 16.5 8"/><path d="M5 12.5V20h14v-7.5"/>',
   star:'<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>',
   trash:'<path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/>',
   map:'<path d="M9 4L3.5 6v14L9 18l6 2 5.5-2V4L15 6 9 4z"/><path d="M9 4v14M15 6v14"/>',

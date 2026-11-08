@@ -66,6 +66,12 @@ var HELP=[
 ];
 /* έκδοση → αλλαγές (νεότερες πρώτες). Προσθέτεις γραμμή εδώ σε κάθε νέα λειτουργία. */
 var NEWS=[
+ ['1.9.64',[T('Ειδοποιήσεις › Κοινότητα: «Ειδοποίησέ με όταν κάποιος πιάσει…» (π.χ. Καλαμάρι). Έρχεται αμέσως, χωρίς το όριο των 30′, όποια γλώσσα κι αν έγραψε ο άλλος.','Alerts › Community: "Alert me when someone catches…" (e.g. Squid). Instant, without the 30-min limit, whatever language the other angler used.'),
+   T('Κοινότητα: μηνιαία πρόκληση (π.χ. «Νοέμβριος: Καλαμάρι»). Το μεγαλύτερο του μήνα κερδίζει σήμα.','Community: monthly challenge (e.g. "November: Squid"). The biggest of the month wins a badge.'),
+   T('☆ για να σώζεις αναρτήσεις και «Σωσμένα» για να τις βρίσκεις.','☆ to save posts and "Saved" to find them.'),
+   T('Κοινοποίηση ως εικόνα (φωτογραφία, είδος, βάρος, logo) για WhatsApp/Instagram.','Share as an image (photo, species, weight, logo) for WhatsApp/Instagram.'),
+   T('«Σύγκρινε»: οι συνθήκες της ανάρτησης δίπλα στην αυριανή πρόγνωση του μέρους σου.','"Compare": the post’s conditions next to tomorrow’s forecast for your place.'),
+   T('Σήματα επιτευγμάτων στο προφίλ (π.χ. 10 είδη, Πρώτο καλαμάρι, 5 απελευθερώσεις, Νικητής πρόκλησης).','Achievement badges on the profile (e.g. 10 species, First squid, 5 releases, Challenge winner).')]],
  ['1.9.63',[T('Κοινότητα: «Τι πιάνεται αυτή την εβδομάδα» (είδη, τεχνική, δόλωμα, περιοχή) και «Κατάταξη μήνα» με το μεγαλύτερο ψάρι ανά είδος.','Community: "What is biting this week" (species, technique, bait, area) and a monthly leaderboard with the biggest fish per species.'),
    T('Φίλτρα ανά είδος και τεχνική. Πατάς το όνομα ενός ψαρά για το προφίλ του (ψάρια, είδη, ρεκόρ, απελευθερώσεις) και «Ακολούθησε».','Filters by species and technique. Tap an angler’s name for their profile (catches, species, records, releases) and Follow.'),
    T('«Ακολουθώ»: δες μόνο όσους ακολουθείς. Στις Ειδοποιήσεις › Κοινότητα διαλέγεις Όλοι / Όσοι ακολουθώ / Κανένας.','"Following": see only people you follow. In Alerts › Community choose Everyone / People I follow / No one.'),

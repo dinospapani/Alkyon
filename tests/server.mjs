@@ -207,6 +207,19 @@ NOW = RealDate.parse('2026-11-09T10:00:00Z');
   check('Κοινότητα: ερώτηση «Τι ψάρι είναι;» → σωστό κείμενο ειδοποίησης (1.9.63)', w2.sent[0] && w2.sent[0].title === '❓ Νέα ερώτηση στην Κοινότητα' && w2.sent[0].body === 'Νίκος ρωτά: Τι ψάρι είναι;', w2.sent);
 }
 
+/* ---------- Κοινότητα: ειδοποίηση για είδος (1.9.64) ---------- */
+{
+  NOW = RealDate.parse('2026-11-09T10:00:00Z');
+  const t = new RealDate(NOW - 20000).toISOString();
+  const K = ['loligo vulgaris', 'καλαμάρι', 'squid', 'european squid'];
+  const w = world({ subs: [SUB([{ lat: 35, lon: 32.4, comm: 'off', wsp: K }], 's5', 'u5'), SUB([{ lat: 35, lon: 32.4, wsp: K }], 's6', 'u6'), SUB([{ lat: 35, lon: 32.4, wsp: ['dentex dentex'] }], 's7', 'u7')], community: { posts: [{ id: 'p0000101-eeee', user_id: 'u2', author: 'Νίκος', species: 'European squid', latin: 'Loligo vulgaris', kg: 0.8, created_at: t }] } });
+  await run({ env: { SUPABASE_URL: 'https://x.supabase.co', SUPABASE_SERVICE_KEY: 'k' }, fetch: w.fetch, PF, webpush: w.webpush, sendMail: null, log: () => {}, only: { comm: true } });
+  const to = e => w.sent.filter(x => x.sub.endpoint.endsWith('/' + e));
+  check('Κοινότητα: είδος που ζήτησες → ειδοποίηση, ακόμα κι αν τα νέα ψάρια είναι κλειστά (1.9.64)', to('s5').length === 1 && to('s5')[0].kind === 'commsp' && to('s5')[0].title === '🐟 European squid στην Κοινότητα' && /Νίκος έπιασε European squid 0,8 kg/.test(to('s5')[0].body), w.sent);
+  check('Κοινότητα: είδος + γενική → μία μόνο ειδοποίηση για την ίδια ανάρτηση', to('s6').length === 1 && to('s6')[0].kind === 'commsp', to('s6'));
+  check('Κοινότητα: άλλο είδος → μόνο η γενική ειδοποίηση', to('s7').length === 1 && to('s7')[0].kind === 'comm', to('s7'));
+}
+
 /* ---------- σκοτάδι για καλαμάρι ---------- */
 {
   const dw = d => { const s = PF.sunMoon(d, 35.04, 32.42, 120); return PF.darkWin(d, s.set, s.rise, 35.04, 32.42, 120); };

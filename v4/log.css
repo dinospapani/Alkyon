@@ -585,3 +585,25 @@ html.night .kpis .kpi{outline:1px solid #fff;outline-offset:-1px;background:#000
 .cmprof h3{margin:6px 0 2px;font-size:15px}
 .cmshare textarea{width:100%;margin:6px 0}
 .cmtopb .chips{padding:0;margin:0 0 6px;justify-content:flex-start}
+/* 1.9.64: σωσμένα, εικόνα, τότε/αύριο, σήματα */
+.cmact{align-items:center;flex-wrap:wrap}
+.cmsp{flex:1}
+.cmbtn.cmic{width:40px;padding:0;display:grid;place-items:center;font-size:18px}
+.cmbtn.cmic svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.cmbtn.cmic.on{color:#d69a14;border-color:#d69a14}
+.cmcmpb{font-size:13px}
+.cmcmpt{display:flex;flex-direction:column}
+.cmcr{display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:8px;padding:9px 0;border-top:1px solid var(--line);font-size:15px;align-items:center}
+.cmcr.hd{border-top:0;color:var(--ink-3);font-size:13px}.cmcr b{font-weight:650}
+.cmcr.ok b:last-child{color:#2e9d5b}
+.cmverd{margin:10px 0 0;padding:10px 12px;border-radius:12px;background:var(--surface-2);font-weight:650}
+.cmverd.good{background:#2e9d5b22;color:#1f7a44}
+.cmbadges h3{margin:6px 0 6px;font-size:15px}
+.cmbg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.cmbadge{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px;border-radius:12px;background:var(--surface-2);text-align:center;opacity:.38;filter:grayscale(1)}
+.cmbadge.on{opacity:1;filter:none;background:#e8b23a1f}
+.cmbadge .cmbi{font-size:22px;line-height:1}.cmbadge .cmbi .pik svg{width:24px;height:24px}
+.cmbadge small{font-size:11.5px;line-height:1.25;color:var(--ink-2)}
+.cmspw{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.cmact{gap:6px}.cmact .cmbtn{padding:0 12px}.cmact .cmbtn.cmic{padding:0;width:38px}
+.cmpost>.chips{margin:8px 0 0;padding:0;flex-wrap:wrap;overflow:visible}

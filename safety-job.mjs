@@ -127,7 +127,7 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
       const enc = encodeURIComponent(since);
       // 1.9.56: τα νέα ψάρια των τελευταίων 2 ωρών (όχι μόνο 6′), ώστε όποιος κόπηκε από το όριο των 30′ να τα πάρει αργότερα σε ένα μήνυμα, αντί να χάνονται
       const encP = encodeURIComponent(new Date(Date.now() - 2 * 3600000).toISOString());
-      const postsAll = (await sb(`community_posts?created_at=gt.${encP}&hidden=eq.false&select=id,user_id,author,species,kg,cond,created_at&order=created_at.asc`).catch(() => [])) || [];
+      const postsAll = (await sb(`community_posts?created_at=gt.${encP}&hidden=eq.false&select=id,user_id,author,species,latin,kg,cond,created_at&order=created_at.asc`).catch(() => [])) || [];
       const posts = postsAll.filter(p => p.created_at > since);
       const likes = (await sb(`community_likes?created_at=gt.${enc}&select=post_id,user_id,created_at`).catch(() => [])) || [];
       const coms = (await sb(`community_comments?created_at=gt.${enc}&hidden=eq.false&select=id,post_id,user_id,author,body,created_at`).catch(() => [])) || [];
@@ -162,6 +162,22 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
           }
           // τελευταία ειδοποίηση «νέα ψάρια» ανά χρήστη (2 ώρες): ό,τι ανέβηκε μετά από αυτήν και δεν το έχει πάρει
           const recent = (await sb(`notif_log?kind=eq.comm&at=gt.${encP}&select=user_id,at`).catch(() => [])) || [];
+          // 1.9.64: «Ειδοποίησέ με όταν κάποιος πιάσει…» (places[].wsp = κλειδιά ειδών, πεζά). Αμέσως, χωρίς το όριο των 30′, μία φορά ανά ανάρτηση.
+          const spSent = {};
+          for (const uid of Object.keys(byUser)) {
+            const rows = byUser[uid]; const keys = new Set(); for (const r of rows) for (const pl of (r.places || [])) if (pl && Array.isArray(pl.wsp)) pl.wsp.forEach(k => keys.add(String(k).toLowerCase()));
+            if (!keys.size || (quietNow && quietOn(rows))) continue;
+            const en = isEn(rows);
+            for (const p of postsAll) {
+              if (p.user_id === uid || (p.cond && (p.cond.k === 'q' || p.cond.k === 'id'))) continue;
+              const items = [{ s: p.species, la: p.latin, kg: p.kg }].concat((p.cond && Array.isArray(p.cond.more) ? p.cond.more : []).map(x => ({ s: x && x.s, kg: x && x.kg })));
+              const hit = items.find(x => x.s && (keys.has(String(x.s).trim().toLowerCase()) || (x.la && keys.has(String(x.la).toLowerCase()))));
+              if (!hit) continue;
+              (spSent[uid] = spSent[uid] || new Set()).add(p.id);
+              const kgT = hit.kg ? ' ' + String(hit.kg).replace('.', en ? '.' : ',') + ' kg' : '';
+              await send(uid, 'csp:' + p.id.slice(0, 8), 'commsp', en ? `🐟 ${hit.s} in the Community` : `🐟 ${hit.s} στην Κοινότητα`, (p.author || (en ? 'An angler' : 'Ένας ψαράς')) + (en ? ' caught ' : ' έπιασε ') + hit.s + kgT);
+            }
+          }
           const lastAt = {}; for (const x of recent) if (!lastAt[x.user_id] || x.at > lastAt[x.user_id]) lastAt[x.user_id] = x.at;
           for (const uid of Object.keys(byUser)) {
             const rows = byUser[uid]; if (!flag(rows, 'comm') || (quietNow && quietOn(rows))) continue;
@@ -169,7 +185,7 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
             if (la && Date.now() - la < 30 * 60000) continue;                 // όριο: μία φορά ανά 30′ (τα ψάρια περιμένουν, δεν χάνονται)
             const from = la ? new Date(la).toISOString() : since;              // από την τελευταία ειδοποίηση, αλλιώς τα 6′ όπως πριν
             const fs = followOf(rows);
-            const mine = (la ? postsAll : posts).filter(p => p.user_id !== uid && p.created_at > from && (!fs || fs.has(p.user_id))); if (!mine.length) continue;
+            const mine = (la ? postsAll : posts).filter(p => p.user_id !== uid && p.created_at > from && (!fs || fs.has(p.user_id)) && !(spSent[uid] && spSent[uid].has(p.id))); if (!mine.length) continue;
             const en = isEn(rows), p0 = mine[mine.length - 1];
             const isQ = p => p.cond && (p.cond.k === 'q' || p.cond.k === 'id');
             const what = p => { if (isQ(p)) return (en ? 'asks: ' : 'ρωτά: ') + (p.cond.k === 'id' ? (en ? 'What fish is this?' : 'Τι ψάρι είναι;') : String(p.cond.q || '').slice(0, 80)); const more = (p.cond && Array.isArray(p.cond.more)) ? p.cond.more.length : 0; return (p.species || '') + (p.kg ? ' ' + String(p.kg).replace('.', en ? '.' : ',') + ' kg' : '') + (more ? (en ? ` +${more} more` : ` +${more} ακόμα`) : ''); };
