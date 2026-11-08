@@ -21,8 +21,9 @@ function detect(fc,deg,kn,hours){
   if(h0.wind==null) return null;
   for(var i=0;i<lim.length;i++){
     var h=lim[i]; if(h.wind==null) continue;
-    var ds=Math.abs(h.wind-h0.wind), dd=(h0.dir!=null&&h.dir!=null&&h0.wind>=4&&h.wind>=4)?adiff(h.dir,h0.dir):0;
-    if(dd>=deg||ds>=kn) return {from:h0,to:h,dd:dd,ds:ds,inH:i+1};
+    /* 1.9.58: ίδιοι κανόνες με τον server: στροφή μόνο με ≥7 kn και στις δύο ώρες, ένταση μόνο αν ο δυνατότερος φτάνει τα 10 kn */
+    var ds=Math.abs(h.wind-h0.wind), dd=(h0.dir!=null&&h.dir!=null&&h0.wind>=7&&h.wind>=7)?adiff(h.dir,h0.dir):0;
+    if(dd>=deg||(ds>=kn&&Math.max(h.wind,h0.wind)>=10)) return {from:h0,to:h,dd:dd,ds:ds,inH:i+1};
   }
   return null;
 }
@@ -54,7 +55,9 @@ async function check(manual){
     var d=describe(r), key=p.lat.toFixed(2)+','+p.lon.toFixed(2)+':'+r.to.t.slice(0,13)+':'+(r.to.dir!=null?dn(r.to.dir):'')+':'+Math.round(r.to.wind/3);
     var seen=C.lsGet(SEEN,{})||{}, nowK=Date.now(); Object.keys(seen).forEach(function(k){ if(nowK-seen[k]>36*3600000) delete seen[k]; });
     var fresh=!seen[key];
-    if(fresh){ seen[key]=nowK; C.lsSet(SEEN,seen); if(cfg.on) await notify(d.title,d.body); }
+    /* 1.9.58: όταν ο server στέλνει ήδη ειδοποιήσεις ανέμου, όχι και δεύτερη από εδώ· και το πολύ μία ανά 4 ώρες */
+    var ntc=C.lsGet('alkyon-notify',{})||{}, srvOn=ntc.on&&ntc.server===true, lastN=+(C.lsGet('alkyon-wwatch-last',0)||0);
+    if(fresh){ seen[key]=nowK; C.lsSet(SEEN,seen); if(cfg.on&&!srvOn&&nowK-lastN>4*3600000){ C.lsSet('alkyon-wwatch-last',nowK); await notify(d.title,d.body); } }
     return {found:true,fresh:fresh,d:d};
   }catch(e){ return manual?{err:T('Η πρόγνωση δεν φορτώθηκε.','The forecast did not load.')}:null; }
   finally{ busy=false; }

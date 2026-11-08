@@ -649,6 +649,10 @@ with sync_playwright() as p:
     pg.evaluate("()=>AK.fromNotif('#community',null)"); pg.wait_for_timeout(800)
     r2=pg.evaluate("()=>location.hash")
     check('πάτημα ειδοποίησης κινητού: ανοίγει τη σωστή σελίδα και την ειδοποίηση (1.9.57)', r==['#inbox',True,'true',True] and r2=='#community' and not pg._errs, [r,r2,pg._errs]); c.close()
+    c=ctx(b,lang='en'); c.add_init_script("localStorage.setItem('alkyon-bites',JSON.stringify([{id:'tb1',date:'2026-10-01',time:'10:00',species:'Sargo',tech:'Βυθού',_u:1}]))"); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(2500)
+    pg.evaluate("()=>AK.biteForm()"); pg.wait_for_timeout(1200)
+    r=pg.evaluate("()=>{const ch=[...document.querySelectorAll('.qchips .chip')].find(x=>/Bottom fishing|Βυθού/.test(x.textContent)); if(!ch) return null; ch.click(); const i=document.querySelector('input[list=bfTech]'); return [ch.textContent, i&&i.value]}")
+    check('τεχνική στα αγγλικά: «Bottom fishing» και όχι «Βυθού» (1.9.58)', r==['Bottom fishing','Bottom fishing'] and not pg._errs, [r,pg._errs]); c.close()
     print('# offline')
     c=ctx(b,sw=True); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(6000); pg.reload(); pg.wait_for_timeout(3000)
     c.set_offline(True)
@@ -669,6 +673,6 @@ except Exception: _j={'ok':0,'fail':['server.mjs δεν έτρεξε: '+(_r.stde
 for _l in _r.stdout.splitlines():
     if _l.startswith('  ok   '): check('server: '+_l[7:], True, None)
 for _n in _j.get('fail',[]): check('server: '+_n, False, _r.stdout[-600:])
-check('server: τρέχουν τα tests', _j.get('ok',0)>=27, [_r.returncode,_r.stderr[-300:]])
+check('server: τρέχουν τα tests', _j.get('ok',0)>=29, [_r.returncode,_r.stderr[-300:]])
 print('\n%d ok, %d fail'%(OK[0],len(FAIL)))
 if FAIL: print('FAILED:', ', '.join(FAIL)); sys.exit(1)

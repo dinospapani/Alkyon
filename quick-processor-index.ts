@@ -502,6 +502,11 @@ async function checkPlaces(cfg,fetchFn){
   const pl=press.slice(0,2).map(i=>i.place.name+': '+ptxt(i)+' '+(i.dir==='fall'?t('Πριν αλλάξει ο καιρός τα ψάρια συχνά τσιμπούν πιο έντονα.','Before the weather changes fish often bite harder.'):t('Ο καιρός συνήθως σταθεροποιείται.','The weather usually settles.')));
   const wtxt=i=>{ const f=i.we.from, to=i.we.to, W=v=>Math.round(v)+' kn';
     return t('άνεμος ','wind ')+(f.dir!=null?compassOf(f.dir,en?'en':'el')+' ':'')+W(f.wind)+' → '+to.t.slice(11,16)+' '+(to.dir!=null?compassOf(to.dir,en?'en':'el')+' ':'')+W(to.wind)+(to.gust!=null&&to.gust>=to.wind+6?' ('+t('ριπές ','gusts ')+W(to.gust)+')':''); };
+  /* 1.9.58: αλλαγή ανέμου το πολύ μία ειδοποίηση ανά 4 ώρες (για όλα τα σημεία μαζί). Πριν: με 11 σημεία έφευγαν δεκάδες τη μέρα,
+     γιατί κάθε σημείο είχε δική του ειδοποίηση και κάθε μικρή αλλαγή της πρόγνωσης έφτιαχνε νέο κλειδί. */
+  { const wk='_wind:'+today, lastW=+notified[wk]||0;
+    if(winds.length&&Date.now()-lastW<4*3600000) winds.length=0;
+    else if(winds.length){ winds.sort((a,b)=>Math.max(b.we.to.wind,b.we.from.wind)-Math.max(a.we.to.wind,a.we.from.wind)); notified[wk]=Date.now(); } }
   const wl=winds.slice(0,2).map(i=>i.place.name+': '+wtxt(i));
   const ttxt=e=>{ const hh=e.t.slice(11,16), p=String(e.p).replace('.',en?'.':',');
     return {'rise-soon':t('η πίεση αρχίζει να ανεβαίνει γύρω στις '+hh+', σε ~'+e.h+' ώρ. Καλή ώρα να είσαι ήδη στο σημείο.','pressure starts rising around '+hh+', in ~'+e.h+' h. A good time to be at your spot already.'),
@@ -524,11 +529,9 @@ async function checkPlaces(cfg,fetchFn){
   press.forEach(i=>{ const tx=ptxt(i);
     msgs.push({kind:'pressure',key:i.key,place:P(i.place),t:i.t,title:(i.dir==='fall'?'📉 ':'📈 ')+t('Απότομη αλλαγή πίεσης','Sharp pressure change')+' · '+i.place.name,body:tx.charAt(0).toUpperCase()+tx.slice(1),
       full:i.place.name+': '+tx+' '+(i.dir==='fall'?t('Πριν αλλάξει ο καιρός τα ψάρια συχνά τσιμπούν πιο έντονα. Πρόσεχε την αλλαγή καιρού.','Before the weather changes fish often bite harder. Watch for the weather change.'):t('Ο καιρός συνήθως σταθεροποιείται.','The weather usually settles.'))}); });
-  const wMax=4;
-  winds.slice(0,wMax).forEach(i=>{ const tx=wtxt(i);
-    msgs.push({kind:'wind',key:i.key,place:P(i.place),t:i.we.to.t,title:'🌬 '+t('Αλλαγή ανέμου','Wind change')+' · '+i.place.name,body:tx.charAt(0).toUpperCase()+tx.slice(1),full:i.place.name+': '+tx}); });
-  if(winds.length>wMax){ const rest=winds.slice(wMax), tx=rest.map(i=>i.place.name+': '+wtxt(i)).join('\n');
-    msgs.push({kind:'wind',key:rest.map(i=>i.key).join('|').slice(0,180),place:null,t:null,title:'🌬 '+t('Αλλαγή ανέμου σε ','Wind change at ')+rest.length+t(' ακόμα τοποθεσίες',' more places'),body:rest.map(i=>i.place.name).join(', '),full:tx}); }
+  /* 1.9.58: μία ειδοποίηση ανέμου: το σημείο με τον δυνατότερο άνεμο, και τα υπόλοιπα στο πλήρες κείμενο */
+  if(winds.length){ const i=winds[0], tx=wtxt(i), more=winds.length-1;
+    msgs.push({kind:'wind',key:winds.map(x=>x.key).join('|').slice(0,180),place:P(i.place),t:i.we.to.t,title:'🌬 '+t('Αλλαγή ανέμου','Wind change')+' · '+i.place.name+(more?' +'+more:''),body:tx.charAt(0).toUpperCase()+tx.slice(1),full:winds.map(x=>x.place.name+': '+wtxt(x)).join('\n')}); }
   if(goods.length){ const tx=lines.join('\n');
     msgs.push({kind:'good',key:goods.map(i=>i.key).sort().join('|').slice(0,180),place:goods.length===1?P(goods[0].place):null,t:top[0]&&top[0].date,title:'🎣 '+(goods.length>1?t('Καλές μέρες για ψάρεμα','Good days for fishing'):t('Καλή μέρα για ψάρεμα','Good day for fishing')),
       body:lines[0]+(lines.length>1?' · +'+(goods.length-1):'')+(top[0]&&top[0].why?'\n'+top[0].why:''),full:goods.map(i=>i.place.name+': '+dayLabel(i.date)+' · '+t('δείκτης ','score ')+i.best+' · '+pad(i.win.s)+':00–'+pad((i.win.e+1)%24)+':00'+(i.why?'\n   '+i.why:'')).join('\n')}); }

@@ -151,6 +151,20 @@ NOW = RealDate.parse('2026-11-09T10:00:00Z');
   check('Κοινότητα: like σε χρήστη χωρίς συνδρομή → γράφεται στο ιστορικό του', w.rows.some(r => r.user_id === 'u9' && r.kind === 'commre') && w.sent.length === 0, [w.rows, w.sent]);
 }
 
+/* ---------- αλλαγή ανέμου: μία ειδοποίηση για όλα τα σημεία, το πολύ ανά 4 ώρες (1.9.58) ---------- */
+{
+  NOW = RealDate.parse('2026-11-09T10:00:00Z');
+  const W = () => t => { const dh = (RealDate.parse(t + 'Z') - 7200000 - NOW) / 3600000; return dh < 2 ? { wind: 4, wave: 0.3, dir: 45 } : { wind: 16, wave: 0.3, dir: 135 }; };
+  const w = world({ W });
+  const F2 = async (url, o) => { const r = await w.fetch(url, o); const j = await r.json(); if (!url.includes('marine')) j.hourly.wind_direction_10m = j.hourly.time.map(t => W()(t).dir); return { ok: true, json: async () => j }; };
+  const cfg = { places: [{ id: 'a', name: 'A', lat: 35.0, lon: 32.4 }, { id: 'b', name: 'B', lat: 34.8, lon: 32.5 }, { id: 'c', name: 'C', lat: 34.7, lon: 33.0 }], wind: { deg: 60, kn: 6, hours: 6 }, lang: 'en', threshold: 99, notified: {} };
+  const r1 = await PF.checkPlaces(cfg, F2), w1 = r1.msgs.filter(m => m.kind === 'wind');
+  const keep = {}; for (const k of Object.keys(r1.notified)) if (k.startsWith('_wind')) keep[k] = r1.notified[k];
+  NOW += 3600000; const r2 = await PF.checkPlaces(Object.assign({}, cfg, { notified: keep }), F2), w2 = r2.msgs.filter(m => m.kind === 'wind');
+  check('άνεμος: μία ειδοποίηση για όλα τα σημεία (+2)', w1.length === 1 && /\+2$/.test(w1[0].title) && w1[0].full.split('\n').length === 3, w1);
+  check('άνεμος: όχι ξανά μέσα σε 4 ώρες, ακόμα κι αν άλλαξε η πρόγνωση', w2.length === 0, w2);
+}
+
 /* ---------- σκοτάδι για καλαμάρι ---------- */
 {
   const dw = d => { const s = PF.sunMoon(d, 35.04, 32.42, 120); return PF.darkWin(d, s.set, s.rise, 35.04, 32.42, 120); };
