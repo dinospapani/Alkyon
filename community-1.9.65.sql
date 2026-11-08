@@ -98,3 +98,6 @@ create policy "cprof update" on public.community_profiles for update to authenti
 drop policy if exists "cprof delete" on public.community_profiles;
 create policy "cprof delete" on public.community_profiles for delete to authenticated using (user_id = auth.uid());
 revoke insert, update, delete on public.community_profiles from anon;
+
+-- 1.9.67: όνομα στο προφίλ της Κοινότητας (για τη λίστα «Άρεσε σε …»). ΕΦΑΡΜΟΣΤΗΚΕ (migration alkyon_1_9_67_profile_name).
+alter table public.community_profiles add column if not exists name text check (name is null or char_length(name) <= 40);
