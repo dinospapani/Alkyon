@@ -85,3 +85,9 @@ html.night .pik-heart,html.night .ibic.k-comm{color:inherit;background:#000}
 .srow .addfish{background:var(--accent);color:var(--accent-ink,#fff);border-color:var(--accent)}
 .srow .addfish svg{stroke:currentColor}
 html.night .srow .addfish{background:#000;color:#fff;border:1px solid #fff}
+/* 1.9.42: «Νέα έξοδος» στις Εξόδους */
+.addrow{display:flex;justify-content:flex-end;margin:0 0 10px}
+.addrow .addbtn{background:var(--accent);color:var(--accent-ink,#fff);min-height:38px;padding:0 14px}
+html.night .addrow .addbtn{background:#000;color:#fff;border:1px solid #fff}
+/* 1.9.42: φωτογραφία είδους στον Οδηγό: μέσα στην κάρτα (η κλάση spimg ήταν και του καλωσορίσματος, με position:absolute, και σκέπαζε το μενού) */
+.gdimg{display:block;position:static;width:100%;max-width:100%;max-height:240px;object-fit:cover;margin:0 0 10px;border-radius:12px}
