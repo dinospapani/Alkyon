@@ -336,6 +336,17 @@ function whereGo(){ if(!B.oppsCard){ location.hash='#map'; return; }
     h('p',{class:'sub',text:T('Τα σημεία σου με τον καλύτερο βαθμό, μόνο ώρες μέσα στα όρια ασφαλείας. Πάτα ένα για να το δεις στον χάρτη.','Your spots with the best score, only hours within your safety limits. Tap one to see it on the map.')}),B.oppsCard(6));
   var sh=B.sheet({title:T('Πού να πάω','Where to go'),body:body});
   body.addEventListener('click',function(e){ if(e.target.closest&&e.target.closest('.opr')&&sh&&sh.close) sh.close(); }); }
+/* 1.9.32: η θάλασσα στις ώρες του τσιμπήματος (ή του καλύτερου παραθύρου): [κλάση, τίτλος, λεπτομέρεια] */
+function seaState(d){
+  var w=d.biteWin||d.win, hs=w?(d.hours||[]).filter(function(q){ return q.hr>=w.s&&q.hr<=w.e; }):focusHours(d); if(!hs.length) hs=d.hours||[];
+  var mx=function(k){ var a=hs.map(function(q){ return q[k]; }).filter(function(v){ return typeof v==='number'; }); return a.length?Math.max.apply(null,a):null; };
+  var wv=mx('wave'), wd=mx('wind'), gs=mx('gust'), L=LIM(), lake=B.prof()==='lake', uns=hs.some(function(q){ return q.safe===false; });
+  var det=[wd!=null?U.wind(wd)+(gs!=null&&gs-wd>=6?T(', ριπές ',', gusts ')+U.wind(gs):''):null,(!lake&&wv!=null)?U.wave(wv):null].filter(Boolean).join(' · ');
+  if(uns) return ['bad',T('Εκτός ορίων','Over limits'),det+(!lake&&wv!=null&&wv>Math.min(1,L.wave||1)&&!(wd!=null&&wd>L.wind)?T(' · ψάξε απάνεμο κόλπο',' · find a sheltered bay'):'')];
+  if(!lake&&wv!=null&&wv>Math.min(1,L.wave||1)) return ['mid',T('Ψηλό κύμα','High waves'),det+T(' · ψάξε απάνεμο',' · find shelter')];
+  if((wd!=null&&wd>12)||(!lake&&wv!=null&&wv>0.6)) return ['mid',T('Μέτρια','Moderate'),det];
+  return ['good',T('Καλή','Good'),det];
+}
 /* ---------- μία μέρα ---------- */
 function dayView(page,fc,d){
   if(!d) return;
@@ -346,7 +357,12 @@ function dayView(page,fc,d){
   var fh=focusHours(d), tg=seaTag({wave:avgOf(fh,'wave'),wind:avgOf(fh,'wind')});
   hero.append(h('div',{class:'hv'},h('h2',{text:verdict(d)}))); /* 1.8.6: ο βαθμός φαίνεται ήδη στη μέρα πάνω· εδώ μπαίνει το «γιατί» */
   if(d.safe&&d.win) hero.append(h('div',{class:'hw'},h('span',{text:T('Καλύτερη ώρα','Best time')}),h('b',{text:win(d)})),
-    h('p',{class:'hidx',text:T('Δείκτης ψαρέματος ','Fishing index ')+d.best+'/100 · '+T('οι ετικέτες από κάτω αφορούν αυτές τις ώρες','the tags below are for these hours')}));
+    h('p',{class:'hidx',text:T('Δείκτης ψαρέματος ','Fishing index ')+d.best+'/100 ('+T('τσίμπημα και θάλασσα μαζί','bite and sea together')+') · '+T('οι ετικέτες από κάτω αφορούν αυτές τις ώρες','the tags below are for these hours')}));
+  /* 1.9.32: χωριστά «Τσίμπημα» (μόνο τα ψάρια: φως, σελήνη, πίεση, νερό) και «Θάλασσα» (άνεμος/κύμα σε σχέση με τα όριά σου) */
+  if(d.bite!=null&&d.bite>0){ var sx=seaState(d), bw=d.biteWin;
+    hero.append(h('div',{class:'hsplit'},
+      h('div',{class:'hsb lv-'+lvl(d.bite)},h('small',{text:'🐟 '+T('Τσίμπημα','Bite')}),h('b',{text:String(d.bite)}),h('span',{text:bw?B.pad(bw.s)+':00–'+B.pad((bw.e+1)%24)+':00':''})),
+      h('div',{class:'hsb sea-'+sx[0]},h('small',{text:'🌊 '+T('Θάλασσα','Sea')}),h('b',{text:sx[1]}),h('span',{text:sx[2]})))); }
   var wz=worsens(d); if(wz) hero.append(h('p',{class:'hworse',text:wz}));
   else if(!d.safe){ var why=unsafeWhy(d); if(why) hero.append(h('p',{class:'hwhy',text:why.charAt(0).toUpperCase()+why.slice(1)+'.'})); }
   /* σήμερα δεν βγαίνει: δείξε την επόμενη καλή μέρα */
@@ -453,7 +469,7 @@ function hourCard(fc,d,selH,nh){
     bars.forEach(function(b,j){ b.classList.toggle('sel',j===i); b.setAttribute('aria-selected',String(j===i)); });
     head.className='hsel lv-'+(q.safe?lvl(q.score):'poor');
     var lw=!q.safe?T('εκτός ορίων','over limits'):q.score>=70?T('καλή ώρα','good hour'):q.score>=50?T('μέτρια ώρα','fair hour'):T('δύσκολη ώρα','tough hour');
-    head.replaceChildren.apply(head,[h('b',{text:(nh!=null&&q.hr===nh?T('Τώρα','Now')+', ':'')+B.pad(q.hr)+':00–'+B.pad((q.hr+1)%24)+':00'}),h('span',{class:'hs',text:T('δείκτης ','index ')+q.score+'/100 · '+lw}),].filter(Boolean)); var ow=q.safe?'':overWhy(q);
+    head.replaceChildren.apply(head,[h('b',{text:(nh!=null&&q.hr===nh?T('Τώρα','Now')+', ':'')+B.pad(q.hr)+':00–'+B.pad((q.hr+1)%24)+':00'}),h('span',{class:'hs',text:T('δείκτης ','index ')+q.score+'/100 · '+lw+(q.bite!=null&&q.bite!==q.score?' · 🐟 '+T('τσίμπημα ','bite ')+q.bite:'')}),].filter(Boolean)); var ow=q.safe?'':overWhy(q);
     huLine.hidden=q.safe; huLine.replaceChildren(h('b',{text:T('Πάνω από τα όριά σου','Over your limits')}),h('span',{text:ow?': '+ow:''}),h('a',{href:'#',text:T('Αλλαγή ορίων','Change limits'),onclick:function(e){ e.preventDefault(); limSheet(); }}));
     rows.replaceChildren.apply(rows,hourRows(q).map(function(r){ return h('div',{class:'row'},h('span',{text:r[0]}),h('b',null,r[1])); }));
   }

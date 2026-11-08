@@ -413,3 +413,15 @@ html.night .hero .hsun1 .mj{color:inherit}
 #fcExposure .exest small{grid-column:1/-1;font-size:12.5px;color:var(--ink-2);line-height:1.4}
 #fcExposure .exwc{padding:3px 10px;border-radius:999px;color:#fff;font:800 13px/1.5 var(--font)}
 #fcExposure .exwc.g{background:#3f9d6b}#fcExposure .exwc.y{background:#c9a227}#fcExposure .exwc.o{background:#d9731f}#fcExposure .exwc.r{background:#c93a14}
+/* 1.9.32: Τσίμπημα / Θάλασσα χωριστά */
+.hero .hsplit{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0 4px}
+.hero .hsb{display:flex;flex-direction:column;gap:1px;padding:10px 12px;border-radius:14px;background:var(--surface-2);min-width:0}
+.hero .hsb small{font:700 12.5px/1.3 var(--font);color:var(--ink-2)}
+.hero .hsb b{font:800 22px/1.15 var(--font);color:var(--ink)}
+.hero .hsb span{font:600 12.5px/1.35 var(--font);color:var(--ink-2)}
+.hero .hsb.lv-good b{color:var(--good-ink,#2e7d4f)}.hero .hsb.lv-fair b{color:#a87a12}.hero .hsb.lv-poor b{color:#b0412a}
+.hero .hsb.sea-good{background:var(--good-bg)}.hero .hsb.sea-mid{background:#fbf0d9}.hero .hsb.sea-bad{background:#f8e0da}
+.hero .hsb.sea-good b{color:var(--good-ink,#2e7d4f)}.hero .hsb.sea-mid b{color:#a06a0a}.hero .hsb.sea-bad b{color:#b0412a}
+@media (prefers-color-scheme:dark){ :root:not([data-theme=light]) .hero .hsb.sea-mid{background:#3a3020} :root:not([data-theme=light]) .hero .hsb.sea-bad{background:#3d2420} }
+:root[data-theme=dark] .hero .hsb.sea-mid{background:#3a3020} :root[data-theme=dark] .hero .hsb.sea-bad{background:#3d2420}
+html.night .hero .hsb{background:#000!important;outline:1px solid currentColor}
