@@ -537,9 +537,9 @@ window.TACKLE_LIB=[["rod","Shimano","Vengeance"],["rod","Shimano","Speedmaster"]
  ["lure", "Daiwa", "Emeraldas Dart II #3.5", {"model": "Daiwa Emeraldas Dart II #3.5", "spec": "squid jig (egi) · size #3.5", "kind": "egi"}],
  ["lure", "Yo-Zuri", "Aurie-Q RS #1.8", {"model": "Yo-Zuri Aurie-Q RS #1.8", "spec": "squid jig (egi) · size #1.8 · 2 in · sink 4 s/m", "kind": "egi"}],
  ["lure", "Yo-Zuri", "Aurie-Q RS #2.0", {"model": "Yo-Zuri Aurie-Q RS #2.0", "spec": "squid jig (egi) · size #2.0", "kind": "egi", "w": [8.3]}],
- ["lure", "Yo-Zuri", "Aurie-Q RS #2.5", {"model": "Yo-Zuri Aurie-Q RS #2.5", "spec": "squid jig (egi) · size #2.5", "kind": "egi"}],
+ ["lure", "Yo-Zuri", "Aurie-Q RS #2.5", {"model": "Yo-Zuri Aurie-Q RS #2.5", "spec": "squid jig (egi) · size #2.5", "kind": "egi", "w": [11]}],
  ["lure", "Yo-Zuri", "Aurie-Q RS #3.0", {"model": "Yo-Zuri Aurie-Q RS #3.0", "spec": "squid jig (egi) · size #3.0", "kind": "egi"}],
- ["lure", "Yo-Zuri", "Aurie-Q RS #3.5", {"model": "Yo-Zuri Aurie-Q RS #3.5", "spec": "squid jig (egi) · size #3.5", "kind": "egi"}],
+ ["lure", "Yo-Zuri", "Aurie-Q RS #3.5", {"model": "Yo-Zuri Aurie-Q RS #3.5", "spec": "squid jig (egi) · size #3.5", "kind": "egi", "w": [16]}],
  ["lure", "Yo-Zuri", "Aurie-Q Cloth #1.8", {"model": "Yo-Zuri Aurie-Q Cloth #1.8", "spec": "squid jig (egi) · size #1.8", "kind": "egi"}],
  ["lure", "Yo-Zuri", "Aurie-Q Cloth #2.5", {"model": "Yo-Zuri Aurie-Q Cloth #2.5", "spec": "squid jig (egi) · size #2.5", "kind": "egi", "w": [10]}],
  ["lure", "Yo-Zuri", "Aurie-Q Cloth #3.0", {"model": "Yo-Zuri Aurie-Q Cloth #3.0", "spec": "squid jig (egi) · size #3.0 · sink 3,7 s/m", "kind": "egi", "w": [14.5]}],
@@ -554,6 +554,7 @@ window.TACKLE_LIB=[["rod","Shimano","Vengeance"],["rod","Shimano","Speedmaster"]
  ].forEach(function(r){ var k=r[0]+'|'+(r[1]+' '+r[2]).toLowerCase(); if(!have[k]){ have[k]=1; L.push(r); } });
 })();
 
+/* 1.9.49: βάρη για Yo-Zuri Aurie-Q RS #2.5 (11 g) / #3.5 (16 g), Shimano Sephia Sepy Flash Boost #1.8 (7 g) / #2.2 (8,7 g)· νέα: Evergreen Egi Bancho D #3.0. */
 /* 1.9.48: βάρη για Sephia Clinch Flash Boost / Prawn #3.5 (19 g), Egizo #3.0 (15 g), Aurie-Q Cloth #3.0 (14,5 g). */
 /* 1.9.46: ακόμα καλαμαριέρες (Yamashita Naory, Harimitsu, Major Craft, Nomura, Shimano Sephy, Evergreen, DUEL TR). Ίδιος κανόνας: βάρη/βύθιση μόνο όπου δίνονται. */
 (function(){ var L=window.TACKLE_LIB, have={}; L.forEach(function(r){ have[r[0]+'|'+(r[1]+' '+r[2]).toLowerCase()]=1; });
@@ -577,8 +578,9 @@ window.TACKLE_LIB=[["rod","Shimano","Vengeance"],["rod","Shimano","Speedmaster"]
  ["lure", "Nomura", "Eging Sea Squid Jig #2.5", {"model": "Nomura Eging Sea Squid Jig #2.5", "spec": "squid jig (egi) · size #2.5 · Lineaeffe", "kind": "egi"}],
  ["lure", "Nomura", "Eging Sea Squid Jig #3.0", {"model": "Nomura Eging Sea Squid Jig #3.0", "spec": "squid jig (egi) · size #3.0 · Lineaeffe", "kind": "egi"}],
  ["lure", "Nomura", "Eging Sea Squid Jig #3.5", {"model": "Nomura Eging Sea Squid Jig #3.5", "spec": "squid jig (egi) · size #3.5 · Lineaeffe", "kind": "egi"}],
- ["lure", "Shimano", "Sephy Flash Boost 1.8 in", {"model": "Shimano Sephy Flash Boost 1.8 in", "spec": "squid jig (egi) · 1.8 in · light game", "kind": "egi"}],
- ["lure", "Shimano", "Sephy Flash Boost 2.2 in", {"model": "Shimano Sephy Flash Boost 2.2 in", "spec": "squid jig (egi) · 2.2 in · light game", "kind": "egi"}],
+ ["lure", "Shimano", "Sephia Sepy Flash Boost #1.8", {"model": "Shimano Sephia Sepy Flash Boost #1.8", "spec": "squid jig (egi) · size #1.8 · light game", "kind": "egi", "w": [7]}],
+ ["lure", "Shimano", "Sephia Sepy Flash Boost #2.2", {"model": "Shimano Sephia Sepy Flash Boost #2.2", "spec": "squid jig (egi) · size #2.2 · light game", "kind": "egi", "w": [8.7]}],
+ ["lure", "Evergreen", "Egi Bancho D #3.0", {"model": "Evergreen Egi Bancho D #3.0", "spec": "squid jig (egi) · size #3.0 · fast sinking", "kind": "egi"}],
  ["lure", "Evergreen", "EGI #2.5", {"model": "Evergreen EGI #2.5", "spec": "squid jig (egi) · size #2.5", "kind": "egi"}],
  ["lure", "Evergreen", "EGI #3.0", {"model": "Evergreen EGI #3.0", "spec": "squid jig (egi) · size #3.0", "kind": "egi"}],
  ["lure", "DUEL", "EZ-Q Fin Plus TR Rattle #3.5", {"model": "DUEL EZ-Q Fin Plus TR Rattle #3.5", "spec": "squid jig (egi) · size #3.5 · tip-run (boat) · rattle", "kind": "egi", "w": [30]}]
