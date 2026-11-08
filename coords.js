@@ -195,7 +195,8 @@ function upgrade(el,axis){
 }
 /* δέσιμο δύο πεδίων κειμένου. Επικόλληση ζεύγους στο πρώτο πεδίο τα γεμίζει και τα δύο. onChange(lat|null,lon|null) */
 var PAIRS=[];
-var MODES=[['dm','35°26.052′'],['dd','35.43419°'],['dms','35°26′3.1″']];
+/* 1.9.43: ονόματα μορφών αντί για παράδειγμα με άλλη τιμή (μπέρδευε: έδειχνε 35°26′ ενώ η θέση ήταν 34°47′) */
+var MODES=window.LANG==='en'?[['dm','Deg + min'],['dd','Decimal'],['dms','Deg + min + sec']]:[['dm','Μοίρες + λεπτά'],['dd','Δεκαδικές'],['dms','Μ + λ + δεύτερα']];
 function noteText(m){
   var en=window.LANG==='en';
   return {dm:en?'Degrees and minutes, as on the chartplotter.':'Μοίρες και λεπτά, όπως στο πλότερ.',dd:en?'Decimal degrees, as on iPhone and Google Maps.':'Δεκαδικές μοίρες, όπως στο iPhone και στο Google Maps.',dms:en?'Degrees, minutes and seconds.':'Μοίρες, λεπτά και δευτερόλεπτα.'}[m]+(en?' You can also paste the whole pair.':' Δέχεται και επικόλληση ολόκληρου του ζεύγους.');

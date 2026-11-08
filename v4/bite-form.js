@@ -134,6 +134,49 @@ B.biteForm=function(edit,opt){
   function showCoord(){ if(!cbx&&B.coordBox){ var p0=(e&&typeof e.lat==='number')?{lat:e.lat,lon:e.lon}:(opt&&opt.at)||pos||B.lastPos(); cbx=B.coordBox(p0?p0.lat:undefined,p0?p0.lon:undefined); cwrap.append(cbx.el); } cwrap.hidden=false; }
   where.addEventListener('change',function(){ cwrap.hidden=where.value!=='coord'; if(where.value==='gps') locNow(); else if(where.value==='coord'){ whereNote.textContent=''; showCoord(); } else whereNote.textContent=''; });
   if(!e&&opt&&opt.at){ where.value='at'; whereNote.textContent=window.AlkyonCoord?AlkyonCoord.fmt(opt.at.lat,opt.at.lon):opt.at.lat.toFixed(5)+', '+opt.at.lon.toFixed(5); }
+  /* 1.9.43: «Πού» πιο εύκολο: τρία μεγάλα κουμπιά (Εδώ / Στον χάρτη / Σημείο μου), μεγάλος χάρτης σε όλη την οθόνη για να το διαλέξεις,
+     και οι συντεταγμένες μόνο αν τις ζητήσεις. Ο αποθηκευμένος τρόπος (where.value) μένει ο ίδιος. */
+  var wSum=h('div',{class:'wps'}), wBtns={};
+  function fmtLL(a,b){ return window.AlkyonCoord&&AlkyonCoord.fmt?AlkyonCoord.fmt(a,b):a.toFixed(5)+', '+b.toFixed(5); }
+  function setW(v,fromMap){ where.value=v; where.dispatchEvent(new Event('change')); if(fromMap) cwrap.hidden=true; paintW(); try{ wwPaint(); }catch(x){} }
+  function paintW(){ var v=where.value, t='', sub='';
+    if(v==='gps'){ t=T('Η θέση μου τώρα','My position now'); sub=whereNote.textContent; }
+    else if(v==='coord'){ var g=cbx&&cbx.get(); t=g?fmtLL(g.lat,g.lon):T('Γράψε συντεταγμένες','Type coordinates'); var ns=g?nearSpot(g.lat,g.lon):null; sub=ns?T('Κοντά στο σημείο σου «','Near your spot “')+ns.name+'»':''; }
+    else if(v.slice(0,2)==='s:'){ var sp0=S.get('spots',v.slice(2)); t='★ '+(sp0&&sp0.name||T('Σημείο','Spot')); sub=sp0?fmtLL(sp0.lat,sp0.lon):''; }
+    else if(v==='keep'){ t=T('Όπως ήταν','As it was'); sub=e&&typeof e.lat==='number'?fmtLL(e.lat,e.lon):''; }
+    else if(v==='at'){ t=T('Το σημείο που διάλεξες στον χάρτη','The point you picked on the map'); sub=opt&&opt.at?fmtLL(opt.at.lat,opt.at.lon):''; }
+    else { t=T('Χωρίς θέση','No position'); }
+    wSum.replaceChildren(h('b',{text:t}),sub?h('small',{text:sub}):null);
+    var k=v==='gps'?'gps':(v==='coord'&&cwrap.hidden)||v==='at'?'map':v.slice(0,2)==='s:'?'spot':v==='coord'?'type':v;
+    Object.keys(wBtns).forEach(function(n){ wBtns[n].setAttribute('aria-pressed',String(n===k)); }); }
+  function bigMap(){ var g0=(cbx&&cbx.get())||(where.value.slice(0,2)==='s:'&&S.get('spots',where.value.slice(2)))||pos||(e&&typeof e.lat==='number'?{lat:e.lat,lon:e.lon}:null)||(opt&&opt.at)||B.lastPos()||{lat:35.0,lon:33.2};
+    var el=h('div',{class:'bpm'}), rd=h('b',{class:'bprd'}), ov, mm=null;
+    function close(){ try{ mm&&mm.remove(); }catch(x){} ov.remove(); }
+    ov=h('div',{class:'bpov',role:'dialog','aria-modal':'true','aria-label':T('Πού ήταν το ψάρι;','Where was the catch?')},el,h('i',{class:'bpx','aria-hidden':'true'}),
+      h('div',{class:'bptop'},h('button',{type:'button',class:'iconbtn',html:B.iconSvg('close'),'aria-label':T('Κλείσιμο','Close'),onclick:close}),h('span',{text:T('Μετακίνησε τον χάρτη στο σημείο','Move the map to the spot')}),h('button',{type:'button',class:'iconbtn',html:B.iconSvg('gps'),'aria-label':T('Η θέση μου','My position'),onclick:function(){ B.locate(8000).then(function(p){ if(p&&mm) mm.setView([p.lat,p.lon],15); }); }})),
+      h('div',{class:'bpbot'},rd,h('button',{type:'button',class:'btn pri full',text:T('Εδώ ήταν','It was here'),onclick:function(){ var c=mm&&mm.getCenter(); if(!c) return; if(!cbx){ showCoord(); } cbx.set(+c.lat.toFixed(5),+c.lng.toFixed(5)); close(); setW('coord',true); }})));
+    document.body.append(ov);
+    (window.L?Promise.resolve():(B.leaflet?B.leaflet():Promise.resolve())).catch(function(){}).then(function(){ if(!window.L){ rd.textContent=T('Ο χάρτης δεν φόρτωσε.','The map did not load.'); return; }
+      mm=L.map(el,{zoomControl:false,attributionControl:false}).setView([g0.lat,g0.lon],14);
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19}).addTo(mm);
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,opacity:.8}).addTo(mm);
+      /* τα σημεία σου και τα προηγούμενα ψάρια, για να βρίσκεις γρήγορα πού ήσουν */
+      S.raw('spots').forEach(function(x){ if(x.deleted||typeof x.lat!=='number') return; L.marker([x.lat,x.lon],{icon:L.divIcon({className:'bpspot',html:'<span>★ '+String(x.name||'').replace(/[<>&]/g,'')+'</span>',iconSize:null})}).on('click',function(){ mm.setView([x.lat,x.lon],Math.max(mm.getZoom(),15)); }).addTo(mm); });
+      S.raw('bites').forEach(function(b){ if(b.deleted||typeof b.lat!=='number'||(e&&b.id===e.id)) return; L.circleMarker([b.lat,b.lon],{radius:4,color:'#fff',weight:1.5,fillColor:'#d4502b',fillOpacity:.9}).addTo(mm); });
+      var upd=function(){ var c=mm.getCenter(); rd.textContent=fmtLL(c.lat,c.lng); }; mm.on('move',upd); upd(); setTimeout(function(){ mm.invalidateSize(); },120); }); }
+  function spotPick(){ var me=pos||B.lastPos(), L0=S.raw('spots').filter(function(x){ return !x.deleted&&typeof x.lat==='number'; });
+    if(!L0.length){ B.toast(T('Δεν έχεις αποθηκευμένα σημεία ακόμα. Διάλεξε «Στον χάρτη».','No saved spots yet. Choose “On the map”.')); return; }
+    var D=function(x){ if(!me) return null; var R=Math.PI/180, dl=(x.lat-me.lat)*R, dn=(x.lon-me.lon)*R, y=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(me.lat*R)*Math.cos(x.lat*R)*Math.sin(dn/2)*Math.sin(dn/2); return 12742*Math.asin(Math.min(1,Math.sqrt(y))); };
+    L0=L0.map(function(x){ return {x:x,d:D(x)}; }).sort(function(a,b){ return a.d!=null&&b.d!=null?a.d-b.d:String(a.x.name).localeCompare(String(b.x.name)); });
+    var sh=B.sheet({title:T('Σημείο μου','My spot'),body:h('div',{class:'list'},L0.map(function(o){ return h('button',{type:'button',class:'li',onclick:function(){ sh.close(); setW('s:'+o.x.id); }},h('span',{class:'ic'},B.icon('pin')),h('span',{class:'tx'},h('b',{text:o.x.name||T('Σημείο','Spot')}),h('small',{text:(o.x.type||'')+(o.d!=null?(o.x.type?' · ':'')+(o.d<10?B.num(o.d,1):Math.round(o.d))+' km':'')})),B.icon('chev')); }))}); }
+  function wb(k,ic,t,fn){ return (wBtns[k]=h('button',{type:'button',class:'wpb','aria-pressed':'false',onclick:fn},h('i',{html:B.iconSvg(ic)}),h('span',{text:t}))); }
+  var wPick=h('div',{class:'wpk'},
+    h('div',{class:'wpbs'},wb('gps','gps',T('Εδώ','Here'),function(){ setW('gps'); }),wb('map','map',T('Στον χάρτη','On the map'),bigMap),wb('spot','pin',T('Σημείο μου','My spot'),spotPick)),
+    wSum,
+    h('div',{class:'wplinks'},h('button',{type:'button',class:'linkbtn',text:T('Γράψε συντεταγμένες','Type coordinates'),onclick:function(){ setW('coord'); showCoord(); cwrap.hidden=false; paintW(); }}),h('button',{type:'button',class:'linkbtn',text:T('Χωρίς θέση','No position'),onclick:function(){ setW('none'); }})));
+  where.addEventListener('change',function(){ setTimeout(paintW,0); });
+  var _ln=locNow; locNow=function(){ return _ln().then(function(){ paintW(); }); };
+  setTimeout(paintW,0);
   var locP=!e&&!(opt&&opt.at)?locNow():Promise.resolve();
   /* φωτογραφίες */
   var phBox=h('div',{class:'phs'}), file=h('input',{type:'file',accept:'image/*',multiple:true,class:'vh'});
@@ -191,11 +234,11 @@ B.biteForm=function(edit,opt){
   var camB=h('button',{class:'bfic',type:'button','aria-label':T('Φωτογραφία','Photo'),title:T('Φωτογραφία','Photo'),html:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',onclick:function(){ more.open=true; file.click(); }});
   var top=h('div',{class:'bftop'},h('div',{class:'bfseg',role:'group','aria-label':T('Ψάρι ή χαμένο','Fish or lost')},segF,segM,h('label',{class:'vh'},miss,T('Χάθηκε','Lost'))),micB,camB);
   /* πότε / πού σε μία γραμμή */
-  var wwBox=h('div',{class:'bfww',hidden:true},field(T('Πότε','When'),when),h('label',{class:'fld'},h('span',{text:T('Πού','Where')}),where,whereNote),cwrap);
+  var wwBox=h('div',{class:'bfww',hidden:true},field(T('Πότε','When'),when),h('div',{class:'fld'},h('span',{text:T('Πού','Where')}),wPick,h('span',{class:'vh'},where,whereNote)),cwrap);
   var wwTx=h('span',{class:'bflt'});
   function wwPaint(){ var v=when.value||'', d=v?new Date(v):null, now=Math.abs(Date.now()-(d?d.getTime():0))<6*60000;
     var wt=now?T('Τώρα','Now'):(d?d.toLocaleDateString(EN?'en-GB':'el-GR',{day:'numeric',month:'short'})+' '+B.pad(d.getHours())+':'+B.pad(d.getMinutes()):'–');
-    var o=where.options[where.selectedIndex], wh=where.value==='gps'?T('Η θέση μου (GPS)','My position (GPS)'):(o?o.text.replace(/^★ |^📍 /,''):'');
+    var o=where.options[where.selectedIndex], cg0=where.value==='coord'&&cbx&&cbx.get(), wh=where.value==='gps'?T('Η θέση μου (GPS)','My position (GPS)'):cg0?fmtLL(cg0.lat,cg0.lon):(o?o.text.replace(/^★ |^📍 /,''):'');
     var ns=where.value==='gps'&&pos?nearSpot(pos.lat,pos.lon):null; wwTx.textContent=wt+' · '+(ns?'★ '+ns.name:wh); }
   var wwLine=h('button',{type:'button',class:'bfline',onclick:function(){ wwBox.hidden=!wwBox.hidden; wwLine.classList.toggle('open',!wwBox.hidden); }},h('span',{class:'bfll',text:T('Πότε · Πού','When · Where')}),wwTx,h('i',{text:'✎'}));
   when.addEventListener('change',wwPaint); where.addEventListener('change',wwPaint); locP.then(function(){ wwPaint(); autoDepth(); }); wwPaint();
