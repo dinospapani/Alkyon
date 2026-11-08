@@ -615,6 +615,9 @@ with sync_playwright() as p:
       const o3=[]; AK.store.setsSync([],o3);
       return a.concat([o2.length, o2[0]&&o2[0].kind, o2[0]&&o2[0].data['alkyon-limits'].wave, o3.length]); }""")
     check('ρυθμίσεις στον λογαριασμό: νέο κινητό τις παίρνει, αλλαγή ανεβαίνει (1.9.50)', r==[1,'cloud',0,1,'settings',1.1,0] and not pg._errs, [r,pg._errs]); c.close()
+    c=ctx(b); c.add_init_script("localStorage.setItem('alkyon-v4-mapui',JSON.stringify('clean'));localStorage.setItem('alkyon-v4-inbox',JSON.stringify([{at:new Date().toISOString(),kind:'commre',title:'x',body:'y'}]))"); pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(4000)
+    r=pg.evaluate("()=>{const a=document.querySelector('.mapbar .bellb'), m=document.querySelector('.mclay'); if(!a||!m) return null; const x=a.getBoundingClientRect(), y=m.getBoundingClientRect(); return [getComputedStyle(a).display, x.top>=y.bottom+4, Math.abs(x.right-y.right)<2]}")
+    check('καθαρός χάρτης: το καμπανάκι κάτω από τα «Στρώματα», όχι από πίσω (1.9.51)', r and r[0]!='none' and r[1] and r[2] and not pg._errs, [r,pg._errs]); c.close()
     print('# offline')
     c=ctx(b,sw=True); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(6000); pg.reload(); pg.wait_for_timeout(3000)
     c.set_offline(True)

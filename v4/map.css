@@ -1131,3 +1131,6 @@ html.night .ck .ckland{background:#000;outline:1px solid #fff;outline-offset:-1p
 #wxLeg .wlnote{display:block;font:600 11px var(--font);color:var(--ink-2);margin:0 0 2px}
 /* 1.9.39: ειδοποιήσεις και στον καθαρό χάρτη, όταν υπάρχουν αδιάβαστες */
 body.mapclean .mapbar>.bellb.has{display:grid!important}
+/* 1.9.51: στον καθαρό χάρτη το καμπανάκι (όταν έχει αδιάβαστες) μπαίνει κάτω από το κουμπί «Στρώματα», όχι από πίσω του */
+body.mapclean .mapbar>.bellb.has{position:fixed;right:12px;top:calc(var(--safe-t,0px) + 132px);width:46px;height:46px;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+body.mapclean:has(.mcdrw.open) .mapbar>.bellb.has,body.mapclean:has(.sheet.on) .mapbar>.bellb.has,body.mapclean.ruling .mapbar>.bellb.has,body.mapclean.mappick .mapbar>.bellb.has{display:none!important}
