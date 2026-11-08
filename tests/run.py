@@ -618,6 +618,13 @@ with sync_playwright() as p:
     c=ctx(b); c.add_init_script("localStorage.setItem('alkyon-v4-mapui',JSON.stringify('clean'));localStorage.setItem('alkyon-v4-inbox',JSON.stringify([{at:new Date().toISOString(),kind:'commre',title:'x',body:'y'}]))"); pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(4000)
     r=pg.evaluate("()=>{const a=document.querySelector('.mapbar .bellb'), m=document.querySelector('.mclay'); if(!a||!m) return null; const x=a.getBoundingClientRect(), y=m.getBoundingClientRect(); return [getComputedStyle(a).display, x.top>=y.bottom+4, Math.abs(x.right-y.right)<2]}")
     check('καθαρός χάρτης: το καμπανάκι κάτω από τα «Στρώματα», όχι από πίσω (1.9.51)', r and r[0]!='none' and r[1] and r[2] and not pg._errs, [r,pg._errs]); c.close()
+    inb=[{'at':'2026-11-08T14:05:00Z','kind':'wind','title':'💨 Wind change · Map point','body':'x'},{'at':'2026-11-08T13:46:00Z','kind':'smart','title':'🏠 When to head back','body':'y'},{'at':'2026-11-08T13:03:00Z','kind':'good','title':'⭐ A good fishing window is coming soon for you today','body':'z'}]
+    c=ctx(b); c.add_init_script("localStorage.setItem('alkyon-v4-inbox',JSON.stringify(%s))"%json.dumps(inb)); pg=page(c); pg.goto(BASE+'/v4/#inbox'); pg.wait_for_timeout(3000)
+    r=pg.evaluate("()=>[...document.querySelectorAll('.ibrow')].map(x=>[x.querySelector('.ibic').className.replace('ibic ',''), x.querySelector('.tx b').textContent, !!x.querySelector('.tx b .ik'), getComputedStyle(x.querySelector('.tx b')).whiteSpace])")
+    we=pg.evaluate("""()=>{ const mk=(a)=>({nowLocal:'2026-11-08T12:00',days:[{hours:a.map((w,i)=>({t:'2026-11-08T'+String(12+i).padStart(2,'0')+':00',wind:w[0],dir:w[1]}))}]});
+      return [!!PF.windEvent(mk([[0,315],[6,45],[6,45]])), !!PF.windEvent(mk([[6,315],[14,315],[14,315]])), !!PF.windEvent(mk([[4,0],[4,180],[4,180]])), !!PF.windEvent(mk([[9,0],[9,180],[9,180]]))]; }""")
+    ok=r and len(r)==3 and [x[0] for x in r]==['k-wind','k-trip','k-good'] and not any(x[2] for x in r) and r[0][1].startswith('Wind change') and r[2][3]=='normal'
+    check('ειδοποιήσεις: ένα εικονίδιο, σωστή κατηγορία, τίτλος χωρίς «…»· όχι «αλλαγή ανέμου» από νηνεμία (1.9.52)', ok and we==[False,True,False,True] and not pg._errs, [r,we,pg._errs]); c.close()
     print('# offline')
     c=ctx(b,sw=True); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(6000); pg.reload(); pg.wait_for_timeout(3000)
     c.set_offline(True)

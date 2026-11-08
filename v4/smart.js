@@ -33,7 +33,7 @@ function badIn(){
   var c=ls.get('alkyon-wxa',null); if(!c||!c.f||!c.f.nowLocal||!c.f.days||Date.now()-c.t>4*3600000) return null;
   var base=Date.parse(c.f.nowLocal.slice(0,16)+':00Z'), el0=(Date.now()-c.t)/60000, best=null;
   c.f.days.forEach(function(d){ (d.hours||[]).forEach(function(x){ if(!x.t||best) return; var tm=Date.parse(x.t.slice(0,13)+':00:00Z'); if(isNaN(tm)||tm<base-3600000) return;
-    if((x.wind||0)>=20||(x.gust||0)>=28||(x.wave||0)>=1.5) best={mins:Math.max(0,(tm-base)/60000-el0),wind:x.wind,wave:x.wave}; }); });
+    if((x.wind||0)>=20||(x.gust||0)>=28||(x.wave||0)>=1.5) best={mins:Math.max(0,(tm-base)/60000-el0),wind:x.wind,gust:x.gust,wave:x.wave}; }); });
   return best;
 }
 var atHome=0, endAsked=false;
@@ -50,7 +50,9 @@ function rt(){
         else if(S.fuel.L-need<rsv){ level='warn'; msg=T('Το καύσιμο πλησιάζει την εφεδρεία','Fuel is close to the reserve'); note('⛽ '+T('Καύσιμο','Fuel'),msg+' (~'+Math.round(S.fuel.L)+' L)','fuelw',40*60000); } } }
     if(eta!=null){ var b=badIn();
       if(b){ var margin=b.mins-eta;
-        if(margin<=20){ level='bad'; msg=T('Ώρα να γυρίσεις: χρειάζεσαι ~','Time to head back: you need ~')+Math.round(eta)+T('′ και ο καιρός χειροτερεύει σε ~',' min and the weather worsens in ~')+Math.round(b.mins)+(EN?' min':'′'); note('🏠 '+T('Πότε να γυρίσεις','When to head back'),msg,'back',25*60000); }
+        if(margin<=20){ level='bad'; var why=[(b.wind||0)>=20?T('άνεμος ','wind ')+Math.round(b.wind)+' kn':'',(b.gust||0)>=28?T('ριπές ','gusts ')+Math.round(b.gust)+' kn':'',(b.wave||0)>=1.5?T('κύμα ','waves ')+B.num(b.wave,1)+' m':''].filter(Boolean).join(', ');
+          /* 1.9.52: όχι «χειροτερεύει σε ~0′»: αν είναι ήδη εκτός ορίων το λέει, και λέει τι */
+          msg=(b.mins<10?T('Ο καιρός είναι ήδη άσχημος εδώ','The weather is already rough here'):T('Ο καιρός χειροτερεύει σε ~','The weather worsens in ~')+Math.round(b.mins)+(EN?' min':'′'))+(why?' ('+why+')':'')+T('. Η επιστροφή θέλει ~','. The trip home takes ~')+Math.round(eta)+(EN?' min.':'′.'); note('🏠 '+T('Πότε να γυρίσεις','When to head back'),msg,'back',25*60000); }
         else if(margin<=60&&!level){ level='warn'; msg=T('Ο καιρός χειροτερεύει σε ~','Weather worsens in ~')+Math.round(b.mins)+T('′. Η επιστροφή θέλει ~',' min. The trip home takes ~')+Math.round(eta)+(EN?' min':'′'); note('🏠 '+T('Προσοχή στον καιρό','Weather watch'),msg,'backw',40*60000); } }
       /* v31z543: δύση και ώρα επιστροφής που δήλωσες (όταν δεν υπάρχει ήδη ειδοποίηση καιρού) */
       if(!level&&d!=null&&d/1.1>=0.9){ var hmT=function(ms){ var x=new Date(ms); return B.pad(x.getHours())+':'+B.pad(x.getMinutes()); }, ts=null; try{ ts=B.trip&&B.trip.state(); }catch(e){}

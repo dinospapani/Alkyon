@@ -871,3 +871,5 @@ html.night .pnrow{background:#000;outline:1px solid #fff;outline-offset:-1px}
 /* 1.9.20: αλλαγή πηγής ραντάρ */
 .rainbar .rbs{flex:none;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:800 16px var(--font);cursor:pointer}
 .leaflet-image-layer.domradar{image-rendering:auto;transition:opacity .25s}
+/* 1.9.52: ειδοποιήσεις: ο τίτλος σε έως 2 γραμμές αντί να κόβεται με «…» */
+.ibrow .tx b{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.3}

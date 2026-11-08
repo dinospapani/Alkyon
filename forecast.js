@@ -281,8 +281,10 @@ function windEvent(fc,w){
   const h0=hs[0], lim=hs.slice(1,hours+1);
   for(let i=0;i<lim.length;i++){
     const h=lim[i], ds=Math.abs(h.wind-h0.wind);
-    let dd=0; if(h0.dir!=null&&h.dir!=null&&h0.wind>=4&&h.wind>=4){ dd=Math.abs(h.dir-h0.dir)%360; if(dd>180) dd=360-dd; }
-    if(dd>=deg||ds>=kn) return {from:h0,to:h,dd,ds,inH:i+1};
+    /* 1.9.52: η στροφή μετρά μόνο με αισθητό άνεμο και στις δύο ώρες (≥7 kn)· η αλλαγή έντασης μόνο αν ο ισχυρότερος από τους δύο φτάνει τα 10 kn.
+       Πριν: «NW 0 kn → NE 5 kn» έβγαινε ως αλλαγή ανέμου, ενώ είναι νηνεμία προς ελαφρύ αεράκι. */
+    let dd=0; if(h0.dir!=null&&h.dir!=null&&h0.wind>=7&&h.wind>=7){ dd=Math.abs(h.dir-h0.dir)%360; if(dd>180) dd=360-dd; }
+    if(dd>=deg||(ds>=kn&&Math.max(h.wind,h0.wind)>=10)) return {from:h0,to:h,dd,ds,inH:i+1};
   }
   return null;
 }
