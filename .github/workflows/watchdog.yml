@@ -1,0 +1,24 @@
+# Alkyon · watchdog του server: κάθε 30 λεπτά ελέγχει ότι το quick-processor έτρεξε (heartbeat) και αλλιώς στέλνει Telegram στους διαχειριστές.
+name: Alkyon watchdog
+on:
+  schedule:
+    - cron: '7,37 * * * *'
+  workflow_dispatch:
+concurrency:
+  group: watchdog
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  watchdog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node tools/watchdog.mjs
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}

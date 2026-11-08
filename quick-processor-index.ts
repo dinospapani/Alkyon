@@ -32,6 +32,17 @@ function moonPhase(ms){ const d=jdD(ms), el=((moonEq(d).lam-sunLon(d))/RD%360+36
 /* 1.9.44: επόμενη νέα σελήνη και πανσέληνος μετά από ms (ακρίβεια ~10′): {nw, full} σε ms */
 /* 1.9.47: καλύτερα βράδια για καλαμάρι: ανά μέρα η καλύτερη ώρα γύρω από τη δύση (±90′) με άνεμο <8 kn, κύμα ≤0,6 m και ασφαλή,
    μόνο μέρες έως ~3 μέρες από τη νέα σελήνη (αν δοθεί nw). Ταξινόμηση από τον μεγαλύτερο βαθμό. */
+/* 1.9.50: σκοτάδι για καλαμάρι: από το σούρουπο (δύση +30′) όσο η σελήνη είναι κάτω από τον ορίζοντα ή πολύ λεπτή (φωτισμός <15%),
+   έως την ανατολή της ή την αυγή (ανατολή ηλίου −30′). Επιστρέφει {s,e,why} σε λεπτά από τα μεσάνυχτα της ημέρας (e μπορεί >1440): why 'moon' = βγαίνει το φεγγάρι, 'dawn' = σκοτάδι ως το πρωί. */
+function darkWin(date,set,rise,lat,lon,tz){ if(set==null||rise==null||lat==null) return null;
+  const [y,m,d]=date.split('-').map(Number), base=Date.UTC(y,m-1,d)-(tz||0)*60000, s0=set+30, e0=rise+1440-30, step=10;
+  const dark=mn=>{ const ms=base+mn*60000; return moonAlt(ms,lat,lon)<0.125||moonPhase(ms).illum<0.15; };
+  let s=null; for(let t=s0;t<e0;t+=step){ if(dark(t)){ s=Math.round(t); break; } } if(s==null) return null;
+  for(let t=s;t<e0;t+=step){ if(!dark(t)) return {s,e:Math.round(t),why:'moon'}; }
+  return {s,e:Math.round(e0),why:'dawn'}; }
+/* κείμενο: «σκοτάδι 17:20 ως το πρωί» ή «σκοτάδι 22:40–01:30 (βγαίνει το φεγγάρι)» */
+function darkTxt(w,en){ if(!w) return ''; const hm=m=>{ m=((Math.round(m)%1440)+1440)%1440; return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); };
+  return (en?'dark ':'σκοτάδι ')+hm(w.s)+(w.why==='dawn'?(en?' till morning':' ως το πρωί'):'–'+hm(w.e)+(en?' (moonrise)':' (βγαίνει το φεγγάρι)')); }
 function squidEves(days,nw,opt){ const D=86400000, out=[], now=opt&&opt.now;
   for(const d of days||[]){ if(d.set==null) continue;
     if(nw!=null&&Math.abs(Date.parse(d.date+'T12:00:00Z')-nw)>3.5*D) continue;
@@ -39,7 +50,7 @@ function squidEves(days,nw,opt){ const D=86400000, out=[], now=opt&&opt.now;
     for(const x of d.hours||[]){ if(Math.abs(x.hr*60+30-d.set)>90) continue; if(now&&x.t<now) continue;
       if(x.safe===false||(x.wind!=null&&x.wind>=8)||(x.wave!=null&&x.wave>0.6)) continue;
       if(!best||x.score>best.score) best=x; }
-    if(best) out.push({date:d.date,hr:best.hr,score:best.score,wind:best.wind,wave:best.wave,set:d.set}); }
+    if(best) out.push({date:d.date,hr:best.hr,score:best.score,wind:best.wind,wave:best.wave,set:d.set,dark:opt&&opt.lat!=null?darkWin(d.date,d.set,d.rise,opt.lat,opt.lon,opt.tz):null}); }
   return out.sort((a,b)=>b.score-a.score); }
 function nextMoon(ms){ const H=3600000, fz=t=>moonPhase(t).f; let nw=null, full=null, t=ms, a=fz(t);
   for(let i=0;i<24*32&&(nw==null||full==null);i++){ const t2=t+6*H, b=fz(t2);
@@ -537,7 +548,7 @@ async function checkPlaces(cfg,fetchFn){
       msgs.push({kind:'good',key:i.key,place:P(i.pl),t:i.pl.date,title:'⏰ '+t('Ώρα να ξεκινήσεις','Time to get going'),body:tx,full:tx}); } });
   return {nextGood,todayGood,tmrGood,items,notified,title,body:lines.concat(pl,tl,wl).join('\n'),msgs,area:area?{name:area.name,lat:area.lat,lon:area.lon}:null,errs,okN,goodsN:goods.length,pressN:press.length,turnsN:turns.length,windsN:winds.length};
 }
-g.PF={squidEves,nextMoon,moonInfo,lims,moonAlt,moonEvents,moonPhase,solunarPeriods,pressureRise,sunMoon,hourScore,getForecast,findIdeal,message,check,goodDays,checkPlaces,dayLabel,bft,pressureEvent,windEvent,pressureTurns,pressureOutlook};
+g.PF={darkTxt,darkWin,squidEves,nextMoon,moonInfo,lims,moonAlt,moonEvents,moonPhase,solunarPeriods,pressureRise,sunMoon,hourScore,getForecast,findIdeal,message,check,goodDays,checkPlaces,dayLabel,bft,pressureEvent,windEvent,pressureTurns,pressureOutlook};
 })(typeof self!=='undefined'?self:this);
 
 const PF = self.PF;
@@ -567,6 +578,10 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
   };
   const stats = { linked: 0, start: 0, alert: 0, clear: 0, ping: 0, silence: 0, lowbat: 0, ok: 0, fc: 0, pa: 0, squid: 0 };
   const PING_WAIT_MIN = 15, LOWBAT = 10;
+  // 1.9.50: τα σφάλματα των βημάτων μαζεύονται (για ειδοποίηση στους διαχειριστές στο τέλος· βλ. βήμα 9)
+  const ERRS = [], log0 = log;
+  const STEP_ERR = /^(Telegram updates|Telegram send|Email send|Telegram ping|port note decide|port notes|weekly|morning|Forecast job|Πίεση|Πίεση Telegram|Πίεση \(Open-Meteo\)|community push|squid|squid fc|squid notif_log|Καιρός εξόδου)$/;
+  log = m => { log0(m); const t = String(m), k = t.split(':')[0].trim(); if (STEP_ERR.test(k)) ERRS.push({ k, m: t.slice(0, 300) }); };
   const patch = (id, o) => sb(`safety_trips?id=eq.${encodeURIComponent(id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(o) });
   // 1.9.19: τα Telegram των διαχειριστών (app_admins → το δικό τους Telegram από safety_contacts.self_chat_id)
   let ADM = null;
@@ -993,7 +1008,7 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
           for (const { p, k } of plist) {
             let fc = fcMem[k]; if (fc === undefined) { try { fc = await PF.getForecast(+p.lat, +p.lon, F, { days: 6, sp: { n: 'Καλαμάρι', l: 'Loligo vulgaris', sst: [14, 24] } }); } catch (e) { log('squid fc: ' + e.message); fc = null; } fcMem[k] = fc; }
             if (!fc || !fc.days) continue;
-            good = good.concat(PF.squidEves(fc.days, nm.nw, { now: (fc.nowLocal || '').slice(0, 13) + ':00' }).map(g => ({ ...g, name: p.name || '' })));
+            good = good.concat(PF.squidEves(fc.days, nm.nw, { now: (fc.nowLocal || '').slice(0, 13) + ':00', lat: +p.lat, lon: +p.lon, tz: fc.tz }).map(g => ({ ...g, name: p.name || '' })));
           }
           if (!good.length) continue;
           good.sort((x, y) => y.score - x.score);
@@ -1006,7 +1021,7 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
           const b0 = good[0], rest = good.slice(1, 4).map((g) => PF.dayLabel(g.date) + ' ' + pad(g.hr) + ':00' + at_(g));
           const nmTxt = new Date(nm.nw).toLocaleDateString(en ? 'en-GB' : 'el-GR', { timeZone: 'Asia/Nicosia', weekday: 'long', day: 'numeric', month: 'long' });
           const title = en ? '🦑 Squid: new moon ' + nmTxt : '🦑 Καλαμάρια: νέα σελήνη ' + nmTxt;
-          const body = (en ? 'Best: ' : 'Καλύτερο: ') + slot(b0) + (en ? ' (score ' : ' (βαθμός ') + b0.score + ')' + (rest.length ? (en ? ' · also ' : ' · επίσης ') + rest.join(', ') : '') + (!multi && b0.name ? ' · ' + b0.name : '');
+          const body = (en ? 'Best: ' : 'Καλύτερο: ') + slot(b0) + (en ? ' (score ' : ' (βαθμός ') + b0.score + ')' + (b0.dark && PF.darkTxt ? ' · ' + PF.darkTxt(b0.dark, en) : '') + (rest.length ? (en ? ' · also ' : ' · επίσης ') + rest.join(', ') : '') + (!multi && b0.name ? ' · ' + b0.name : '');
           const at = new Date().toISOString();
           let ins = null; try { ins = await sb('notif_log', { method: 'POST', headers: { Prefer: 'return=representation,resolution=ignore-duplicates' }, body: JSON.stringify({ id: (uid + '|sq:' + nmKey).slice(0, 250), user_id: uid, at, kind: 'good', title, body }) }); } catch (e) { log('squid notif_log: ' + e.message); continue; } /* 1.9.48: χωρίς καταγραφή δεν στέλνουμε (αλλιώς θα ξαναστελνόταν την επόμενη μέρα) */
           if (!Array.isArray(ins) || !ins.length) continue;
@@ -1067,6 +1082,26 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
     }
   } catch (e) { log('Καιρός εξόδου: ' + e.message); }
   log('Safety job: ' + JSON.stringify(stats));
+  // 9) 1.9.50: υγεία του server. Σε κάθε εκτέλεση γράφεται «heartbeat» (backups/_system/heartbeat.json, το διαβάζει το watchdog του GitHub).
+  //    Αν ένα βήμα αποτύχει σε 2 συνεχόμενες εκτελέσεις (όχι ένα στιγμιαίο σφάλμα δικτύου), μήνυμα Telegram στους διαχειριστές, το πολύ μία φορά ανά 6 ώρες ανά βήμα.
+  if (!only) {
+    try {
+      const HB = URL_ + '/storage/v1/object/backups/_system/heartbeat.json', AH = { apikey: KEY, Authorization: 'Bearer ' + KEY };
+      const st0 = await F(HB, { headers: AH }).then(r => r.ok ? r.json() : {}).catch(() => ({})) || {};
+      const now = Date.now(), byK = {}, fails = {}, alerted = { ...(st0.alerted || {}) };
+      for (const e of ERRS) (byK[e.k] = byK[e.k] || []).push(e.m);
+      for (const k of Object.keys(byK)) fails[k] = ((st0.fails || {})[k] || 0) + 1;
+      const due = Object.keys(byK).filter(k => fails[k] >= 2 && !(alerted[k] && now - alerted[k] < 6 * 3600000));
+      if (due.length && TG) {
+        const chats = await adminChats();
+        const text = '⚠ Alkyon server: σφάλμα σε ' + due.length + (due.length === 1 ? ' βήμα' : ' βήματα') + ' (2 συνεχόμενες εκτελέσεις)\n' + due.map(k => '• ' + byK[k][0]).join('\n');
+        let ok = 0; for (const c of chats) { try { await tg('sendMessage', { chat_id: c, text }); ok++; } catch (_) { /* τίποτα */ } }
+        if (ok) { for (const k of due) alerted[k] = now; stats.health = due.length; }
+      }
+      for (const k of Object.keys(alerted)) if (now - alerted[k] > 86400000) delete alerted[k];
+      await F(HB, { method: 'POST', headers: { ...AH, 'Content-Type': 'application/json', 'x-upsert': 'true' }, body: JSON.stringify({ at: new Date(now).toISOString(), fails, alerted, stats }) });
+    } catch (e) { log0('health: ' + e.message); }
+  }
   return { ok: true, stats };
 }
 

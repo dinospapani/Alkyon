@@ -160,10 +160,19 @@ function back(){
     var id=B.store.save('trips',rec), gc=gearCompact(id); if(gc){ var t=B.store.get('trips',id); B.store.save('trips',Object.assign({},t,{gear:gc})); }
     B.toast(T('Η έξοδος καταχωρήθηκε: ','Trip saved: ')+dur(d)+', '+(sm.n?sm.n+' '+T('ψάρια','catches'):T('χωρίς ψάρια (κρατήθηκε: βοηθά την προσωπική πρόγνωση)','no catches (kept: it helps your personal forecast)')));
     /* 1.6.1: πρώτα τα ψάρια χωρίς είδος (ένα πάτημα το καθένα), μετά η ερώτηση για τη θάλασσα */
-    if(B.speciesFill) B.speciesFill(s.id,function(){ seaQuestion(id,pos); }); else seaQuestion(id,pos);
+    var next=function(){ rateQuestion(id,function(){ seaQuestion(id,pos); }); };
+    if(B.speciesFill) B.speciesFill(s.id,next); else next();
     B.emit('tripend',{id:id,startMs:s.start,endMs:Date.now()});
   } else { B.emit('tripend',{id:null,startMs:s.start,endMs:Date.now()}); B.toast(T('Καλωσόρισες πίσω. Η έξοδος ήταν κάτω από 20 λεπτά χωρίς ψάρια, οπότε δεν καταχωρήθηκε.','Welcome back. The trip was under 20 minutes with no catches, so it was not saved.')); }
 }
+/* 1.9.50: «Πώς ήταν το ψάρεμα;» (καλό / μέτριο / τίποτα): μετρά και τις εξόδους χωρίς ψάρι και δείχνει αν ο βαθμός της πρόγνωσης συμφωνεί με τη θάλασσα */
+var RATE=[[2,T('Καλό','Good')],[1,T('Μέτριο','So-so')],[0,T('Τίποτα','Nothing')]];
+function rateQuestion(id,next){ var body=h('div',{class:'bform rateq'}), sh, done=false, fin=function(){ if(done) return; done=true; if(next) setTimeout(next,250); };
+  body.append(h('p',{class:'sub',text:T('Ένα πάτημα. Μετρά και όταν δεν έπιασες τίποτα: έτσι φαίνεται αν ο βαθμός της πρόγνωσης λέει την αλήθεια.','One tap. It counts even when you caught nothing: that is how we see if the forecast score tells the truth.')}));
+  RATE.forEach(function(o){ body.append(h('button',{class:'btn full'+(o[0]===2?' pri':''),type:'button',text:o[1],onclick:function(){ var t=B.store.get('trips',id); if(t) B.store.save('trips',Object.assign({},t,{rate:o[0]})); sh.close(); fin(); }})); });
+  body.append(h('button',{class:'linkbtn',type:'button',text:T('Παράλειψη','Skip'),onclick:function(){ sh.close(); fin(); }}));
+  sh=B.sheet({title:T('Πώς ήταν το ψάρεμα;','How was the fishing?'),body:body,onclose:fin}); }
+B.tripRate=rateQuestion; B.RATE=RATE;
 /* «Πώς ήταν η θάλασσα;» (διορθώνει την πρόγνωση κύματος της περιοχής, alkyon-seaobs) */
 function seaQuestion(id,pos){ if(B.prof()==='lake'||!pos) return; var body=h('div',{class:'bform'}), sh;
   [[-1,T('Πιο ήρεμη','Calmer')],[0,T('Όπως έλεγε','As forecast')],[1,T('Πιο άγρια','Rougher')]].forEach(function(o){ body.append(h('button',{class:'btn full',type:'button',text:o[1],onclick:function(){

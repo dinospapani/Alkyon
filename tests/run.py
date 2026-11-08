@@ -596,6 +596,25 @@ with sync_playwright() as p:
     c=ctx(b); c.add_init_script("localStorage.setItem('alkyon-advsp',JSON.stringify('Καλαμάρι'))"); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_selector('.dstrip .dtile:not(.past)'); pg.wait_for_timeout(1500)
     r=pg.evaluate("()=>{const q=document.querySelector('.hero .sqb'); const D=[{date:'2026-11-10',set:1004,hours:[{t:'2026-11-10T16:00',hr:16,score:80,wind:4,wave:.3,safe:true},{t:'2026-11-10T17:00',hr:17,score:75,wind:9,wave:.2,safe:true}]},{date:'2026-11-14',set:1003,hours:[{t:'2026-11-14T16:00',hr:16,score:90,wind:2,wave:.1,safe:true}]}]; const a=PF.squidEves(D,Date.parse('2026-11-09T06:11Z'),{}); return [q?q.textContent:'', a.length, a[0]&&a[0].hr]}")
     check('καλαμάρι: καλύτερο βράδυ κοντά στη νέα σελήνη (1.9.47)', 'καλαμάρι' in r[0].lower() and r[1]==1 and r[2]==16 and not pg._errs, [r,pg._errs]); c.close()
+    trips=[]
+    import json as _json
+    for i,rt in enumerate([2,2,1,0,0]):
+        st=1793500000000+i*86400000; trips.append({'id':'rt%d'%i,'date':'2026-10-2%d'%i,'startMs':st,'endMs':st+3*3600000,'rate':rt,'scoreH':[[st//3600000,80 if rt==2 else 60 if rt==1 else 45],[st//3600000+1,78 if rt==2 else 58 if rt==1 else 40]],'_u':1})
+    c=ctx(b); c.add_init_script("localStorage.setItem('alkyon-trips',JSON.stringify(%s))"%_json.dumps(trips)); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(3500)
+    pg.evaluate("()=>{const b=[...document.querySelectorAll('.seg button')].find(x=>/Δικά μου/.test(x.textContent)); b&&b.click()}"); pg.wait_for_timeout(1500)
+    r=pg.evaluate("()=>{const c=[...document.querySelectorAll('section.card')].find(x=>/Πρόγνωση και πώς ήταν/.test(x.textContent)); return c?c.innerText:''}")
+    pg.evaluate("()=>AK.tripRate('rt2')"); pg.wait_for_timeout(500)
+    q=pg.evaluate("()=>{const b=[...document.querySelectorAll('.rateq .btn')]; const n=b.length; b.find(x=>x.textContent==='Καλό').click(); return n}"); pg.wait_for_timeout(400)
+    rv=pg.evaluate("()=>AK.store.get('trips','rt2').rate")
+    check('«Πώς ήταν το ψάρεμα;» και σύγκριση με τον βαθμό (1.9.50)', 'Η πρόγνωση συμφωνεί' in r and q==3 and rv==2 and not pg._errs, [r[:300],q,rv,pg._errs]); c.close()
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(2500)
+    r=pg.evaluate("""()=>{ localStorage.removeItem('alkyon-v4-setsync'); localStorage.setItem('alkyon-boat',JSON.stringify({name:'local'}));
+      const o1=[]; const g1=AK.store.setsSync([{kind:'settings',id:'main',data:{'alkyon-boat':{name:'cloud'},'alkyon-limits':{wave:0.8},_u:5}}],o1);
+      const a=[g1, JSON.parse(localStorage.getItem('alkyon-boat')).name, o1.length];
+      localStorage.setItem('alkyon-limits',JSON.stringify({wave:1.1})); const o2=[]; AK.store.setsSync([{kind:'settings',id:'main',data:{'alkyon-boat':{name:'cloud'},_u:5}}],o2);
+      const o3=[]; AK.store.setsSync([],o3);
+      return a.concat([o2.length, o2[0]&&o2[0].kind, o2[0]&&o2[0].data['alkyon-limits'].wave, o3.length]); }""")
+    check('ρυθμίσεις στον λογαριασμό: νέο κινητό τις παίρνει, αλλαγή ανεβαίνει (1.9.50)', r==[1,'cloud',0,1,'settings',1.1,0] and not pg._errs, [r,pg._errs]); c.close()
     print('# offline')
     c=ctx(b,sw=True); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(6000); pg.reload(); pg.wait_for_timeout(3000)
     c.set_offline(True)
@@ -616,6 +635,6 @@ except Exception: _j={'ok':0,'fail':['server.mjs δεν έτρεξε: '+(_r.stde
 for _l in _r.stdout.splitlines():
     if _l.startswith('  ok   '): check('server: '+_l[7:], True, None)
 for _n in _j.get('fail',[]): check('server: '+_n, False, _r.stdout[-600:])
-check('server: τρέχουν τα tests', _j.get('ok',0)>=15, [_r.returncode,_r.stderr[-300:]])
+check('server: τρέχουν τα tests', _j.get('ok',0)>=24, [_r.returncode,_r.stderr[-300:]])
 print('\n%d ok, %d fail'%(OK[0],len(FAIL)))
 if FAIL: print('FAILED:', ', '.join(FAIL)); sys.exit(1)

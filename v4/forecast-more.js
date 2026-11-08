@@ -137,6 +137,18 @@ B.fcMine=function(page,fc,ctx){
     c7.append(h('p',{class:'foot',text:T('×1 = καμία διαφορά. Όσο μεγαλύτερο, τόσο καλύτερα ξεχωρίζει η μέθοδος τις ώρες που πιάνεις. Μετρούν μόνο οι έξοδοι όπου η εφαρμογή κράτησε τον βαθμό κάθε ώρας.','×1 = no difference. The bigger, the better the method picks the hours you catch. Only trips where the app kept the hourly score count.')}));
     page.append(c7); }
 
+  /* 1.9.50: πρόγνωση και «Πώς ήταν»: μέσος βαθμός της πρόγνωσης στις εξόδους που σημείωσες καλές / μέτριες / τίποτα */
+  (function(){ if(!B.RATE) return; var tr=B.store.raw('trips').filter(function(t){ return !t.deleted&&t.rate!=null&&Array.isArray(t.scoreH)&&t.scoreH.length; });
+    var c8=card(T('Πρόγνωση και πώς ήταν','Forecast vs how it went'),T('Ο μέσος βαθμός της πρόγνωσης στις εξόδους που σημείωσες «Καλό», «Μέτριο» ή «Τίποτα». Αν η πρόγνωση δουλεύει, το «Καλό» έχει τον μεγαλύτερο βαθμό.','The average forecast score on trips you marked “Good”, “So-so” or “Nothing”. If the forecast works, “Good” has the highest score.'));
+    var g={}; tr.forEach(function(t){ var sv=t.scoreH.map(function(r){ return r[1]; }), m=sv.reduce(function(a,b){ return a+b; },0)/sv.length; (g[t.rate]=g[t.rate]||[]).push(m); });
+    var av=function(a){ return a&&a.length?a.reduce(function(x,y){ return x+y; },0)/a.length:null; };
+    B.RATE.forEach(function(o){ var a=g[o[0]], v=av(a); c8.append(bar(o[1],v||0,100,v==null?'—':Math.round(v)+' ('+a.length+T(' έξ.',' trips')+')',o[0]===2?'up':o[0]===0?'down':'')); });
+    var vG=av(g[2]), vN=av(g[0]);
+    c8.append(h('p',{class:'p',style:{margin:'6px 0 0',fontWeight:'600'},text:tr.length<5?T('Χρειάζονται τουλάχιστον 5 έξοδοι με «Πώς ήταν» (τώρα ','Needs at least 5 trips with “How was it” (now ')+tr.length+T('). Η ερώτηση βγαίνει στο τέλος κάθε εξόδου.','). The question appears at the end of each trip.')
+      :vG!=null&&vN!=null?(vG-vN>=5?T('Η πρόγνωση συμφωνεί: οι καλές σου έξοδοι είχαν υψηλότερο βαθμό.','The forecast agrees: your good trips had a higher score.'):vN-vG>=5?T('Η πρόγνωση δεν συμφωνεί ακόμα: οι έξοδοι χωρίς ψάρι είχαν υψηλότερο βαθμό.','The forecast does not agree yet: trips with nothing had a higher score.'):T('Μέχρι τώρα δεν φαίνεται διαφορά.','No clear difference so far.'))
+      :T('Χρειάζονται έξοδοι και «Καλό» και «Τίποτα» για σύγκριση.','Needs both “Good” and “Nothing” trips to compare.')}));
+    page.append(c8); })();
+
   /* πρόσφατες έξοδοι */
   var S=PP.sessionsOf(A().trips()).sort(function(a,b){ return b.startMs-a.startMs; }).slice(0,6);
   if(S.length){ var bites=A().act(), utc=A().utcMin(), c6=card(T('Πρόσφατες έξοδοι','Recent trips')), l=h('div',{class:'mini-list'});

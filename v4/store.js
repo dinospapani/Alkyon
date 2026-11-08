@@ -115,6 +115,22 @@ function ownerChoice(ch){ var s=S(); if(!s) return Promise.resolve();
 /* 1.5.1: η γλώσσα της εφαρμογής γράφεται στον λογαριασμό (user_metadata.lang), ώστε τα email (π.χ. «Ξέχασα τον κωδικό») να έρχονται σε αυτήν. Μία φορά ανά λογαριασμό και γλώσσα. */
 function langMeta(s){ var k=s.uid+':'+lang(); if(ls.get('alkyon-v4-langmeta','')===k) return;
   fetch(URL_+'/auth/v1/user',{method:'PUT',headers:H(s),body:JSON.stringify({data:{lang:lang()}})}).then(function(r){ if(r.ok) ls.set('alkyon-v4-langmeta',k); }).catch(function(){}); }
+/* 1.9.50: και οι ρυθμίσεις στον λογαριασμό (σκάφος, όρια, τοποθεσίες, πλάνα, στόχοι, συντήρηση, μονάδες, παραγάδια/δίχτυα),
+   ώστε να μη χάνονται αν το κινητό σβήσει τα δεδομένα της εφαρμογής ή αν αλλάξεις κινητό. Μία εγγραφή kind 'settings', id 'main'.
+   Όχι ό,τι αφορά μόνο τη συσκευή (ενεργή έξοδος, ειδοποιήσεις, νυχτερινή, γλώσσα). Κανόνας: αν άλλαξαν εδώ από τον τελευταίο συγχρονισμό, ανεβαίνουν·
+   αλλιώς, αν ο server έχει νεότερες, έρχονται. Νέο κινητό (ποτέ συγχρονισμένο): παίρνει ό,τι έχει ο server. */
+var SETS=['alkyon-boat','alkyon-limits','alkyon-places','alkyon-v4-plans','alkyon-v4-goals','alkyon-maint','alkyon-units','alkyon-fprof','alkyon-gear','alkyon-smart','alkyon-advsp'];
+function setBlob(){ var o={}; SETS.forEach(function(k){ var v=ls.get(k,undefined); if(v!==undefined&&v!==null) o[k]=v; }); return o; }
+function setHash(o){ return JSON.stringify(SETS.map(function(k){ return o[k]===undefined?null:o[k]; })); }
+function setsSync(rows,out){ try{
+  var st=ls.get('alkyon-v4-setsync',{})||{}, rm=rows.filter(function(x){ return x.kind==='settings'&&x.id==='main'&&!x.deleted; })[0], rd=rm&&rm.data||null, ru=rd?(rd._u||0):0;
+  var loc=setBlob(), lh=setHash(loc), changed=st.h!==lh;
+  if(rd&&ru>(st.u||0)&&(!changed||st.h===undefined)){ var got={}; SETS.forEach(function(k){ if(rd[k]!==undefined){ ls.set(k,rd[k]); got[k]=1; } }); ls.set('alkyon-v4-setsync',{h:setHash(setBlob()),u:ru}); Object.keys(got).forEach(function(k){ B.emit('store',k); }); return 1; }
+  if(changed&&Object.keys(loc).length){ var u=Math.max(Date.now(),ru+1); out.push({kind:'settings',id:'main',data:Object.assign({},loc,{_u:u}),deleted:false,updated_at:iso(u)}); ls.set('alkyon-v4-setsync',{h:lh,u:u}); }
+  }catch(e){} return 0; }
+/* 1.9.50: ζήτα από τον browser να μη σβήνει τα δεδομένα της εφαρμογής (Chrome/Android: χωρίς ερώτηση όταν είναι εγκατεστημένη· Safari 17+) */
+function persistOnce(){ try{ if(ls.get('alkyon-v4-persist',0)||!navigator.storage||!navigator.storage.persist) return; if(/firefox/i.test(navigator.userAgent)) return;
+  navigator.storage.persisted().then(function(p){ if(p){ ls.set('alkyon-v4-persist',1); return; } return navigator.storage.persist().then(function(ok){ if(ok) ls.set('alkyon-v4-persist',1); }); }).catch(function(){}); }catch(e){} }
 function sched(){ if(!S()) return; clearTimeout(timer); timer=setTimeout(function(){ sync(false); },2500); }
 function sync(manual){
   if(!S()) return Promise.resolve();
@@ -138,6 +154,7 @@ function sync(manual){
     var out=[];
     KINDS.forEach(function(k){ cache[k].forEach(function(o){ var rm=remote[k+'/'+o.id], ru=rm?((rm.data&&rm.data._u)||Date.parse(rm.updated_at)||0):0; if(!rm||(o._u||0)>ru) out.push({kind:k,id:o.id,data:o,deleted:false,updated_at:iso(o._u||Date.now())}); }); });
     tb.forEach(function(t){ var rm=remote[t.k+'/'+t.id], ru=rm?((rm.data&&rm.data._u)||Date.parse(rm.updated_at)||0):0; if(!rm||(!rm.deleted&&t.u>ru)) out.push({kind:t.k,id:t.id,data:{_u:t.u},deleted:true,updated_at:iso(t.u)}); });
+    got+=setsSync(rows,out);
     sent=out.length; var p=Promise.resolve();
     for(var i=0;i<out.length;i+=200)(function(ch){ p=p.then(function(){ return rest('records',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(ch)}); }); })(out.slice(i,i+200));
     return p.then(function(){
@@ -164,8 +181,9 @@ function sync(manual){
 window.addEventListener('online',sched);
 document.addEventListener('visibilitychange',function(){ if(!document.hidden) sched(); });
 setTimeout(function(){ if(S()) sync(false); },1500);
+setTimeout(function(){ if(localCount()) persistOnce(); },4000);
 
-B.store={raw:raw,get:get,save:save,remove:remove,tombs:tombs,Photos:Photos,phKeys:phKeys,resize:resize,
+B.store={setsSync:setsSync,raw:raw,get:get,save:save,remove:remove,tombs:tombs,Photos:Photos,phKeys:phKeys,resize:resize,
 
   /* v31z542: τα ψάρια χωρίς τους λαγοκέφαλους· αυτοί χωριστά στο pests() */
   bites:function(){ return raw('bites').filter(function(b){ return !b.miss&&!B.pest(b); }); }, misses:function(){ return raw('bites').filter(function(b){ return b.miss&&!B.pest(b); }); },

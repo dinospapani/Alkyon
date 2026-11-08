@@ -327,12 +327,13 @@ function nmTxt(ms){ var d=new Date(ms), td=today(), ds=d.getFullYear()+'-'+B.pad
 /* 1.9.47: καλαμάρι: το καλύτερο βράδυ της πρόγνωσης (κοντά στη νέα σελήνη όταν πέφτει μέσα), ίδιος κανόνας με την ειδοποίηση */
 function sqBest(fc){ try{ var sc=spCfg(), mi=sc&&PF.moonInfo?PF.moonInfo(sc):null; if(!mi||mi.k!=='new'||!PF.squidEves||!fc||!fc.days) return null;
   var nm=PF.nextMoon(Date.now()-3.5*864e5), now=fc.nowLocal?fc.nowLocal.slice(0,13)+':00':null, td=fc.nowLocal?fc.nowLocal.slice(0,10):'';
-  var a=PF.squidEves(fc.days,nm&&nm.nw,{now:now}), near=a.length>0; if(!near) a=PF.squidEves(fc.days,null,{now:now});
+  var p0=st.place||current(), so={now:now,lat:p0&&p0.lat,lon:p0&&p0.lon,tz:fc.tz};
+  var a=PF.squidEves(fc.days,nm&&nm.nw,so), near=a.length>0; if(!near) a=PF.squidEves(fc.days,null,so);
   var sl=function(g){ return B.dayName(g.date,td)+' '+B.pad(g.hr)+':00'; };
   if(!a.length) return h('p',{class:'sqb'},h('b',{text:T('Καλαμάρι: ','Squid: ')}),T('κανένα βράδυ με λίγο άνεμο και ήρεμη θάλασσα στην πρόγνωση.','no evening with light wind and a calm sea in the forecast.'));
   var b=a[0];
   return h('p',{class:'sqb'},h('b',{text:T('Καλύτερο βράδυ για καλαμάρι: ','Best evening for squid: ')}),
-    sl(b)+'–'+B.pad((b.hr+1)%24)+':00 · '+T('βαθμός ','score ')+b.score+(near?T(' · κοντά στη νέα σελήνη',' · near the new moon'):'')+(a.length>1?' · '+T('επίσης ','also ')+a.slice(1,3).map(sl).join(', '):''));
+    sl(b)+'–'+B.pad((b.hr+1)%24)+':00 · '+T('βαθμός ','score ')+b.score+(near?T(' · κοντά στη νέα σελήνη',' · near the new moon'):'')+(b.dark&&PF.darkTxt?' · '+PF.darkTxt(b.dark,EN):'')+(a.length>1?' · '+T('επίσης ','also ')+a.slice(1,3).map(sl).join(', '):''));
   }catch(e){ return null; } }
 function nmSpan(){ if(!PF.nextMoon) return null; var r=PF.nextMoon(Date.now()); if(!r||!r.nw) return null; return h('span',{class:'nmx',text:T('νέα σελήνη ','new moon ')+nmTxt(r.nw)}); }
 function planBtn(d){

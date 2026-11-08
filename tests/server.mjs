@@ -31,12 +31,14 @@ const calm = () => () => ({ wind: 5, wave: 0.3 });
 const windy = () => () => ({ wind: 18, wave: 1.4 });
 
 /* ---------- ψεύτικη Supabase ---------- */
-function world({ subs = [], notifLog = 'ok', W = calm, community = {} } = {}) {
-  const log = new Set(), sent = [], calls = [];
+function world({ subs = [], notifLog = 'ok', W = calm, community = {}, meteoFail = false, store = {} } = {}) {
+  const log = new Set(), sent = [], calls = [], tgSent = [];
   const res = (o, status = 200) => ({ ok: status < 400, status, json: async () => o, text: async () => (o == null ? '' : JSON.stringify(o)) });
   const fetch = async (url, opt = {}) => {
     url = String(url); calls.push(url);
-    if (url.includes('open-meteo.com')) return res(meteo(url, W));
+    if (url.includes('open-meteo.com')) return meteoFail ? res({ error: true }, 500) : res(meteo(url, W));
+    if (url.includes('api.telegram.org')) { const mth = url.split('/').pop(); if (mth === 'sendMessage') tgSent.push(JSON.parse(opt.body)); return res({ ok: true, result: mth === 'getUpdates' ? [] : {} }); }
+    if (url.includes('/storage/v1/object/')) { const k = url.split('/storage/v1/object/')[1]; if ((opt.method || 'GET') === 'POST') { store[k] = JSON.parse(opt.body); return res({}); } return k in store ? res(store[k]) : res({ error: 'not found' }, 400); }
     const m = url.match(/\/rest\/v1\/(.+)$/); if (!m) return res({ ok: false }, 404);
     const p = decodeURIComponent(m[1]), method = opt.method || 'GET';
     if (p.startsWith('notif_log') && method === 'POST') {
@@ -44,6 +46,8 @@ function world({ subs = [], notifLog = 'ok', W = calm, community = {} } = {}) {
       const row = JSON.parse(opt.body); if (log.has(row.id)) return res([]); log.add(row.id); return res([row]);
     }
     if (p === 'push_subs?select=id,user_id,sub,places') return res(subs);
+    if (p.startsWith('app_admins?')) return res([{ user_id: 'a1' }]);
+    if (p.startsWith('safety_contacts?user_id=in.')) return res([{ self_chat_id: 99 }]);
     if (p.startsWith('community_posts?created_at')) return res(community.posts || []);
     if (p.startsWith('community_likes?')) return res(community.likes || []);
     if (p.startsWith('community_comments?')) return res(community.comments || []);
@@ -51,9 +55,9 @@ function world({ subs = [], notifLog = 'ok', W = calm, community = {} } = {}) {
     return res(method === 'GET' ? [] : null);
   };
   const webpush = { sendNotification: async (sub, payload) => { sent.push({ sub, ...JSON.parse(payload) }); return {}; } };
-  return { fetch, webpush, sent, log, calls };
+  return { fetch, webpush, sent, log, calls, tgSent, store };
 }
-const go = async (w) => run({ env: { SUPABASE_URL: 'https://x.supabase.co', SUPABASE_SERVICE_KEY: 'k' }, fetch: w.fetch, PF, webpush: w.webpush, sendMail: null, log: () => {} });
+const go = async (w, tg) => run({ env: { SUPABASE_URL: 'https://x.supabase.co', SUPABASE_SERVICE_KEY: 'k', TELEGRAM_BOT_TOKEN: tg ? 'T' : '' }, fetch: w.fetch, PF, webpush: w.webpush, sendMail: null, log: () => {} });
 
 let ok = 0; const fail = [];
 const check = (name, cond, info) => { if (cond) { ok++; console.log('  ok   ' + name); } else { fail.push(name); console.log('  FAIL ' + name + ' ' + JSON.stringify(info).slice(0, 400)); } };
@@ -67,7 +71,7 @@ NOW = RealDate.parse('2026-11-09T07:00:00Z'); // Δευτέρα 09:00 Κύπρο
   await go(w); const s = sq(w);
   if (process.env.SHOW) console.log(s.map(x => x.title + ' / ' + x.body));
   check('καλαμάρια: μία ειδοποίηση στις 9:00 κοντά στη νέα σελήνη', s.length === 1, s);
-  check('καλαμάρια: «Καλύτερο: … (βαθμός N)» και το μέρος', s[0] && /^Καλύτερο: \S+ \d\d\/11 \d\d:00–\d\d:00 \(βαθμός \d+\)/.test(s[0].body) && s[0].body.includes('Λατσί'), s[0]);
+  check('καλαμάρια: «Καλύτερο: … (βαθμός N)» και το μέρος', s[0] && /^Καλύτερο: \S+ \d\d\/11 \d\d:00–\d\d:00 \(βαθμός \d+\)/.test(s[0].body) && s[0].body.includes('Λατσί') && s[0].body.includes('σκοτάδι'), s[0]);
   check('καλαμάρια: μόνο βράδια έως 3 μέρες από τη νέα σελήνη', s[0] && !/1[3-9]\/11/.test(s[0].body), s[0] && s[0].body);
   await go(w);
   check('καλαμάρια: δεν ξαναστέλνει στην ίδια σελήνη', sq(w).length === 1, sq(w).length);
@@ -124,6 +128,32 @@ NOW = RealDate.parse('2026-11-09T22:30:00Z'); // 00:30 Κύπρου: ώρες η
   const w = world({ subs: [SUB([{ lat: 35, lon: 32.4 }], 's1', 'u1')], community: { posts: [{ id: 'p0000002-aaaa', user_id: 'u2', author: 'Νίκος', species: 'Σαργός', created_at: t }] } });
   await go(w);
   check('Κοινότητα: τίποτα στις ώρες ησυχίας', w.sent.filter(x => x.kind === 'comm').length === 0, w.sent);
+}
+
+/* ---------- σκοτάδι για καλαμάρι ---------- */
+{
+  const dw = d => { const s = PF.sunMoon(d, 35.04, 32.42, 120); return PF.darkWin(d, s.set, s.rise, 35.04, 32.42, 120); };
+  const nw = dw('2026-11-09'), fq = dw('2026-11-16'), fm = dw('2026-11-24');
+  check('σκοτάδι: νέα σελήνη → από το σούρουπο ως το πρωί', nw && nw.why === 'dawn' && nw.s < 18 * 60, nw);
+  check('σκοτάδι: πρώτο τέταρτο → αρχίζει όταν δύσει η σελήνη (αργά το βράδυ)', fq && fq.s > 21 * 60, fq);
+  check('σκοτάδι: πανσέληνος → καθόλου', fm === null, fm);
+  check('σκοτάδι: κείμενο', PF.darkTxt({ s: 1040, e: 1800, why: 'dawn' }) === 'σκοτάδι 17:20 ως το πρωί' && PF.darkTxt({ s: 1360, e: 1530, why: 'moon' }) === 'σκοτάδι 22:40–01:30 (βγαίνει το φεγγάρι)', 0);
+}
+
+/* ---------- υγεία του server (βήμα 9) ---------- */
+NOW = RealDate.parse('2026-11-09T07:00:00Z');
+{
+  const store = {}, subs = [SUB([{ lat: 35.04, lon: 32.42, name: 'Λατσί', squid: 'on' }])];
+  const w1 = world({ subs, meteoFail: true, store }); await go(w1, true);
+  const hb = store['backups/_system/heartbeat.json'];
+  check('υγεία: γράφει heartbeat σε κάθε εκτέλεση', hb && hb.at === new RealDate(NOW).toISOString(), hb);
+  check('υγεία: ένα σφάλμα μόνο του δεν στέλνει Telegram', w1.tgSent.length === 0, w1.tgSent);
+  NOW += 5 * 60000; const w2 = world({ subs, meteoFail: true, store }); await go(w2, true);
+  check('υγεία: 2 συνεχόμενα σφάλματα → Telegram στους διαχειριστές', w2.tgSent.length === 1 && w2.tgSent[0].chat_id === 99 && /squid fc/.test(w2.tgSent[0].text), w2.tgSent);
+  NOW += 5 * 60000; const w3 = world({ subs, meteoFail: true, store }); await go(w3, true);
+  check('υγεία: όχι ξανά μέσα σε 6 ώρες', w3.tgSent.length === 0, w3.tgSent);
+  NOW += 5 * 60000; const w4 = world({ subs, store }); await go(w4, true);
+  check('υγεία: όταν περάσει το σφάλμα, μηδενίζεται ο μετρητής', !(store['backups/_system/heartbeat.json'].fails || {})['squid fc'], store['backups/_system/heartbeat.json']);
 }
 
 /* ---------- ο server τρέχει τον ίδιο υπολογισμό με την εφαρμογή ---------- */

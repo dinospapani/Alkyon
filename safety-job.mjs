@@ -23,6 +23,10 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
   };
   const stats = { linked: 0, start: 0, alert: 0, clear: 0, ping: 0, silence: 0, lowbat: 0, ok: 0, fc: 0, pa: 0, squid: 0 };
   const PING_WAIT_MIN = 15, LOWBAT = 10;
+  // 1.9.50: τα σφάλματα των βημάτων μαζεύονται (για ειδοποίηση στους διαχειριστές στο τέλος· βλ. βήμα 9)
+  const ERRS = [], log0 = log;
+  const STEP_ERR = /^(Telegram updates|Telegram send|Email send|Telegram ping|port note decide|port notes|weekly|morning|Forecast job|Πίεση|Πίεση Telegram|Πίεση \(Open-Meteo\)|community push|squid|squid fc|squid notif_log|Καιρός εξόδου)$/;
+  log = m => { log0(m); const t = String(m), k = t.split(':')[0].trim(); if (STEP_ERR.test(k)) ERRS.push({ k, m: t.slice(0, 300) }); };
   const patch = (id, o) => sb(`safety_trips?id=eq.${encodeURIComponent(id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(o) });
   // 1.9.19: τα Telegram των διαχειριστών (app_admins → το δικό τους Telegram από safety_contacts.self_chat_id)
   let ADM = null;
@@ -449,7 +453,7 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
           for (const { p, k } of plist) {
             let fc = fcMem[k]; if (fc === undefined) { try { fc = await PF.getForecast(+p.lat, +p.lon, F, { days: 6, sp: { n: 'Καλαμάρι', l: 'Loligo vulgaris', sst: [14, 24] } }); } catch (e) { log('squid fc: ' + e.message); fc = null; } fcMem[k] = fc; }
             if (!fc || !fc.days) continue;
-            good = good.concat(PF.squidEves(fc.days, nm.nw, { now: (fc.nowLocal || '').slice(0, 13) + ':00' }).map(g => ({ ...g, name: p.name || '' })));
+            good = good.concat(PF.squidEves(fc.days, nm.nw, { now: (fc.nowLocal || '').slice(0, 13) + ':00', lat: +p.lat, lon: +p.lon, tz: fc.tz }).map(g => ({ ...g, name: p.name || '' })));
           }
           if (!good.length) continue;
           good.sort((x, y) => y.score - x.score);
@@ -462,7 +466,7 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
           const b0 = good[0], rest = good.slice(1, 4).map((g) => PF.dayLabel(g.date) + ' ' + pad(g.hr) + ':00' + at_(g));
           const nmTxt = new Date(nm.nw).toLocaleDateString(en ? 'en-GB' : 'el-GR', { timeZone: 'Asia/Nicosia', weekday: 'long', day: 'numeric', month: 'long' });
           const title = en ? '🦑 Squid: new moon ' + nmTxt : '🦑 Καλαμάρια: νέα σελήνη ' + nmTxt;
-          const body = (en ? 'Best: ' : 'Καλύτερο: ') + slot(b0) + (en ? ' (score ' : ' (βαθμός ') + b0.score + ')' + (rest.length ? (en ? ' · also ' : ' · επίσης ') + rest.join(', ') : '') + (!multi && b0.name ? ' · ' + b0.name : '');
+          const body = (en ? 'Best: ' : 'Καλύτερο: ') + slot(b0) + (en ? ' (score ' : ' (βαθμός ') + b0.score + ')' + (b0.dark && PF.darkTxt ? ' · ' + PF.darkTxt(b0.dark, en) : '') + (rest.length ? (en ? ' · also ' : ' · επίσης ') + rest.join(', ') : '') + (!multi && b0.name ? ' · ' + b0.name : '');
           const at = new Date().toISOString();
           let ins = null; try { ins = await sb('notif_log', { method: 'POST', headers: { Prefer: 'return=representation,resolution=ignore-duplicates' }, body: JSON.stringify({ id: (uid + '|sq:' + nmKey).slice(0, 250), user_id: uid, at, kind: 'good', title, body }) }); } catch (e) { log('squid notif_log: ' + e.message); continue; } /* 1.9.48: χωρίς καταγραφή δεν στέλνουμε (αλλιώς θα ξαναστελνόταν την επόμενη μέρα) */
           if (!Array.isArray(ins) || !ins.length) continue;
@@ -523,6 +527,26 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
     }
   } catch (e) { log('Καιρός εξόδου: ' + e.message); }
   log('Safety job: ' + JSON.stringify(stats));
+  // 9) 1.9.50: υγεία του server. Σε κάθε εκτέλεση γράφεται «heartbeat» (backups/_system/heartbeat.json, το διαβάζει το watchdog του GitHub).
+  //    Αν ένα βήμα αποτύχει σε 2 συνεχόμενες εκτελέσεις (όχι ένα στιγμιαίο σφάλμα δικτύου), μήνυμα Telegram στους διαχειριστές, το πολύ μία φορά ανά 6 ώρες ανά βήμα.
+  if (!only) {
+    try {
+      const HB = URL_ + '/storage/v1/object/backups/_system/heartbeat.json', AH = { apikey: KEY, Authorization: 'Bearer ' + KEY };
+      const st0 = await F(HB, { headers: AH }).then(r => r.ok ? r.json() : {}).catch(() => ({})) || {};
+      const now = Date.now(), byK = {}, fails = {}, alerted = { ...(st0.alerted || {}) };
+      for (const e of ERRS) (byK[e.k] = byK[e.k] || []).push(e.m);
+      for (const k of Object.keys(byK)) fails[k] = ((st0.fails || {})[k] || 0) + 1;
+      const due = Object.keys(byK).filter(k => fails[k] >= 2 && !(alerted[k] && now - alerted[k] < 6 * 3600000));
+      if (due.length && TG) {
+        const chats = await adminChats();
+        const text = '⚠ Alkyon server: σφάλμα σε ' + due.length + (due.length === 1 ? ' βήμα' : ' βήματα') + ' (2 συνεχόμενες εκτελέσεις)\n' + due.map(k => '• ' + byK[k][0]).join('\n');
+        let ok = 0; for (const c of chats) { try { await tg('sendMessage', { chat_id: c, text }); ok++; } catch (_) { /* τίποτα */ } }
+        if (ok) { for (const k of due) alerted[k] = now; stats.health = due.length; }
+      }
+      for (const k of Object.keys(alerted)) if (now - alerted[k] > 86400000) delete alerted[k];
+      await F(HB, { method: 'POST', headers: { ...AH, 'Content-Type': 'application/json', 'x-upsert': 'true' }, body: JSON.stringify({ at: new Date(now).toISOString(), fails, alerted, stats }) });
+    } catch (e) { log0('health: ' + e.message); }
+  }
   return { ok: true, stats };
 }
 
