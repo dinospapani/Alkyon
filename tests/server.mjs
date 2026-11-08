@@ -31,8 +31,8 @@ const calm = () => () => ({ wind: 5, wave: 0.3 });
 const windy = () => () => ({ wind: 18, wave: 1.4 });
 
 /* ---------- ψεύτικη Supabase ---------- */
-function world({ subs = [], notifLog = 'ok', W = calm, community = {}, meteoFail = false, store = {} } = {}) {
-  const log = new Set(), sent = [], calls = [], tgSent = [];
+function world({ subs = [], notifLog = 'ok', W = calm, community = {}, meteoFail = false, store = {}, rows = [] } = {}) {
+  const log = new Set(rows.map(r => r.id)), sent = [], calls = [], tgSent = [];
   const res = (o, status = 200) => ({ ok: status < 400, status, json: async () => o, text: async () => (o == null ? '' : JSON.stringify(o)) });
   const fetch = async (url, opt = {}) => {
     url = String(url); calls.push(url);
@@ -43,8 +43,9 @@ function world({ subs = [], notifLog = 'ok', W = calm, community = {}, meteoFail
     const p = decodeURIComponent(m[1]), method = opt.method || 'GET';
     if (p.startsWith('notif_log') && method === 'POST') {
       if (notifLog === 'error') return res({ message: 'boom' }, 500);
-      const row = JSON.parse(opt.body); if (log.has(row.id)) return res([]); log.add(row.id); return res([row]);
+      const row = JSON.parse(opt.body); if (log.has(row.id)) return res([]); log.add(row.id); rows.push(row); return res([row]);
     }
+    if (p.startsWith('notif_log?kind=eq.comm')) { const gt = (p.match(/at=gt\.([^&]+)/) || [])[1] || ''; return res(rows.filter(r => r.kind === 'comm' && r.at > gt).map(r => ({ user_id: r.user_id, at: r.at }))); }
     if (p === 'push_subs?select=id,user_id,sub,places') return res(subs);
     if (p.startsWith('app_admins?')) return res([{ user_id: 'a1' }]);
     if (p.startsWith('safety_contacts?user_id=in.')) return res([{ self_chat_id: 99 }]);
@@ -55,7 +56,7 @@ function world({ subs = [], notifLog = 'ok', W = calm, community = {}, meteoFail
     return res(method === 'GET' ? [] : null);
   };
   const webpush = { sendNotification: async (sub, payload) => { sent.push({ sub, ...JSON.parse(payload) }); return {}; } };
-  return { fetch, webpush, sent, log, calls, tgSent, store };
+  return { fetch, webpush, sent, log, calls, tgSent, store, rows };
 }
 const go = async (w, tg) => run({ env: { SUPABASE_URL: 'https://x.supabase.co', SUPABASE_SERVICE_KEY: 'k', TELEGRAM_BOT_TOKEN: tg ? 'T' : '' }, fetch: w.fetch, PF, webpush: w.webpush, sendMail: null, log: () => {} });
 
@@ -128,6 +129,26 @@ NOW = RealDate.parse('2026-11-09T22:30:00Z'); // 00:30 Κύπρου: ώρες η
   const w = world({ subs: [SUB([{ lat: 35, lon: 32.4 }], 's1', 'u1')], community: { posts: [{ id: 'p0000002-aaaa', user_id: 'u2', author: 'Νίκος', species: 'Σαργός', created_at: t }] } });
   await go(w);
   check('Κοινότητα: τίποτα στις ώρες ησυχίας', w.sent.filter(x => x.kind === 'comm').length === 0, w.sent);
+}
+
+/* ---------- Κοινότητα: όριο 30′ χωρίς να χάνονται ψάρια, ιστορικό χωρίς συνδρομή (1.9.56) ---------- */
+NOW = RealDate.parse('2026-11-09T10:00:00Z');
+{
+  const rows = [{ id: 'u1|comm:old', user_id: 'u1', kind: 'comm', at: new RealDate(NOW - 10 * 60000).toISOString() }];
+  const subs = [SUB([{ lat: 35, lon: 32.4 }], 's1', 'u1')];
+  const post = { id: 'p0000003-aaaa', user_id: 'u2', author: 'Νίκος', species: 'Φαγκρί', kg: 2, created_at: new RealDate(NOW - 60000).toISOString() };
+  const w1 = world({ subs, rows, community: { posts: [post] } }); await go(w1);
+  check('Κοινότητα: μέσα στο όριο 30′ δεν στέλνει αμέσως', w1.sent.filter(x => x.kind === 'comm').length === 0, w1.sent);
+  NOW += 25 * 60000; // 35′ μετά την προηγούμενη ειδοποίηση· το ψάρι ανέβηκε πριν από 26′ (εκτός του παραθύρου των 6′)
+  const w2 = world({ subs, rows, community: { posts: [post] } }); await go(w2);
+  const c = w2.sent.filter(x => x.kind === 'comm');
+  check('Κοινότητα: το ψάρι που περίμενε έρχεται μετά το όριο (δεν χάνεται)', c.length === 1 && /Φαγκρί/.test(c[0].body), c);
+}
+{
+  const t = new RealDate(NOW - 60000).toISOString();
+  const w = world({ subs: [SUB([{ lat: 35, lon: 32.4 }], 's2', 'u2')], community: { likes: [{ post_id: 'p0000010-cccc', user_id: 'u2', created_at: t }], own: [{ id: 'p0000010-cccc', user_id: 'u9', species: 'Σφυρίδα' }] } });
+  await go(w);
+  check('Κοινότητα: like σε χρήστη χωρίς συνδρομή → γράφεται στο ιστορικό του', w.rows.some(r => r.user_id === 'u9' && r.kind === 'commre') && w.sent.length === 0, [w.rows, w.sent]);
 }
 
 /* ---------- σκοτάδι για καλαμάρι ---------- */

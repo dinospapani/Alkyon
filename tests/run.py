@@ -662,6 +662,6 @@ except Exception: _j={'ok':0,'fail':['server.mjs δεν έτρεξε: '+(_r.stde
 for _l in _r.stdout.splitlines():
     if _l.startswith('  ok   '): check('server: '+_l[7:], True, None)
 for _n in _j.get('fail',[]): check('server: '+_n, False, _r.stdout[-600:])
-check('server: τρέχουν τα tests', _j.get('ok',0)>=24, [_r.returncode,_r.stderr[-300:]])
+check('server: τρέχουν τα tests', _j.get('ok',0)>=27, [_r.returncode,_r.stderr[-300:]])
 print('\n%d ok, %d fail'%(OK[0],len(FAIL)))
 if FAIL: print('FAILED:', ', '.join(FAIL)); sys.exit(1)
