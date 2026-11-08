@@ -552,3 +552,33 @@ window.TACKLE_LIB=[["rod","Shimano","Vengeance"],["rod","Shimano","Speedmaster"]
  ["lure", "KZ Lures", "Eginator #3.0", {"model": "KZ Lures Eginator #3.0", "spec": "squid jig (egi) · size #3.0", "kind": "egi"}]
  ].forEach(function(r){ var k=r[0]+'|'+(r[1]+' '+r[2]).toLowerCase(); if(!have[k]){ have[k]=1; L.push(r); } });
 })();
+
+/* 1.9.46: ακόμα καλαμαριέρες (Yamashita Naory, Harimitsu, Major Craft, Nomura, Shimano Sephy, Evergreen, DUEL TR). Ίδιος κανόνας: βάρη/βύθιση μόνο όπου δίνονται. */
+(function(){ var L=window.TACKLE_LIB, have={}; L.forEach(function(r){ have[r[0]+'|'+(r[1]+' '+r[2]).toLowerCase()]=1; });
+ [["lure", "Yamashita", "Naory Range Hunter 1.5B", {"model": "Yamashita Naory Range Hunter 1.5B", "spec": "squid jig (egi) · size 1.5B · sink 4,5 s/m · light game", "kind": "egi", "w": [3.8]}],
+ ["lure", "Yamashita", "Naory Range Hunter 1.8B", {"model": "Yamashita Naory Range Hunter 1.8B", "spec": "squid jig (egi) · size 1.8B · sink 3,2 s/m · light game", "kind": "egi", "w": [6]}],
+ ["lure", "Yamashita", "Naory Range Hunter 1.8S", {"model": "Yamashita Naory Range Hunter 1.8S", "spec": "squid jig (egi) · size 1.8S · sink 10 s/m · light game", "kind": "egi", "w": [4.5]}],
+ ["lure", "Yamashita", "Naory Range Hunter 2.2B", {"model": "Yamashita Naory Range Hunter 2.2B", "spec": "squid jig (egi) · size 2.2B · sink 2,4 s/m · light game", "kind": "egi", "w": [8]}],
+ ["lure", "Yamashita", "Naory Sight Hunter 1.3", {"model": "Yamashita Naory Sight Hunter 1.3", "spec": "squid jig (egi) · size 1.3 · light game", "kind": "egi", "w": [2.3]}],
+ ["lure", "Harimitsu", "Sumizoku Normal #2.5", {"model": "Harimitsu Sumizoku Normal #2.5", "spec": "squid jig (egi) · size #2.5 · sink 4 s/m", "kind": "egi", "w": [10]}],
+ ["lure", "Harimitsu", "Sumizoku Normal #3.0", {"model": "Harimitsu Sumizoku Normal #3.0", "spec": "squid jig (egi) · size #3.0 · sink 3,5 s/m", "kind": "egi", "w": [15]}],
+ ["lure", "Harimitsu", "Sumizoku Normal #3.5", {"model": "Harimitsu Sumizoku Normal #3.5", "spec": "squid jig (egi) · size #3.5 · sink 3 s/m", "kind": "egi", "w": [21]}],
+ ["lure", "Harimitsu", "Sumizoku Deep #3.5D", {"model": "Harimitsu Sumizoku Deep #3.5D", "spec": "squid jig (egi) · size #3.5D · sink 2,5 s/m · deep", "kind": "egi", "w": [22]}],
+ ["lure", "Major Craft", "Egizo Premium #2.5", {"model": "Major Craft Egizo Premium #2.5", "spec": "squid jig (egi) · size #2.5 · sink 4,2–4,4 s/m", "kind": "egi", "w": [10.5]}],
+ ["lure", "Major Craft", "Egizo Premium #3.0", {"model": "Major Craft Egizo Premium #3.0", "spec": "squid jig (egi) · size #3.0 · sink 3,8–4 s/m", "kind": "egi", "w": [15]}],
+ ["lure", "Major Craft", "Egizo Premium #3.5", {"model": "Major Craft Egizo Premium #3.5", "spec": "squid jig (egi) · size #3.5 · sink 3,4–3,6 s/m", "kind": "egi", "w": [21]}],
+ ["lure", "Major Craft", "Egizo #2.5", {"model": "Major Craft Egizo #2.5", "spec": "squid jig (egi) · size #2.5", "kind": "egi"}],
+ ["lure", "Major Craft", "Egizo #3.0", {"model": "Major Craft Egizo #3.0", "spec": "squid jig (egi) · size #3.0", "kind": "egi"}],
+ ["lure", "Major Craft", "Egizo #3.5", {"model": "Major Craft Egizo #3.5", "spec": "squid jig (egi) · size #3.5", "kind": "egi"}],
+ ["lure", "Major Craft", "Egizo Bait Feather #3.0", {"model": "Major Craft Egizo Bait Feather #3.0", "spec": "squid jig (egi) · size #3.0 · feather", "kind": "egi"}],
+ ["lure", "Major Craft", "Egizo Bait Feather #3.5", {"model": "Major Craft Egizo Bait Feather #3.5", "spec": "squid jig (egi) · size #3.5 · feather", "kind": "egi"}],
+ ["lure", "Nomura", "Eging Sea Squid Jig #2.5", {"model": "Nomura Eging Sea Squid Jig #2.5", "spec": "squid jig (egi) · size #2.5 · Lineaeffe", "kind": "egi"}],
+ ["lure", "Nomura", "Eging Sea Squid Jig #3.0", {"model": "Nomura Eging Sea Squid Jig #3.0", "spec": "squid jig (egi) · size #3.0 · Lineaeffe", "kind": "egi"}],
+ ["lure", "Nomura", "Eging Sea Squid Jig #3.5", {"model": "Nomura Eging Sea Squid Jig #3.5", "spec": "squid jig (egi) · size #3.5 · Lineaeffe", "kind": "egi"}],
+ ["lure", "Shimano", "Sephy Flash Boost 1.8 in", {"model": "Shimano Sephy Flash Boost 1.8 in", "spec": "squid jig (egi) · 1.8 in · light game", "kind": "egi"}],
+ ["lure", "Shimano", "Sephy Flash Boost 2.2 in", {"model": "Shimano Sephy Flash Boost 2.2 in", "spec": "squid jig (egi) · 2.2 in · light game", "kind": "egi"}],
+ ["lure", "Evergreen", "EGI #2.5", {"model": "Evergreen EGI #2.5", "spec": "squid jig (egi) · size #2.5", "kind": "egi"}],
+ ["lure", "Evergreen", "EGI #3.0", {"model": "Evergreen EGI #3.0", "spec": "squid jig (egi) · size #3.0", "kind": "egi"}],
+ ["lure", "DUEL", "EZ-Q Fin Plus TR Rattle #3.5", {"model": "DUEL EZ-Q Fin Plus TR Rattle #3.5", "spec": "squid jig (egi) · size #3.5 · tip-run (boat) · rattle", "kind": "egi", "w": [30]}]
+ ].forEach(function(r){ var k=r[0]+'|'+(r[1]+' '+r[2]).toLowerCase(); if(!have[k]){ have[k]=1; L.push(r); } });
+})();

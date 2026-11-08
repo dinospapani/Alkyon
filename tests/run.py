@@ -592,7 +592,7 @@ with sync_playwright() as p:
     check('συντεταγμένες: «Διάλεξε στον χάρτη» ξεχωριστό κουμπί (1.9.44)', r and all(r) and mp and not pg._errs, [r,mp,pg._errs]); c.close()
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#tackle'); pg.wait_for_timeout(2500)
     r=pg.evaluate("()=>new Promise(res=>{const go=()=>{const L=window.TACKLE_LIB||[], e=L.filter(x=>x[3]&&x[3].kind==='egi'); const d=L.find(x=>x[1]==='DUEL'&&x[2]==='EZ-Q Cast Rattle #3.0'); res([e.length, d?d[3].w[0]:null, new Set(e.map(x=>x[1])).size]);}; if(window.TACKLE_LIB) go(); else { const s=document.createElement('script'); s.src='../tackle-lib.js'; s.onload=go; document.head.appendChild(s);} })")
-    check('Εξοπλισμός: βιβλιοθήκη καλαμαριέρες (1.9.45)', r[0]>=90 and r[1]==14 and r[2]>=7 and not pg._errs, [r,pg._errs]); c.close()
+    check('Εξοπλισμός: βιβλιοθήκη καλαμαριέρες (1.9.45, 1.9.46)', r[0]>=120 and r[1]==14 and r[2]>=12 and not pg._errs, [r,pg._errs]); c.close()
     print('# offline')
     c=ctx(b,sw=True); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(6000); pg.reload(); pg.wait_for_timeout(3000)
     c.set_offline(True)
