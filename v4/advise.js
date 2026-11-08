@@ -20,6 +20,7 @@ function misses(){ return bitesAll().filter(function(b){ return b.miss; }); }
 function trips(){ return B.records('trips').filter(function(t){ return !t.deleted; }); }
 function model(){ return PP.build(trips(),act(),{utcMin:utcMin(),misses:misses()}); }
 function calib(){ return PP.calib(trips(),act(),{utcMin:utcMin(),misses:misses()}); }
+function vsMoon(){ return PP.vsMoon?PP.vsMoon(trips(),act(),{utcMin:utcMin(),misses:misses()}):null; }
 
 function collect(){
   var bites=act(), utc=utcMin(), m=PP.build(trips(),bites,{utcMin:utc,misses:misses()}), by={}, total=0;
@@ -116,5 +117,5 @@ function species(D,key,fc){
 function speciesList(D){ var m={}; KB.forEach(function(e){ m[e.n]={v:e.n,t:sName(e)}; }); Object.keys(D.by).forEach(function(k){ if(!m[k]) m[k]={v:k,t:D.by[k].name}; });
   return Object.keys(m).map(function(k){ var o=m[k]; o.n=D.by[k]?D.by[k].n:0; return o; }).sort(function(a,b){ return (b.n-a.n)||a.t.localeCompare(b.t,EN?'en':'el'); }); }
 
-B.adv={collect:collect,suggest:suggest,species:species,speciesList:speciesList,slot:slot,model:model,calib:calib,trips:trips,act:act,utcMin:utcMin,PTS:PTS};
+B.adv={collect:collect,suggest:suggest,species:species,speciesList:speciesList,slot:slot,model:model,calib:calib,vsMoon:vsMoon,trips:trips,act:act,utcMin:utcMin,PTS:PTS};
 })();

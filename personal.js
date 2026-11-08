@@ -143,7 +143,35 @@ function calib(trips,bites,opt){
   const lo=B[0], hi=B[2], ok=n>=6&&lo.h>=5&&hi.h>=5;
   return {n,bins:B,ok,ratio:ok&&lo.rate>0?hi.rate/lo.rate:(ok&&hi.rate>0?Infinity:null)};
 }
+/* 1.9.33: σύγκριση με «μόνο σελήνη» (όπως οι σελίδες ηλιοσεληνιακών ωρών, π.χ. Fishing Reminder): κύρια περίοδος ±60′ +30, δευτερεύουσα ±60′ +15,
+   νέα/πανσέληνος +10. «Καλή ώρα» = 70+. Για το Alkyon «καλή ώρα» = ο βαθμός που έδινε η εφαρμογή εκείνη την ώρα (scoreH) 70+.
+   Μετρά ψάρια ανά ώρα ψαρέματος στις καλές και στις άλλες ώρες, για καθεμία από τις δύο μεθόδους. Η πλεύση δεν μετρά. */
+function moonOnly(ms,lat,lon,utcMin){
+  if(!(g.PF&&g.PF.sunMoon)||lat==null||lon==null) return null;
+  const loc=new Date(ms+utcMin*60000), ds=loc.toISOString().slice(0,10), t=loc.getUTCHours()*60+loc.getUTCMinutes();
+  let sm=null; try{ sm=g.PF.sunMoon(ds,+lat,+lon,utcMin); }catch(e){ return null; } if(!sm) return null;
+  const near=a=>(a||[]).reduce((m,x)=>Math.min(m,Math.abs(x-t),Math.abs(x-t-1440),Math.abs(x-t+1440)),1e9);
+  const f=sm.f!=null?sm.f:(g.PF.moonPhase?g.PF.moonPhase(ms).f:0.25), ph=Math.min(Math.abs(f),Math.abs(f-0.5),Math.abs(f-1))<=0.1?10:0;
+  return 50+(near(sm.maj)<=60?30:near(sm.min)<=60?15:0)+ph;
+}
+function vsMoon(trips,bites,opt){
+  const utcMin=(opt&&opt.utcMin)||0, all=(bites||[]).concat((opt&&opt.misses)||[]), Z=()=>({hi:{h:0,c:0},lo:{h:0,c:0}}), A=Z(), M=Z(); let n=0;
+  for(const s of sessionsOf(trips)){
+    if(s.manual||!Array.isArray(s.scoreH)||!s.scoreH.length) continue; const sc={}; s.scoreH.forEach(r=>{ if(Array.isArray(r)) sc[r[0]]=r[1]; });
+    const lat=s.lat!=null?s.lat:(s.cond0&&s.cond0.lat), lon=s.lon!=null?s.lon:(s.cond0&&s.cond0.lon); if(lat==null) continue;
+    const ev=all.map(b=>biteMs(b,utcMin)).filter(ms=>ms!=null&&ms>=s.startMs-600000&&ms<=s.endMs+600000);
+    const mv=Array.isArray(s.moving)?s.moving.filter(m=>!ev.some(e=>e>=m[0]&&e<=m[1])):[]; let used=false;
+    const put=(ms,dh,dc)=>{ const a=sc[Math.floor(ms/3600000)], m=moonOnly(ms,lat,lon,utcMin); if(a==null||m==null) return false;
+      const ga=a>=70?A.hi:A.lo, gm=m>=70?M.hi:M.lo; ga.h+=dh; gm.h+=dh; ga.c+=dc; gm.c+=dc; return true; };
+    for(let t=s.startMs;t<s.endMs;t+=600000){ const dh=Math.min(600000,s.endMs-t)/3600000, mid=t+dh*1800000; if(mv.some(m=>mid>=m[0]&&mid<=m[1])) continue; if(put(mid,dh,0)) used=true; }
+    ev.forEach(ms=>put(Math.min(Math.max(ms,s.startMs),s.endMs-1),0,1));
+    if(used) n++;
+  }
+  const rate=g=>g.h>0?g.c/g.h:null, ratio=G=>{ const a=rate(G.hi), b=rate(G.lo); return a==null||b==null?null:b>0?a/b:(a>0?Infinity:1); };
+  const ok=n>=6&&A.hi.h>=3&&A.lo.h>=3&&M.hi.h>=3&&M.lo.h>=3;
+  return {n,A,M,ok,rA:ratio(A),rM:ratio(M),rate};
+}
 const LIGHT_EL=['Νύχτα','Αυγή','Πρωί','Μεσημέρι','Απόγευμα','Σούρουπο'], LIGHT_EN=['Night','Dawn','Morning','Midday','Afternoon','Dusk'];
-g.PP={calib,build,score,day,sessionsOf,moonOf,NEED,ADV,biteMs,phaseOf,phaseAt,movingFrom,validate,prepare,LIGHT_EL,LIGHT_EN,MOVE_KN};
+g.PP={calib,vsMoon,moonOnly,build,score,day,sessionsOf,moonOf,NEED,ADV,biteMs,phaseOf,phaseAt,movingFrom,validate,prepare,LIGHT_EL,LIGHT_EN,MOVE_KN};
 if(typeof module!=='undefined') module.exports=g.PP;
 })(typeof window!=='undefined'?window:globalThis);

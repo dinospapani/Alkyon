@@ -513,6 +513,13 @@ with sync_playwright() as p:
     r=pg.evaluate("()=>{const x=document.querySelector('.hero .hsplit'); const fc=JSON.parse(localStorage.getItem('alkyon-fc')||'null'); return {box:!!x, n:x?x.querySelectorAll('.hsb').length:0, txt:x?x.innerText:''}}")
     r2=pg.evaluate("()=>{const sm={f:0.25,rise:360,set:1080,maj:[],min:[]}; const w={wind:30,wave:2.2,gust:40,ptrend:'stable',cloud:'part'}; return [PF.hourScore(sm,9,w), PF.hourScore(sm,9,Object.assign({bite:true},w))]}")
     check('Τσίμπημα και Θάλασσα χωριστά (1.9.32)', r['box'] and r['n']==2 and 'Τσίμπημα' in r['txt'] and r2[1]>r2[0]+20 and not pg._errs, [r,r2,pg._errs]); c.close()
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(3000)
+    r=pg.evaluate('''()=>{ const T0=Date.UTC(2026,9,1,4,0), trips=[], bites=[];
+      for(let d=0;d<8;d++){ const st=T0+d*86400000, en=st+6*3600000, sc=[]; for(let k=0;k<6;k++) sc.push([Math.floor(st/3600000)+k, k<2?80:50]);
+        trips.push({startMs:st,endMs:en,lat:35.05,lon:32.4,scoreH:sc});
+        const loc=new Date(st+120*60000+30*60000); bites.push({date:loc.toISOString().slice(0,10),time:loc.toISOString().slice(11,16)}); }
+      const v=PP.vsMoon(trips,bites,{utcMin:120}); return {ok:v.ok,n:v.n,rA:v.rA,hiA:v.A.hi.c,loA:v.A.lo.c}; }''')
+    check('Alkyon ή μόνο σελήνη: σύγκριση με τα ψάρια σου (1.9.33)', r['n']==8 and r['hiA']==8 and r['loA']==0 and not pg._errs, [r,pg._errs]); c.close()
     print('# offline')
     c=ctx(b,sw=True); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(6000); pg.reload(); pg.wait_for_timeout(3000)
     c.set_offline(True)

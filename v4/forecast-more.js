@@ -119,6 +119,22 @@ B.fcMine=function(page,fc,ctx){
     :T('Δεν φαίνεται ακόμα διαφορά ανάμεσα σε υψηλό και χαμηλό βαθμό στα δικά σου νερά.','No clear difference between high and low scores in your waters yet.')}));
   page.append(c5);
 
+  /* 1.9.33: Alkyon ή «μόνο σελήνη»; με τα δικά σου ψάρια */
+  var vm=A().vsMoon?A().vsMoon():null;
+  if(vm){ var c7=card(T('Alkyon ή μόνο σελήνη;','Alkyon or moon only?'),T('Πόσο πιο πολλά ψάρια πιάνεις στις «καλές» ώρες κάθε μεθόδου σε σχέση με τις υπόλοιπες. Μόνο σελήνη = όπως οι σελίδες ηλιοσεληνιακών ωρών (κύρια/δευτερεύουσα ±1 ώρα, νέα σελήνη/πανσέληνος).','How many more fish you catch in each method’s “good” hours than in the rest. Moon only = like solunar-time sites (major/minor ±1 hour, new/full moon).'));
+    var R=function(G){ var r=vm.rate; return [r(G.hi),r(G.lo)]; }, rows=[['Alkyon',vm.A,vm.rA],[T('Σελήνη','Moon'),vm.M,vm.rM]];
+    var mxr=Math.max.apply(null,[vm.rA,vm.rM].map(function(x){ return x==null||x===Infinity?0:x; }).concat([1.01]));
+    rows.forEach(function(r){ var G=r[1], q=R(G), lab=r[2]==null?'—':r[2]===Infinity?'∞':'×'+B.num(r[2],1);
+      c7.append(bar(r[0],r[2]==null?0:r[2]===Infinity?mxr:r[2],mxr,lab,r[2]!=null&&r[2]>=1.3?'up':r[2]!=null&&r[2]<=0.9?'down':''));
+      c7.append(h('p',{class:'sub',style:{margin:'0 0 8px'},text:T('καλές ώρες: ','good hours: ')+(q[0]==null?'—':B.num(q[0],2)+T(' ψάρια/ώρα',' fish/h'))+' ('+B.num(G.hi.h,1)+T(' ώρ.',' h')+') · '+T('υπόλοιπες: ','others: ')+(q[1]==null?'—':B.num(q[1],2)+T(' ψάρια/ώρα',' fish/h'))+' ('+B.num(G.lo.h,1)+T(' ώρ.',' h')+')'})); });
+    var verdict=!vm.ok?T('Χρειάζονται τουλάχιστον 6 έξοδοι με «Ξεκινώ» και «Τέλος» και αρκετές ώρες σε κάθε ομάδα (τώρα ','Needs at least 6 trips with Start and End and enough hours in each group (now ')+vm.n+T(' έξοδοι).',' trips).')
+      :(vm.rA||0)>=(vm.rM||0)*1.15?T('Στα δικά σου νερά το Alkyon προβλέπει καλύτερα από τη σελήνη μόνο.','In your waters Alkyon predicts better than the moon alone.')
+      :(vm.rM||0)>=(vm.rA||0)*1.15?T('Στα δικά σου νερά η σελήνη μόνη της προβλέπει καλύτερα. Πες το μας: θα αλλάξουμε τα βάρη.','In your waters the moon alone predicts better. Tell us and we will adjust the weights.')
+      :T('Μέχρι τώρα προβλέπουν περίπου το ίδιο.','So far they predict about the same.');
+    c7.append(h('p',{class:'p',style:{margin:'6px 0 0',fontWeight:'600'},text:verdict}));
+    c7.append(h('p',{class:'foot',text:T('×1 = καμία διαφορά. Όσο μεγαλύτερο, τόσο καλύτερα ξεχωρίζει η μέθοδος τις ώρες που πιάνεις. Μετρούν μόνο οι έξοδοι όπου η εφαρμογή κράτησε τον βαθμό κάθε ώρας.','×1 = no difference. The bigger, the better the method picks the hours you catch. Only trips where the app kept the hourly score count.')}));
+    page.append(c7); }
+
   /* πρόσφατες έξοδοι */
   var S=PP.sessionsOf(A().trips()).sort(function(a,b){ return b.startMs-a.startMs; }).slice(0,6);
   if(S.length){ var bites=A().act(), utc=A().utcMin(), c6=card(T('Πρόσφατες έξοδοι','Recent trips')), l=h('div',{class:'mini-list'});
