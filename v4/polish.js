@@ -31,10 +31,11 @@ var P={
   home:'<path d="M4 11l8-7 8 7v9H4z"/><path d="M10 20v-5h4v5"/>',
   fuel:'<path d="M5 21V5a1.5 1.5 0 0 1 1.5-1.5h6A1.5 1.5 0 0 1 14 5v16M3.5 21h12M5 10h9"/><path d="M14 8l3.5 3v6.5a1.5 1.5 0 0 0 3 0V9l-2.5-2.5"/>',
   book:'<path d="M4 5.5A2 2 0 0 1 6 3.5h13v15H6a2 2 0 0 0-2 2z"/><path d="M4 20.5a2 2 0 0 0 2 1h13v-3"/>',
+  trophy:'<path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v1.5A3.5 3.5 0 0 0 7.5 11M17 6h3v1.5A3.5 3.5 0 0 1 16.5 11M12 14v3.5M8.5 20.5h7M9.5 17.5h5v3h-5z"/>',
   star:'<path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/>'
 };
 var MAP={'🐟':'fish','🐠':'fish','🎣':'fish','🐡':'puffer','🎤':'mic','📈':'up','📉':'down','📊':'chart','📍':'pin','📥':'inbox','🗺':'map','📷':'camera','📸':'camera','⚓':'anchor','🌙':'moon','📋':'clip',
-  '🎯':'target','🔍':'search','🔎':'search','📝':'note','❌':'x','✅':'ok','👍':'ok','☀':'sun','🏝':'island','🔔':'bell','🌊':'wave','🏠':'home','⛽':'fuel','📖':'book','⭐':'star'};
+  '🎯':'target','🔍':'search','🔎':'search','📝':'note','❌':'x','✅':'ok','👍':'ok','☀':'sun','🏝':'island','🔔':'bell','🌊':'wave','🏠':'home','⛽':'fuel','📖':'book','⭐':'star','🏆':'trophy','🥇':'trophy'};
 var KEYS=Object.keys(MAP).sort(function(a,b){ return b.length-a.length; });
 var RE=new RegExp('('+KEYS.map(function(k){ return k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }).join('|')+')\\uFE0F?\\s?','g');
 var SKIP={SCRIPT:1,STYLE:1,TEXTAREA:1,INPUT:1,SELECT:1,OPTION:1,CANVAS:1,svg:1,SVG:1,TITLE:1,NOSCRIPT:1};

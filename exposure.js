@@ -129,7 +129,7 @@ function drawMap(cv,r,cur,names,cols,mx){
      Το χρώμα = πόσο κύμα σηκώνει ο άνεμος από εκεί (ενεργό fetch, ±42°) */
   var edge=RK*0.97, ext=[];
   r.dirs.forEach(function(dd){ var L=level(dd.km), a0=(dd.deg-11.25-90)*D2R, a1=(dd.deg+11.25-90)*D2R, st0=dd.ray==null?dd.km:dd.ray, km=Math.min(st0,edge), rr=Math.max(S*0.03,km*px);
-    c.beginPath(); c.moveTo(cx,cy); c.arc(cx,cy,rr,a0,a1); c.closePath(); c.globalAlpha=dd.i===cur?0.85:0.55; c.fillStyle=cols[L.k]; c.fill(); c.globalAlpha=1; c.lineWidth=dd.i===cur?5:2; c.strokeStyle=dd.i===cur?'#0b1f2a':'rgba(255,255,255,.85)'; c.stroke();
+    c.beginPath(); c.moveTo(cx,cy); c.arc(cx,cy,rr,a0,a1); c.closePath(); c.globalAlpha=dd.i===cur?0.85:0.55; c.fillStyle=cols[L.k]; c.fill(); c.globalAlpha=1; c.lineWidth=dd.i===cur?5:2; c.strokeStyle=dd.i===cur?(dark?'#fff':'#0b1f2a'):'rgba(255,255,255,.85)'; c.stroke();
     if(st0>edge) ext.push(dd); });
   /* οι πιο μακριές: αριθμός km στην άκρη */
   ext.sort(function(a,b){ return b.ray-a.ray; }); var lab=ext.filter(function(dd,k){ return dd.i===cur||k<3; });
@@ -138,8 +138,8 @@ function drawMap(cv,r,cur,names,cols,mx){
     c.lineWidth=6; c.strokeStyle='rgba(255,255,255,.92)'; c.strokeText(t,tx,ty); c.fillStyle='#0b1f2a'; c.fillText(t,tx,ty); });
   /* βέλος ανέμου: έρχεται από την κατεύθυνση του ανέμου προς το σημείο */
   if(cur>=0){ var a=(cur*22.5-90)*D2R, ox=cx+Math.cos(a)*R*0.9, oy=cy+Math.sin(a)*R*0.9, ix=cx+Math.cos(a)*S*0.13, iy=cy+Math.sin(a)*S*0.13;
-    c.lineCap='round'; c.strokeStyle='#fff'; c.lineWidth=16; c.beginPath(); c.moveTo(ox,oy); c.lineTo(ix,iy); c.stroke(); c.strokeStyle='#0b1f2a'; c.lineWidth=9; c.beginPath(); c.moveTo(ox,oy); c.lineTo(ix,iy); c.stroke();
-    var b=Math.atan2(iy-oy,ix-ox), hl=S*0.055; c.beginPath(); c.moveTo(ix+Math.cos(b)*hl*0.6,iy+Math.sin(b)*hl*0.6); c.lineTo(ix-Math.cos(b-0.55)*hl,iy-Math.sin(b-0.55)*hl); c.lineTo(ix-Math.cos(b+0.55)*hl,iy-Math.sin(b+0.55)*hl); c.closePath(); c.fillStyle='#0b1f2a'; c.strokeStyle='#fff'; c.lineWidth=4; c.stroke(); c.fill(); }
+    var AF=dark?'#ffffff':'#0b1f2a', AS=dark?'#0b1f2a':'#ffffff'; c.lineCap='round'; c.strokeStyle=AS; c.lineWidth=16; c.beginPath(); c.moveTo(ox,oy); c.lineTo(ix,iy); c.stroke(); c.strokeStyle=AF; c.lineWidth=9; c.beginPath(); c.moveTo(ox,oy); c.lineTo(ix,iy); c.stroke();
+    var b=Math.atan2(iy-oy,ix-ox), hl=S*0.055; c.beginPath(); c.moveTo(ix+Math.cos(b)*hl*0.6,iy+Math.sin(b)*hl*0.6); c.lineTo(ix-Math.cos(b-0.55)*hl,iy-Math.sin(b-0.55)*hl); c.lineTo(ix-Math.cos(b+0.55)*hl,iy-Math.sin(b+0.55)*hl); c.closePath(); c.fillStyle=AF; c.strokeStyle=AS; c.lineWidth=4; c.stroke(); c.fill(); }
   /* σημείο */
   c.beginPath(); c.arc(cx,cy,S*0.022,0,7); c.fillStyle='#d4502b'; c.fill(); c.lineWidth=5; c.strokeStyle='#fff'; c.stroke();
   /* σημεία του ορίζοντα */

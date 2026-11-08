@@ -61,3 +61,11 @@ html.night .ik{color:inherit}
 .opr .opt small:not(.opw){white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .opr .opt .opb{font-size:12px}
 .opr .opt{min-width:0}
+/* γραφήματα με ενιαίο ύφος: ποσότητες = θαλασσί (όπως οι μπάρες ειδών), το καλύτερο τονισμένο */
+.wcols .wc i{background:color-mix(in srgb,var(--sea) 45%,transparent)}
+.wcols .wc.pk i{background:var(--sea)}
+html.night .wcols .wc i{background:#888}html.night .wcols .wc.pk i{background:#fff}
+/* έκθεση ακτής: πιο ήπια επικεφαλίδα */
+#fcExposure .exv{font:600 14.5px/1.4 var(--font)}
+/* κουμπιά με μεγάλο κείμενο μέσα σε κάρτες: σπάνε γραμμή αντί να βγαίνουν έξω */
+.mres .btn,.card .btn.sm{white-space:normal;max-width:100%;text-align:center;height:auto;min-height:38px;padding-top:6px;padding-bottom:6px}
