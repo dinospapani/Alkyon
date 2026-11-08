@@ -257,6 +257,7 @@ B.placeName=function(p){ if(!p) return ''; if(!genName(p.name)||p.lat==null) ret
   return (+p.lat).toFixed(3)+', '+(+p.lon).toFixed(3); };
 function placeLabel(p){ if(!p||p.lat==null) return p&&p.name||''; var gen=p.gps||/^(Η θέση μου|My location|Σημείο χάρτη|Map point|Σημείο|Point)$/.test(p.name||''); if(!gen) return p.name; var sn=B.placeName(p); if(sn&&!/^(Κοντά|Near)|^\d/.test(sn)&&!p.gps) return sn;
   var best=null, bd=1e9; CYP.forEach(function(c){ var d=kmTo([p.lat,p.lon],[c[1],c[2]]); if(d<bd){ bd=d; best=c; } }); var nm=best&&bd<15?(EN?CYPE[best[0]]||best[0]:best[0]):p.name; /* περιοχή, όχι ακριβής τοποθεσία (έως 15 km) */
+  if(best&&bd>=2&&bd<15) nm=T('Κοντά σε ','Near ')+nm+' ('+Math.round(bd)+' km)'; /* 1.9.31: να μη μοιάζει ότι το σημείο είναι πάνω στο χωριό */
   if(p.gps) return nm+(nm!==p.name?' · '+T('εδώ','here'):'');
   var me=B.lastPos&&B.lastPos(); if(me&&me.lat!=null){ var dm=kmTo([me.lat,me.lon],[p.lat,p.lon]); nm+=' · '+(dm<1?T('εδώ','here'):(dm<10?B.num(dm,1):Math.round(dm))+' km '+T('από σένα','from you')); }
   return nm; }
