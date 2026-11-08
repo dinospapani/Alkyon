@@ -509,10 +509,9 @@ with sync_playwright() as p:
     c=ctx(b); c.set_geolocation({'latitude':35.045,'longitude':32.40}); c.add_init_script("localStorage.setItem('alkyon-v4-fcopen',JSON.stringify({expo:1}))"); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(6000)
     r=pg.evaluate("()=>{const x=document.querySelector('#fcExposure'); const order=[...document.querySelectorAll('#main .hero, #main .nowcard, #main .hcard, #main details.fold')].map(e=>e.classList.contains('hero')?'h':e.classList.contains('nowcard')?'n':e.classList.contains('hcard')?'u':e.querySelector('#fcExposure')?'e':'f').join(''); return {v:x&&x.dataset.v, cv:!!(x&&x.querySelector('.exmap canvas')), v1:!!(x&&x.querySelector('.exv')), est:!!(x&&x.querySelector('.exest:not([hidden]) b')), order:order}}")
     check('έκθεση ακτής με χάρτη, σειρά σημασίας στη σελίδα (1.9.30)', r['v']=='2' and r['cv'] and r['v1'] and r['est'] and r['order'].startswith('hnue') and not pg._errs, [r,pg._errs]); c.close()
-    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#forecast')
-    try: pg.wait_for_selector('.hero .hsplit',timeout=20000)  # 1.9.58: στο GitHub ο υπολογιστής είναι πιο αργός· περιμένουμε την κάρτα αντί για σταθερά 5″
-    except Exception: pass
-    pg.wait_for_timeout(500)
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_selector('.dstrip .dtile:not(.past)'); pg.wait_for_timeout(1000)
+    # 1.9.58: αύριο, όχι σήμερα: μετά τη δύση η σημερινή μέρα δεν έχει άλλες ώρες φωτός και η κάρτα δεν βγαίνει (το test αποτύγχανε μόνο το βράδυ)
+    pg.evaluate("()=>document.querySelectorAll('.dstrip .dtile:not(.past)')[1].click()"); pg.wait_for_timeout(1200)
     r=pg.evaluate("()=>{const x=document.querySelector('.hero .hsplit'); const fc=JSON.parse(localStorage.getItem('alkyon-fc')||'null'); return {box:!!x, n:x?x.querySelectorAll('.hsb').length:0, txt:x?x.innerText:''}}")
     r2=pg.evaluate("()=>{const sm={f:0.25,rise:360,set:1080,maj:[],min:[]}; const w={wind:30,wave:2.2,gust:40,ptrend:'stable',cloud:'part'}; return [PF.hourScore(sm,9,w), PF.hourScore(sm,9,Object.assign({bite:true},w))]}")
     check('Τσίμπημα και Θάλασσα χωριστά (1.9.32)', r['box'] and r['n']==2 and 'Τσίμπημα' in r['txt'] and r2[1]>r2[0]+20 and not pg._errs, [r,r2,pg._errs]); c.close()
