@@ -321,6 +321,10 @@ var IK={fish:'<path d="M3 12c2.6-3.6 6.4-5.5 10-5 2.2.3 4 1.6 5.2 3.4L21.5 8v8l-
   pin:'<path d="M12 21s-6.5-5.8-6.5-11A6.5 6.5 0 0 1 18.5 10c0 5.2-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/>',
   map:'<path d="M9 4L3.5 6v14L9 18l6 2 5.5-2V4L15 6 9 4z"/><path d="M9 4v14M15 6v14"/>'};
 function ik(n,cls){ return h('i',{class:'ik'+(cls?' '+cls:''),'aria-hidden':'true',html:'<svg viewBox="0 0 24 24">'+IK[n]+'</svg>'}); }
+/* 1.9.44: πότε είναι η επόμενη νέα σελήνη (και πανσέληνος) */
+function nmTxt(ms){ var d=new Date(ms), td=today(), ds=d.getFullYear()+'-'+B.pad(d.getMonth()+1)+'-'+B.pad(d.getDate()), days=Math.round((new Date(ds+'T12:00:00')-new Date(td+'T12:00:00'))/864e5);
+  return days<=1?B.dayName(ds,td).toLowerCase()+' '+B.pad(d.getHours())+':'+B.pad(d.getMinutes()):d.toLocaleDateString(EN?'en-GB':'el-GR',{weekday:'short',day:'numeric',month:'short'})+' ('+T('σε ','in ')+days+T(' μέρες',' days')+')'; }
+function nmSpan(){ if(!PF.nextMoon) return null; var r=PF.nextMoon(Date.now()); if(!r||!r.nw) return null; return h('span',{class:'nmx',text:T('νέα σελήνη ','new moon ')+nmTxt(r.nw)}); }
 function planBtn(d){
   var pl=B.plans.get(d.date), p=st.place||current();
   var b=h('button',{type:'button',class:'planbtn'+(pl?' on':''),onclick:function(){
@@ -421,7 +425,7 @@ function dayView(page,fc,d){
     var ill=Math.round(((1-Math.cos(2*Math.PI*d.f))/2)*100);
     /* 1.9.17: με λέξεις, όχι κωδικούς: ανατολή/δύση, φάση σελήνης, δυνατές/ασθενείς ώρες σελήνης */
     /* 1.9.30: μία σύντομη γραμμή· οι ώρες σελήνης φαίνονται στο «Ανά ώρα» και στο γράφημα σελήνης */
-    hero.append(h('p',{class:'hsun1'},h('span',null,ik('rise'),B.hm(d.rise)),h('span',null,ik('set'),B.hm(d.set)),h('span',{text:moonIco(d.f)+' '+moonName(d.f)+' '+ill+'%'}),mj.length?h('span',{class:'mj',text:T('κύρια σελήνη ','major moon ')+mj.join(', ')}):null)); })();
+    hero.append(h('p',{class:'hsun1'},h('span',null,ik('rise'),T('ανατολή ','sunrise ')+B.hm(d.rise)),h('span',null,ik('set'),T('δύση ','sunset ')+B.hm(d.set)),h('span',{text:moonIco(d.f)+' '+moonName(d.f)+' '+ill+'%'}),nmSpan(),mj.length?h('span',{class:'mj',text:T('κύρια σελήνη ','major moon ')+mj.join(', ')}):null)); })();
   if(d.date>=td&&d.safe) hero.append(planBtn(d)); /* 1.9.9: όχι «Θα βγω» σε μέρα που δεν συνιστάται έξοδος */
   page.append(hero);
   /* ψαροντούφεκο: ορατότητα νερού (δορυφόρος όταν υπάρχει, αλλιώς εκτίμηση από κύμα και βροχή) */
@@ -641,6 +645,7 @@ function measured(box,p,modelNow){
 function moonResearch(){
   var box=h('div',{class:'mres'}), mi=null; try{ mi=PF.moonInfo(spCfg()); }catch(e){}
   box.append(h('b',{text:T('Τι λέει η έρευνα για τη σελήνη','What research says about the moon')}));
+  try{ var nm=PF.nextMoon&&PF.nextMoon(Date.now()); if(nm&&nm.nw) box.append(h('p',null,h('span',{class:'mk',text:T('Ημερολόγιο: ','Calendar: ')}),T('νέα σελήνη ','new moon ')+nmTxt(nm.nw)+(nm.full?' · '+T('πανσέληνος ','full moon ')+nmTxt(nm.full):''))); }catch(x){}
   box.append(h('p',{text:T('Ώρες σελήνης (Knight): μικρή επίδραση. Στον βαθμό η κύρια περίοδος δίνει +6 και η δευτερεύουσα +3, ενώ η αυγή και το σούρουπο +14.','Moon times (Knight): a small effect. In the score a major period adds +6 and a minor +3, while dawn and dusk add +14.')}));
   var sc=spCfg(), snm=sc?(EN&&sc.l?sc.l:sc.n):null; /* 1.9.28: λέει για ποιο ψάρι μιλά */
   if(mi) box.append(h('p',null,h('span',{class:'mk',text:T('Φάση','Phase')+(snm&&!mi.k?' ('+snm+')':'')+': '}),EN?mi.en:mi.el,mi.src?h('small',{text:' ('+mi.src+')'}):null));

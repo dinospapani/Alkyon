@@ -29,6 +29,13 @@ function moonAlt(ms,lat,lon){ const d=jdD(ms), m=moonEq(d), H=(280.46061837+360.
   return Math.asin(Math.sin(lat*RD)*Math.sin(m.dec)+Math.cos(lat*RD)*Math.cos(m.dec)*Math.cos(H))/RD; }
 /* φάση: 0 = νέα, 0,5 = πανσέληνος· φωτισμός 0–1 */
 function moonPhase(ms){ const d=jdD(ms), el=((moonEq(d).lam-sunLon(d))/RD%360+360)%360; return {f:el/360,illum:(1-Math.cos(el*RD))/2}; }
+/* 1.9.44: επόμενη νέα σελήνη και πανσέληνος μετά από ms (ακρίβεια ~10′): {nw, full} σε ms */
+function nextMoon(ms){ const H=3600000, fz=t=>moonPhase(t).f; let nw=null, full=null, t=ms, a=fz(t);
+  for(let i=0;i<24*32&&(nw==null||full==null);i++){ const t2=t+6*H, b=fz(t2);
+    if(nw==null&&b<a){ let lo=t, hi=t2; for(let k=0;k<12;k++){ const m=(lo+hi)/2; if(fz(m)<fz(lo)) hi=m; else lo=m; } nw=Math.round(hi); }
+    if(full==null&&a<0.5&&b>=0.5){ let lo=t, hi=t2; for(let k=0;k<12;k++){ const m=(lo+hi)/2; if(fz(m)<0.5) lo=m; else hi=m; } full=Math.round(hi); }
+    t=t2; a=b; }
+  return {nw,full}; }
 /* γεγονότα σελήνης μεταξύ ms0 και ms1: rise, set, upper (από πάνω), lower (από κάτω). Ανατολή/δύση στο +0,125° (γεωκεντρικό, με διάθλαση και παράλλαξη). */
 function moonEvents(ms0,ms1,lat,lon){
   const step=10*60000, H0=0.125, out=[]; let a0=moonAlt(ms0-step,lat,lon), a1=moonAlt(ms0,lat,lon);
@@ -492,7 +499,7 @@ async function checkPlaces(cfg,fetchFn){
       msgs.push({kind:'good',key:i.key,place:P(i.pl),t:i.pl.date,title:'⏰ '+t('Ώρα να ξεκινήσεις','Time to get going'),body:tx,full:tx}); } });
   return {nextGood,todayGood,tmrGood,items,notified,title,body:lines.concat(pl,tl,wl).join('\n'),msgs,area:area?{name:area.name,lat:area.lat,lon:area.lon}:null,errs,okN,goodsN:goods.length,pressN:press.length,turnsN:turns.length,windsN:winds.length};
 }
-g.PF={lims,moonAlt,moonEvents,moonPhase,solunarPeriods,pressureRise,sunMoon,hourScore,getForecast,findIdeal,message,check,goodDays,checkPlaces,dayLabel,bft,pressureEvent,windEvent,pressureTurns,pressureOutlook};
+g.PF={nextMoon,lims,moonAlt,moonEvents,moonPhase,solunarPeriods,pressureRise,sunMoon,hourScore,getForecast,findIdeal,message,check,goodDays,checkPlaces,dayLabel,bft,pressureEvent,windEvent,pressureTurns,pressureOutlook};
 })(typeof self!=='undefined'?self:this);
 
 const PF = self.PF;
@@ -520,7 +527,7 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
     const r = await F(`https://api.telegram.org/bot${TG}/${method}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const j = await r.json().catch(() => ({})); if (!j.ok) throw new Error('Telegram ' + (j.description || r.status)); return j.result;
   };
-  const stats = { linked: 0, start: 0, alert: 0, clear: 0, ping: 0, silence: 0, lowbat: 0, ok: 0, fc: 0, pa: 0 };
+  const stats = { linked: 0, start: 0, alert: 0, clear: 0, ping: 0, silence: 0, lowbat: 0, ok: 0, fc: 0, pa: 0, squid: 0 };
   const PING_WAIT_MIN = 15, LOWBAT = 10;
   const patch = (id, o) => sb(`safety_trips?id=eq.${encodeURIComponent(id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(o) });
   // 1.9.19: τα Telegram των διαχειριστών (app_admins → το δικό τους Telegram από safety_contacts.self_chat_id)
@@ -923,6 +930,46 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
         }
       }
     } catch (e) { log('community push: ' + e.message); }
+  }
+
+  // 7γ) 1.9.44: καλαμάρια γύρω από τη νέα σελήνη (μόνο όσοι το άνοιξαν: places[].squid === 'on').
+  //   Οκτώβριος–Απρίλιος, 09:00–10:00 Κύπρου, όταν η νέα σελήνη είναι από 2 μέρες πριν έως 3 μέρες μετά.
+  //   Βράδια με λίγο άνεμο (<8 kn) και ήρεμη θάλασσα (≤0,6 m) στο σούρουπο ±1 ώρα. Μία ειδοποίηση ανά σελήνη ανά χρήστη (notif_log).
+  if (webpush) {
+    try {
+      const nowD = new Date(), cyHs = +nowD.toLocaleString('en-GB', { timeZone: 'Asia/Nicosia', hour: '2-digit', hour12: false }).slice(0, 2), mon = +nowD.toLocaleString('en-GB', { timeZone: 'Asia/Nicosia', month: 'numeric' });
+      const nm = PF.nextMoon(Date.now() - 2 * 86400000);
+      if (cyHs === 9 && (mon >= 10 || mon <= 4) && nm && nm.nw && nm.nw - Date.now() <= 3 * 86400000) {
+        const nmKey = new Date(nm.nw).toISOString().slice(0, 10);
+        const subsS = (await sb('push_subs?select=id,user_id,sub,places').catch(() => [])) || [];
+        const byU: Record<string, any[]> = {}; for (const r of subsS) (byU[r.user_id] = byU[r.user_id] || []).push(r);
+        const fcMem: Record<string, any> = {};
+        for (const uid of Object.keys(byU)) {
+          const rows = byU[uid]; const pls = rows.flatMap(r => r.places || []); if (!pls.find(p => p && p.squid === 'on')) continue;
+          const pl = pls.find(p => p && typeof p.lat === 'number' && typeof p.lon === 'number'); if (!pl) continue;
+          const en = !!pls.find(p => p && p.lang === 'en');
+          const key = (+pl.lat).toFixed(2) + ',' + (+pl.lon).toFixed(2);
+          let fc = fcMem[key]; if (!fc) { try { fc = fcMem[key] = await getForecast(+pl.lat, +pl.lon, fetchFn, { days: 6, sp: { n: 'Καλαμάρι', l: 'Loligo vulgaris', sst: [14, 24] } }); } catch (_) { fc = null; } }
+          if (!fc || !fc.days) continue;
+          const good = [];
+          for (const d of fc.days) { if (d.set == null) continue; const hs = (d.hours || []).filter((x: any) => Math.abs(x.hr * 60 + 30 - d.set) <= 75);
+            if (hs.length && hs.every((x: any) => x.safe !== false && (x.wind == null || x.wind < 8) && (x.wave == null || x.wave <= 0.6))) good.push(d); }
+          if (!good.length) continue;
+          const pad = (n: number) => String(n).padStart(2, '0'), hm = (m: number) => pad(Math.floor(m / 60)) + ':' + pad(Math.round(m % 60));
+          const lst = good.slice(0, 4).map((d: any) => PF.dayLabel(d.date) + ' ' + hm(d.set - 60) + '–' + hm(d.set + 60)).join(' · ');
+          const nmTxt = new Date(nm.nw).toLocaleDateString(en ? 'en-GB' : 'el-GR', { timeZone: 'Asia/Nicosia', weekday: 'long', day: 'numeric', month: 'long' });
+          const title = en ? '🦑 Squid: new moon ' + nmTxt : '🦑 Καλαμάρια: νέα σελήνη ' + nmTxt;
+          const body = (en ? 'Good evenings (light wind, calm sea at dusk): ' : 'Καλά βράδια (λίγος άνεμος, ήρεμη θάλασσα στο σούρουπο): ') + lst + (pl.name ? ' · ' + pl.name : '');
+          const at = new Date().toISOString();
+          let ins: any = null; try { ins = await sb('notif_log', { method: 'POST', headers: { Prefer: 'return=representation,resolution=ignore-duplicates' }, body: JSON.stringify({ id: (uid + '|sq:' + nmKey).slice(0, 250), user_id: uid, at, kind: 'good', title, body }) }); } catch (_) { ins = null; }
+          if (Array.isArray(ins) && !ins.length) continue;
+          for (const r of rows) {
+            try { await webpush.sendNotification(r.sub, JSON.stringify({ title, body, full: body, kind: 'good', id: 'sq:' + nmKey, tag: 'alk-sq-' + nmKey, at }), { TTL: 6 * 3600 }); stats.squid = (stats.squid || 0) + 1; }
+            catch (e) { if (e.statusCode === 404 || e.statusCode === 410) await sb(`push_subs?id=eq.${encodeURIComponent(r.id)}`, { method: 'DELETE' }).catch(() => {}); }
+          }
+        }
+      }
+    } catch (e) { log('squid: ' + e.message); }
   }
 
   // 8) v31z543: κατά την έξοδο, και με κλειστό κινητό: (α) καιρός που χαλάει τις επόμενες 3 ώρες στη θέση της εξόδου (καταιγίδα, άνεμος/ριπές/κύμα πάνω από τα όριά σου),

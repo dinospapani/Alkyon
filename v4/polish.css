@@ -111,3 +111,9 @@ html.night .addrow .addbtn{background:#000;color:#fff;border:1px solid #fff}
 .bpov .bprd{text-align:center;font:750 16px/1.3 var(--font);color:var(--ink)}
 .bpspot span{display:inline-block;transform:translate(-50%,-50%);white-space:nowrap;padding:2px 7px;border-radius:999px;background:rgba(11,31,42,.8);color:#ffd36b;font:700 12px/1.4 var(--font)}
 html.night .wpb[aria-pressed=true]{background:#000;color:#fff;border-color:#fff}
+/* 1.9.44: συντεταγμένες: «Διάλεξε στον χάρτη» ξεχωριστό μεγάλο κουμπί, τα υπόλοιπα εργαλεία αναδιπλώνονται αντί να κόβονται */
+.cpbox .cpmapb{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:46px;margin:10px 0 8px;border-radius:14px;border:1.5px solid var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--surface));color:var(--accent);font:700 15px/1.2 var(--font)}
+.cpbox .cpmapb[aria-pressed=true]{background:var(--surface);color:var(--ink);border-color:var(--line)}
+.cpbox .cpmi{display:grid;place-items:center;width:20px;height:20px}.cpbox .cpmi svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.cpbox .cptools{flex-wrap:wrap;overflow:visible}
+html.night .cpbox .cpmapb{background:#000;color:#fff;border-color:#fff}
