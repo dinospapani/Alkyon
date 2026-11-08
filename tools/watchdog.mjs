@@ -18,7 +18,8 @@ const send = async text => { for (const chat of await admins()) await fetch(`htt
 const hb = await getJ('heartbeat.json'), wd = (await getJ('watchdog.json')) || {};
 const at = hb && hb.at ? Date.parse(hb.at) : 0, age = Math.round((Date.now() - at) / 60000), now = Date.now();
 console.log('heartbeat:', hb ? hb.at : 'κανένα', '· πριν από', age, 'λεπτά');
-if (!at || age > 30) {
+if (!hb) { console.log('Δεν υπάρχει ακόμα heartbeat (ο server δεν έχει την 1.9.50): τίποτα.'); }
+else if (!at || age > 30) {
   if (!wd.down || now - (wd.alerted || 0) > 6 * 3600000) {
     await send(`⚠ Alkyon server: δεν έχει τρέξει εδώ και ${at ? age + ' λεπτά' : 'άγνωστο χρόνο'}. Οι ειδοποιήσεις (ασφάλεια, πρόγνωση, καλαμάρια) δεν φεύγουν. Έλεγξε το Supabase › Edge Functions › quick-processor και το Cron.`);
     await putJ('watchdog.json', { down: true, alerted: now });
