@@ -251,28 +251,94 @@ function costSheet(t,done){
 /* ---------- φωνή ---------- */
 var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 function vlang(){ var v=B.ls.get('alkyon-vlang',null); return v==='en-US'||v==='el-GR'?v:(EN?'en-US':'el-GR'); }
-function listen(cb){ if(B.voiceCmd&&B.voiceCmd.pause) B.voiceCmd.pause(8000);
-  if(!SR){ B.toast(T('Η φωνητική καταγραφή δεν υποστηρίζεται σε αυτόν τον browser.','Voice input is not supported in this browser.')); return; }
-  var rec=new SR(); rec.lang=vlang(); rec.interimResults=false; rec.maxAlternatives=3;
+/* 1.9.68: η αναγνώριση στο ίδιο το κινητό (SpeechRecognition.available/processLocally) ΔΕΝ χρησιμοποιείται: στη δοκιμή έριχνε
+   ολόκληρη τη σελίδα του Chromium. Χωρίς σήμα → ψάρι + ηχογράφηση (offlineLog). */
+var LOCAL=false; function localInstall(){}
+function offline(){ return navigator.onLine===false; }
+function listen(cb,fallback){ if(B.voiceCmd&&B.voiceCmd.pause) B.voiceCmd.pause(8000);
+  if(!SR){ if(fallback){ fallback('nosr'); return; } B.toast(T('Η φωνητική καταγραφή δεν υποστηρίζεται σε αυτόν τον browser.','Voice input is not supported in this browser.')); return; }
+  if(offline()&&!LOCAL&&fallback){ fallback('offline'); return; }
+  var rec=new SR(); rec.lang=vlang(); rec.interimResults=false; rec.maxAlternatives=3; if(LOCAL) try{ rec.processLocally=true; }catch(e){}
   B.toast(T('Μίλα τώρα… π.χ. «συναγρίδα τρία κιλά»','Speak now… e.g. “dentex three kilos”'));
   rec.onresult=function(e){ var alts=[]; for(var i=0;i<e.results[0].length;i++) alts.push(e.results[0][i].transcript); cb(alts); };
-  rec.onerror=function(e){ if(e.error==='not-allowed') B.toast(T('Δεν δόθηκε άδεια μικροφώνου.','Microphone permission denied.')); else if(e.error==='network') B.toast(T('Χρειάζεται σύνδεση στο ίντερνετ για αναγνώριση φωνής.','Voice recognition needs an internet connection.')); else if(e.error!=='aborted'&&e.error!=='no-speech') B.toast(T('Δεν κατάλαβα. Δοκίμασε ξανά.','Did not catch that. Try again.')); };
+  rec.onerror=function(e){ if(e.error==='not-allowed') B.toast(T('Δεν δόθηκε άδεια μικροφώνου.','Microphone permission denied.')); else if(e.error==='network'&&fallback) fallback('network'); else if(e.error==='language-not-supported'&&LOCAL){ LOCAL=false; B.toast(T('Δοκίμασε ξανά.','Try again.')); } else if(e.error==='network') B.toast(T('Χρειάζεται σύνδεση στο ίντερνετ για αναγνώριση φωνής.','Voice recognition needs an internet connection.')); else if(e.error!=='aborted'&&e.error!=='no-speech') B.toast(T('Δεν κατάλαβα. Δοκίμασε ξανά.','Did not catch that. Try again.')); };
   try{ rec.start(); }catch(e){}
 }
 function best(alts){ var r=null; alts.forEach(function(a){ var p=parseVoice(a); var sc=(p.species?2:0)+(p.kg!=null?1:0)+(p.len!=null?1:0); if(!r||sc>r.sc){ r=p; r.sc=sc; } }); return r; }
 var LOST=/χάθηκ|χαθηκ|έφυγ|εφυγ|ξεκαρφ|\blost\b|got away|missed/i;
 /* στη φόρμα: συμπληρώνει είδος, κιλά, εκατοστά */
 function voiceFill(fill){ listen(function(alts){ var r=best(alts); if(!r||r.sc===0){ B.toast(T('Δεν βρέθηκε είδος ή βάρος. Άκουσα: ','No species or weight found. Heard: ')+alts[0]); return; } fill(r); B.toast(T('Συμπληρώθηκε. Έλεγξε και πάτα Αποθήκευση.','Filled in. Check and press Save.')); }); }
+/* ---------- 1.9.68: φωνητική σημείωση χωρίς σήμα (το ψάρι γράφεται αμέσως, η ηχογράφηση μένει στο κινητό) ---------- */
+var ADB=null;
+function adb(){ return ADB||(ADB=new Promise(function(res,rej){ try{ var r=indexedDB.open('alkyon-audio',1); r.onupgradeneeded=function(){ r.result.createObjectStore('a'); }; r.onsuccess=function(){ res(r.result); }; r.onerror=function(){ rej(r.error); }; }catch(e){ rej(e); } })); }
+function aPut(id,blob){ return adb().then(function(db){ return new Promise(function(res,rej){ var t=db.transaction('a','readwrite'); t.objectStore('a').put(blob,id); t.oncomplete=function(){ res(true); }; t.onerror=function(){ rej(t.error); }; }); }); }
+function aGet(id){ return adb().then(function(db){ return new Promise(function(res){ var t=db.transaction('a','readonly'), q=t.objectStore('a').get(id); q.onsuccess=function(){ res(q.result||null); }; q.onerror=function(){ res(null); }; }); }).catch(function(){ return null; }); }
+function aDel(id){ return adb().then(function(db){ db.transaction('a','readwrite').objectStore('a').delete(id); }).catch(function(){}); }
+B.vnote={get:aGet,put:aPut,del:aDel};
+function recordNote(id,secs){ secs=secs||8; if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.MediaRecorder){ return; }
+  var body=h('div',{class:'bform vnrec'}), lab=h('p',{class:'vnt',text:T('🎙 Μίλα τώρα: είδος, βάρος, δόλωμα…','🎙 Speak now: species, weight, bait…')}), cnt=h('b',{class:'vnc',text:String(secs)}), sh, mr=null, chunks=[], tm=null, left=secs, stream=null;
+  function stop(){ clearInterval(tm); try{ if(mr&&mr.state!=='inactive') mr.stop(); }catch(e){} }
+  body.append(lab,cnt,h('button',{class:'btn pri full',type:'button',text:T('Τέλος','Done'),onclick:stop}));
+  sh=B.sheet({title:T('Φωνητική σημείωση','Voice note'),body:body});
+  navigator.mediaDevices.getUserMedia({audio:true}).then(function(st){ stream=st; try{ mr=new MediaRecorder(st); }catch(e){ sh.close(); return; }
+    mr.ondataavailable=function(e){ if(e.data&&e.data.size) chunks.push(e.data); };
+    mr.onstop=function(){ try{ stream.getTracks().forEach(function(t){ t.stop(); }); }catch(e){} var blob=new Blob(chunks,{type:mr.mimeType||'audio/webm'}); if(!blob.size){ sh.close(); return; }
+      aPut(id,blob).then(function(){ var S=B.store, cur=S.get('bites',id); if(cur){ S.save('bites',Object.assign({},cur,{vnote:1})); B.emit('store','alkyon-bites'); } B.toast(T('Η σημείωση κρατήθηκε. Άκουσέ την από το Ημερολόγιο και συμπλήρωσε το είδος.','Note saved. Play it from the Logbook and add the species.')); }).catch(function(){}); sh.close(); };
+    mr.start(); tm=setInterval(function(){ left--; cnt.textContent=String(Math.max(0,left)); if(left<=0) stop(); },1000); })
+    .catch(function(){ sh.close(); B.toast(T('Δεν δόθηκε άδεια μικροφώνου.','Microphone permission denied.')); }); }
+B.vnoteRecord=recordNote;
+/* χωρίς σήμα: γράφει αμέσως ψάρι (θέση, ώρα, συνθήκες) και ηχογράφηση για να το συμπληρώσεις μετά */
+function offlineLog(why){ if(!B.quickRec) return; var id=B.quickRec(false,null,null,true); try{ if(B.say) B.say(T('Χωρίς σήμα. Έγραψα το ψάρι, πες μου τι είναι.','No signal. Catch logged, tell me what it is.'),null,'vno',0); }catch(e){}
+  B.toast(T('Χωρίς σήμα: το ψάρι γράφτηκε. Πες είδος και βάρος για ηχογράφηση.','No signal: catch logged. Say species and weight to record a note.')); setTimeout(function(){ recordNote(id,8); },900); return id; }
+B.voiceOffline=offlineLog;
+/* ---------- 1.9.68: φωνητικές ερωτήσεις («πόσα ψάρια;», «πόσο αέρα;», «τι ώρα δύει;», «πόσο μακριά το λιμάνι;») ---------- */
+function here(){ var f=(B.trip&&B.trip.fix&&B.trip.fix())||(B.lastPos&&B.lastPos()); return f&&f.lat!=null?f:null; }
+function hm(min){ min=((Math.round(min)%1440)+1440)%1440; return B.pad(Math.floor(min/60))+':'+B.pad(min%60); }
+function durTxt(m){ m=Math.max(0,Math.round(m)); var hh=Math.floor(m/60), mm=m%60; return EN?((hh?hh+' h ':'')+mm+' min'):((hh?hh+(hh===1?' ώρα':' ώρες')+(mm?' και ':''):'')+(mm||!hh?mm+' λεπτά':'')); }
+function tripFish(){ var sf=B.ls.get('alkyon-safe',{})||{}, all=B.store.raw('bites').filter(function(b){ return !b.deleted; }), td=new Date(), d=td.getFullYear()+'-'+B.pad(td.getMonth()+1)+'-'+B.pad(td.getDate());
+  var bs=sf.active&&sf.id?all.filter(function(b){ return b.trip===sf.id; }):all.filter(function(b){ return b.date===d; }); var f=bs.filter(function(b){ return !b.miss&&!(B.pest&&B.pest(b)); }), n=f.reduce(function(s2,b){ return s2+Math.max(1,Math.floor(+b.cnt)||1); },0), kg=f.reduce(function(s2,b){ return s2+(+b.kg||0); },0), mi=bs.filter(function(b){ return b.miss; }).length; return {n:n,kg:kg,miss:mi,trip:!!(sf.active&&sf.id)}; }
+var Q=[
+  ['sunset',/(δυει|δυση|βραδιαζει|σκοτειναζει|ηλιοβασιλεμα|sunset|dark)/],
+  ['fish',/(ποσα ψαρια|ποσα εχουμε|ποσα πιασαμε|ποσα επιασα|how many fish|how many have)/],
+  ['wind',/(ποσο αερα|ποσος αερας|τι αερα|τι αερας|αερα εχει|ανεμο|ποσα μποφορ|how much wind|what.?s the wind|wind)/],
+  ['wave',/(ποσο κυμα|τι κυμα|κυμα εχει|θαλασσα εχει|how big are the waves|waves)/],
+  ['water',/(θερμοκρασια νερου|ποσο ειναι το νερο|ζεστο το νερο|water temp)/],
+  ['home',/(λιμανι|ποσο μακρια|ποσο απεχει|για σπιτι|how far|home|harbou?r|port)/],
+  ['time',/(τι ωρα ειναι|τι ωρα εχουμε|what time is it)/]];
+function qOf(t){ var x=nrm(t); for(var i=0;i<Q.length;i++) if(Q[i][1].test(x)) return Q[i][0]; return null; }
+function fcNow(p){ if(!p||!window.PF||!PF.getForecast) return Promise.resolve(null); return PF.getForecast(+p.lat,+p.lon,null,{days:2}).then(function(fc){ var now=fc.nowLocal.slice(0,13), hs=[]; (fc.days||[]).forEach(function(d){ hs=hs.concat(d.hours||[]); }); return hs.filter(function(x){ return x.t.slice(0,13)===now; })[0]||null; }).catch(function(){ return null; }); }
+function answer(kind){ var p=here(), say=function(txt){ B.toast('🔊 '+txt); try{ if(B.say) B.say(txt,null,'vq'+kind,0); }catch(e){} return txt; };
+  if(kind==='time'){ var d=new Date(); return Promise.resolve(say(T('Η ώρα είναι ','It is ')+B.pad(d.getHours())+':'+B.pad(d.getMinutes()))); }
+  if(kind==='fish'){ var f=tripFish(); return Promise.resolve(say(f.n?((f.trip?T('Σε αυτή την έξοδο: ','This trip: '):T('Σήμερα: ','Today: '))+f.n+T(f.n===1?' ψάρι':' ψάρια',f.n===1?' fish':' fish')+(f.kg?T(', ',', ')+(Math.abs(f.kg-Math.round(f.kg))<0.05?String(Math.round(f.kg)):B.num(f.kg,1))+T(' κιλά',' kg'):'')+(f.miss?T(' και ',' and ')+f.miss+T(' χαμένα',' lost'):'')):T('Κανένα ψάρι ακόμα.','No fish yet.'))); }
+  if(kind==='sunset'){ if(!p||!window.PF||!PF.sunMoon) return Promise.resolve(say(T('Δεν ξέρω τη θέση σου.','I do not know your position.'))); var d2=new Date(), ds=d2.getFullYear()+'-'+B.pad(d2.getMonth()+1)+'-'+B.pad(d2.getDate()), sm=PF.sunMoon(ds,+p.lat,+p.lon,-d2.getTimezoneOffset()), nowM=d2.getHours()*60+d2.getMinutes();
+    if(sm.set==null) return Promise.resolve(say(T('Δεν βρήκα ώρα δύσης.','No sunset time found.'))); return Promise.resolve(say(sm.set>nowM?T('Ο ήλιος δύει στις ','Sunset at ')+hm(sm.set)+T(', σε ',', in ')+durTxt(sm.set-nowM)+'.':T('Ο ήλιος έδυσε στις ','The sun set at ')+hm(sm.set)+'.')); }
+  if(kind==='home'){ var sm2=B.smart&&B.smart.state&&B.smart.state(), hmz=sm2&&sm2.home; if(!hmz||hmz.lat==null) return Promise.resolve(say(T('Δεν έχεις ορίσει λιμάνι.','No home port set.'))); if(!p) return Promise.resolve(say(T('Δεν ξέρω τη θέση σου.','I do not know your position.')));
+    var dy=(hmz.lat-p.lat)*60, dx=(hmz.lon-p.lon)*60*Math.cos(p.lat*Math.PI/180), nm=Math.sqrt(dx*dx+dy*dy), kn=+(sm2.cruise||hmz.kn)||15; return Promise.resolve(say((hmz.name||T('Το λιμάνι','The port'))+T(': ',': ')+B.num(nm,1)+T(' ναυτικά μίλια, περίπου ',' nautical miles, about ')+durTxt(nm/kn*60)+T(' με ',' at ')+Math.round(kn)+T(' κόμβους.',' knots.'))); }
+  return fcNow(p).then(function(x){ if(!x) return say(T('Δεν έχω πρόγνωση για εδώ.','No forecast for here.'));
+    if(kind==='wind') return say(T('Άνεμος ','Wind ')+Math.round(x.wind||0)+T(' κόμβοι',' knots')+(x.gust!=null?T(', ριπές ',', gusts ')+Math.round(x.gust):'')+(x.wave!=null?T(', κύμα ',', waves ')+B.num(x.wave,1)+T(' μέτρα',' metres'):'')+'.');
+    if(kind==='wave') return say(x.wave!=null?T('Κύμα ','Waves ')+B.num(x.wave,1)+T(' μέτρα',' metres')+(x.period?T(', περίοδος ',', period ')+Math.round(x.period)+T(' δευτερόλεπτα',' seconds'):'')+'.':T('Δεν έχω κύμα για εδώ.','No wave data here.'));
+    if(kind==='water') return say(x.sst!=null?T('Το νερό είναι ','Water is ')+Math.round(x.sst)+T(' βαθμούς.',' degrees.'):T('Δεν έχω θερμοκρασία νερού.','No water temperature.'));
+    return null; }); }
+B.voiceAsk=function(text){ var k=qOf(text); return k?answer(k):Promise.resolve(null); };
+/* ---------- 1.9.68: ολόκληρη φράση → ψάρι με είδος/βάρος, χωρίς άγγιγμα· «ακύρωση» σβήνει το τελευταίο ---------- */
+var VLAST={id:null,t:0}, UNDO=/(^| )(ακυρωση|ακυρο|ακυρωσε|λαθος|σβησε το|σβησ το|cancel|undo|delete (it|that|last))( |$)/;
+function logParsed(r,miss){ var id=B.quickRec(!!miss,null,null,true); if(!id) return null; if(!miss&&r&&r.species){ var S=B.store, cur=S.get('bites',id); if(cur){ var nx=Object.assign({},cur,{species:r.species.disp||'',latin:r.species.la||''}); if(r.kg!=null) nx.kg=r.kg; if(r.len!=null) nx.len=r.len; if(r.cnt) nx.cnt=r.cnt; if(r.bait) nx.bait=r.bait; if(r.rel) nx.rel=true; S.save('bites',nx); B.emit('store','alkyon-bites'); } }
+  VLAST={id:id,t:Date.now()}; return id; }
+function spoken(r){ return [(r.cnt?r.cnt+' ':'')+SN(r.species.disp),r.kg!=null?(B.sayNum?B.sayNum(r.kg):r.kg)+T(' κιλά',' kilos'):null,r.len!=null?r.len+T(' εκατοστά',' centimetres'):null].filter(Boolean).join(', '); }
+function undoLast(){ if(!VLAST.id||Date.now()-VLAST.t>180000){ if(B.say) B.say(T('Δεν έχω κάτι να σβήσω.','Nothing to undo.'),null,'vu',0); return false; } try{ B.store.remove('bites',VLAST.id); aDel(VLAST.id); B.emit('store','alkyon-bites'); B.emit('trip'); }catch(e){} VLAST={id:null,t:0}; if(B.say) B.say(T('Το έσβησα.','Deleted.'),null,'vu',0); B.toast(T('🎤 Σβήστηκε η τελευταία καταγραφή','🎤 Last entry deleted')); return true; }
+B.voiceUndo=undoLast; B.voiceLogParsed=logParsed;
 /* στον χάρτη κατά την έξοδο: η ώρα που πάτησες είναι η ώρα του ψαριού */
 function voiceLog(){
   var t0=Date.now();
   listen(function(alts){
+    var qk=null; alts.some(function(a){ qk=qOf(a); return !!qk; }); if(qk&&!(best(alts)||{}).species){ answer(qk); return; }
+    if(alts.some(function(a){ return UNDO.test(nrm(a)); })){ undoLast(); return; }
     if(alts.some(function(a){ return PESTV.test(nrm(a)); })&&B.quickPest){ B.quickPest(/λαγοκ|toad|puffer/.test(nrm(alts.join(' ')))?'toad':'stolen',null); return; }
     if(alts.some(function(a){ return LOST.test(a); })){ if(B.quickRec) B.quickRec(true); return; }
     var r=best(alts); if(!r||!r.species){ B.ask(T('Άκουσα: «','Heard: “')+alts[0]+T('». Δεν αναγνώρισα το είδος. Να ξαναπείς;','”. I did not recognise the species. Try again?'),T('Ξανά','Again')).then(function(y){ if(y) voiceLog(); }); return; }
     r.t0=t0; var msg=[(r.cnt?r.cnt+' × ':'')+SN(r.species.disp),r.kg!=null?r.kg+' kg':null,r.len!=null?r.len+' cm':null,r.bait?T('δόλωμα: ','bait: ')+r.bait:null,r.rel?T('απελευθερώθηκε','released'):null].filter(Boolean).join(' · ');
     B.ask(msg+'\n'+T('Άκουσα: «','Heard: “')+alts[0]+T('»','”')+'\n\n'+T('Να καταγραφεί ως ψάρι;','Log as a catch?'),T('Καταγραφή','Log')).then(function(y){ if(y) B.biteForm(null,{voice:r,auto:true}); });
-  });
+  },function(){ offlineLog(); });
 }
 var MIC='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg>';
 
@@ -309,16 +375,24 @@ var VC_CATCH=/(^|\s)(ψαρι|ψαρακι|επιασα|πιασαμε|πιασ�
 function vcN(t){ return String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zα-ω0-9\s]/g,' ').replace(/\s+/g,' ').trim(); }
 function vcWanted(){ return !!B.ls.get('alkyon-vcmd',false)&&(!!(B.trip&&B.trip.active&&B.trip.active())||!!(B.troll&&B.troll.sim&&B.troll.sim.on())); }
 function vcHandle(alts){ var now=Date.now(); if(now<VC.pauseTo||now-VC.last<4000) return; try{ if(window.speechSynthesis&&speechSynthesis.speaking) return; }catch(e){}
-  var t=alts.map(vcN).join(' | '); if(VC_MISS.test(t)){ VC.last=now; B.quickRec(true,null,null,true); if(B.say) B.say(T('Χαμένο, το έγραψα','Lost one, logged'),null,'vcm',0); B.toast(T('🎤 Τσίμπημα γράφτηκε','🎤 Bite logged')); }
-  else if(VC_CATCH.test(t)){ VC.last=now; B.quickRec(false,null,null,true); if(B.say) B.say(T('Το έγραψα','Logged'),null,'vcc',0); B.toast(T('🎤 Ψάρι γράφτηκε εκεί που είναι το δόλωμα','🎤 Catch logged where the lure is')); } }
+  var t=alts.map(vcN).join(' | ');
+  /* 1.9.68: «ακύρωση» → σβήνει το τελευταίο· ερώτηση → απάντηση με φωνή· «συναγρίδα τρία κιλά» → ψάρι με είδος και βάρος */
+  if(UNDO.test(t)){ VC.last=now; undoLast(); return; }
+  var r=best(alts), q=null; alts.some(function(a){ q=qOf(a); return !!q; });
+  if(q&&!(r&&r.species)){ VC.last=now; answer(q); return; }
+  if(r&&r.species&&(r.kg!=null||r.len!=null||r.cnt||VC_CATCH.test(t))){ VC.last=now; logParsed(r,false); var sp=spoken(r); if(B.say) B.say(sp+T('. Το έγραψα.','. Logged.'),null,'vcs',0); B.toast('🎤 '+sp+T(' · γράφτηκε. Πες «ακύρωση» αν είναι λάθος.',' · logged. Say “cancel” if wrong.')); return; }
+  if(VC_MISS.test(t)){ VC.last=now; VLAST={id:B.quickRec(true,null,null,true),t:now}; if(B.say) B.say(T('Χαμένο, το έγραψα','Lost one, logged'),null,'vcm',0); B.toast(T('🎤 Τσίμπημα γράφτηκε','🎤 Bite logged')); }
+  else if(VC_CATCH.test(t)){ VC.last=now; VLAST={id:B.quickRec(false,null,null,true),t:now}; if(B.say) B.say(T('Το έγραψα','Logged'),null,'vcc',0); B.toast(T('🎤 Ψάρι γράφτηκε εκεί που είναι το δόλωμα','🎤 Catch logged where the lure is')); } }
 function vcLoop(){ if(!VC.on||!SR) return; if(Date.now()<VC.pauseTo){ setTimeout(vcLoop,1000); return; }
-  var r; try{ r=new SR(); }catch(e){ VC.on=false; return; } r.lang=vlang(); r.continuous=true; r.interimResults=false; r.maxAlternatives=3;
+  var r; try{ r=new SR(); }catch(e){ VC.on=false; return; } r.lang=vlang(); r.continuous=true; r.interimResults=false; r.maxAlternatives=3; if(LOCAL) try{ r.processLocally=true; }catch(e){}
   r.onresult=function(e){ for(var i=e.resultIndex;i<e.results.length;i++){ var res=e.results[i]; if(!res.isFinal) continue; var alts=[]; for(var k=0;k<res.length;k++) alts.push(res[k].transcript); vcHandle(alts); } };
-  r.onerror=function(e){ if(e.error==='not-allowed'||e.error==='service-not-allowed'){ VC.on=false; B.ls.set('alkyon-vcmd',false); B.toast(T('Οι φωνητικές εντολές χρειάζονται άδεια μικροφώνου.','Voice commands need microphone permission.')); B.emit('vcmd'); } };
+  r.onerror=function(e){ if(e.error==='not-allowed'||e.error==='service-not-allowed'){ VC.on=false; B.ls.set('alkyon-vcmd',false); B.toast(T('Οι φωνητικές εντολές χρειάζονται άδεια μικροφώνου.','Voice commands need microphone permission.')); B.emit('vcmd'); }
+    /* 1.9.68: χωρίς σήμα δεν ξαναδοκιμάζει συνέχεια (μπαταρία)· ξανά σε 30″ */
+    else if(e.error==='network'){ VC.pauseTo=Date.now()+30000; if(!VC.netMsg||Date.now()-VC.netMsg>600000){ VC.netMsg=Date.now(); B.toast(T('Χωρίς σήμα: οι φωνητικές εντολές περιμένουν. Πάτα το 🎤 για ψάρι με ηχογράφηση.','No signal: voice commands are waiting. Tap 🎤 for a catch with a voice note.')); } } };
   r.onend=function(){ VC.rec=null; if(VC.on) setTimeout(vcLoop,350); };
   try{ r.start(); VC.rec=r; }catch(e){ VC.rec=null; setTimeout(vcLoop,2000); } }
 function vcSync(){ var want=vcWanted()&&!document.hidden; if(want&&!VC.on){ VC.on=true; vcLoop(); } else if(!want&&VC.on){ VC.on=false; try{ VC.rec&&VC.rec.stop(); }catch(e){} } }
-B.voiceCmd={ok:!!SR,on:function(){ return VC.on; },wanted:function(){ return !!B.ls.get('alkyon-vcmd',false); },set:function(v){ B.ls.set('alkyon-vcmd',!!v); vcSync(); B.emit('vcmd'); },
+B.voiceCmd={ok:!!SR,on:function(){ return VC.on; },wanted:function(){ return !!B.ls.get('alkyon-vcmd',false); },set:function(v){ B.ls.set('alkyon-vcmd',!!v); if(v) localInstall(); vcSync(); B.emit('vcmd'); },
   pause:function(ms){ VC.pauseTo=Date.now()+(ms||6000); try{ VC.rec&&VC.rec.abort(); }catch(e){} },test:vcHandle};
 B.on('trip',function(){ setTimeout(vcSync,300); }); document.addEventListener('visibilitychange',vcSync); setInterval(vcSync,15000); setTimeout(vcSync,2500);
 B.shareSpots=shareSpots;

@@ -94,6 +94,9 @@ function detail(b){
   if(typeof b.lat==='number'&&B.goTo) acts.append(h('button',{class:'btn',type:'button',text:T('Πήγαινε εκεί','Go there'),onclick:function(){ sh.close(true); B.goTo(b.lat,b.lon,b.species||b.place||''); }}));
   if(!b.miss&&B.cards) acts.append(h('button',{class:'btn',type:'button',text:T('Κάρτα','Card'),onclick:function(){ B.cards.fish(b); }}));
   if(!b.miss&&B.commShare) acts.append(h('button',{class:'btn',type:'button',disabled:B.commShared(b.id),text:B.commShared(b.id)?T('✓ Στην κοινότητα','✓ Shared'):T('Κοινότητα','Community'),onclick:function(){ sh.close(true); B.commShare(b); }}));
+  /* 1.9.68: φωνητική σημείωση από τη θάλασσα (χωρίς σήμα) */
+  if(b.vnote&&B.vnote){ var vb=h('div',{class:'vnplay'}); vb.append(h('button',{class:'btn full',type:'button',text:T('▶ Άκου τη φωνητική σημείωση','▶ Play the voice note'),onclick:function(){ var me=this; B.vnote.get(b.id).then(function(bl){ if(!bl){ B.toast(T('Η ηχογράφηση δεν βρέθηκε σε αυτό το κινητό.','The recording is not on this phone.')); return; }
+      var au=h('audio',{controls:true,src:URL.createObjectURL(bl)}); me.replaceWith(au); try{ au.play(); }catch(e){} }); }})); body.append(vb); }
   body.append(acts);
   /* v31z549: διαγραφή και από εδώ (π.χ. πατώντας το ψάρι πάνω στον χάρτη), με «Αναίρεση» */
   body.append(h('div',{class:'acts'},h('button',{class:'btn del',type:'button',text:T('Διαγραφή','Delete'),onclick:function(){ sh.close(true); S().delUndo('bites',b,(b.miss?T('Διαγράφηκε το χαμένο.','Lost fish deleted.'):T('Διαγράφηκε: ','Deleted: ')+(b.species||T('ψάρι','catch'))+'.')); }})));

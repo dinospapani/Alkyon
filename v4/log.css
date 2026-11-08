@@ -634,3 +634,6 @@ html.night .kpis .kpi{outline:1px solid #fff;outline-offset:-1px;background:#000
 .cmlkr{display:flex;align-items:center;gap:10px;width:100%;padding:10px 0;border:0;border-top:1px solid var(--line);background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
 .cmlkr b{flex:1}.cmlkr small{color:var(--ink-3)}
 .cmlkr .cmav.sm{width:36px;height:36px;font-size:14px}
+/* 1.9.68: φωνητική σημείωση */
+.vnrec{text-align:center}.vnrec .vnt{font-size:16px;margin:4px 0 8px}.vnrec .vnc{display:block;font-size:44px;margin:4px 0 14px;color:#e0245e}
+.vnplay{margin:10px 0}.vnplay audio{width:100%}
