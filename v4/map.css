@@ -1129,3 +1129,5 @@ html.night .srb.sr-calm i{background:#000;outline:1px solid #fff}html.night .srb
 html.night .ck .ckland{background:#000;outline:1px solid #fff;outline-offset:-1px}
 /* 1.9.28: κύμα + άνεμος μαζί: τι δείχνει το χρώμα και τι οι γραμμές */
 #wxLeg .wlnote{display:block;font:600 11px var(--font);color:var(--ink-2);margin:0 0 2px}
+/* 1.9.39: ειδοποιήσεις και στον καθαρό χάρτη, όταν υπάρχουν αδιάβαστες */
+body.mapclean .mapbar>.bellb.has{display:grid!important}

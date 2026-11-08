@@ -930,7 +930,7 @@ function mount(el){
     /* 1.6.1: τα σπάνια κουμπιά (χάρακας, ειδοποιήσεις, πηγές χάρτη) σε ένα «⋯» */
     (moreBtn=h('button',{class:'iconbtn morebtn',type:'button','aria-label':T('Περισσότερα','More'),html:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>',onclick:moreSheet})));
   setFollow(follow);
-  if(B.inboxUnread) B.inboxUnread().then(function(n){ unread=n; [mapBell,moreBtn].forEach(function(x){ var o=x.querySelector('.bdg'); if(o) o.remove(); if(n>0) x.append(h('i',{class:'bdg',text:n>9?'9+':String(n)})); }); });
+  if(B.inboxUnread) B.inboxUnread().then(function(n){ unread=n; [mapBell,moreBtn].forEach(function(x){ var o=x.querySelector('.bdg'); if(o) o.remove(); if(n>0) x.append(h('i',{class:'bdg',text:n>9?'9+':String(n)})); }); if(mapBell) mapBell.classList.toggle('has',n>0); /* 1.9.39: και στον καθαρό χάρτη, όταν υπάρχουν αδιάβαστες */ });
   /* γρήγορα στρώματα: άνεμος, κύμα, ρεύματα, βάθη (τα υπόλοιπα στο μενού «Στρώματα») */
   var qc=h('div',{class:'mchips',role:'group','aria-label':T('Γρήγορα στρώματα','Quick layers')});
   function qchip(ic,lab,get,set){ var b=h('button',{type:'button',class:'mchip',onclick:function(){ set(!get()); setTimeout(qpaint,80); setTimeout(qpaint,900); }},h('span',{html:LIC[ic]}),h('b',{text:lab})); b._g=get; qc.append(b); }

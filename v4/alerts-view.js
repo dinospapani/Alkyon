@@ -146,8 +146,9 @@ var quiet=false; function loadHistQuiet(){ if(quiet) return; quiet=true; var r0=
 var ib={root:null,open:{}};
 var KI={good:'<path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/>',press:'<circle cx="12" cy="13" r="8"/><path d="M12 13l4-4M8 5.5L6 3M16 5.5L18 3"/>',wind:'<path d="M3 8h11a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 16h8"/>',
   sea:'<path d="M2 8c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2M2 14c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2M2 20c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2"/>',trip:'<path d="M3 15h18l-2.5 4.5h-13z"/><path d="M7 15V9h7l3 6"/><path d="M10 9V5"/>',
+  comm:'<path d="M12 20.5s-7.5-4.4-7.5-10A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.9c0 5.6-7.5 10-7.5 10z"/>',
   tool:'<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/>',bell:'<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/>'};
-function kindOf(x){ var k=(x.kind||'')+' '+(x.title||''); if(/pressure|πίεσ|press|turn|καμπ/i.test(k)) return 'press'; if(/wind|άνεμ|ανέμ/i.test(k)) return 'wind'; if(/good|ideal|καλή|καλές|good day|window|sim|ίδιες/i.test(k)) return 'good';
+function kindOf(x){ var k=(x.kind||'')+' '+(x.title||''); if(/^comm|κοινότητ|community|liked|άρεσε|σχόλι|comment|❤/i.test(k)) return 'comm'; if(/pressure|πίεσ|press|turn|καμπ/i.test(k)) return 'press'; if(/wind|άνεμ|ανέμ/i.test(k)) return 'wind'; if(/good|ideal|καλή|καλές|good day|window|sim|ίδιες/i.test(k)) return 'good';
   if(/trip|έξοδ|battery|μπαταρ|sos|mob/i.test(k)) return 'trip'; if(/maint|συντήρ|🔧|άδεια|licen|lic/i.test(k)) return 'tool'; if(/sea|κύμα|wave|θάλασσ|καιρ|weather/i.test(k)) return 'sea'; return 'bell'; }
 function dayLab(iso){ var d=new Date(iso), t=new Date(), y=new Date(Date.now()-86400000); if(d.toDateString()===t.toDateString()) return T('Σήμερα','Today'); if(d.toDateString()===y.toDateString()) return T('Χθες','Yesterday'); return d.toLocaleDateString(EN?'en-GB':'el-GR',{weekday:'long',day:'numeric',month:'long'}); }
 function fcAt(pl){ var a=ls.get('alkyon-places',[])||[], hit=a.filter(function(p){ return p&&p.lat!=null&&Math.abs(p.lat-pl.lat)<0.01&&Math.abs(p.lon-pl.lon)<0.01; })[0];
@@ -170,7 +171,7 @@ function ibDraw(){ var r=ib.root; if(!r) return; var page=h('div',{class:'page'}
   var last='', l=null;
   hist.slice(0,120).forEach(function(x,i){ var dl=dayLab(x.at); if(dl!==last){ last=dl; page.append(h('h3',{class:'listh',text:dl})); l=h('div',{class:'list'}); page.append(l); }
     var k=kindOf(x), id=String(x.at)+i, open=!!ib.open[id], unread=String(x.at)>s0, txt=x.full||x.body||'';
-    l.append(h('button',{type:'button',class:'li ibrow'+(unread?' new':''),'aria-expanded':String(open),onclick:function(){ ib.open[id]=!open; ibDraw(); }},
+    l.append(h('button',{type:'button',class:'li ibrow'+(unread?' new':''),'aria-expanded':String(open),onclick:function(){ if(k==='comm'){ location.hash='#community'; return; } /* 1.9.39: like/σχόλιο → ανοίγει την Κοινότητα */ ib.open[id]=!open; ibDraw(); }},
       h('span',{class:'ibic k-'+k,html:'<svg viewBox="0 0 24 24" aria-hidden="true">'+KI[k]+'</svg>'}),
       h('span',{class:'tx'},h('b',{text:x.title||T('Ειδοποίηση','Notification')}),txt?(open&&goodRows(txt)||h('small',{class:open?'full':'',text:txt})):null),
       h('span',{class:'when',text:new Date(x.at).toLocaleTimeString(EN?'en-GB':'el-GR',{hour:'2-digit',minute:'2-digit'})})));
