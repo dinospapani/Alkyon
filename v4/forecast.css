@@ -425,3 +425,20 @@ html.night .hero .hsun1 .mj{color:inherit}
 @media (prefers-color-scheme:dark){ :root:not([data-theme=light]) .hero .hsb.sea-mid{background:#3a3020} :root:not([data-theme=light]) .hero .hsb.sea-bad{background:#3d2420} }
 :root[data-theme=dark] .hero .hsb.sea-mid{background:#3a3020} :root[data-theme=dark] .hero .hsb.sea-bad{background:#3d2420}
 html.night .hero .hsb{background:#000!important;outline:1px solid currentColor}
+/* 1.9.34: Πού είναι ήρεμα τώρα */
+.calml{display:flex;flex-direction:column;gap:6px;margin:8px 0}
+.calmr{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border-radius:14px;border:0;background:var(--surface-2);color:var(--ink);text-align:left;font:inherit;cursor:pointer}
+.calmr .cm{display:flex;flex-direction:column;min-width:0}
+.calmr .cm b{font-size:15px}
+.calmr .cm small{font-size:12.5px;color:var(--ink-2);line-height:1.35}
+.calmr .exwc{flex:none;min-width:84px;text-align:center;padding:4px 8px;border-radius:999px;color:#fff;font:800 13px/1.4 var(--font)}
+.exwc.g{background:#3f9d6b}.exwc.y{background:#c9a227}.exwc.o{background:#d9731f}.exwc.r{background:#c93a14}
+html.night .calmr .exwc{background:#000!important;outline:1px solid currentColor}
+/* 1.9.34: έξοδοι από τα ψάρια */
+.tfill .tfr{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.tfill .tfr input[type=checkbox]{width:20px;height:20px}
+.tfill .tfd{display:flex;flex-direction:column;min-width:0}
+.tfill .tfd b{font-size:15px}.tfill .tfd small{font-size:12.5px;color:var(--ink-2)}
+.tfill .tft{grid-column:2;display:flex;align-items:center;gap:6px}
+.tfill .tft input{font:inherit;padding:6px 8px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.tfcard .btn{margin-top:4px}

@@ -219,11 +219,15 @@ function marine(p){
 }
 /* 1.9.31: εκτίμηση κύματος ΕΔΩ τώρα = κύμα από τον άνεμο (JONSWAP με το ενεργό fetch της κατεύθυνσης του ανέμου, όχι πάνω από το κύμα ανοιχτής θάλασσας)
    + swell (ολόκληρο αν μπαίνει ελεύθερα ≥60 km, μισό αν 20–60 km, λίγο αν λιγότερο). Συνδυασμός ενεργειακά: √(a²+b²). Ενδεικτικό ±25%. */
+/* 1.9.34: ο υπολογισμός χωριστά, για να τον χρησιμοποιεί και το «Πού είναι ήρεμα» (wind σε kn, dir από πού φυσά) */
+function estimate(r,wind,dir,m){
+  var hw=0, hsw=0, si=-1, ci=dir!=null?Math.round(dir/22.5)%16:-1;
+  if(ci>=0&&wind!=null){ hw=hs(wind*0.5144,Math.max(0.2,r.dirs[ci].km)); if(m&&m.wh!=null) hw=Math.min(hw,m.wh); }
+  if(m&&m.sh!=null&&m.sd!=null&&m.sh>=0.1){ si=Math.round(m.sd/22.5)%16; var k=r.dirs[si].km, f=k>=60?1:k>=20?0.6:k>=5?0.3:0.1; hsw=m.sh*f; }
+  return {tot:Math.sqrt(hw*hw+hsw*hsw),hw:hw,hsw:hsw,si:si,ci:ci,wl:ci>=0?level(r.dirs[ci].km).k:null};
+}
 function estWave(node,m,r,cd,cur){
-  var names=EN?NAMES_EN:NAMES_EL, hw=0, hsw=0, si=-1;
-  if(cd&&cur>=0&&cd.wind!=null){ hw=hs(cd.wind*0.5144,Math.max(0.2,r.dirs[cur].km)); if(m.wh!=null) hw=Math.min(hw,m.wh); }
-  if(m.sh!=null&&m.sd!=null&&m.sh>=0.1){ si=Math.round(m.sd/22.5)%16; var k=r.dirs[si].km, f=k>=60?1:k>=20?0.6:k>=5?0.3:0.1; hsw=m.sh*f; }
-  var tot=Math.sqrt(hw*hw+hsw*hsw); if(!(tot>=0)) return;
+  var names=EN?NAMES_EN:NAMES_EL, E=estimate(r,cd?cd.wind:null,cd&&cur>=0?cur*22.5:null,m), hw=E.hw, hsw=E.hsw, si=E.si, tot=E.tot; if(!(tot>=0)) return;
   var lo=Math.max(0,tot*0.75), hi=tot*1.25, fmt=function(v){ var x=v<0.1?0.1:Math.round(v*10)/10; return EN?x.toFixed(1):x.toFixed(1).replace('.',','); };
   var main=hsw>hw*1.2?T('κυρίως swell από ','mostly swell from ')+names[si]:hw>hsw*1.2?T('κυρίως από τον άνεμο','mostly from the wind'):T('άνεμος και swell μαζί','wind and swell together');
   var lv=tot<0.3?['g',T('Ήρεμα','Calm')]:tot<0.6?['y',T('Λίγο κύμα','Small waves')]:tot<1.1?['o',T('Κύμα','Waves')]:['r',T('Ψηλό κύμα','High waves')];
@@ -293,5 +297,6 @@ window.addEventListener('alkyon-fcloaded',function(ev){
   var d=ev.detail||{};
   setTimeout(function(){ try{ render(d.place,d.fc); }catch(e){ try{ console.error('exposure',e); }catch(e0){} } },60);
 });
-window.AlkyonExposure={compute:compute,logGet:logGet,level:level,hs:hs,ready:function(){ return decode(); },isLand:function(lat,lon){ return decode()?isLand(lat,lon):-1; },seaPoint:function(lat,lon){ return decode()?seaPoint(lat,lon):null; }};
+var CC={}; function computeCached(lat,lon){ var k=(+lat).toFixed(3)+','+(+lon).toFixed(3); if(CC[k]!==undefined) return CC[k]; var r=null; try{ r=compute(+lat,+lon); }catch(e){ r=null; } CC[k]=r; return r; }
+window.AlkyonExposure={compute:compute,computeCached:computeCached,estimate:estimate,names:function(){ return EN?NAMES_EN:NAMES_EL; },logGet:logGet,level:level,hs:hs,ready:function(){ return decode(); },isLand:function(lat,lon){ return decode()?isLand(lat,lon):-1; },seaPoint:function(lat,lon){ return decode()?seaPoint(lat,lon):null; }};
 })();

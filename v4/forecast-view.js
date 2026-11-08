@@ -333,9 +333,41 @@ function whereGo(){ if(!B.oppsCard){ location.hash='#map'; return; }
     /* 1.2.2: αναζήτηση στη θάλασσα γύρω σου, από όλα τα δεδομένα */
     B.bestSpots?h('button',{class:'btn pri',type:'button',text:'🎯 '+T('Βρες τα καλύτερα σημεία γύρω μου','Find the best spots around me'),onclick:function(){ sh.close(); B.bestSpots.go(pl&&pl.lat!=null?+pl.lat:null,pl&&pl.lon!=null?+pl.lon:null); }}):null,
     B.bestSpots?h('p',{class:'sub',text:T('Καιρός και κύμα, τροφή (χλωροφύλλη), θερμοκρασία και μέτωπα, ρεύμα, βυθός και τα ψάρια σου, μέσα στα όρια ασφαλείας σου.','Weather and waves, food (chlorophyll), temperature and fronts, current, seabed and your catches, within your safety limits.')}):null,
+    window.AlkyonExposure&&B.prof()!=='lake'?h('button',{class:'btn',type:'button',text:'🌊 '+T('Πού είναι ήρεμα τώρα','Where is it calm now'),onclick:function(){ sh.close(); calmNow(pl); }}):null,
     h('p',{class:'sub',text:T('Τα σημεία σου με τον καλύτερο βαθμό, μόνο ώρες μέσα στα όρια ασφαλείας. Πάτα ένα για να το δεις στον χάρτη.','Your spots with the best score, only hours within your safety limits. Tap one to see it on the map.')}),B.oppsCard(6));
   var sh=B.sheet({title:T('Πού να πάω','Where to go'),body:body});
   body.addEventListener('click',function(e){ if(e.target.closest&&e.target.closest('.opr')&&sh&&sh.close) sh.close(); }); }
+/* 1.9.34: «Πού είναι ήρεμα τώρα»: για τα γνωστά μέρη της Κύπρου και τα σημεία σου, εκτίμηση κύματος εδώ τώρα
+   (άνεμος + έκθεση ακτής + swell, ίδιος υπολογισμός με την «Έκθεση ακτής»), ταξινομημένα από το πιο ήρεμο. */
+var calmMem=null;
+function calmNow(pl){
+  var X=window.AlkyonExposure, list=h('div',{class:'calml'},h('div',{class:'sk',style:{height:'180px'}})), sh=B.sheet({title:T('Πού είναι ήρεμα τώρα','Where is it calm now'),body:h('div',null,
+    h('p',{class:'sub',text:T('Εκτίμηση κύματος αυτή την ώρα από τον άνεμο, την ακτή και το swell. Πρώτα τα πιο ήρεμα. Πάτα ένα για πρόγνωση εκεί.','Wave estimate for this hour from wind, coast and swell. Calmest first. Tap one for the forecast there.')}),list,
+    h('p',{class:'foot',text:T('Ενδεικτικό, όχι μέτρηση. Δεν βλέπει βουνά και κύμα που στρίβει γύρω από κάβους. Η απόφαση είναι πάντα δική σου.','Indicative, not a measurement. It does not see mountains or waves bending around capes. The decision is always yours.')}))});
+  var P=CYP.map(function(c){ return {name:EN?CYPE[c[0]]||c[0]:c[0],lat:c[1],lon:c[2]}; });
+  try{ B.store.raw('spots').forEach(function(x){ if(x&&!x.deleted&&typeof x.lat==='number'&&x.name&&x.lat>34.4&&x.lat<35.8&&x.lon>32.1&&x.lon<34.7) P.push({name:x.name,lat:x.lat,lon:x.lon,mine:true}); }); }catch(e){}
+  P=P.slice(0,45);
+  var hr=new Date().toISOString().slice(0,13), q=function(k){ return 'latitude='+P.map(function(p){ return (+p.lat).toFixed(3); }).join(',')+'&longitude='+P.map(function(p){ return (+p.lon).toFixed(3); }).join(','); };
+  var get=function(u){ return fetch(u).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }).then(function(j){ return Array.isArray(j)?j:[j]; }); };
+  var pr=calmMem&&calmMem.hr===hr&&calmMem.n===P.length?calmMem.pr:(calmMem={hr:hr,n:P.length,pr:Promise.all([
+    get('https://api.open-meteo.com/v1/forecast?'+q()+'&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m&wind_speed_unit=kn&forecast_days=1&timezone=GMT'),
+    get('https://marine-api.open-meteo.com/v1/marine?'+q()+'&hourly=wave_height,swell_wave_height,swell_wave_direction&forecast_days=1&timezone=GMT')])}).pr;
+  pr.then(function(r){ var W=r[0], M=r[1], names=X.names(), rows=[];
+    P.forEach(function(p,i){ var w=W[i]&&W[i].hourly, m=M[i]&&M[i].hourly; if(!w||!w.time) return; var ix=w.time.indexOf(hr+':00'); if(ix<0) return;
+      var mi=m&&m.time?m.time.indexOf(hr+':00'):-1, mm=mi>=0?{wh:m.wave_height[mi],sh:m.swell_wave_height[mi],sd:m.swell_wave_direction[mi]}:null;
+      var ex=X.computeCached(p.lat,p.lon); if(!ex) return; var E=X.estimate(ex,w.wind_speed_10m[ix],w.wind_direction_10m[ix],mm);
+      rows.push({p:p,E:E,wind:w.wind_speed_10m[ix],dir:w.wind_direction_10m[ix],gust:w.wind_gusts_10m[ix],km:pl&&pl.lat!=null?kmTo([pl.lat,pl.lon],[p.lat,p.lon]):null}); });
+    if(!rows.length){ list.replaceChildren(h('p',{class:'sub',text:T('Δεν βρέθηκαν δεδομένα αυτή τη στιγμή. Δοκίμασε ξανά σε λίγο.','No data right now. Try again shortly.')})); return; }
+    rows.sort(function(a,b){ return a.E.tot-b.E.tot; });
+    var fm=function(v){ var x=Math.max(0.1,Math.round(v*10)/10); return EN?x.toFixed(1):x.toFixed(1).replace('.',','); };
+    list.replaceChildren.apply(list,rows.map(function(r){ var t=r.E.tot, lv=t<0.3?['g',T('Ήρεμα','Calm')]:t<0.6?['y',T('Λίγο κύμα','Small waves')]:t<1.1?['o',T('Κύμα','Waves')]:['r',T('Ψηλό κύμα','High waves')];
+      var why=r.E.wl===0?T('ο άνεμος έρχεται από στεριά','wind off the land'):r.E.wl===1?T('λίγη θάλασσα στον άνεμο','little sea upwind'):T('ανοιχτό στον άνεμο','open to the wind');
+      if(r.E.hsw>r.E.hw*1.2&&r.E.si>=0) why=T('κυρίως swell από ','mostly swell from ')+names[r.E.si];
+      return h('button',{type:'button',class:'calmr',onclick:function(){ sh.close(); addPlace(r.p.name,r.p.lat,r.p.lon); }},
+        h('span',{class:'exwc '+lv[0],text:t*1.25<0.2?'<'+fm(0.2)+' m':fm(t*0.75)+'–'+fm(t*1.25)+' m'}),
+        h('span',{class:'cm'},h('b',{text:(r.p.mine?'⭐ ':'')+r.p.name}),h('small',{text:lv[1]+' · '+why+' · '+U.wind(r.wind)+' '+dirTxt(r.dir)+(r.km!=null?' · '+Math.round(r.km)+' km':'')}))); })); })
+  .catch(function(){ calmMem=null; list.replaceChildren(h('p',{class:'sub',text:T('Δεν φορτώθηκαν τα δεδομένα. Έλεγξε τη σύνδεση.','Could not load the data. Check your connection.')})); });
+}
 /* 1.9.32: η θάλασσα στις ώρες του τσιμπήματος (ή του καλύτερου παραθύρου): [κλάση, τίτλος, λεπτομέρεια] */
 function seaState(d){
   var w=d.biteWin||d.win, hs=w?(d.hours||[]).filter(function(q){ return q.hr>=w.s&&q.hr<=w.e; }):focusHours(d); if(!hs.length) hs=d.hours||[];
@@ -611,7 +643,8 @@ function moonResearch(){
   } else { var pg=m&&m.progress, nd=pg&&pg.need, lack=[];
     /* 1.9.28: τι λείπει ακόμα, με νούμερα */
     if(nd){ if(pg.sessions<nd.sessions) lack.push(pg.sessions+T(' από ',' of ')+nd.sessions+T(' εξόδους',' trips')); if(pg.catches<nd.catches) lack.push(pg.catches+T(' από ',' of ')+nd.catches+T(' ψάρια',' catches')); if(pg.hours<nd.hours) lack.push(B.num(pg.hours,0)+T(' από ',' of ')+nd.hours+T(' ώρες ψαρέματος',' fishing hours')); }
-    box.append(h('p',null,h('span',{class:'mk',text:T('Τα δικά σου ψάρια: ','Your catches: ')}),lack.length?T('η προσωπική πρόγνωση θα δείξει αν πιάνεις περισσότερα σε κάποια φάση όταν έχει αρκετά δεδομένα. Μέχρι τώρα: ','the personal forecast will show whether you catch more in some phase once it has enough data. So far: ')+lack.join(', ')+T(' (μετρούν οι έξοδοι με ώρα έναρξης και λήξης).',' (trips with a start and end time count).'):T('με αρκετές εξόδους και ψάρια στο ημερολόγιο, η προσωπική πρόγνωση μαθαίνει αν πιάνεις περισσότερα σε κάποια φάση.','with enough trips and catches in your logbook, the personal forecast learns whether you catch more in some phase.'))); }
+    box.append(h('p',null,h('span',{class:'mk',text:T('Τα δικά σου ψάρια: ','Your catches: ')}),lack.length?T('η προσωπική πρόγνωση θα δείξει αν πιάνεις περισσότερα σε κάποια φάση όταν έχει αρκετά δεδομένα. Μέχρι τώρα: ','the personal forecast will show whether you catch more in some phase once it has enough data. So far: ')+lack.join(', ')+T(' (μετρούν οι έξοδοι με ώρα έναρξης και λήξης).',' (trips with a start and end time count).'):T('με αρκετές εξόδους και ψάρια στο ημερολόγιο, η προσωπική πρόγνωση μαθαίνει αν πιάνεις περισσότερα σε κάποια φάση.','with enough trips and catches in your logbook, the personal forecast learns whether you catch more in some phase.')));
+    if(B.tripFill&&B.tripFill.missing().length) box.append(h('button',{class:'btn sm',type:'button',style:{marginTop:'6px'},text:T('Πρόσθεσε τις ώρες των ψαριών σου','Add times for your catches'),onclick:function(){ B.tripFill.open(function(){ pmMemo.m=null; draw(); }); }})); }
   return box;
 }
 function pwCard(fc,d){
