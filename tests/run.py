@@ -669,6 +669,13 @@ with sync_playwright() as p:
     import struct as _st
     _pb=open(_os.path.join(ROOT,'badge-96.png'),'rb').read(32); _w,_h=_st.unpack('>II',_pb[16:24])  # χωρίς PIL (δεν υπάρχει στο GitHub)
     check('εικονίδιο ειδοποίησης: διάφανο PNG 96×96 (1.9.59)', _pb[:8]==b'\x89PNG\r\n\x1a\n' and (_w,_h)==(96,96) and _pb[25]==6 and "badge: 'badge-96.png'" in open(_os.path.join(ROOT,'sw.js')).read(), [_w,_h,_pb[25]])
+    c=ctx(b)
+    c.route('**/*supabase.co/auth/v1/signup*',lambda r: r.fulfill(json={'id':'u-old','email':'x+test@example.com','identities':[]}))
+    pg=page(c); pg.goto(BASE+'/v4/#profile'); pg.wait_for_timeout(2500)
+    pg.evaluate("()=>AK.authSheet({mode:'up'})"); pg.wait_for_timeout(800)
+    pg.evaluate("()=>{const F=document.querySelector('.sheet.on .authf'), e=F.querySelector('input[type=email]'), p=F.querySelector('input[type=password]'); e.value='x+test@example.com'; p.value='secret123'; F.requestSubmit();}"); pg.wait_for_timeout(1500)
+    r=pg.evaluate("()=>document.querySelector('.sheet.on .authf').innerText")
+    check('εγγραφή με email που έχει ήδη λογαριασμό: το λέει αντί να περιμένει κωδικό (1.9.60)', 'Υπάρχει ήδη λογαριασμός' in r and not pg._errs, [r[-300:],pg._errs]); c.close()
     print('# offline')
     c=ctx(b,sw=True); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(6000); pg.reload(); pg.wait_for_timeout(3000)
     c.set_offline(True)

@@ -91,6 +91,7 @@ B.authForm=function(o){ o=o||{}; var mode=o.mode==='up'?'up':'in', codeType='sig
   f.addEventListener('submit',function(e){ e.preventDefault(); if(!cbox.hidden){ verify(); return; } say(''); var a=em.value.trim(), b=pw.value; if(!a||!b){ say(T('Συμπλήρωσε email και κωδικό.','Fill in email and password.')); return; }
     go.disabled=true; (mode==='in'?C().signIn(a,b):C().signUp(a,b)).then(function(r){ go.disabled=false;
       if(r==='confirm'){ showCode('signup',a); return; }
+      if(r==='exists'){ mode='in'; paint(); say(T('Υπάρχει ήδη λογαριασμός με αυτό το email, οπότε δεν στάλθηκε κωδικός. Σύνδεσου με τον κωδικό σου, ή πάτα «Ξέχασα τον κωδικό» για νέο.','There is already an account with this email, so no code was sent. Sign in with your password, or tap “Forgot password” for a new one.')); return; }
       ok(); })
     .catch(function(e2){ go.disabled=false; if(/Email not confirmed/i.test(String(e2&&e2.message))){ C().resend(a).catch(function(){}); showCode('signup',a,T('Το email δεν είχε επιβεβαιωθεί, οπότε στείλαμε νέο κωδικό.','Your email was not confirmed yet, so we sent a new code.')); return; } say(err(e2)); }); });
   paint();
