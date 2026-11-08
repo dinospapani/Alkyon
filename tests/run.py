@@ -606,5 +606,16 @@ with sync_playwright() as p:
     check('offline χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
     b.close()
 
+# 1.9.48: server (quick-processor): ίδιος κώδικας, ψεύτικα δεδομένα, χωρίς δίκτυο
+print('# server')
+import subprocess as _sp, json as _js
+_r=_sp.run(['node',os.path.join(os.path.dirname(os.path.abspath(__file__)),'server.mjs')],capture_output=True,text=True,timeout=600)
+_last=(_r.stdout.strip().splitlines() or ['{}'])[-1]
+try: _j=_js.loads(_last)
+except Exception: _j={'ok':0,'fail':['server.mjs δεν έτρεξε: '+(_r.stderr or '')[-300:]]}
+for _l in _r.stdout.splitlines():
+    if _l.startswith('  ok   '): check('server: '+_l[7:], True, None)
+for _n in _j.get('fail',[]): check('server: '+_n, False, _r.stdout[-600:])
+check('server: τρέχουν τα tests', _j.get('ok',0)>=15, [_r.returncode,_r.stderr[-300:]])
 print('\n%d ok, %d fail'%(OK[0],len(FAIL)))
 if FAIL: print('FAILED:', ', '.join(FAIL)); sys.exit(1)

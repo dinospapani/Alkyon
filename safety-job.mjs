@@ -21,9 +21,18 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
     const r = await F(`https://api.telegram.org/bot${TG}/${method}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const j = await r.json().catch(() => ({})); if (!j.ok) throw new Error('Telegram ' + (j.description || r.status)); return j.result;
   };
-  const stats = { linked: 0, start: 0, alert: 0, clear: 0, ping: 0, silence: 0, lowbat: 0, ok: 0, fc: 0, pa: 0 };
+  const stats = { linked: 0, start: 0, alert: 0, clear: 0, ping: 0, silence: 0, lowbat: 0, ok: 0, fc: 0, pa: 0, squid: 0 };
   const PING_WAIT_MIN = 15, LOWBAT = 10;
   const patch = (id, o) => sb(`safety_trips?id=eq.${encodeURIComponent(id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(o) });
+  // 1.9.19: τα Telegram των διαχειριστών (app_admins → το δικό τους Telegram από safety_contacts.self_chat_id)
+  let ADM = null;
+  const adminChats = async () => {
+    if (ADM) return ADM;
+    const a = (await sb('app_admins?select=user_id').catch(() => [])) || [];
+    if (!a.length) return (ADM = []);
+    const c = (await sb(`safety_contacts?user_id=in.(${a.map(x => x.user_id).join(',')})&select=self_chat_id`).catch(() => [])) || [];
+    return (ADM = c.map(x => Number(x.self_chat_id)).filter(x => x && !isNaN(x)));
+  };
   const contactOf = async uid => { const r = await sb(`safety_contacts?user_id=eq.${uid}&select=*`); return r && r[0]; };
 
   // 1) Σύνδεση επαφών Telegram: /start ΚΩΔΙΚΟΣ
@@ -34,6 +43,21 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
       for (const u of ups || []) {
         last = u.update_id;
         const cq = u.callback_query;
+        // 1.9.19: έγκριση/απόρριψη σημειώσεων λιμανιών από διαχειριστή (κουμπιά ✅/❌)
+        if (cq && typeof cq.data === 'string' && /^pn:(ok|no):[0-9a-f-]{36}$/.test(cq.data)) {
+          const chat = cq.message && cq.message.chat && cq.message.chat.id;
+          const [, act, id] = cq.data.split(':');
+          try {
+            const chats = await adminChats();
+            if (chats.includes(Number(chat))) {
+              await sb(`port_notes?id=eq.${id}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: act === 'ok' ? 'ok' : 'rejected' }) });
+              await tg('answerCallbackQuery', { callback_query_id: cq.id, text: act === 'ok' ? 'Εγκρίθηκε' : 'Απορρίφθηκε' });
+              if (cq.message) await tg('editMessageText', { chat_id: chat, message_id: cq.message.message_id, text: (cq.message.text || '') + (act === 'ok' ? '\n\n✅ Εγκρίθηκε: φαίνεται σε όλους.' : '\n\n❌ Απορρίφθηκε.') }).catch(() => null);
+              stats.pn = (stats.pn || 0) + 1;
+            } else await tg('answerCallbackQuery', { callback_query_id: cq.id, text: 'Μόνο για διαχειριστές.' });
+          } catch (e) { log('port note decide: ' + e.message); }
+          continue;
+        }
         if (cq && typeof cq.data === 'string' && cq.data.startsWith('ok:')) {
           const rows = await sb(`safety_trips?id=eq.${encodeURIComponent(cq.data.slice(3))}&select=user_id`);
           const c = rows && rows[0] ? await contactOf(rows[0].user_id) : null;
@@ -175,6 +199,23 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
     await sb(`safety_trips?id=eq.${encodeURIComponent(t.id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ done_sent: true }) });
     stats.clear++;
   }
+  // 5β) 1.9.19: νέες σημειώσεις λιμανιών/ραμπών → στους διαχειριστές στο Telegram με ✅/❌
+  if (TG) {
+    try {
+      const pend = (await sb('port_notes?status=eq.pending&tg_sent=eq.false&select=*&order=created_at.asc&limit=20')) || [];
+      const chats = pend.length ? await adminChats() : [];
+      const TAG = { shallow: 'ρηχά', rocks: 'βράχια', swell: 'φουσκοθαλασσιά', slippery: 'γλιστερή ράμπα', fee: 'χρέωση', parking: 'πάρκινγκ', fuel: 'καύσιμα', water: 'νερό', crowded: 'πολύς κόσμος', good: 'καλή ράμπα', night: 'σκοτεινό τη νύχτα', wind: 'εκτεθειμένο στον άνεμο' };
+      for (const n of pend) {
+        if (!chats.length) break;
+        const text = `📝 Νέα σημείωση για ${n.port_name || 'λιμάνι/ράμπα'}\n` + (n.tags && n.tags.length ? 'Ετικέτες: ' + n.tags.map(t => TAG[t] || t).join(', ') + '\n' : '') +
+          (n.note ? `«${n.note}»\n` : '') + mapLink(n.lat, n.lon);
+        for (const chat of chats) await tg('sendMessage', { chat_id: chat, text, reply_markup: { inline_keyboard: [[{ text: '✅ Έγκριση', callback_data: 'pn:ok:' + n.id }, { text: '❌ Απόρριψη', callback_data: 'pn:no:' + n.id }]] } }).catch(e => log('port note send: ' + e.message));
+        await sb(`port_notes?id=eq.${n.id}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ tg_sent: true }) });
+        stats.pnSent = (stats.pnSent || 0) + 1;
+      }
+    } catch (e) { if (!/relation|does not exist|404/i.test(e.message)) log('port notes: ' + e.message); }
+  }
+
   // 6) Πρόγνωση: ειδοποιήσεις push για καλές μέρες ψαρέματος στις τοποθεσίες κάθε χρήστη (έλεγχος κάθε ~3 ώρες)
   if (PF && webpush) {
     const stale = new Date(Date.now() - 3 * 3600e3).toISOString();
@@ -328,6 +369,112 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
       if (sent) stats.pa++;
     }
   } catch (e) { log('Πίεση: ' + e.message); }
+  // 7β) 1.9.25: Κοινότητα, σαν τα κοινωνικά δίκτυα:
+  //   (α) νέο ψάρι από άλλον χρήστη → push σε όσους έχουν «Νέα στην Κοινότητα» (places[].comm !== 'off'). Αν είναι πολλά, ένα μήνυμα «3 νέα ψάρια».
+  //   (β) like ή σχόλιο σε δική σου ανάρτηση → push σε σένα (places[].commre !== 'off').
+  //   Όχι στις ώρες ησυχίας (23:00–07:00 Κύπρου). Μία φορά ανά γεγονός (notif_log, ignore-duplicates). Όριο: το (α) το πολύ μία φορά ανά 30 λεπτά ανά χρήστη.
+  if (webpush) {
+    try {
+      const since = new Date(Date.now() - 6 * 60000).toISOString();
+      const enc = encodeURIComponent(since);
+      const posts = (await sb(`community_posts?created_at=gt.${enc}&hidden=eq.false&select=id,user_id,author,species,kg,created_at&order=created_at.asc`).catch(() => [])) || [];
+      const likes = (await sb(`community_likes?created_at=gt.${enc}&select=post_id,user_id,created_at`).catch(() => [])) || [];
+      const coms = (await sb(`community_comments?created_at=gt.${enc}&hidden=eq.false&select=id,post_id,user_id,author,body,created_at`).catch(() => [])) || [];
+      if (posts.length || likes.length || coms.length) {
+        const cyH = +new Date().toLocaleString('en-GB', { timeZone: 'Asia/Nicosia', hour: '2-digit', hour12: false }).slice(0, 2);
+        const quietNow = cyH >= 23 || cyH < 7;
+        const subsAll = (await sb('push_subs?select=id,user_id,sub,places').catch(() => [])) || [];
+        const byUser = {}; for (const r of subsAll) (byUser[r.user_id] = byUser[r.user_id] || []).push(r);
+        const flag = (rows, k) => !(rows.find(r => (r.places || []).find(p => p && p[k] === 'off')));
+        const isEn = rows => !!(rows.find(r => (r.places || []).find(p => p && p.lang === 'en')));
+        const quietOn = rows => !(rows.find(r => (r.places || []).find(p => p && p.quiet === 'off')));
+        const send = async (uid, key, kind, title, body) => {
+          const rows = byUser[uid] || []; if (!rows.length) return;
+          const at = new Date().toISOString();
+          let ins = null; try { ins = await sb('notif_log', { method: 'POST', headers: { Prefer: 'return=representation,resolution=ignore-duplicates' }, body: JSON.stringify({ id: (uid + '|' + key).slice(0, 250), user_id: uid, at, kind, title, body }) }); } catch (e) { return; }
+          if (Array.isArray(ins) && !ins.length) return;   // ήδη στάλθηκε
+          for (const r of rows) {
+            try { await webpush.sendNotification(r.sub, JSON.stringify({ title, body, full: body, kind, id: key, tag: 'alk-' + key.slice(0, 40), at, url: '#community' }), { TTL: 3 * 3600 }); stats.comm = (stats.comm || 0) + 1; }
+            catch (e) { if (e.statusCode === 404 || e.statusCode === 410) await sb(`push_subs?id=eq.${encodeURIComponent(r.id)}`, { method: 'DELETE' }).catch(() => {}); }
+          }
+        };
+        // (α) νέα ψάρια
+        if (posts.length) {
+          const recent = (await sb(`notif_log?kind=eq.comm&at=gt.${encodeURIComponent(new Date(Date.now() - 30 * 60000).toISOString())}&select=user_id`).catch(() => [])) || [];
+          const recentU = new Set(recent.map(x => x.user_id));
+          for (const uid of Object.keys(byUser)) {
+            const rows = byUser[uid]; if (!flag(rows, 'comm') || recentU.has(uid) || (quietNow && quietOn(rows))) continue;
+            const mine = posts.filter(p => p.user_id !== uid); if (!mine.length) continue;
+            const en = isEn(rows), p0 = mine[mine.length - 1];
+            const what = p => (p.species || '') + (p.kg ? ' ' + String(p.kg).replace('.', en ? '.' : ',') + ' kg' : '');
+            const title = mine.length > 1 ? (en ? `🐟 ${mine.length} new catches in the Community` : `🐟 ${mine.length} νέα ψάρια στην Κοινότητα`) : (en ? '🐟 New catch in the Community' : '🐟 Νέο ψάρι στην Κοινότητα');
+            const body = mine.length > 1 ? mine.slice(-3).map(p => (p.author || '') + ': ' + what(p)).join(' · ') : (p0.author || (en ? 'An angler' : 'Ένας ψαράς')) + (en ? ' caught ' : ' έπιασε ') + what(p0);
+            await send(uid, 'comm:' + mine.map(p => p.id.slice(0, 8)).join(','), 'comm', title, body);
+          }
+        }
+        // (β) like / σχόλια στις δικές μου αναρτήσεις
+        const pids = [...new Set([...likes.map(l => l.post_id), ...coms.map(c => c.post_id)])];
+        if (pids.length) {
+          const own = (await sb(`community_posts?id=in.(${pids.join(',')})&select=id,user_id,species`).catch(() => [])) || [];
+          const po = {}; for (const p of own) po[p.id] = p;
+          for (const l of likes) { const p = po[l.post_id]; if (!p || p.user_id === l.user_id) continue; const rows = byUser[p.user_id] || []; if (!rows.length || !flag(rows, 'commre') || (quietNow && quietOn(rows))) continue;
+            const en = isEn(rows); await send(p.user_id, 'cl:' + l.post_id.slice(0, 8) + ':' + l.user_id.slice(0, 8), 'commre', en ? '❤️ Someone liked your catch' : '❤️ Άρεσε σε κάποιον το ψάρι σου', p.species || ''); }
+          for (const c of coms) { const p = po[c.post_id]; if (!p || p.user_id === c.user_id) continue; const rows = byUser[p.user_id] || []; if (!rows.length || !flag(rows, 'commre') || (quietNow && quietOn(rows))) continue;
+            const en = isEn(rows); await send(p.user_id, 'cc:' + c.id, 'commre', (en ? '💬 New comment on your ' : '💬 Νέο σχόλιο στο ') + (p.species || (en ? 'catch' : 'ψάρι σου')), (c.author ? c.author + ': ' : '') + String(c.body || '').slice(0, 120)); }
+        }
+      }
+    } catch (e) { log('community push: ' + e.message); }
+  }
+
+  // 7γ) 1.9.44 (1.9.47: καλύτερη ώρα, μόνο βράδια ±3 μέρες από τη νέα σελήνη): καλαμάρια γύρω από τη νέα σελήνη (μόνο όσοι το άνοιξαν: places[].squid === 'on').
+  //   Οκτώβριος–Απρίλιος, 09:00–10:00 Κύπρου, από 3 μέρες πριν έως 2 μέρες μετά τη νέα σελήνη.
+  //   Η καλύτερη ώρα κάθε βραδιού (δύση ±90′, άνεμος <8 kn, κύμα ≤0,6 m, PF.squidEves), πρώτο το καλύτερο. Μία ειδοποίηση ανά σελήνη ανά χρήστη (notif_log).
+  if (webpush) {
+    try {
+      const nowD = new Date(), cyHs = +nowD.toLocaleString('en-GB', { timeZone: 'Asia/Nicosia', hour: '2-digit', hour12: false }).slice(0, 2), mon = +nowD.toLocaleString('en-GB', { timeZone: 'Asia/Nicosia', month: 'numeric' });
+      const nm = PF.nextMoon(Date.now() - 2 * 86400000); /* η νέα σελήνη που δεν έχει περάσει πάνω από 2 μέρες */
+      if (cyHs === 9 && (mon >= 10 || mon <= 4) && nm && nm.nw && nm.nw - Date.now() <= 3 * 86400000) {
+        const nmKey = new Date(nm.nw).toISOString().slice(0, 10);
+        const subsS = (await sb('push_subs?select=id,user_id,sub,places').catch(() => [])) || [];
+        const byU = {}; for (const r of subsS) (byU[r.user_id] = byU[r.user_id] || []).push(r);
+        const fcMem = {};
+        for (const uid of Object.keys(byU)) {
+          const rows = byU[uid]; const pls = rows.flatMap(r => r.places || []); if (!pls.find(p => p && p.squid === 'on')) continue;
+          // 1.9.48: όλα τα μέρη του χρήστη (έως 6), όχι μόνο το πρώτο· το καλύτερο βράδυ από όλα, με το όνομα του μέρους
+          const seen = {}, plist = [];
+          for (const p of pls) { if (!p || typeof p.lat !== 'number' || typeof p.lon !== 'number') continue; const k = (+p.lat).toFixed(2) + ',' + (+p.lon).toFixed(2); if (seen[k]) continue; seen[k] = 1; plist.push({ p, k }); if (plist.length >= 6) break; }
+          if (!plist.length) continue;
+          const en = !!pls.find(p => p && p.lang === 'en');
+          let good = [];
+          for (const { p, k } of plist) {
+            let fc = fcMem[k]; if (fc === undefined) { try { fc = await PF.getForecast(+p.lat, +p.lon, F, { days: 6, sp: { n: 'Καλαμάρι', l: 'Loligo vulgaris', sst: [14, 24] } }); } catch (e) { log('squid fc: ' + e.message); fc = null; } fcMem[k] = fc; }
+            if (!fc || !fc.days) continue;
+            good = good.concat(PF.squidEves(fc.days, nm.nw, { now: (fc.nowLocal || '').slice(0, 13) + ':00' }).map(g => ({ ...g, name: p.name || '' })));
+          }
+          if (!good.length) continue;
+          good.sort((x, y) => y.score - x.score);
+          // ένα βράδυ ανά μέρα στη λίστα (το καλύτερο μέρος εκείνης της μέρας)
+          const byDay = {}; good = good.filter(g => byDay[g.date] ? false : (byDay[g.date] = 1));
+          const multi = plist.length > 1;
+          const pad = (n) => String(n).padStart(2, '0');
+          const at_ = (g) => multi && g.name ? (en ? ' at ' : ' στο ') + g.name : '';
+          const slot = (g) => PF.dayLabel(g.date) + ' ' + pad(g.hr) + ':00–' + pad((g.hr + 1) % 24) + ':00' + at_(g);
+          const b0 = good[0], rest = good.slice(1, 4).map((g) => PF.dayLabel(g.date) + ' ' + pad(g.hr) + ':00' + at_(g));
+          const nmTxt = new Date(nm.nw).toLocaleDateString(en ? 'en-GB' : 'el-GR', { timeZone: 'Asia/Nicosia', weekday: 'long', day: 'numeric', month: 'long' });
+          const title = en ? '🦑 Squid: new moon ' + nmTxt : '🦑 Καλαμάρια: νέα σελήνη ' + nmTxt;
+          const body = (en ? 'Best: ' : 'Καλύτερο: ') + slot(b0) + (en ? ' (score ' : ' (βαθμός ') + b0.score + ')' + (rest.length ? (en ? ' · also ' : ' · επίσης ') + rest.join(', ') : '') + (!multi && b0.name ? ' · ' + b0.name : '');
+          const at = new Date().toISOString();
+          let ins = null; try { ins = await sb('notif_log', { method: 'POST', headers: { Prefer: 'return=representation,resolution=ignore-duplicates' }, body: JSON.stringify({ id: (uid + '|sq:' + nmKey).slice(0, 250), user_id: uid, at, kind: 'good', title, body }) }); } catch (e) { log('squid notif_log: ' + e.message); continue; } /* 1.9.48: χωρίς καταγραφή δεν στέλνουμε (αλλιώς θα ξαναστελνόταν την επόμενη μέρα) */
+          if (!Array.isArray(ins) || !ins.length) continue;
+          for (const r of rows) {
+            try { await webpush.sendNotification(r.sub, JSON.stringify({ title, body, full: body, kind: 'good', id: 'sq:' + nmKey, tag: 'alk-sq-' + nmKey, at }), { TTL: 6 * 3600 }); stats.squid = (stats.squid || 0) + 1; }
+            catch (e) { if (e.statusCode === 404 || e.statusCode === 410) await sb(`push_subs?id=eq.${encodeURIComponent(r.id)}`, { method: 'DELETE' }).catch(() => {}); }
+          }
+        }
+      }
+    } catch (e) { log('squid: ' + e.message); }
+  }
+
   // 8) v31z543: κατά την έξοδο, και με κλειστό κινητό: (α) καιρός που χαλάει τις επόμενες 3 ώρες στη θέση της εξόδου (καταιγίδα, άνεμος/ριπές/κύμα πάνω από τα όριά σου),
   //    (β) «ώρα να γυρίσεις»: απόσταση από το λιμάνι σου και ταχύτητα επιστροφής σε σχέση με τη δύση και την ώρα επιστροφής που δήλωσες. Έλεγχος ανά ~15 λεπτά.
   try {

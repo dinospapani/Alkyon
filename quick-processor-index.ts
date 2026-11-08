@@ -94,8 +94,21 @@ function targetSp(w){
 }
 /* ειδικοί κανόνες από μελέτες: καλαμάρι (Cabanellas-Reboredo κ.ά. 2012, Μαγιόρκα), ξιφίας (Ceyhan κ.ά. 2018, Αν. Μεσόγειος) */
 function spKind(sp){ const s=((sp&&(sp.l||''))+' '+(sp&&sp.n||'')).toLowerCase(); return /loligo|καλαμάρ|squid/.test(s)?'squid':/xiphias|ξιφ|swordfish/.test(s)?'sword':null; }
+/* 1.9.27: τι λέει η έρευνα για τη φάση της σελήνης σε κάθε είδος (k: 'new' μετρά στον βαθμό, 'none' ψάχτηκε και δεν βρέθηκε, null καμία μελέτη) */
+function moonInfo(sp){
+  if(sp===undefined) sp=targetSp({});
+  const s=((sp&&(sp.l||''))+' '+(sp&&sp.n||'')).toLowerCase();
+  if(/loligo|καλαμάρ|squid/.test(s)) return {k:'new',el:'Καλαμάρι: πιο πολλά κοντά στη νέα σελήνη, με λίγο άνεμο και χαμηλή πίεση, σε ένα στενό παράθυρο γύρω από το σούρουπο. Μετρά στον βαθμό.',en:'Squid: more near the new moon, with light wind and low pressure, in a short window around sunset. Counted in the score.',src:'Cabanellas-Reboredo et al. 2012, ICES J. Mar. Sci. (Mallorca)'};
+  if(/sarda|scomber|thunnus|euthynnus|auxis|παλαμίδ|σκουμπρ|κολιό|τόνο|bonito|mackerel|tuna/.test(s)) return {k:'none',el:'Οικογένεια του τόνου (παλαμίδα, σκουμπρί, τόνος): με φεγγάρι κατεβαίνουν πιο βαθιά τη νύχτα, αλλά οι μελέτες δεν βρίσκουν διαφορά στο πόσα πιάνονται. Δεν μετρά στον βαθμό.',en:'Tuna family (bonito, mackerel, tuna): with moonlight they go deeper at night, but studies find no difference in catch rates. Not counted in the score.',src:'Andrzejaczek et al. 2024, Rev. Fish Biol. Fish. (190 studies)'};
+  if(/xiphias|ξιφ|swordfish/.test(s)) return {k:'none',el:'Ξιφίας: παγκόσμια πιάνεται περισσότερο με φεγγάρι, αλλά στην Ανατολική Μεσόγειο δεν βρέθηκε διαφορά. Δεν μετρά στον βαθμό.',en:'Swordfish: worldwide more are caught with moonlight, but no difference was found in the Eastern Mediterranean. Not counted in the score.',src:'Andrzejaczek et al. 2024; Ceyhan et al. 2018'};
+  if(/diplodus sargus|σαργό|white seabream/.test(s)) return {k:'none',el:'Σαργός: η ανασκόπηση για τον σαργό δεν αναφέρει ρόλο της σελήνης. Μετρούν η θερμοκρασία, η παλίρροια και ο καιρός. Δεν μετρά στον βαθμό.',en:'White seabream: the review on this species reports no role for the moon. Temperature, tide and weather matter. Not counted in the score.',src:'Giacalone et al. 2022, Environ. Biol. Fish.'};
+  if(sp&&(sp.n||sp.l)) return {k:null,el:'Δεν υπάρχει μελέτη για τη φάση της σελήνης σε αυτό το ψάρι, γι’ αυτό δεν μετρά στον βαθμό. Μετρά ό,τι δείχνουν τα δικά σου ψάρια.',en:'There is no study on moon phase for this fish, so it is not counted in the score. What your own catches show is what counts.',src:''};
+  return {k:null,el:'Η φάση μετρά μόνο όταν διαλέξεις είδος που έχει μελέτη (π.χ. καλαμάρι). Στα άλλα ψάρια οι μελέτες βρίσκουν μικρή επίδραση (5–10%) και με αντίθετη κατεύθυνση από είδος σε είδος.',en:'Moon phase counts only when you pick a species with a study (e.g. squid). For other fish, studies find a small effect (5–10%) that goes in opposite directions between species.',src:'Pulver 2017, N. Am. J. Fish. Manage.; Lowry et al. 2007, Fish. Res.'};
+}
 function hourScore(sm,hr,w){
-  const wind=w.wind, wave=w.wave==null?0.5:w.wave, sp=targetSp(w), kind=spKind(sp);
+  const sp=targetSp(w), kind=spKind(sp);
+  /* 1.9.32: w.bite = μόνο «τσίμπημα»: σαν να ήταν ήρεμη η θάλασσα (άνεμος 8 kn, κύμα 0,3 m, χωρίς ριπές). Στο καλαμάρι ο άνεμος μένει, γιατί μετρά στο τσίμπημα (μελέτη). */
+  const wind=w.bite?(kind==='squid'?w.wind:8):w.wind, wave=w.bite?0.3:(w.wave==null?0.5:w.wave), gust=w.bite?null:w.gust;
   /* προφίλ ψαρέματος: προσαρμογή βαρών (εκτίμηση, όχι επικυρωμένη). Στο service worker δεν υπάρχει localStorage, άρα ισχύει «βάρκα». */
   let prof=w.prof; if(!prof){ try{ prof=typeof localStorage!=='undefined'?localStorage.getItem('alkyon-fprof'):null; }catch(e){ prof=null; } }
   /* v31z361: η σελήνη μετρά λιγότερο (μελέτες: επίδραση 5–10% σε κάποια είδη, καμία σε άλλα) */
@@ -123,7 +136,7 @@ function hourScore(sm,hr,w){
     base+=wave<=0.5?3:wave<=1?0:wave<=1.5?-6:wave<=2?-15:-25;
   }
   base+={clear:0,part:2,over:4}[w.cloud||'part'];
-  if(w.gust!=null) base+=w.gust>=35?-10:w.gust>=28?-5:0;
+  if(gust!=null) base+=gust>=35?-10:gust>=28?-5:0;
   /* v31z363: θερμοκρασία θάλασσας σε σχέση με το εύρος του είδους (knowledge.js). Χωρίς είδος δεν μετρά, γιατί η επίδραση αλλάζει από είδος σε είδος. */
   if(sp&&sp.sst&&w.sst!=null){ const lo=sp.sst[0], hi=sp.sst[1], d=w.sst<lo?lo-w.sst:w.sst>hi?w.sst-hi:0; base-=Math.min(10,Math.round(d*2.5));
     if(kind==='squid'&&!d) base+=Math.round(3*(hi-w.sst)/Math.max(1,hi-lo)); } /* καλαμάρι: πιο κρύα θάλασσα, περισσότερη ψαριά */
@@ -152,42 +165,56 @@ async function fetchJson(url,fetchFn){
   finally{ if(t) clearTimeout(t); }
 }
 /* Επιστρέφει {days:[{date,best,win,hours,avgWind,avgWave,safe,why,wx}], tz, nowLocal}. opt.days = πόσες ημέρες (προεπιλογή 3, έως 14). */
+const EXPC={};
 async function getForecast(lat,lon,fetchFn,opt){
   const nd=Math.min(14,Math.max(1,(opt&&opt.days)||3));
   const q='latitude='+lat.toFixed(4)+'&longitude='+lon.toFixed(4);
   const [w,m]=await Promise.allSettled([
     fetchJson('https://api.open-meteo.com/v1/forecast?'+q+'&hourly=pressure_msl,wind_speed_10m,wind_gusts_10m,wind_direction_10m,cloud_cover,temperature_2m,precipitation_probability,precipitation,weather_code&wind_speed_unit=kn&timezone=auto&past_days=2&forecast_days='+(nd+1),fetchFn),
-    fetchJson('https://marine-api.open-meteo.com/v1/marine?'+q+'&hourly=wave_height,wave_period,sea_surface_temperature,sea_level_height_msl&timezone=auto&past_days=2&forecast_days='+(nd+1),fetchFn)
+    fetchJson('https://marine-api.open-meteo.com/v1/marine?'+q+'&hourly=wave_height,wave_period,wind_wave_height,swell_wave_height,sea_surface_temperature,sea_level_height_msl&timezone=auto&past_days=2&forecast_days='+(nd+1),fetchFn)
   ]);
   if(w.status!=='fulfilled') throw new Error('weather');
   const H=w.value.hourly||{}, T=H.time||[], tz=Math.round((w.value.utc_offset_seconds||0)/60);
-  const mar={}; if(m.status==='fulfilled'&&m.value.hourly&&m.value.hourly.time){ const MH=m.value.hourly; MH.time.forEach((t,i)=>{mar[t]={wave:MH.wave_height?MH.wave_height[i]:null,period:MH.wave_period?MH.wave_period[i]:null,sst:MH.sea_surface_temperature?MH.sea_surface_temperature[i]:null,lvl:MH.sea_level_height_msl?MH.sea_level_height_msl[i]:null};}); }
+  const mar={}; if(m.status==='fulfilled'&&m.value.hourly&&m.value.hourly.time){ const MH=m.value.hourly; MH.time.forEach((t,i)=>{mar[t]={ww:MH.wind_wave_height?MH.wind_wave_height[i]:null,sw:MH.swell_wave_height?MH.swell_wave_height[i]:null,wave:MH.wave_height?MH.wave_height[i]:null,period:MH.wave_period?MH.wave_period[i]:null,sst:MH.sea_surface_temperature?MH.sea_surface_temperature[i]:null,lvl:MH.sea_level_height_msl?MH.sea_level_height_msl[i]:null};}); }
   const tideAt=(t)=>{ const i=m.status==='fulfilled'&&m.value.hourly&&m.value.hourly.time?m.value.hourly.time.indexOf(t):-1; const L=i>0&&m.value.hourly.sea_level_height_msl; if(!L||typeof L[i-1]!=='number'||typeof L[i+1]!=='number') return null; const d=L[i+1]-L[i-1]; return d>0.01?'up':d<-0.01?'down':'slack'; };
   const nowLocal=new Date(Date.now()+tz*60000).toISOString().slice(0,16);
   const today=nowLocal.slice(0,10);
+  /* 1.2.1: και οι 2 προηγούμενες μέρες (past_days=2), βαθμολογημένες με τον ίδιο τρόπο, σε χωριστό fc.past· το fc.days μένει από σήμερα */
+  const past0=(()=>{ const d=new Date(today+'T12:00:00Z'); d.setUTCDate(d.getUTCDate()-2); return d.toISOString().slice(0,10); })();
   const at=(k,i)=>H[k]?H[k][i]:null, nn=v=>typeof v==='number'?v:null;
+  /* 1.9.11: κατεύθυνση ανέμου ως προς την ακτή. Όταν ο άνεμος έρχεται από τη στεριά (λίγα km ανοιχτής θάλασσας προς τα εκεί),
+     το κύμα ανέμου κοντά στο σημείο είναι μικρότερο από του μοντέλου (που είναι ανοιχτά). Μειώνεται ΜΟΝΟ το κύμα ανέμου (fetch-limited),
+     το swell μένει όλο, και η τιμή δεν ανεβαίνει ποτέ πάνω από του μοντέλου. Μόνο στην εφαρμογή (χρειάζεται τον χάρτη ακτής). */
+  const EXP=(opt&&opt.local===false)?null:(()=>{ try{ const X=typeof window!=='undefined'?window.AlkyonExposure:null; const k=lat.toFixed(3)+','+lon.toFixed(3); let r=EXPC[k]; if(r===undefined){ r=X&&X.compute?X.compute(lat,lon):null; EXPC[k]=r; } return r&&r.dirs?{r,hs:X.hs}:null; }catch(e){ return null; } })();
+  const localWave=(mm,ws,dir)=>{ if(!EXP||mm.wave==null||mm.ww==null||mm.sw==null||ws==null||dir==null) return null;
+    const f=EXP.r.dirs[Math.round((((dir%360)+360)%360)/22.5)%16].km; if(!(f<20)) return null;
+    const wl=EXP.hs(ws*0.5144,Math.max(0.5,f)), ww=Math.min(mm.ww,wl), v=Math.sqrt(mm.sw*mm.sw+ww*ww);
+    return v<mm.wave-0.05?Math.round(v*100)/100:null; };
   const byDay={};
   for(let i=0;i<T.length;i++){
-    const t=T[i], date=t.slice(0,10); if(date<today) continue;
+    const t=T[i], date=t.slice(0,10); if(date<past0) continue;
     const p=at('pressure_msl',i), p0=i>=3?H.pressure_msl[i-3]:null, c=at('cloud_cover',i), ws=at('wind_speed_10m',i);
     if(ws==null) continue;
     const mm=mar[t]||{};
     (byDay[date]=byDay[date]||[]).push({t,hr:+t.slice(11,13),pres:p,wind:ws,gust:nn(at('wind_gusts_10m',i)),dir:nn(at('wind_direction_10m',i)),temp:nn(at('temperature_2m',i)),rain:nn(at('precipitation_probability',i)),mm:nn(at('precipitation',i)),code:nn(at('weather_code',i)),p:nn(p),cc:nn(c),
-      wave:nn(mm.wave),period:nn(mm.period),sst:nn(mm.sst),tide:tideAt(t),ptrend:(p!=null&&p0!=null)?ptrendOf(p-p0):'stable',cloud:c==null?'part':c<20?'clear':c<70?'part':'over'});
+      wave:(()=>{ const lw=localWave(mm,ws,nn(at('wind_direction_10m',i))); return lw!=null?lw:nn(mm.wave); })(),waveOff:localWave(mm,ws,nn(at('wind_direction_10m',i)))!=null?nn(mm.wave):null,period:nn(mm.period),sst:nn(mm.sst),tide:tideAt(t),ptrend:(p!=null&&p0!=null)?ptrendOf(p-p0):'stable',cloud:c==null?'part':c<20?'clear':c<70?'part':'over'});
   }
   const num=a=>a.filter(v=>typeof v==='number'), av=a=>{a=num(a);return a.length?a.reduce((x,y)=>x+y,0)/a.length:null;}, mx=a=>{a=num(a);return a.length?Math.max(...a):null;}, mn=a=>{a=num(a);return a.length?Math.min(...a):null;};
-  const days=[];
-  for(const date of Object.keys(byDay).sort().slice(0,nd)){
+  const days=[], past=[], dks=Object.keys(byDay).sort();
+  for(const date of dks.filter(x=>x<today).concat(dks.filter(x=>x>=today).slice(0,nd))){
     const zn=(typeof w.value.timezone==='string')?w.value.timezone:null, tzd=zn?nicOffAt(date,tz,zn):(tz===120||tz===180)?nicOffAt(date,tz):tz, sm=sunMoon(date,lat,lon,tzd), rows=byDay[date];
-    const hours=rows.map(h=>({t:h.t,hr:h.hr,p:h.p,pres:h.pres,wind:h.wind,wave:h.wave,gust:h.gust,code:h.code,ptrend:h.ptrend,tide:h.tide,dir:h.dir,temp:h.temp,rain:h.rain,cloud:h.cloud,sst:h.sst,period:h.period,score:hourScore(sm,h.hr,opt&&opt.sp?Object.assign({sp:opt.sp},h):h),safe:safeHour(h)}));
+    const hours=rows.map(h=>({t:h.t,hr:h.hr,p:h.p,pres:h.pres,wind:h.wind,wave:h.wave,waveOff:h.waveOff,gust:h.gust,code:h.code,ptrend:h.ptrend,tide:h.tide,dir:h.dir,temp:h.temp,rain:h.rain,cloud:h.cloud,sst:h.sst,period:h.period,score:hourScore(sm,h.hr,opt&&opt.sp?Object.assign({sp:opt.sp},h):h),bite:hourScore(sm,h.hr,Object.assign(opt&&opt.sp?{sp:opt.sp}:{},h,{bite:true})),safe:safeHour(h)}));
     const day=h=>{const t=h.hr*60+30;return t>=sm.rise-60&&t<=sm.set+60;};
-    const cand=hours.filter(h=>h.safe&&day(h)&&(date>today||h.t>=nowLocal.slice(0,13)+':00'));
+    const cand=hours.filter(h=>h.safe&&day(h)&&(date!==today||h.t>=nowLocal.slice(0,13)+':00'));
     let best=0,win=null;
     if(cand.length){
       best=Math.max(...cand.map(h=>h.score)); const thr=best-6; let groups=[],cur=null;
       for(const h of hours){ if(h.safe&&h.score>=thr&&cand.includes(h)){ if(cur&&cur.e===h.hr-1){cur.e=h.hr;} else {cur={s:h.hr,e:h.hr};groups.push(cur);} } }
       win=groups.sort((a,b)=>(b.e-b.s)-(a.e-a.s))[0]||null;
     }
+    /* 1.9.32: τσίμπημα της μέρας: καλύτερη ώρα φωτός ανεξάρτητα από άνεμο/κύμα (και στις ώρες εκτός ορίων) */
+    const bc=hours.filter(h=>day(h)&&(date!==today||h.t>=nowLocal.slice(0,13)+':00')); let bite=null,biteWin=null;
+    if(bc.length){ bite=Math.max(...bc.map(h=>h.bite)); const bt=bite-6; let g2=[],c2=null; for(const h of hours){ if(bc.includes(h)&&h.bite>=bt){ if(c2&&c2.e===h.hr-1) c2.e=h.hr; else { c2={s:h.hr,e:h.hr}; g2.push(c2); } } } biteWin=g2.sort((a,b)=>(b.e-b.s)-(a.e-a.s))[0]||null; }
     const used=win?hours.filter(h=>h.hr>=win.s&&h.hr<=win.e):hours;
     const why=cand.length?'':(hours.some(h=>h.safe&&day(h))?'night':'unsafe');
     const dr=rows.filter(r=>{const t=r.hr*60+30;return t>=sm.rise-60&&t<=sm.set+60;}), use=dr.length?dr:rows;
@@ -197,11 +224,11 @@ async function getForecast(lat,lon,fetchFn,opt){
     const wx={tmax:mx(rows.map(r=>r.temp)),tmin:mn(rows.map(r=>r.temp)),windAvg:av(use.map(r=>r.wind)),windMax:mx(use.map(r=>r.wind)),gustMax:mx(use.map(r=>r.gust)),windDir:mid?mid.dir:null,
       rainMax:mx(use.map(r=>r.rain)),rainMm:num(rows.map(r=>r.mm)).reduce((x,y)=>x+y,0),code:storm?95:(mode!=null?+mode:null),cloudAvg:av(use.map(r=>r.cc)),
       pStart:rows[0].p,pEnd:rows[rows.length-1].p,waveMax:mx(use.map(r=>r.wave)),waveAvg:av(use.map(r=>r.wave)),period:av(use.map(r=>r.period)),sst:av(rows.map(r=>r.sst)),illum:(1-Math.cos(2*Math.PI*sm.f))/2,rise:sm.rise,set:sm.set};
-    days.push({date,f:sm.f,rise:sm.rise,set:sm.set,best,win,why,hours,avgWind:av(used.map(h=>h.wind)),avgWave:av(used.filter(h=>h.wave!=null).map(h=>h.wave)),safe:cand.length>0,wx});
+    (date<today?past:days).push({date,f:sm.f,rise:sm.rise,set:sm.set,best,win,bite,biteWin,why,hours,avgWind:av(used.map(h=>h.wind)),avgWave:av(used.filter(h=>h.wave!=null).map(h=>h.wave)),safe:cand.length>0,wx});
   }
   /* ωριαίο κύμα/βροχή και των 2 προηγούμενων ημερών, για την ορατότητα νερού (v31z531): [ώρα, κύμα, mm] */
   const wl=[]; for(let i=0;i<T.length;i++){ const t=T[i], mm=mar[t]||{}, r=nn(at('precipitation',i)); if(mm.wave==null&&r==null) continue; wl.push([t,mm.wave==null?null:Math.round(mm.wave*100)/100,r]); }
-  return {days,tz,nowLocal,wl};
+  return {days,past,tz,nowLocal,wl};
 }
 /* Βρίσκει την πρώτη ιδανική ώρα τις επόμενες ~36 ώρες. */
 function findIdeal(fc,threshold){
@@ -510,7 +537,7 @@ async function checkPlaces(cfg,fetchFn){
       msgs.push({kind:'good',key:i.key,place:P(i.pl),t:i.pl.date,title:'⏰ '+t('Ώρα να ξεκινήσεις','Time to get going'),body:tx,full:tx}); } });
   return {nextGood,todayGood,tmrGood,items,notified,title,body:lines.concat(pl,tl,wl).join('\n'),msgs,area:area?{name:area.name,lat:area.lat,lon:area.lon}:null,errs,okN,goodsN:goods.length,pressN:press.length,turnsN:turns.length,windsN:winds.length};
 }
-g.PF={squidEves,nextMoon,lims,moonAlt,moonEvents,moonPhase,solunarPeriods,pressureRise,sunMoon,hourScore,getForecast,findIdeal,message,check,goodDays,checkPlaces,dayLabel,bft,pressureEvent,windEvent,pressureTurns,pressureOutlook};
+g.PF={squidEves,nextMoon,moonInfo,lims,moonAlt,moonEvents,moonPhase,solunarPeriods,pressureRise,sunMoon,hourScore,getForecast,findIdeal,message,check,goodDays,checkPlaces,dayLabel,bft,pressureEvent,windEvent,pressureTurns,pressureOutlook};
 })(typeof self!=='undefined'?self:this);
 
 const PF = self.PF;
@@ -949,30 +976,40 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
   if (webpush) {
     try {
       const nowD = new Date(), cyHs = +nowD.toLocaleString('en-GB', { timeZone: 'Asia/Nicosia', hour: '2-digit', hour12: false }).slice(0, 2), mon = +nowD.toLocaleString('en-GB', { timeZone: 'Asia/Nicosia', month: 'numeric' });
-      const nm = PF.nextMoon(Date.now() - 2 * 86400000);
+      const nm = PF.nextMoon(Date.now() - 2 * 86400000); /* η νέα σελήνη που δεν έχει περάσει πάνω από 2 μέρες */
       if (cyHs === 9 && (mon >= 10 || mon <= 4) && nm && nm.nw && nm.nw - Date.now() <= 3 * 86400000) {
         const nmKey = new Date(nm.nw).toISOString().slice(0, 10);
         const subsS = (await sb('push_subs?select=id,user_id,sub,places').catch(() => [])) || [];
-        const byU: Record<string, any[]> = {}; for (const r of subsS) (byU[r.user_id] = byU[r.user_id] || []).push(r);
-        const fcMem: Record<string, any> = {};
+        const byU = {}; for (const r of subsS) (byU[r.user_id] = byU[r.user_id] || []).push(r);
+        const fcMem = {};
         for (const uid of Object.keys(byU)) {
           const rows = byU[uid]; const pls = rows.flatMap(r => r.places || []); if (!pls.find(p => p && p.squid === 'on')) continue;
-          const pl = pls.find(p => p && typeof p.lat === 'number' && typeof p.lon === 'number'); if (!pl) continue;
+          // 1.9.48: όλα τα μέρη του χρήστη (έως 6), όχι μόνο το πρώτο· το καλύτερο βράδυ από όλα, με το όνομα του μέρους
+          const seen = {}, plist = [];
+          for (const p of pls) { if (!p || typeof p.lat !== 'number' || typeof p.lon !== 'number') continue; const k = (+p.lat).toFixed(2) + ',' + (+p.lon).toFixed(2); if (seen[k]) continue; seen[k] = 1; plist.push({ p, k }); if (plist.length >= 6) break; }
+          if (!plist.length) continue;
           const en = !!pls.find(p => p && p.lang === 'en');
-          const key = (+pl.lat).toFixed(2) + ',' + (+pl.lon).toFixed(2);
-          let fc = fcMem[key]; if (!fc) { try { fc = fcMem[key] = await getForecast(+pl.lat, +pl.lon, fetchFn, { days: 6, sp: { n: 'Καλαμάρι', l: 'Loligo vulgaris', sst: [14, 24] } }); } catch (_) { fc = null; } }
-          if (!fc || !fc.days) continue;
-          const good = PF.squidEves(fc.days, nm.nw, { now: (fc.nowLocal || '').slice(0, 13) + ':00' });
+          let good = [];
+          for (const { p, k } of plist) {
+            let fc = fcMem[k]; if (fc === undefined) { try { fc = await PF.getForecast(+p.lat, +p.lon, F, { days: 6, sp: { n: 'Καλαμάρι', l: 'Loligo vulgaris', sst: [14, 24] } }); } catch (e) { log('squid fc: ' + e.message); fc = null; } fcMem[k] = fc; }
+            if (!fc || !fc.days) continue;
+            good = good.concat(PF.squidEves(fc.days, nm.nw, { now: (fc.nowLocal || '').slice(0, 13) + ':00' }).map(g => ({ ...g, name: p.name || '' })));
+          }
           if (!good.length) continue;
-          const pad = (n: number) => String(n).padStart(2, '0');
-          const slot = (g: any) => PF.dayLabel(g.date) + ' ' + pad(g.hr) + ':00–' + pad((g.hr + 1) % 24) + ':00';
-          const b0 = good[0], rest = good.slice(1, 4).map((g: any) => PF.dayLabel(g.date) + ' ' + pad(g.hr) + ':00');
+          good.sort((x, y) => y.score - x.score);
+          // ένα βράδυ ανά μέρα στη λίστα (το καλύτερο μέρος εκείνης της μέρας)
+          const byDay = {}; good = good.filter(g => byDay[g.date] ? false : (byDay[g.date] = 1));
+          const multi = plist.length > 1;
+          const pad = (n) => String(n).padStart(2, '0');
+          const at_ = (g) => multi && g.name ? (en ? ' at ' : ' στο ') + g.name : '';
+          const slot = (g) => PF.dayLabel(g.date) + ' ' + pad(g.hr) + ':00–' + pad((g.hr + 1) % 24) + ':00' + at_(g);
+          const b0 = good[0], rest = good.slice(1, 4).map((g) => PF.dayLabel(g.date) + ' ' + pad(g.hr) + ':00' + at_(g));
           const nmTxt = new Date(nm.nw).toLocaleDateString(en ? 'en-GB' : 'el-GR', { timeZone: 'Asia/Nicosia', weekday: 'long', day: 'numeric', month: 'long' });
           const title = en ? '🦑 Squid: new moon ' + nmTxt : '🦑 Καλαμάρια: νέα σελήνη ' + nmTxt;
-          const body = (en ? 'Best: ' : 'Καλύτερο: ') + slot(b0) + (en ? ' (score ' : ' (βαθμός ') + b0.score + ')' + (rest.length ? (en ? ' · also ' : ' · επίσης ') + rest.join(', ') : '') + (pl.name ? ' · ' + pl.name : '');
+          const body = (en ? 'Best: ' : 'Καλύτερο: ') + slot(b0) + (en ? ' (score ' : ' (βαθμός ') + b0.score + ')' + (rest.length ? (en ? ' · also ' : ' · επίσης ') + rest.join(', ') : '') + (!multi && b0.name ? ' · ' + b0.name : '');
           const at = new Date().toISOString();
-          let ins: any = null; try { ins = await sb('notif_log', { method: 'POST', headers: { Prefer: 'return=representation,resolution=ignore-duplicates' }, body: JSON.stringify({ id: (uid + '|sq:' + nmKey).slice(0, 250), user_id: uid, at, kind: 'good', title, body }) }); } catch (_) { ins = null; }
-          if (Array.isArray(ins) && !ins.length) continue;
+          let ins = null; try { ins = await sb('notif_log', { method: 'POST', headers: { Prefer: 'return=representation,resolution=ignore-duplicates' }, body: JSON.stringify({ id: (uid + '|sq:' + nmKey).slice(0, 250), user_id: uid, at, kind: 'good', title, body }) }); } catch (e) { log('squid notif_log: ' + e.message); continue; } /* 1.9.48: χωρίς καταγραφή δεν στέλνουμε (αλλιώς θα ξαναστελνόταν την επόμενη μέρα) */
+          if (!Array.isArray(ins) || !ins.length) continue;
           for (const r of rows) {
             try { await webpush.sendNotification(r.sub, JSON.stringify({ title, body, full: body, kind: 'good', id: 'sq:' + nmKey, tag: 'alk-sq-' + nmKey, at }), { TTL: 6 * 3600 }); stats.squid = (stats.squid || 0) + 1; }
             catch (e) { if (e.statusCode === 404 || e.statusCode === 410) await sb(`push_subs?id=eq.${encodeURIComponent(r.id)}`, { method: 'DELETE' }).catch(() => {}); }
@@ -1032,7 +1069,6 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
   log('Safety job: ' + JSON.stringify(stats));
   return { ok: true, stats };
 }
-
 
 // ---- handler ----
 let vapidSet = false;

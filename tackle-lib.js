@@ -511,12 +511,12 @@ window.TACKLE_LIB=[["rod","Shimano","Vengeance"],["rod","Shimano","Speedmaster"]
  ["lure", "Yamashita", "Egi-Oh F #2.5", {"model": "Yamashita Egi-Oh F #2.5", "spec": "squid jig (egi) · size #2.5", "kind": "egi"}],
  ["lure", "Shimano", "Sephia Clinch Flash Boost #2.5", {"model": "Shimano Sephia Clinch Flash Boost #2.5", "spec": "squid jig (egi) · size #2.5 · sink 4 s/m", "kind": "egi", "w": [10]}],
  ["lure", "Shimano", "Sephia Clinch Flash Boost #3.0", {"model": "Shimano Sephia Clinch Flash Boost #3.0", "spec": "squid jig (egi) · size #3.0 · sink 3 s/m", "kind": "egi", "w": [15]}],
- ["lure", "Shimano", "Sephia Clinch Flash Boost #3.5", {"model": "Shimano Sephia Clinch Flash Boost #3.5", "spec": "squid jig (egi) · size #3.5", "kind": "egi"}],
+ ["lure", "Shimano", "Sephia Clinch Flash Boost #3.5", {"model": "Shimano Sephia Clinch Flash Boost #3.5", "spec": "squid jig (egi) · size #3.5 · sink 3,7 s/m", "kind": "egi", "w": [19]}],
  ["lure", "Shimano", "Sephia Clinch Flash Boost Rattle #2.5", {"model": "Shimano Sephia Clinch Flash Boost Rattle #2.5", "spec": "squid jig (egi) · size #2.5 · sink 4 s/m · rattle", "kind": "egi", "w": [10]}],
  ["lure", "Shimano", "Sephia Clinch Flash Boost Rattle #3.0", {"model": "Shimano Sephia Clinch Flash Boost Rattle #3.0", "spec": "squid jig (egi) · size #3.0 · sink 3 s/m · rattle", "kind": "egi", "w": [15]}],
  ["lure", "Shimano", "Sephia Clinch Prawn Flash Boost #2.5", {"model": "Shimano Sephia Clinch Prawn Flash Boost #2.5", "spec": "squid jig (egi) · size #2.5", "kind": "egi"}],
  ["lure", "Shimano", "Sephia Clinch Prawn Flash Boost #3.0", {"model": "Shimano Sephia Clinch Prawn Flash Boost #3.0", "spec": "squid jig (egi) · size #3.0", "kind": "egi"}],
- ["lure", "Shimano", "Sephia Clinch Prawn Flash Boost #3.5", {"model": "Shimano Sephia Clinch Prawn Flash Boost #3.5", "spec": "squid jig (egi) · size #3.5", "kind": "egi"}],
+ ["lure", "Shimano", "Sephia Clinch Prawn Flash Boost #3.5", {"model": "Shimano Sephia Clinch Prawn Flash Boost #3.5", "spec": "squid jig (egi) · size #3.5 · sink 3,7 s/m", "kind": "egi", "w": [19]}],
  ["lure", "Shimano", "Sephia Clinch Fall Rattle #3.5", {"model": "Shimano Sephia Clinch Fall Rattle #3.5", "spec": "squid jig (egi) · size #3.5 · rattle", "kind": "egi"}],
  ["lure", "Shimano", "Sephia Clinch Long Appeal Jet Boost #3.5", {"model": "Shimano Sephia Clinch Long Appeal Jet Boost #3.5", "spec": "squid jig (egi) · size #3.5", "kind": "egi"}],
  ["lure", "Shimano", "Sephia Clinch Excounter #3.8", {"model": "Shimano Sephia Clinch Excounter #3.8", "spec": "squid jig (egi) · size #3.8", "kind": "egi"}],
@@ -542,6 +542,7 @@ window.TACKLE_LIB=[["rod","Shimano","Vengeance"],["rod","Shimano","Speedmaster"]
  ["lure", "Yo-Zuri", "Aurie-Q RS #3.5", {"model": "Yo-Zuri Aurie-Q RS #3.5", "spec": "squid jig (egi) · size #3.5", "kind": "egi"}],
  ["lure", "Yo-Zuri", "Aurie-Q Cloth #1.8", {"model": "Yo-Zuri Aurie-Q Cloth #1.8", "spec": "squid jig (egi) · size #1.8", "kind": "egi"}],
  ["lure", "Yo-Zuri", "Aurie-Q Cloth #2.5", {"model": "Yo-Zuri Aurie-Q Cloth #2.5", "spec": "squid jig (egi) · size #2.5", "kind": "egi", "w": [10]}],
+ ["lure", "Yo-Zuri", "Aurie-Q Cloth #3.0", {"model": "Yo-Zuri Aurie-Q Cloth #3.0", "spec": "squid jig (egi) · size #3.0 · sink 3,7 s/m", "kind": "egi", "w": [14.5]}],
  ["lure", "Yo-Zuri", "Aurie-Q Cloth #3.5", {"model": "Yo-Zuri Aurie-Q Cloth #3.5", "spec": "squid jig (egi) · size #3.5", "kind": "egi"}],
  ["lure", "Yo-Zuri", "Aurie-Q Search Double Glow #2.5", {"model": "Yo-Zuri Aurie-Q Search Double Glow #2.5", "spec": "squid jig (egi) · size #2.5 · glow", "kind": "egi"}],
  ["lure", "Savage Gear", "Squid Beat Egi #2.5", {"model": "Savage Gear Squid Beat Egi #2.5", "spec": "squid jig (egi) · size #2.5 · sink 5 s/m", "kind": "egi", "w": [10]}],
@@ -553,6 +554,7 @@ window.TACKLE_LIB=[["rod","Shimano","Vengeance"],["rod","Shimano","Speedmaster"]
  ].forEach(function(r){ var k=r[0]+'|'+(r[1]+' '+r[2]).toLowerCase(); if(!have[k]){ have[k]=1; L.push(r); } });
 })();
 
+/* 1.9.48: βάρη για Sephia Clinch Flash Boost / Prawn #3.5 (19 g), Egizo #3.0 (15 g), Aurie-Q Cloth #3.0 (14,5 g). */
 /* 1.9.46: ακόμα καλαμαριέρες (Yamashita Naory, Harimitsu, Major Craft, Nomura, Shimano Sephy, Evergreen, DUEL TR). Ίδιος κανόνας: βάρη/βύθιση μόνο όπου δίνονται. */
 (function(){ var L=window.TACKLE_LIB, have={}; L.forEach(function(r){ have[r[0]+'|'+(r[1]+' '+r[2]).toLowerCase()]=1; });
  [["lure", "Yamashita", "Naory Range Hunter 1.5B", {"model": "Yamashita Naory Range Hunter 1.5B", "spec": "squid jig (egi) · size 1.5B · sink 4,5 s/m · light game", "kind": "egi", "w": [3.8]}],
@@ -568,7 +570,7 @@ window.TACKLE_LIB=[["rod","Shimano","Vengeance"],["rod","Shimano","Speedmaster"]
  ["lure", "Major Craft", "Egizo Premium #3.0", {"model": "Major Craft Egizo Premium #3.0", "spec": "squid jig (egi) · size #3.0 · sink 3,8–4 s/m", "kind": "egi", "w": [15]}],
  ["lure", "Major Craft", "Egizo Premium #3.5", {"model": "Major Craft Egizo Premium #3.5", "spec": "squid jig (egi) · size #3.5 · sink 3,4–3,6 s/m", "kind": "egi", "w": [21]}],
  ["lure", "Major Craft", "Egizo #2.5", {"model": "Major Craft Egizo #2.5", "spec": "squid jig (egi) · size #2.5", "kind": "egi"}],
- ["lure", "Major Craft", "Egizo #3.0", {"model": "Major Craft Egizo #3.0", "spec": "squid jig (egi) · size #3.0", "kind": "egi"}],
+ ["lure", "Major Craft", "Egizo #3.0", {"model": "Major Craft Egizo #3.0", "spec": "squid jig (egi) · size #3.0 · sink 3,8–4 s/m", "kind": "egi", "w": [15]}],
  ["lure", "Major Craft", "Egizo #3.5", {"model": "Major Craft Egizo #3.5", "spec": "squid jig (egi) · size #3.5", "kind": "egi"}],
  ["lure", "Major Craft", "Egizo Bait Feather #3.0", {"model": "Major Craft Egizo Bait Feather #3.0", "spec": "squid jig (egi) · size #3.0 · feather", "kind": "egi"}],
  ["lure", "Major Craft", "Egizo Bait Feather #3.5", {"model": "Major Craft Egizo Bait Feather #3.5", "spec": "squid jig (egi) · size #3.5 · feather", "kind": "egi"}],
