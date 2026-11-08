@@ -30,6 +30,17 @@ function moonAlt(ms,lat,lon){ const d=jdD(ms), m=moonEq(d), H=(280.46061837+360.
 /* φάση: 0 = νέα, 0,5 = πανσέληνος· φωτισμός 0–1 */
 function moonPhase(ms){ const d=jdD(ms), el=((moonEq(d).lam-sunLon(d))/RD%360+360)%360; return {f:el/360,illum:(1-Math.cos(el*RD))/2}; }
 /* 1.9.44: επόμενη νέα σελήνη και πανσέληνος μετά από ms (ακρίβεια ~10′): {nw, full} σε ms */
+/* 1.9.47: καλύτερα βράδια για καλαμάρι: ανά μέρα η καλύτερη ώρα γύρω από τη δύση (±90′) με άνεμο <8 kn, κύμα ≤0,6 m και ασφαλή,
+   μόνο μέρες έως ~3 μέρες από τη νέα σελήνη (αν δοθεί nw). Ταξινόμηση από τον μεγαλύτερο βαθμό. */
+function squidEves(days,nw,opt){ const D=86400000, out=[], now=opt&&opt.now;
+  for(const d of days||[]){ if(d.set==null) continue;
+    if(nw!=null&&Math.abs(Date.parse(d.date+'T12:00:00Z')-nw)>3.5*D) continue;
+    let best=null;
+    for(const x of d.hours||[]){ if(Math.abs(x.hr*60+30-d.set)>90) continue; if(now&&x.t<now) continue;
+      if(x.safe===false||(x.wind!=null&&x.wind>=8)||(x.wave!=null&&x.wave>0.6)) continue;
+      if(!best||x.score>best.score) best=x; }
+    if(best) out.push({date:d.date,hr:best.hr,score:best.score,wind:best.wind,wave:best.wave,set:d.set}); }
+  return out.sort((a,b)=>b.score-a.score); }
 function nextMoon(ms){ const H=3600000, fz=t=>moonPhase(t).f; let nw=null, full=null, t=ms, a=fz(t);
   for(let i=0;i<24*32&&(nw==null||full==null);i++){ const t2=t+6*H, b=fz(t2);
     if(nw==null&&b<a){ let lo=t, hi=t2; for(let k=0;k<12;k++){ const m=(lo+hi)/2; if(fz(m)<fz(lo)) hi=m; else lo=m; } nw=Math.round(hi); }
@@ -499,7 +510,7 @@ async function checkPlaces(cfg,fetchFn){
       msgs.push({kind:'good',key:i.key,place:P(i.pl),t:i.pl.date,title:'⏰ '+t('Ώρα να ξεκινήσεις','Time to get going'),body:tx,full:tx}); } });
   return {nextGood,todayGood,tmrGood,items,notified,title,body:lines.concat(pl,tl,wl).join('\n'),msgs,area:area?{name:area.name,lat:area.lat,lon:area.lon}:null,errs,okN,goodsN:goods.length,pressN:press.length,turnsN:turns.length,windsN:winds.length};
 }
-g.PF={nextMoon,lims,moonAlt,moonEvents,moonPhase,solunarPeriods,pressureRise,sunMoon,hourScore,getForecast,findIdeal,message,check,goodDays,checkPlaces,dayLabel,bft,pressureEvent,windEvent,pressureTurns,pressureOutlook};
+g.PF={squidEves,nextMoon,lims,moonAlt,moonEvents,moonPhase,solunarPeriods,pressureRise,sunMoon,hourScore,getForecast,findIdeal,message,check,goodDays,checkPlaces,dayLabel,bft,pressureEvent,windEvent,pressureTurns,pressureOutlook};
 })(typeof self!=='undefined'?self:this);
 
 const PF = self.PF;
@@ -932,9 +943,9 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
     } catch (e) { log('community push: ' + e.message); }
   }
 
-  // 7γ) 1.9.44: καλαμάρια γύρω από τη νέα σελήνη (μόνο όσοι το άνοιξαν: places[].squid === 'on').
-  //   Οκτώβριος–Απρίλιος, 09:00–10:00 Κύπρου, όταν η νέα σελήνη είναι από 2 μέρες πριν έως 3 μέρες μετά.
-  //   Βράδια με λίγο άνεμο (<8 kn) και ήρεμη θάλασσα (≤0,6 m) στο σούρουπο ±1 ώρα. Μία ειδοποίηση ανά σελήνη ανά χρήστη (notif_log).
+  // 7γ) 1.9.44 (1.9.47: καλύτερη ώρα, μόνο βράδια ±3 μέρες από τη νέα σελήνη): καλαμάρια γύρω από τη νέα σελήνη (μόνο όσοι το άνοιξαν: places[].squid === 'on').
+  //   Οκτώβριος–Απρίλιος, 09:00–10:00 Κύπρου, από 3 μέρες πριν έως 2 μέρες μετά τη νέα σελήνη.
+  //   Η καλύτερη ώρα κάθε βραδιού (δύση ±90′, άνεμος <8 kn, κύμα ≤0,6 m, PF.squidEves), πρώτο το καλύτερο. Μία ειδοποίηση ανά σελήνη ανά χρήστη (notif_log).
   if (webpush) {
     try {
       const nowD = new Date(), cyHs = +nowD.toLocaleString('en-GB', { timeZone: 'Asia/Nicosia', hour: '2-digit', hour12: false }).slice(0, 2), mon = +nowD.toLocaleString('en-GB', { timeZone: 'Asia/Nicosia', month: 'numeric' });
@@ -951,15 +962,14 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
           const key = (+pl.lat).toFixed(2) + ',' + (+pl.lon).toFixed(2);
           let fc = fcMem[key]; if (!fc) { try { fc = fcMem[key] = await getForecast(+pl.lat, +pl.lon, fetchFn, { days: 6, sp: { n: 'Καλαμάρι', l: 'Loligo vulgaris', sst: [14, 24] } }); } catch (_) { fc = null; } }
           if (!fc || !fc.days) continue;
-          const good = [];
-          for (const d of fc.days) { if (d.set == null) continue; const hs = (d.hours || []).filter((x: any) => Math.abs(x.hr * 60 + 30 - d.set) <= 75);
-            if (hs.length && hs.every((x: any) => x.safe !== false && (x.wind == null || x.wind < 8) && (x.wave == null || x.wave <= 0.6))) good.push(d); }
+          const good = PF.squidEves(fc.days, nm.nw, { now: (fc.nowLocal || '').slice(0, 13) + ':00' });
           if (!good.length) continue;
-          const pad = (n: number) => String(n).padStart(2, '0'), hm = (m: number) => pad(Math.floor(m / 60)) + ':' + pad(Math.round(m % 60));
-          const lst = good.slice(0, 4).map((d: any) => PF.dayLabel(d.date) + ' ' + hm(d.set - 60) + '–' + hm(d.set + 60)).join(' · ');
+          const pad = (n: number) => String(n).padStart(2, '0');
+          const slot = (g: any) => PF.dayLabel(g.date) + ' ' + pad(g.hr) + ':00–' + pad((g.hr + 1) % 24) + ':00';
+          const b0 = good[0], rest = good.slice(1, 4).map((g: any) => PF.dayLabel(g.date) + ' ' + pad(g.hr) + ':00');
           const nmTxt = new Date(nm.nw).toLocaleDateString(en ? 'en-GB' : 'el-GR', { timeZone: 'Asia/Nicosia', weekday: 'long', day: 'numeric', month: 'long' });
           const title = en ? '🦑 Squid: new moon ' + nmTxt : '🦑 Καλαμάρια: νέα σελήνη ' + nmTxt;
-          const body = (en ? 'Good evenings (light wind, calm sea at dusk): ' : 'Καλά βράδια (λίγος άνεμος, ήρεμη θάλασσα στο σούρουπο): ') + lst + (pl.name ? ' · ' + pl.name : '');
+          const body = (en ? 'Best: ' : 'Καλύτερο: ') + slot(b0) + (en ? ' (score ' : ' (βαθμός ') + b0.score + ')' + (rest.length ? (en ? ' · also ' : ' · επίσης ') + rest.join(', ') : '') + (pl.name ? ' · ' + pl.name : '');
           const at = new Date().toISOString();
           let ins: any = null; try { ins = await sb('notif_log', { method: 'POST', headers: { Prefer: 'return=representation,resolution=ignore-duplicates' }, body: JSON.stringify({ id: (uid + '|sq:' + nmKey).slice(0, 250), user_id: uid, at, kind: 'good', title, body }) }); } catch (_) { ins = null; }
           if (Array.isArray(ins) && !ins.length) continue;

@@ -117,3 +117,7 @@ html.night .wpb[aria-pressed=true]{background:#000;color:#fff;border-color:#fff}
 .cpbox .cpmi{display:grid;place-items:center;width:20px;height:20px}.cpbox .cpmi svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .cpbox .cptools{flex-wrap:wrap;overflow:visible}
 html.night .cpbox .cpmapb{background:#000;color:#fff;border-color:#fff}
+/* 1.9.47: καλύτερο βράδυ για καλαμάρι στην πάνω κάρτα */
+.hero .sqb{margin:8px 0 0;padding:8px 10px;border-radius:12px;background:color-mix(in srgb,var(--accent) 8%,transparent);font-size:13.5px;line-height:1.4}
+.hero .sqb b{font-weight:700}
+html.night .hero .sqb{background:#000;border:1px solid #fff}

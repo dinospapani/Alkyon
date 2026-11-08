@@ -324,6 +324,16 @@ function ik(n,cls){ return h('i',{class:'ik'+(cls?' '+cls:''),'aria-hidden':'tru
 /* 1.9.44: πότε είναι η επόμενη νέα σελήνη (και πανσέληνος) */
 function nmTxt(ms){ var d=new Date(ms), td=today(), ds=d.getFullYear()+'-'+B.pad(d.getMonth()+1)+'-'+B.pad(d.getDate()), days=Math.round((new Date(ds+'T12:00:00')-new Date(td+'T12:00:00'))/864e5);
   return days<=1?B.dayName(ds,td).toLowerCase()+' '+B.pad(d.getHours())+':'+B.pad(d.getMinutes()):d.toLocaleDateString(EN?'en-GB':'el-GR',{weekday:'short',day:'numeric',month:'short'})+' ('+T('σε ','in ')+days+T(' μέρες',' days')+')'; }
+/* 1.9.47: καλαμάρι: το καλύτερο βράδυ της πρόγνωσης (κοντά στη νέα σελήνη όταν πέφτει μέσα), ίδιος κανόνας με την ειδοποίηση */
+function sqBest(fc){ try{ var sc=spCfg(), mi=sc&&PF.moonInfo?PF.moonInfo(sc):null; if(!mi||mi.k!=='new'||!PF.squidEves||!fc||!fc.days) return null;
+  var nm=PF.nextMoon(Date.now()-3.5*864e5), now=fc.nowLocal?fc.nowLocal.slice(0,13)+':00':null, td=fc.nowLocal?fc.nowLocal.slice(0,10):'';
+  var a=PF.squidEves(fc.days,nm&&nm.nw,{now:now}), near=a.length>0; if(!near) a=PF.squidEves(fc.days,null,{now:now});
+  var sl=function(g){ return B.dayName(g.date,td)+' '+B.pad(g.hr)+':00'; };
+  if(!a.length) return h('p',{class:'sqb'},h('b',{text:T('Καλαμάρι: ','Squid: ')}),T('κανένα βράδυ με λίγο άνεμο και ήρεμη θάλασσα στην πρόγνωση.','no evening with light wind and a calm sea in the forecast.'));
+  var b=a[0];
+  return h('p',{class:'sqb'},h('b',{text:T('Καλύτερο βράδυ για καλαμάρι: ','Best evening for squid: ')}),
+    sl(b)+'–'+B.pad((b.hr+1)%24)+':00 · '+T('βαθμός ','score ')+b.score+(near?T(' · κοντά στη νέα σελήνη',' · near the new moon'):'')+(a.length>1?' · '+T('επίσης ','also ')+a.slice(1,3).map(sl).join(', '):''));
+  }catch(e){ return null; } }
 function nmSpan(){ if(!PF.nextMoon) return null; var r=PF.nextMoon(Date.now()); if(!r||!r.nw) return null; return h('span',{class:'nmx',text:T('νέα σελήνη ','new moon ')+nmTxt(r.nw)}); }
 function planBtn(d){
   var pl=B.plans.get(d.date), p=st.place||current();
@@ -426,6 +436,7 @@ function dayView(page,fc,d){
     /* 1.9.17: με λέξεις, όχι κωδικούς: ανατολή/δύση, φάση σελήνης, δυνατές/ασθενείς ώρες σελήνης */
     /* 1.9.30: μία σύντομη γραμμή· οι ώρες σελήνης φαίνονται στο «Ανά ώρα» και στο γράφημα σελήνης */
     hero.append(h('p',{class:'hsun1'},h('span',null,ik('rise'),T('ανατολή ','sunrise ')+B.hm(d.rise)),h('span',null,ik('set'),T('δύση ','sunset ')+B.hm(d.set)),h('span',{text:moonIco(d.f)+' '+moonName(d.f)+' '+ill+'%'}),nmSpan(),mj.length?h('span',{class:'mj',text:T('κύρια σελήνη ','major moon ')+mj.join(', ')}):null)); })();
+  (function(){ var q=sqBest(fc); if(q) hero.append(q); })();
   if(d.date>=td&&d.safe) hero.append(planBtn(d)); /* 1.9.9: όχι «Θα βγω» σε μέρα που δεν συνιστάται έξοδος */
   page.append(hero);
   /* ψαροντούφεκο: ορατότητα νερού (δορυφόρος όταν υπάρχει, αλλιώς εκτίμηση από κύμα και βροχή) */
