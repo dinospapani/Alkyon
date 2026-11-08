@@ -552,3 +552,36 @@ html.night .kpis .kpi{outline:1px solid #fff;outline-offset:-1px;background:#000
 .cmshare .cmtitle{margin:2px 0 6px}
 .cmshare .tg{margin:4px 0}
 .cmshare .sub{font-size:12.5px;line-height:1.4;margin:6px 0 10px}
+/* 1.9.63: Κοινότητα — εβδομάδα, κατάταξη, φίλτρα, προφίλ, ερωτήσεις */
+.cmwhob{flex:1;min-width:0;display:flex;align-items:center;gap:10px;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.cmask{display:flex;gap:8px;margin:10px 0 0}.cmask .btn{flex:1}
+.cmtop{margin:12px 0 0;padding:0;overflow:hidden}
+.cmtoph{width:100%;display:flex;align-items:center;gap:10px;padding:12px 14px;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.cmtoph>span:first-child{flex:1;display:flex;flex-direction:column;min-width:0}
+.cmtoph small{color:var(--ink-3);font-size:12.5px}
+.cmchev{color:var(--ink-3);font-size:14px}
+.cmtopb{padding:0 14px 12px}.cmtopb .chips{margin:0 0 6px}
+.cmwl{margin:4px 0 0}
+.cmlb{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--line);font-size:14.5px}
+.cmlb b{flex:1;min-width:0}.cmlb .linkbtn{margin:0;font-size:13px;color:var(--ink-2)}
+.cmlbn{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--surface-2);font:750 12px var(--font)}
+.cmlb:nth-child(1) .cmlbn{background:#e8b23a;color:#1b1300}
+.cmflt{margin:10px 0 0;display:flex;flex-direction:column;gap:6px}
+.cmscroll{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;margin:0 -16px;padding:0 16px}
+.cmscroll::-webkit-scrollbar{display:none}.cmscroll .chip{flex:none}
+.chip.sm.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.cmqk{display:inline-block;margin:0 0 6px;padding:3px 10px;border-radius:12px;background:var(--surface-2);font:700 12.5px var(--font);color:var(--ink-2)}
+.cmq{margin:0 0 10px;font-size:16px;line-height:1.45;overflow-wrap:anywhere}
+.cmans b{color:#2e9d5b}
+.cmrec,.cmrel{font-size:12.5px!important;font-weight:700;padding:2px 8px;border-radius:10px}
+.cmrec{background:#e8b23a22;color:#b07d0c!important}
+.cmrel{background:#2e9d5b22;color:#1f7a44!important}
+.cmok{color:#2e9d5b!important}
+.cmphd{display:flex;align-items:center;gap:12px;margin-bottom:10px}.cmphd>div{display:flex;flex-direction:column}.cmphd small{color:var(--ink-3);font-size:13px}
+.cmav.big{width:52px;height:52px;font-size:21px}
+.cmstats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:4px 0 10px}
+.cmstats>div{background:var(--surface-2);border-radius:12px;padding:10px;text-align:center;display:flex;flex-direction:column}
+.cmstats b{font-size:20px}.cmstats small{color:var(--ink-3);font-size:12px}
+.cmprof h3{margin:6px 0 2px;font-size:15px}
+.cmshare textarea{width:100%;margin:6px 0}
+.cmtopb .chips{padding:0;margin:0 0 6px;justify-content:flex-start}

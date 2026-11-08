@@ -699,6 +699,8 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
         const flag = (rows, k) => !(rows.find(r => (r.places || []).find(p => p && p[k] === 'off')));
         const isEn = rows => !!(rows.find(r => (r.places || []).find(p => p && p.lang === 'en')));
         const quietOn = rows => !(rows.find(r => (r.places || []).find(p => p && p.quiet === 'off')));
+        // 1.9.63: «μόνο όσους ακολουθώ» (places[].comm === 'follow', places[].follow = [user_id])
+        const followOf = rows => { for (const r of rows) for (const p of (r.places || [])) if (p && p.comm === 'follow') return new Set(Array.isArray(p.follow) ? p.follow : []); return null; };
         const send = async (uid, key, kind, title, body) => {
           const rows = byUser[uid] || []; // 1.9.56: γράφεται στο ιστορικό (Ειδοποιήσεις της εφαρμογής) ακόμα κι αν το κινητό δεν έχει ενεργή συνδρομή push
           const at = new Date().toISOString();
@@ -711,6 +713,13 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
         };
         // (α) νέα ψάρια
         if (postsAll.length) {
+          // 1.9.63: νέο ρεκόρ Κοινότητας (βαρύτερο από κάθε προηγούμενη ανάρτηση του ίδιου είδους)
+          for (const p of postsAll) {
+            const q = p.cond && (p.cond.k === 'q' || p.cond.k === 'id');
+            if (q || !(+p.kg > 0) || !p.species) continue;
+            const prev = (await sb(`community_posts?species=eq.${encodeURIComponent(p.species)}&hidden=eq.false&created_at=lt.${encodeURIComponent(p.created_at)}&kg=not.is.null&select=kg&order=kg.desc&limit=1`).catch(() => [])) || [];
+            if (prev.length && +p.kg > +prev[0].kg) p._rec = true;
+          }
           // τελευταία ειδοποίηση «νέα ψάρια» ανά χρήστη (2 ώρες): ό,τι ανέβηκε μετά από αυτήν και δεν το έχει πάρει
           const recent = (await sb(`notif_log?kind=eq.comm&at=gt.${encP}&select=user_id,at`).catch(() => [])) || [];
           const lastAt = {}; for (const x of recent) if (!lastAt[x.user_id] || x.at > lastAt[x.user_id]) lastAt[x.user_id] = x.at;
@@ -719,11 +728,15 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
             const la = lastAt[uid] ? Date.parse(lastAt[uid]) : 0;
             if (la && Date.now() - la < 30 * 60000) continue;                 // όριο: μία φορά ανά 30′ (τα ψάρια περιμένουν, δεν χάνονται)
             const from = la ? new Date(la).toISOString() : since;              // από την τελευταία ειδοποίηση, αλλιώς τα 6′ όπως πριν
-            const mine = (la ? postsAll : posts).filter(p => p.user_id !== uid && p.created_at > from); if (!mine.length) continue;
+            const fs = followOf(rows);
+            const mine = (la ? postsAll : posts).filter(p => p.user_id !== uid && p.created_at > from && (!fs || fs.has(p.user_id))); if (!mine.length) continue;
             const en = isEn(rows), p0 = mine[mine.length - 1];
-            const what = p => { const more = (p.cond && Array.isArray(p.cond.more)) ? p.cond.more.length : 0; return (p.species || '') + (p.kg ? ' ' + String(p.kg).replace('.', en ? '.' : ',') + ' kg' : '') + (more ? (en ? ` +${more} more` : ` +${more} ακόμα`) : ''); };
-            const title = mine.length > 1 ? (en ? `🐟 ${mine.length} new catches in the Community` : `🐟 ${mine.length} νέα ψάρια στην Κοινότητα`) : (en ? '🐟 New catch in the Community' : '🐟 Νέο ψάρι στην Κοινότητα');
-            const body = mine.length > 1 ? mine.slice(-3).map(p => (p.author || '') + ': ' + what(p)).join(' · ') : (p0.author || (en ? 'An angler' : 'Ένας ψαράς')) + (en ? ' caught ' : ' έπιασε ') + what(p0);
+            const isQ = p => p.cond && (p.cond.k === 'q' || p.cond.k === 'id');
+            const what = p => { if (isQ(p)) return (en ? 'asks: ' : 'ρωτά: ') + (p.cond.k === 'id' ? (en ? 'What fish is this?' : 'Τι ψάρι είναι;') : String(p.cond.q || '').slice(0, 80)); const more = (p.cond && Array.isArray(p.cond.more)) ? p.cond.more.length : 0; return (p.species || '') + (p.kg ? ' ' + String(p.kg).replace('.', en ? '.' : ',') + ' kg' : '') + (more ? (en ? ` +${more} more` : ` +${more} ακόμα`) : ''); };
+            const rec = mine.filter(p => p._rec).pop();
+            const title = rec ? (en ? `🏆 New Community record: ${rec.species}` : `🏆 Νέο ρεκόρ Κοινότητας: ${rec.species}`) : mine.length === 1 && isQ(p0) ? (en ? '❓ New question in the Community' : '❓ Νέα ερώτηση στην Κοινότητα') : mine.length > 1 ? (en ? `🐟 ${mine.length} new catches in the Community` : `🐟 ${mine.length} νέα ψάρια στην Κοινότητα`) : (en ? '🐟 New catch in the Community' : '🐟 Νέο ψάρι στην Κοινότητα');
+            const one = p => (p.author || (en ? 'An angler' : 'Ένας ψαράς')) + (isQ(p) ? ' ' : (en ? ' caught ' : ' έπιασε ')) + what(p);
+            const body = rec && mine.length === 1 ? one(rec) : mine.length > 1 ? mine.slice(-3).map(p => (p.author || '') + ': ' + what(p)).join(' · ') : one(p0);
             await send(uid, 'comm:' + mine.map(p => p.id.slice(0, 8)).join(','), 'comm', title, body);
           }
         }

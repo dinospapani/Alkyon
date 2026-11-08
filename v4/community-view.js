@@ -12,17 +12,84 @@ function rest(p,o){ return C().rest(p,o); }
 function esc(s){ return encodeURIComponent(s); }
 function blocked(){ var a=ls.get('alkyon-comm-block',[]); return Array.isArray(a)?a:[]; }
 function author(){ var s=sess(); return ((s&&s.name)||T('Ψαράς','Angler')).trim().slice(0,40)||T('Ψαράς','Angler'); }
-var F={items:[],offset:0,end:false,loading:false,mine:false,liked:{},open:{},err:''};
+var F={items:[],offset:0,end:false,loading:false,mode:'all',sp:'',tech:'',user:null,liked:{},open:{},err:'',all:null,allT:0,allBusy:0,ans:{},top:{week:true}};
+/* 1.9.63: ακόλουθοι (συγχρονίζεται με τον λογαριασμό και στέλνεται στον server για τις ειδοποιήσεις «μόνο όσους ακολουθώ») */
+function fl(){ var a=ls.get('alkyon-comm-follow',[]); return Array.isArray(a)?a.filter(function(x){ return x&&x.u; }):[]; }
+function follows(){ return fl().map(function(x){ return x.u; }); }
+function isF(u){ return follows().indexOf(u)>=0; }
+function toggleFollow(u,name){ var a=fl(), on=isF(u); a=on?a.filter(function(x){ return x.u!==u; }):a.concat([{u:u,n:String(name||'').slice(0,40)}]); ls.set('alkyon-comm-follow',a);
+  B.toast(on?T('Δεν ακολουθείς πια: ','Unfollowed: ')+(name||''):T('Ακολουθείς: ','Following: ')+(name||'')); try{ if(B.pushSync) B.pushSync(); }catch(e){} draw(); }
+B.commFollows=follows;
+function isQ(p){ var c=p&&p.cond; return !!(c&&(c.k==='q'||c.k==='id')); }
 
 function load(reset){
-  if(!sess()||F.loading) return; if(reset){ F.items=[]; F.offset=0; F.end=false; } if(F.end) return; F.loading=true; F.err=''; draw();
-  rest('community_posts?select=*,likes:community_likes(count),comments:community_comments(count)&order=created_at.desc&limit='+PAGE+'&offset='+F.offset+(F.mine?'&user_id=eq.'+esc(uid()):'')).then(function(r){ return r.json(); }).then(function(arr){
+  if(!sess()||F.loading) return; if(reset){ F.items=[]; F.offset=0; F.end=false; } if(F.end) return;
+  var q='community_posts?select=*,likes:community_likes(count),comments:community_comments(count)&order=created_at.desc&limit='+PAGE+'&offset='+F.offset;
+  if(F.mode==='mine') q+='&user_id=eq.'+esc(uid());
+  else if(F.mode==='follow'){ var fw=follows(); if(!fw.length){ F.end=true; draw(); return; } q+='&user_id=in.('+fw.map(esc).join(',')+')'; }
+  if(F.user) q+='&user_id=eq.'+esc(F.user.u);
+  if(F.sp) q+='&species=eq.'+esc(F.sp);
+  if(F.tech) q+='&tech=eq.'+esc(F.tech);
+  F.loading=true; F.err=''; draw();
+  rest(q).then(function(r){ return r.json(); }).then(function(arr){
     if(arr.length<PAGE) F.end=true; F.offset+=arr.length; F.items=F.items.concat(arr); var ids=arr.map(function(p){ return p.id; });
-    if(!ids.length) return; return rest('community_likes?select=post_id&user_id=eq.'+esc(uid())+'&post_id=in.('+ids.join(',')+')').then(function(r){ return r.json(); }).then(function(l){ l.forEach(function(x){ F.liked[x.post_id]=1; }); }).catch(function(){}); })
+    if(!ids.length) return;
+    /* 1.9.63: «Τι ψάρι είναι;» → η απάντηση που διάλεξε ο κάτοχος (σχόλιο του κατόχου που αρχίζει με ✓) */
+    var qi=arr.filter(function(p){ return p.cond&&p.cond.k==='id'; }).map(function(p){ return p.id; });
+    var pa=qi.length?rest('community_comments?select=post_id,user_id,body&post_id=in.('+qi.join(',')+')&body=like.'+esc('✓*')+'&order=created_at.asc').then(function(r){ return r.json(); }).then(function(c){ c.forEach(function(x){ var p=arr.filter(function(y){ return y.id===x.post_id; })[0]; if(p&&x.user_id===p.user_id) F.ans[p.id]=String(x.body).replace(/^✓\s*/,'').slice(0,60); }); }).catch(function(){}):null;
+    return Promise.all([pa,rest('community_likes?select=post_id&user_id=eq.'+esc(uid())+'&post_id=in.('+ids.join(',')+')').then(function(r){ return r.json(); }).then(function(l){ l.forEach(function(x){ F.liked[x.post_id]=1; }); }).catch(function(){})]); })
     .catch(function(e){ F.err=/HTTP 404|relation|does not exist/i.test(String(e&&e.message))?T('Η Κοινότητα ανοίγει σύντομα. Μέχρι τότε μοιράσου ψάρια και σημεία με τους Φίλους σου.','Community is opening soon. Until then, share catches and spots with your Friends.'):T('Δεν φόρτωσε. Έλεγξε τη σύνδεση.','Could not load. Check your connection.'); })
     .then(function(){ F.loading=false; draw(); });
 }
 function cnt(p,k){ return (p[k]&&p[k][0]&&p[k][0].count)||0; }
+/* 1.9.63: όλες οι αναρτήσεις (μόνο τα στοιχεία, έως 1000) για εβδομάδα, κατάταξη, ρεκόρ, φίλτρα και προφίλ */
+function loadAll(force){ if(!sess()||F.allBusy||(!force&&F.all&&Date.now()-F.allT<120000)) return; F.allBusy=1;
+  rest('community_posts?select=id,user_id,author,species,kg,len,tech,bait,day,cond,created_at&order=created_at.asc&limit=1000').then(function(r){ return r.json(); }).then(function(a){ if(Array.isArray(a)){ F.all=a; F.allT=Date.now(); } }).catch(function(){}).then(function(){ F.allBusy=0; draw(); }); }
+function fishAll(){ var bl=blocked(); return (F.all||[]).filter(function(p){ return !isQ(p)&&bl.indexOf(p.user_id)<0&&p.species; }); }
+function catches(p){ var a=[{s:p.species,kg:p.kg!=null?+p.kg:null}]; var m=p.cond&&Array.isArray(p.cond.more)?p.cond.more:[]; m.forEach(function(x){ if(x&&x.s) a.push({s:x.s,kg:x.kg!=null?+x.kg:null}); }); return a; }
+/* ρεκόρ Κοινότητας ανά είδος: η πρώτη ανάρτηση με το μεγαλύτερο βάρος (μόνο το κύριο ψάρι, που έχει φωτογραφία) */
+function records(){ var r={}, n={}; fishAll().forEach(function(p){ var k=p.kg!=null?+p.kg:0; if(!(k>0)) return; n[p.species]=(n[p.species]||0)+1; var c=r[p.species]; if(!c||k>c.kg) r[p.species]={kg:k,id:p.id,author:p.author,u:p.user_id}; });
+  Object.keys(r).forEach(function(k){ if(n[k]<2) delete r[k]; }); return r; } /* ρεκόρ μόνο όταν υπάρχουν τουλάχιστον 2 αναρτήσεις του είδους (όπως και ο server) */
+function top(obj,n){ return Object.keys(obj).sort(function(a,b){ return obj[b]-obj[a]||a.localeCompare(b); }).slice(0,n); }
+var MON_EL=['Ιανουαρίου','Φεβρουαρίου','Μαρτίου','Απριλίου','Μαΐου','Ιουνίου','Ιουλίου','Αυγούστου','Σεπτεμβρίου','Οκτωβρίου','Νοεμβρίου','Δεκεμβρίου'], MON_EN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+function weekCard(){ var since=Date.now()-7*864e5, ps=fishAll().filter(function(p){ return Date.parse(p.created_at)>=since; }); if(!ps.length) return null;
+  var sp={}, te={}, ba={}, ar={}, who={}; ps.forEach(function(p){ who[p.user_id]=1; catches(p).forEach(function(c){ sp[c.s]=(sp[c.s]||0)+1; }); if(p.tech) te[p.tech]=(te[p.tech]||0)+1; if(p.bait) ba[p.bait]=(ba[p.bait]||0)+1; if(p.cond&&p.cond.area) ar[p.cond.area]=(ar[p.cond.area]||0)+1; });
+  var body=h('div',{class:'cmtopb'}), cr=h('div',{class:'chips'}); top(sp,6).forEach(function(k){ cr.append(h('button',{type:'button',class:'chip sm'+(F.sp===k?' on':''),text:k+' '+sp[k],onclick:function(){ setFilter('sp',F.sp===k?'':k); }})); }); body.append(cr);
+  function line(lab,o){ var k=top(o,3); if(k.length) body.append(h('p',{class:'sub cmwl'},h('b',{text:lab+' '}),k.join(' · '))); }
+  line(T('Τεχνική:','Technique:'),te); line(T('Δόλωμα:','Bait:'),ba); line(T('Περιοχή:','Area:'),ar);
+  return fold('week',T('Τι πιάνεται αυτή την εβδομάδα','What is biting this week'),ps.length+T(' αναρτήσεις · ',' posts · ')+Object.keys(who).length+T(' ψαράδες',' anglers'),body); }
+function boardCard(){ var d=new Date(), ym=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'), best={};
+  fishAll().forEach(function(p){ var m=(p.day||String(p.created_at||'').slice(0,10)).slice(0,7); if(m!==ym) return; catches(p).forEach(function(c){ if(!(c.kg>0)) return; var b=best[c.s]; if(!b||c.kg>b.kg) best[c.s]={kg:c.kg,a:p.author,u:p.user_id}; }); });
+  var ks=Object.keys(best).sort(function(a,b){ return best[b].kg-best[a].kg; }).slice(0,10); if(!ks.length) return null;
+  var body=h('div',{class:'cmtopb'}); ks.forEach(function(k,i){ var b=best[k]; body.append(h('div',{class:'cmlb'},h('span',{class:'cmlbn',text:String(i+1)}),h('b',{text:k}),h('span',{text:kgTxt(b.kg)}),h('button',{type:'button',class:'linkbtn',text:b.a||T('Ψαράς','Angler'),onclick:function(){ profile(b.u,b.a); }}))); });
+  return fold('board',T('Κατάταξη ','Leaderboard · ')+(EN?MON_EN:MON_EL)[d.getMonth()],T('Το μεγαλύτερο ψάρι ανά είδος αυτόν τον μήνα','Biggest fish per species this month'),body); }
+function fold(k,title,sub,body){ var open=!!F.top[k], c=h('section',{class:'card cmtop'+(open?' open':'')});
+  c.append(h('button',{type:'button',class:'cmtoph','aria-expanded':String(open),onclick:function(){ F.top[k]=!F.top[k]; draw(); }},h('span',null,h('b',{text:title}),h('small',{text:sub})),h('span',{class:'cmchev','aria-hidden':'true',text:open?'▴':'▾'})));
+  if(open) c.append(body); return c; }
+function setFilter(k,v){ F[k]=v; load(true); }
+function filters(){ var fa=fishAll(); if(fa.length<3&&!F.sp&&!F.tech&&!F.user) return null; var sp={}, te={}; fa.forEach(function(p){ sp[p.species]=(sp[p.species]||0)+1; if(p.tech) te[p.tech]=(te[p.tech]||0)+1; });
+  var w=h('div',{class:'cmflt'}), r1=h('div',{class:'chips cmscroll'}), r2=h('div',{class:'chips cmscroll'});
+  if(F.user) r1.append(h('button',{type:'button',class:'chip sm on',text:(F.user.n||T('Ψαράς','Angler'))+' ✕',onclick:function(){ F.user=null; load(true); }}));
+  r1.append(h('button',{type:'button',class:'chip sm'+(!F.sp?' on':''),text:T('Όλα τα είδη','All species'),onclick:function(){ setFilter('sp',''); }}));
+  var ks=top(sp,10); if(F.sp&&ks.indexOf(F.sp)<0) ks.unshift(F.sp); ks.forEach(function(k){ r1.append(h('button',{type:'button',class:'chip sm'+(F.sp===k?' on':''),text:k,onclick:function(){ setFilter('sp',F.sp===k?'':k); }})); });
+  var kt=top(te,6); if(F.tech&&kt.indexOf(F.tech)<0) kt.unshift(F.tech);
+  if(kt.length){ r2.append(h('button',{type:'button',class:'chip sm'+(!F.tech?' on':''),text:T('Όλες οι τεχνικές','All techniques'),onclick:function(){ setFilter('tech',''); }})); kt.forEach(function(k){ r2.append(h('button',{type:'button',class:'chip sm'+(F.tech===k?' on':''),text:k,onclick:function(){ setFilter('tech',F.tech===k?'':k); }})); }); }
+  w.append(r1); if(kt.length) w.append(r2); return w; }
+/* 1.9.63: προφίλ ψαρά */
+function profile(u,name){ if(!u) return; var ps=(F.all||[]).filter(function(p){ return p.user_id===u; }), fish=ps.filter(function(p){ return !isQ(p); }), body=h('div',{class:'bform cmprof'}), sh;
+  name=name||(ps[0]&&ps[0].author)||T('Ψαράς','Angler');
+  var sp={}, te={}, rel=0, n=0, best={}; fish.forEach(function(p){ if(p.cond&&p.cond.rel) rel++; if(p.tech) te[p.tech]=(te[p.tech]||0)+1; catches(p).forEach(function(c){ n++; sp[c.s]=(sp[c.s]||0)+1; if(c.kg>0&&(!best[c.s]||c.kg>best[c.s])) best[c.s]=c.kg; }); });
+  var rec=records(), mineRec=Object.keys(rec).filter(function(k){ return rec[k].u===u; });
+  body.append(h('div',{class:'cmphd'},h('span',{class:'cmav big',text:name.charAt(0).toUpperCase()}),h('div',null,h('b',{text:name}),h('small',{text:fish.length+T(' αναρτήσεις · ',' posts · ')+n+T(' ψάρια',' fish')+(rel?' · '+rel+T(' απελευθερώθηκαν',' released'):'')}))));
+  var st=h('div',{class:'cmstats'}); function cell(v,l){ st.append(h('div',null,h('b',{text:String(v)}),h('small',{text:l}))); }
+  cell(Object.keys(sp).length,T('είδη','species')); cell(rel,T('απελευθερώθηκαν','released')); cell(mineRec.length,T('ρεκόρ Κοινότητας','Community records')); body.append(st);
+  var bk=Object.keys(best).sort(function(a,b){ return best[b]-best[a]; }).slice(0,6);
+  if(bk.length){ body.append(h('h3',{text:T('Μεγαλύτερα ψάρια','Biggest fish')})); bk.forEach(function(k){ body.append(h('div',{class:'mrow'},h('span',{text:(mineRec.indexOf(k)>=0?'🏆 ':'')+k}),h('b',{text:kgTxt(best[k])}))); }); }
+  var tk=top(sp,3), tt=top(te,2); if(tk.length) body.append(h('p',{class:'sub',text:T('Πιάνει συχνότερα: ','Catches most: ')+tk.join(', ')+(tt.length?T(' · Τεχνική: ',' · Technique: ')+tt.join(', '):'')}));
+  if(u!==uid()) body.append(h('button',{class:'btn full'+(isF(u)?'':' pri'),type:'button',text:isF(u)?T('✓ Ακολουθείς','✓ Following'):T('Ακολούθησε','Follow'),onclick:function(){ toggleFollow(u,name); sh.close(); }}));
+  body.append(h('button',{class:'btn full',type:'button',text:T('Οι αναρτήσεις του','Their posts'),onclick:function(){ sh.close(); F.user={u:u,n:name}; F.mode='all'; load(true); }}));
+  sh=B.sheet({title:name,body:body}); }
+B.commProfile=profile;
 /* 1.9.61: άμεση ειδοποίηση των άλλων (αλλιώς ο server τη στέλνει στον επόμενο έλεγχο, έως 5′ μετά) */
 function pingComm(){ try{ var s=B.cloud&&B.cloud.session&&B.cloud.session(); if(!s||!s.access_token) return;
   setTimeout(function(){ fetch('https://sgfohmqwdwtkhtrebnix.supabase.co/functions/v1/quick-processor',{method:'POST',headers:{apikey:'sb_publishable_LGuwvrvLnAj1CF22Q6g9vg_4OImZYbA','Content-Type':'application/json',Authorization:'Bearer '+s.access_token},body:JSON.stringify({action:'comm'})}).catch(function(){}); },1500); }catch(e){} }
@@ -41,6 +108,13 @@ function delPost(p){ B.ask(T('Να διαγραφεί η ανάρτηση από
     F.items=F.items.filter(function(x){ return x!==p; }); var sh=ls.get('alkyon-comm-shared',{})||{}; Object.keys(sh).forEach(function(k){ if(sh[k]===p.id) delete sh[k]; }); ls.set('alkyon-comm-shared',sh); draw(); },function(){ B.toast(T('Δεν διαγράφηκε.','Not deleted.')); }); }); }
 function delComment(p,c){ rest('community_comments?id=eq.'+c.id,{method:'DELETE'}).then(function(){ p._c=(p._c||[]).filter(function(x){ return x!==c; }); p.comments=[{count:Math.max(0,cnt(p,'comments')-1)}]; draw(); },function(){ B.toast(T('Δεν διαγράφηκε.','Not deleted.')); }); }
 
+/* 1.9.63: ο κάτοχος διαλέγει το σωστό είδος· γράφεται σαν σχόλιο «✓ Είδος» και, αν η ερώτηση ήρθε από ψάρι του Ημερολογίου, μπαίνει και εκεί */
+function accept(p,txt){ var body=h('div',{class:'bform'}), sh, inp=h('input',{type:'text',maxlength:'60',value:String(txt||'').replace(/^@\S+\s*/,'').replace(/[.!;?]+$/,'').trim().slice(0,60),'aria-label':T('Είδος','Species')});
+  body.append(h('p',{class:'sub',text:T('Γράψε το είδος όπως θα μπει (μπορείς να το διορθώσεις).','Type the species as it will be saved (you can correct it).')}),inp,
+    h('button',{class:'btn pri full',type:'button',text:T('Επιβεβαίωση','Confirm'),onclick:function(){ var sp=inp.value.trim(); if(!sp) return; sh.close(); F.ans[p.id]=sp; comment(p,'✓ '+sp);
+      try{ var bt=B.store.raw('bites').filter(function(x){ return x.id===p.src&&!x.deleted; })[0]; if(bt){ B.store.save('bites',Object.assign({},bt,{species:sp,_u:Date.now()})); B.toast(T('Μπήκε στο Ημερολόγιο: ','Saved to your Log: ')+sp); } }catch(e){} }}));
+  sh=B.sheet({title:T('Τι ψάρι είναι','What fish it is'),body:body}); }
+B.commAccept=accept;
 var MOON=['🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘'];
 function ago(ts){ var m=Math.round((Date.now()-Date.parse(ts))/60000); if(!(m>=0)) m=0; if(m<2) return T('μόλις τώρα','just now'); if(m<60) return T('πριν '+m+'′',m+' min ago'); var hh=Math.round(m/60); if(hh<24) return T('πριν '+hh+(hh===1?' ώρα':' ώρες'),hh+' h ago'); var d=Math.round(hh/24); if(d===1) return T('χθες','yesterday'); if(d<7) return T('πριν '+d+' μέρες',d+' days ago');
   var dt=new Date(ts); return dt.getDate()+'/'+(dt.getMonth()+1)+(dt.getFullYear()!==new Date().getFullYear()?'/'+dt.getFullYear():''); }
@@ -75,18 +149,24 @@ function post(p){
   var mine=p.user_id===uid(), card=h('article',{class:'card cmpost'});
   var more=h('button',{class:'iconbtn sm',type:'button','aria-label':T('Περισσότερα','More'),text:'⋯',onclick:function(){ var body=h('div',{class:'bform'}), sh;
     if(mine) body.append(h('button',{class:'btn full del',type:'button',text:T('Διαγραφή ανάρτησης','Delete post'),onclick:function(){ sh.close(true); delPost(p); }}));
-    else body.append(h('button',{class:'btn full',type:'button',text:T('Αναφορά','Report'),onclick:function(){ sh.close(true); report('post',p.id); }}),h('button',{class:'btn full',type:'button',text:T('Απόκρυψη χρήστη','Hide this user'),onclick:function(){ var b=blocked(); b.push(p.user_id); ls.set('alkyon-comm-block',b); sh.close(); draw(); }}));
+    else body.append(h('button',{class:'btn full',type:'button',text:isF(p.user_id)?T('Να μην ακολουθώ','Unfollow'):T('Ακολούθησε','Follow'),onclick:function(){ sh.close(); toggleFollow(p.user_id,p.author); }}),h('button',{class:'btn full',type:'button',text:T('Αναφορά','Report'),onclick:function(){ sh.close(true); report('post',p.id); }}),h('button',{class:'btn full',type:'button',text:T('Απόκρυψη χρήστη','Hide this user'),onclick:function(){ var b=blocked(); b.push(p.user_id); ls.set('alkyon-comm-block',b); sh.close(); draw(); }}));
     sh=B.sheet({title:p.species||T('Ανάρτηση','Post'),body:body}); }});
-  card.append(h('div',{class:'cmhd'},h('span',{class:'cmav',text:(p.author||'?').charAt(0).toUpperCase()}),h('span',{class:'cmwho'},h('b',{text:p.author||T('Ψαράς','Angler')}),h('small',{text:ago(p.created_at)})),more));
+  var fw=!mine&&isF(p.user_id);
+  card.append(h('div',{class:'cmhd'},h('button',{type:'button',class:'cmwhob','aria-label':T('Προφίλ: ','Profile: ')+(p.author||''),onclick:function(){ profile(p.user_id,p.author); }},h('span',{class:'cmav',text:(p.author||'?').charAt(0).toUpperCase()}),h('span',{class:'cmwho'},h('b',{text:(p.author||T('Ψαράς','Angler'))+(fw?' ✓':'')}),h('small',{text:ago(p.created_at)}))),more));
+  var c0=p.cond||{}, qk=isQ(p)?c0.k:'';
+  if(qk){ card.classList.add('cmqpost'); card.append(h('span',{class:'cmqk',text:qk==='id'?T('Τι ψάρι είναι;','What fish is this?'):T('Ερώτηση','Question')}));
+    if(c0.q) card.append(h('p',{class:'cmq noik',text:String(c0.q).slice(0,300)})); }
   if(p.photo){ var src=SUPA+'/storage/v1/object/public/community/'+p.photo, tapT=null, hrt=h('span',{class:'cmheart','aria-hidden':'true',text:'♥'});
     var ph=h('div',{class:'cmph',role:'button',tabindex:'0','aria-label':T('Φωτογραφία σε πλήρη οθόνη. Διπλό πάτημα για like.','Full-screen photo. Double tap to like.')},h('img',{class:'cmimg',loading:'lazy',alt:p.species||'',src:src}),hrt);
     ph.addEventListener('click',function(){ if(tapT){ clearTimeout(tapT); tapT=null; if(!F.liked[p.id]) like(p); hrt.classList.remove('go'); void hrt.offsetWidth; hrt.classList.add('go'); return; }
       tapT=setTimeout(function(){ tapT=null; viewer(src,p.species); },280); });
     ph.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); viewer(src,p.species); } });
     card.append(ph); }
-  var c0=p.cond||{}, more=Array.isArray(c0.more)?c0.more.filter(function(x){ return x&&x.s; }).slice(0,8):[];
+  var more=Array.isArray(c0.more)?c0.more.filter(function(x){ return x&&x.s; }).slice(0,8):[];
   var sz=[]; if(p.kg!=null) sz.push(kgTxt(p.kg)); if(p.len!=null) sz.push(+p.len+' cm');
-  card.append(h('div',{class:'cmtitle'},h('b',{text:p.species||''}),sz.length?h('span',{text:sz.join(' · ')}):null));
+  if(qk==='id'){ if(F.ans[p.id]) card.append(h('div',{class:'cmtitle cmans'},h('b',{text:'✓ '+F.ans[p.id]}),h('span',{text:T('αναγνωρίστηκε','identified')}))); }
+  else if(!qk){ var rc=records()[p.species], isRec=rc&&rc.id===p.id;
+    card.append(h('div',{class:'cmtitle'},h('b',{text:p.species||''}),sz.length?h('span',{text:sz.join(' · ')}):null,isRec?h('span',{class:'cmrec',text:'🏆 '+T('Ρεκόρ Κοινότητας','Community record')}):null,c0.rel?h('span',{class:'cmrel',text:T('Απελευθερώθηκε','Released')}):null)); }
   if(more.length){ var tot=(p.kg!=null?+p.kg:0), nk=p.kg!=null?1:0; more.forEach(function(x){ if(x.kg!=null){ tot+=+x.kg; nk++; } });
     card.append(h('p',{class:'cmmore'},h('span',{text:'+ '+moreTxt(more)}),nk>1?h('small',{text:T('Σύνολο ','Total ')+kgTxt(Math.round(tot*100)/100)}):null)); }
   var meta=[p.tech,p.bait,p.day?p.day.split('-').reverse().join('/'):''].filter(Boolean); if(meta.length) card.append(h('p',{class:'sub',style:{margin:'2px 0 0'},text:meta.join(' · ')}));
@@ -99,11 +179,14 @@ function post(p){
     (p._c||[]).forEach(function(c){ var mineC=c.user_id===uid(), body=String(c.body||''), tx=h('p',{class:'noik'},h('b',{text:(c.author||T('Ψαράς','Angler'))+' '}));
       var mm=/^@(\S+(?: \S+)?)/.exec(body), who=null; if(mm){ (p._c||[]).concat([{author:p.author}]).forEach(function(o){ var a=o.author||''; if(a&&body.indexOf('@'+a)===0&&(!who||a.length>who.length)) who=a; }); }
       if(who){ tx.append(h('span',{class:'cmat',text:'@'+who}),body.slice(who.length+1)); } else tx.append(body);
+      if(c.user_id===p.user_id&&/^✓/.test(body)){ tx.replaceChildren(h('b',{text:(c.author||'')+' '}),h('span',{class:'cmat',text:'✓ '+T('Είναι: ','It is: ')}),body.replace(/^✓\s*/,'')); }
       var acts=h('div',{class:'cma'},c.created_at?h('small',{text:ago(c.created_at)}):null);
+      if(qk==='id'&&mine&&!mineC&&!F.ans[p.id]) acts.append(h('button',{type:'button',class:'linkbtn cmok',text:T('✓ Αυτό είναι','✓ That is it'),onclick:function(){ accept(p,body); }}));
       if(!mineC) acts.append(h('button',{type:'button',class:'linkbtn',text:T('Απάντηση','Reply'),onclick:function(){ ci.value='@'+(c.author||'')+' '; try{ ci.focus(); ci.setSelectionRange(ci.value.length,ci.value.length); }catch(e){} }}));
       acts.append(h('button',{type:'button',class:'linkbtn',text:mineC?T('Διαγραφή','Delete'):T('Αναφορά','Report'),onclick:function(){ if(mineC) delComment(p,c); else report('comment',c.id); }}));
       cm.append(h('div',{class:'cmc'},tx,acts)); });
     if(p._cerr) cm.append(h('p',{class:'sub',text:T('Τα σχόλια δεν φόρτωσαν.','Comments did not load.')}));
+    if(qk==='id') ci.placeholder=T('Πρότεινε είδος…','Suggest a species…'); else if(qk) ci.placeholder=T('Γράψε απάντηση…','Write an answer…');
     var f=h('form',{class:'inrow'},ci,h('button',{class:'btn sm pri',type:'submit',text:T('Αποστολή','Send')}));
     f.addEventListener('submit',function(ev){ ev.preventDefault(); var v=ci.value; ci.value=''; comment(p,v); }); cm.append(f); card.append(cm); }
   return card;
@@ -111,24 +194,28 @@ function post(p){
 function draw(){
   if(!root) return; var page=h('div',{class:'page'});
   page.append(h('div',{class:'top'},h('div',{style:{display:'flex',alignItems:'center',gap:'12px'}},h('a',{class:'iconbtn',href:'#profile','aria-label':T('Πίσω στο Προφίλ','Back to Profile'),html:B.iconSvg('back')}),h('h1',{class:'lt',text:T('Κοινότητα','Community')})),
-    sess()?h('button',{class:'iconbtn',type:'button','aria-label':T('Ανανέωση','Refresh'),html:B.iconSvg('refresh'),onclick:function(){ load(true); }}):null));
+    sess()?h('button',{class:'iconbtn',type:'button','aria-label':T('Ανανέωση','Refresh'),html:B.iconSvg('refresh'),onclick:function(){ load(true); loadAll(true); }}):null));
   if(!sess()){ page.append(h('div',{class:'card empty'},h('h3',{text:T('Χρειάζεται λογαριασμός','An account is needed')}),h('p',{text:T('Συνδέσου στο Προφίλ για να δεις και να μοιραστείς ψάρια με άλλους ψαράδες. Δεν φαίνεται ποτέ θέση.','Sign in from Profile to see and share catches with other anglers. A location is never shown.')}),B.accountBtn(T('Με λογαριασμό βλέπεις και μοιράζεσαι ψάρια με άλλους ψαράδες. Δεν φαίνεται ποτέ θέση.','With an account you see and share catches with other anglers. A location is never shown.')))); root.replaceChildren(page); return; }
   /* 1.9.56: αν αυτό το κινητό δεν θα πάρει ειδοποιήσεις (κλειστές, χωρίς άδεια ή χωρίς συνδρομή στον server), το λέει εδώ */
   (function(){ var n=ls.get('alkyon-notify',{})||{}, perm=('Notification' in window)?Notification.permission:'unsupported', off=!n.on||perm!=='granted'||n.server===false;
     if(!off) return;
     var why=perm==='denied'?T('Οι ειδοποιήσεις είναι μπλοκαρισμένες στις ρυθμίσεις του κινητού για την εφαρμογή.','Notifications are blocked in the phone settings for the app.'):perm==='unsupported'?T('Στο iPhone οι ειδοποιήσεις δουλεύουν μόνο αν η εφαρμογή είναι στην αρχική οθόνη (Κοινή χρήση › Προσθήκη στην οθόνη Αφετηρίας).','On iPhone, notifications only work when the app is on the Home Screen (Share › Add to Home Screen).'):T('Άνοιξε τις ειδοποιήσεις για να μαθαίνεις για νέα ψάρια, likes και σχόλια.','Turn on notifications to hear about new catches, likes and comments.');
     page.append(h('a',{class:'card ibon',href:'#alerts'},h('span',{class:'tx'},h('b',{text:T('Δεν θα σου έρχονται ειδοποιήσεις της Κοινότητας σε αυτό το κινητό','You will not get Community alerts on this phone')}),h('small',{text:why})))); })();
-  page.append(B.seg([['all',T('Όλα','All')],['mine',T('Δικά μου','Mine')]],F.mine?'mine':'all',function(v){ var m=v==='mine'; if(m===F.mine) return; F.mine=m; load(true); },T('Αναρτήσεις','Posts')));
+  page.append(B.seg([['all',T('Όλα','All')],['follow',T('Ακολουθώ','Following')],['mine',T('Δικά μου','Mine')]],F.mode,function(v){ if(v===F.mode) return; F.mode=v; F.user=null; load(true); },T('Αναρτήσεις','Posts')));
+  page.append(h('div',{class:'cmask'},h('button',{class:'btn sm',type:'button',text:T('Ρώτα την Κοινότητα','Ask the Community'),onclick:function(){ ask({k:'q'}); }}),h('button',{class:'btn sm',type:'button',text:T('Τι ψάρι είναι;','What fish is this?'),onclick:function(){ ask({k:'id'}); }})));
+  if(F.mode==='all'&&!F.user){ var wk=weekCard(), bd=boardCard(); if(wk) page.append(wk); if(bd) page.append(bd); }
+  var flt=filters(); if(flt) page.append(flt);
+  if(F.mode==='follow'&&!follows().length) page.append(h('div',{class:'card empty'},h('p',{text:T('Δεν ακολουθείς ακόμη κανέναν. Πάτα το όνομα ενός ψαρά › Ακολούθησε. Στις Ειδοποιήσεις μπορείς να διαλέξεις να ειδοποιείσαι μόνο για όσους ακολουθείς.','You do not follow anyone yet. Tap an angler’s name › Follow. In Alerts you can choose to be notified only about people you follow.')})));
   page.append(h('p',{class:'sub',style:{margin:'10px 4px'},text:T('Οι αναρτήσεις δεν δείχνουν ποτέ θέση ή όνομα σημείου. Μοιράζεσαι ένα ψάρι από το Ημερολόγιο: πάτα το ψάρι › Κοινότητα.','Posts never show a location or spot name. Share a catch from the Log: tap the catch › Community.')}));
   var bl=blocked(), shown=F.items.filter(function(p){ return bl.indexOf(p.user_id)<0; });
   shown.forEach(function(p){ page.append(post(p)); });
   if(F.err) page.append(h('div',{class:'card empty'},h('p',{text:F.err})));
-  else if(!shown.length&&!F.loading) page.append(h('div',{class:'card empty'},h('p',{text:F.mine?T('Δεν έχεις μοιραστεί ακόμη κάτι.','You have not shared anything yet.'):T('Δεν υπάρχουν αναρτήσεις ακόμη. Ανέβασε το πρώτο ψάρι!','No posts yet. Share the first catch!')})));
+  else if(!shown.length&&!F.loading&&!(F.mode==='follow'&&!follows().length)) page.append(h('div',{class:'card empty'},h('p',{text:F.mode==='mine'?T('Δεν έχεις μοιραστεί ακόμη κάτι.','You have not shared anything yet.'):(F.sp||F.tech||F.user)?T('Δεν υπάρχουν αναρτήσεις με αυτό το φίλτρο.','No posts match this filter.'):T('Δεν υπάρχουν αναρτήσεις ακόμη. Ανέβασε το πρώτο ψάρι!','No posts yet. Share the first catch!')})));
   if(F.loading) page.append(h('div',{class:'sk',style:{height:'220px',marginTop:'12px'}}));
   else if(!F.end&&shown.length) page.append(h('button',{class:'btn full',type:'button',text:T('Περισσότερα','More'),onclick:function(){ load(false); }}));
   root.replaceChildren(page);
 }
-B.view('community',{title:T('Κοινότητα','Community'),mount:function(el){ root=el; if(sess()&&!F.items.length&&!F.loading) load(true); else draw(); },unmount:function(){ root=null; },resume:function(){ draw(); }});
+B.view('community',{title:T('Κοινότητα','Community'),mount:function(el){ root=el; loadAll(); if(sess()&&!F.items.length&&!F.loading) load(true); else draw(); },unmount:function(){ root=null; },resume:function(){ draw(); }});
 
 /* ---------- μοίρασμα ενός ψαριού ---------- */
 function jpeg(blob){ return new Promise(function(res,rej){ var u=URL.createObjectURL(blob), im=new Image(); im.onload=function(){ var s=Math.min(1,1280/Math.max(im.width,im.height)), cv=document.createElement('canvas'); cv.width=Math.round(im.width*s); cv.height=Math.round(im.height*s);
@@ -145,11 +232,36 @@ B.commNearArea=nearArea;
 /* 1.9.62: τα άλλα ψάρια της ίδιας μέρας (για να μπουν στην ίδια ανάρτηση) */
 function sameDay(b){ try{ return B.store.raw('bites').filter(function(x){ return x&&x.id!==b.id&&!x.deleted&&!x.miss&&!x.gear&&x.species&&x.date===b.date&&!(B.pest&&B.pest(x)); }).sort(function(p,q){ return (+q.kg||0)-(+p.kg||0); }).slice(0,8); }catch(e){ return []; } }
 function uuid(){ return (window.crypto&&crypto.randomUUID)?crypto.randomUUID():'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+/* 1.9.63: ερώτηση ή «Τι ψάρι είναι;» (με φωτογραφία). Πάει στους ίδιους πίνακες: species «?»/«Ερώτηση» και cond.k = 'q' | 'id', cond.q = το κείμενο */
+function ask(o){ o=o||{};
+  if(!sess()){ B.authSheet({reason:T('Για να ρωτήσεις την Κοινότητα χρειάζεται λογαριασμός.','Asking the Community needs an account.')}); return; }
+  var k=o.k||'q', blob=null, body=h('div',{class:'bform cmshare'}), prev=h('div'), sh;
+  var ta=h('textarea',{rows:'3',maxlength:'300','aria-label':T('Κείμενο','Text'),placeholder:T('π.χ. Ποια καλαμαριέρα δουλεύει τώρα στη Λεμεσό;','e.g. Which squid jig works in Limassol right now?')});
+  var fi=h('input',{type:'file',accept:'image/*',hidden:true}), pick=h('button',{class:'btn full',type:'button',text:T('Φωτογραφία','Photo'),onclick:function(){ fi.click(); }});
+  function setBlob(bl){ blob=bl; prev.replaceChildren(); if(bl) prev.append(h('img',{class:'cmimg',alt:'',src:URL.createObjectURL(bl)})); pick.textContent=bl?T('Άλλη φωτογραφία','Change photo'):T('Φωτογραφία','Photo'); }
+  fi.addEventListener('change',function(){ if(fi.files&&fi.files[0]) setBlob(fi.files[0]); });
+  function paint(){ ta.placeholder=k==='id'?T('Προαιρετικά: πού/πώς πιάστηκε, μέγεθος…','Optional: how it was caught, size…'):T('π.χ. Ποια καλαμαριέρα δουλεύει τώρα στη Λεμεσό;','e.g. Which squid jig works in Limassol right now?'); }
+  if(!o.src) body.append(B.seg([['q',T('Ερώτηση','Question')],['id',T('Τι ψάρι είναι;','What fish is this?')]],k,function(v){ k=v; paint(); },T('Είδος ανάρτησης','Post type')));
+  if(o.bite&&o.bite.photo) B.store.Photos.get(o.bite.id).then(function(bl){ if(bl) setBlob(bl); }).catch(function(){});
+  body.append(prev,ta,fi,o.src?null:pick,h('p',{class:'sub',text:T('Δεν φαίνεται θέση. Οι άλλοι απαντούν με σχόλιο· στο «Τι ψάρι είναι;» πατάς «✓ Αυτό είναι» στη σωστή απάντηση και μπαίνει στο Ημερολόγιό σου.','No location is shown. Others answer with a comment; on "What fish is this?" tap "✓ That is it" on the right answer and it goes into your Log.')}));
+  paint();
+  var go=h('button',{class:'btn pri full',type:'button',text:T('Δημοσίευση','Publish'),onclick:function(){ var txt=ta.value.trim();
+    if(k==='id'&&!blob){ B.toast(T('Χρειάζεται φωτογραφία του ψαριού.','A photo of the fish is needed.')); return; }
+    if(k==='q'&&!txt){ B.toast(T('Γράψε την ερώτηση.','Write your question.')); return; }
+    go.disabled=true; go.textContent=T('Αποστολή…','Sending…'); var path=null;
+    (blob?jpeg(blob).then(function(jb){ path=uid()+'/'+uuid()+'.jpg'; return C().storage('POST','community/'+path,jb,'image/jpeg'); }).then(function(r){ if(!r.ok) throw new Error('photo '+r.status); }):Promise.resolve())
+      .then(function(){ var cond={k:k}; if(txt) cond.q=txt.slice(0,300);
+        return rest('community_posts',{method:'POST',body:JSON.stringify({src:o.src||('q-'+uuid()),author:author(),species:k==='id'?'?':T('Ερώτηση','Question'),cond:cond,photo:path}),headers:{'Content-Type':'application/json',Prefer:'return=minimal'}}); })
+      .then(function(){ pingComm(); sh.close(); B.toast(T('Δημοσιεύτηκε. Θα ειδοποιηθείς για τις απαντήσεις.','Posted. You will be notified about answers.')); F.mode='all'; F.user=null; F.sp=''; F.tech=''; load(true); })
+      .catch(function(e){ if(path) C().storage('DELETE','community/'+path).catch(function(){}); go.disabled=false; go.textContent=T('Δημοσίευση','Publish'); var m=String(e&&e.message||e);
+        B.toast(/409|duplicate/i.test(m)?T('Έχει ήδη σταλεί.','Already posted.'):/rate/i.test(m)?T('Πολλές αναρτήσεις σήμερα.','Too many posts today.'):T('Δεν στάλθηκε. Έλεγξε τη σύνδεση.','Not sent. Check your connection.')); }); }});
+  body.append(go); sh=B.sheet({title:k==='id'&&o.src?T('Τι ψάρι είναι;','What fish is this?'):T('Ρώτα την Κοινότητα','Ask the Community'),body:body}); }
+B.commAsk=ask;
 B.commShared=function(id){ var s=ls.get('alkyon-comm-shared',{})||{}; return !!s[id]; };
 B.commShare=function(b){
   if(!sess()){ B.authSheet({reason:T('Για να μοιραστείς ψάρι στην Κοινότητα χρειάζεται λογαριασμός.','Sharing a catch to the Community needs an account.')}); return; }
   if(B.commShared(b.id)){ B.toast(T('Έχει ήδη μοιραστεί.','Already shared.')); return; }
-  if(!b.species){ B.toast(T('Λείπει το είδος.','Species is missing.')); return; }
+  if(!b.species){ if(b.photo) ask({k:'id',src:b.id,bite:b}); else B.toast(T('Λείπει το είδος.','Species is missing.')); return; }
   var blob=null, body=h('div',{class:'bform cmshare'}), prev=h('div'), withCond=false, sh;
   (b.photo?B.store.Photos.get(b.id).catch(function(){ return null; }):Promise.resolve(null)).then(function(bl){ blob=bl; if(bl) prev.append(h('img',{class:'cmimg',alt:'',src:URL.createObjectURL(bl)})); });
   var sz=[]; if(b.kg!=null&&b.kg!=='') sz.push(b.kg+' kg'); if(b.len!=null&&b.len!=='') sz.push(b.len+' cm');
@@ -172,9 +284,9 @@ B.commShare=function(b){
       rest('community_posts?select=id&limit=1').then(function(){ if(!blob) return; return jpeg(blob).then(function(jb){ path=uid()+'/'+uuid()+'.jpg'; return C().storage('POST','community/'+path,jb,'image/jpeg'); }).then(function(r){ if(!r.ok) throw new Error('photo '+r.status); }); })
         .then(function(){ var cond=withCond?{wind:b.wind,wave:b.wave,press:b.press,ptrend:b.ptrend,sst:b.sst,temp:b.temp,moon:moonIdx(b)}:{}; Object.keys(cond).forEach(function(k){ if(cond[k]==null||cond[k]==='') delete cond[k]; else if(typeof cond[k]==='number') cond[k]=Math.round(cond[k]*10)/10; });
           var mo=others.filter(function(x){ return pick[x.id]; }).map(function(x){ var o={s:String(x.species).slice(0,40)}; if(x.kg!=null&&x.kg!==''&&isFinite(+x.kg)) o.kg=+x.kg; if(x.len!=null&&x.len!==''&&isFinite(+x.len)) o.len=+x.len; return o; }); if(mo.length) cond.more=mo;
-          var ar=withArea?areaIn.value.trim().slice(0,40):''; if(ar) cond.area=ar;
+          var ar=withArea?areaIn.value.trim().slice(0,40):''; if(ar) cond.area=ar; if(b.rel) cond.rel=true;
           return rest('community_posts',{method:'POST',body:JSON.stringify({src:b.id,author:author(),species:b.species,latin:b.latin||null,kg:b.kg!=null&&b.kg!==''?+b.kg:null,len:b.len!=null&&b.len!==''?+b.len:null,bait:b.bait||null,tech:b.tech||null,day:b.date||null,cond:cond,photo:path}),headers:{'Content-Type':'application/json',Prefer:'return=representation'}}).then(function(r){ return r.json(); }); })
-        .then(function(rows){ pingComm(); var s=ls.get('alkyon-comm-shared',{})||{}; s[b.id]=(rows&&rows[0]&&rows[0].id)||1; ls.set('alkyon-comm-shared',s); sh.close(); B.toast(T('Δημοσιεύτηκε στην κοινότητα.','Shared to the community.')); F.items=[]; F.end=false; F.offset=0; })
+        .then(function(rows){ pingComm(); var s=ls.get('alkyon-comm-shared',{})||{}; s[b.id]=(rows&&rows[0]&&rows[0].id)||1; ls.set('alkyon-comm-shared',s); sh.close(); B.toast(T('Δημοσιεύτηκε στην κοινότητα.','Shared to the community.')); F.items=[]; F.end=false; F.offset=0; F.all=null; })
         .catch(function(e){ if(path) C().storage('DELETE','community/'+path).catch(function(){}); var m=String(e&&e.message||e); go.disabled=false; go.textContent=T('Δημοσίευση','Publish');
           B.toast(/409|duplicate/i.test(m)?T('Έχει ήδη μοιραστεί.','Already shared.'):/rate/i.test(m)?T('Πολλές αναρτήσεις σήμερα.','Too many posts today.'):/404|relation|does not exist/i.test(m)?T('Η κοινότητα δεν έχει ενεργοποιηθεί ακόμη.','Community is not enabled yet.'):T('Δεν στάλθηκε. Έλεγξε τη σύνδεση.','Not sent. Check your connection.')); }); }); }});
   body.append(go); sh=B.sheet({title:T('Μοίρασμα στην κοινότητα','Share to the community'),body:body});

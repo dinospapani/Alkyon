@@ -712,6 +712,56 @@ with sync_playwright() as p:
     pg.evaluate("()=>{const p=document.querySelector('.cmph'); p.click(); setTimeout(()=>p.click(),120)}"); pg.wait_for_timeout(1500)
     r=pg.evaluate("()=>({on:document.querySelector('.cmact .cmbtn').classList.contains('on'),view:!!document.querySelector('.cmview')})")
     check('Κοινότητα: διπλό πάτημα στη φωτογραφία → like, χωρίς πλήρη οθόνη (1.9.62)', r['on'] and not r['view'] and 'POST' in likes and not pg._errs, [r,likes,pg._errs]); c.close()
+    c=ctx(b); c.add_init_script("if(!sessionStorage.cs){sessionStorage.cs=1;localStorage.setItem('alkyon-sess',JSON.stringify({access_token:'AT',refresh_token:'RT',exp:Date.now()+9e6,uid:'u1',email:'d+test@x.com'}));}")
+    import datetime as _dt
+    _now=_dt.datetime.utcnow(); _d=_now.strftime('%Y-%m-%d'); _t=lambda h:(_now-_dt.timedelta(hours=h)).strftime('%Y-%m-%dT%H:%M:%SZ')
+    ALL=[{'id':'a1','user_id':'u9','author':'Κώστας','species':'Συναγρίδα','kg':3,'tech':'Βυθού','bait':'Σουπιά','day':_d,'cond':{'more':[{'s':'Ροφός','kg':2.5}]},'created_at':_t(30)},
+         {'id':'a3','user_id':'u8','author':'Νίκος','species':'Συναγρίδα','kg':4.1,'tech':'Jigging','day':_d,'cond':{'rel':True},'created_at':_t(5)},
+         {'id':'a2','user_id':'u8','author':'Νίκος','species':'Καλαμάρι','kg':0.6,'tech':'Eging','day':_d,'cond':{},'created_at':_t(20)}]
+    feed=[]; posts=[]; coms=[]
+    c.route('**/functions/v1/quick-processor',lambda r: r.fulfill(json={'ok':True}))
+    c.route('**/rest/v1/community_posts?select=id,user_id*',lambda r: r.fulfill(json=ALL))
+    def _feed(r):
+        feed.append(r.request.url); r.fulfill(json=[dict(x,photo=None,likes=[{'count':0}],comments=[{'count':0}]) for x in reversed(ALL)])
+    c.route('**/rest/v1/community_posts?select=*,likes*',_feed)
+    def _post(r):
+        if r.request.method=='POST': posts.append(r.request.post_data); r.fulfill(status=201,body='')
+        else: r.fallback()
+    c.route('**/rest/v1/community_posts',_post)
+    def _com(r):
+        if r.request.method=='POST': coms.append(r.request.post_data); r.fulfill(status=201,body='')
+        else: r.fulfill(json=[])
+    c.route('**/rest/v1/community_comments*',_com)
+    c.route('**/rest/v1/community_likes*',lambda r: r.fulfill(json=[]))
+    pg=page(c); pg.goto(BASE+'/v4/#community'); pg.wait_for_timeout(3500)
+    r=pg.evaluate("()=>{const t=[...document.querySelectorAll('.cmtop')].map(x=>x.innerText); const ps=[...document.querySelectorAll('.cmpost')].map(x=>x.innerText); return {t,ps}}")
+    wk=r['t'][0] if r['t'] else ''
+    check('Κοινότητα: «Τι πιάνεται αυτή την εβδομάδα» (1.9.63)', 'Τι πιάνεται' in wk and 'Συναγρίδα 2' in wk and 'Ροφός 1' in wk and '2 ψαράδες' in wk, r['t'])
+    pg.evaluate("()=>[...document.querySelectorAll('.cmtoph')][1].click()"); pg.wait_for_timeout(300)
+    bd=pg.evaluate("()=>[...document.querySelectorAll('.cmtop')][1].innerText")
+    check('Κοινότητα: κατάταξη μήνα, μεγαλύτερο ανά είδος (1.9.63)', 'Κατάταξη' in bd and bd.index('Συναγρίδα')<bd.index('Ροφός')<bd.index('Καλαμάρι') and '4,1 kg' in bd, bd)
+    rec=[x for x in r['ps'] if '4,1 kg' in x]
+    check('Κοινότητα: 🏆 ρεκόρ και «Απελευθερώθηκε», όχι ρεκόρ με μία μόνο ανάρτηση (1.9.63)', rec and 'Ρεκόρ Κοινότητας' in rec[0] and 'Απελευθερώθηκε' in rec[0] and not any('Ρεκόρ' in x for x in r['ps'] if 'Καλαμάρι' in x), r['ps'])
+    n0=len(feed); pg.evaluate("()=>[...document.querySelectorAll('.cmflt .chip')].find(b=>b.textContent==='Συναγρίδα').click()"); pg.wait_for_timeout(1500)
+    check('Κοινότητα: φίλτρο είδους → species=eq στο αίτημα (1.9.63)', len(feed)>n0 and 'species=eq.' in feed[-1], feed[-1:])
+    pg.evaluate("()=>AK.commProfile('u8','Νίκος')"); pg.wait_for_timeout(800)
+    pr=pg.evaluate("()=>document.querySelector('.sheet.on .cmprof').innerText")
+    check('Κοινότητα: προφίλ ψαρά με στατιστικά (1.9.63)', '2 αναρτήσεις' in pr and 'απελευθερώθηκαν' in pr and 'Μεγαλύτερα ψάρια' in pr, pr)
+    pg.evaluate("()=>[...document.querySelectorAll('.sheet.on .cmprof button')].find(b=>b.textContent==='Ακολούθησε').click()"); pg.wait_for_timeout(800)
+    fw=pg.evaluate("()=>localStorage.getItem('alkyon-comm-follow')")
+    pg.evaluate("()=>[...document.querySelectorAll('.seg button')].find(b=>b.textContent==='Ακολουθώ').click()"); pg.wait_for_timeout(1500)
+    check('Κοινότητα: Ακολούθησε → «Ακολουθώ» φέρνει μόνο αυτούς (1.9.63)', fw and '"u8"' in fw and 'user_id=in.(u8)' in feed[-1], [fw,feed[-1:]])
+    pg.evaluate("()=>AK.commAsk({k:'q'})"); pg.wait_for_timeout(600)
+    pg.evaluate("()=>{const s=document.querySelector('.sheet.on'); s.querySelector('textarea').value='Ποια καλαμαριέρα;'; [...s.querySelectorAll('button')].find(b=>b.textContent==='Δημοσίευση').click()}"); pg.wait_for_timeout(1500)
+    pj=json.loads(posts[-1]) if posts else {}
+    check('Κοινότητα: ερώτηση → ανάρτηση με cond.k=q (1.9.63)', pj.get('cond',{}).get('k')=='q' and pj['cond'].get('q')=='Ποια καλαμαριέρα;' and pj.get('src','').startswith('q-'), posts)
+    pg.evaluate("()=>AK.commAccept({id:'q1',src:'b1',user_id:'u1',cond:{k:'id'},comments:[{count:0}]},'Σφυρίδα!')"); pg.wait_for_timeout(500)
+    pg.evaluate("()=>{const s=document.querySelector('.sheet.on'); [...s.querySelectorAll('button')].find(b=>b.textContent==='Επιβεβαίωση').click()}"); pg.wait_for_timeout(1500)
+    sp=pg.evaluate("()=>JSON.parse(localStorage.getItem('alkyon-bites')).find(x=>x.id==='b1').species")
+    check('Κοινότητα: «✓ Αυτό είναι» → σχόλιο «✓ Σφυρίδα» και αλλάζει το είδος στο Ημερολόγιο (1.9.63)', sp=='Σφυρίδα' and any('✓ Σφυρίδα' in x for x in coms) and not pg._errs, [sp,coms,pg._errs]); c.close()
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#alerts'); pg.wait_for_timeout(2500)
+    t=pg.evaluate("()=>document.getElementById('main').innerText")
+    check('Ειδοποιήσεις Κοινότητας: Όλοι / Όσοι ακολουθώ / Κανένας (1.9.63)', 'Όσοι ακολουθώ' in t and 'Κανένας' in t, t[-600:]); c.close()
     print('# offline')
     c=ctx(b,sw=True); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(6000); pg.reload(); pg.wait_for_timeout(3000)
     c.set_offline(True)

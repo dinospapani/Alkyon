@@ -50,6 +50,7 @@ function world({ subs = [], notifLog = 'ok', W = calm, community = {}, meteoFail
     if (p.startsWith('app_admins?')) return res([{ user_id: 'a1' }]);
     if (p.startsWith('safety_contacts?user_id=in.')) return res([{ self_chat_id: 99 }]);
     if (p.startsWith('community_posts?created_at')) return res(community.posts || []);
+    if (p.startsWith('community_posts?species=eq.')) return res(community.best || []);
     if (p.startsWith('community_likes?')) return res(community.likes || []);
     if (p.startsWith('community_comments?')) return res(community.comments || []);
     if (p.startsWith('community_posts?id=in.')) return res(community.own || []);
@@ -189,6 +190,21 @@ NOW = RealDate.parse('2026-11-09T10:00:00Z');
   check('Κοινότητα: ο κάτοχος δεν ειδοποιείται για το δικό του σχόλιο', !w.sent.some(x => x.id === 'cc:c2'), w.sent.map(x => x.id));
   const nw = w.sent.find(x => x.kind === 'comm' && x.sub.endpoint.endsWith('/s4'));
   check('Κοινότητα: νέα ανάρτηση με πολλά ψάρια → «+1 ακόμα» (1.9.62)', nw && /Συναγρίδα 3 kg \+1 ακόμα/.test(nw.body), nw);
+}
+
+/* ---------- Κοινότητα: ακόλουθοι, ερωτήσεις, ρεκόρ (1.9.63) ---------- */
+{
+  NOW = RealDate.parse('2026-11-09T10:00:00Z');
+  const t = new RealDate(NOW - 20000).toISOString();
+  const posts = [{ id: 'p0000099-cccc', user_id: 'u2', author: 'Νίκος', species: 'Συναγρίδα', kg: 5, created_at: t }];
+  const w = world({ subs: [SUB([{ lat: 35, lon: 32.4, comm: 'follow', follow: ['u7'] }], 's1', 'u1'), SUB([{ lat: 35, lon: 32.4, comm: 'follow', follow: ['u2'] }], 's3', 'u3'), SUB([{ lat: 35, lon: 32.4 }], 's4', 'u4')], community: { posts, best: [{ kg: 4.2 }] } });
+  await run({ env: { SUPABASE_URL: 'https://x.supabase.co', SUPABASE_SERVICE_KEY: 'k' }, fetch: w.fetch, PF, webpush: w.webpush, sendMail: null, log: () => {}, only: { comm: true } });
+  const to = e => w.sent.filter(x => x.kind === 'comm' && x.sub.endpoint.endsWith('/' + e));
+  check('Κοινότητα: «μόνο όσους ακολουθώ» → όχι για άλλον, ναι για αυτόν που ακολουθεί (1.9.63)', to('s1').length === 0 && to('s3').length === 1 && to('s4').length === 1, w.sent.map(x => x.sub.endpoint));
+  check('Κοινότητα: νέο ρεκόρ είδους → «🏆 Νέο ρεκόρ Κοινότητας» (1.9.63)', to('s4')[0] && to('s4')[0].title === '🏆 Νέο ρεκόρ Κοινότητας: Συναγρίδα' && /Νίκος έπιασε Συναγρίδα 5 kg/.test(to('s4')[0].body), to('s4')[0]);
+  const w2 = world({ subs: [SUB([{ lat: 35, lon: 32.4 }], 's4', 'u4')], community: { posts: [{ id: 'p0000100-dddd', user_id: 'u2', author: 'Νίκος', species: '?', cond: { k: 'id' }, created_at: t }] } });
+  await run({ env: { SUPABASE_URL: 'https://x.supabase.co', SUPABASE_SERVICE_KEY: 'k' }, fetch: w2.fetch, PF, webpush: w2.webpush, sendMail: null, log: () => {}, only: { comm: true } });
+  check('Κοινότητα: ερώτηση «Τι ψάρι είναι;» → σωστό κείμενο ειδοποίησης (1.9.63)', w2.sent[0] && w2.sent[0].title === '❓ Νέα ερώτηση στην Κοινότητα' && w2.sent[0].body === 'Νίκος ρωτά: Τι ψάρι είναι;', w2.sent);
 }
 
 /* ---------- σκοτάδι για καλαμάρι ---------- */
