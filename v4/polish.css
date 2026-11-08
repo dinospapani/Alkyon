@@ -69,3 +69,11 @@ html.night .wcols .wc i{background:#888}html.night .wcols .wc.pk i{background:#f
 #fcExposure .exv{font:600 14.5px/1.4 var(--font)}
 /* κουμπιά με μεγάλο κείμενο μέσα σε κάρτες: σπάνε γραμμή αντί να βγαίνουν έξω */
 .mres .btn,.card .btn.sm{white-space:normal;max-width:100%;text-align:center;height:auto;min-height:38px;padding-top:6px;padding-bottom:6px}
+/* 1.9.38: καλωσόρισμα: «Πίσω» δίπλα στο «Επόμενο» */
+.spnav{display:flex;gap:10px;align-items:stretch}
+.spnav .spgo{flex:1;width:auto}
+.spback{flex:none;display:flex;align-items:center;justify-content:center;gap:4px;min-width:96px;padding:0 14px;border-radius:16px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font:700 15px var(--font);cursor:pointer}
+.spback i{display:grid;place-items:center;transform:rotate(180deg)}
+.spback svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+html.night .spback{background:#000;border-color:#fff;color:#fff}
+.sppage .spback{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.35);color:#fff}
