@@ -124,3 +124,8 @@ html.night .hero .sqb{background:#000;border:1px solid #fff}
 /* 1.9.54: παλιό ψάρι: «διάλεξε πού ήταν» */
 .wpk .oldhint{margin:0;padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--warn,#e8a317) 16%,transparent);color:var(--ink);font:600 13px/1.4 var(--font)}
 html.night .wpk .oldhint{background:#000;border:1px solid #fff}
+/* 1.9.59: «Τι κοινό είχαν τα ψαρέματά σου» */
+.cmcard .cmgrp{margin-top:8px}
+.cmcard .lyrow b{flex:0 0 92px;font-weight:650}
+.cmcard .lyrow .cmv{flex:1;min-width:0}
+.cmcard .lyrow .cmn{flex:none;color:var(--ink-3);font-size:12.5px;align-self:center}

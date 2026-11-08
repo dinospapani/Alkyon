@@ -1,11 +1,11 @@
 // Network first for the app's own files so updates arrive at once; cache is the offline fallback.
 // Weather APIs and fonts are cross-origin and always go straight to the network.
 importScripts('forecast.js');
-const V = 'alkyon-1.9.58';
+const V = 'alkyon-1.9.59';
 const CFG = 'alkyon-cfg';
 /* 1.4.2: η κλασική αποσύρθηκε, οπότε εδώ μένουν μόνο οι σελίδες της ρίζας (ανακατεύθυνση στο v4/) και τα εικονίδια.
    Τα αρχεία της εφαρμογής τα κρατά για offline το v4/sw.js. Πριν κατέβαιναν εδώ ~6 MB σε κάθε ενημέρωση. */
-const SHELL = ['./', 'index.html', 'classic.html', 'migrate.js', 'manifest.webmanifest', 'icon-192.png', 'apple-touch-icon.png'];
+const SHELL = ['./', 'index.html', 'classic.html', 'migrate.js', 'manifest.webmanifest', 'icon-192.png', 'badge-96.png', 'apple-touch-icon.png'];
 const cfgUrl = () => new URL('__cfg', self.registration.scope).href;
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(V).then(c => Promise.all(SHELL.map(u => c.add(new Request(u, { cache: 'reload' })).catch(() => {})) /* 1.3.3: χωρίς την HTTP cache, ώστε να μη μπουν παλιά αρχεία στη νέα έκδοση */)).then(() => self.skipWaiting()));
@@ -63,9 +63,9 @@ async function showMsg(m, src) {
   const id = m.id || ('n' + Date.now() + Math.random().toString(36).slice(2, 6));
   const it = { id, at: m.at || new Date().toISOString(), kind: m.kind || 'info', title: m.title || 'Alkyon', body: m.body || '', full: m.full || m.body || '', place: m.place || null, t: m.t || null, locs: m.locs || null, src: src || 'push' };
   await inboxAdd(it);
-  /* 1.9.58: πού ανοίγει όταν την πατάς: Κοινότητα (url), καλαμάρια → Πρόγνωση, έξοδος (καιρός, επιστροφή, δύση) → Χάρτης, αλλιώς Ειδοποιήσεις με αυτήν ανοιχτή */
+  /* 1.9.59: πού ανοίγει όταν την πατάς: Κοινότητα (url), καλαμάρια → Πρόγνωση, έξοδος (καιρός, επιστροφή, δύση) → Χάρτης, αλλιώς Ειδοποιήσεις με αυτήν ανοιχτή */
   const hash = m.url && /^#[a-z]+$/.test(m.url) ? m.url : /^sq:/.test(id) ? '#forecast' : (/^trip-wx:/.test(id) || (m.place && /^(Έξοδος|Trip)$/.test(m.place.name || ''))) ? '#map' : '#inbox';
-  await self.registration.showNotification(it.title, { body: it.body, tag: m.tag || ('alk-' + id), renotify: true, icon: 'icon-192.png', badge: 'icon-192.png', data: { hash, id, url: self.registration.scope + 'v4/' + hash } });
+  await self.registration.showNotification(it.title, { body: it.body, tag: m.tag || ('alk-' + id), renotify: true, icon: 'icon-192.png', badge: 'badge-96.png', data: { hash, id, url: self.registration.scope + 'v4/' + hash } });
 }
 async function runCheck() {
   const cfg = await readCfg();
@@ -143,7 +143,7 @@ self.addEventListener('push', e => {
 });
 self.addEventListener('notificationclick', e => {
   e.notification.close();
-  /* 1.9.58: ανοίγει τη σωστή σελίδα της εφαρμογής (v4). Αν η εφαρμογή είναι ήδη ανοιχτή, της λέει πού να πάει (η σελίδα v4 έχει δικό της service worker,
+  /* 1.9.59: ανοίγει τη σωστή σελίδα της εφαρμογής (v4). Αν η εφαρμογή είναι ήδη ανοιχτή, της λέει πού να πάει (η σελίδα v4 έχει δικό της service worker,
      οπότε δεν γίνεται navigate από εδώ)· αλλιώς ανοίγει νέο παράθυρο στη σωστή σελίδα, με το id της ειδοποίησης για να ανοίξει αυτή στη λίστα. */
   const d = e.notification.data || {}, base = self.registration.scope + 'v4/';
   let hash = d.hash, id = d.id || null;

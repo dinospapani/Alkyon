@@ -38,7 +38,7 @@ async function notify(title,body){
   try{
     if(!('Notification' in window)||Notification.permission!=='granted') return;
     var reg=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration();
-    if(reg) await reg.showNotification(title,{body:body,tag:'alkyon-wind',icon:'icon-192.png',badge:'icon-192.png',data:{url:reg.scope}});
+    if(reg) await reg.showNotification(title,{body:body,tag:'alkyon-wind',icon:'icon-192.png',badge:'../badge-96.png',data:{url:reg.scope}});
     else new Notification(title,{body:body});
   }catch(e){}
 }

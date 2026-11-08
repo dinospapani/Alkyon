@@ -142,7 +142,7 @@ function loadHist(){
     hist=all.sort(function(a,b){ return String(b.at).localeCompare(String(a.at)); }); draw(); if(ib.root) ibDraw(); B.emit('inbox'); });
 }
 /* τοπικός έλεγχος όταν ανοίγει η εφαρμογή (όταν ο server δεν έχει τη συνδρομή) και περιοδικός στο παρασκήνιο, όπως η κλασική */
-function note(title,body,m){ m=m||{}; return reg().then(function(r){ var o={body:body,tag:'alk-'+(m.kind||'info')+'-'+String(m.key||Date.now()).slice(-40),renotify:true,icon:'../icon-192.png',badge:'../icon-192.png',data:{url:ROOT,bc:{kind:m.kind||'info',id:m.key,full:m.full||body,place:m.place||null,t:m.t||null}}};
+function note(title,body,m){ m=m||{}; return reg().then(function(r){ var o={body:body,tag:'alk-'+(m.kind||'info')+'-'+String(m.key||Date.now()).slice(-40),renotify:true,icon:'../icon-192.png',badge:'../badge-96.png',data:{url:ROOT,bc:{kind:m.kind||'info',id:m.key,full:m.full||body,place:m.place||null,t:m.t||null}}};
   if(r) return r.showNotification(title,o); new Notification(title,{body:body}); }).catch(function(){}); }
 function localCheck(){ var n=nt(); if(!n.on||n.server||!('Notification' in window)||Notification.permission!=='granted'||!window.PF||!PF.checkPlaces) return;
   PF.checkPlaces({lang:B.LANG,places:cfgPlaces(),threshold:n.threshold,pressure:n.pressure!==false,turn:!!n.turn,wind:wwCfg(),notified:n.notified}).then(function(r){ var q=nt(); q.notified=r.notified; setNt(q); writeCfg();

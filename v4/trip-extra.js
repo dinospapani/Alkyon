@@ -219,7 +219,7 @@ function show(){
   if(Notification.permission!=='granted') return;
   var n=count();
   reg().then(function(r){ if(!r) return; r.showNotification(T('Έξοδος σε εξέλιξη','Trip in progress'),{body:(n?n+(n===1?T(' ψάρι · ',' catch · '):T(' ψάρια · ',' catches · ')):'')+T('Πάτα «Ψάρι εδώ» και από το ρολόι σου.','Tap “Fish here”, also from your watch.'),
-    tag:'alkyon-trip',renotify:false,silent:false,vibrate:[60],requireInteraction:true,icon:'../icon-192.png',badge:'../icon-192.png',data:{bc4trip:1,lang:B.LANG},
+    tag:'alkyon-trip',renotify:false,silent:false,vibrate:[60],requireInteraction:true,icon:'../icon-192.png',badge:'../badge-96.png',data:{bc4trip:1,lang:B.LANG},
     actions:[{action:'fish',title:T('🐟 Ψάρι εδώ','🐟 Fish here')},{action:'lost',title:T('✕ Χάθηκε','✕ Lost')}]}).catch(function(){}); }); }
 function hide(){ reg().then(function(r){ if(!r||!r.getNotifications) return; r.getNotifications({tag:'alkyon-trip'}).then(function(a){ a.forEach(function(x){ x.close(); }); }); }); }
 B.tripNotif={on:on,set:function(v){ ls.set('alkyon-v4-tripnotif',!!v); if(v) show(); else hide(); },show:show};

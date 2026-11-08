@@ -697,7 +697,7 @@ function speedAlt(c,a){ if(!a||(a.act!=='up'&&a.act!=='down')||a.k>2||a.d==null)
   return null; }
 /* (6) ειδοποίηση συστήματος: φαίνεται και δονεί στο ρολόι (Garmin/Wear) αν το ρολόι δείχνει τις ειδοποιήσεις του κινητού */
 function notify(text){ var c=cfg(); if(!c.watch||!('Notification' in window)||Notification.permission!=='granted') return; try{
-  var o={body:text,tag:'alkyon-troll',renotify:true,vibrate:[300,120,300],icon:'icon-192.png',badge:'icon-192.png',silent:false};
+  var o={body:text,tag:'alkyon-troll',renotify:true,vibrate:[300,120,300],icon:'icon-192.png',badge:'../badge-96.png',silent:false};
   if(navigator.serviceWorker&&navigator.serviceWorker.ready) navigator.serviceWorker.ready.then(function(r){ r.showNotification('Alkyon · '+T('Συρτή','Trolling'),o); }).catch(function(){ try{ new Notification('Alkyon',o); }catch(e){} });
   else new Notification('Alkyon',o); }catch(e){} }
 /* 1.8.14: «glideslope»: πόσο ψηλά είναι το δόλωμα από τον βυθό (βυθός = ίσια γραμμή στο 0), πράσινη ζώνη-στόχος,

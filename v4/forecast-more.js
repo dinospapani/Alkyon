@@ -80,6 +80,8 @@ var TITLE={block:T('Φως','Light'),moon:T('Σελήνη','Moon'),ptrend:T('Π�
 B.fcMine=function(page,fc,ctx){
   /* 1.9.34: ψάρια χωρίς έξοδο → πρόσκληση να μπουν οι ώρες */
   if(B.tripFill){ var tf=B.tripFill.card(function(){ rerender(); }); if(tf) page.append(tf); }
+  /* 1.9.59: τι κοινό είχαν οι μέρες που έπιασες */
+  if(B.commonCard){ try{ var cc=B.commonCard(); if(cc) page.append(cc); }catch(e){} }
   var m=A().model(), p=m.progress, N=p.need;
   /* κατάσταση */
   var c=card(T('Η προσωπική σου πρόγνωση','Your personal forecast'),T('Μαθαίνει από τις εξόδους σου (πόσες ώρες ψάρευες) και από όσα έπιασες.','It learns from your trips (how long you fished) and what you caught.'));

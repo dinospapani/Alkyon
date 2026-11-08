@@ -112,7 +112,7 @@ B.biteForm=function(edit,opt){
   sp.addEventListener('input',function(){ pickLa=''; showSug(); if(!spSug.hidden) lift(); }); sp.addEventListener('blur',function(){ setTimeout(function(){ spSug.hidden=true; },150); });
   (function(){ var fm=famOf(prof), mine=all.filter(function(b){ return famOf(b.prof||'boat')===fm; }).sort(function(a,b){ return (b.date+b.time).localeCompare(a.date+a.time); }), seen={}, n=0, sb={}, nb=0;
     mine.forEach(function(b){ var v=(b.species||'').trim(); if(v&&!seen[v]&&n<6){ seen[v]=1; n++; var dv=dispSp(v,b.latin); spChips.append(h('button',{type:'button',class:'chip sm',text:dv,onclick:function(){ sp.value=dv; pickLa=b.latin||latinOf(v)||''; spSug.hidden=true; law(); sugTk(); }})); }
-      var w=(b.bait||'').trim(); if(w&&!sb[w]&&nb<6){ sb[w]=1; nb++; baitChips.append(h('button',{type:'button',class:'chip sm',text:w,onclick:function(){ bait.value=w; }})); } });
+      var w=(b.bait||'').trim(); if(w&&!sb[w]&&nb<6){ sb[w]=1; nb++; baitChips.append(h('button',{type:'button',class:'chip sm',data:{v:w},text:w,onclick:function(){ bait.value=w; }})); } });
     spChips.hidden=!n; baitChips.hidden=!nb; })();
   var many=h('input',{type:'checkbox'}), cnt=h('input',{type:'number',min:'2',max:'999',inputmode:'numeric',placeholder:'2'});
   var kg=h('input',{type:'number',step:'0.01',min:'0',inputmode:'decimal',placeholder:'0,0'}), len=h('input',{type:'number',step:'0.5',min:'0',inputmode:'decimal',placeholder:'cm'}), dep=h('input',{type:'number',step:'0.5',min:'0',inputmode:'decimal',placeholder:window.AlkyonUnits&&AlkyonUnits.depthUnit?AlkyonUnits.depthUnit():'m'});
@@ -267,8 +267,12 @@ B.biteForm=function(edit,opt){
   tkBox.addEventListener('click',function(){ setTimeout(tkPaint,30); }); tkPaint();
   /* τεχνική: στη συρτή συμπληρώνεται μόνη της· κουμπιά δολωμάτων από το ιστορικό */
   try{ if(!e&&!tech.value&&B.troll&&B.troll.on&&B.troll.on()){ var tc=B.troll.cfg?B.troll.cfg():null; tech.value=techShow(tc&&tc.mode==='bottom'?'Συρτή βυθού':'Συρτή αφρού'); } }catch(x){}
-  var techChips=h('div',{class:'chips qchips'}); (function(){ var u=uniq(all.map(function(b){ return b.tech; })).slice(0,4); u.forEach(function(v){ techChips.append(h('button',{type:'button',class:'chip sm',text:techShow(v),onclick:function(){ tech.value=techShow(v); [].forEach.call(techChips.children,function(c){ c.setAttribute('aria-pressed',String(c.textContent===v)); }); }})); }); techChips.hidden=!u.length; })();
-  [].forEach.call(baitChips.children,function(c){ c.addEventListener('click',function(){ [].forEach.call(baitChips.children,function(z){ z.setAttribute('aria-pressed',String(z===c)); }); }); });
+  var techChips=h('div',{class:'chips qchips'}); (function(){ var u=uniq(all.map(function(b){ return b.tech; })).slice(0,4); u.forEach(function(v){ techChips.append(h('button',{type:'button',class:'chip sm',data:{v:v},text:techShow(v),onclick:function(){ tech.value=techShow(v); syncTech(); }})); }); techChips.hidden=!u.length; })();
+  /* 1.9.59: το chip που ταιριάζει με το πεδίο φαίνεται επιλεγμένο (και στην τεχνική, και όταν ανοίγεις παλιό ψάρι ή γράφεις με το χέρι). Πριν, η τεχνική σύγκρινε το μεταφρασμένο κείμενο και δεν άναβε ποτέ. */
+  function syncTech(){ var cur=techStore(tech.value); [].forEach.call(techChips.children,function(c){ c.setAttribute('aria-pressed',String(!!cur&&(c.dataset.v===cur||techStore(c.dataset.v)===cur))); }); }
+  function syncBait(){ var cur=String(bait.value||'').trim().toLowerCase(); [].forEach.call(baitChips.children,function(c){ c.setAttribute('aria-pressed',String(!!cur&&String(c.dataset.v||c.textContent).trim().toLowerCase()===cur)); }); }
+  [].forEach.call(baitChips.children,function(c){ c.addEventListener('click',function(){ setTimeout(syncBait,0); }); });
+  tech.addEventListener('input',syncTech); bait.addEventListener('input',syncBait); setTimeout(function(){ syncTech(); syncBait(); },0);
   var btRow=(baitChips.children.length||techChips.children.length)?h('div',{class:'bfbt'},baitChips.children.length?h('div',{class:'bfbtr'},h('small',{text:T('Δόλωμα','Bait')}),baitChips):null,techChips.children.length?h('div',{class:'bfbtr'},h('small',{text:T('Τεχνική','Technique')}),techChips):null):null;
   var spLbl=h('div',{class:'bfspl'},h('span',{text:T('Είδος','Species')}),B.speciesPick?h('button',{class:'linkbtn sm',type:'button',text:'📖 '+T('Λίστα ειδών','Species list'),onclick:function(){ B.speciesPick(function(nm){ sp.value=nm; law(); }); }}):null);
   var hasMore=!!(e&&(e.notes||e.rel||e.priv||(e.bait&&!baitChips.children.length)||+e.cnt>1));

@@ -655,6 +655,20 @@ with sync_playwright() as p:
     pg.evaluate("()=>AK.biteForm()"); pg.wait_for_timeout(1200)
     r=pg.evaluate("()=>{const ch=[...document.querySelectorAll('.qchips .chip')].find(x=>/Bottom fishing|Βυθού/.test(x.textContent)); if(!ch) return null; ch.click(); const i=document.querySelector('input[list=bfTech]'); return [ch.textContent, i&&i.value]}")
     check('τεχνική στα αγγλικά: «Bottom fishing» και όχι «Βυθού» (1.9.58)', r==['Bottom fishing','Bottom fishing'] and not pg._errs, [r,pg._errs]); c.close()
+    R=[("2024-03-11","12:01","Dusky grouper",5,"stable",5,0.5,18),("2025-01-02","11:30","Dusky grouper",3,"slow",3,0.3,19.4),("2025-02-26","08:11","Dusky grouper",7,"stable",1,0.2,17.5),("2026-10-23","07:23","Χάννος",0.6,"stable",5,0.2,23.8),("2026-10-25","07:23","Πέρκα",0.2,"stable",4,0.4,24.1)]
+    cb=[{'id':'cm%d'%i,'date':r[0],'time':r[1],'species':r[2],'kg':r[3],'ptrend':r[4],'wind':r[5],'wave':r[6],'sst':r[7],'tech':'Βυθού','lat':34.75,'lon':32.38,'_u':1} for i,r in enumerate(R)]
+    c=ctx(b); c.add_init_script("localStorage.setItem('alkyon-bites',JSON.stringify(%s))"%json.dumps(cb)); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(3000)
+    pg.evaluate("()=>{const b=[...document.querySelectorAll('.seg button')].find(x=>/Δικά μου/.test(x.textContent)); b&&b.click()}"); pg.wait_for_timeout(1500)
+    r=pg.evaluate("()=>{const c=document.querySelector('.cmcard'); return c?c.innerText:''}")
+    check('«Τι κοινό είχαν τα ψαρέματά σου» (1.9.59)', 'Μεγάλα ψάρια (από 2,5 kg) · 3 μέρες' in r and 'Ιανουάριος–Μάρτιος' in r and 'κοντά στη νέα σελήνη' in r and 'Μικρότερα ψάρια · 2 μέρες' in r and not pg._errs, [r[:500],pg._errs]); c.close()
+    c=ctx(b); c.add_init_script("localStorage.setItem('alkyon-bites',JSON.stringify([{id:'tb1',date:'2026-10-01',time:'10:00',species:'Sargo',tech:'Βυθού',bait:'Live squid',_u:1}]))"); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(2500)
+    pg.evaluate("()=>AK.biteForm()"); pg.wait_for_timeout(1200)
+    r=pg.evaluate("()=>{const ch=[...document.querySelectorAll('.qchips .chip')].find(x=>x.dataset.v==='Βυθού'); if(!ch) return null; ch.click(); const bc=[...document.querySelectorAll('.qchips .chip')].find(x=>x.dataset.v==='Live squid'); bc&&bc.click(); return new Promise(res=>setTimeout(()=>res([ch.getAttribute('aria-pressed'), bc&&bc.getAttribute('aria-pressed')]),50))}")
+    check('τεχνική και δόλωμα: το chip ανάβει όταν το διαλέγεις (1.9.59)', r==['true','true'] and not pg._errs, [r,pg._errs]); c.close()
+    import os as _os
+    import struct as _st
+    _pb=open(_os.path.join(ROOT,'badge-96.png'),'rb').read(32); _w,_h=_st.unpack('>II',_pb[16:24])  # χωρίς PIL (δεν υπάρχει στο GitHub)
+    check('εικονίδιο ειδοποίησης: διάφανο PNG 96×96 (1.9.59)', _pb[:8]==b'\x89PNG\r\n\x1a\n' and (_w,_h)==(96,96) and _pb[25]==6 and "badge: 'badge-96.png'" in open(_os.path.join(ROOT,'sw.js')).read(), [_w,_h,_pb[25]])
     print('# offline')
     c=ctx(b,sw=True); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(6000); pg.reload(); pg.wait_for_timeout(3000)
     c.set_offline(True)
