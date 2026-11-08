@@ -241,7 +241,15 @@ B.biteForm=function(edit,opt){
     var o=where.options[where.selectedIndex], cg0=where.value==='coord'&&cbx&&cbx.get(), wh=where.value==='gps'?T('Η θέση μου (GPS)','My position (GPS)'):cg0?fmtLL(cg0.lat,cg0.lon):(o?o.text.replace(/^★ |^📍 /,''):'');
     var ns=where.value==='gps'&&pos?nearSpot(pos.lat,pos.lon):null; wwTx.textContent=wt+' · '+(ns?'★ '+ns.name:wh); }
   var wwLine=h('button',{type:'button',class:'bfline',onclick:function(){ wwBox.hidden=!wwBox.hidden; wwLine.classList.toggle('open',!wwBox.hidden); }},h('span',{class:'bfll',text:T('Πότε · Πού','When · Where')}),wwTx,h('i',{text:'✎'}));
-  when.addEventListener('change',wwPaint); where.addEventListener('change',wwPaint); locP.then(function(){ wwPaint(); autoDepth(); }); wwPaint();
+  when.addEventListener('change',wwPaint); where.addEventListener('change',wwPaint);
+  /* 1.9.54: παλιό ψάρι (ώρα πάνω από 3 ώρες πριν) και «Πού» = η θέση μου τώρα, χωρίς να το διάλεξες: η θέση σου τώρα (π.χ. σπίτι) δεν είναι εκεί που πιάστηκε.
+     Γίνεται «Χωρίς θέση», ανοίγει το «Πού» και λέει να διαλέξεις στον χάρτη ή σημείο. */
+  var wTouched=false, oldHint=h('p',{class:'wn oldhint',hidden:true,role:'status',text:T('Παλιό ψάρι: η θέση σου τώρα δεν είναι εκεί που το έπιασες. Πάτα «Στον χάρτη» ή «Σημείο μου».','Older catch: where you are now is not where you caught it. Tap “On the map” or “My spot”.')});
+  wPick.insertBefore(oldHint,wPick.children[1]||null);
+  wPick.addEventListener('click',function(){ wTouched=true; oldHint.hidden=true; },true);
+  function oldCheck(){ if(e||wTouched||where.value!=='gps') return; var d=when.value?new Date(when.value):null; if(!d||isNaN(d)||Date.now()-d.getTime()<3*3600000) return;
+    setW('none'); oldHint.hidden=false; wwBox.hidden=false; wwLine.classList.add('open'); }
+  when.addEventListener('change',oldCheck); when.addEventListener('input',oldCheck); locP.then(function(){ wwPaint(); autoDepth(); }); wwPaint();
   /* βάθος από τον χάρτη βυθού όταν δεν το έγραψες (εκτίμηση, σημειώνεται) */
   var depNote=h('small',{class:'wn',hidden:true}), depAuto=false;
   function autoDepth(){ if(e||dep.value||!pos||!B.depthAt||prof==='lake'||prof==='shore') return; B.depthAt(pos.lat,pos.lon).then(function(v){ if(v==null||v<1||dep.value) return; var U=window.AlkyonUnits, o=U&&U.depthOut?U.depthOut(v):Math.round(v);

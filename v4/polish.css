@@ -121,3 +121,6 @@ html.night .cpbox .cpmapb{background:#000;color:#fff;border-color:#fff}
 .hero .sqb{margin:8px 0 0;padding:8px 10px;border-radius:12px;background:color-mix(in srgb,var(--accent) 8%,transparent);font-size:13.5px;line-height:1.4}
 .hero .sqb b{font-weight:700}
 html.night .hero .sqb{background:#000;border:1px solid #fff}
+/* 1.9.54: παλιό ψάρι: «διάλεξε πού ήταν» */
+.wpk .oldhint{margin:0;padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--warn,#e8a317) 16%,transparent);color:var(--ink);font:600 13px/1.4 var(--font)}
+html.night .wpk .oldhint{background:#000;border:1px solid #fff}
