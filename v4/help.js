@@ -66,6 +66,7 @@ var HELP=[
 ];
 /* έκδοση → αλλαγές (νεότερες πρώτες). Προσθέτεις γραμμή εδώ σε κάθε νέα λειτουργία. */
 var NEWS=[
+ ['1.9.98',[T('Ρολόι Garmin: νέα σελίδα Έξοδος πριν την έναρξη — μεγάλος βαθμός με δαχτυλίδι, «Τρι 10 · 05-07 · σε 6:14» από πάνω και φαρδύ κουμπί «Έναρξη εξόδου».','Garmin watch: new Trip page before start — big score with ring, «Tue 10 · 05-07 · in 6:14» above and a wide «Start trip» button.')]],
  ['1.9.97',[T('Ρολόι Garmin: οι κεφαλαίοι τίτλοι γράφονται χωρίς τόνους («ΚΑΤΑΓΡΑΦΗ», «ΣΥΡΤΗ»)· ο βαθμός στη σελίδα Έξοδος με έντονα γράμματα· στο «Τέλος εξόδου;» οι λέξεις κάτω από τα εικονίδια· μετά τη δύση γράφει «σήμερα: νύχτωσε» αντί για «εκτός ορίων».','Garmin watch: Greek capital titles without accents; bold score badge on the Trip page; «End trip?» labels under the icons; after sunset it says «today: daylight over» instead of «over limits».')]],
  ['1.9.96',[T('Ρολόι Garmin: πιο καθαρή σελίδα Έξοδος πριν την έναρξη — ο βαθμός σε σήμα πάνω στο δαχτυλίδι, ετικέτα «Σήμερα · 05-07» χωρίς μπερδεμένο αριθμό, απαλή λάμψη πίσω από το κουμπί.','Garmin watch: cleaner Trip page before start — the score as a badge on the ring, «Today · 05-07» label without a confusing number, soft glow behind the button.')]],
  ['1.9.95',[T('Ρολόι Garmin: στο «Τέλος εξόδου;» το «Αποθήκευση» γράφεται με κεφαλαίο, όπως το «Άκυρο».','Garmin watch: on «End trip?» «Save» is capitalised like «Cancel».')]],
