@@ -67,7 +67,7 @@ export function compact(PF, fc, en, lat = null, lon = null) {
     if (d0 && lat != null && PF.darkWin) { const w = PF.darkWin(today, d0.set, d0.rise, lat, lon, tz); if (w) dk = [Math.round(w.s), Math.round(w.e), w.why === 'dawn' ? 1 : 0]; }
     const dn = (date) => { if (date === today) return en ? 'Today' : 'Σήμερα'; const dt = new Date(date + 'T12:00:00Z'); return (en ? DAYS_EN : DAYS_EL)[dt.getUTCDay()] + ' ' + dt.getUTCDate(); };
     const nwNear = (PF.nextMoon(nowMs - 3.5 * 864e5) || {}).nw;   // 1.9.70: η νέα σελήνη που πέρασε ως 3,5 μέρες πριν (όπως στην εφαρμογή), όχι η επόμενη του μήνα
-    const ev = PF.squidEves ? PF.squidEves(fc.days.filter(d => d.date >= today), nwNear, { now: fc.nowLocal.slice(0, 13) + ':00', lat, lon, tz }).slice(0, 3).map(e => ({ n: dn(e.date), h: e.hr, s: Math.round(e.score), ss: e.set != null ? Math.round(e.set) : null })) : [];   // 1.9.70: ss = δύση (λεπτά)
+    const ev = PF.squidEves ? PF.squidEves(fc.days.filter(d => d.date >= today), nwNear, { now: fc.nowLocal.slice(0, 13) + ':00', lat, lon, tz }).slice(0, 3).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)).map(e => ({ n: dn(e.date), h: e.hr, s: Math.round(e.score), ss: e.set != null ? Math.round(e.set) : null })) : [];   // 1.9.70: ss = δύση (λεπτά)
     /* αν η νέα σελήνη πέρασε τις τελευταίες 4 μέρες, nd < 0 («πριν 2 μέρες»): είναι ακόμα καλή περίοδος */
     let nd = nm.nw ? (nm.nw - nowMs) / 864e5 : null; try { const pm = PF.nextMoon(nowMs - 4 * 864e5).nw; if (pm && pm <= nowMs) nd = -(nowMs - pm) / 864e5; } catch (e) {}
     /* 1.9.70: wx = 1 όταν το φεγγάρι μεγαλώνει (αύξουσα), για τη φάση και το σχέδιο στο ρολόι */

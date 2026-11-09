@@ -402,15 +402,30 @@ function seaState(d){
   if((wd!=null&&wd>12)||(!lake&&wv!=null&&wv>0.6)) return ['mid',T('Μέτρια','Moderate'),det];
   return ['good',T('Καλή','Good'),det];
 }
+/* 1.9.99: απόψε (σήμερα μετά τη δύση): η θάλασσα από τώρα ως την ανατολή, γιατί κάποιος μπορεί να ψαρεύει και τη νύχτα */
+function tonight(fc,d,nh){
+  var nx=(fc.days||[]).filter(function(x){ return x.date>d.date; })[0], rh=nx&&nx.rise!=null?Math.floor(nx.rise/60):6;
+  var hs=(d.hours||[]).filter(function(q){ return q.hr>=nh; }).concat(nx?(nx.hours||[]).filter(function(q){ return q.hr<rh; }):[]);
+  if(!hs.length) return null;
+  var mx=function(k){ var a=hs.map(function(q){ return q[k]; }).filter(function(v){ return typeof v==='number'; }); return a.length?Math.max.apply(null,a):null; };
+  var wd=mx('wind'), wv=mx('wave'), gs=mx('gust'), L=LIM(), lake=B.prof()==='lake', bad=hs.filter(function(q){ return q.safe===false; })[0];
+  var det=[wd!=null?T('άνεμος έως ','wind up to ')+U.wind(wd)+(gs!=null&&gs-wd>=6?T(', ριπές ',', gusts ')+U.wind(gs):''):null,(!lake&&wv!=null)?T('κύμα έως ','waves up to ')+U.wave(wv):null].filter(Boolean).join(' · ');
+  var until=T('ως τις ','until ')+B.pad(rh)+':00';
+  if(bad) return ['poor',T('Απόψε: εκτός ορίων','Tonight: over limits'),T('από τις ','from ')+B.pad(bad.hr)+':00 · '+(overWhy(bad)||det)];
+  if((wd!=null&&wd>12)||(!lake&&wv!=null&&wv>0.6)) return ['fair',T('Απόψε: μέτρια θάλασσα','Tonight: moderate sea'),det+' · '+until];
+  return ['good',T('Απόψε: καλή θάλασσα','Tonight: good sea'),det+' · '+until];
+}
 /* ---------- μία μέρα ---------- */
 function dayView(page,fc,d){
   if(!d) return;
   var td=today(), isToday=d.date===td, nh=nowHr();
   var selH=st.hour!=null?st.hour:(isToday?nh:(d.win?d.win.s:12)), hr=hourOf(d,selH)||hourOf(d,12)||d.hours[0];
   /* κεντρικό: απόφαση, καλύτερη ώρα, καμπύλη της μέρας */
-  var hero=h('section',{class:'hero lv-'+(d.safe?lvl(d.best):'poor'),'aria-label':T('Σύνοψη ημέρας','Day summary')});
+  var tn=(isToday&&!d.safe&&d.why==='night')?tonight(fc,d,nh):null; /* 1.9.99: τη νύχτα όχι «Δεν μένει φως»: πώς είναι η θάλασσα απόψε */
+  var hero=h('section',{class:'hero lv-'+(tn?tn[0]:d.safe?lvl(d.best):'poor'),'aria-label':T('Σύνοψη ημέρας','Day summary')});
   var fh=focusHours(d), tg=seaTag({wave:avgOf(fh,'wave'),wind:avgOf(fh,'wind')});
-  hero.append(h('div',{class:'hv'},h('h2',{text:verdict(d)}))); /* 1.8.6: ο βαθμός φαίνεται ήδη στη μέρα πάνω· εδώ μπαίνει το «γιατί» */
+  hero.append(h('div',{class:'hv'},h('h2',{text:tn?tn[1]:verdict(d)})));
+  if(tn&&tn[2]) hero.append(h('p',{class:'hwhy',text:tn[2]})); /* 1.8.6: ο βαθμός φαίνεται ήδη στη μέρα πάνω· εδώ μπαίνει το «γιατί» */
   if(d.safe&&d.win) hero.append(h('div',{class:'hw'},h('span',{text:T('Καλύτερη ώρα','Best time')}),h('b',{text:win(d)})),
     h('p',{class:'hidx',title:T('Τσίμπημα και θάλασσα μαζί. Οι ετικέτες αφορούν αυτές τις ώρες.','Bite and sea together. The tags are for these hours.'),text:T('Δείκτης ψαρέματος ','Fishing index ')+d.best+'/100'}));
   /* 1.9.32: χωριστά «Τσίμπημα» (μόνο τα ψάρια: φως, σελήνη, πίεση, νερό) και «Θάλασσα» (άνεμος/κύμα σε σχέση με τα όριά σου) */
@@ -419,7 +434,7 @@ function dayView(page,fc,d){
       h('div',{class:'hsb lv-'+lvl(d.bite)},h('small',null,ik('fish'),T('Τσίμπημα','Bite')),h('b',{text:String(d.bite)}),h('span',{text:bw?B.pad(bw.s)+':00–'+B.pad((bw.e+1)%24)+':00':''})),
       h('div',{class:'hsb sea-'+sx[0]},h('small',null,ik('wave'),T('Θάλασσα','Sea')),h('b',{text:sx[1]}),h('span',{text:sx[2]})))); }
   var wz=worsens(d); if(wz) hero.append(h('p',{class:'hworse',text:wz}));
-  else if(!d.safe){ var why=unsafeWhy(d); if(why) hero.append(h('p',{class:'hwhy',text:why.charAt(0).toUpperCase()+why.slice(1)+'.'})); }
+  else if(!d.safe&&!tn){ var why=unsafeWhy(d); if(why) hero.append(h('p',{class:'hwhy',text:why.charAt(0).toUpperCase()+why.slice(1)+'.'})); }
   /* σήμερα δεν βγαίνει: δείξε την επόμενη καλή μέρα */
   if(isToday&&(!d.safe||(d.best<50))){ var nx=(fc.days||[]).filter(function(x){ return x.date>d.date&&x.safe&&x.best>=60; })[0];
     if(nx) hero.append(h('button',{class:'next',type:'button',onclick:function(){ st.view='today'; st.day=nx.date; st.hour=null; draw(); }},
