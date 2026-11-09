@@ -86,8 +86,65 @@ B.gearPanel=function(){
     body.append(l); }
   if(!a){ body.append(h('h3',{class:'listh',text:T('Νέα ρίψη','New set')})); var g2=h('div',{class:'acts'}); Object.keys(TYPES).forEach(function(k){ g2.append(h('button',{class:'btn',type:'button',text:tn(k),onclick:function(){ sh.close(); startSet(k); }})); }); body.append(g2);
     body.append(h('h3',{class:'listh',text:T('Ανέβασμα χωρίς καταγραμμένη ρίψη','Haul without a recorded set')})); var g3=h('div',{class:'acts'}); Object.keys(TYPES).forEach(function(k){ g3.append(h('button',{class:'btn',type:'button',text:tn(k),onclick:function(){ sh.close(); haulNew(k); }})); }); body.append(g3); }
+  body.append(h('h3',{class:'listh',text:T('Έγινε χωρίς την εφαρμογή','Done without the app')}),h('div',{class:'acts'},h('button',{class:'btn',type:'button',text:T('+ Παλιά ρίψη','+ Past set'),onclick:function(){ sh.close(); setTimeout(B.gearPast,200); }}))); /* 1.10.2 */
   body.append(h('p',{class:'foot',text:T('Όσο τρέχει ρίψη ή ανέβασμα, η οθόνη μένει αναμμένη για να καταγράφεται η διαδρομή.','While a set or haul runs, the screen stays on so the route is recorded.')}));
   sh=B.sheet({title:T('Εργαλεία','Gear'),body:body});
+};
+
+/* ---------- 1.10.2: παλιά ρίψη (δίχτυ / παραγάδι / κλουβί που έγινε χωρίς την εφαρμογή) ----------
+   Γράφει: εργαλείο «Ολοκληρώθηκε» (ώρες ρίψης/ανεβάσματος, μήκος, σημείο), μία έξοδο στο Ημερολόγιο και τα ψάρια ανά είδος, συνδεδεμένα με το εργαλείο. */
+B.gearPast=function(){
+  var sh, now=new Date(), ds=function(d){ return d.getFullYear()+'-'+B.pad(d.getMonth()+1)+'-'+B.pad(d.getDate()); }, today=ds(now);
+  var type='net';
+  var tseg=B.seg([['ll',T('Παραγάδι','Longline')],['net',T('Δίχτυ','Net')],['trap',T('Κλουβί','Pot')]],type,function(v){ type=v; },T('Εργαλείο','Gear'));
+  /* προεπιλογή: ανέβασμα 06:00 της πιο πρόσφατης πρωίας που έχει περάσει, ρίψη 18:00 το προηγούμενο απόγευμα (12 ώρες) */
+  var hb=new Date(now.getFullYear(),now.getMonth(),now.getDate(),6,0); if(hb.getTime()>now.getTime()) hb=new Date(hb.getTime()-86400000); var sb=new Date(hb.getTime()-12*3600000);
+  var d0=h('input',{type:'date',value:ds(sb),max:today,'aria-label':T('Ημερομηνία ρίψης','Set date')}), t0=h('input',{type:'time',value:'18:00','aria-label':T('Ώρα ρίψης','Set time')});
+  var d1=h('input',{type:'date',value:ds(hb),max:today,'aria-label':T('Ημερομηνία ανεβάσματος','Haul date')}), t1=h('input',{type:'time',value:'06:00','aria-label':T('Ώρα ανεβάσματος','Haul time')});
+  var ln=h('input',{type:'number',min:'0',step:'10',inputmode:'numeric',placeholder:T('π.χ. 300','e.g. 300')});
+  var hk=h('input',{type:'number',min:'0',step:'10',inputmode:'numeric',placeholder:T('π.χ. 200','e.g. 200')});
+  var dp=h('input',{type:'number',min:'0',step:'1',inputmode:'numeric',placeholder:T('π.χ. 40','e.g. 40')});
+  var sp=h('input',{type:'text',maxlength:'60',list:'gpSpots',placeholder:T('Επίλεξε ή γράψε','Pick or type')});
+  var spl=h('datalist',{id:'gpSpots'}), spots=B.store.raw('spots').filter(function(x){ return !x.deleted&&x.name; }); spots.forEach(function(x){ spl.append(h('option',{value:x.name})); });
+  var nt=h('textarea',{maxlength:'500',rows:'2',placeholder:T('Δόλωμα, μάτι, άνεμος','Bait, mesh, wind')}), msg=h('p',{class:'err',role:'alert'});
+  var rows=h('div',{class:'gprows'});
+  function addRow(){ var r=h('div',{class:'gprow',style:{display:'grid',gridTemplateColumns:'1fr 84px 84px',gap:'8px',marginBottom:'8px'}},
+      h('input',{type:'text',maxlength:'40',list:'gpSp',placeholder:T('Είδος','Species'),'aria-label':T('Είδος','Species')}),
+      h('input',{type:'number',min:'0',step:'1',inputmode:'numeric',placeholder:T('Πόσα','Count'),'aria-label':T('Πόσα','Count'),style:{width:'100%',minWidth:'0',boxSizing:'border-box'}}),
+      h('input',{type:'number',min:'0',step:'0.1',inputmode:'decimal',placeholder:'kg','aria-label':'kg',style:{width:'100%',minWidth:'0',boxSizing:'border-box'}})); rows.append(r); }
+  var spd=h('datalist',{id:'gpSp'}), seen={}; B.store.raw('bites').forEach(function(b){ var v=(b.species||'').trim(); if(v&&!seen[v]){ seen[v]=1; spd.append(h('option',{value:v})); } });
+  addRow(); addRow();
+  function f(l,el){ return h('label',{class:'fld'},h('span',{text:l}),el); }
+  function ms(d,t){ return new Date(d+'T'+(t||'00:00')).getTime(); }
+  function save(){ msg.textContent='';
+    if(!/^\d{4}-\d\d-\d\d$/.test(d0.value)||!/^\d{4}-\d\d-\d\d$/.test(d1.value)){ msg.textContent=T('Διάλεξε ημερομηνίες.','Pick the dates.'); return; }
+    var a=ms(d0.value,t0.value), b=ms(d1.value,t1.value);
+    if(b<=a){ msg.textContent=T('Το ανέβασμα πρέπει να είναι μετά τη ρίψη.','The haul must be after the set.'); return; }
+    if(b>Date.now()+60000){ msg.textContent=T('Η ώρα ανεβάσματος είναι στο μέλλον.','The haul time is in the future.'); return; }
+    var spot=sp.value.trim(), so=spots.filter(function(x){ return x.name===spot; })[0], pos=so&&typeof so.lat==='number'?[R(so.lat),R(so.lon)]:null;
+    var cs=[]; rows.querySelectorAll('.gprow').forEach(function(r){ var i=r.querySelectorAll('input'), s=i[0].value.trim(), n=Math.max(0,Math.round(+i[1].value||0)), k=Math.max(0,+i[2].value||0); if(s||n||k) cs.push({s:s,n:n||1,kg:k}); });
+    var g=G(); g.seq[type]=(g.seq[type]||0)+1;
+    var it={id:newId(),type:type,name:tn(type)+' '+g.seq[type],state:'done',past:true,set:{a:pos,ta:a,tb:a,pts:pos?[pos]:[],b:pos},haul:{a:pos,ta:b,tb:b,pts:pos?[pos]:[],b:pos},done:b};
+    if(+ln.value>0) it.len=Math.round(+ln.value); if(+hk.value>0) it.hooks=Math.round(+hk.value); if(+dp.value>0) it.depth=Math.round(+dp.value); if(nt.value.trim()) it.notes=nt.value.trim(); if(spot) it.spot=spot;
+    g.items.push(it); put(g);
+    var sid='g'+it.id, tot=cs.reduce(function(x,c){ return x+c.n; },0), kgt=Math.round(cs.reduce(function(x,c){ return x+c.kg; },0)*10)/10;
+    var hd=new Date(b), hdate=ds(hd), htime=B.pad(hd.getHours())+':'+B.pad(hd.getMinutes());
+    cs.forEach(function(c){ B.store.save('bites',{date:hdate,time:htime,tz:-hd.getTimezoneOffset(),species:c.s,latin:'',bait:'',tech:tn(type),depth:it.depth||null,kg:c.kg||null,len:null,cnt:c.n,notes:'',place:spot,lat:pos?pos[0]:null,lon:pos?pos[1]:null,photo:false,src:'gear-past',prof:'boat',gear:it.id,gearName:it.name,trip:sid}); });
+    var det=[it.len?it.len+' m':'',it.hooks?it.hooks+T(' αγκίστρια',' hooks'):'',it.depth?it.depth+' m '+T('βάθος','deep'):''].filter(Boolean).join(' · ');
+    B.store.save('trips',{sid:sid,date:ds(new Date(a)),spot:spot||it.name,prof:'boat',tech:tn(type),species:cs.map(function(c){ return c.s; }).filter(Boolean).join(', '),count:tot,kg:kgt,startMs:a,endMs:b,notes:[det,it.notes||''].filter(Boolean).join('\n'),manual:true,gear:[it]});
+    sh.close(); B.toast(it.name+': '+tot+' '+T('ψάρια','catches')+(kgt?', '+B.num(kgt,1)+' kg':'')+T(' · αποθηκεύτηκε',' · saved'));
+  }
+  var body=h('div',{class:'bform gearpast'},
+    h('p',{class:'warnbox',text:T('Δίχτυα και παραγάδια είναι συνήθως εργαλεία επαγγελματικής αλιείας. Η καταγραφή δεν νομιμοποιεί το εργαλείο: έλεγξε την ισχύουσα νομοθεσία.','Nets and longlines are usually commercial gear. Logging does not make the gear legal: check the law.')}),
+    tseg,
+    h('div',{class:'two',style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}},f(T('Ρίψη','Set'),d0),f(T('ώρα','time'),t0),f(T('Ανέβασμα','Haul'),d1),f(T('ώρα','time'),t1)),
+    h('div',{class:'two',style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'8px'}},f(T('Μήκος (m)','Length (m)'),ln),f(T('Αγκίστρια','Hooks'),hk),f(T('Βάθος (m)','Depth (m)'),dp)),
+    f(T('Σημείο','Spot'),sp),spl,
+    h('h3',{class:'listh',text:T('Αλιεύματα','Catch')}),rows,spd,
+    h('button',{class:'btn sm',type:'button',text:T('+ Είδος','+ Species'),onclick:addRow}),
+    f(T('Σημειώσεις','Notes'),nt),msg,
+    h('div',{class:'acts'},h('button',{class:'btn pri',type:'button',text:T('Αποθήκευση','Save'),onclick:save})));
+  sh=B.sheet({title:T('Παλιά ρίψη','Past set'),body:body});
 };
 
 /* ---------- χάρτης: γραμμές εργαλείων ---------- */

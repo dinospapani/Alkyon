@@ -913,6 +913,20 @@ with sync_playwright() as p:
     pg.reload(); pg.wait_for_timeout(3000); s=go(pg,'#map',2500)
     check('offline μετά από ανανέωση: χάρτης', s['n']>15 and not s['fail'], s)
     check('offline χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
+    # 1.10.2: παλιά ρίψη διχτυού: εργαλείο «Ολοκληρώθηκε», έξοδος στο Ημερολόγιο, ψάρια ανά είδος συνδεδεμένα
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(2500)
+    pg.evaluate("()=>AK.gearPast()"); pg.wait_for_timeout(600)
+    r=pg.evaluate("""()=>{const f=document.querySelector('.gearpast'); if(!f) return null; const rw=f.querySelectorAll('.gprow');
+      const set=(el,v)=>{el.value=v; el.dispatchEvent(new Event('input',{bubbles:true}));};
+      const n=f.querySelectorAll('input[type=number]'); set(n[0],'300');
+      let i=rw[0].querySelectorAll('input'); set(i[0],'Σαργός'); set(i[1],'8'); set(i[2],'2.4');
+      i=rw[1].querySelectorAll('input'); set(i[0],'Μουρμούρα'); set(i[1],'4');
+      [...f.querySelectorAll('button')].find(b=>/Αποθήκευση/.test(b.textContent)).click();
+      const g=JSON.parse(localStorage.getItem('alkyon-gear')||'{}').items||[], it=g[g.length-1]||{};
+      const bt=JSON.parse(localStorage.getItem('alkyon-bites')||'[]').filter(x=>x.gear===it.id);
+      const tr=JSON.parse(localStorage.getItem('alkyon-trips')||'[]').filter(x=>x.sid==='g'+it.id)[0]||{};
+      return [it.state, it.type, it.len, it.past, bt.length, bt.reduce((a,x)=>a+x.cnt,0), tr.count, tr.kg, (tr.endMs-tr.startMs)/3600000];}"""); pg.wait_for_timeout(800); r=r and r+[pg.evaluate("()=>!!document.querySelector('.gearpast')")]
+    check('Εργαλεία: παλιά ρίψη διχτυού με ψάρια ανά είδος (1.10.2)', r and r[0]=='done' and r[1]=='net' and r[2]==300 and r[3] and r[4]==2 and r[5]==12 and r[6]==12 and abs(r[7]-2.4)<0.01 and r[8]==12 and not r[9] and not pg._errs, [r,pg._errs]); c.close()
     b.close()
 
 # 1.9.48: server (quick-processor): ίδιος κώδικας, ψεύτικα δεδομένα, χωρίς δίκτυο
