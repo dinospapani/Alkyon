@@ -294,6 +294,7 @@ NOW = RealDate.parse('2026-11-09T10:00:00Z');
   const corner = g2.d[g2.w * (g2.h - 1) + g2.w - 1], corner1 = g.d[g.w * (g.h - 1) + g.w - 1];
   check('Ρολόι: χάρτης βυθού: η διόρθωση σβήνει μακριά από τη μέτρηση', corner - corner1 < 4, { corner, corner1 });
   const st = fs.readFileSync(path.join(ROOT, 'v4', 'store.js'), 'utf8');
+  check('Νέα: η έκδοση 1.9.94 υπάρχει στα «Τι νέο»', /\['1\.9\.94',\[T\('Ρολόι Garmin: νέα ερώτηση/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
   check('Νέα: η έκδοση 1.9.93 υπάρχει στα «Τι νέο»', /\['1\.9\.93',\[T\('Ρολόι Garmin: διορθώθηκε το κλείσιμο/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
   check('Νέα: η έκδοση 1.9.92 (σχέδιο v7) υπάρχει στα «Τι νέο»', /\['1\.9\.92',\[T\('Ρολόι Garmin, σχέδιο v7/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
   check('Νέα: η έκδοση 1.9.91 υπάρχει στα «Τι νέο»', /\['1\.9\.91',\[T\('Ρολόι Garmin: μετά το ψάρι/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
