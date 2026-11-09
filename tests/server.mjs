@@ -298,6 +298,46 @@ NOW = RealDate.parse('2026-11-09T10:00:00Z');
   check('Εφαρμογή: οι διορθώσεις βυθομέτρου συγχρονίζονται (για να τις βλέπει το ρολόι)', /SETS=\[[^\]]*'alkyon-dcorr'/.test(st));
 }
 
+/* ---------- ρολόι: ψάρι με ένα πάτημα στη συρτή, αναίρεση, «Χάθηκε», είδος (1.9.75) ---------- */
+{
+  const tmp = path.join(ROOT, 'tests', '.watch-tmp3.mjs'); fs.writeFileSync(tmp, fs.readFileSync(path.join(ROOT, 'watch-index.ts'), 'utf8'));
+  const W = await import(pathToFileURL(tmp).href); fs.unlinkSync(tmp);
+  const db = new Map(), log = [];
+  const bitesRows = [{ sp: 'Λουτσος', tech: 'Συρτή βυθού', w: null }, { sp: 'Λουτσος', tech: '', w: { m: 'bottom' } }, { sp: 'Σφυρίδα', tech: 'συρτή', w: null }, { sp: 'Σαργός', tech: 'Καθετή', w: null }, { sp: 'Σαργός', tech: 'Καθετή', w: null }, { sp: 'Σαργός', tech: 'Καθετή', w: null }, { sp: '', tech: 'συρτή', w: null, m: 'true' }];
+  const F = async (url, opt = {}) => { url = String(url); const m = opt.method || 'GET'; log.push(m + ' ' + url);
+    const res = (o, st = 200) => ({ ok: st < 300, status: st, json: async () => o, text: async () => JSON.stringify(o) });
+    if (url.includes('/rest/v1/watch_links')) return res([{ user_id: 'u1', lang: 'el' }]);
+    if (url.includes('/rest/v1/records')) {
+      const id = (url.match(/[?&]id=eq\.([A-Za-z0-9]+)/) || [])[1];
+      if (m === 'POST') { const row = JSON.parse(opt.body)[0]; if (db.has(row.id)) return res({}, 409); db.set(row.id, row); return res({}, 201); }
+      if (m === 'PATCH') { const b = JSON.parse(opt.body); if (db.has(id)) db.set(id, { ...db.get(id), ...b }); return res({}, 204); }
+      if (url.includes('kind=eq.bites') && url.includes('select=sp:')) return res(bitesRows);
+      if (id) return res(db.has(id) ? [{ data: db.get(id).data }] : []);
+      return res([]);
+    }
+    return res({}, 404); };
+  process.env.SUPABASE_URL = 'https://x.supabase.co'; process.env.SUPABASE_SERVICE_ROLE_KEY = 'k';
+  const post = async (b) => (await W.handle(new Request('https://x/functions/v1/watch', { method: 'POST', body: JSON.stringify(b) }), F, RealDate.now())).json();
+  const cid = 'c' + RealDate.now().toString(36);
+  const r1 = await post({ code: 'ABC123', kind: 'fish', ts: Math.floor(RealDate.now() / 1000), tz: 120, lat: 35.06, lon: 32.4, cid, tr: { m: 'b', n: 22, bd: 24.5, cl: 1.2 } });
+  check('Ρολόι: το ψάρι γράφεται με τον κωδικό του ρολογιού (για αναίρεση) (1.9.75)', r1.ok === 1 && r1.id === cid && db.has(cid), r1);
+  const r1b = await post({ code: 'ABC123', kind: 'fish', ts: Math.floor(RealDate.now() / 1000), tz: 120, cid });
+  check('Ρολόι: αν το ρολόι ξαναστείλει το ίδιο ψάρι, δεν κολλάει η ουρά (409 = εντάξει)', r1b.ok === 1 && db.size === 1, r1b);
+  check('Ρολόι: το ψάρι της συρτής κρατά βυθό και απόσταση από τον βυθό', db.get(cid).data.wtr && db.get(cid).data.wtr.bd === 24.5 && db.get(cid).data.wtr.cl === 1.2, db.get(cid).data.wtr);
+  const r2 = await post({ code: 'ABC123', kind: 'upd', cid, sp: 'Λουτσος' });
+  check('Ρολόι: είδος από το ρολόι μετά το ψάρι', r2.ok === 1 && db.get(cid).data.species === 'Λουτσος' && db.get(cid).data._u > 0, db.get(cid).data);
+  const r3 = await post({ code: 'ABC123', kind: 'upd', cid, miss: 1 });
+  check('Ρολόι: «Χάθηκε» μετά το ψάρι → γίνεται τσίμπημα που χάθηκε', r3.ok === 1 && db.get(cid).data.miss === true && db.get(cid).data.species === '', db.get(cid).data);
+  const r4 = await post({ code: 'ABC123', kind: 'undo', cid });
+  check('Ρολόι: αναίρεση ψαριού → σβήνεται από το Ημερολόγιο', r4.ok === 1 && db.get(cid).deleted === true, db.get(cid));
+  const r5 = await post({ code: 'ABC123', kind: 'undo', cid: '' });
+  check('Ρολόι: αναίρεση χωρίς κωδικό ψαριού → σφάλμα, όχι σβήσιμο', r5.ok === 0, r5);
+  const r6 = await post({ code: 'ZZZ', kind: 'undo', cid });
+  check('Ρολόι: αναίρεση χωρίς σωστό κωδικό ρολογιού → όχι', r6.ok === 0, r6);
+  const ts = W.trollSpecies(bitesRows);
+  check('Ρολόι: είδη για την επιλογή: πρώτα της συρτής, μετά τα άλλα, χωρίς τα «Χάθηκε»', JSON.stringify(ts) === JSON.stringify(['Λουτσος', 'Σφυρίδα', 'Σαργός']), ts);
+}
+
 /* ---------- σκοτάδι για καλαμάρι ---------- */
 {
   const dw = d => { const s = PF.sunMoon(d, 35.04, 32.42, 120); return PF.darkWin(d, s.set, s.rise, 35.04, 32.42, 120); };

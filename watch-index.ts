@@ -3,6 +3,7 @@
 //   GET  /functions/v1/watch?lat=34.9&lon=32.4[&code=ABC123]  → σύντομη πρόγνωση (ίδιος βαθμός με την εφαρμογή, από το forecast.js)
 //   POST /functions/v1/watch  {code, t, lat, lon, kind:'fish'|'miss'|'pest', n, trip}  → γράφει το ψάρι στο Ημερολόγιο του χρήστη
 //   GET  /functions/v1/watch?grid=1&lat=..&lon=..[&code=..]  → 1.9.72: χάρτης βυθού γύρω από το σημείο (συρτή βυθού στο ρολόι)
+//   POST /functions/v1/watch  {code, kind:'undo'|'upd', cid[, miss, sp]}  → 1.9.75: αναίρεση/αλλαγή ψαριού από το ρολόι
 //   POST /functions/v1/watch  {code, kind:'trip', ts, te, tz, tid, n, pts:[[lat,lon,ts],…]}  → 1.1.0: έξοδος από το ρολόι
 // Το «code» είναι ο κωδικός σύνδεσης ρολογιού (Προφίλ › Ρολόι Garmin στην εφαρμογή, πίνακας watch_links, βλ. watch-link.sql).
 // Χρειάζεται: Verify JWT = off. Τα SUPABASE_URL και SUPABASE_SERVICE_ROLE_KEY υπάρχουν ήδη σε κάθε Edge Function.
@@ -143,6 +144,12 @@ export async function depthGrid(F, lat, lon, cs = [], rad = 1300) {
   return { ok: 1, x0: r6(x0), y0: r6(y0), dx: r6(g.dx), dy: r6(ddy), w: g.w, h: g.h, d, c: cs.length ? 1 : 0 };
 }
 
+/* 1.9.75: τα 4 είδη που πιάνεις πιο συχνά στη συρτή, συμπληρωμένα με τα γενικά: rows = [{sp, tech, w, m}] */
+export function trollSpecies(rows) {
+  const top = (rr) => { const c = new Map(); rr.forEach(x => { const n = String(x.sp || '').trim(); if (n && x.m !== 'true') c.set(n, (c.get(n) || 0) + 1); }); return [...c.entries()].sort((p, q) => q[1] - p[1]).map(e => e[0].slice(0, 18)); };
+  const tr = top(rows.filter(x => x.w || /συρτ|troll/i.test(String(x.tech || '')))), al = top(rows);
+  return [...tr, ...al.filter(n => !tr.includes(n))].slice(0, 4);
+}
 export async function handle(req, F = fetch, now = Date.now()) {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   const u = new URL(req.url), q = u.searchParams;
@@ -175,6 +182,9 @@ export async function handle(req, F = fetch, now = Date.now()) {
           const sp = (a || []).map(x => x && x.data).filter(x => x && Number.isFinite(+x.lat) && Number.isFinite(+x.lon) && !x.deleted).map(x => ({ n: String(x.name || '').slice(0, 20), lat: +x.lat, lon: +x.lon }))
             .sort((p, q) => d2(p) - d2(q)).slice(0, 12).map(x => [x.n, Math.round(x.lat * 1e5) / 1e5, Math.round(x.lon * 1e5) / 1e5]);
           if (sp.length) o = { ...o, sp }; } catch (e) {}
+        /* 1.9.75: τα 4 είδη που πιάνεις πιο συχνά στη συρτή (αλλιώς γενικά), για την επιλογή είδους στο ρολόι */
+        try { const r = await sb(F, 'records?user_id=eq.' + us.user_id + '&kind=eq.bites&deleted=eq.false&select=sp:data->>species,tech:data->>tech,w:data->wtr,m:data->>miss&order=updated_at.desc&limit=1500'); const a = r.ok ? await r.json() : [];
+          const tsp = trollSpecies(a || []); if (tsp.length) o = { ...o, tsp }; } catch (e) {}
         return o; };
       const hit = mem.fc.get(key); if (hit && now - hit.at < 30 * 60e3) return J(small(await withDue(hit.v)), 200, 'private, max-age=300');
       const PF = await loadPF(F, now);
@@ -204,14 +214,32 @@ export async function handle(req, F = fetch, now = Date.now()) {
         if (!r.ok && r.status !== 409) return J({ ok: 0, err: 'db ' + r.status, detail: (await r.text()).slice(0, 200) }, 502);
         return J({ ok: 1, id: tid });   // 409 = υπάρχει ήδη (το ρολόι το ξανάστειλε)
       }
+      /* 1.9.75: αναίρεση ή αλλαγή ψαριού από το ρολόι (οθόνη 6″ μετά το START στη συρτή): cid = ο κωδικός που έδωσε το ρολόι στο ψάρι */
+      if (b.kind === 'undo' || b.kind === 'upd') {
+        const cid = tripId(b.cid); if (!cid) return J({ ok: 0, err: 'cid' }, 400);
+        const q = 'records?user_id=eq.' + us.user_id + '&kind=eq.bites&id=eq.' + cid;
+        if (b.kind === 'undo') {
+          const r = await sb(F, q, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ deleted: true, updated_at: new Date(now).toISOString() }) });
+          if (!r.ok) return J({ ok: 0, err: 'db ' + r.status }, 502);
+          return J({ ok: 1, id: cid });
+        }
+        const r0 = await sb(F, q + '&select=data&limit=1'); const a0 = r0.ok ? await r0.json() : [];
+        if (!a0 || !a0[0] || !a0[0].data) return J({ ok: 1, id: cid, skip: 1 });   // δεν υπάρχει (π.χ. σβήστηκε): τίποτα
+        const d = { ...a0[0].data, _u: now };
+        if (b.miss) { d.miss = true; d.species = ''; d.latin = ''; delete d.cnt; }
+        if (typeof b.sp === 'string' && b.sp.trim()) { d.species = b.sp.trim().slice(0, 40); delete d.miss; }
+        const r = await sb(F, q, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ data: d, updated_at: new Date(now).toISOString() }) });
+        if (!r.ok) return J({ ok: 0, err: 'db ' + r.status }, 502);
+        return J({ ok: 1, id: cid });
+      }
       const kind = b.kind === 'miss' ? 'miss' : b.kind === 'pest' ? 'pest' : 'fish';
       const lp = localParts(t, Number.isFinite(+b.tz) ? +b.tz : tzOf(t)), en = us.lang === 'en';
       const lat = Number.isFinite(+b.lat) && Math.abs(+b.lat) > 0.01 ? Math.round(+b.lat * 1e5) / 1e5 : null, lon = Number.isFinite(+b.lon) && Math.abs(+b.lon) > 0.01 ? Math.round(+b.lon * 1e5) / 1e5 : null;
-      const id = rid();
+      const id = tripId(b.cid) || rid();   // 1.9.75: ο κωδικός του ρολογιού, για αναίρεση/αλλαγή αργότερα
       const data = { id, date: lp.date, time: lp.time, species: kind === 'pest' ? (en ? 'Silver-cheeked toadfish' : 'Λαγοκέφαλος') : '', latin: kind === 'pest' ? 'Lagocephalus sceleratus' : '', bait: '', tech: '', depth: null, kg: null, len: null,
         notes: '', place: '', lat, lon, photo: false, src: 'watch', _u: now, ...(kind === 'miss' ? { miss: true } : {}), ...(kind === 'pest' ? { pest: true } : {}), ...(Math.floor(+b.n) > 1 && Math.floor(+b.n) < 100 ? { cnt: Math.floor(+b.n) } : {}), ...(tripId(b.trip) ? { trip: tripId(b.trip) } : {}), ...(kind === 'fish' && b.tr && typeof b.tr === 'object' ? { wtr: { m: b.tr.m === 'b' ? 'bottom' : 'surface', kn: Number.isFinite(+b.tr.kn) ? Math.round(+b.tr.kn * 10) / 10 : null, hd: Number.isFinite(+b.tr.hd) ? Math.round(+b.tr.hd) : null, n: Number.isFinite(+b.tr.n) && +b.tr.n > 0 && +b.tr.n < 100 ? Math.round(+b.tr.n) : null, ln: Number.isFinite(+b.tr.ln) && +b.tr.ln > 0 && +b.tr.ln < 400 ? Math.round(+b.tr.ln) : null, bd: Number.isFinite(+b.tr.bd) && +b.tr.bd > 0 && +b.tr.bd < 500 ? Math.round(+b.tr.bd * 10) / 10 : null, cl: Number.isFinite(+b.tr.cl) && Math.abs(+b.tr.cl) < 100 ? Math.round(+b.tr.cl * 10) / 10 : null } } : {}) }; /* 1.6.4: συρτή από το ρολόι */
       const r = await sb(F, 'records', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify([{ user_id: us.user_id, kind: 'bites', id, data, deleted: false, updated_at: new Date(now).toISOString() }]) });
-      if (!r.ok) return J({ ok: 0, err: 'db ' + r.status, detail: (await r.text()).slice(0, 200) }, 502);
+      if (!r.ok && r.status !== 409) return J({ ok: 0, err: 'db ' + r.status, detail: (await r.text()).slice(0, 200) }, 502);   // 409 = το ρολόι το ξανάστειλε
       return J({ ok: 1, id, time: lp.time });
     }
     return J({ ok: 0, err: 'method' }, 405);
