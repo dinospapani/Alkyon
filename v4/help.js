@@ -66,6 +66,7 @@ var HELP=[
 ];
 /* έκδοση → αλλαγές (νεότερες πρώτες). Προσθέτεις γραμμή εδώ σε κάθε νέα λειτουργία. */
 var NEWS=[
+ ['1.9.93',[T('Ρολόι Garmin: διορθώθηκε το κλείσιμο της εφαρμογής όταν πατάς «ψάρι» (1.9.92)· η γρήγορη ματιά (glance) χωρίς πρόγνωση λέει «άνοιξε για πρόγνωση».','Garmin watch: fixed the app closing when you press «fish» (1.9.92); the glance without a forecast says «open for the forecast».')]],
  ['1.9.92',[T('Ρολόι Garmin, σχέδιο v7: τα μηνύματα, τα μενού και η γρήγορη ματιά (glance) στο νέο σχέδιο· η σελίδα Έξοδος δείχνει τον βαθμό γύρω από το κουμπί· όταν σήμερα είναι εκτός ορίων, η σελίδα Σήμερα δείχνει καθαρά την αυριανή, με το δικό της δαχτυλίδι.','Garmin watch, design v7: messages, menus and the glance in the new design; the Trip page shows the score around the button; when today is over limits, the Today page clearly shows tomorrow, with its own ring.')]],
  ['1.9.91',[T('Ρολόι Garmin: μετά το ψάρι το «είδος» δεν πέφτει πάνω στο δαχτυλίδι· στο Σημείο ένα τόξο μόνο όταν ο στόχος είναι δίπλα στο START.','Garmin watch: after a catch «species» no longer sits on the ring; on Spot only one arc when the target is next to START.')]],
  ['1.9.90',[T('Ρολόι Garmin: το «−1» φαίνεται ακριβώς δίπλα στο κουμπί UP (στις 9), όχι δίπλα στο LIGHT.','Garmin watch: «−1» now sits right next to the UP button (at 9 o\'clock), not next to LIGHT.')]],
