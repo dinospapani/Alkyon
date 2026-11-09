@@ -131,6 +131,15 @@ function setsSync(rows,out){ try{
   if(rd&&ru>(st.u||0)&&(!changed||st.h===undefined)){ var got={}; SETS.forEach(function(k){ if(rd[k]!==undefined){ ls.set(k,rd[k]); got[k]=1; } }); ls.set('alkyon-v4-setsync',{h:setHash(setBlob()),u:ru}); Object.keys(got).forEach(function(k){ B.emit('store',k); }); return 1; }
   if(changed&&Object.keys(loc).length){ var u=Math.max(Date.now(),ru+1); out.push({kind:'settings',id:'main',data:Object.assign({},loc,{_u:u}),deleted:false,updated_at:iso(u)}); ls.set('alkyon-v4-setsync',{h:lh,u:u}); }
   }catch(e){} return 0; }
+/* 1.10.4: δίχτυα/παραγάδια/κλουβιά από το ρολόι Garmin: ο server τα γράφει ως kind 'gear'· μπαίνουν στα Εργαλεία (alkyon-gear) αν είναι νέα ή νεότερα,
+   και από εκεί ανεβαίνουν με τις ρυθμίσεις όπως όλα τα εργαλεία. Αν το ίδιο εργαλείο το έχεις αλλάξει στο κινητό αργότερα, μένει η δική σου αλλαγή· αν το έσβησες, δεν ξαναέρχεται. */
+function gearMerge(rows){ try{
+  var dead={}; tombs().forEach(function(t){ if(t.k==='gear') dead[t.id]=1; });
+  var w=rows.filter(function(x){ return x.kind==='gear'&&!x.deleted&&x.data&&x.data.id&&!dead[x.data.id]; }); if(!w.length) return 0;
+  var g=ls.get('alkyon-gear',null); if(!g||!Array.isArray(g.items)) g={items:[],seq:{}};
+  var n=0; w.forEach(function(x){ var d=x.data, cur=g.items.filter(function(i){ return i.id===d.id; })[0];
+    if(!cur){ g.items.push(d); n++; } else if((cur._u||0)<(d._u||0)&&cur.src==='watch'&&!cur.edited){ g.items=g.items.map(function(i){ return i.id===d.id?d:i; }); n++; } });
+  if(n){ ls.set('alkyon-gear',g); B.emit('store','alkyon-gear'); } return n; }catch(e){ return 0; } }
 /* 1.9.50: ζήτα από τον browser να μη σβήνει τα δεδομένα της εφαρμογής (Chrome/Android: χωρίς ερώτηση όταν είναι εγκατεστημένη· Safari 17+) */
 function persistOnce(){ try{ if(ls.get('alkyon-v4-persist',0)||!navigator.storage||!navigator.storage.persist) return; if(/firefox/i.test(navigator.userAgent)) return;
   navigator.storage.persisted().then(function(p){ if(p){ ls.set('alkyon-v4-persist',1); return; } return navigator.storage.persist().then(function(ok){ if(ok) ls.set('alkyon-v4-persist',1); }); }).catch(function(){}); }catch(e){} }
@@ -158,6 +167,7 @@ function sync(manual){
     KINDS.forEach(function(k){ cache[k].forEach(function(o){ var rm=remote[k+'/'+o.id], ru=rm?((rm.data&&rm.data._u)||Date.parse(rm.updated_at)||0):0; if(!rm||(o._u||0)>ru) out.push({kind:k,id:o.id,data:o,deleted:false,updated_at:iso(o._u||Date.now())}); }); });
     tb.forEach(function(t){ var rm=remote[t.k+'/'+t.id], ru=rm?((rm.data&&rm.data._u)||Date.parse(rm.updated_at)||0):0; if(!rm||(!rm.deleted&&t.u>ru)) out.push({kind:t.k,id:t.id,data:{_u:t.u},deleted:true,updated_at:iso(t.u)}); });
     got+=setsSync(rows,out);
+    got+=gearMerge(rows);
     sent=out.length; var p=Promise.resolve();
     for(var i=0;i<out.length;i+=200)(function(ch){ p=p.then(function(){ return rest('records',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(ch)}); }); })(out.slice(i,i+200));
     return p.then(function(){

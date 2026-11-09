@@ -374,6 +374,47 @@ NOW = RealDate.parse('2026-11-09T10:00:00Z');
   check('Ρολόι: ολόκληρο το όνομα του είδους (όχι κομμένο στα 18) (1.9.93)', ts2[0] === 'Silver-cheeked toadfish', ts2);
 }
 
+/* ---------- ρολόι: δίχτυ / παραγάδι / κλουβί (1.10.4) ---------- */
+{
+  const tmp = path.join(ROOT, 'tests', '.watch-tmp4.mjs'); fs.writeFileSync(tmp, fs.readFileSync(path.join(ROOT, 'watch-index.ts'), 'utf8'));
+  const W = await import(pathToFileURL(tmp).href); fs.unlinkSync(tmp);
+  const db = new Map();
+  const F = async (url, opt = {}) => { url = String(url); const m = opt.method || 'GET';
+    const res = (o, st = 200) => ({ ok: st < 300, status: st, json: async () => o, text: async () => JSON.stringify(o) });
+    if (url.includes('/rest/v1/watch_links')) return res([{ user_id: 'u1', lang: 'el' }]);
+    if (url.includes('/rest/v1/records') && m === 'POST') { for (const row of JSON.parse(opt.body)) db.set(row.kind + '/' + row.id, row); return res({}, 201); }
+    return res([]); };
+  process.env.SUPABASE_URL = 'https://x.supabase.co'; process.env.SUPABASE_SERVICE_ROLE_KEY = 'k';
+  const post = async (b) => (await W.handle(new Request('https://x/functions/v1/watch', { method: 'POST', body: JSON.stringify(b) }), F, RealDate.now())).json();
+  const now = Math.floor(RealDate.now() / 1000), gid = 'g' + now + '123';
+  const r1 = await post({ code: 'ABC123', kind: 'gear', ts: now, tz: 120, gid, gt: 'net', gnm: 'Δίχτυ 1', gst: 'out', s0: now - 13 * 3600, s1: now - 12.9 * 3600, sa: [35.06, 32.4], sb: [35.062, 32.405] });
+  const g1 = db.get('gear/' + gid);
+  check('Ρολόι: ρίψη διχτυού → εργαλείο «Στη θάλασσα» στην εφαρμογή (1.10.4)', r1.ok === 1 && g1 && g1.data.state === 'out' && g1.data.type === 'net' && g1.data.src === 'watch' && g1.data.set.pts.length === 2 && !db.has('trips/g' + gid), g1 && g1.data);
+  const r2 = await post({ code: 'ABC123', kind: 'gear', ts: now, tz: 120, gid, gt: 'net', gnm: 'Δίχτυ 1', gst: 'done', s0: now - 13 * 3600, s1: now - 12.9 * 3600, sa: [35.06, 32.4], sb: [35.062, 32.405], h0: now - 600, h1: now, ha: [35.061, 32.401], hb: [35.062, 32.404], n: 12 });
+  const g2 = db.get('gear/' + gid), t2 = db.get('trips/g' + gid), b2 = db.get('bites/b' + gid);
+  check('Ρολόι: ανέβασμα → εργαλείο «done», έξοδος και 12 ψάρια συνδεδεμένα (1.10.4)', r2.ok === 1 && g2.data.state === 'done' && g2.data.haul && g2.data.haul.pts.length === 2 && t2 && t2.data.count === 12 && t2.data.gear[0].id === gid && b2 && b2.data.cnt === 12 && b2.data.gear === gid && b2.data.trip === 'g' + gid && b2.data.tech === 'Δίχτυ', { g: g2 && g2.data, t: t2 && t2.data, b: b2 && b2.data });
+  const r3 = await post({ code: 'ABC123', kind: 'gear', ts: now, gid: 'g' + now + '999', gt: 'trap', gst: 'done', s0: now - 3600, h0: now - 60, h1: now, n: 0 });
+  check('Ρολόι: κλουβί χωρίς ψάρια → έξοδος με 0, χωρίς εγγραφή ψαριού (1.10.4)', r3.ok === 1 && db.get('trips/gg' + now + '999').data.count === 0 && !db.has('bites/bg' + now + '999') && db.get('gear/g' + now + '999').data.name === 'Κλουβί', r3);
+  const r4 = await post({ code: 'ABC123', kind: 'gear', ts: now, gid: 'gx', gst: 'done', s0: now, h0: now - 7200, h1: now - 7200 });
+  check('Ρολόι: ανέβασμα πριν τη ρίψη → σφάλμα (1.10.4)', r4.ok === 0 && r4.err === 'time', r4);
+  const r5 = await post({ code: 'ZZZ', kind: 'gear', ts: now, gid: 'gy', gst: 'out', s0: now });
+  check('Ρολόι: εργαλείο χωρίς σωστό κωδικό ρολογιού → όχι (1.10.4)', r5.ok === 0 && !db.has('gear/gy'), r5);
+  // εφαρμογή: gearMerge (νέο → μπαίνει· νεότερο → αντικαθιστά· αλλαγμένο στο κινητό ή σβησμένο → μένει όπως είναι)
+  const st = fs.readFileSync(path.join(ROOT, 'v4', 'store.js'), 'utf8');
+  const gi = st.indexOf('function gearMerge('), src = st.slice(gi, st.indexOf('\n/*', gi));
+  const mem = {}, ls = { get: (k, d) => (k in mem ? JSON.parse(mem[k]) : d), set: (k, v) => { mem[k] = JSON.stringify(v); } };
+  const tombs = () => ls.get('alkyon-tomb', []), B = { emit: () => {} };
+  const gm = new Function('ls', 'tombs', 'B', src + '; return gearMerge;')(ls, tombs, B);
+  ls.set('alkyon-gear', { items: [{ id: 'a', src: 'watch', state: 'out', _u: 1 }, { id: 'b', src: 'watch', state: 'out', edited: true, _u: 1 }], seq: {} });
+  ls.set('alkyon-tomb', [{ k: 'gear', id: 'd', u: 5 }]);
+  const n = gm([{ kind: 'gear', id: 'a', data: { id: 'a', src: 'watch', state: 'done', _u: 9 } }, { kind: 'gear', id: 'b', data: { id: 'b', src: 'watch', state: 'done', _u: 9 } },
+    { kind: 'gear', id: 'c', data: { id: 'c', src: 'watch', state: 'out', _u: 9 } }, { kind: 'gear', id: 'd', data: { id: 'd', src: 'watch', state: 'out', _u: 9 } }, { kind: 'bites', id: 'x', data: { id: 'x' } }]);
+  const it = Object.fromEntries(ls.get('alkyon-gear').items.map(x => [x.id, x.state]));
+  check('Εφαρμογή: εργαλεία από το ρολόι στα Εργαλεία· οι αλλαγές και τα σβησίματα του κινητού μένουν (1.10.4)', n === 2 && it.a === 'done' && it.b === 'out' && it.c === 'out' && !('d' in it), { n, it });
+  check('Εφαρμογή: το gearMerge τρέχει στον συγχρονισμό (1.10.4)', /got\+=setsSync\(rows,out\);\s*got\+=gearMerge\(rows\);/.test(st));
+  check('Νέα: η έκδοση 1.10.4 υπάρχει στα «Τι νέο»', /\['1\.10\.4',\[T\('Ρολόι Garmin: δίχτυ/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
+}
+
 /* ---------- σκοτάδι για καλαμάρι ---------- */
 {
   const dw = d => { const s = PF.sunMoon(d, 35.04, 32.42, 120); return PF.darkWin(d, s.set, s.rise, 35.04, 32.42, 120); };

@@ -9,6 +9,10 @@ var TYPES={ll:{el:'Παραγάδι',en:'Longline',pt:false,c:'#3aa0ff'},net:{el
 function tn(t){ var x=TYPES[t]||TYPES.net; return EN?x.en:x.el; }
 function G(){ var g=ls.get(KEY,null); if(!g||!Array.isArray(g.items)) g={items:[],seq:{}}; if(!g.seq) g.seq={}; return g; }
 function put(g){ ls.set(KEY,g); B.emit('store',KEY); watch(); }
+/* 1.10.4: εργαλείο από το ρολόι που το άλλαξες στο κινητό: μένει η αλλαγή του κινητού (δεν το ξαναγράφει ο συγχρονισμός) */
+function mine(it){ if(it&&it.src==='watch'){ it.edited=true; it._u=Date.now(); } }
+/* 1.10.4: σβήσιμο εργαλείου του ρολογιού: διαγραφή και στο cloud, για να μην ξαναέρθει με τον επόμενο συγχρονισμό */
+function gone(it){ if(!it||it.src!=='watch'||!B.store||!B.store.tombs) return; try{ ls.set('alkyon-tomb',B.store.tombs().filter(function(t){ return !(t.k==='gear'&&t.id===it.id); }).concat([{k:'gear',id:it.id,u:Date.now()}])); }catch(e){} }
 function nm(it){ return it.name||tn(it.type); }
 function R(x){ return Math.round(x*1e5)/1e5; }
 function dist(a,b){ var r=Math.PI/180,dl=(b[0]-a[0])*r,dn=(b[1]-a[1])*r,x=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin(dn/2)*Math.sin(dn/2); return 12742000*Math.asin(Math.min(1,Math.sqrt(x))); }
@@ -59,7 +63,7 @@ function endSet(id){ here().then(function(p){ var g=G(), it=g.items.filter(funct
   var pts=it.set.pts; if(p){ var l=pts[pts.length-1]; if(!l||dist(l,p)>3) pts.push(p); it.set.b=p; } else it.set.b=pts[pts.length-1]||it.set.a;
   it.set.tb=Date.now(); it.state='out'; put(g); B.toast(T('Τέλος ρίψης: ','Set finished: ')+nm(it)); }); }
 function startHaul(id){ if(busy()) return; here().then(function(p){ if(!p){ B.toast(T('Δεν βρέθηκε θέση GPS. Δοκίμασε ξανά.','No GPS fix. Try again.')); return; }
-  var g=G(), it=g.items.filter(function(x){ return x.id===id; })[0]; if(!it) return; it.haul={a:p,ta:Date.now(),pts:[p],b:null,tb:null}; it.state='hauling'; put(g);
+  var g=G(), it=g.items.filter(function(x){ return x.id===id; })[0]; if(!it) return; it.haul={a:p,ta:Date.now(),pts:[p],b:null,tb:null}; it.state='hauling'; mine(it); put(g);
   B.toast(T('Ανέβασμα: ','Hauling: ')+nm(it)+T('. Τα ψάρια συνδέονται με αυτό.','. Catches are linked to it.')); }); }
 function endHaul(id){ here().then(function(p){ var g=G(), it=g.items.filter(function(x){ return x.id===id; })[0]; if(!it) return;
   var pts=it.haul.pts; if(p){ var l=pts[pts.length-1]; if(!l||dist(l,p)>3) pts.push(p); it.haul.b=p; } else it.haul.b=pts[pts.length-1]||it.haul.a;
@@ -251,7 +255,7 @@ function detail(id){
   var bs=B.store.raw('bites').filter(function(b){ return b.gear===it.id&&!b.miss&&!B.pest(b); });
   if(bs.length){ var l=h('div',{class:'list'}); bs.forEach(function(b){ l.append(h('button',{class:'li',type:'button',onclick:function(){ sh.close(true); if(B.biteDetail) B.biteDetail(b); }},h('span',{class:'tx'},h('b',{text:(b.species||'')+(+b.cnt>1?' ×'+b.cnt:'')}),h('small',{text:[b.time,+b.kg?b.kg+' kg':''].filter(Boolean).join(' · ')})))); }); body.append(h('h3',{class:'listh',text:T('Αλιεύματα','Catches')}),l); }
   body.append(h('div',{class:'acts'},h('button',{class:'btn pri',type:'button',text:T('+ Αλίευμα','+ Catch'),onclick:function(){ sh.close(true); B.biteForm(null,{gear:it}); }}),h('a',{class:'btn',href:'#map',onclick:function(){ ls.set('alkyon-v4-gearshow',it.id); sh.close(true); },text:T('Στον χάρτη','On the map')})),
-    h('div',{class:'acts'},h('button',{class:'btn',type:'button',text:T('Επεξεργασία','Edit'),onclick:function(){ sh.close(true); edit(it.id); }}),h('button',{class:'btn del',type:'button',text:T('Διαγραφή','Delete'),onclick:function(){ B.ask(T('Να διαγραφεί «','Delete “')+nm(it)+T('»; Τα ψάρια του μένουν.','”? Its catches stay.'),T('Διαγραφή','Delete'),true).then(function(y){ if(!y) return; var g=G(); g.items=g.items.filter(function(x){ return x.id!==it.id; }); put(g); sh.close(); B.toast(T('Διαγράφηκε.','Deleted.')); }); }})));
+    h('div',{class:'acts'},h('button',{class:'btn',type:'button',text:T('Επεξεργασία','Edit'),onclick:function(){ sh.close(true); edit(it.id); }}),h('button',{class:'btn del',type:'button',text:T('Διαγραφή','Delete'),onclick:function(){ B.ask(T('Να διαγραφεί «','Delete “')+nm(it)+T('»; Τα ψάρια του μένουν.','”? Its catches stay.'),T('Διαγραφή','Delete'),true).then(function(y){ if(!y) return; var g=G(); g.items=g.items.filter(function(x){ return x.id!==it.id; }); gone(it); put(g); sh.close(); B.toast(T('Διαγράφηκε.','Deleted.')); }); }})));
   sh=B.sheet({title:nm(it),body:body});
 }
 function dtv(ms){ if(!ms) return ''; var d=new Date(ms); return d.getFullYear()+'-'+B.pad(d.getMonth()+1)+'-'+B.pad(d.getDate())+'T'+B.pad(d.getHours())+':'+B.pad(d.getMinutes()); }
@@ -263,7 +267,7 @@ function edit(id){
   var f=h('form',{class:'bform',novalidate:true},h('label',{class:'fld'},h('span',{text:T('Όνομα','Name')}),nmI),h('label',{class:'fld'},h('span',{text:T('Τύπος','Type')}),ty),h('label',{class:'fld'},h('span',{text:T('Ώρα ρίψης','Set time')}),st),ht?h('label',{class:'fld'},h('span',{text:T('Ώρα ανεβάσματος','Haul time')}),ht):null,h('label',{class:'fld'},h('span',{text:T('Σημειώσεις','Notes')}),nt),err,h('button',{class:'btn pri full',type:'submit',text:T('Αποθήκευση','Save')}));
   f.addEventListener('submit',function(ev){ ev.preventDefault(); var sv=st.value?Date.parse(st.value):0, hv=ht&&ht.value?Date.parse(ht.value):0;
     if(hv&&sv&&hv<sv){ err.textContent=T('Το ανέβασμα δεν μπορεί να είναι πριν τη ρίψη.','The haul cannot be before the set.'); return; }
-    var g=G(), x=g.items.filter(function(i){ return i.id===id; })[0]; if(!x) return;
+    var g=G(), x=g.items.filter(function(i){ return i.id===id; })[0]; if(!x) return; mine(x);
     var n=nmI.value.trim().slice(0,40); if(n) x.name=n; else delete x.name; x.type=ty.value;
     if(sv){ x.set=x.set||{}; x.set.ta=sv; delete x.set.unknown; } if(hv&&x.haul) x.haul.ta=hv;
     var tt=nt.value.trim().slice(0,300); if(tt) x.notes=tt; else delete x.notes;

@@ -226,6 +226,32 @@ export async function handle(req, F = fetch, now = Date.now()) {
         if (!r.ok && r.status !== 409) return J({ ok: 0, err: 'db ' + r.status, detail: (await r.text()).slice(0, 200) }, 502);
         return J({ ok: 1, id: tid });   // 409 = υπάρχει ήδη (το ρολόι το ξανάστειλε)
       }
+      /* 1.10.4: δίχτυ / παραγάδι / κλουβί από το ρολόι. st 'out' = ρίχτηκε (φαίνεται «Στη θάλασσα» στην εφαρμογή), 'done' = ανέβηκε με n ψάρια.
+         Γράφει το εργαλείο (kind 'gear', το παίρνει η εφαρμογή στα Εργαλεία) και, στο ανέβασμα, μία έξοδο και τα ψάρια (όπως η «Παλιά ρίψη» της εφαρμογής). */
+      if (b.kind === 'gear') {
+        const gid = tripId(b.gid); if (!gid) return J({ ok: 0, err: 'gid' }, 400);
+        const en = us.lang === 'en', type = ['net', 'll', 'trap'].includes(b.gt) ? b.gt : 'net';
+        const TN = { net: en ? 'Net' : 'Δίχτυ', ll: en ? 'Longline' : 'Παραγάδι', trap: en ? 'Pot' : 'Κλουβί' };
+        const pt = (v) => Array.isArray(v) && Number.isFinite(+v[0]) && Number.isFinite(+v[1]) && Math.abs(+v[0]) <= 90 && Math.abs(+v[1]) <= 180 && (Math.abs(+v[0]) > 0.01 || Math.abs(+v[1]) > 0.01) ? [Math.round(+v[0] * 1e5) / 1e5, Math.round(+v[1] * 1e5) / 1e5] : null;
+        const ms = (v) => Number.isFinite(+v) && +v > 1.5e9 && +v * 1000 < now + 600e3 ? +v * 1000 : null;
+        const sa = pt(b.sa), sB = pt(b.sb) || sa, s0 = ms(b.s0), s1 = ms(b.s1) || s0, ha = pt(b.ha), hb = pt(b.hb) || ha, h0 = ms(b.h0), h1 = ms(b.h1) || h0;
+        const done = b.gst === 'done' && h0 != null, name = String(b.gnm || '').trim().slice(0, 30) || TN[type];
+        if (done && s0 != null && h1 < s0) return J({ ok: 0, err: 'time' }, 400);
+        const it = { id: gid, type, name, state: done ? 'done' : 'out', src: 'watch',
+          set: { a: sa, ta: s0, tb: s1, b: sB, pts: [sa, sB].filter(Boolean), ...(s0 == null ? { unknown: true } : {}) },
+          haul: done ? { a: ha, ta: h0, tb: h1, b: hb, pts: [ha, hb].filter(Boolean) } : null, ...(done ? { done: h1 } : {}), _u: now };
+        const rows = [{ user_id: us.user_id, kind: 'gear', id: gid, data: it, deleted: false, updated_at: new Date(now).toISOString() }];
+        if (done) {
+          const n = Math.max(0, Math.min(999, Math.floor(+b.n) || 0)), sid = 'g' + gid, tz = Number.isFinite(+b.tz) ? +b.tz : tzOf(h1), hp = localParts(h1, tz), sp0 = localParts(s0 != null ? s0 : h0, tz), pos = hb || ha || sB || sa;
+          if (n > 0) rows.push({ user_id: us.user_id, kind: 'bites', id: 'b' + gid, data: { id: 'b' + gid, date: hp.date, time: hp.time, species: '', latin: '', bait: '', tech: TN[type], depth: null, kg: null, len: null, cnt: n, notes: '', place: '',
+            lat: pos ? pos[0] : null, lon: pos ? pos[1] : null, photo: false, src: 'watch', prof: 'boat', gear: gid, gearName: name, trip: sid, _u: now }, deleted: false, updated_at: new Date(now).toISOString() });
+          rows.push({ user_id: us.user_id, kind: 'trips', id: sid, data: { id: sid, sid, date: sp0.date, spot: name, prof: 'boat', tech: TN[type], species: '', count: n, kg: 0, startMs: s0 != null ? s0 : h0, endMs: h1,
+            lat: pos ? pos[0] : null, lon: pos ? pos[1] : null, notes: en ? 'Recorded on the Garmin watch' : 'Καταγράφηκε στο ρολόι Garmin', src: 'watch', manual: true, gear: [it], _u: now }, deleted: false, updated_at: new Date(now).toISOString() });
+        }
+        const r = await sb(F, 'records', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(rows) });
+        if (!r.ok) return J({ ok: 0, err: 'db ' + r.status, detail: (await r.text()).slice(0, 200) }, 502);
+        return J({ ok: 1, id: gid });
+      }
       /* 1.9.75: αναίρεση ή αλλαγή ψαριού από το ρολόι (οθόνη 6″ μετά το START στη συρτή): cid = ο κωδικός που έδωσε το ρολόι στο ψάρι */
       if (b.kind === 'undo' || b.kind === 'upd') {
         const cid = tripId(b.cid); if (!cid) return J({ ok: 0, err: 'cid' }, 400);
