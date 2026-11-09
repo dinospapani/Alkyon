@@ -60,10 +60,12 @@ export function compact(PF, fc, en, lat = null, lon = null) {
     const d0 = fc.days.find(d => d.date === today); let dk = null;
     if (d0 && lat != null && PF.darkWin) { const w = PF.darkWin(today, d0.set, d0.rise, lat, lon, tz); if (w) dk = [Math.round(w.s), Math.round(w.e), w.why === 'dawn' ? 1 : 0]; }
     const dn = (date) => { if (date === today) return en ? 'Today' : 'Σήμερα'; const dt = new Date(date + 'T12:00:00Z'); return (en ? DAYS_EN : DAYS_EL)[dt.getUTCDay()] + ' ' + dt.getUTCDate(); };
-    const ev = PF.squidEves ? PF.squidEves(fc.days.filter(d => d.date >= today), nm.nw, { now: fc.nowLocal.slice(0, 13) + ':00', lat, lon, tz }).slice(0, 3).map(e => ({ n: dn(e.date), h: e.hr, s: Math.round(e.score) })) : [];
+    const ev = PF.squidEves ? PF.squidEves(fc.days.filter(d => d.date >= today), nm.nw, { now: fc.nowLocal.slice(0, 13) + ':00', lat, lon, tz }).slice(0, 3).map(e => ({ n: dn(e.date), h: e.hr, s: Math.round(e.score), ss: e.set != null ? Math.round(e.set) : null })) : [];   // 1.9.70: ss = δύση (λεπτά)
     /* αν η νέα σελήνη πέρασε τις τελευταίες 4 μέρες, nd < 0 («πριν 2 μέρες»): είναι ακόμα καλή περίοδος */
     let nd = nm.nw ? (nm.nw - nowMs) / 864e5 : null; try { const pm = PF.nextMoon(nowMs - 4 * 864e5).nw; if (pm && pm <= nowMs) nd = -(nowMs - pm) / 864e5; } catch (e) {}
-    sq = { il, nd: nd == null ? null : Math.round(nd * 10) / 10, dk, ev }; } catch (e) {}
+    /* 1.9.70: wx = 1 όταν το φεγγάρι μεγαλώνει (αύξουσα), για τη φάση και το σχέδιο στο ρολόι */
+    let wx = null; try { if (nd != null) wx = nd < 0 || nd > 14.8 ? 1 : 0; } catch (e) {}
+    sq = { il, nd: nd == null ? null : Math.round(nd * 10) / 10, dk, ev, wx }; } catch (e) {}
   return { ok: 1, now: { s: cur.s, b: cur.b, v: cur.v, p: cur.p }, days, hrs, pr, tn: turns(PF, fc), at: fc.nowLocal.slice(11, 16), td, bw, sq };
 }
 /* v31z553: καμπές πίεσης (ίδιες με την ειδοποίηση της εφαρμογής, PF.pressureTurns): k = 'peak' (κορυφή → μετά πέφτει) ή 'low' (πάτος → μετά ανεβαίνει),

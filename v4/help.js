@@ -66,6 +66,7 @@ var HELP=[
 ];
 /* έκδοση → αλλαγές (νεότερες πρώτες). Προσθέτεις γραμμή εδώ σε κάθε νέα λειτουργία. */
 var NEWS=[
+ ['1.9.70',[T('Ρολόι Garmin (νέα έκδοση, σχέδιο v4): νέα σελίδα «Καλαμάρι» με δαχτυλίδι νύχτας, φάση φεγγαριού, «ΙΔΑΝΙΚΟ ΑΠΟΨΕ» και αντίστροφη μέτρηση· συρτή με μπάρα ταχύτητας· «Ρίχνω» με πλάγια όψη της αρματωσιάς.','Garmin watch (new version, design v4): new "Squid" page with a night ring, moon phase, "IDEAL TONIGHT" and a countdown; trolling with a speed bar; "Let out" with a side view of the rig.')]],
  ['1.9.69',[T('Ρολόι Garmin (νέα έκδοση): σελίδα «Καλαμάρι» με φωτισμό φεγγαριού, νέα σελήνη, σκοτάδι απόψε και τα καλύτερα βράδια.','Garmin watch (new version): a "Squid" page with moon illumination, new moon, tonight’s darkness and the best evenings.'),
    T('Ρολόι, συρτή βυθού: «Ρίχνω» (βυθός βυθομέτρου → σε πόσα μολύβια να σταματήσεις), «Στον βυθό», «Ακούμπησε» (μαθαίνει τη διόρθωση της αρματωσιάς).','Watch, bottom trolling: "Let out" (sounder depth → at how many leads to stop), "On the bottom", "Touched bottom" (learns your rig’s correction).')]],
  ['1.9.68',[T('Φωνή: ερωτήσεις στη θάλασσα («πόσα ψάρια;», «πόσο αέρα;», «τι κύμα;», «τι ώρα δύει;», «πόσο μακριά το λιμάνι;», «τι ώρα είναι;»), η εφαρμογή απαντά με φωνή.','Voice: questions at sea (“how many fish?”, “how much wind?”, “waves?”, “sunset?”, “how far is the port?”, “what time is it?”), the app answers out loud.'),

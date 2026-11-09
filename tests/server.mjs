@@ -254,6 +254,7 @@ NOW = RealDate.parse('2026-11-09T10:00:00Z');
   const v2 = W.compact(PF, fc, false, 34.66, 33.04);
   check('Ρολόι: 2 μέρες μετά τη νέα σελήνη → «πριν 2 μέρες», όχι «σε 29»', v2.sq && v2.sq.nd < -1.5 && v2.sq.nd > -2.5, v2.sq);
   NOW = RealDate.parse('2026-11-09T07:00:00Z');
+  check('Ρολόι: τα βράδια έχουν ώρα δύσης και η φάση (αύξουσα/φθίνουσα) (1.9.70)', (sq.ev || []).every(e => Number.isFinite(e.ss) && e.ss > 900 && e.ss < 1200) && (sq.wx === 0 || sq.wx === 1), sq);
   check('Ρολόι: η σελίδα καλαμαριού είναι μικρή (μνήμη ρολογιού)', JSON.stringify(sq).length < 400, JSON.stringify(sq).length);
 }
 
