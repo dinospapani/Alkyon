@@ -66,6 +66,7 @@ var HELP=[
 ];
 /* έκδοση → αλλαγές (νεότερες πρώτες). Προσθέτεις γραμμή εδώ σε κάθε νέα λειτουργία. */
 var NEWS=[
+ ['1.9.91',[T('Ρολόι Garmin: μετά το ψάρι το «είδος» δεν πέφτει πάνω στο δαχτυλίδι· στο Σημείο ένα τόξο μόνο όταν ο στόχος είναι δίπλα στο START.','Garmin watch: after a catch «species» no longer sits on the ring; on Spot only one arc when the target is next to START.')]],
  ['1.9.90',[T('Ρολόι Garmin: το «−1» φαίνεται ακριβώς δίπλα στο κουμπί UP (στις 9), όχι δίπλα στο LIGHT.','Garmin watch: «−1» now sits right next to the UP button (at 9 o\'clock), not next to LIGHT.')]],
  ['1.9.89',[T('Ρολόι Garmin: μικρές διορθώσεις στο νέο σχέδιο (σημάδια κουμπιών με κενό από το δαχτυλίδι, ηλιοσεληνιακά πάνω στο δαχτυλίδι, ο βυθός δεν πατά την ετικέτα του δολώματος)· στο «Ρίχνω» το δόλωμα ξεκινά από την επιφάνεια και κατεβαίνει μαζί με τον χρόνο που μένει.','Garmin watch: small fixes to the new design (button marks spaced from the ring, solunar dots on the ring, seabed no longer covers the lure label); in «Letting out» the lure starts at the surface and sinks with the time left.')]],
  ['1.9.88',[T('Ρολόι Garmin, νέο σχέδιο v6: μεγάλα λεπτά νούμερα, ένα χρώμα ανά σελίδα, δαχτυλίδια με διαβάθμιση και λάμψη, κόκκινο δαχτυλίδι μόνο όταν πρέπει να μαζέψεις, βυθός με βάθος και κίνηση όταν ανοίγεις σελίδα· τη νύχτα μόνο κόκκινο.','Garmin watch, new design v6: big thin numbers, one colour per page, rings with gradient and glow, a red ring only when you must pull in, a seabed with depth and motion when a page opens; at night red only.')]],
