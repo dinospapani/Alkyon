@@ -52,6 +52,10 @@ export function compact(PF, fc, en, lat = null, lon = null) {
     /* 1.2.2: ηλιοσεληνιακές περίοδοι σήμερα (κέντρο, λεπτά από τα μεσάνυχτα): ma = κύριες, mi = δευτερεύουσες */
     try { if (lat != null && lon != null && PF.sunMoon) { const sm = PF.sunMoon(today, lat, lon, Number.isFinite(+fc.tz) ? +fc.tz : 120), inDay = (m) => m >= 0 && m < 1440;
       td.ma = (sm.maj || []).filter(inDay).map(Math.round); td.mi = (sm.min || []).filter(inDay).map(Math.round); } } catch (e) {} }
+  /* 1.9.92: αύριο, για το δαχτυλίδι του ρολογιού όταν σήμερα δεν βγαίνει (ή πέρασε): ίδια μορφή με το td, χωρίς ηλιοσεληνιακά */
+  let t2 = null; try { const d1 = fc.days.find(d => d.date > today);
+    if (d1) { const h = new Array(24).fill(-1); d1.hours.forEach(x => { if (x.hr >= 0 && x.hr < 24) h[x.hr] = x.safe && x.score != null ? Math.round(x.score) : -1; });
+      t2 = { h, r: d1.rise != null ? Math.round(d1.rise) : null, st: d1.set != null ? Math.round(d1.set) : null, ws: d1.safe && d1.win ? d1.win.s : null, we: d1.safe && d1.win ? d1.win.e : null }; } } catch (e) {}
   /* 1.2.2: επόμενο καλό παράθυρο (σήμερα ή αύριο) για την ειδοποίηση «σε 30′» στο ρολόι: ts σε δευτερόλεπτα UTC */
   let bw = null; try { const tz = Number.isFinite(+fc.tz) ? +fc.tz : 120, nowS = Date.now() / 1000;
     for (const d of fc.days.filter(x => x.date >= today).slice(0, 2)) { if (!d.safe || !d.win) continue; const ts = Math.round((Date.parse(d.date + 'T' + String(d.win.s).padStart(2, '0') + ':00:00Z') - tz * 60000) / 1000);
@@ -69,7 +73,7 @@ export function compact(PF, fc, en, lat = null, lon = null) {
     /* 1.9.70: wx = 1 όταν το φεγγάρι μεγαλώνει (αύξουσα), για τη φάση και το σχέδιο στο ρολόι */
     let wx = null; try { if (nd != null) wx = nd < 0 || nd > 14.8 ? 1 : 0; } catch (e) {}
     sq = { il, nd: nd == null ? null : Math.round(nd * 10) / 10, dk, ev, wx }; } catch (e) {}
-  return { ok: 1, now: { s: cur.s, b: cur.b, v: cur.v, p: cur.p }, days, hrs, pr, tn: turns(PF, fc), at: fc.nowLocal.slice(11, 16), td, bw, sq };
+  return { ok: 1, now: { s: cur.s, b: cur.b, v: cur.v, p: cur.p }, days, hrs, pr, tn: turns(PF, fc), at: fc.nowLocal.slice(11, 16), td, t2, bw, sq };
 }
 /* v31z553: καμπές πίεσης (ίδιες με την ειδοποίηση της εφαρμογής, PF.pressureTurns): k = 'peak' (κορυφή → μετά πέφτει) ή 'low' (πάτος → μετά ανεβαίνει),
    ts = ώρα σε δευτερόλεπτα UTC, t = τοπική ώρα ΩΩ:ΛΛ, p = hPa. Μόνο από 1 ώρα πριν ως 24 ώρες μετά. */
