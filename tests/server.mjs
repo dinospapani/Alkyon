@@ -259,6 +259,43 @@ NOW = RealDate.parse('2026-11-09T10:00:00Z');
   check('Ρολόι: η σελίδα καλαμαριού είναι μικρή (μνήμη ρολογιού)', JSON.stringify(sq).length < 400, JSON.stringify(sq).length);
 }
 
+/* ---------- ρολόι: χάρτης βυθού για τη συρτή βυθού (1.9.72) ---------- */
+{
+  const tmp = path.join(ROOT, 'tests', '.watch-tmp2.mjs'); fs.writeFileSync(tmp, fs.readFileSync(path.join(ROOT, 'watch-index.ts'), 'utf8'));
+  const W = await import(pathToFileURL(tmp).href); fs.unlinkSync(tmp);
+  /* μικρό GeoTIFF (float32, χωρίς συμπίεση): υψόμετρο, θάλασσα αρνητική, όπως μπορεί να το δίνει το EMODnet */
+  const tiff = (w, h, x0, y0, res, fn) => { const nt = 9, ifd = 8, dataOff = 8 + 2 + nt * 12 + 4, scOff = dataOff + w * h * 4, tpOff = scOff + 24, buf = new ArrayBuffer(tpOff + 48), dv = new DataView(buf);
+    dv.setUint16(0, 0x4949); dv.setUint16(2, 42, true); dv.setUint32(4, ifd, true); dv.setUint16(ifd, nt, true); let o = ifd + 2;
+    const tag = (t, ty, c, v) => { dv.setUint16(o, t, true); dv.setUint16(o + 2, ty, true); dv.setUint32(o + 4, c, true); if (ty === 3 && c === 1) dv.setUint16(o + 8, v, true); else dv.setUint32(o + 8, v, true); o += 12; };
+    tag(256, 4, 1, w); tag(257, 4, 1, h); tag(258, 3, 1, 32); tag(259, 3, 1, 1); tag(273, 4, 1, dataOff); tag(278, 4, 1, h); tag(339, 3, 1, 3); tag(33550, 12, 3, scOff); tag(33922, 12, 6, tpOff);
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) dv.setFloat32(dataOff + (j * w + i) * 4, fn(i, j), true);
+    [res, res, 0].forEach((v, k) => dv.setFloat64(scOff + k * 8, v, true)); [0, 0, 0, x0, y0, 0].forEach((v, k) => dv.setFloat64(tpOff + k * 8, v, true)); return buf; };
+  const calls = []; let dcorr = null;
+  const F = async (url) => { url = String(url); calls.push(url);
+    if (url.includes('ows.emodnet-bathymetry.eu/wcs')) { const bb = url.match(/bbox=([^&]+)/)[1].split(',').map(Number), res = 1 / 960, w = Math.round((bb[2] - bb[0]) / res), h = Math.round((bb[3] - bb[1]) / res);
+      /* βυθός 40 m που ανεβαίνει προς τα βόρεια (1 m ανά κελί), και μια στήλη στεριάς (υψόμετρο +12) στα δυτικά */
+      return { ok: true, status: 200, arrayBuffer: async () => tiff(w, h, bb[0], bb[3], res, (i, j) => i === 0 ? 12 : -(40 - (h - 1 - j) * 1)) }; }
+    if (url.includes('/rest/v1/watch_links')) return { ok: true, json: async () => [{ user_id: 'u1', lang: 'el' }] };
+    if (url.includes('/rest/v1/records') && url.includes('kind=eq.settings')) return { ok: true, json: async () => dcorr ? [{ data: { 'alkyon-dcorr': dcorr } }] : [] };
+    return { ok: false, status: 404, json: async () => ({}), text: async () => '' }; };
+  process.env.SUPABASE_URL = 'https://x.supabase.co'; process.env.SUPABASE_SERVICE_ROLE_KEY = 'k';
+  const r1 = await W.handle(new Request('https://x/functions/v1/watch?grid=1&lat=34.70&lon=32.60'), F, RealDate.now());
+  const g = await r1.json();
+  check('Ρολόι: χάρτης βυθού γύρω από τη βάρκα (πλέγμα ~115 m, ±1,3 km) (1.9.72)', g.ok === 1 && g.w >= 20 && g.w <= 34 && g.h >= 20 && g.h <= 30 && g.d.length === g.w * g.h && Math.abs(g.dx - 1 / 960) < 1e-6, { w: g.w, h: g.h, n: g.d && g.d.length });
+  const mid = g.d[Math.floor(g.h / 2) * g.w + Math.floor(g.w / 2)];
+  check('Ρολόι: χάρτης βυθού: θάλασσα = θετικό βάθος σε μέτρα, στεριά = 0', mid > 20 && mid <= 40 && g.d[0] === 0 && g.d[g.w * (g.h - 1) + 3] === 40, { mid, land: g.d[0] });
+  check('Ρολόι: χάρτης βυθού: η πρώτη γραμμή είναι η βόρεια (πιο ρηχή εδώ)', g.d[3] < g.d[g.w * (g.h - 1) + 3] && g.y0 > 34.70 && g.x0 < 32.60, { n: g.d[3], s: g.d[g.w * (g.h - 1) + 3] });
+  check('Ρολόι: χάρτης βυθού: χωράει στη μνήμη του ρολογιού (< 4 KB)', JSON.stringify(g).length < 4096, JSON.stringify(g).length);
+  dcorr = [[34.70, 32.60, 5, 1], [36, 30, 50, 1]];
+  const r2 = await W.handle(new Request('https://x/functions/v1/watch?grid=1&lat=34.70&lon=32.60&code=ABC123'), F, RealDate.now());
+  const g2 = await r2.json(); const mid2 = g2.d[Math.floor(g2.h / 2) * g2.w + Math.floor(g2.w / 2)];
+  check('Ρολόι: χάρτης βυθού: μπαίνουν οι διορθώσεις βυθομέτρου του χρήστη (alkyon-dcorr)', g2.c === 1 && mid2 - mid >= 4 && mid2 - mid <= 5, { mid, mid2 });
+  const corner = g2.d[g2.w * (g2.h - 1) + g2.w - 1], corner1 = g.d[g.w * (g.h - 1) + g.w - 1];
+  check('Ρολόι: χάρτης βυθού: η διόρθωση σβήνει μακριά από τη μέτρηση', corner - corner1 < 4, { corner, corner1 });
+  const st = fs.readFileSync(path.join(ROOT, 'v4', 'store.js'), 'utf8');
+  check('Εφαρμογή: οι διορθώσεις βυθομέτρου συγχρονίζονται (για να τις βλέπει το ρολόι)', /SETS=\[[^\]]*'alkyon-dcorr'/.test(st));
+}
+
 /* ---------- σκοτάδι για καλαμάρι ---------- */
 {
   const dw = d => { const s = PF.sunMoon(d, 35.04, 32.42, 120); return PF.darkWin(d, s.set, s.rise, 35.04, 32.42, 120); };

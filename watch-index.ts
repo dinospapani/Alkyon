@@ -2,6 +2,7 @@
 // Supabase Edge Function «watch» (v31z552, v31z553): η εφαρμογή Alkyon στο ρολόι Garmin.
 //   GET  /functions/v1/watch?lat=34.9&lon=32.4[&code=ABC123]  → σύντομη πρόγνωση (ίδιος βαθμός με την εφαρμογή, από το forecast.js)
 //   POST /functions/v1/watch  {code, t, lat, lon, kind:'fish'|'miss'|'pest', n, trip}  → γράφει το ψάρι στο Ημερολόγιο του χρήστη
+//   GET  /functions/v1/watch?grid=1&lat=..&lon=..[&code=..]  → 1.9.72: χάρτης βυθού γύρω από το σημείο (συρτή βυθού στο ρολόι)
 //   POST /functions/v1/watch  {code, kind:'trip', ts, te, tz, tid, n, pts:[[lat,lon,ts],…]}  → 1.1.0: έξοδος από το ρολόι
 // Το «code» είναι ο κωδικός σύνδεσης ρολογιού (Προφίλ › Ρολόι Garmin στην εφαρμογή, πίνακας watch_links, βλ. watch-link.sql).
 // Χρειάζεται: Verify JWT = off. Τα SUPABASE_URL και SUPABASE_SERVICE_ROLE_KEY υπάρχουν ήδη σε κάθε Edge Function.
@@ -86,6 +87,62 @@ function localParts(ms, tzMin) { const d = new Date(ms + tzMin * 60000); const i
 /* ώρα Κύπρου (ή της ζώνης που στέλνει το ρολόι) */
 function tzOf(ms) { try { const s = new Date(ms).toLocaleString('en-GB', { timeZone: 'Asia/Nicosia', hour12: false }); const m = s.match(/(\d+)\/(\d+)\/(\d+),? (\d+):(\d+)/); const loc = Date.UTC(+m[3], +m[2] - 1, +m[1], +m[4] % 24, +m[5]); return Math.round((loc - ms) / 60000); } catch (e) { return 120; } }
 
+
+/* ---------- 1.9.72: χάρτης βυθού για τη συρτή βυθού στο ρολόι ----------
+   GET /functions/v1/watch?grid=1&lat=..&lon=..[&code=..] → πλέγμα EMODnet (~115 m) ±1,3 km γύρω από το σημείο, βάθος σε μέτρα (0 = στεριά/κενό).
+   Με code: μπαίνουν και οι διορθώσεις βυθομέτρου του χρήστη (alkyon-dcorr από τις ρυθμίσεις της εφαρμογής), όπως στο κινητό.
+   Κελί (i, j): κέντρο lon = x0 + i·dx, lat = y0 − j·dy (πρώτη γραμμή = βόρεια). */
+const WCS = 'https://ows.emodnet-bathymetry.eu/wcs', CELL = 1 / 960;
+export function parseTiff(buf) {
+  const dv = new DataView(buf), le = dv.getUint16(0) === 0x4949; if (!le && dv.getUint16(0) !== 0x4d4d) throw new Error('tiff');
+  if (dv.getUint16(2, le) !== 42) throw new Error('tiff magic');
+  const ifd = dv.getUint32(4, le), n = dv.getUint16(ifd, le), tg = {}, SZ = { 1: 1, 2: 1, 3: 2, 4: 4, 5: 8, 6: 1, 7: 1, 8: 2, 9: 4, 10: 8, 11: 4, 12: 8, 16: 8 };
+  for (let i = 0; i < n; i++) {
+    const o = ifd + 2 + i * 12, tag = dv.getUint16(o, le), typ = dv.getUint16(o + 2, le), cnt = dv.getUint32(o + 4, le), size = (SZ[typ] || 1) * cnt, p = size <= 4 ? o + 8 : dv.getUint32(o + 8, le); let vals = [];
+    if (typ === 3) for (let k = 0; k < cnt; k++) vals.push(dv.getUint16(p + k * 2, le));
+    else if (typ === 4) for (let k = 0; k < cnt; k++) vals.push(dv.getUint32(p + k * 4, le));
+    else if (typ === 12) for (let k = 0; k < cnt; k++) vals.push(dv.getFloat64(p + k * 8, le));
+    else if (typ === 2) { let s = ''; for (let k = 0; k < cnt; k++) { const ch = dv.getUint8(p + k); if (ch) s += String.fromCharCode(ch); } vals = [s]; }
+    else if (typ === 16) for (let k = 0; k < cnt; k++) vals.push(Number(dv.getBigUint64(p + k * 8, le)));
+    tg[tag] = vals;
+  }
+  const w = tg[256][0], h = tg[257][0], bits = (tg[258] || [32])[0], comp = (tg[259] || [1])[0], fmt = (tg[339] || [3])[0];
+  if (comp !== 1 || bits !== 32 || fmt !== 3) throw new Error('tiff format');
+  const data = new Float32Array(w * h);
+  if (tg[324]) { const tw = tg[322][0], th = tg[323][0], tx = Math.ceil(w / tw), offs = tg[324];
+    for (let t = 0; t < offs.length; t++) { const ox = (t % tx) * tw, oy = Math.floor(t / tx) * th; for (let y = 0; y < th && oy + y < h; y++) for (let x = 0; x < tw && ox + x < w; x++) data[(oy + y) * w + ox + x] = dv.getFloat32(offs[t] + (y * tw + x) * 4, le); } }
+  else { const rps = (tg[278] || [h])[0], so = tg[273]; let row = 0; for (let si = 0; si < so.length; si++) for (let r = 0; r < rps && row < h; r++, row++) for (let x = 0; x < w; x++) data[row * w + x] = dv.getFloat32(so[si] + (r * w + x) * 4, le); }
+  let x0, y0, dx, dy; const M = tg[34264], S = tg[33550], P = tg[33922];
+  if (M && M.length >= 8) { dx = M[0]; x0 = M[3]; dy = M[5]; y0 = M[7]; } else if (S && P) { dx = S[0]; dy = -S[1]; x0 = P[3]; y0 = P[4]; } else throw new Error('georef');
+  return { w, h, data, x0, y0, dx, dy };
+}
+const wcsUrl = (b, interp = 'bilinear') => WCS + '?service=wcs&version=1.0.0&request=getcoverage&coverage=emodnet:mean&crs=EPSG:4326&bbox=' + [b.w, b.s, b.e, b.n].join(',') + '&format=image/tiff&interpolation=' + interp + '&resx=' + CELL + '&resy=' + CELL;
+const tmo = (ms) => { try { return AbortSignal.timeout(ms); } catch (e) { return undefined; } };
+/* το WCS μπορεί να δίνει υψόμετρο (θάλασσα < 0) ή βάθος (θάλασσα > 0): ένα σημείο βαθιάς θάλασσας νότια της Κύπρου το ξεκαθαρίζει (όπως η εφαρμογή) */
+async function dSign(F) {
+  if (mem.dsign) return mem.dsign;
+  const r = await F(wcsUrl({ w: 33.19, s: 34.19, e: 33.21, n: 34.21 }, 'nearest'), { signal: tmo(12000) }); if (!r.ok) throw new Error('wcs ' + r.status);
+  const g = parseTiff(await r.arrayBuffer()); let sum = 0; for (const v of g.data) sum += v; mem.dsign = sum < 0 ? -1 : 1; return mem.dsign;
+}
+function distM(a1, o1, a2, o2) { const R = 6371000, dl = (a2 - a1) * Math.PI / 180, dn = (o2 - o1) * Math.PI / 180, x = Math.sin(dl / 2) ** 2 + Math.cos(a1 * Math.PI / 180) * Math.cos(a2 * Math.PI / 180) * Math.sin(dn / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(x)); }
+/* ίδιος τύπος με το corrAt της εφαρμογής (v4/troll.js): σταθμισμένος μέσος των διορθώσεων ως 2 km, που σβήνει μακριά από τις μετρήσεις */
+export function corrAt(cs, lat, lon) { let sw = 0, sv = 0; for (const c of cs) { const d = distM(lat, lon, c[0], c[1]); if (d > 2000) continue; const w = 1 / Math.max(d, 60) ** 2; sw += w; sv += w * c[2]; }
+  if (!sw) return 0; return sv / sw * Math.min(1, sw * 300 ** 2); }
+export async function depthGrid(F, lat, lon, cs = [], rad = 1300) {
+  const dla = rad / 111320, dlo = rad / (111320 * Math.cos(lat * Math.PI / 180));
+  const b = { w: +(lon - dlo).toFixed(4), e: +(lon + dlo).toFixed(4), s: +(lat - dla).toFixed(4), n: +(lat + dla).toFixed(4) };
+  const sg = await dSign(F);
+  const r = await F(wcsUrl(b), { signal: tmo(12000) }); if (!r.ok) throw new Error('wcs ' + r.status);
+  const g = parseTiff(await r.arrayBuffer());
+  const x0 = g.x0 + g.dx / 2, y0 = g.y0 + g.dy / 2, ddy = -g.dy, d = new Array(g.w * g.h);
+  for (let j = 0; j < g.h; j++) for (let i = 0; i < g.w; i++) { let v = g.data[j * g.w + i] * sg;
+    if (!(v > 0) || v > 6000) { d[j * g.w + i] = 0; continue; }
+    if (cs.length) v = Math.max(1, v + corrAt(cs, y0 - j * ddy, x0 + i * g.dx));
+    d[j * g.w + i] = Math.round(v); }
+  const r6 = (x) => Math.round(x * 1e6) / 1e6;
+  return { ok: 1, x0: r6(x0), y0: r6(y0), dx: r6(g.dx), dy: r6(ddy), w: g.w, h: g.h, d, c: cs.length ? 1 : 0 };
+}
+
 export async function handle(req, F = fetch, now = Date.now()) {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   const u = new URL(req.url), q = u.searchParams;
@@ -93,6 +150,16 @@ export async function handle(req, F = fetch, now = Date.now()) {
     if (req.method === 'GET') {
       const lat = parseFloat(q.get('lat')), lon = parseFloat(q.get('lon'));
       if (!Number.isFinite(lat) || !Number.isFinite(lon)) return J({ ok: 0, err: 'pos' }, 400);
+      if (q.get('grid') === '1') {   // 1.9.72: χάρτης βυθού για το ρολόι
+        let cs = [];
+        if (q.get('code')) { const us = await userOf(F, q.get('code'), now).catch(() => null);
+          if (us) try { const r = await sb(F, 'records?user_id=eq.' + us.user_id + '&kind=eq.settings&id=eq.main&select=data&limit=1'); const a = r.ok ? await r.json() : [];
+            const dc = a && a[0] && a[0].data ? a[0].data['alkyon-dcorr'] : null; if (Array.isArray(dc)) cs = dc.filter(c => Array.isArray(c) && Number.isFinite(+c[0]) && Number.isFinite(+c[1]) && Number.isFinite(+c[2]) && Math.abs(+c[2]) <= 60 && distM(lat, lon, +c[0], +c[1]) < 4000).map(c => [+c[0], +c[1], +c[2]]); } catch (e) {} }
+        const gk = 'g' + lat.toFixed(3) + ',' + lon.toFixed(3) + ':' + JSON.stringify(cs).length + ':' + cs.length;
+        const gh = mem.fc.get(gk); if (gh && now - gh.at < 6 * 3600e3) return J(gh.v, 200, 'private, max-age=3600');
+        const v = await depthGrid(F, lat, lon, cs); mem.fc.set(gk, { at: now, v });
+        return J(v, 200, 'private, max-age=3600');
+      }
       let en = q.get('lang') === 'en', lim = null, us = null;
       if (q.get('code')) { us = await userOf(F, q.get('code'), now).catch(() => null); if (us && us.lang && !q.get('lang')) en = us.lang === 'en'; }   // η γλώσσα του ρολογιού (lang) έχει προτεραιότητα
       const key = lat.toFixed(2) + ',' + lon.toFixed(2) + (en ? 'e' : 'g') + JSON.stringify(lim || '');
@@ -142,7 +209,7 @@ export async function handle(req, F = fetch, now = Date.now()) {
       const lat = Number.isFinite(+b.lat) && Math.abs(+b.lat) > 0.01 ? Math.round(+b.lat * 1e5) / 1e5 : null, lon = Number.isFinite(+b.lon) && Math.abs(+b.lon) > 0.01 ? Math.round(+b.lon * 1e5) / 1e5 : null;
       const id = rid();
       const data = { id, date: lp.date, time: lp.time, species: kind === 'pest' ? (en ? 'Silver-cheeked toadfish' : 'Λαγοκέφαλος') : '', latin: kind === 'pest' ? 'Lagocephalus sceleratus' : '', bait: '', tech: '', depth: null, kg: null, len: null,
-        notes: '', place: '', lat, lon, photo: false, src: 'watch', _u: now, ...(kind === 'miss' ? { miss: true } : {}), ...(kind === 'pest' ? { pest: true } : {}), ...(Math.floor(+b.n) > 1 && Math.floor(+b.n) < 100 ? { cnt: Math.floor(+b.n) } : {}), ...(tripId(b.trip) ? { trip: tripId(b.trip) } : {}), ...(kind === 'fish' && b.tr && typeof b.tr === 'object' ? { wtr: { m: b.tr.m === 'b' ? 'bottom' : 'surface', kn: Number.isFinite(+b.tr.kn) ? Math.round(+b.tr.kn * 10) / 10 : null, hd: Number.isFinite(+b.tr.hd) ? Math.round(+b.tr.hd) : null, n: Number.isFinite(+b.tr.n) && +b.tr.n > 0 && +b.tr.n < 100 ? Math.round(+b.tr.n) : null, ln: Number.isFinite(+b.tr.ln) && +b.tr.ln > 0 && +b.tr.ln < 400 ? Math.round(+b.tr.ln) : null } } : {}) }; /* 1.6.4: συρτή από το ρολόι */
+        notes: '', place: '', lat, lon, photo: false, src: 'watch', _u: now, ...(kind === 'miss' ? { miss: true } : {}), ...(kind === 'pest' ? { pest: true } : {}), ...(Math.floor(+b.n) > 1 && Math.floor(+b.n) < 100 ? { cnt: Math.floor(+b.n) } : {}), ...(tripId(b.trip) ? { trip: tripId(b.trip) } : {}), ...(kind === 'fish' && b.tr && typeof b.tr === 'object' ? { wtr: { m: b.tr.m === 'b' ? 'bottom' : 'surface', kn: Number.isFinite(+b.tr.kn) ? Math.round(+b.tr.kn * 10) / 10 : null, hd: Number.isFinite(+b.tr.hd) ? Math.round(+b.tr.hd) : null, n: Number.isFinite(+b.tr.n) && +b.tr.n > 0 && +b.tr.n < 100 ? Math.round(+b.tr.n) : null, ln: Number.isFinite(+b.tr.ln) && +b.tr.ln > 0 && +b.tr.ln < 400 ? Math.round(+b.tr.ln) : null, bd: Number.isFinite(+b.tr.bd) && +b.tr.bd > 0 && +b.tr.bd < 500 ? Math.round(+b.tr.bd * 10) / 10 : null, cl: Number.isFinite(+b.tr.cl) && Math.abs(+b.tr.cl) < 100 ? Math.round(+b.tr.cl * 10) / 10 : null } } : {}) }; /* 1.6.4: συρτή από το ρολόι */
       const r = await sb(F, 'records', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify([{ user_id: us.user_id, kind: 'bites', id, data, deleted: false, updated_at: new Date(now).toISOString() }]) });
       if (!r.ok) return J({ ok: 0, err: 'db ' + r.status, detail: (await r.text()).slice(0, 200) }, 502);
       return J({ ok: 1, id, time: lp.time });

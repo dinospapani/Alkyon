@@ -122,7 +122,7 @@ function langMeta(s){ var k=s.uid+':'+lang(); if(ls.get('alkyon-v4-langmeta','')
    ώστε να μη χάνονται αν το κινητό σβήσει τα δεδομένα της εφαρμογής ή αν αλλάξεις κινητό. Μία εγγραφή kind 'settings', id 'main'.
    Όχι ό,τι αφορά μόνο τη συσκευή (ενεργή έξοδος, ειδοποιήσεις, νυχτερινή, γλώσσα). Κανόνας: αν άλλαξαν εδώ από τον τελευταίο συγχρονισμό, ανεβαίνουν·
    αλλιώς, αν ο server έχει νεότερες, έρχονται. Νέο κινητό (ποτέ συγχρονισμένο): παίρνει ό,τι έχει ο server. */
-var SETS=['alkyon-boat','alkyon-limits','alkyon-places','alkyon-v4-plans','alkyon-v4-goals','alkyon-maint','alkyon-units','alkyon-fprof','alkyon-gear','alkyon-smart','alkyon-advsp','alkyon-comm-follow'];
+var SETS=['alkyon-boat','alkyon-limits','alkyon-places','alkyon-v4-plans','alkyon-v4-goals','alkyon-maint','alkyon-units','alkyon-fprof','alkyon-gear','alkyon-smart','alkyon-advsp','alkyon-comm-follow','alkyon-dcorr'];
 function setBlob(){ var o={}; SETS.forEach(function(k){ var v=ls.get(k,undefined); if(v!==undefined&&v!==null) o[k]=v; }); return o; }
 function setHash(o){ return JSON.stringify(SETS.map(function(k){ return o[k]===undefined?null:o[k]; })); }
 function setsSync(rows,out){ try{
