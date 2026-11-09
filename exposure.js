@@ -107,9 +107,9 @@ var cache={};
 function el(tag,attrs,text){
   var e=document.createElement(tag); if(attrs) for(var k in attrs) e.setAttribute(k,attrs[k]); if(text!=null) e.textContent=text; return e;
 }
-function curDir(f){
+function curDir(f,at){
   try{
-    var now=f.nowLocal.slice(0,13), best=null;
+    var now=at||f.nowLocal.slice(0,13), best=null; /* 1.10.1: at = άλλη μέρα/ώρα (τοπική, «YYYY-MM-DDTHH») */
     f.days.forEach(function(d){ (d.hours||[]).forEach(function(h){ if(h.t&&h.t.slice(0,13)===now) best=h; }); });
     return best&&best.dir!=null?{dir:best.dir,wind:best.wind,gust:best.gust,t:best.t}:null;
   }catch(e){ return null; }
@@ -149,7 +149,7 @@ function drawMap(cv,r,cur,names,cols,mx){
   var sb=5*px, sx=S*0.05, sy=S*0.93; c.lineWidth=4; c.strokeStyle=dark?'#fff':'#0b1f2a'; c.beginPath(); c.moveTo(sx,sy); c.lineTo(sx+sb,sy); c.stroke();
   c.font='700 '+Math.round(S*0.036)+'px system-ui,sans-serif'; c.textAlign='left'; c.fillStyle=dark?'#fff':'#0b1f2a'; c.fillText('5 km',sx,sy-S*0.03);
 }
-function render(p,f){
+function render(p,f,at){
   var box=document.getElementById('fcExposure'), D=document.getElementById('fcDays');
   if(!D) return;
   if(!box){ box=el('div',{id:'fcExposure','class':'card',style:'margin:10px 0'}); }
@@ -161,7 +161,7 @@ function render(p,f){
   if(r===undefined){ try{ r=compute(+p.lat,+p.lon); }catch(e){ r=null; try{ console.error('exposure',e); }catch(e0){} } cache[key]=r; }
   if(!r){ box.hidden=true; return; }
   box.hidden=false;
-  var names=EN?NAMES_EN:NAMES_EL, cd=curDir(f), cur=cd?Math.round(cd.dir/22.5)%16:-1;
+  var names=EN?NAMES_EN:NAMES_EL, cd=curDir(f,at), cur=cd?Math.round(cd.dir/22.5)%16:-1, atH=at?at.slice(11,13)+':00':null;
   box.dataset.v='2';
   box.appendChild(el('h3',null,T('Έκθεση της ακτής ανά κατεύθυνση ανέμου','Coast exposure by wind direction')));
   var cols=['#3f9d6b','#c9a227','#d9731f','#c93a14'], mx=Math.max.apply(null,r.dirs.map(function(d){ return d.km; }));
@@ -170,7 +170,7 @@ function render(p,f){
   if(cd){
     var L=level(r.dirs[cur].km), nw=el('div',{'class':'exv'});
     nw.appendChild(el('span',{'class':'exchip',style:'background:'+cols[L.k]},EN?L.en:L.el));
-    nw.appendChild(el('span',null,T('Τώρα άνεμος από ','Now wind from ')+names[cur]+': '+(L.k>=2?T('το κύμα έρχεται ελεύθερα ('+fmtKm(r.dirs[cur].km)+' ανοιχτή θάλασσα).','waves come in freely ('+fmtKm(r.dirs[cur].km)+' of open sea).'):L.k===1?T('λίγη θάλασσα μπροστά σου ('+fmtKm(r.dirs[cur].km)+'), μικρό κύμα από τον άνεμο.','little sea upwind ('+fmtKm(r.dirs[cur].km)+'), small wind waves.'):T('ο άνεμος έρχεται από τη στεριά και δεν σηκώνει κύμα εδώ.','the wind comes off the land and builds no waves here.'))));
+    nw.appendChild(el('span',null,(atH?T('Στις '+atH+' άνεμος από ','At '+atH+' wind from '):T('Τώρα άνεμος από ','Now wind from '))+names[cur]+': '+(L.k>=2?T('το κύμα έρχεται ελεύθερα ('+fmtKm(r.dirs[cur].km)+' ανοιχτή θάλασσα).','waves come in freely ('+fmtKm(r.dirs[cur].km)+' of open sea).'):L.k===1?T('λίγη θάλασσα μπροστά σου ('+fmtKm(r.dirs[cur].km)+'), μικρό κύμα από τον άνεμο.','little sea upwind ('+fmtKm(r.dirs[cur].km)+'), small wind waves.'):T('ο άνεμος έρχεται από τη στεριά και δεν σηκώνει κύμα εδώ.','the wind comes off the land and builds no waves here.'))));
     box.appendChild(nw);
   }
   var shel=r.dirs.filter(function(d){ return level(d.km).k===0; }).map(function(d){ return names[d.i]; });
@@ -199,14 +199,17 @@ function render(p,f){
   dl.appendChild(el('p',{'class':'note'},warn.join(' ')));
   dl.appendChild(el('p',{'class':'note',style:'margin:2px 0 0;font-size:11px'},T('Ακτογραμμή: © OpenStreetMap contributors (ODbL)','Coastline: © OpenStreetMap contributors (ODbL)')));
   box.appendChild(dl);
-  marine(p).then(function(m){ if(m){ showSwell(sw,m,r); try{ estWave(est,m,r,cd,cur); }catch(e){} } try{ logCard(box,p,r,cd,cur,m); }catch(e){} }).catch(function(){ try{ logCard(box,p,r,cd,cur,null); }catch(e){} });
+  marine(p,at,f).then(function(m){ if(m){ showSwell(sw,m,r); try{ estWave(est,m,r,cd,cur,atH); }catch(e){} } if(!at){ try{ logCard(box,p,r,cd,cur,m); }catch(e){} } }).catch(function(){ if(!at){ try{ logCard(box,p,r,cd,cur,null); }catch(e){} } }); /* 1.10.1: «Πώς είναι η θάλασσα εδώ τώρα;» μόνο για σήμερα */
 }
 /* ---------- swell (Open-Meteo marine), μία μικρή κλήση ανά τόπο/ώρα ---------- */
 var MC={};
-function marine(p){
-  var key=(+p.lat).toFixed(2)+','+(+p.lon).toFixed(2), hr=new Date().toISOString().slice(0,13), c=MC[key];
+function marine(p,at,f){
+  /* 1.10.1: για άλλη μέρα, η ώρα «at» (τοπική) σε UTC με τη διαφορά ώρας της πρόγνωσης */
+  var hr=new Date().toISOString().slice(0,13);
+  if(at){ var tz=f&&Number.isFinite(+f.tz)?+f.tz:120; hr=new Date(Date.UTC(+at.slice(0,4),+at.slice(5,7)-1,+at.slice(8,10),+at.slice(11,13))-tz*60000).toISOString().slice(0,13); }
+  var key=(+p.lat).toFixed(2)+','+(+p.lon).toFixed(2)+'@'+hr, c=MC[key];
   if(c&&c.hr===hr) return c.pr;
-  var u='https://marine-api.open-meteo.com/v1/marine?latitude='+(+p.lat).toFixed(3)+'&longitude='+(+p.lon).toFixed(3)+'&hourly=wave_height,wave_direction,wave_period,swell_wave_height,swell_wave_direction,swell_wave_period&timezone=GMT&forecast_days=1';
+  var u='https://marine-api.open-meteo.com/v1/marine?latitude='+(+p.lat).toFixed(3)+'&longitude='+(+p.lon).toFixed(3)+'&hourly=wave_height,wave_direction,wave_period,swell_wave_height,swell_wave_direction,swell_wave_period&timezone=GMT&forecast_days='+(at?7:1);
   var pr=fetch(u).then(function(r){ if(!r.ok) throw new Error('marine '+r.status); return r.json(); }).then(function(j){
     var H=j&&j.hourly; if(!H||!H.time) return null;
     var i=H.time.indexOf(hr+':00'); if(i<0) return null;
@@ -226,12 +229,12 @@ function estimate(r,wind,dir,m){
   if(m&&m.sh!=null&&m.sd!=null&&m.sh>=0.1){ si=Math.round(m.sd/22.5)%16; var k=r.dirs[si].km, f=k>=60?1:k>=20?0.6:k>=5?0.3:0.1; hsw=m.sh*f; }
   return {tot:Math.sqrt(hw*hw+hsw*hsw),hw:hw,hsw:hsw,si:si,ci:ci,wl:ci>=0?level(r.dirs[ci].km).k:null};
 }
-function estWave(node,m,r,cd,cur){
+function estWave(node,m,r,cd,cur,atH){
   var names=EN?NAMES_EN:NAMES_EL, E=estimate(r,cd?cd.wind:null,cd&&cur>=0?cur*22.5:null,m), hw=E.hw, hsw=E.hsw, si=E.si, tot=E.tot; if(!(tot>=0)) return;
   var lo=Math.max(0,tot*0.75), hi=tot*1.25, fmt=function(v){ var x=v<0.1?0.1:Math.round(v*10)/10; return EN?x.toFixed(1):x.toFixed(1).replace('.',','); };
   var main=hsw>hw*1.2?T('κυρίως swell από ','mostly swell from ')+names[si]:hw>hsw*1.2?T('κυρίως από τον άνεμο','mostly from the wind'):T('άνεμος και swell μαζί','wind and swell together');
   var lv=tot<0.3?['g',T('Ήρεμα','Calm')]:tot<0.6?['y',T('Λίγο κύμα','Small waves')]:tot<1.1?['o',T('Κύμα','Waves')]:['r',T('Ψηλό κύμα','High waves')];
-  node.replaceChildren(el('span',{'class':'exwc '+lv[0]},lv[1]),el('b',null,T('Εδώ τώρα περίπου ','Here now about ')+(tot<0.15?T('κάτω από 0,2 m','under 0.2 m'):fmt(lo)+'–'+fmt(hi)+' m')),el('small',null,main+T('. Εκτίμηση από τον άνεμο, την ακτή και το swell, όχι μέτρηση.','. Estimate from wind, coast and swell, not a measurement.')));
+  node.replaceChildren(el('span',{'class':'exwc '+lv[0]},lv[1]),el('b',null,(atH?T('Εδώ στις '+atH+' περίπου ','Here at '+atH+' about '):T('Εδώ τώρα περίπου ','Here now about '))+(tot<0.15?T('κάτω από 0,2 m','under 0.2 m'):fmt(lo)+'–'+fmt(hi)+' m')),el('small',null,main+T('. Εκτίμηση από τον άνεμο, την ακτή και το swell, όχι μέτρηση.','. Estimate from wind, coast and swell, not a measurement.')));
   node.hidden=false;
 }
 /* Το swell περνά αν η κατεύθυνσή του έχει ανοιχτή θάλασσα (≥60 km) προς το σημείο. Δεν υπολογίζει διάθλαση/περίθλαση. */
@@ -295,7 +298,7 @@ function logCard(box,p,r,cd,cur,m){
 function fmtKm(k){ return k<10?k.toFixed(1)+' km':Math.round(k)+' km'; }
 window.addEventListener('alkyon-fcloaded',function(ev){
   var d=ev.detail||{};
-  setTimeout(function(){ try{ render(d.place,d.fc); }catch(e){ try{ console.error('exposure',e); }catch(e0){} } },60);
+  setTimeout(function(){ try{ render(d.place,d.fc,d.at||null); }catch(e){ try{ console.error('exposure',e); }catch(e0){} } },60);
 });
 var CC={}; function computeCached(lat,lon){ var k=(+lat).toFixed(3)+','+(+lon).toFixed(3); if(CC[k]!==undefined) return CC[k]; var r=null; try{ r=compute(+lat,+lon); }catch(e){ r=null; } CC[k]=r; return r; }
 window.AlkyonExposure={compute:compute,computeCached:computeCached,estimate:estimate,names:function(){ return EN?NAMES_EN:NAMES_EL; },logGet:logGet,level:level,hs:hs,ready:function(){ return decode(); },isLand:function(lat,lon){ return decode()?isLand(lat,lon):-1; },seaPoint:function(lat,lon){ return decode()?seaPoint(lat,lon):null; }};
