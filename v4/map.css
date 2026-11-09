@@ -1134,4 +1134,7 @@ body.mapclean .mapbar>.bellb.has{display:grid!important}
 /* 1.9.51: στον καθαρό χάρτη το καμπανάκι (όταν έχει αδιάβαστες) μπαίνει κάτω από το κουμπί «Στρώματα», όχι από πίσω του */
 body.mapclean .mapbar>.bellb.has{position:fixed;right:12px;top:calc(var(--safe-t,0px) + 132px);width:46px;height:46px;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 body.mapclean:has(.mcdrw.open) .mapbar>.bellb.has,body.mapclean:has(.sheet.on) .mapbar>.bellb.has,body.mapclean.ruling .mapbar>.bellb.has,body.mapclean.mappick .mapbar>.bellb.has{display:none!important}
-
+/* 1.9.84: στη διαλογή σημείου ένας σταυρός μόνο (όχι και ο σταυρός των τιμών καιρού) */
+body.mappick .wxcross{display:none!important}
+body.mappick .cross{width:40px;height:40px;margin:-20px 0 0 -20px;z-index:460}
+body.mappick .cross::before{left:19px;height:40px}body.mappick .cross::after{top:19px;width:40px}

@@ -1062,20 +1062,31 @@ B.spotSheet=function(sp){ spotSheet(sp); };
 /* 1.5.3: «Διάλεξε στον χάρτη»: ανοίγει τον κανονικό Χάρτη (με τα σημεία, τα βάθη και τα στρώματά σου)· το σημείο είναι στον σταυρό του κέντρου.
    o: {lat,lon,z, title, saveLabel, back:'#forecast', onPick(lat,lon,name)} */
 var pk=null;
-function pickEnd(ok){ if(!pk) return; var q=pk; pk=null; document.body.classList.remove('mappick'); if(q.bar) q.bar.remove(); if(map&&q.mv) map.off('move',q.mv);
-  if(ok&&map){ var g=q.det&&q.det.open&&q.cb?q.cb.get():null, c=map.getCenter(); var la=g?g.lat:+c.lat.toFixed(5), lo=g?g.lon:+c.lng.toFixed(5); try{ if(q.o.onPick) q.o.onPick(la,lo,q.nm.value.trim()); }catch(e){} }
+/* 1.9.84: ένας σταυρός μόνο, στη μέση του χάρτη που φαίνεται πάνω από την κάρτα· το σημείο που αποθηκεύεται είναι ακριβώς κάτω του */
+function pickPt(q){ var mc=map.getContainer(), R=mc.getBoundingClientRect(), bt=q&&q.bar?q.bar.getBoundingClientRect().top:R.bottom, top=R.top+60, bot=Math.min(R.bottom,bt-8);
+  var x=R.left+R.width/2, y=bot-top>140?(top+bot)/2:R.top+R.height/2; if(mc.classList.contains('mrot')){ x=R.left+R.width/2; y=R.top+R.height/2; }
+  var cp=[x-R.left,y-R.top], ll; try{ ll=mc.classList.contains('mrot')?map.getCenter():map.containerPointToLatLng(cp); }catch(e){ ll=map.getCenter(); }
+  var cr=document.querySelector('.cross'); if(cr){ cr.style.left=Math.round(x)+'px'; cr.style.top=Math.round(y)+'px'; } return {ll:ll,cp:cp,c:[R.width/2,R.height/2]}; }
+function pickGo(q,la,lo,z){ map.setView([la,lo],z,{animate:false}); var p=pickPt(q); if(Math.abs(p.c[1]-p.cp[1])>2||Math.abs(p.c[0]-p.cp[0])>2) map.panBy([p.c[0]-p.cp[0],p.c[1]-p.cp[1]],{animate:false}); }
+function pickEnd(ok){ if(!pk) return; var q=pk; pk=null; var pp=ok&&map?pickPt(q):null; document.body.classList.remove('mappick'); var cr=document.querySelector('.cross'); if(cr){ cr.style.left=''; cr.style.top=''; } if(q.bar) q.bar.remove(); if(map&&q.mv) map.off('move',q.mv);
+  if(ok&&map){ var g=q.det&&q.det.open&&q.cb?q.cb.get():null, c=pp?pp.ll:map.getCenter(); var la=g?g.lat:+c.lat.toFixed(5), lo=g?g.lon:+c.lng.toFixed(5); try{ if(q.o.onPick) q.o.onPick(la,lo,q.nm.value.trim()); }catch(e){} }
   if(q.o.back&&q.nav!==false) setTimeout(function(){ location.hash=q.o.back; },0); }
 function pickUI(){ if(!pk||pk.bar||!map||!root) return; var q=pk, o=q.o, PC=window.AlkyonCoord;
-  if(typeof o.lat==='number'&&typeof o.lon==='number'){ setFollow(false); followPause=Date.now()+600000; map.setView([o.lat,o.lon],Math.max(map.getZoom(),o.z||12)); }
-  var rd=h('b',{class:'mpcoord'}), show=function(){ var c=map.getCenter(); rd.textContent=PC&&PC.fmt?PC.fmt(c.lat,c.lng):c.lat.toFixed(5)+', '+c.lng.toFixed(5); };
-  q.cb=B.coordBox?B.coordBox(null,null,{noMap:true,onChange:function(la,lo){ if(map) map.setView([la,lo],Math.max(map.getZoom(),12)); }}):null;
+  var rd=h('b',{class:'mpcoord'}), show=function(){ var c=pickPt(q).ll; rd.textContent=PC&&PC.fmt?PC.fmt(c.lat,c.lng):c.lat.toFixed(5)+', '+c.lng.toFixed(5); };
+  q.cb=B.coordBox?B.coordBox(null,null,{noMap:true,onChange:function(la,lo){ if(map) pickGo(q,la,lo,Math.max(map.getZoom(),12)); }}):null;
   q.det=q.cb?h('details',{class:'mpdet'},h('summary',{text:T('Γράψε ή επικόλλησε συντεταγμένες','Type or paste coordinates')}),q.cb.el):null;
   q.nm=h('input',{type:'text',maxlength:'40',placeholder:T('Όνομα (προαιρετικό), π.χ. Ξέρα Λατσιού','Name (optional), e.g. Latchi reef'),autocomplete:'off',enterkeyhint:'done'});
   q.bar=h('div',{class:'mpkbar',role:'dialog','aria-label':o.title||T('Διάλεξε σημείο','Pick a point')},
     h('div',{class:'mpkh'},h('b',{text:o.title||T('Διάλεξε σημείο','Pick a point')}),h('small',{text:T('Μετακίνησε τον χάρτη· το σημείο είναι στον σταυρό.','Move the map; the point is under the crosshair.')})),
     h('div',{class:'mprow'},h('small',{text:T('Κέντρο','Centre')}),rd),q.det,q.nm,
     h('div',{class:'acts'},h('button',{class:'btn',type:'button',text:T('Άκυρο','Cancel'),onclick:function(){ pickEnd(false); }}),h('button',{class:'btn pri',type:'button',text:o.saveLabel||T('Επιλογή','Choose'),onclick:function(){ pickEnd(true); }})));
-  document.body.append(q.bar); document.body.classList.add('mappick'); q.mv=show; map.on('move',show); show(); }
+  document.body.append(q.bar); document.body.classList.add('mappick');
+  if(typeof o.lat==='number'&&typeof o.lon==='number'){ setFollow(false); followPause=Date.now()+600000; var z0=Math.max(map.getZoom(),o.z||12); pickGo(q,o.lat,o.lon,z0);
+    /* η κάρτα παίρνει το τελικό της ύψος λίγο μετά: ξανά, ώστε το σημείο να είναι ακριβώς κάτω από τον σταυρό (αν δεν έχεις κουνήσει τον χάρτη) */
+    var tch=false; map.once('dragstart zoomstart',function(){ tch=true; }); [60,350].forEach(function(ms){ setTimeout(function(){ if(pk===q&&!tch) pickGo(q,o.lat,o.lon,z0); },ms); }); }
+  if(q.det) q.det.addEventListener('toggle',function(){ requestAnimationFrame(show); });
+  if(window.ResizeObserver){ try{ new ResizeObserver(function(){ if(pk===q) show(); }).observe(q.bar); }catch(e){} }
+  q.mv=show; map.on('move',show); show(); }
 B.mapPick=function(o){ if(pk){ pk.nav=false; pickEnd(false); } pk={o:o||{}}; if(!/^#map/.test(location.hash||'')) location.hash='#map'; else pickUI(); };
 /* ονόματα σημείων που πέφτουν το ένα πάνω στο άλλο: φαίνεται μόνο το πρώτο (τα υπόλοιπα με πάτημα στο σημείο) */
 function declutter(){ var kept=[]; [].forEach.call(document.querySelectorAll('#lmap .mk.spot b'),function(b){ b.style.visibility=''; var r=b.getBoundingClientRect(); if(!r.width) return;
