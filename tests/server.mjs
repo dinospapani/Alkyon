@@ -356,6 +356,8 @@ NOW = RealDate.parse('2026-11-09T10:00:00Z');
   check('Ρολόι: σημεία ψαριών της συρτής κοντά στη βάρκα (κοντινότερα πρώτα, χωρίς καθετή, χαμένα και μακρινά) (1.9.77)', spots.length === 2 && spots[0][0] === 35.06 && spots[0][2] === 22 && spots[0][3] === 24 && spots[1][2] === null, spots);
   const ts = W.trollSpecies(bitesRows);
   check('Ρολόι: είδη για την επιλογή: πρώτα της συρτής, μετά τα άλλα, χωρίς τα «Χάθηκε»', JSON.stringify(ts) === JSON.stringify(['Λουτσος', 'Σφυρίδα', 'Σαργός']), ts);
+  const ts2 = W.trollSpecies([{ sp: 'Silver-cheeked toadfish', tech: 'συρτή' }]);
+  check('Ρολόι: ολόκληρο το όνομα του είδους (όχι κομμένο στα 18) (1.9.93)', ts2[0] === 'Silver-cheeked toadfish', ts2);
 }
 
 /* ---------- σκοτάδι για καλαμάρι ---------- */

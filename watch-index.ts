@@ -150,7 +150,7 @@ export async function depthGrid(F, lat, lon, cs = [], rad = 1300) {
 
 /* 1.9.75: τα 4 είδη που πιάνεις πιο συχνά στη συρτή, συμπληρωμένα με τα γενικά: rows = [{sp, tech, w, m}] */
 export function trollSpecies(rows) {
-  const top = (rr) => { const c = new Map(); rr.forEach(x => { const n = String(x.sp || '').trim(); if (n && x.m !== 'true') c.set(n, (c.get(n) || 0) + 1); }); return [...c.entries()].sort((p, q) => q[1] - p[1]).map(e => e[0].slice(0, 18)); };
+  const top = (rr) => { const c = new Map(); rr.forEach(x => { const n = String(x.sp || '').trim(); if (n && x.m !== 'true') c.set(n, (c.get(n) || 0) + 1); }); return [...c.entries()].sort((p, q) => q[1] - p[1]).map(e => e[0].slice(0, 30)); };   /* 1.9.93: 30 (με 18 έκοβε «Silver-cheeked toadfish»· το ρολόι μικραίνει τα γράμματα) */
   const tr = top(rows.filter(x => x.w || /συρτ|troll/i.test(String(x.tech || '')))), al = top(rows);
   return [...tr, ...al.filter(n => !tr.includes(n))].slice(0, 4);
 }
