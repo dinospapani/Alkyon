@@ -293,6 +293,7 @@ NOW = RealDate.parse('2026-11-09T10:00:00Z');
   const corner = g2.d[g2.w * (g2.h - 1) + g2.w - 1], corner1 = g.d[g.w * (g.h - 1) + g.w - 1];
   check('Ρολόι: χάρτης βυθού: η διόρθωση σβήνει μακριά από τη μέτρηση', corner - corner1 < 4, { corner, corner1 });
   const st = fs.readFileSync(path.join(ROOT, 'v4', 'store.js'), 'utf8');
+  check('Νέα: η έκδοση 1.9.76 (Ρίχνω κατευθείαν) υπάρχει στα «Τι νέο»', /\['1\.9\.76',\[T\('Ρολόι Garmin, συρτή βυθού: η «Συρτή βυθού» ανοίγει κατευθείαν/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
   check('Νέα: η έκδοση 1.9.74 (διόρθωση UP/DOWN) υπάρχει στα «Τι νέο»', /\['1\.9\.74',\[T\('Ρολόι Garmin: διόρθωση, τα UP\/DOWN/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
   check('Νέα: η έκδοση 1.9.73 (UP/DOWN = μολύβια στο ρολόι) υπάρχει στα «Τι νέο»', /\['1\.9\.73',\[T\('Ρολόι Garmin, συρτή βυθού: τα κουμπιά UP\/DOWN/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
   check('Εφαρμογή: οι διορθώσεις βυθομέτρου συγχρονίζονται (για να τις βλέπει το ρολόι)', /SETS=\[[^\]]*'alkyon-dcorr'/.test(st));
@@ -334,6 +335,8 @@ NOW = RealDate.parse('2026-11-09T10:00:00Z');
   check('Ρολόι: αναίρεση χωρίς κωδικό ψαριού → σφάλμα, όχι σβήσιμο', r5.ok === 0, r5);
   const r6 = await post({ code: 'ZZZ', kind: 'undo', cid });
   check('Ρολόι: αναίρεση χωρίς σωστό κωδικό ρολογιού → όχι', r6.ok === 0, r6);
+  const spots = W.trollSpots([{ sp: 'Λουτσος', tech: 'Συρτή βυθού', la: '35.06', lo: '32.40', w: { n: 22, bd: 24 } }, { sp: 'Σαργός', tech: 'Καθετή', la: '35.061', lo: '32.401' }, { sp: '', tech: 'συρτή', m: 'true', la: '35.062', lo: '32.40' }, { sp: 'Σφυρίδα', tech: 'συρτή', la: '36.5', lo: '30.0' }, { sp: 'Λουτσος', tech: 'συρτή', la: '35.07', lo: '32.41' }], 35.06, 32.40);
+  check('Ρολόι: σημεία ψαριών της συρτής κοντά στη βάρκα (κοντινότερα πρώτα, χωρίς καθετή, χαμένα και μακρινά) (1.9.77)', spots.length === 2 && spots[0][0] === 35.06 && spots[0][2] === 22 && spots[0][3] === 24 && spots[1][2] === null, spots);
   const ts = W.trollSpecies(bitesRows);
   check('Ρολόι: είδη για την επιλογή: πρώτα της συρτής, μετά τα άλλα, χωρίς τα «Χάθηκε»', JSON.stringify(ts) === JSON.stringify(['Λουτσος', 'Σφυρίδα', 'Σαργός']), ts);
 }

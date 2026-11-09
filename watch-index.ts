@@ -150,6 +150,13 @@ export function trollSpecies(rows) {
   const tr = top(rows.filter(x => x.w || /συρτ|troll/i.test(String(x.tech || '')))), al = top(rows);
   return [...tr, ...al.filter(n => !tr.includes(n))].slice(0, 4);
 }
+/* 1.9.77: τα σημεία όπου έπιασες ψάρι με συρτή, ως 20 km από τη βάρκα (τα 40 κοντινότερα): [lat, lon, μολύβια|null, βυθός οργ.|null] */
+export function trollSpots(rows, lat, lon) {
+  return rows.filter(x => x.m !== 'true' && (x.w || /συρτ|troll/i.test(String(x.tech || ''))) && Number.isFinite(+x.la) && Number.isFinite(+x.lo) && (Math.abs(+x.la) > 0.01 || Math.abs(+x.lo) > 0.01))
+    .map(x => ({ la: +x.la, lo: +x.lo, w: x.w && typeof x.w === 'object' ? x.w : {}, d: distM(lat, lon, +x.la, +x.lo) })).filter(x => x.d < 20000)
+    .sort((p, q) => p.d - q.d).slice(0, 40)
+    .map(x => [Math.round(x.la * 1e5) / 1e5, Math.round(x.lo * 1e5) / 1e5, Number.isFinite(+x.w.n) && +x.w.n > 0 ? Math.round(+x.w.n) : null, Number.isFinite(+x.w.bd) && +x.w.bd > 0 ? Math.round(+x.w.bd) : null]);
+}
 export async function handle(req, F = fetch, now = Date.now()) {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   const u = new URL(req.url), q = u.searchParams;
@@ -183,8 +190,9 @@ export async function handle(req, F = fetch, now = Date.now()) {
             .sort((p, q) => d2(p) - d2(q)).slice(0, 12).map(x => [x.n, Math.round(x.lat * 1e5) / 1e5, Math.round(x.lon * 1e5) / 1e5]);
           if (sp.length) o = { ...o, sp }; } catch (e) {}
         /* 1.9.75: τα 4 είδη που πιάνεις πιο συχνά στη συρτή (αλλιώς γενικά), για την επιλογή είδους στο ρολόι */
-        try { const r = await sb(F, 'records?user_id=eq.' + us.user_id + '&kind=eq.bites&deleted=eq.false&select=sp:data->>species,tech:data->>tech,w:data->wtr,m:data->>miss&order=updated_at.desc&limit=1500'); const a = r.ok ? await r.json() : [];
-          const tsp = trollSpecies(a || []); if (tsp.length) o = { ...o, tsp }; } catch (e) {}
+        try { const r = await sb(F, 'records?user_id=eq.' + us.user_id + '&kind=eq.bites&deleted=eq.false&select=sp:data->>species,tech:data->>tech,w:data->wtr,m:data->>miss,la:data->>lat,lo:data->>lon&order=updated_at.desc&limit=1500'); const a = r.ok ? await r.json() : [];
+          const tsp = trollSpecies(a || []); if (tsp.length) o = { ...o, tsp };
+          const tc = trollSpots(a || [], lat, lon); if (tc.length) o = { ...o, tc }; } catch (e) {}
         return o; };
       const hit = mem.fc.get(key); if (hit && now - hit.at < 30 * 60e3) return J(small(await withDue(hit.v)), 200, 'private, max-age=300');
       const PF = await loadPF(F, now);
