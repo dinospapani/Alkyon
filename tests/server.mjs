@@ -240,6 +240,23 @@ NOW = RealDate.parse('2026-11-09T10:00:00Z');
   check('Κοινότητα: περίληψη εβδομάδας την Κυριακή το βράδυ (1.9.65)', wk.length === 1 && wk[0].sub.endpoint.endsWith('/s1') && wk[0].body === '3 ψάρια από 2 ψαράδες. Περισσότερα: Συναγρίδα (2), Καλαμάρι (1). Μεγαλύτερο: Συναγρίδα 4,1 kg (Νίκος).', wk);
 }
 
+/* ---------- ρολόι: σελίδα «Καλαμάρι» στη function watch (1.9.69) ---------- */
+{
+  NOW = RealDate.parse('2026-11-09T07:00:00Z');
+  const tmp = path.join(ROOT, 'tests', '.watch-tmp.mjs'); fs.writeFileSync(tmp, fs.readFileSync(path.join(ROOT, 'watch-index.ts'), 'utf8'));
+  const W = await import(pathToFileURL(tmp).href); fs.unlinkSync(tmp);
+  const w = world();
+  const fc = await PF.getForecast(34.66, 33.04, w.fetch, { days: 6 });
+  const v = W.compact(PF, fc, false, 34.66, 33.04);
+  const sq = v.sq || {};
+  check('Ρολόι: σελίδα καλαμαριού (φωτισμός, νέα σελήνη, σκοτάδι, βράδια) (1.9.69)', sq && Number.isFinite(sq.il) && sq.il >= 0 && sq.il <= 100 && sq.nd > -4.1 && sq.nd < 30 && Array.isArray(sq.ev) && (sq.dk === null || (Array.isArray(sq.dk) && sq.dk.length === 3)), sq);
+  NOW = RealDate.parse('2026-11-11T07:00:00Z');
+  const v2 = W.compact(PF, fc, false, 34.66, 33.04);
+  check('Ρολόι: 2 μέρες μετά τη νέα σελήνη → «πριν 2 μέρες», όχι «σε 29»', v2.sq && v2.sq.nd < -1.5 && v2.sq.nd > -2.5, v2.sq);
+  NOW = RealDate.parse('2026-11-09T07:00:00Z');
+  check('Ρολόι: η σελίδα καλαμαριού είναι μικρή (μνήμη ρολογιού)', JSON.stringify(sq).length < 400, JSON.stringify(sq).length);
+}
+
 /* ---------- σκοτάδι για καλαμάρι ---------- */
 {
   const dw = d => { const s = PF.sunMoon(d, 35.04, 32.42, 120); return PF.darkWin(d, s.set, s.rise, 35.04, 32.42, 120); };

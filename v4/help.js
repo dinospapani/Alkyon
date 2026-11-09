@@ -66,6 +66,8 @@ var HELP=[
 ];
 /* έκδοση → αλλαγές (νεότερες πρώτες). Προσθέτεις γραμμή εδώ σε κάθε νέα λειτουργία. */
 var NEWS=[
+ ['1.9.69',[T('Ρολόι Garmin (νέα έκδοση): σελίδα «Καλαμάρι» με φωτισμό φεγγαριού, νέα σελήνη, σκοτάδι απόψε και τα καλύτερα βράδια.','Garmin watch (new version): a "Squid" page with moon illumination, new moon, tonight’s darkness and the best evenings.'),
+   T('Ρολόι, συρτή βυθού: «Ρίχνω» (βυθός βυθομέτρου → σε πόσα μολύβια να σταματήσεις), «Στον βυθό», «Ακούμπησε» (μαθαίνει τη διόρθωση της αρματωσιάς).','Watch, bottom trolling: "Let out" (sounder depth → at how many leads to stop), "On the bottom", "Touched bottom" (learns your rig’s correction).')]],
  ['1.9.68',[T('Φωνή: ερωτήσεις στη θάλασσα («πόσα ψάρια;», «πόσο αέρα;», «τι κύμα;», «τι ώρα δύει;», «πόσο μακριά το λιμάνι;», «τι ώρα είναι;»), η εφαρμογή απαντά με φωνή.','Voice: questions at sea (“how many fish?”, “how much wind?”, “waves?”, “sunset?”, “how far is the port?”, “what time is it?”), the app answers out loud.'),
    T('Φωνητικές εντολές σε έξοδο: πες ολόκληρη φράση («συναγρίδα τρία κιλά με σουπιά») και γράφεται με είδος και βάρος χωρίς άγγιγμα. «Ακύρωση» σβήνει την τελευταία.','Voice commands on a trip: say a full phrase (“dentex three kilos with cuttlefish”) and it is logged with species and weight, hands-free. “Cancel” deletes the last one.'),
    T('Χωρίς σήμα: το 🎤 γράφει αμέσως το ψάρι (θέση, ώρα, συνθήκες) και κρατά ηχογράφηση 8″. Την ακούς από το Ημερολόγιο και συμπληρώνεις.','No signal: 🎤 logs the catch at once (position, time, conditions) and keeps an 8″ recording. Play it from the Logbook and fill in.')]],
