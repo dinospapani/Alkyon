@@ -293,6 +293,7 @@ NOW = RealDate.parse('2026-11-09T10:00:00Z');
   const corner = g2.d[g2.w * (g2.h - 1) + g2.w - 1], corner1 = g.d[g.w * (g.h - 1) + g.w - 1];
   check('Ρολόι: χάρτης βυθού: η διόρθωση σβήνει μακριά από τη μέτρηση', corner - corner1 < 4, { corner, corner1 });
   const st = fs.readFileSync(path.join(ROOT, 'v4', 'store.js'), 'utf8');
+  check('Νέα: η έκδοση 1.9.80 υπάρχει στα «Τι νέο»', /\['1\.9\.80',\[T\('Ρολόι Garmin, «Ρίχνω»: προτείνει/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
   check('Νέα: η έκδοση 1.9.79 (νέο σχέδιο στις άλλες σελίδες) υπάρχει στα «Τι νέο»', /\['1\.9\.79',\[T\('Ρολόι Garmin, νέο σχέδιο και στις άλλες σελίδες/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
   check('Νέα: η έκδοση 1.9.78 υπάρχει στα «Τι νέο»', /\['1\.9\.78',\[T\('Ρολόι Garmin: η συρτή βυθού δεν λέει «μάζεψε 1»/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
   check('Νέα: η έκδοση 1.9.76 (Ρίχνω κατευθείαν) υπάρχει στα «Τι νέο»', /\['1\.9\.76',\[T\('Ρολόι Garmin, συρτή βυθού: η «Συρτή βυθού» ανοίγει κατευθείαν/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
