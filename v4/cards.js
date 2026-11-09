@@ -29,12 +29,18 @@ function mk(w,h){
 function txt(cv,s,px,py,size,weight,color,align,maxW){
   var x=cv.x, sz=size; x.fillStyle=color||'#fff'; x.textAlign=align||'left'; x.textBaseline='alphabetic'; s=String(s);
   do{ x.font=weight+' '+sz+'px '+FONT; sz-=2; }while(maxW&&x.measureText(s).width>maxW&&sz>16);
+  if(maxW&&x.measureText(s).width>maxW){ while(s.length>1&&x.measureText(s+'…').width>maxW) s=s.slice(0,-1); s=s.replace(/\s+$/,'')+'…'; }   /* 1.10.5: ποτέ έξω από το κουτί */
   x.fillText(s,px,py);
 }
 function rr(x,a,b,w,h,r){ x.beginPath(); x.moveTo(a+r,b); x.arcTo(a+w,b,a+w,b+h,r); x.arcTo(a+w,b+h,a,b+h,r); x.arcTo(a,b+h,a,b,r); x.arcTo(a,b,a+w,b,r); x.closePath(); }
 function brand(cv,sub){ txt(cv,'Alkyon',70,110,48,'800','#fff'); if(sub) txt(cv,sub,cv.w-70,108,30,'600','rgba(255,255,255,.78)','right',560); }
 function foot(cv){ /* μόνο το όνομα της εφαρμογής στην κεφαλίδα, χωρίς διεύθυνση */ }
-function stat(cv,a,b,w,h,val,lab){ var x=cv.x; x.fillStyle='rgba(255,255,255,.13)'; rr(x,a,b,w,h,26); x.fill(); txt(cv,val,a+w/2,b+h*0.56,Math.round(h*0.4),'800','#fff','center',w-28); txt(cv,lab,a+w/2,b+h*0.86,Math.round(h*0.19),'600','rgba(255,255,255,.72)','center',w-28); }
+function stat(cv,a,b,w,h,val,lab){ var x=cv.x; x.fillStyle='rgba(255,255,255,.13)'; rr(x,a,b,w,h,26); x.fill(); val=String(val);
+  /* 1.10.5: μακρύ κείμενο (π.χ. είδος) σε δύο γραμμές, όχι στριμωγμένο έξω από το κουτί */
+  x.font='800 '+Math.round(h*0.4)+'px '+FONT; var two=x.measureText(val).width>(w-28)*1.6&&/\s/.test(val);
+  if(two){ var wd=val.split(/\s+/), l1='', i=0; for(;i<wd.length;i++){ x.font='800 '+Math.round(h*0.2)+'px '+FONT; var tr=(l1?l1+' ':'')+wd[i]; if(l1&&x.measureText(tr).width>w-28) break; l1=tr; }
+    txt(cv,l1,a+w/2,b+h*0.36,Math.round(h*0.2),'800','#fff','center',w-28); txt(cv,wd.slice(i).join(' '),a+w/2,b+h*0.6,Math.round(h*0.2),'800','#fff','center',w-28); }
+  else txt(cv,val,a+w/2,b+h*0.56,Math.round(h*0.4),'800','#fff','center',w-28); txt(cv,lab,a+w/2,b+h*0.86,Math.round(h*0.19),'600','rgba(255,255,255,.72)','center',w-28); }
 function fish(cv,cx,cy,s,color){ var x=cv.x; x.save(); x.translate(cx-16*s,cy-12*s); x.scale(s,s); x.fillStyle=color; x.fill(new Path2D('M3 12C8 4.5 17 4 22 12c-5 8-14 7.5-19 0z M22 12l7-6.5v13z')); x.restore(); }
 function cover(cv,img,a,b,w,h,r){ var x=cv.x; x.save(); rr(x,a,b,w,h,r); x.clip(); var s=Math.max(w/img.width,h/img.height); x.drawImage(img,a+(w-img.width*s)/2,b+(h-img.height*s)/2,img.width*s,img.height*s); x.restore(); }
 function fit(cv,img,a,b,w,h,r){ var x=cv.x; x.save(); rr(x,a,b,w,h,r); x.clip();
@@ -89,7 +95,7 @@ function tripCard(t){
   stat(cv,X[2],y0,w,h,(Math.round(s.kg*10)/10)+' kg',T('Βάρος','Weight'));
   stat(cv,X[0],y0+h+g,w,h,String(s.miss),T('Χάθηκαν','Lost'));
   stat(cv,X[1],y0+h+g,w,h,s.km&&U?U.dist(s.km):'–',T('Απόσταση','Distance'));
-  stat(cv,X[2],y0+h+g,w,h,SN(t.species)||'–',T('Κύριο είδος','Top species'));
+  stat(cv,X[2],y0+h+g,w,h,(SN(t.species)||'–')+(t.spMore>0?' +'+t.spMore:''),T('Κύριο είδος','Top species'));
   foot(cv); return Promise.resolve(cv);
 }
 function yearData(y){
@@ -364,7 +370,11 @@ function importShare(){
 setTimeout(importShare,900); window.addEventListener('hashchange',function(){ setTimeout(importShare,200); });
 
 B.cards={fish:function(b){ preview(fishCard(b),'alkyon-fish.png',(SN(b.species)||T('Ψάρι','Fish'))+(b.kg?' '+b.kg+' kg':'')); },
-  trip:function(t){ if(!t.species&&t.sid){ var sp={}; C.Store.act().forEach(function(b){ if(b.trip===t.sid&&b.species) sp[b.species]=(sp[b.species]||0)+C.bc(b); }); var k=Object.keys(sp).sort(function(a,b){ return sp[b]-sp[a]; })[0]; if(k) t=Object.assign({},t,{species:k}); } preview(tripCard(t),'alkyon-trip.png',T('Η έξοδός μου στο Alkyon','My trip on Alkyon')); },
+  /* 1.10.5: «Κύριο είδος» = το είδος με τα περισσότερα ψάρια της εξόδου (όχι όλη η λίστα «Χ, Χ, Υ» που έβγαινε από το κουτί) */
+  trip:function(t){ var sid=t.sid||t.id, sp={}; C.Store.act().forEach(function(b){ if(sid&&b.trip===sid&&b.species&&!b.miss) sp[b.species]=(sp[b.species]||0)+C.bc(b); });
+    var ks=Object.keys(sp).sort(function(a,b){ return sp[b]-sp[a]; });
+    if(!ks.length&&t.species){ String(t.species).split(/\s*,\s*/).forEach(function(x){ if(x&&ks.indexOf(x)<0) ks.push(x); }); }
+    if(ks.length) t=Object.assign({},t,{species:ks[0],spMore:ks.length-1}); preview(tripCard(t),'alkyon-trip.png',T('Η έξοδός μου στο Alkyon','My trip on Alkyon')); },
   year:function(y){ preview(yearCard(y),'alkyon-'+y+'.png',T('Η χρονιά μου στο ψάρεμα','My fishing year')+' '+y); },
   cost:costSheet,costOf:costOf,yearData:yearData};
 B.voice={ok:!!SR,fill:voiceFill,log:voiceLog,parse:parseVoice,MIC:MIC};

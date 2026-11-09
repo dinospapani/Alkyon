@@ -1070,6 +1070,7 @@ function pickPt(q){ var mc=map.getContainer(), R=mc.getBoundingClientRect(), bt=
 function pickGo(q,la,lo,z){ map.setView([la,lo],z,{animate:false}); var p=pickPt(q); if(Math.abs(p.c[1]-p.cp[1])>2||Math.abs(p.c[0]-p.cp[0])>2) map.panBy([p.c[0]-p.cp[0],p.c[1]-p.cp[1]],{animate:false}); }
 function pickEnd(ok){ if(!pk) return; var q=pk; pk=null; var pp=ok&&map?pickPt(q):null; document.body.classList.remove('mappick'); var cr=document.querySelector('.cross'); if(cr){ cr.style.left=''; cr.style.top=''; } if(q.bar) q.bar.remove(); if(map&&q.mv) map.off('move',q.mv);
   if(ok&&map){ var g=q.det&&q.det.open&&q.cb?q.cb.get():null, c=pp?pp.ll:map.getCenter(); var la=g?g.lat:+c.lat.toFixed(5), lo=g?g.lon:+c.lng.toFixed(5); try{ if(q.o.onPick) q.o.onPick(la,lo,q.nm.value.trim()); }catch(e){} }
+  if(!ok&&q.o.onCancel){ try{ q.o.onCancel(); }catch(e){} }   /* 1.10.5: π.χ. ξανανοίγει τη φόρμα από όπου ήρθες */
   if(q.o.back&&q.nav!==false) setTimeout(function(){ location.hash=q.o.back; },0); }
 function pickUI(){ if(!pk||pk.bar||!map||!root) return; var q=pk, o=q.o, PC=window.AlkyonCoord;
   var rd=h('b',{class:'mpcoord'}), show=function(){ var c=pickPt(q).ll; rd.textContent=PC&&PC.fmt?PC.fmt(c.lat,c.lng):c.lat.toFixed(5)+', '+c.lng.toFixed(5); };

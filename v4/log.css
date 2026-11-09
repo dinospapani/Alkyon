@@ -639,3 +639,7 @@ html.night .kpis .kpi{outline:1px solid #fff;outline-offset:-1px;background:#000
 .vnplay{margin:10px 0}.vnplay audio{width:100%}
 /* 1.10.2: παλιά ρίψη: γραμμές αλιευμάτων (είδος · πόσα · kg) */
 .gprow input{width:100%;min-width:0;box-sizing:border-box;min-height:48px;padding:0 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit}
+/* 1.10.5: θέση στην «Παλιά ρίψη» και κουμπιά στα Εργαλεία */
+.gearpast .gpwhere{margin:-4px 0 4px;gap:8px}.gearpast .gpwhere .btn{flex:1}
+.gpposrow{display:flex;align-items:center;gap:8px;margin:0 0 10px;min-height:32px}.gpposrow .gppos{flex:1;min-width:0;color:var(--ink-2);font-size:13px;overflow-wrap:anywhere}.gpposrow .btn{min-height:32px;padding:0 12px}
+.gearadd{margin:0 0 12px;gap:8px}.gearadd .btn{flex:1}

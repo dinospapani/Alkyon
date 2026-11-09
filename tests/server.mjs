@@ -415,6 +415,16 @@ NOW = RealDate.parse('2026-11-09T10:00:00Z');
   check('Νέα: η έκδοση 1.10.4 υπάρχει στα «Τι νέο»', /\['1\.10\.4',\[T\('Ρολόι Garmin: δίχτυ/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
 }
 
+/* ---------- 1.10.5: κάρτα, θέση από χάρτη ---------- */
+{
+  const cards = fs.readFileSync(path.join(ROOT, 'v4', 'cards.js'), 'utf8'), gv = fs.readFileSync(path.join(ROOT, 'v4', 'gear-view.js'), 'utf8'), mv = fs.readFileSync(path.join(ROOT, 'v4', 'map-view.js'), 'utf8');
+  check('Κάρτα: το κείμενο δεν βγαίνει ποτέ από το κουτί (κόβεται με «…») (1.10.5)', /x\.measureText\(s\+'…'\)\.width>maxW/.test(cards));
+  check('Κάρτα: «Κύριο είδος» = ένα είδος (+N), όχι λίστα με διπλά (1.10.5)', /spMore:ks\.length-1/.test(cards) && /t\.spMore>0\?' \+'\+t\.spMore/.test(cards));
+  check('Χάρτης: διαλογή σημείου με «Άκυρο» ξανανοίγει τη φόρμα (onCancel) (1.10.5)', /if\(!ok&&q\.o\.onCancel\)/.test(mv));
+  check('Εργαλεία: θέση από τον χάρτη, «Εδώ» και διόρθωση σημείου (1.10.5)', /B\.mapPick\(\{[^\n]*Πού ήταν το εργαλείο;[^\n]*onCancel:reopen/.test(gv) && /Διόρθωση σημείου/.test(gv) && /bHere=/.test(gv));
+  check('Νέα: η έκδοση 1.10.5 υπάρχει στα «Τι νέο»', /\['1\.10\.5',\[T\('Δίχτυ, παραγάδι, κλουβί στα Εργαλεία/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
+}
+
 /* ---------- σκοτάδι για καλαμάρι ---------- */
 {
   const dw = d => { const s = PF.sunMoon(d, 35.04, 32.42, 120); return PF.darkWin(d, s.set, s.rise, 35.04, 32.42, 120); };

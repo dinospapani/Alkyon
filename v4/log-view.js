@@ -46,7 +46,7 @@ function syncBtn(){
 
 /* ---------- ψάρια ---------- */
 function fish(page){
-  var q=h('input',{type:'search',placeholder:T('Αναζήτηση είδους, δολώματος, σημείου','Search species, bait, spot'),'aria-label':T('Αναζήτηση','Search'),value:st.q});
+  var q=h('input',{type:'search',placeholder:T('Αναζήτηση','Search'),'aria-label':T('Αναζήτηση','Search'),value:st.q});
   var list=h('div');
   q.addEventListener('input',function(){ st.q=q.value; fill(); });
   var vt=h('button',{class:'iconbtn sm vtog',type:'button','aria-pressed':String(!!st.grid),'aria-label':st.grid?T('Προβολή λίστας','List view'):T('Προβολή φωτογραφιών','Photo view'),html:st.grid?'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>':'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>',onclick:function(){ st.grid=!st.grid; ls.set('alkyon-v4-loggrid',st.grid); draw(); }});
@@ -338,4 +338,6 @@ function lostAnalysis(page,bs){
 B.biteDetail=detail;
 B.view('log',{title:T('Ημερολόγιο','Logbook'),mount:function(el){ root=el; st.tab=ls.get('alkyon-v4-logtab',st.tab)||st.tab; st.range=ls.get('alkyon-v4-logrange',st.range)||st.range; draw(); },unmount:function(){ root=null; },resume:function(){ st.tab=ls.get('alkyon-v4-logtab',st.tab)||st.tab; st.range=ls.get('alkyon-v4-logrange',st.range)||st.range; draw(); }});
 B.on('store',function(k){ if(root&&/^alkyon-(bites|trips|spots|sess|gear)$/.test(k)) redraw(); });
+/* 1.10.5: άλλη καρτέλα του Ημερολογίου (π.χ. μετά από «Παλιά ρίψη» → Εργαλεία) */
+B.logTab=function(v){ st.tab=v; ls.set('alkyon-v4-logtab',v); if(root) redraw(); };
 })();

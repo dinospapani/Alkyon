@@ -129,3 +129,11 @@ html.night .wpk .oldhint{background:#000;border:1px solid #fff}
 .cmcard .lyrow b{flex:0 0 92px;font-weight:650}
 .cmcard .lyrow .cmv{flex:1;min-width:0}
 .cmcard .lyrow .cmn{flex:none;color:var(--ink-3);font-size:12.5px;align-self:center}
+/* 1.10.5: κείμενα που έβγαιναν από το κουτί ή κόβονταν με «…» σε στενά κινητά (360 px) */
+.chips.rng{display:flex;flex-wrap:wrap;gap:6px;overflow:visible;-webkit-mask-image:none;mask-image:none;padding:0;margin-left:0;margin-right:0}
+.chips.rng .chip{flex:0 0 auto;min-width:0;padding:0 13px;white-space:nowrap}
+.li .tx small,.li .tx b{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;text-overflow:clip;overflow-wrap:anywhere}
+.opr .opt small:not(.opw),.opps .opt small{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;text-overflow:clip}
+.spkg .bar .bl,.bar .bl{white-space:normal;line-height:1.15;overflow-wrap:anywhere;text-overflow:clip}
+.pstats .pst b.lng{white-space:normal!important;text-overflow:clip;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;font-size:13px;line-height:1.15;overflow-wrap:anywhere}
+.card .seg button{white-space:normal;line-height:1.12;text-overflow:clip;padding:2px 3px}
