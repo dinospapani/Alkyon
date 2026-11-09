@@ -194,7 +194,7 @@ function gsPaint(first){
   if(!gsHost||(!first&&!gsHost.isConnected)) return; var host=gsHost; host.replaceChildren();
   var sel=ls.get(GSK,'all'), wx=ls.get(WXK,{})||{};
   var all=gsItems().filter(function(g){ return !gsRange||gsRange(ldate(g.t0)); });
-  host.append(B.seg([['all',T('Όλα','All')],['net',T('Δίχτυ','Net')],['ll',T('Παραγάδι','Longline')],['trap',T('Κλούβες','Pots')]],sel,function(v){ ls.set(GSK,v); gsPaint(); },T('Τύπος εργαλείου','Gear type')));
+  host.append(B.seg([['all',T('Όλα','All')],['net',T('Δίχτυ','Net')],['ll',T('Παραγάδι','Longline')],['trap',T('Κλουβιά','Pots')]],sel,function(v){ ls.set(GSK,v); gsPaint(); },T('Τύπος εργαλείου','Gear type')));
   var list=all.filter(function(g){ return sel==='all'||g.type===sel; });
   if(!list.length){ host.append(h('div',{class:'card empty'},h('h3',{text:T('Δεν υπάρχουν ακόμα στοιχεία','No data yet')}),h('p',{text:T('Δεν υπάρχουν ακόμα ολοκληρωμένες ριξιές με ώρα ρίψης και ανεβάσματος σε αυτό το διάστημα.','No completed sets with set and haul times in this period yet.')}))); return; }
   var sets=list.length, n=0, kg=0, hr=0; list.forEach(function(g){ n+=g.n; kg+=g.kg; hr+=g.hrs; });
@@ -210,7 +210,7 @@ function gsPaint(first){
     ws(T('Πίεση όσο ήταν μέσα','Pressure while in the water'),function(c){ return c.pd==null?null:c.pd<=-2?'a':c.pd>=2?'c':'b'; },{a:T('Πέφτει','Falling'),b:T('Σταθερή','Steady'),c:T('Ανεβαίνει','Rising')}); }
   gsSection(host,T('Μήνας','Month'),gsGroup(list,function(g){ return new Date(g.t0).getMonth(); },[0,1,2,3,4,5,6,7,8,9,10,11]),function(k){ return MON12[k]; });
   var pend=list.filter(function(g){ return g.pos&&!wx[g.id]; }).length, failed=list.filter(function(g){ return wx[g.id]&&wx[g.id].x===0; }).length;
-  host.append(h('p',{class:'foot gsnote',text:wl.length?T('Ο καιρός είναι εκτίμηση μοντέλου (Open-Meteo) και αφορά ','Weather is a model estimate (Open-Meteo) for ')+wl.length+T(' από ',' of ')+list.length+T(' ριξιές.',' sets.'):(pend?T('Φέρνω τον καιρό…','Fetching weather…'):(failed?T('Δεν βρέθηκε καιρός (χρειάζεται internet).','Weather not found (needs internet).'):''))}));
+  host.append(h('p',{class:'foot gsnote',text:wl.length?T('Ο καιρός είναι εκτίμηση μοντέλου (Open-Meteo) και αφορά ','Weather is a model estimate (Open-Meteo) for ')+wl.length+T(' από ',' of ')+list.length+T(' ριξιές.',' sets.'):(pend?T('Φέρνω τον καιρό…','Fetching weather…'):(failed?T('Δεν βρέθηκε καιρός (χρειάζεται σύνδεση).','Weather not found (needs internet).'):''))}));
   gsFillWx(list);
 }
 B.gearStats=function(page,inRange){ gsHost=h('div',{class:'gstats'}); gsRange=inRange; page.append(gsHost); gsPaint(true); };
@@ -228,7 +228,7 @@ function gearList(page,inRange){
     if(sortK==='eff'){ var rp=sH(p)>0?fishOf(p).n/sH(p):-1, rq=sH(q)>0?fishOf(q).n/sH(q):-1; return (rq-rp)||(tOf(q)-tOf(p)); }
     if(sortK==='hrs') return (sH(q)-sH(p))||(tOf(q)-tOf(p));
     return tOf(q)-tOf(p); });
-  if(!items.length){ page.append(h('div',{class:'card empty'},h('h3',{text:T('Κανένα εργαλείο σε αυτό το διάστημα','No gear in this period')}),h('p',{text:T('Παραγάδια, δίχτυα και ζεμπίλια καταγράφονται από τον χάρτη, με το κουμπί «Εργαλεία».','Longlines, nets and pots are logged from the map, with the “Gear” button.')}),h('a',{class:'btn pri',href:'#map',text:T('Άνοιγμα χάρτη','Open map')}))); return; }
+  if(!items.length){ page.append(h('div',{class:'card empty'},h('h3',{text:T('Κανένα εργαλείο σε αυτό το διάστημα','No gear in this period')}),h('p',{text:T('Παραγάδια, δίχτυα και κλουβιά καταγράφονται από Ημερολόγιο › Νέα έξοδος ή από τον χάρτη (Εργαλεία).','Longlines, nets and pots are logged from the map, with the “Gear” button.')}),h('a',{class:'btn pri',href:'#map',text:T('Άνοιγμα χάρτη','Open map')}))); return; }
   var tn_=0, tk=0, done=items.filter(function(i){ return i.state==='done'; }); done.forEach(function(i){ var f=fishOf(i); tn_+=f.n; tk+=f.kg; });
   var so=h('select',{class:'select','aria-label':T('Ταξινόμηση','Sort by')}); [['new',T('Νεότερα πρώτα','Newest first')],['old',T('Παλαιότερα πρώτα','Oldest first')],['eff',T('Καλύτερη απόδοση (ψάρια/ώρα)','Best catch rate (catches/hour)')],['hrs',T('Περισσότερες ώρες μέσα','Most hours in water')]].forEach(function(o){ so.append(h('option',{value:o[0],text:o[1]})); });
   so.value=sortK; so.addEventListener('change',function(){ sortK=so.value; ls.set('alkyon-sort-gear',sortK); B.emit('store',KEY); });

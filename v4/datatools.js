@@ -157,7 +157,7 @@ B.plotterScan=function(){
         body.append(h('button',{class:'btn pri full',type:'button',text:T('Αποθήκευση σημείων','Save spots'),onclick:function(){ var n=0, bad=0;
           rows.forEach(function(r){ if(!r.cb.checked) return; var a=P.parse(r.la.value,'lat'), o=P.parse(r.lo.value,'lon'); if(isNaN(a)||isNaN(o)||Math.abs(a)>90||Math.abs(o)>180){ bad++; return; }
             B.store.save('spots',{name:r.nm.value.trim()||T('Σημείο','Spot'),type:'',lat:+a.toFixed(6),lon:+o.toFixed(6),depth:r.dp.value===''?null:+r.dp.value,notes:T('Από φωτογραφία plotter','From a plotter photo')}); n++; });
-          if(bad){ B.toast(T('Κάποιες συντεταγμένες δεν διαβάζονται. Διόρθωσέ τες ή ξετσέκαρέ τες.','Some coordinates cannot be read. Fix or untick them.')); return; }
+          if(bad){ B.toast(T('Κάποιες συντεταγμένες δεν διαβάζονται. Διόρθωσέ τες ή βγάλε το ✓ τους.','Some coordinates cannot be read. Fix or untick them.')); return; }
           sh.close(); B.toast(n+T(' σημεία αποθηκεύτηκαν.',' spots saved.')); B.emit('store','alkyon-spots'); var f0=rows.filter(function(r){ return r.cb.checked; })[0]; if(f0&&B.mapGo) B.mapGo(P.parse(f0.la.value,'lat'),P.parse(f0.lo.value,'lon'),13); }})); }
       wait.close(true); var sh=B.sheet({title:T('Βρέθηκαν συντεταγμένες','Coordinates found'),body:body});
     }).catch(function(e){ wait.close(true); B.toast(aiErr(e)); }); });

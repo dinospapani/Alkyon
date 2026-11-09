@@ -47,7 +47,7 @@ function form(p,after){
     send.disabled=true;
     C().rest('port_notes',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({port_key:key(p),port_name:(p.n||'').slice(0,80)||null,lat:+(+p.la).toFixed(5),lon:+(+p.lo).toFixed(5),tags:tags,note:tx||null})})
       .then(function(){ sh.close(true); B.toast(T('Στάλθηκε. Θα φανεί σε όλους μόλις εγκριθεί.','Sent. It will show to everyone once approved.')); if(after) after(); })
-      .catch(function(e){ send.disabled=false; B.toast(missing(e)?T('Οι σημειώσεις λιμανιών δεν έχουν ενεργοποιηθεί ακόμη (λείπει το port-notes.sql).','Port notes are not enabled yet (port-notes.sql missing).'):/rate/i.test(String(e&&e.message))?T('Πολλές σημειώσεις σήμερα.','Too many notes today.'):T('Δεν στάλθηκε. Έλεγξε τη σύνδεση.','Not sent. Check the connection.')); }); }});
+      .catch(function(e){ send.disabled=false; B.toast(missing(e)?T('Οι σημειώσεις λιμανιών δεν έχουν ενεργοποιηθεί ακόμη.','Port notes are not enabled yet.'):/rate/i.test(String(e&&e.message))?T('Πολλές σημειώσεις σήμερα.','Too many notes today.'):T('Δεν στάλθηκε. Έλεγξε τη σύνδεση.','Not sent. Check the connection.')); }); }});
   sh=B.sheet({title:T('Σημείωση για ','Note for ')+(p.n||(p.k==='ramp'?T('τη ράμπα','the ramp'):T('το λιμάνι','the port'))),stack:true,body:h('div',{class:'pnform'},
     h('p',{class:'sub',text:T('Τι πρέπει να ξέρει κάποιος που έρχεται εδώ με βάρκα; Διάλεξε ό,τι ισχύει.','What should someone arriving by boat know? Pick what applies.')}),chips,note,
     h('p',{class:'foot',text:T('Θα ελεγχθεί πριν φανεί σε άλλους. Δεν φαίνεται το όνομά σου.','It will be reviewed before others see it. Your name is not shown.')}),h('div',{class:'acts'},send))});
@@ -64,7 +64,7 @@ function review(){ var list=h('div',{class:'pnlist'},h('p',{class:'sub',text:T('
       function dec(st){ C().rest('port_notes?id=eq.'+n.id,{method:'PATCH',headers:{'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({status:st})}).then(function(){ row.remove(); B.toast(st==='ok'?T('Εγκρίθηκε.','Approved.'):T('Απορρίφθηκε.','Rejected.')); if(!list.querySelector('.pnrow')) draw([]); }).catch(function(){ B.toast(T('Δεν έγινε.','Failed.')); }); }
       row.append(h('div',{class:'acts pnacts'},h('button',{class:'btn',type:'button',text:'❌ '+T('Απόρριψη','Reject'),onclick:function(){ dec('rejected'); }}),h('button',{class:'btn pri',type:'button',text:'✅ '+T('Έγκριση','Approve'),onclick:function(){ dec('ok'); }}),
         B.mapGo?h('button',{class:'btn',type:'button',text:'🗺',title:T('Στον χάρτη','On the map'),onclick:function(){ sh.close(true); B.mapGo(+n.lat,+n.lon,15); }}):null)); list.append(row); }); }
-  pending().then(draw).catch(function(e){ list.replaceChildren(h('p',{class:'sub',text:missing(e)?T('Λείπει το port-notes.sql.','port-notes.sql is missing.'):T('Δεν φόρτωσαν.','Did not load.')})); }); }
+  pending().then(draw).catch(function(e){ list.replaceChildren(h('p',{class:'sub',text:missing(e)?T('Δεν είναι διαθέσιμο ακόμα.','Not available yet.'):T('Δεν φόρτωσαν.','Did not load.')})); }); }
 /* γραμμή στο Προφίλ, μόνο για διαχειριστές */
 function adminRow(into,mk){ isAdmin().then(function(y){ if(!y) return; pending().then(function(a){ into.append(mk(a.length)); }).catch(function(){ into.append(mk(null)); }); }); }
 window.AlkyonPortNotes={attach:attach,sheet:sheet};

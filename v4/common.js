@@ -55,7 +55,7 @@ function traits(G){
   if(ss.length>=2) out.push([T('Θάλασσα','Sea temp'),(Math.abs(Math.max.apply(null,ss)-Math.min.apply(null,ss))<0.15?fmt(Math.max.apply(null,ss),1):fmt(Math.min.apply(null,ss),1)+'–'+fmt(Math.max.apply(null,ss),1))+' °C',ss.length,N]);
   /* πίεση */
   var p=mode(G.map(function(d){ return d.pt&&d.pt.v; })), pk=G.filter(function(d){ return d.pt; }).length;
-  if(p&&pk>=2) out.push([T('Πίεση','Pressure'),p.n/pk>=0.6?PT[p.v]||p.v:T('διάφορη (δεν φαίνεται κοινό)','varied (no common pattern)'),p.n/pk>=0.6?p.n:pk,pk]);
+  if(p&&pk>=2) out.push([T('Πίεση','Pressure'),p.n/pk>=0.6?PT[p.v]||p.v:T('διάφορη (χωρίς κάτι κοινό)','varied (no common pattern)'),p.n/pk>=0.6?p.n:pk,pk]);
   /* άνεμος, κύμα */
   var ws=G.map(function(d){ return d.wind; }).filter(function(x){ return x!=null; });
   if(ws.length>=2){ var wmx=Math.max.apply(null,ws), wmn=Math.min.apply(null,ws); out.push([T('Άνεμος','Wind'),(wmx<=8?T('λίγος, ','light, '):wmx>=15?T('δυνατός, ','strong, '):'')+(Math.round(wmn)===Math.round(wmx)?Math.round(wmx):Math.round(wmn)+'–'+Math.round(wmx))+' kn',ws.length,N]); }
@@ -70,7 +70,7 @@ function traits(G){
   /* σελήνη */
   var il=G.map(function(d){ return d.illum; }).filter(function(x){ return x!=null; });
   if(il.length>=2){ var nw=il.filter(function(x){ return x<0.15; }).length, fl=il.filter(function(x){ return x>0.85; }).length;
-    out.push([T('Σελήνη','Moon'),nw/il.length>=0.6?T('κοντά στη νέα σελήνη','near the new moon'):fl/il.length>=0.6?T('κοντά στην πανσέληνο','near the full moon'):(nw?nw+T(' κοντά στη νέα σελήνη, οι άλλες σε άλλες φάσεις',' near the new moon, the rest in other phases'):T('διάφορες φάσεις (δεν φαίνεται κοινό)','various phases (no common pattern)')),nw/il.length>=0.6?nw:fl/il.length>=0.6?fl:il.length,il.length]); }
+    out.push([T('Σελήνη','Moon'),nw/il.length>=0.6?T('κοντά στη νέα σελήνη','near the new moon'):fl/il.length>=0.6?T('κοντά στην πανσέληνο','near the full moon'):(nw?nw+T(' κοντά στη νέα σελήνη, οι άλλες σε άλλες φάσεις',' near the new moon, the rest in other phases'):T('διάφορες φάσεις (χωρίς κάτι κοινό)','various phases (no common pattern)')),nw/il.length>=0.6?nw:fl/il.length>=0.6?fl:il.length,il.length]); }
   /* παλίρροια */
   var td=mode(G.map(function(d){ return d.tide&&d.tide.v; })), tk=G.filter(function(d){ return d.tide; }).length;
   if(td&&tk>=3&&td.n/tk>=0.75) out.push([T('Στάθμη θάλασσας','Tide'),TIDE[td.v]||td.v,td.n,tk]);

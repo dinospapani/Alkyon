@@ -30,7 +30,7 @@ function prompt(s){
     h('p',{class:'sub',text:T('Είσαι στο «','You are at “')+s.name+T('». Να ξεκινήσει έξοδος; Καταγράφει τη διαδρομή και τα ψάρια, και ενημερώνει την επαφή ασφαλείας αν την έχεις ορίσει.','”. Start a trip? It logs your route and catches, and informs your safety contact if you have one.')}),
     h('button',{class:'btn pri full',type:'button',text:T('Έναρξη','Start'),onclick:function(){ sh.close(); setTimeout(function(){ if(B.tripStart) B.tripStart({where:s.name}); },280); }}),
     h('button',{class:'btn full',type:'button',text:T('Όχι τώρα','Not now'),onclick:function(){ sh.close(); }}),
-    h('button',{class:'linkbtn',type:'button',text:T('Να μη ρωτάει ξανά','Don’t ask again'),onclick:function(){ ls.set(KEY,false); stop(); sh.close(); B.toast(T('Δεν θα ρωτάει. Το ξανανοίγεις από Προφίλ › Ειδοποιήσεις.','It will not ask. Turn it back on in Profile › Alerts.')); }}))});
+    h('button',{class:'linkbtn',type:'button',text:T('Να μη ρωτάει ξανά','Don’t ask again'),onclick:function(){ ls.set(KEY,false); stop(); sh.close(); B.toast(T('Δεν θα ρωτάει. Το ξανανοίγεις από Προφίλ › Ρυθμίσεις › Ρυθμίσεις ειδοποιήσεων.','It will not ask. Turn it back on in Profile › Alerts.')); }}))});
   try{ if(navigator.vibrate) navigator.vibrate(60); }catch(e){}
 }
 function onFix(p){ last=p; var c=p.coords; if(!c||c.accuracy>120) return; if(onTrip()||!eligible()||!on()){ anchor=null; return; }

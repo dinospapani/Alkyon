@@ -294,6 +294,8 @@ NOW = RealDate.parse('2026-11-09T10:00:00Z');
   const corner = g2.d[g2.w * (g2.h - 1) + g2.w - 1], corner1 = g.d[g.w * (g.h - 1) + g.w - 1];
   check('Ρολόι: χάρτης βυθού: η διόρθωση σβήνει μακριά από τη μέτρηση', corner - corner1 < 4, { corner, corner1 });
   const st = fs.readFileSync(path.join(ROOT, 'v4', 'store.js'), 'utf8');
+  check('Νέα: η έκδοση 1.10.3 υπάρχει στα «Τι νέο»', /\['1\.10\.3',\[T\('Ελληνικά κείμενα/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
+  check('κείμενα: κανένα «τρέξε … .sql» ή «Supabase ›» στα μηνύματα του χρήστη (1.10.3)', (()=>{ const bad=[]; for (const f of fs.readdirSync(path.join(ROOT,'v4')).filter(x=>x.endsWith('.js')&&x!=='help.js')) { const s=fs.readFileSync(path.join(ROOT,'v4',f),'utf8'); if (/T\('[^']*(\.sql|Supabase ›|Edge Functions ›)/.test(s)) bad.push(f); } return bad.length===0; })());
   check('Νέα: η έκδοση 1.10.2 υπάρχει στα «Τι νέο»', /\['1\.10\.2',\[T\('Δίχτυ, παραγάδι, κλουβί από το Ημερολόγιο/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
   check('Νέα: η έκδοση 1.10.1 υπάρχει στα «Τι νέο»', /\['1\.10\.1',\[T\('Πρόγνωση το βράδυ/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
   check('πρόγνωση: βαθμός για απόψε και Έκθεση ακτής σε άλλες μέρες (1.10.1)', (()=>{ const f=fs.readFileSync(path.join(ROOT, 'v4', 'forecast-view.js'), 'utf8'), e=fs.readFileSync(path.join(ROOT, 'exposure.js'), 'utf8'); return /function nightBest\(fc,d\)/.test(f) && /Καλύτερη ώρα απόψε/.test(f) && /if\(d\.date>=td&&B\.prof\(\)!=='lake'&&window\.AlkyonExposure\)/.test(f) && /function curDir\(f,at\)/.test(e) && /function marine\(p,at,f\)/.test(e); })());

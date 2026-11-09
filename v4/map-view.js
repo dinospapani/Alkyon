@@ -302,7 +302,7 @@ function drawDirect(){
   if(sp!=null) dtSpd=dtSpd==null?sp:dtSpd*0.6+sp*0.4;
   var kn=dtSpd!=null?dtSpd*1.94384:null, eta='';
   if(kn!=null&&kn>=1){ var sec=d/dtSpd, at=new Date(Date.now()+sec*1000); eta=T(' · άφιξη ',' · ETA ')+B.pad(at.getHours())+':'+B.pad(at.getMinutes()); }
-  inf.textContent=(rp?T('γύρω από στεριά ','around land ')+'· ':'')+dtFmt(d)+' · '+Math.round(b)+'° '+COMP[Math.round(b/45)%8]+(kn!=null&&kn>=1?' · '+B.num(kn,1)+' kn':'')+eta;
+  inf.textContent=(rp?T('γύρω από τη στεριά ','around land ')+'· ':'')+dtFmt(d)+' · '+Math.round(b)+'° '+COMP[Math.round(b/45)%8]+(kn!=null&&kn>=1?' · '+B.num(kn,1)+' kn':'')+eta;
   if(kn!=null&&kn>=2&&d>80&&d/dtSpd<=130&&B.say) B.say(T('Φτάνεις σε δύο λεπτά','Arriving in two minutes'),'nav','eta'+key,600000);
   if(d<40&&!dtArr){ dtArr=true; if(B.say) B.say(T('Έφτασες','Arrived')+(t.name?', '+t.name:''),'nav','arr'+key,600000); B.toast(T('Έφτασες: ','Arrived: ')+(t.name||'')); try{ navigator.vibrate&&navigator.vibrate([200,100,200]); }catch(e){} }
 }
@@ -573,7 +573,7 @@ function startDl(){
     return Promise.all([worker(),worker(),worker(),worker()]);
   }).then(function(){ dl.run=false;
     var rec=ls.get('alkyon-offl',[])||[]; if(!dl.cancel&&dl.done-dl.fail>0){ rec.push({t:Date.now(),n:dl.done-dl.fail,lay:p.lay,s:p.b.getSouth(),w:p.b.getWest(),nn:p.b.getNorth(),e:p.b.getEast()}); ls.set('alkyon-offl',rec.slice(-20)); }
-    paintDl(); B.toast(dl.cancel?T('Το κατέβασμα σταμάτησε.','Download stopped.'):(T('Χάρτης αποθηκεύτηκε: ','Map saved: ')+(dl.done-dl.fail)+T(' πλακίδια',' tiles')+(dl.fail?T(' · αποτυχίες: ',' · failed: ')+dl.fail:'')));
+    paintDl(); B.toast(dl.cancel?T('Το κατέβασμα σταμάτησε.','Download stopped.'):(T('Ο χάρτης αποθηκεύτηκε: ','Map saved: ')+(dl.done-dl.fail)+T(' πλακίδια',' tiles')+(dl.fail?T(' · αποτυχίες: ',' · failed: ')+dl.fail:'')));
   }).catch(function(){ dl.run=false; paintDl(); B.toast(T('Το κατέβασμα απέτυχε.','Download failed.')); });
 }
 function clearDl(){ B.ask(T('Να διαγραφούν όλοι οι χάρτες που κατέβασες;','Delete all downloaded maps?'),T('Διαγραφή','Delete'),true).then(function(y){ if(!y) return; ls.set('alkyon-offl',[]); (window.caches?caches.delete('alkyon-tiles'):Promise.resolve()).then(function(){ paintDl(); B.toast(T('Διαγράφηκαν.','Deleted.')); }); }); }
@@ -622,8 +622,8 @@ function layersSheet(o){ o=o&&o.into?o:{}; /* 1.7.4: o.into = μέσα στο μ
       im.onload=function(){ pv.style.backgroundImage='url("'+u+'")'; pv.classList.add('real'); }; im.src=u; }); }catch(e){}
   body.append(h('h3',{class:'lyh',text:T('Χάρτης','Map type')}),bases);
   /* 1.7.4: αέρας πάνω στη στεριά */
-  if(B.landWx){ var lwb=h('div',{class:'ldepth'}); lwb.append(B.seg([['faint',T('Αχνός','Faint')],['mid',T('Κανονικός','Normal')],['full',T('Πλήρης','Full')]],B.landWx(),function(v){ B.landWx(v); },T('Αέρας πάνω στη στεριά','Wind over land')),h('small',{class:'wn',text:T('Πόσο φαίνεται το χρώμα του αέρα πάνω στη στεριά. «Πλήρης» = όπως το Windy.','How much wind colour shows over land. “Full” = like Windy.')}));
-    body.append(h('h3',{class:'lyh',text:T('Αέρας πάνω στη στεριά','Wind over land')}),lwb); }
+  if(B.landWx){ var lwb=h('div',{class:'ldepth'}); lwb.append(B.seg([['faint',T('Αχνός','Faint')],['mid',T('Κανονικός','Normal')],['full',T('Πλήρης','Full')]],B.landWx(),function(v){ B.landWx(v); },T('Άνεμος πάνω από τη στεριά','Wind over land')),h('small',{class:'wn',text:T('Πόσο φαίνεται το χρώμα του ανέμου πάνω από τη στεριά. «Πλήρης» = όπως το Windy.','How much wind colour shows over land. “Full” = like Windy.')}));
+    body.append(h('h3',{class:'lyh',text:T('Άνεμος πάνω από τη στεριά','Wind over land')}),lwb); }
   /* 1.2.2: καλύτερα σημεία από όλα τα δεδομένα */
   if(B.bestSpots) grid(T('Πού να πάω','Where to go'),[tile('best',T('Καλύτερα σημεία','Best spots'),T('καιρός, τροφή, νερό, βυθός','weather, food, water, seabed'),function(){ return B.bestSpots.on(); },function(v){ B.bestSpots.set(v); })]);
   grid(o.into?T('Καιρός και θάλασσα','Weather and sea'):T('Καιρός','Weather'),[
@@ -864,7 +864,7 @@ function mcDrFill2(){ var pan=mcDr.querySelector('.mcpan'), keep=pan.scrollTop; 
   var tmp=h('div'), r=layersSheet({into:tmp}), OPEN=ls.get('alkyon-v4-mcopen',{}), grp=null, groups={}, pend=[];
   /* 1.7.9: χωρίς ακορντεόν: όλα φαίνονται, σε σειρά σημαντικότητας. Μόνο το Υπόμνημα (μεγάλο) ανοιγοκλείνει. */
   var LEG=T('Υπόμνημα','Legend'), MAPG=T('Χάρτης και βάθη','Map and depths'), WXG=T('Καιρός και θάλασσα','Weather and sea');
-  var MERGE={}; MERGE[T('Χάρτης','Map type')]=MAPG; MERGE[T('Αέρας πάνω στη στεριά','Wind over land')]=MAPG; MERGE[T('Βάθη θάλασσας','Sea depths')]=MAPG; MERGE[T('Πού να πάω','Where to go')]=WXG;
+  var MERGE={}; MERGE[T('Χάρτης','Map type')]=MAPG; MERGE[T('Άνεμος πάνω από τη στεριά','Wind over land')]=MAPG; MERGE[T('Βάθη θάλασσας','Sea depths')]=MAPG; MERGE[T('Πού να πάω','Where to go')]=WXG;
   function group(t){ if(groups[t]) return groups[t]; var g;
     /* 1.9.7: όλες οι ομάδες ανοιγοκλείνουν (όπως το Υπόμνημα)· θυμάται ποιες άνοιξες */
     g=mcAcc(t,OPEN); groups[t]=g; return g; }
@@ -957,12 +957,12 @@ function mount(el){
   /* κατά την έξοδο: πράσινο ψάρι = έπιασα (φόρμα), κόκκινο = τσίμπησε και χάθηκε (καταγράφεται αμέσως). Κράτα πατημένο = διαγραφή του τελευταίου. */
   var FB='<path d="M3 12C8 4.5 17 4 22 12c-5 8-14 7.5-19 0z"/><path d="M22 12l7-6.5v13z"/>';
   var bCatch=h('button',{class:'fb fbc',type:'button','aria-label':T('Έπιασα ψάρι (κράτα για διαγραφή του τελευταίου)','Caught a fish (hold to delete the last one)'),html:'<svg viewBox="0 0 32 24" aria-hidden="true" fill="currentColor">'+FB+'</svg><b>0</b>'});
-  var bMiss=h('button',{class:'fb fbm',type:'button','aria-label':T('Τσίμπησε αλλά χάθηκε (κράτα για διαγραφή της τελευταίας)','Bite but lost (hold to delete the last one)'),html:'<svg viewBox="0 0 32 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">'+FB+'<path d="M5 22L27 2" stroke-width="2.6" stroke-linecap="round"/></svg><b>0</b>'});
+  var bMiss=h('button',{class:'fb fbm',type:'button','aria-label':T('Τσίμπησε αλλά χάθηκε (κράτα για διαγραφή του τελευταίου)','Bite but lost (hold to delete the last one)'),html:'<svg viewBox="0 0 32 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">'+FB+'<path d="M5 22L27 2" stroke-width="2.6" stroke-linecap="round"/></svg><b>0</b>'});
   function hold(btn,miss){ var t=null, held=false; btn.addEventListener('pointerdown',function(){ held=false; clearTimeout(t); t=setTimeout(function(){ held=true; try{ navigator.vibrate&&navigator.vibrate(25); }catch(e){} if(!miss&&document.body.classList.contains('mapclean')) fishMenu(); else B.quickUndo(miss); },550); });
     ['pointerup','pointerleave','pointercancel'].forEach(function(ev){ btn.addEventListener(ev,function(){ clearTimeout(t); }); }); btn.addEventListener('contextmenu',function(e){ e.preventDefault(); });
     btn.addEventListener('click',function(){ if(held){ held=false; return; } if(miss) B.quickRec(true); else if(B.troll&&B.troll.on&&B.troll.on()) catchNow(); else B.biteForm(); }); }
   /* 1.8.7: σε συρτή, ένα πάτημα = το ψάρι γράφεται αμέσως εκεί που είναι το δόλωμα (λεπτομέρειες μετά) */
-  function catchNow(){ B.quickRec(false,null,null,true); var bs=B.store?B.store.raw('bites'):[], last=bs[bs.length-1]; B.toast(T('🐟 Ψάρι γράφτηκε εκεί που είναι το δόλωμα','🐟 Catch logged where the lure is')+(last&&last.troll&&last.troll.lb?' (~'+last.troll.lb+T(' m πίσω)',' m back)'):''),6000); }
+  function catchNow(){ B.quickRec(false,null,null,true); var bs=B.store?B.store.raw('bites'):[], last=bs[bs.length-1]; B.toast(T('🐟 Το ψάρι γράφτηκε στη θέση του δολώματος','🐟 Catch logged where the lure is')+(last&&last.troll&&last.troll.lb?' (~'+last.troll.lb+T(' m πίσω)',' m back)'):''),6000); }
   hold(bCatch,false); hold(bMiss,true);
   /* v31z542: λαγοκέφαλος / έφαγε το δόλωμα (δεν μετράει στα ψάρια) */
   var bPest=h('button',{class:'fb fbp',type:'button','aria-label':T('Λαγοκέφαλος ή έφαγε το δόλωμα','Toadfish or bait taken'),onclick:function(){ if(B.pestSheet) B.pestSheet(); }},h('span',{class:'fbpi',text:'🐡'}),h('b',{text:'0'}));

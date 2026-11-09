@@ -34,7 +34,7 @@ function form(at){
       .then(function(){ busy=false; sh.close(true); ls.set('alkyon-v4-srlast',Date.now()); B.toast(T('Ευχαριστούμε! Η αναφορά φαίνεται σε όλους για 6 ώρες.','Thanks! Your report is visible to everyone for 6 hours.'));
         if(!on()) set(true); else refresh(); })
       .catch(function(e){ busy=false; send.disabled=false; send.textContent=T('Αποστολή','Send'); var m=String(e&&e.message);
-        B.toast(missing(e)?T('Οι αναφορές θάλασσας δεν έχουν ενεργοποιηθεί ακόμη (λείπει το sea-reports.sql).','Sea reports are not enabled yet (sea-reports.sql missing).'):/wait a few/i.test(m)?T('Μόλις έστειλες αναφορά. Περίμενε λίγα λεπτά.','You just sent a report. Wait a few minutes.'):/rate/i.test(m)?T('Πολλές αναφορές σήμερα.','Too many reports today.'):T('Δεν στάλθηκε. Έλεγξε τη σύνδεση.','Not sent. Check the connection.')); }); }
+        B.toast(missing(e)?T('Οι αναφορές θάλασσας δεν έχουν ενεργοποιηθεί ακόμη.','Sea reports are not enabled yet.'):/wait a few/i.test(m)?T('Μόλις έστειλες αναφορά. Περίμενε λίγα λεπτά.','You just sent a report. Wait a few minutes.'):/rate/i.test(m)?T('Πολλές αναφορές σήμερα.','Too many reports today.'):T('Δεν στάλθηκε. Έλεγξε τη σύνδεση.','Not sent. Check the connection.')); }); }
   var PC=window.AlkyonCoord;
   sh=B.sheet({title:T('Πώς είναι η θάλασσα εδώ;','How is the sea here?'),body:h('div',{class:'srform'},
     h('p',{class:'sub',text:(at.gps?T('Στη θέση σου','At your position'):T('Στο σημείο','At')+' '+(PC?PC.fmt(at.lat,at.lon):(+at.lat).toFixed(3)+', '+(+at.lon).toFixed(3)))+T(' · φαίνεται σε όλους για 6 ώρες, χωρίς όνομα και με θέση στρογγυλεμένη στα ~1,5 km.',' · visible to everyone for 6 hours, without your name and with the position rounded to ~1.5 km.')}),

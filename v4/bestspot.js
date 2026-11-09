@@ -138,7 +138,7 @@ function score(data,sb,di,center){
       part=bed.depth>=TP.d[0]&&bed.depth<=TP.d[1]?12:bed.depth>TP.d[1]&&bed.depth<=TP.d[2]?5:bed.depth<TP.d[0]?3:0; s+=part; if(part>=12&&(!(bed.slope>=5)||tk!=='all')) why.push([part,T('βάθος ','depth ')+Math.round(bed.depth)+' m'+(tk!=='all'?T(' (καλό για ',' (good for ')+TECHN.filter(function(x){ return x[0]===tk; })[0][1].toLowerCase()+')':'')]); }
     var near=bs.filter(function(b){ return km(b.lat,b.lon,p.la,p.lo)<1.5; }), n=near.length, nt=tk==='all'?0:near.filter(function(b){ return techMatch(b,tk); }).length; part=Math.min(15,5*n)+Math.min(10,5*nt); s+=part;
     if(n) why.push([part+5,T('εδώ έχεις πιάσει ','you’ve caught here ')+n+(n===1?T(' ψάρι',' fish'):T(' ψάρια',' fish'))+(nt?T(', τα ',', ')+nt+T(' με αυτή την τεχνική',' with this technique'):'')]);
-    if(a.deep) why.push([1,T('ανοιχτά βαθιά νερά: για τρόλινγκ','open deep water: for trolling')]);
+    if(a.deep) why.push([1,T('ανοιχτά βαθιά νερά: για συρτή','open deep water: for trolling')]);
     var dk=km(hm.lat,hm.lon,p.la,p.lo); s-=Math.min(8,dk/5);
     a.score=Math.round(clamp(s/1.05,0,100)); a.dk=dk; a.why=why.sort(function(x,y){ return y[0]-x[0]; }).slice(0,3).map(function(x){ return x[1]; }); });
   pts.sort(function(x,y){ return y.score-x.score; });
@@ -222,7 +222,7 @@ function run(force,quiet){ var m=M(); if(!m){ return; } if(busy) return; hook();
   var dLa=r/111*1.15, dLo=dLa/Math.cos(c.lat*Math.PI/180), bb={w:c.lng-dLo,e:c.lng+dLo,s:c.lat-dLa,n:c.lat+dLa};
   var url=FN+'?mode=scan&lat='+c.lat.toFixed(3)+'&lon='+c.lng.toFixed(3)+'&r='+r;
   Promise.all([fetch(url,{headers:{apikey:SK,Authorization:'Bearer '+SK}}).then(function(x){ return x.ok?x.json():null; }).catch(function(){ return null; }),seabed(bb)]).then(function(rr){ busy=false; var data=rr[0];
-    if(!data||!data.pts){ paintPill(lastRes); if(quiet) return; B.toast(T('Η αναζήτηση δεν έγινε. Χρειάζεται σύνδεση (και η νέα έκδοση της συνάρτησης water-clarity).','The search failed. Needs a connection (and the new water-clarity function).'),7000); return; }
+    if(!data||!data.pts){ paintPill(lastRes); if(quiet) return; B.toast(T('Η αναζήτηση δεν έγινε. Έλεγξε τη σύνδεση και ξαναδοκίμασε.','Search failed. Check your connection and try again.'),7000); return; }
     last={data:data,sb:rr[1],c:{lat:c.lat,lon:c.lng}}; show(quiet); });
 }
 function isOn(){ return active; }

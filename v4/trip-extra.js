@@ -80,9 +80,9 @@ function pressBrief(){
     var head=rising?T('📈 Η πίεση ανεβαίνει','📈 Pressure is rising'):falling?T('📉 Η πίεση πέφτει','📉 Pressure is falling'):T('➖ Η πίεση είναι σταθερή','➖ Pressure is steady');
     var parts=[T('Τώρα ','Now ')+num(o.now)+' hPa']; if(o.d3!=null) parts.push(T('τελευταίες 3 ώρες ','last 3 h ')+sg(o.d3)+' hPa'); if(f3!=null) parts.push(T('επόμενες 3 ώρες ','next 3 h ')+sg(f3)+' hPa');
     var l2='';
-    if(o.last&&rising&&o.last.kind==='trough') l2+=T('Η άνοδος ξεκίνησε μετά την κοιλάδα των ','The rise began after the low of ')+num(o.last.p)+T(' hPa στις ',' hPa at ')+hh(o.last.t)+'. ';
+    if(o.last&&rising&&o.last.kind==='trough') l2+=T('Η άνοδος ξεκίνησε μετά το χαμηλό των ','The rise began after the low of ')+num(o.last.p)+T(' hPa στις ',' hPa at ')+hh(o.last.t)+'. ';
     if(o.last&&falling&&o.last.kind==='peak') l2+=T('Η πτώση ξεκίνησε μετά την κορυφή των ','The fall began after the peak of ')+num(o.last.p)+T(' hPa στις ',' hPa at ')+hh(o.last.t)+'. ';
-    if(o.next) l2+=(o.next.kind==='peak'?T('Αναμένεται κορυφή ','Peak expected '):T('Αναμένεται κοιλάδα ','Low expected '))+num(o.next.p)+' hPa '+day(o.next.t)+T('γύρω στις ','around ')+hh(o.next.t)+T(' (σε ~',' (in ~')+o.next.hours+T(' ώρ.)',' h)')+(o.next.kind==='peak'?T(', μετά αρχίζει να πέφτει.',', then it starts falling.'):T(', μετά αρχίζει να ανεβαίνει.',', then it starts rising.'));
+    if(o.next) l2+=(o.next.kind==='peak'?T('Αναμένεται κορυφή ','Peak expected '):T('Αναμένεται χαμηλό ','Low expected '))+num(o.next.p)+' hPa '+day(o.next.t)+T('γύρω στις ','around ')+hh(o.next.t)+T(' (σε ~',' (in ~')+o.next.hours+T(' ώρ.)',' h)')+(o.next.kind==='peak'?T(', μετά αρχίζει να πέφτει.',', then it starts falling.'):T(', μετά αρχίζει να ανεβαίνει.',', then it starts rising.'));
     else l2+=T('Δεν φαίνεται καμπή στις επόμενες ώρες της πρόγνωσης.','No turning point in the coming forecast hours.');
     B.toast(head+'. '+parts.join(' · ')+'. '+l2,9000);
     notify(head+T(' · έναρξη εξόδου',' · trip start'),parts.join(' · ')+'. '+l2+T(' Πρόγνωση μοντέλου (Open-Meteo), όχι μέτρηση.',' Model forecast (Open-Meteo), not a measurement.'),'alk-tpb-'+s.id); }).catch(function(){});

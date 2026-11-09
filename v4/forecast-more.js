@@ -133,7 +133,7 @@ B.fcMine=function(page,fc,ctx){
       c7.append(h('p',{class:'sub',style:{margin:'0 0 8px'},text:T('καλές ώρες: ','good hours: ')+(q[0]==null?'—':B.num(q[0],2)+T(' ψάρια/ώρα',' fish/h'))+' ('+B.num(G.hi.h,1)+T(' ώρ.',' h')+') · '+T('υπόλοιπες: ','others: ')+(q[1]==null?'—':B.num(q[1],2)+T(' ψάρια/ώρα',' fish/h'))+' ('+B.num(G.lo.h,1)+T(' ώρ.',' h')+')'})); });
     var verdict=!vm.ok?T('Χρειάζονται τουλάχιστον 6 έξοδοι με «Ξεκινώ» και «Τέλος» και αρκετές ώρες σε κάθε ομάδα (τώρα ','Needs at least 6 trips with Start and End and enough hours in each group (now ')+vm.n+T(' έξοδοι).',' trips).')
       :(vm.rA||0)>=(vm.rM||0)*1.15?T('Στα δικά σου νερά το Alkyon προβλέπει καλύτερα από τη σελήνη μόνο.','In your waters Alkyon predicts better than the moon alone.')
-      :(vm.rM||0)>=(vm.rA||0)*1.15?T('Στα δικά σου νερά η σελήνη μόνη της προβλέπει καλύτερα. Πες το μας: θα αλλάξουμε τα βάρη.','In your waters the moon alone predicts better. Tell us and we will adjust the weights.')
+      :(vm.rM||0)>=(vm.rA||0)*1.15?T('Στα δικά σου νερά η σελήνη μόνη της προβλέπει καλύτερα. Πες μας το και θα το διορθώσουμε.','In your waters the moon alone predicts better. Tell us and we will adjust the weights.')
       :T('Μέχρι τώρα προβλέπουν περίπου το ίδιο.','So far they predict about the same.');
     c7.append(h('p',{class:'p',style:{margin:'6px 0 0',fontWeight:'600'},text:verdict}));
     c7.append(h('p',{class:'foot',text:T('×1 = καμία διαφορά. Όσο μεγαλύτερο, τόσο καλύτερα ξεχωρίζει η μέθοδος τις ώρες που πιάνεις. Μετρούν μόνο οι έξοδοι όπου η εφαρμογή κράτησε τον βαθμό κάθε ώρας.','×1 = no difference. The bigger, the better the method picks the hours you catch. Only trips where the app kept the hourly score count.')}));

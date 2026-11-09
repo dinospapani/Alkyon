@@ -384,7 +384,7 @@ function calmNow(pl){
     rows.sort(function(a,b){ return a.E.tot-b.E.tot; });
     var fm=function(v){ var x=Math.max(0.1,Math.round(v*10)/10); return EN?x.toFixed(1):x.toFixed(1).replace('.',','); };
     list.replaceChildren.apply(list,rows.map(function(r){ var t=r.E.tot, lv=t<0.3?['g',T('Ήρεμα','Calm')]:t<0.6?['y',T('Λίγο κύμα','Small waves')]:t<1.1?['o',T('Κύμα','Waves')]:['r',T('Ψηλό κύμα','High waves')];
-      var why=r.E.wl===0?T('ο άνεμος έρχεται από στεριά','wind off the land'):r.E.wl===1?T('λίγη θάλασσα στον άνεμο','little sea upwind'):T('ανοιχτό στον άνεμο','open to the wind');
+      var why=r.E.wl===0?T('ο άνεμος έρχεται από τη στεριά','wind off the land'):r.E.wl===1?T('λίγη ανοιχτή θάλασσα προς τον άνεμο','little sea upwind'):T('ανοιχτό στον άνεμο','open to the wind');
       if(r.E.hsw>r.E.hw*1.2&&r.E.si>=0) why=T('κυρίως swell από ','mostly swell from ')+names[r.E.si];
       return h('button',{type:'button',class:'calmr',onclick:function(){ sh.close(); addPlace(r.p.name,r.p.lat,r.p.lon); }},
         h('span',{class:'exwc '+lv[0],text:t*1.25<0.2?'<'+fm(0.2)+' m':fm(t*0.75)+'–'+fm(t*1.25)+' m'}),
@@ -806,7 +806,7 @@ function pwFill(body,v,p,fc,rk){
     if(gd.some(function(x){ return !x.vOk; })) out.push(h('p',{class:'foot',style:{margin:'4px 0 0'},text:T('🌊 = καλή ώρα για τσίμπημα, αλλά έχει ψηλό κύμα στα ανοιχτά. Ψάξε κόλπο ή μέρος απάνεμο από το κύμα (δες «Έκθεση ακτής» πιο κάτω).','🌊 = a good time for bites, but waves are high offshore. Look for a bay or a spot sheltered from the swell (see “Coast exposure” below).')}));
     if(gd.some(twN)) out.push(h('p',{class:'foot',style:{margin:'4px 0 0'},text:T('★ = πέφτει και κοντά σε αυγή ή σούρουπο (±90′): ο πιο δυνατός συνδυασμός.','★ = also near dawn or dusk (±90′): the strongest combination.')}));
   }
-  out.push(h('div',{class:'pwl'},h('span',{class:'k1',text:T('Πίεση','Pressure')}),h('span',{class:'k2',text:T('Άνεμος, ριπές','Wind, gusts')}),hasM?h('span',{class:'k3',text:T('Σελήνη: σκούρο κύρια, ανοιχτό δευτερεύουσα','Moon: dark major, light minor')}):null,hasM?h('span',{class:'k4',text:T('Καλή: και άνεμος, πίεση','Good: wind, pressure too')}):null,hasM&&per.some(function(x){ return x.good&&!x.vOk; })?h('span',{class:'k5',text:T('Καλή, αλλά ψηλό κύμα','Good, but high waves')}):null),
+  out.push(h('div',{class:'pwl'},h('span',{class:'k1',text:T('Πίεση','Pressure')}),h('span',{class:'k2',text:T('Άνεμος, ριπές','Wind, gusts')}),hasM?h('span',{class:'k3',text:T('Σελήνη: σκούρο κύρια, ανοιχτό δευτερεύουσα','Moon: dark major, light minor')}):null,hasM?h('span',{class:'k4',text:T('Καλή: καλός και ο άνεμος και η πίεση','Good: wind, pressure too')}):null,hasM&&per.some(function(x){ return x.good&&!x.vOk; })?h('span',{class:'k5',text:T('Καλή, αλλά ψηλό κύμα','Good, but high waves')}):null),
     h('p',{class:'foot',style:{margin:'8px 0 0'},text:T('Συνεχής γραμμή: τελευταίες 24 ώρες. Διακεκομμένη: πρόγνωση. Τα βέλη δείχνουν προς πού φυσά ο άνεμος. Σύρε το δάχτυλο πάνω στο γράφημα για κάθε ώρα.','Solid line: last 24 hours. Dashed: forecast. Arrows show where the wind blows to. Drag across the chart to see each hour.')}),
     hasM?moonResearch():null);
   body.replaceChildren.apply(body,out);

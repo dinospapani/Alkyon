@@ -289,7 +289,7 @@ function recordNote(id,secs){ secs=secs||8; if(!navigator.mediaDevices||!navigat
 B.vnoteRecord=recordNote;
 /* χωρίς σήμα: γράφει αμέσως ψάρι (θέση, ώρα, συνθήκες) και ηχογράφηση για να το συμπληρώσεις μετά */
 function offlineLog(why){ if(!B.quickRec) return; var id=B.quickRec(false,null,null,true); try{ if(B.say) B.say(T('Χωρίς σήμα. Έγραψα το ψάρι, πες μου τι είναι.','No signal. Catch logged, tell me what it is.'),null,'vno',0); }catch(e){}
-  B.toast(T('Χωρίς σήμα: το ψάρι γράφτηκε. Πες είδος και βάρος για ηχογράφηση.','No signal: catch logged. Say species and weight to record a note.')); setTimeout(function(){ recordNote(id,8); },900); return id; }
+  B.toast(T('Χωρίς σήμα: το ψάρι γράφτηκε. Πες είδος και βάρος και θα κρατηθούν ως ηχογράφηση.','No signal: catch logged. Say species and weight to record a note.')); setTimeout(function(){ recordNote(id,8); },900); return id; }
 B.voiceOffline=offlineLog;
 /* ---------- 1.9.68: φωνητικές ερωτήσεις («πόσα ψάρια;», «πόσο αέρα;», «τι ώρα δύει;», «πόσο μακριά το λιμάνι;») ---------- */
 function here(){ var f=(B.trip&&B.trip.fix&&B.trip.fix())||(B.lastPos&&B.lastPos()); return f&&f.lat!=null?f:null; }
@@ -381,8 +381,8 @@ function vcHandle(alts){ var now=Date.now(); if(now<VC.pauseTo||now-VC.last<4000
   var r=best(alts), q=null; alts.some(function(a){ q=qOf(a); return !!q; });
   if(q&&!(r&&r.species)){ VC.last=now; answer(q); return; }
   if(r&&r.species&&(r.kg!=null||r.len!=null||r.cnt||VC_CATCH.test(t))){ VC.last=now; logParsed(r,false); var sp=spoken(r); if(B.say) B.say(sp+T('. Το έγραψα.','. Logged.'),null,'vcs',0); B.toast('🎤 '+sp+T(' · γράφτηκε. Πες «ακύρωση» αν είναι λάθος.',' · logged. Say “cancel” if wrong.')); return; }
-  if(VC_MISS.test(t)){ VC.last=now; VLAST={id:B.quickRec(true,null,null,true),t:now}; if(B.say) B.say(T('Χαμένο, το έγραψα','Lost one, logged'),null,'vcm',0); B.toast(T('🎤 Τσίμπημα γράφτηκε','🎤 Bite logged')); }
-  else if(VC_CATCH.test(t)){ VC.last=now; VLAST={id:B.quickRec(false,null,null,true),t:now}; if(B.say) B.say(T('Το έγραψα','Logged'),null,'vcc',0); B.toast(T('🎤 Ψάρι γράφτηκε εκεί που είναι το δόλωμα','🎤 Catch logged where the lure is')); } }
+  if(VC_MISS.test(t)){ VC.last=now; VLAST={id:B.quickRec(true,null,null,true),t:now}; if(B.say) B.say(T('Χαμένο, το έγραψα','Lost one, logged'),null,'vcm',0); B.toast(T('🎤 Γράφτηκε χαμένο τσίμπημα','🎤 Bite logged')); }
+  else if(VC_CATCH.test(t)){ VC.last=now; VLAST={id:B.quickRec(false,null,null,true),t:now}; if(B.say) B.say(T('Το έγραψα','Logged'),null,'vcc',0); B.toast(T('🎤 Το ψάρι γράφτηκε στη θέση του δολώματος','🎤 Catch logged where the lure is')); } }
 function vcLoop(){ if(!VC.on||!SR) return; if(Date.now()<VC.pauseTo){ setTimeout(vcLoop,1000); return; }
   var r; try{ r=new SR(); }catch(e){ VC.on=false; return; } r.lang=vlang(); r.continuous=true; r.interimResults=false; r.maxAlternatives=3; if(LOCAL) try{ r.processLocally=true; }catch(e){}
   r.onresult=function(e){ for(var i=e.resultIndex;i<e.results.length;i++){ var res=e.results[i]; if(!res.isFinal) continue; var alts=[]; for(var k=0;k<res.length;k++) alts.push(res[k].transcript); vcHandle(alts); } };

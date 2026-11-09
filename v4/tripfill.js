@@ -25,7 +25,7 @@ function toMs(date,t){ var a=date.split('-').map(Number), p=String(t||'').split(
 function open(onDone){
   var M=missing().slice(0,40), rows=[], body=h('div',{class:'tfill'});
   if(!M.length){ B.toast(T('Όλα τα ψάρια σου ανήκουν ήδη σε έξοδο.','All your catches already belong to a trip.')); return; }
-  body.append(h('p',{class:'sub',text:T('Για να μάθει η πρόγνωση πόσα ψάρια πιάνεις ανά ώρα, χρειάζεται και πόση ώρα ψάρευες. Διόρθωσε την ώρα που ξεκίνησες και σταμάτησες να ψαρεύεις. Αν δεν θυμάσαι, ξετσέκαρε τη μέρα.','To learn how many fish you catch per hour, the forecast needs how long you fished. Fix when you started and stopped fishing. If you do not remember, untick the day.')}));
+  body.append(h('p',{class:'sub',text:T('Για να μάθει η πρόγνωση πόσα ψάρια πιάνεις ανά ώρα, χρειάζεται και πόση ώρα ψάρευες. Διόρθωσε την ώρα που ξεκίνησες και σταμάτησες να ψαρεύεις. Αν δεν θυμάσαι, βγάλε το ✓ από τη μέρα.','To learn how many fish you catch per hour, the forecast needs how long you fished. Fix when you started and stopped fishing. If you do not remember, untick the day.')}));
   M.forEach(function(o){
     var on=h('input',{type:'checkbox',checked:true,'aria-label':T('Πρόσθεσε','Add')}), s0=h('input',{type:'time',value:hm(o.start)}), e0=h('input',{type:'time',value:hm(o.end)});
     var sp={}; o.bites.forEach(function(b){ if(b.species&&!b.miss) sp[b.species]=1; });

@@ -84,7 +84,7 @@ function draw(){
   c2.append(quL,moL); if(frL) c2.append(frL);
   /* v31z541: «Ξεκινάς ψάρεμα;» όταν σταθείς σε σημείο σου (ακτή) */
   var asCard=null; if(B.autoStart){ var as=h('input',{type:'checkbox',checked:B.autoStart.on()}); as.addEventListener('change',function(){ B.autoStart.set(as.checked); });
-    asCard=(h('section',{class:'card'},h('h2',{text:T('Αυτόματη έναρξη','Auto start')}),h('label',{class:'tg'},as,h('span',null,T('Ρώτα με αν ξεκινάω ψάρεμα όταν σταθώ σε σημείο μου','Ask me if I am starting to fish when I stop at one of my spots'),h('small',{class:'tgs',text:T('Για ψάρεμα από ακτή. Όταν η εφαρμογή είναι ανοιχτή και μείνεις ~2 λεπτά σε απόσταση έως 150 m από σημείο σου ή από μέρος που έχεις πιάσει ψάρια.','For shore fishing. When the app is open and you stay ~2 minutes within 150 m of one of your spots or a place where you caught fish.')}))))); }
+    asCard=(h('section',{class:'card'},h('h2',{text:T('Αυτόματη έναρξη','Auto start')}),h('label',{class:'tg'},as,h('span',null,T('Ρώτα με αν ξεκινάω ψάρεμα όταν σταθώ σε ένα από τα σημεία μου','Ask me if I am starting to fish when I stop at one of my spots'),h('small',{class:'tgs',text:T('Για ψάρεμα από ακτή. Όταν η εφαρμογή είναι ανοιχτή και μείνεις ~2 λεπτά σε απόσταση έως 150 m από σημείο σου ή από μέρος που έχεις πιάσει ψάρια.','For shore fishing. When the app is open and you stay ~2 minutes within 150 m of one of your spots or a place where you caught fish.')}))))); }
   page.append(c2);
   if(asCard) page.append(asCard);
   /* v31z550: κατέβασμα χάρτη και πρόγνωσης πριν από μια έξοδο που σχεδίασες */

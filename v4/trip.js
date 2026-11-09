@@ -47,7 +47,7 @@ function pushTrip(){
       if(q.active&&!q.pgStart){ q.pgStart=1; save(q); fn('trip',q.id,'start').catch(function(){ var z=load(); if(z.id===q.id){ z.pgStart=0; save(z); } }); }
       else if(!q.active&&q.pgStart&&!q.pgEnd){ q.pgEnd=1; save(q); fn('trip',q.id,'end').catch(function(){ var z=load(); if(z.id===q.id){ z.pgEnd=0; save(z); } }); }
       else save(q); })
-    .catch(function(){ var q=load(); q.synced=false; save(q); srv=T('Δεν έφτασε στον server (έλεγξε το internet). Η υπενθύμιση στο κινητό δουλεύει κανονικά.','It did not reach the server (check your internet). The reminder on your phone still works.'); });
+    .catch(function(){ var q=load(); q.synced=false; save(q); srv=T('Δεν έφτασε στον server (έλεγξε τη σύνδεση). Η υπενθύμιση στο κινητό δουλεύει κανονικά.','It did not reach the server (check your internet). The reminder on your phone still works.'); });
 }
 /* άμεση ειδοποίηση επαφής μέσω του quick-processor (αλλιώς τη στέλνει ο server στην επόμενη επανάληψη) */
 function fn(action,id,phase){ var s=B.cloud.session(); if(!s) return Promise.reject();
@@ -123,8 +123,8 @@ function start(o){
     /* 1.9.11: αν η περιοχή δεν είναι αποθηκευμένη και δεν μπορεί να κατέβει αυτόματα (ρύθμιση «Όχι»/«Μόνο WiFi» ή χωρίς σήμα), υπενθύμιση με κουμπί */
     var cov=(ls.get('alkyon-offl',[])||[]).some(function(r){ return pp.lat>=r.s&&pp.lat<=r.nn&&pp.lon>=r.w&&pp.lon<=r.e&&Date.now()-(r.t||0)<30*864e5; });
     var p0=B.prefetch.mode()!=='off'?B.prefetch.run(pl0):Promise.resolve(null);
-    p0.then(function(o){ if(o&&o.tiles) B.toast(T('📥 Ο χάρτης της περιοχής αποθηκεύτηκε για χωρίς σήμα.','📥 The map of this area is saved for no signal.'),4000); else if(!o&&!cov) setTimeout(function(){
-      B.toast(navigator.onLine===false?T('⚠ Ο χάρτης εδώ δεν είναι αποθηκευμένος και δεν έχεις σήμα. Ο χάρτης μπορεί να μη φαίνεται.','⚠ The map here is not saved and there is no signal. The map may not show.'):T('📥 Ο χάρτης εδώ δεν είναι αποθηκευμένος για χωρίς σήμα.','📥 The map here is not saved for no signal.'),9000,
+    p0.then(function(o){ if(o&&o.tiles) B.toast(T('📥 Ο χάρτης της περιοχής αποθηκεύτηκε για χρήση χωρίς σήμα.','📥 The map of this area is saved for no signal.'),4000); else if(!o&&!cov) setTimeout(function(){
+      B.toast(navigator.onLine===false?T('⚠ Ο χάρτης εδώ δεν είναι αποθηκευμένος και δεν έχεις σήμα. Ο χάρτης μπορεί να μη φαίνεται.','⚠ The map here is not saved and there is no signal. The map may not show.'):T('📥 Ο χάρτης εδώ δεν είναι αποθηκευμένος για χρήση χωρίς σήμα.','📥 The map here is not saved for no signal.'),9000,
         navigator.onLine===false?null:{label:T('Κατέβασμα','Download'),fn:function(){ B.toast(T('Κατεβαίνει ο χάρτης…','Downloading the map…'),3000); B.prefetch.run(pl0,true).then(function(o2){ B.toast(o2&&o2.tiles?T('📥 Έτοιμο: ο χάρτης αποθηκεύτηκε.','📥 Done: the map is saved.'):T('Δεν κατέβηκε ο χάρτης. Δοκίμασε ξανά με σήμα.','The map did not download. Try again with signal.'),4000); }); }}); },4500); }); } }catch(e){}
   /* v31z543: στέλνει στον server όρια και λιμάνι, για ειδοποιήσεις καιρού / επιστροφής με κλειστό κινητό */
   try{ if(B.pushSync) B.pushSync(); }catch(e){}
@@ -211,7 +211,7 @@ B.tripStart=function(o){ o=o&&typeof o==='object'?o:null; /* v31z541: o.where = 
     h('label',{class:'fld'},h('span',{text:T('Αν χαθεί η επαφή με το κινητό','If contact with the phone is lost')}),sil,h('small',{text:T('Αν το κινητό σταματήσει να στέλνει σήμα για τόσο χρόνο, σε ρωτά στο Telegram και μετά ειδοποιεί την επαφή.','If the phone stops sending a signal this long, it asks you on Telegram, then alerts your contact.')})),
     ex?ex.nodes:null);
   /* 1.8.31: έξω από τις «Περισσότερες ρυθμίσεις», για να φαίνεται */
-  var gpRow=h('div',null,h('label',{class:'tg'},gp,h('span',{text:T('Καταγραφή διαδρομής GPS (περισσότερη μπαταρία)','Record GPS route (uses more battery)')})),gpAuto?h('p',{class:'trhint warn',text:T('Την προηγούμενη φορά το κινητό δεν έδωσε άδεια θέσης και η καταγραφή έκλεισε. Ξανατσεκάρισμένη: αν σε ρωτήσει το κινητό, πάτα «Να επιτρέπεται».','Last time the phone did not allow location and recording turned off. Ticked again: if the phone asks, tap “Allow”.')}):null);
+  var gpRow=h('div',null,h('label',{class:'tg'},gp,h('span',{text:T('Καταγραφή διαδρομής GPS (περισσότερη μπαταρία)','Record GPS route (uses more battery)')})),gpAuto?h('p',{class:'trhint warn',text:T('Την προηγούμενη φορά το κινητό δεν έδωσε άδεια θέσης και η καταγραφή έκλεισε. Την άνοιξα ξανά: αν σε ρωτήσει το κινητό, πάτα «Να επιτρέπεται».','Last time the phone did not allow location and recording turned off. Ticked again: if the phone asks, tap “Allow”.')}):null);
   var go=h('button',{class:'btn pri full tgo',type:'button',text:'▶ '+T('Έναρξη εξόδου','Start trip'),onclick:function(){ if(!tm.value){ B.toast(T('Βάλε ώρα επιστροφής.','Set a return time.')); return; }
     ls.set('alkyon-gps',gp.checked?'1':'0'); ls.set('alkyon-gps-auto','0'); if(ex&&ex.apply) ex.apply(); sh.close(); start({due:toMs(tm.value),route:rt.value.trim(),sil:+sil.value||0,notify:nt.checked}); }});
   var body=h('div',{class:'bform tstart'},info,h('div',{class:'fld'},h('span',{text:T('Πόση ώρα θα λείψεις;','How long will you be out?')}),chips,tmRow),h('label',{class:'fld twhere','aria-label':T('Πού πας (προαιρετικό)','Where (optional)')},rt),

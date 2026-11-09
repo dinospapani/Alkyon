@@ -158,7 +158,7 @@ function readout(){
       parts2.push('<span class="rgi"><small>'+T('Κύμα','Waves')+'</small><span class="rv">'+(dd!=null?arrowSvg((dd+180)%360,'#9fdcff',18):'')+'<b>'+(U&&U.wave?U.wave(hh):B.num(hh,1)+' m')+'</b>'+(dd!=null?'<em>'+COMPn(dd)+'</em>':'')+(tp>=2?'<em>'+Math.round(tp)+' s</em>':tp>0?'<em>'+T('κυματάκι','chop')+'</em>':'') /* 1.6.8: κάτω από 2 s δεν λέει κάτι */+'<i style="background:'+gc+'"></i></span></span>'); }
     else if(land(c.lat,c.lng)===1) parts2.push('<span class="rgi"><small>'+T('Κύμα','Waves')+'</small><span class="rv"><em>'+T('στεριά','land')+'</em></span></span>'); }
   var sv=B.sstAt?B.sstAt(c.lat,c.lng):null; if(sv!=null) parts2.push('<span class="rgi"><small>'+T('Νερό','Water')+'</small><span class="rv"><b>'+(U&&U.temp?U.temp(sv,1):B.num(sv,1)+'°')+'</b></span></span>');
-  roEl.innerHTML=parts2.join('<span class="rsep"></span>')||'<span class="rgi"><em>'+(window.AlkyonWindErr?(window.AlkyonWindErr==='429'?T('Ο άνεμος δεν ήρθε (όριο πηγής) · ξανά σε 3′','No wind data (source limit) · retry in 3′'):T('Ο άνεμος δεν ήρθε · ξανά σε 3′','No wind data · retry in 3′')):T('Φόρτωση…','Loading…'))+'</em></span>';
+  roEl.innerHTML=parts2.join('<span class="rsep"></span>')||'<span class="rgi"><em>'+(window.AlkyonWindErr?(window.AlkyonWindErr==='429'?T('Ο άνεμος δεν ήρθε (όριο της υπηρεσίας) · ξανά σε 3′','No wind data (source limit) · retry in 3′'):T('Ο άνεμος δεν ήρθε · ξανά σε 3′','No wind data · retry in 3′')):T('Φόρτωση…','Loading…'))+'</em></span>';
   if(B.mcBarNow) try{ B.mcBarNow(); }catch(e){} /* 1.8.2: η μπάρα του καθαρού χάρτη μαζί με τον σταυρό, χωρίς καθυστέρηση (και όταν τρέχει η ώρα) */
   var nb=document.createElement('button'); nb.type='button'; nb.className='rnum'; nb.setAttribute('aria-pressed',String(numsOn)); nb.setAttribute('aria-label',T('Αριθμοί πάνω στον χάρτη','Numbers on the map')); nb.textContent='123';
   nb.addEventListener('click',function(){ numsOn=!numsOn; B.ls.set('alkyon-v4-wxnums',numsOn); drawLabels(); }); roEl.append(nb);
@@ -318,7 +318,7 @@ B.sstLegend=function(L2){ if(!L2){ if(legEl) legEl.hidden=true; return; }
   var nt=document.createElement('small'); nt.innerHTML='<i class="slf"></i>'; nt.append(document.createTextNode(L2.fronts?T('Μέτωπο: απότομη αλλαγή θερμοκρασίας. Εκεί συχνά μαζεύονται πελαγικά.','Front: sharp temperature change. Pelagics often gather there.'):T('Χωρίς έντονα μέτωπα σε αυτή την περιοχή.','No strong fronts in this area.'))); legEl.append(nt);
   /* 1.7.4: τιμή στο σταυρό + κλίμακα περιοχής ή σταθερή (ίδιο χρώμα = ίδια θερμοκρασία κάθε μέρα) */
   var row=document.createElement('div'); row.className='slr';
-  if(L2.here!=null){ var hb=document.createElement('b'); hb.className='slh'; hb.textContent=T('Στο σταυρό: ','At the cross: ')+f(L2.here); row.append(hb); }
+  if(L2.here!=null){ var hb=document.createElement('b'); hb.className='slh'; hb.textContent=T('Στον σταυρό: ','At the cross: ')+f(L2.here); row.append(hb); }
   var sw=document.createElement('button'); sw.type='button'; sw.className='slsc'; sw.textContent=L2.fixed?T('Κλίμακα: σταθερή 14–30°','Scale: fixed 14–30°'):T('Κλίμακα: της περιοχής','Scale: this area');
   sw.title=T('Σταθερή: το ίδιο χρώμα σημαίνει πάντα την ίδια θερμοκρασία. Περιοχής: δείχνει καλύτερα τις μικρές διαφορές.','Fixed: the same colour always means the same temperature. Area: shows small differences better.');
   sw.addEventListener('click',function(){ B.ls.set('alkyon-v4-sstscale',L2.fixed?'local':'fixed'); sstDraw(); }); row.append(sw); legEl.append(row); legEl.append(srcRow()); };

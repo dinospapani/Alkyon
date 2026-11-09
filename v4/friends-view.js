@@ -17,7 +17,7 @@ function load(){
     });
     list=Object.keys(M).map(function(k){ var f=M[k]; if(!f.name) f.name=T('Φίλος','Friend'); if(f.mine==null) f.mine=true; return f; });
     draw();
-  }).catch(function(e){ list=[]; err=/42P01|PGRST205|relation/.test(String(e.message))?T('Οι φίλοι δεν έχουν ενεργοποιηθεί στη βάση (friends.sql).','Friends are not enabled in the database (friends.sql).'):C().errText(e); draw(); });
+  }).catch(function(e){ list=[]; err=/42P01|PGRST205|relation/.test(String(e.message))?T('Οι φίλοι δεν είναι διαθέσιμοι ακόμα.','Friends are not available yet.'):C().errText(e); draw(); });
 }
 /* v31z537: κωδικός που ήρθε από σύνδεσμο (#addfriend=…), ισχύει 48 ώρες */
 function pend(){ var o=B.ls.get('alk-friend-code',null); if(!o||!o.c) return null; if(Date.now()-o.t>48*3600e3){ clearPend(); return null; } return o.c; }

@@ -181,7 +181,7 @@ function render(p,f,at){
   r.dirs.forEach(function(dd){ if(dd.ray===undefined){ var q=ray(r.lat,r.lon,dd.deg,MAXKM); dd.ray=q==null?MAXKM:q; } });
   try{ drawMap(cv,r,cd?cur:-1,names,cols,mx); }catch(e){ try{ console.error('expomap',e); }catch(e0){} }
   var lg=el('div',{'class':'exleg'}); [[0,T('Απάνεμο <5 km','Sheltered <5 km')],[1,T('Λίγο 5–20','Limited 5–20')],[2,T('Εκτεθειμένο 20–60','Exposed 20–60')],[3,T('Ανοιχτό >60 km','Open >60 km')]].forEach(function(x){ var it=el('span'); it.appendChild(el('i',{style:'background:'+cols[x[0]]})); it.appendChild(document.createTextNode(x[1])); lg.appendChild(it); }); box.appendChild(lg);
-  box.appendChild(el('p',{'class':'note exhow'},T('Κάθε «φέτα» φτάνει ως την πρώτη στεριά προς εκείνη την κατεύθυνση, σε πραγματική κλίμακα (όσες βγαίνουν από τον χάρτη γράφουν τα km). Το χρώμα δείχνει πόσο κύμα σηκώνει ο άνεμος όταν έρχεται από εκεί: κόκκινο πολύ, πράσινο καθόλου. Το μαύρο βέλος είναι ο άνεμος τώρα.','Each slice reaches the first land in that direction, to real scale (those leaving the map show the km). The colour shows how much sea the wind builds when it comes from there: red a lot, green none. The black arrow is the wind now.')));
+  box.appendChild(el('p',{'class':'note exhow'},T('Κάθε «φέτα» φτάνει ως την πρώτη στεριά προς εκείνη την κατεύθυνση, σε πραγματική κλίμακα (όσες βγαίνουν από τον χάρτη γράφουν τα km). Το χρώμα δείχνει πόσο κύμα σηκώνει ο άνεμος όταν έρχεται από εκεί: κόκκινο πολύ, πράσινο καθόλου. Το βέλος είναι ο άνεμος τώρα.','Each slice reaches the first land in that direction, to real scale (those leaving the map show the km). The colour shows how much sea the wind builds when it comes from there: red a lot, green none. The black arrow is the wind now.')));
   var wrap=el('div',{style:'display:grid;gap:3px;margin:6px 0'});
   r.dirs.forEach(function(d){
     var L=level(d.km), row=el('div',{style:'display:flex;align-items:center;gap:6px;font-size:12px'+(d.i===cur?';font-weight:700':'')});
@@ -280,7 +280,7 @@ function logCard(box,p,r,cd,cur,m){
       var AK=window.AK, cl=AK&&AK.cloud, ses=cl&&cl.session&&cl.session(), toast=function(x){ try{ if(AK&&AK.toast) AK.toast(x); else if(window.AlkyonCore&&window.AlkyonCore.toast) window.AlkyonCore.toast(x); }catch(e){} };
       if(ses&&cl.rest) cl.rest('sea_reports',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({lat:+(+p.lat).toFixed(5),lon:+(+p.lon).toFixed(5),state:o[0],wind:null,note:null})})
         .then(function(){ toast(T('Καταγράφηκε και φαίνεται σε όλους στον χάρτη για 6 ώρες: ','Logged and shown to everyone on the map for 6 hours: ')+o[2]); try{ AK.ls.set('alkyon-v4-srlast',Date.now()); }catch(e){} })
-        .catch(function(e){ toast(/wait a few/i.test(String(e&&e.message))?T('Καταγράφηκε στη συσκευή. Μόλις έστειλες αναφορά, η επόμενη σε λίγα λεπτά.','Logged on this device. You just sent a report; next one in a few minutes.'):T('Καταγράφηκε στη συσκευή: ','Logged on this device: ')+o[2]); });
+        .catch(function(e){ toast(/wait a few/i.test(String(e&&e.message))?T('Καταγράφηκε στη συσκευή. Μόλις έστειλες αναφορά· την επόμενη μπορείς σε λίγα λεπτά.','Logged on this device. You just sent a report; next one in a few minutes.'):T('Καταγράφηκε στη συσκευή: ','Logged on this device: ')+o[2]); });
       else toast(T('Καταγράφηκε: ','Logged: ')+o[2]);
     });
     row.appendChild(b);

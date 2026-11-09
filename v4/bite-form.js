@@ -210,7 +210,7 @@ B.biteForm=function(edit,opt){
     if(la==='Thunnus thynnus'||la==='Xiphias gladius'){ t=T('Απαγορεύεται η κράτηση (ερασιτεχνική αλιεία).','Not allowed to keep (recreational).'); warn=true; }
     else if((B.PEST_L||[]).indexOf(la)>=0||B.pest({species:sp.value})){ t=(B.pestWarn?B.pestWarn():T('⚠ Τοξικός. Μην τον φας και μην τον δώσεις.','⚠ Toxic. Do not eat it or give it away.'))+' '+T('Δεν μετράει στα ψάρια σου. Αν έκοψε αγκίστρι ή τεχνητό, πάτα το παρακάτω.','It does not count in your catches. If it cut a hook or lure, tap it below.'); warn=true; }
     else if(mn){ t=T('Ελάχιστο επιτρεπόμενο μέγεθος: ','Minimum legal size: ')+mn+' cm'; if(L&&L<mn){ t='⚠ '+t+T(' – κάτω από το όριο, ελευθέρωσέ το.',' – under the limit, release it.'); warn=true; } }
-    if(/καρχαρ|γαλεο|σκυλοψαρ|σαλαχ|τρυγον|βατοσ|βατος|shark|\bray\b|skate|stingray/i.test(sp.value||'')){ t=T('⚠ Καρχαρίες και σαλάχια δεν επιτρέπονται ως ερασιτεχνικό αλίευμα: ελευθέρωσέ τα (δευτερογενής πηγή).','⚠ Sharks and rays are not allowed as recreational catch: release them (secondary source).'); warn=true; }
+    if(/καρχαρ|γαλεο|σκυλοψαρ|σαλαχ|τρυγον|βατοσ|βατος|shark|\bray\b|skate|stingray/i.test(sp.value||'')){ t=T('⚠ Καρχαρίες και σαλάχια δεν επιτρέπονται ως ερασιτεχνικό αλίευμα: ελευθέρωσέ τα.','⚠ Sharks and rays are not allowed as a recreational catch: release them.'); warn=true; }
     lawNote.textContent=t; lawNote.hidden=!t||miss.checked; lawNote.classList.toggle('warn',warn); }
   sp.addEventListener('input',law); sp.addEventListener('change',sugTk); if(!window.TACKLE_GUIDE&&prof!=='spear'){ var gs=document.createElement('script'); gs.src='../tackle-guide.js'; gs.onload=sugTk; document.head.appendChild(gs); } len.addEventListener('input',law); miss.addEventListener('change',law);
   /* v31z521: αναγνώριση από φωτογραφία. Με κλειδί AI τρέχει μόνη της μόλις βάλεις φωτογραφία (αν δεν έχεις γράψει είδος)· χωρίς κλειδί, σύνδεσμος για ρύθμιση */
@@ -389,7 +389,7 @@ B.quickRec=function(miss,at,tms,quiet){
   if(rec.trip){ var t=S.raw('trips').filter(function(x){ return x.sid===rec.trip; })[0]; if(t){ var bs=S.raw('bites').filter(function(b){ return b.trip===rec.trip&&!b.miss&&!b.deleted&&!B.pest(b); }); S.save('trips',Object.assign({},t,{count:bs.reduce(function(s2,b){ return s2+Math.max(1,Math.floor(+b.cnt)||1); },0)})); } }
   B.emit('store','alkyon-bites'); B.emit('trip');
   try{ navigator.vibrate&&navigator.vibrate(25); }catch(e){}
-  if(!quiet) B.toast(miss?T('Καταγράφηκε αστοχία ✕','Miss logged ✕'):T('Ψάρι καταγράφηκε 🐟 Πρόσθεσε το είδος αργότερα από το Ημερολόγιο.','Catch logged 🐟 Add the species later from the Logbook.'));
+  if(!quiet) B.toast(miss?T('Καταγράφηκε χαμένο τσίμπημα ✕','Miss logged ✕'):T('Το ψάρι καταγράφηκε 🐟 Πρόσθεσε το είδος αργότερα από το Ημερολόγιο.','Catch logged 🐟 Add the species later from the Logbook.'));
   /* χωρίς συνθήκες από την πρόγνωση: ιστορικός καιρός στο παρασκήνιο */
   if(!Object.keys(c).length&&rec.lat!=null&&window.AlkyonHist&&navigator.onLine!==false){ var HK=AlkyonHist.keys||['wind','wdeg','wave','press','ptrend','cloud','temp','sst','tide'];
     AlkyonHist.fetch(rec.lat,rec.lon,Date.now()).then(function(hc){ if(!hc) return; var cur=S.get('bites',id); if(!cur) return; var nx=Object.assign({},cur); HK.forEach(function(k){ if(hc[k]!=null&&nx[k]==null) nx[k]=hc[k]; }); S.save('bites',nx); }).catch(function(){}); }
@@ -402,7 +402,7 @@ B.quickPest=function(kind,cutId){
   var o=Object.assign({},r,kind==='stolen'?{species:T('Έφαγε το δόλωμα / έκοψε','Bait taken / cut'),latin:'',pest:'stolen'}:{species:T('Λαγοκέφαλος','Silver-cheeked toadfish'),latin:'Lagocephalus sceleratus',pest:true}), msg=[];
   if(cutId){ adjLost([cutId],-1,msg); o.tkLost=[cutId]; }
   S.save('bites',o); B.emit('store','alkyon-bites'); B.emit('trip');
-  B.toast('🐡 '+(kind==='stolen'?T('Καταγράφηκε: έφαγε το δόλωμα','Logged: bait taken'):T('Λαγοκέφαλος καταγράφηκε (δεν μετράει στα ψάρια)','Toadfish logged (not counted as a catch)'))+(msg.length?' · '+msg.join(', '):''),5000);
+  B.toast('🐡 '+(kind==='stolen'?T('Καταγράφηκε: έφαγε το δόλωμα','Logged: bait taken'):T('Ο λαγοκέφαλος καταγράφηκε (δεν μετράει στα ψάρια)','Toadfish logged (not counted as a catch)'))+(msg.length?' · '+msg.join(', '):''),5000);
   return id; };
 /* αγκίστρια και τεχνητά που έχεις (για «έκοψε»): πρώτα όσα χρησιμοποίησες τελευταία */
 function cutChoices(){ var S=st(), tk=S.raw('tackle').filter(function(x){ return !x.deleted; }), byId={}, last=[], out=[]; tk.forEach(function(x){ byId[x.id]=x; });
@@ -424,7 +424,7 @@ B.quickUndo=function(miss){
   var S=st(), sf=ls.get('alkyon-safe',{})||{}; if(!sf.active) return;
   var b=S.raw('bites').filter(function(x){ return !x.deleted&&!!x.miss===!!miss&&(sf.id?x.trip===sf.id:(x._u||0)>=(sf.start||0)); }).sort(function(a,c){ return (c._u||0)-(a._u||0); })[0];
   if(!b){ B.toast(T('Δεν υπάρχει καταγραφή σε αυτή την έξοδο.','Nothing logged on this trip yet.')); return; }
-  B.ask(miss?T('Να διαγραφεί η τελευταία αστοχία;','Delete the last miss?'):T('Να διαγραφεί το τελευταίο ψάρι','Delete the last catch')+(b.species?' ('+b.species+(b.kg?' '+b.kg+' kg':'')+')':'')+'?',T('Διαγραφή','Delete'),true).then(function(y){ if(!y) return;
+  B.ask(miss?T('Να διαγραφεί το τελευταίο χαμένο τσίμπημα;','Delete the last miss?'):T('Να διαγραφεί το τελευταίο ψάρι','Delete the last catch')+(b.species?' ('+b.species+(b.kg?' '+b.kg+' kg':'')+')':'')+'?',T('Διαγραφή','Delete'),true).then(function(y){ if(!y) return;
     S.phKeys(b).forEach(function(k){ S.Photos.del(k).catch(function(){}); }); adjLost(b.tkLost||[],1,null); S.remove('bites',b.id); B.emit('store','alkyon-bites'); B.emit('trip'); B.toast(T('Διαγράφηκε.','Deleted.')); });
 };
 /* 1.6.1: στο τέλος της εξόδου: τα ψάρια χωρίς είδος, με τα είδη που πιάνεις συχνότερα σαν κουμπιά */

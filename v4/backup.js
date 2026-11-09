@@ -39,10 +39,10 @@ B.cloudBackupRow=function(){
   function paint(){ var s=st(), on=!!uid();
     box.replaceChildren(h('h3',{class:'h3',text:T('Αυτόματα στο cloud','Automatic, in the cloud')}),
       h('p',{class:'sub',text:!on?T('Συνδέσου στον λογαριασμό σου για αυτόματο αντίγραφο κάθε εβδομάδα.','Sign in to your account for a weekly automatic backup.')
-        :s.err==='nobucket'?T('Δεν έχει στηθεί ακόμα: τρέξε μία φορά το backups.sql στο Supabase.','Not set up yet: run backups.sql once in Supabase.')
+        :s.err==='nobucket'?T('Το αυτόματο αντίγραφο δεν είναι διαθέσιμο ακόμα.','Automatic backup is not available yet.')
         :(s.at?T('Κάθε εβδομάδα. Τελευταίο: ','Every week. Last: ')+when(s.at)+(s.size?' · '+kb(s.size):''):T('Κάθε εβδομάδα, μόλις ανοίξεις την εφαρμογή με σύνδεση.','Every week, when you open the app online.'))+(s.err&&s.err!=='nobucket'&&s.errAt>(s.at||0)?T(' · Η τελευταία προσπάθεια απέτυχε.',' · The last attempt failed.'):'')}));
     if(!on) return;
-    var now=h('button',{class:'btn',type:'button',text:T('Αντίγραφο τώρα','Back up now'),onclick:function(){ now.disabled=true; run(true).then(function(x){ B.toast(x?T('Το αντίγραφο ανέβηκε στο cloud.','Backup uploaded to the cloud.'):T('Δεν έγινε.','Not done.')); },function(e){ B.toast(String(e.message)==='nobucket'?T('Τρέξε πρώτα το backups.sql στο Supabase.','Run backups.sql in Supabase first.'):T('Το αντίγραφο απέτυχε.','Backup failed.')); }).then(paint); }});
+    var now=h('button',{class:'btn',type:'button',text:T('Αντίγραφο τώρα','Back up now'),onclick:function(){ now.disabled=true; run(true).then(function(x){ B.toast(x?T('Το αντίγραφο ανέβηκε στο cloud.','Backup uploaded to the cloud.'):T('Δεν έγινε.','Not done.')); },function(e){ B.toast(String(e.message)==='nobucket'?T('Το αντίγραφο στο cloud δεν είναι διαθέσιμο ακόμα.','Cloud backup is not available yet.'):T('Το αντίγραφο απέτυχε.','Backup failed.')); }).then(paint); }});
     var rs=h('button',{class:'btn',type:'button',text:T('Επαναφορά από το cloud','Restore from the cloud'),onclick:restoreSheet});
     box.append(h('div',{class:'acts'},now,rs)); }
   paint(); return box; };
@@ -54,7 +54,7 @@ function restoreSheet(){ var body=h('div',{class:'bform'},h('p',{class:'sub',tex
       B.ask(T('Επαναφορά του αντιγράφου ','Restore the backup of ')+it.name.replace('.json','')+';',T('Επαναφορά','Restore')).then(function(y){ if(!y) return; sh.close();
         B.toast(T('Επαναφορά…','Restoring…')); restore(it).then(function(n){ B.toast(T('Επαναφέρθηκαν ','Restored ')+n+T(' εγγραφές.',' records.')); setTimeout(function(){ location.reload(); },1500); },function(){ B.toast(T('Η επαναφορά απέτυχε.','Restore failed.')); }); }); }},
       h('span',{class:'tx'},h('b',{text:it.name.replace('.json','')}),h('small',{text:it.size?kb(it.size):''})),B.icon('chev'))); });
-    body.append(l); },function(e){ body.replaceChildren(h('p',{class:'sub',text:String(e.message)==='nobucket'?T('Δεν έχει στηθεί: τρέξε το backups.sql στο Supabase.','Not set up: run backups.sql in Supabase.'):T('Δεν φορτώθηκε η λίστα. Έλεγξε τη σύνδεση.','Could not load the list. Check your connection.')})); }); }
+    body.append(l); },function(e){ body.replaceChildren(h('p',{class:'sub',text:String(e.message)==='nobucket'?T('Η επαναφορά από το cloud δεν είναι διαθέσιμη ακόμα.','Restore from cloud is not available yet.'):T('Δεν φορτώθηκε η λίστα. Έλεγξε τη σύνδεση.','Could not load the list. Check your connection.')})); }); }
 B.cloudBackup={run:run,list:list,status:st};
 /* αυτόματα: 25″ μετά το άνοιγμα και όταν ξαναγυρίζεις στην εφαρμογή */
 function auto(){ if(document.hidden||!uid()) return; try{ if(B.trip&&B.trip.active&&B.trip.active()) return; }catch(e){} run(false).catch(function(){}); }
