@@ -237,10 +237,13 @@ B.biteForm=function(edit,opt){
   var camB=h('button',{class:'bfic',type:'button','aria-label':T('Φωτογραφία','Photo'),title:T('Φωτογραφία','Photo'),html:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',onclick:function(){ more.open=true; file.click(); }});
   var top=h('div',{class:'bftop'},h('div',{class:'bfseg',role:'group','aria-label':T('Ψάρι ή χαμένο','Fish or lost')},segF,segM,h('label',{class:'vh'},miss,T('Χάθηκε','Lost'))),micB,camB);
   /* πότε / πού σε μία γραμμή */
-  var wwBox=h('div',{class:'bfww',hidden:true},field(T('Πότε','When'),when),h('div',{class:'fld'},h('span',{text:T('Πού','Where')}),wPick,h('span',{class:'vh'},where,whereNote)),cwrap);
+  /* 1.11.7: με «Ώρες που τσιμπούσαν» η ώρα του ψαριού = «Από» (δεν γράφεται δεύτερη ώρα)· μένει μόνο η ημερομηνία */
+  var whenDate=h('input',{type:'date','aria-label':T('Ημερομηνία','Date')}), whenFld=field(T('Πότε','When'),when), dateFld=field(T('Ημερομηνία','Date'),whenDate,T('Η ώρα παίρνεται από τις «Ώρες που τσιμπούσαν».','The time comes from “Hours they were biting”.')); dateFld.hidden=true;
+  var wwBox=h('div',{class:'bfww',hidden:true},whenFld,dateFld,h('div',{class:'fld'},h('span',{text:T('Πού','Where')}),wPick,h('span',{class:'vh'},where,whereNote)),cwrap);
   var wwTx=h('span',{class:'bflt'});
   function wwPaint(){ var v=when.value||'', d=v?new Date(v):null, now=Math.abs(Date.now()-(d?d.getTime():0))<6*60000;
     var wt=now?T('Τώρα','Now'):(d?d.toLocaleDateString(EN?'en-GB':'el-GR',{day:'numeric',month:'short'})+' '+B.pad(d.getHours())+':'+B.pad(d.getMinutes()):'–');
+    if(wA&&wA.value&&wB&&wB.value&&d) wt=d.toLocaleDateString(EN?'en-GB':'el-GR',{day:'numeric',month:'short'})+' '+wA.value+'–'+wB.value; /* 1.11.7 */
     var o=where.options[where.selectedIndex], cg0=where.value==='coord'&&cbx&&cbx.get(), wh=where.value==='gps'?T('Η θέση μου (GPS)','My position (GPS)'):cg0?fmtLL(cg0.lat,cg0.lon):(o?o.text.replace(/^★ |^📍 /,''):'');
     var ns=where.value==='gps'&&pos?nearSpot(pos.lat,pos.lon):null; wwTx.textContent=wt+' · '+(ns?'★ '+ns.name:wh); }
   var wwLine=h('button',{type:'button',class:'bfline',onclick:function(){ wwBox.hidden=!wwBox.hidden; wwLine.classList.toggle('open',!wwBox.hidden); }},h('span',{class:'bfll',text:T('Πότε · Πού','When · Where')}),wwTx,h('i',{text:'✎'}));
@@ -281,7 +284,11 @@ B.biteForm=function(edit,opt){
   var winBox=h('details',{class:'bfmore bfwin',open:(e&&e.win)?true:null},h('summary',{text:'⏱ '+T('Ώρες που τσιμπούσαν (από–έως)','Hours they were biting (from–to)')}),
     h('p',{class:'sub',text:T('Π.χ. 19:00–21:00 αν τσιμπούσαν συνέχεια και μετά σταμάτησαν. Η εφαρμογή βρίσκει τι άλλαξε (άνεμος, πίεση, παλίρροια, ρεύμα, ήλιος, σελήνη).','E.g. 19:00–21:00 if they bit steadily and then stopped. The app finds what changed (wind, pressure, tide, current, sun, moon).')}),
     h('div',{class:'inrow'},field(T('Από','From'),wA),field(T('Έως','To'),wB)),wErr);
-  wA.addEventListener('focus',function(){ if(!wA.value&&when.value) wA.value=when.value.slice(11,16); });
+  wA.addEventListener('focus',function(){ if(!wA.value&&when.value) wA.value=when.value.slice(11,16); winSync(); });
+  function winSync(){ var on=!!wA.value; whenFld.hidden=on; dateFld.hidden=!on;
+    if(on){ if(!whenDate.value) whenDate.value=(when.value||nowLocal()).slice(0,10); var nv=whenDate.value+'T'+wA.value; if(when.value!==nv){ when.value=nv; try{ when.dispatchEvent(new Event('change')); }catch(x){} } } }
+  [wA,wB,whenDate].forEach(function(x){ x.addEventListener('input',winSync); x.addEventListener('change',winSync); }); wB.addEventListener('change',wwPaint);
+  setTimeout(winSync,0);
   var hasMore=!!(e&&(e.notes||e.rel||e.priv||(e.bait&&!baitChips.children.length)||+e.cnt>1));
   var more=h('details',{class:'bfmore',open:hasMore||null},h('summary',{text:T('Λεπτομέρειες: φωτογραφίες, σημειώσεις…','Details: photos, notes…')}),
       h('div',{class:'fld'},h('span',{text:T('Φωτογραφίες','Photos')}),phBox,file),aiSlot,
@@ -299,8 +306,8 @@ B.biteForm=function(edit,opt){
     (sizeRow=h('div',{class:'g3',hidden:miss.checked},field(T('Βάρος (kg)','Weight (kg)'),kg),field(T('Μήκος (cm)','Length (cm)'),len),field(T('Βάθος','Depth')+' ('+(window.AlkyonUnits&&AlkyonUnits.depthUnit?AlkyonUnits.depthUnit():'m')+')',dep))),
     kgEst,depNote,
     prof==='spear'?h('label',{class:'fld'},h('span',{text:T('Ορατότητα νερού (m)','Water visibility (m)')}),vis,h('small',{text:T('Πόσα μέτρα έβλεπες. Έτσι η Πρόγνωση μαθαίνει τα νερά σου.','How many metres you could see. This teaches the Forecast your waters.')})):null,
-    wwLine,wwBox,tkLine,tkWrap,btRow,
-    winBox,more,
+    wwLine,wwBox,winBox,tkLine,tkWrap,btRow,
+    more,
     err,save,
     e?h('button',{class:'btn full del',type:'button',text:T('Διαγραφή ψαριού','Delete catch'),onclick:function(){ B.ask(T('Να διαγραφεί αυτό το ψάρι;','Delete this catch?'),T('Διαγραφή','Delete'),true).then(function(y){ if(!y) return;
       S.phKeys(e).forEach(function(k){ S.Photos.del(k).catch(function(){}); }); adjLost(e.tkLost||[],1,null); S.remove('bites',e.id); recount(e.trip); sh.close(); B.toast(T('Το ψάρι διαγράφηκε.','Catch deleted.')); }); }}):null);
