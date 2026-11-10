@@ -43,7 +43,7 @@ check('node --check (όλα τα .js)', not bad, '; '.join(bad))
 def init(lang='el', news=None, prof='boat'):
     return ("if(!sessionStorage.__t){sessionStorage.__t=1;localStorage.clear();"
       "localStorage.setItem('alkyon-lang',%s);localStorage.setItem('alkyon-onboard','1');localStorage.setItem('alkyon-askfp','0');"
-      "localStorage.setItem('alkyon-fprof-done','1');localStorage.setItem('alkyon-fprof',%s);localStorage.setItem('alkyon-v4-mapui',JSON.stringify('classic'));"
+      "localStorage.setItem('alkyon-fprof-done','1');localStorage.setItem('alkyon-fprof',%s);localStorage.setItem('alkyon-v4-mapui',JSON.stringify('classic'));localStorage.setItem('alkyon-v4-mapui-test','true');"
       "localStorage.setItem('alkyon-v4-news',JSON.stringify(%s||window.ALKYON_VERSION||'9.9.9'));"
       "localStorage.setItem('alkyon-bites',JSON.stringify([{id:'b1',date:'2026-10-20',time:'07:00',species:'Λαβράκι',kg:1.2,lat:35.1,lon:32.5,_u:1}]));}"
       )%(json.dumps(lang),json.dumps(prof),json.dumps(news))

@@ -755,8 +755,10 @@ function modePaint(){ if(!root) return; var m=md.m;
     tgt(); }
   md.chip.hidden=!md.el.classList.contains('off')&&!!md.el.className.match(/run|fish|anc/); }
 B.mapMode=function(){ return md.m; };
-function mapUI(){ return ls.get('alkyon-v4-mapui','')||''; }
-B.setMapUI=function(v){ ls.set('alkyon-v4-mapui',v); document.body.classList.toggle('mapclean',v==='clean'); if(mcBar) mcBar.hidden=v!=='clean'; mcPaint(); };
+/* 1.12.2: ο «Κλασικός» χάρτης αφαιρέθηκε από τις επιλογές (ζήτημα του Dinos): όλοι έχουν τον «Καθαρό». Όσοι είχαν «classic» περνούν στον καθαρό.
+   Ο κλασικός μένει ΜΟΝΟ για τα αυτόματα tests (alkyon-v4-mapui-test), που πατάνε τα κουμπιά του απευθείας. */
+function mapUI(){ var v=ls.get('alkyon-v4-mapui',''); if(v==='classic'&&ls.get('alkyon-v4-mapui-test',false)) return 'classic'; if(v!=='clean') ls.set('alkyon-v4-mapui','clean'); return 'clean'; }
+B.setMapUI=function(v){ v=(v==='classic'&&ls.get('alkyon-v4-mapui-test',false))?'classic':'clean'; ls.set('alkyon-v4-mapui',v); document.body.classList.toggle('mapclean',v==='clean'); if(mcBar) mcBar.hidden=v!=='clean'; mcPaint(); };
 function mcSum(){ var c=nowCond(), U=window.AlkyonUnits, out=[]; var wr=document.querySelector('.wxread'); if(wr&&wr.offsetParent!==null||wr&&document.body.classList.contains('mapclean')){ var bs=[].map.call(wr.querySelectorAll('.rgi b'),function(x){ return x.textContent.trim(); }).filter(Boolean); if(bs.length) return bs.slice(0,2).join(' · '); } if(!c) return '';
   if(c.wind!=null) out.push((c.dir!=null?COMP[Math.round((((c.dir%360)+360)%360)/45)%8]+' ':'')+(U?U.wind(c.wind):Math.round(c.wind)+' kn')+(c.gust!=null&&c.gust>=c.wind+5?' ('+(U?U.wind(c.gust):Math.round(c.gust))+')':''));
   if(c.wave!=null) out.push(U?U.wave(c.wave):B.num(c.wave,1)+' m'); if(c.sst!=null&&out.length<2) out.push(U?U.temp(c.sst):Math.round(c.sst)+'°'); return out.join(' · '); }
@@ -801,13 +803,7 @@ function cleanSetup(el,qc,seab,bar){ mcRefs={qc:qc,seab:seab,bar:bar}; document.
   function barLater(){ clearTimeout(mcBarT); mcBarT=setTimeout(mcPaint,250); }
   (function hk(n){ if(map){ try{ map.on('moveend',barLater); }catch(e){} } else if(n<40) setTimeout(function(){ hk(n+1); },500); })(0); window.addEventListener('alkyon-wxchange',barLater); window.addEventListener('alkyon-curs',barLater); window.addEventListener('alkyon-windhour',function(){ B.mcBarNow(); }); setInterval(function(){ if(document.body.classList.contains('mapclean')&&root) mcPaint(); },15000);
   el.append(mcBar); var oq=B.qpaint; B.qpaint=function(){ oq&&oq(); mcPaint(); }; setTimeout(mcPaint,500); setTimeout(mcPaint,2600);
-  if(!mapUI()) setTimeout(mcAsk,900); }
-function mcAsk(){ if(mapUI()||!root) return; var sh;
-  function opt(v,img,t,s){ return h('button',{type:'button',class:'mcopt',onclick:function(){ B.setMapUI(v); sh.close(true); if(v==='clean') B.toast(T('Πάτα τη μπάρα πάνω (ή σύρε την αριστερά) για στρώματα και εργαλεία· ο χάρτης φαίνεται δίπλα.','Tap the top bar (or swipe it left) for layers and tools; the map stays visible beside it.'),5000); }},h('span',{class:'mcpic '+img}),h('b',{text:t}),h('small',{text:s})); }
-  sh=B.sheet({title:T('Πώς θες τον χάρτη;','How do you want the map?'),body:h('div',null,h('div',{class:'mcopts'},
-    opt('clean','cl',T('Καθαρός','Clean'),T('Μία μπάρα πάνω· στρώματα και εργαλεία σε πλαϊνό μενού, με τον χάρτη να φαίνεται δίπλα','One bar on top; layers and tools in a side menu, with the map visible beside it')),
-    opt('classic','cs',T('Κλασικός','Classic'),T('Όλα τα κουμπιά πάνω στον χάρτη, όπως πριν','All buttons on the map, as before'))),
-    h('p',{class:'foot',text:T('Αλλάζει όποτε θες: Προφίλ › Ρυθμίσεις › Χάρτης.','Change any time: Profile › Settings › Map.')})),onclose:function(){ if(!mapUI()) ls.set('alkyon-v4-mapui','classic'); }}); }
+  /* 1.12.2: δεν ρωτάει πια «Καθαρός ή Κλασικός» */ }
 /* 1.7.8: πλαϊνό μενού από δεξιά (όπως το Windy): ο χάρτης μένει ζωντανός αριστερά και μετακινείται ώστε το κέντρο του να πέφτει στη λωρίδα
    που φαίνεται· κάθε διακόπτης αλλάζει τον χάρτη αμέσως. Κλείνει: σύρσιμο δεξιά, πάτημα στη λωρίδα, «πίσω» του κινητού, Esc. */
 var mcShift=0;
@@ -892,7 +888,7 @@ function mcDrFill2(){ var pan=mcDr.querySelector('.mcpan'), keep=pan.scrollTop; 
   Object.keys(groups).forEach(function(k){ if(legEl&&legEl.parentNode===pan) pan.insertBefore(groups[k],legEl); else pan.append(groups[k]); });
   /* ενέργειες (μαγαζιά, εισαγωγή, νέο σημείο…): κλείνουν το μενού */
   [].forEach.call(pan.querySelectorAll('.lacts .li'),function(b){ b.addEventListener('click',function(){ mcClose(); },true); });
-  pan.append(h('div',{class:'mcfoot'},h('button',{type:'button',class:'chip sm',text:T('Κλασικός χάρτης','Classic map'),onclick:function(){ mcClose(); B.setMapUI('classic'); B.toast(T('Κλασικός χάρτης. Για τον καθαρό: Προφίλ › Ρυθμίσεις › Χάρτης.','Classic map. For the clean one: Profile › Settings › Map.')); }}),h('span',{class:'mchd'})));
+  pan.append(h('div',{class:'mcfoot'},h('span',{class:'mchd'})));
   [].forEach.call(pan.querySelectorAll('.ltile[data-fk]'),function(el){ var k=el.getAttribute('data-fk'); if(/^l:(wind|wave|cur|sst)$/.test(k)) return; var lb=el.querySelector('b'), ic=el.querySelector('.lic');
     reg(k,lb?lb.textContent:'',ic?ic.innerHTML:'',function(){ return el.getAttribute('aria-pressed')==='true'; },function(){ el.click(); setTimeout(paintFav,120); setTimeout(paintFav,800); },'layer'); });
   [].forEach.call(pan.querySelectorAll('.lacts .li[data-fk]'),function(el){ var lb=el.querySelector('b'), ic=el.querySelector('.lic'); reg(el.getAttribute('data-fk'),lb?lb.textContent:'',ic?ic.innerHTML:'',null,function(){ el.click(); },'action'); });
