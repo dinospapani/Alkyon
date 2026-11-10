@@ -499,7 +499,9 @@ function dayView(page,fc,d){
   if(oppsLater&&B.oppsCard) page.append(B.oppsCard(2,{hideEmpty:true}));
   var p=st.place||current();
   if(d.date>=td&&B.prof()!=='lake'&&window.AlkyonExposure){ /* 1.10.1: και για τις επόμενες μέρες, με τον άνεμο της καλύτερης ώρας */ var exAt=isToday?null:d.date+'T'+B.pad(d.win?d.win.s:12), ex=h('div',{class:'expo'},h('div',{id:'fcDays',hidden:true})); var wv0=hr&&hr.wave!=null&&hr.wave>=0.8; var exf=fold('expo',T('Έκθεση ακτής','Coast exposure'),exAt?T('πού είσαι απάνεμα με τον άνεμο στις '+exAt.slice(11,13)+':00','where you are sheltered from the wind at '+exAt.slice(11,13)+':00'):T('πού είσαι απάνεμα με τον σημερινό άνεμο','where you are sheltered from today’s wind'),[ex]); if(wv0) exf.open=true; exf.hidden=true; page.append(exf); tidyExpo(ex);
-    (function(){ function sync(){ var b=ex.querySelector('#fcExposure'); exf.hidden=!b||b.hidden; } try{ new MutationObserver(sync).observe(ex,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']}); }catch(e){} setTimeout(sync,1500); })();
+    /* 1.10.11: όταν το σημείο δεν είναι κοντά στην ακτή, μια γραμμή εξηγεί γιατί δεν υπάρχει «Έκθεση ακτής» */
+    var nox=h('p',{class:'foot expo-none',hidden:true,text:T('Έκθεση ακτής: βγαίνει μόνο για σημεία κοντά στην ακτή.','Coast exposure: shown only for places near the coast.')}); page.append(nox);
+    (function(){ var tries=0; function sync(){ var b=ex.querySelector('#fcExposure'); exf.hidden=!b||b.hidden; nox.hidden=!exf.hidden||tries<1; } setTimeout(function(){ tries=1; sync(); },4000); try{ new MutationObserver(sync).observe(ex,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']}); }catch(e){} setTimeout(sync,1500); })();
     setTimeout(function(){ try{ window.dispatchEvent(new CustomEvent('alkyon-fcloaded',{detail:{place:{lat:p.lat,lon:p.lon,name:p.name||''},fc:fc,at:exAt}})); }catch(e){} },0); }
   /* 1.9.11: και η «Πίεση, άνεμος, σελήνη» πτυσσόμενη· στον τίτλο η τάση πίεσης των επόμενων 24 ωρών */
   (function(){ var pwc=pwCard(fc,d), ph=pwc.querySelector('.pwh h2'); if(ph) ph.remove(); pwc.classList.remove('card');

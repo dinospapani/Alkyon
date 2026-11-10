@@ -7,7 +7,7 @@ var LANG='el';
 try{ LANG=localStorage.getItem('alkyon-lang')||'el'; /* 1.6.6: πάντα Ελληνικά εκτός αν διαλέξεις English στο Προφίλ */ }catch(e){}
 if(LANG!=='en') LANG='el'; /* μόνο ελληνικά (βάση) και αγγλικά (i18n-en.js) */
 window.LANG=LANG;
-window.spName=function(n){ return n; };
+if(!window.spName) window.spName=function(n){ return n; };   /* 1.10.11: στα ελληνικά κρατά το spName του v4/data-el.js (αγγλικά ονόματα → ελληνικά) */
 document.documentElement.lang=LANG;
 if(LANG==='el') return;
 if(window.AlkyonTr) return;

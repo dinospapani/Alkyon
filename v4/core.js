@@ -88,9 +88,23 @@ var PROF={boat:T('Βάρκα','Offshore'),shore:T('Στεριά','Shore'),lake:T
 function prof(){ var p=ls.raw('alkyon-fprof'); return PROF[p]?p:'boat'; }
 
 window.AK={LANG:LANG,EN:EN,T:T,ls:ls,records:records,KINDS:KINDS,on:on,emit:emit,h:h,s:s,pad:pad,hm:hm,dayName:dayName,dateShort:dateShort,DAYS3:DAYS3,num:num,lastPos:lastPos,locate:locate,prof:prof,PROF:PROF,
-  classic:function(q){ return '../classic.html'+(q||''); }};
+  classic:function(q){ return '../'+(q||''); }};   /* 1.10.11: το classic.html αφαιρέθηκε· η ρίζα κάνει την ίδια ανακατεύθυνση */
 /* v31z542: χωροκατακτητικά τοξικά (λαγοκέφαλοι) και «έφαγε το δόλωμα / έκοψε»: καταγράφονται, αλλά δεν μετράνε ως ψάρια */
 var PEST_L=['Lagocephalus sceleratus','Lagocephalus lagocephalus','Lagocephalus suezensis','Lagocephalus spadiceus','Torquigener flavimaculosus','Sphoeroides pachygaster'];
 window.AK.PEST_L=PEST_L;
+/* 1.10.11: υποδιαστολή στα ελληνικά. Ό,τι εμφανίζεται (κείμενο σελίδας και γραφήματα σε canvas) γράφει «1,5 m» αντί «1.5 m».
+   Δεν αλλάζουν: αποθηκευμένα δεδομένα, πεδία που γράφεις (input/textarea), εκδόσεις (1.10.11), συντεταγμένες με 4+ δεκαδικά,
+   λεπτά μοιρών (42.071′), ό,τι έχει κλάση .nodec. Τα αγγλικά μένουν με τελεία. */
+var DEC=/(^|[^\d.,:\/\w])(\d+)\.(\d{1,3})(?![\d.'′°])/g;
+function decEl(t){ return (t&&t.indexOf('.')>=0&&/\d\.\d/.test(t))?t.replace(DEC,'$1$2,$3'):t; }
+window.AK.decEl=decEl;
+if(!EN){
+  var SKIP='input,textarea,select,script,style,code,pre,.nodec,[contenteditable],.leaflet-control-attribution';
+  var fixNode=function(n){ if(n.nodeType===3){ var e=n.parentElement; if(!e||e.closest(SKIP)) return; var v=n.nodeValue, w=decEl(v); if(w!==v) n.nodeValue=w; return; }
+    if(n.nodeType!==1||n.closest&&n.closest(SKIP)) return; var tw=document.createTreeWalker(n,NodeFilter.SHOW_TEXT), x; while((x=tw.nextNode())) fixNode(x); };
+  var startDec=function(){ fixNode(document.body); try{ new MutationObserver(function(ms){ for(var i=0;i<ms.length;i++){ var m=ms[i]; if(m.type==='characterData') fixNode(m.target); else for(var j=0;j<m.addedNodes.length;j++) fixNode(m.addedNodes[j]); } }).observe(document.body,{childList:true,subtree:true,characterData:true}); }catch(e){} };
+  if(document.body) startDec(); else document.addEventListener('DOMContentLoaded',startDec);
+  try{ var CP=CanvasRenderingContext2D.prototype; ['fillText','strokeText'].forEach(function(k){ var o=CP[k]; CP[k]=function(t){ var a=[].slice.call(arguments); if(typeof t==='string') a[0]=decEl(t); else if(typeof t==='number') a[0]=decEl(String(t)); return o.apply(this,a); }; }); }catch(e){}
+}
 window.AK.pest=function(b){ if(!b) return false; if(b.pest) return true; if(b.latin&&PEST_L.indexOf(b.latin)>=0) return true; return /λαγοκ[εέ]φαλ|κουνελ[οό]ψαρ|toadfish|puffer ?fish|lagocephalus|torquigener/i.test(b.species||''); };
 })();

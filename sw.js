@@ -2,11 +2,11 @@
 // Weather APIs and fonts are cross-origin and always go straight to the network.
 importScripts('forecast.js');
 try{ importScripts('v4/notif-i18n.js'); }catch(e){}   /* 1.10.6: ειδοποίηση στη γλώσσα της εφαρμογής */
-const V = 'alkyon-1.10.10';
+const V = 'alkyon-1.10.11';
 const CFG = 'alkyon-cfg';
 /* 1.4.2: η κλασική αποσύρθηκε, οπότε εδώ μένουν μόνο οι σελίδες της ρίζας (ανακατεύθυνση στο v4/) και τα εικονίδια.
    Τα αρχεία της εφαρμογής τα κρατά για offline το v4/sw.js. Πριν κατέβαιναν εδώ ~6 MB σε κάθε ενημέρωση. */
-const SHELL = ['./', 'index.html', 'classic.html', 'migrate.js', 'manifest.webmanifest', 'icon-192.png', 'badge-96.png', 'apple-touch-icon.png'];
+const SHELL = ['./', 'index.html', 'migrate.js', 'manifest.webmanifest', 'icon-192.png', 'badge-96.png', 'apple-touch-icon.png'];
 const cfgUrl = () => new URL('__cfg', self.registration.scope).href;
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(V).then(c => Promise.all(SHELL.map(u => c.add(new Request(u, { cache: 'reload' })).catch(() => {})) /* 1.3.3: χωρίς την HTTP cache, ώστε να μη μπουν παλιά αρχεία στη νέα έκδοση */)).then(() => self.skipWaiting()));
@@ -39,7 +39,7 @@ self.addEventListener('fetch', e => {
   e.respondWith(
     fetch(new Request(e.request, { cache: 'no-cache' }))
       .then(r => { const cp = r.clone(); caches.open(V).then(c => c.put(e.request, cp)); return r; })
-      .catch(() => caches.match(e.request, { ignoreSearch: true }).then(r => r || caches.match(new URL(e.request.url).pathname.endsWith('classic.html') ? 'classic.html' : 'index.html')))
+      .catch(() => caches.match(e.request, { ignoreSearch: true }).then(r => r || caches.match('index.html')))
   );
 });
 async function readCfg() {

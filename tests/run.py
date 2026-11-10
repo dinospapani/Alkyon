@@ -16,6 +16,11 @@ def serve():
     s=socket.socket(); s.bind(('127.0.0.1',0)); port=s.getsockname()[1]; s.close()
     class Q(http.server.SimpleHTTPRequestHandler):
         def log_message(self,*a): pass
+        def send_error(self,code,message=None,explain=None):   # 1.10.11: όπως το GitHub Pages, άγνωστη σελίδα → 404.html
+            f=os.path.join(ROOT,'404.html')
+            if code==404 and os.path.exists(f):
+                b=open(f,'rb').read(); self.send_response(404); self.send_header('Content-Type','text/html; charset=utf-8'); self.send_header('Content-Length',str(len(b))); self.end_headers(); self.wfile.write(b); return
+            return super().send_error(code,message,explain)
     H=functools.partial(Q, directory=ROOT)
     srv=http.server.ThreadingHTTPServer(('127.0.0.1',port),H); threading.Thread(target=srv.serve_forever,daemon=True).start()
     return 'http://127.0.0.1:%d'%port
@@ -213,8 +218,9 @@ with sync_playwright() as p:
     pg.click('.pasttrip .btn.pri'); pg.wait_for_timeout(600)
     tr=pg.evaluate("()=>AK.store.raw('trips').map(t=>[t.date,t.spot,t.manual,(t.endMs-t.startMs)/3600000])")
     check('παλιά έξοδος αποθηκεύεται', tr==[['2026-10-25','Λατσί',True,3.5]], tr)
-    for u,want in [('/classic.html?a=map&lat=35.1&lon=33.2','/v4/#share='),('/classic.html?a=bite','/v4/#log'),('/classic.html','/v4/#forecast')]:
-        pg.goto(BASE+u); pg.wait_for_timeout(1500); check('κλασική → '+want, pg.url.split(BASE)[1].startswith(want), pg.url)
+    for u,want in [('/classic.html?a=map&lat=35.1&lon=33.2','/v4/#share='),('/classic.html?a=bite','/v4/#log'),('/classic.html','/v4/'),('/?a=map&lat=35.1&lon=33.2','/v4/#share=35.10000,33.20000')]:
+        pg.goto(BASE+u); pg.wait_for_timeout(1800); check('παλιός σύνδεσμος κλασικής (χωρίς classic.html, 1.10.11) → '+want, pg.url.split(BASE)[1].startswith(want), pg.url)
+    check('το classic.html και τα αδέσποτα αρχεία αφαιρέθηκαν (1.10.11)', not any(os.path.exists(os.path.join(ROOT,f)) for f in ['classic.html','map-view.js','help.js','map.css','sw (1).js','v4/bc-hero.jpg','v4/bc-hero-boat.jpg']))
     check('παλιά έξοδος/κλασική χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
 
     print('# συρτή, επιλογή σημείου, ψάρια χωρίς είδος (1.6.x)')
@@ -954,6 +960,19 @@ with sync_playwright() as p:
     w=pg.evaluate("()=>JSON.parse(localStorage.getItem('alkyon-places')).map(p=>[p.id,p.watch])")
     check('Τοποθεσίες: «Map point» κλείνει, οι άλλες μένουν όπως ήταν (1.10.7)', w==[['p1',False],['p2',True],['p3',False]], w)
     check('1.10.7: χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
+
+    print('# 1.10.11: υποδιαστολή στα ελληνικά, ελληνικά ονόματα ειδών, σημείωση έκθεσης ακτής')
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(3000)
+    r=pg.evaluate("""()=>new Promise(res=>{ const d=document.createElement('div'); d.innerHTML='<p>κύμα 0.9 m, άνεμος 12.5 kn</p><p>έκδοση 1.10.11 · 34.70123, 32.40510 · 34°42.071′N</p><input value="2.4">';
+      document.body.append(d); setTimeout(()=>{ const ps=d.querySelectorAll('p'); res([ps[0].textContent, ps[1].textContent, d.querySelector('input').value, AK.decEl('1013.2 hPa'), window.spName('Dogtooth grouper'), window.spName('Dusky grouper')]); d.remove(); },150); })""")
+    check('Ελληνικά: «0,9 m», «12,5 kn» με κόμμα (1.10.11)', r[0]=='κύμα 0,9 m, άνεμος 12,5 kn', r)
+    check('Ελληνικά: εκδόσεις, συντεταγμένες, λεπτά μοιρών και πεδία μένουν με τελεία (1.10.11)', r[1]=='έκδοση 1.10.11 · 34.70123, 32.40510 · 34°42.071′N' and r[2]=='2.4' and r[3]=='1013,2 hPa', r)
+    check('Ελληνικά: τα αγγλικά ονόματα ειδών γίνονται ελληνικά και στην πρόγνωση (Ασπρόβλαχος, Σφυρίδα) (1.10.11)', r[4]=='Ασπρόβλαχος' and r[5]=='Σφυρίδα', r)
+    check('Πρόγνωση: γραμμή «Έκθεση ακτής: μόνο κοντά στην ακτή» υπάρχει (1.10.11)', pg.evaluate("()=>!!document.querySelector('.expo-none')"))
+    check('1.10.11: χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
+    c=ctx(b, lang='en'); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(2500)
+    r=pg.evaluate("()=>{ const p=document.createElement('p'); p.textContent='0.9 m'; document.body.append(p); return new Promise(res=>setTimeout(()=>res(p.textContent),150)); }")
+    check('Αγγλικά: η τελεία μένει (0.9 m) (1.10.11)', r=='0.9 m', r); c.close()
     print('# offline')
     c=ctx(b,sw=True); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(6000); pg.reload(); pg.wait_for_timeout(3000)
     c.set_offline(True)

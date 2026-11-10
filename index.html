@@ -11,12 +11,13 @@
 <style>html,body{margin:0;height:100%;background:#06171F;color:#E6F1F2;font:16px system-ui,sans-serif}body{display:grid;place-items:center}a{color:#FF7A4D}</style>
 <script src="migrate.js"></script>
 <script>
-/* Alkyon: η εφαρμογή είναι στο v4/. Η κλασική έκδοση αποσύρθηκε στην 1.4.0 (το classic.html ανακατευθύνει εδώ).
-   Οι συντομεύσεις (?a=bite|trip|fc) περνούν στη νέα εφαρμογή. Ο service worker της ρίζας μένει για τις ειδοποιήσεις. */
+/* Alkyon: η εφαρμογή είναι στο v4/. Η κλασική έκδοση αποσύρθηκε στην 1.4.0 και το classic.html αφαιρέθηκε στην 1.10.11
+   (οι παλιοί σύνδεσμοι classic.html περνούν από το 404.html εδώ). Οι συντομεύσεις (?a=bite|trip|fc|map) περνούν στη νέα
+   εφαρμογή. Ο service worker της ρίζας μένει για τις ειδοποιήσεις. */
 (function(){
-  var a=''; try{ a=new URLSearchParams(location.search).get('a')||''; }catch(e){}
-  var M={bite:'#new',trip:'#trip',fc:'#forecast',log:'#log',map:'#map',prof:'#profile'};
-  if(a&&!M[a]){ location.replace('classic.html'+location.search); return; } /* το classic.html μεταφράζει τις παλιές συντομεύσεις */
+  var q={}; try{ new URLSearchParams(location.search).forEach(function(v,k){ q[k]=v; }); }catch(e){}
+  var a=q.a||'', M={bite:'#new',trip:'#trip',fc:'#forecast',log:'#log',map:'#map',prof:'#profile'};
+  if(a==='map'&&q.lat&&q.lon&&isFinite(+q.lat)&&isFinite(+q.lon)){ location.replace('v4/#share='+(+q.lat).toFixed(5)+','+(+q.lon).toFixed(5)); return; }
   /* 1.4.0: σύνδεσμοι από email (επιβεβαίωση, νέος κωδικός): τους χειρίζεται πλέον η νέα εφαρμογή (v4/account.js) */
   if(/access_token|type=recovery|error_description/.test(location.hash)){ location.replace('v4/'+location.search+location.hash); return; }
   if(/^#inbox/.test(location.hash)){ location.replace('v4/#inbox'); return; }
