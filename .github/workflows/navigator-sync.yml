@@ -18,6 +18,7 @@ concurrency:
   cancel-in-progress: false
 permissions:
   contents: write
+  issues: write
 jobs:
   sync:
     runs-on: ubuntu-latest
@@ -32,6 +33,7 @@ jobs:
           curl -s -A "Alkyon-sync/1.0" "https://map.navigatormap.org/api/detail/?ps_id=${{ github.event.inputs.probe }}&lang=en_EN" | python3 -c "import json,sys; d=json.load(sys.stdin); print(json.dumps({k:(v if not isinstance(v,(dict,list)) or k in ('regulations','designations') else '...') for k,v in d.items()}, ensure_ascii=False, indent=1)[:6000])" || true
       - run: node navigator-sync.mjs
         env:
+          NAV_CY_OUT: ${{ runner.temp }}/nav-cy.txt
           NAV_SINCE: ${{ github.event.inputs.since || (github.event.schedule == '41 5 10 1,4,7,10 *' && '2000-01-01') || '' }}
       - name: Commit αν άλλαξε
         run: |
@@ -42,3 +44,12 @@ jobs:
           git commit -m "Navigator: ενημέρωση περιοχών"
           git pull --rebase --autostash
           git push
+      - name: Ειδοποίηση για αλλαγές στην Κύπρο
+        # 1.11.4: αν το Navigator άλλαξε περιοχή της Κύπρου, ανοίγει θέμα (issue) στο GitHub, που έρχεται και με email,
+        # για να ελεγχθεί αν πρέπει να αλλάξει και το zones.js (ζώνες του Τμήματος Αλιείας, που δεν αλλάζουν αυτόματα).
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          f="$RUNNER_TEMP/nav-cy.txt"; [ -s "$f" ] || exit 0
+          { echo "Το ProtectedSeas Navigator άλλαξε περιοχές της Κύπρου. Ο χάρτης «Περιορισμοί» ενημερώθηκε ήδη."; echo; echo "Έλεγξε αν πρέπει να αλλάξει και το zones.js (Απαγόρευση, Τμήμα Αλιείας):"; echo; sed 's/^/- /' "$f"; } > body.md
+          gh issue create --title "Navigator: αλλαγές στην Κύπρο ($(date +%Y-%m-%d))" --body-file body.md || true

@@ -63,10 +63,24 @@ function wanted(){ if(!raw('alkyon-onboard')) return false; if(raw('alkyon-askfp
 
 /* ---------- καλωσόρισμα πρώτου ανοίγματος (όπως η κλασική: alkyon-onboard). Δεν εμφανίζεται αν υπάρχουν ήδη δεδομένα. ---------- */
 function hasData(){ try{ return ['bites','trips','spots','tackle'].some(function(k){ return B.store.raw(k).length>0; }); }catch(e){ return false; } }
+/* 1.11.3/1.11.4: η χώρα στο καλωσόρισμα, χωρίς να μοιάζει η εφαρμογή «μόνο για Κύπρο και Ελλάδα».
+   Αν η εφαρμογή ξέρει πού είσαι: «Χώρα: … (από τη θέση σου) · Αλλαγή». Αλλιώς: κουμπί «Χρήση της θέσης μου» ή λίστα με όλες τις χώρες.
+   Η χώρα χρειάζεται μόνο για τους νόμους στον Οδηγό· οι ζώνες απαγόρευσης στον χάρτη ακολουθούν πάντα το μέρος που βλέπεις. */
+function country(){
+  var box=h('div',{class:'spctry'}), open=false, busy=false;
+  function paint(){ var set=ls.get('alkyon-country','auto'), p=ls.get('alkyon-v4-pos',null), known=p&&typeof p.lat==='number', reg=known&&B.region?(B.region(p.lat,p.lon)||'xx'):null;
+    box.replaceChildren();
+    if(!open&&(set!=='auto'||known)){ var nm=set!=='auto'?B.countryName(set):reg==='xx'?T('αυτόματα, από τη θέση σου','automatic, from your location'):B.countryName(reg)+T(' (από τη θέση σου)',' (from your location)');
+      box.append(h('span',{text:T('Χώρα: ','Country: ')+nm+' '}),h('button',{type:'button',class:'lnk',text:T('Αλλαγή','Change'),onclick:function(){ open=true; paint(); }})); return; }
+    var row=h('div',{class:'row'});
+    if(!known) row.append(h('button',{type:'button',class:'loc',disabled:busy,text:busy?T('Αναζήτηση θέσης…','Finding location…'):T('Χρήση της θέσης μου','Use my location'),onclick:function(){ busy=true; paint(); B.locate(9000).then(function(){ busy=false; open=false; ls.set('alkyon-country','auto'); paint(); }); }}));
+    row.append(B.countrySelect(set,function(v){ ls.set('alkyon-country',v); }));
+    box.append(h('span',{text:T('Σε ποια χώρα ψαρεύεις;','Which country do you fish in?')}),row,h('small',{text:T('Για τους νόμους στον Οδηγό. Οι ζώνες απαγόρευσης στον χάρτη ακολουθούν πάντα το μέρος που βλέπεις. Αλλαγή: Προφίλ › Ρυθμίσεις › Χώρα.','For the laws in the Guide. No-fishing zones on the map always follow the place you look at. Change: Profile › Settings › Country.')})); }
+  paint(); return box; }
 B.tour=function(){
   if(document.querySelector('.sppage')) return;
   var st={s:side(),p:cur()}, step=0, pg, prev=document.activeElement;
-  var STEPS=[{img:'alk-hero.jpg',t:T('Καλώς ήρθες στο Alkyon','Welcome to Alkyon'),b:T('Πρόγνωση, χάρτης και ημερολόγιο ψαρέματος για την Κύπρο και την Ελλάδα. Σε ένα λεπτό είσαι έτοιμος.','Forecast, map and fishing logbook for Cyprus and Greece. You will be ready in a minute.')},
+  var STEPS=[{img:'alk-hero.jpg',t:T('Καλώς ήρθες στο Alkyon','Welcome to Alkyon'),b:T('Πρόγνωση, χάρτης και ημερολόγιο ψαρέματος. Σε ένα λεπτό είσαι έτοιμος.','Forecast, map and fishing logbook. You will be ready in a minute.')},
     {img:'alk-hero-boat.jpg',pick:true,t:T('Πού ψαρεύεις συνήθως;','Where do you usually fish?'),b:T('Η εφαρμογή προσαρμόζει τις τεχνικές, τον εξοπλισμό και τα κουμπιά ασφαλείας σε αυτό που κάνεις. Μπορείς να το αλλάξεις όποτε θέλεις από το Προφίλ.','The app adapts techniques, tackle and safety buttons to how you fish. You can change it any time in Profile.')},
     {img:'alk-card-boat.jpg',t:T('Δες τη θάλασσα πριν φύγεις','Check the sea before you leave'),b:T('Στην Πρόγνωση βλέπεις πόσο καλή είναι η μέρα για ψάρεμα (από 0 έως 100), τις καλύτερες ώρες, τον άνεμο, το κύμα και την πίεση εκεί που θα πας. Πάτα «Θα βγω αυτή τη μέρα» και θα σου το θυμίσει. Στον Χάρτη βλέπεις κύμα, άνεμο, ρεύματα και βάθη.','Forecast shows a 0–100 score, the best hours, wind, waves and pressure for the place you choose. Tap “I’ll go out this day” for reminders. The map shows waves, wind, currents and depths.')},
     {img:'alk-hero-spear.jpg',t:T('Γράψε κάθε έξοδο','Log every outing'),b:T('Πάτα το κεντρικό κουμπί όταν ξεκινάς να ψαρεύεις. Κάθε ψάρι το γράφεις με ένα πάτημα ή με τη φωνή σου, π.χ. «τρία λαβράκια, ενάμισι κιλό». Αν ορίσεις επαφή ασφαλείας, θα ειδοποιηθεί αυτόματα αν δεν γυρίσεις στην ώρα σου.','Tap the centre button when you start fishing. Log each catch with one tap or by voice, e.g. “three sea bass, one and a half kilos”. If you set a safety contact, they are alerted automatically if you are not back on time.')},
@@ -82,7 +96,7 @@ B.tour=function(){
     var dots=h('div',{class:'obd','aria-hidden':'true'}); STEPS.forEach(function(_,i){ dots.append(h('i',{class:i===step?'on':null})); });
     var hero=h('div',{class:'sphero'+(x.pick?'':' tall'),style:{backgroundImage:'url('+x.img+')'}},h('span',{class:'spheroshade'}),x.last?null:h('button',{class:'spskip',type:'button',text:T('Παράλειψη','Skip'),onclick:finish}),brand(),
       h('div',{class:'sptitle'},h('h1',{text:x.t}),h('p',{text:x.b})));
-    var body=h('div',{class:'spbody'}); if(x.pick) body.append(picker(st,null));
+    var body=h('div',{class:'spbody'}); if(x.pick) body.append(picker(st,null)); if(step===0) body.append(country());
     /* 1.9.38: και «Πίσω», όχι μόνο «Επόμενο» */
     var back=step>0?h('button',{class:'spback',type:'button','aria-label':T('Πίσω','Back'),onclick:function(){ step--; paint(); pg.scrollTop=0; }},h('i',{html:CHEV}),h('span',{text:T('Πίσω','Back')})):null;
     body.append(dots,h('div',{class:'spnav'},back,h('button',{class:'spgo',type:'button',onclick:function(){ if(x.pick) save(); if(x.acct){ finish(); setTimeout(function(){ B.authSheet&&B.authSheet({mode:'up'}); },300); return; } if(x.last) finish(); else { step++; paint(); pg.scrollTop=0; } }},h('span',{text:x.acct?T('Δημιουργία λογαριασμού','Create account'):x.last?T('Ξεκινάμε','Get started'):T('Επόμενο','Next')}),h('i',{html:CHEV}))));

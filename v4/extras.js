@@ -47,7 +47,23 @@ B.limitsCard=function(){
 function rings(p){ if(!p||!p.length) return []; if(typeof p[0][0]==='number') return [p]; if(typeof p[0][0][0]==='number') return p; var o=[]; p.forEach(function(x){ o=o.concat(rings(x)); }); return o; }
 function inRing(pt,r){ var x=pt[1], y=pt[0], ins=false; for(var i=0,j=r.length-1;i<r.length;j=i++){ var xi=r[i][1], yi=r[i][0], xj=r[j][1], yj=r[j][0]; if(((yi>y)!==(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi)) ins=!ins; } return ins; }
 function segDist(p,a,b){ var k=Math.cos(p[0]*Math.PI/180)*111320, K=111320, ax=(a[1]-p[1])*k, ay=(a[0]-p[0])*K, bx=(b[1]-p[1])*k, by=(b[0]-p[0])*K, dx=bx-ax, dy=by-ay, t=Math.max(0,Math.min(1,-(ax*dx+ay*dy)/((dx*dx+dy*dy)||1))), cx=ax+t*dx, cy=ay+t*dy; return Math.sqrt(cx*cx+cy*cy); }
-B.zoneCheck=function(lat,lon){ var Z=(window.ZONES||[]).concat(window.ZONES_GR||[]), pt=[lat,lon], best=null; /* 1.11.0: και Ελλάδα */
+/* 1.11.3: περιοχές του ProtectedSeas Navigator σε όλο τον κόσμο, σε κομμάτια 10°×10° (nav/w_<lat>_<lon>.json).
+   Κατεβαίνει μόνο το κομμάτι όπου βρίσκεσαι (και το διπλανό αν είσαι κοντά στην άκρη). Κύπρος και Ελλάδα έχουν τα δικά τους αρχεία. */
+var NW={idx:null,ip:null,t:{},p:{}};
+function nwIdx(){ if(NW.idx) return Promise.resolve(NW.idx); if(!NW.ip) NW.ip=fetch('../nav/index.json').then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(j){ NW.idx=j; return j; }).catch(function(){ NW.ip=null; return null; }); return NW.ip; }
+function nwKeys(lat,lon,pad){ var S=(NW.idx&&NW.idx.step)||10, out={}; [-pad,0,pad].forEach(function(dl){ [-pad,0,pad].forEach(function(dn){ var a=lat+dl, b=lon+dn; out[(Math.floor(a/S)*S)+'_'+(Math.floor(b/S)*S)]=1; }); }); return Object.keys(out); }
+function nwSev(f){ return (f.rf===1||f.hl===1)?2:(f.rf===2||f.hl===2||f.tr===1||f.tr===2)?1:0; }
+B.navTiles=function(lat,lon,pad){ if(lat==null||lon==null) return Promise.resolve([]);
+  return nwIdx().then(function(ix){ if(!ix||!ix.t) return []; var ks=nwKeys(lat,lon,pad==null?0.3:pad).filter(function(k){ return ix.t[k]; });
+    return Promise.all(ks.map(function(k){ if(NW.t[k]) return NW.t[k]; if(!NW.p[k]) NW.p[k]=fetch('../nav/w_'+k+'.json').then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(j){ var fs=(j&&j.f)||[]; fs.forEach(function(f){ f._s=nwSev(f); f._w=1; }); NW.t[k]=fs; return fs; }).catch(function(){ NW.p[k]=null; return []; }); return NW.p[k]; }))
+      .then(function(arr){ var seen={}, out=[]; arr.forEach(function(fs){ fs.forEach(function(f){ if(!seen[f.i]){ seen[f.i]=1; out.push(f); } }); }); return out; }); }); };
+/* οι περιοχές του κόσμου όπου απαγορεύεται το ψάρεμα αναψυχής ή το καλάμι, στη μορφή των ZONES */
+var NWZ=[];
+B.navWorldZones=function(){ return NWZ; };
+function nwZonesFor(lat,lon){ if(B.region&&B.region(lat,lon)) { NWZ=[]; return Promise.resolve(NWZ); }
+  return B.navTiles(lat,lon,0.3).then(function(fs){ NWZ=fs.filter(function(f){ return f._s===2; }).map(function(f){ return {n:f.n,d:[f.c,f.d].filter(Boolean).join(' · '),p:f.g,b:f.b,w:1}; }); return NWZ; }); }
+B.navWorldZonesFor=nwZonesFor;
+B.zoneCheck=function(lat,lon){ var Z=(window.ZONES||[]).concat(window.ZONES_GR||[]).concat(NWZ.filter(function(z){ var b=z.b; return !b||(lat>b[0]-0.05&&lat<b[2]+0.05&&lon>b[1]-0.06&&lon<b[3]+0.06); })), pt=[lat,lon], best=null; /* 1.11.0: και Ελλάδα· 1.11.3: και ο υπόλοιπος κόσμος */
   Z.forEach(function(z){ var rs=rings(z.p), inside=rs.some(function(r){ return inRing(pt,r); }), d=1e9;
     if(!inside) rs.forEach(function(r){ for(var i=0;i<r.length;i++){ var dd=segDist(pt,r[i],r[(i+1)%r.length]); if(dd<d) d=dd; } });
     var o={z:z,inside:inside,d:inside?0:d}; if(!best||o.d<best.d) best=o; });
@@ -63,7 +79,7 @@ function loadZones(){ return Promise.all([loadOne('ZONES','../zones.js'),loadOne
 function zTick(){
   var tr=B.trip, act=tr&&tr.active&&tr.active(); if(!act){ zState={}; return; } if(!zOn()) return;
   var f=tr.fix&&tr.fix(); if(!f||Date.now()-(f.t||0)>120000) return;
-  loadZones().then(function(){ var r=B.zoneCheck(f.lat,f.lon); if(!r) return; var k=r.z.n, prev=zState[k]||'out', now=r.inside?'in':r.d<=300?'near':'out';
+  loadZones().then(function(){ return nwZonesFor(f.lat,f.lon).catch(function(){}); }).then(function(){ var r=B.zoneCheck(f.lat,f.lon); if(!r) return; var k=r.z.n, prev=zState[k]||'out', now=r.inside?'in':r.d<=300?'near':'out';
     if(now===prev) return; zState[k]=now;
     if(now==='in') zNotify(T('Μέσα σε απαγορευμένη περιοχή','Inside a restricted area'),r.z.n+(r.z.d?' · '+r.z.d:''));
     else if(now==='near'&&prev==='out') zNotify(T('Πλησιάζεις απαγορευμένη περιοχή','Approaching a restricted area'),r.z.n+' · '+Math.round(r.d)+' m');

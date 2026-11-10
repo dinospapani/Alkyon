@@ -26,7 +26,18 @@ var SPT=EN?['Rocks / reef','Sand','Wreck','Ledge / drop-off','Current / open wat
 
 /* Leaflet φορτώνεται μόνο όταν ανοίξει ο χάρτης */
 var lp=null, zl=false, lzLeaf=B.leaflet; /* 1.5.2: αν το lazy.js έχει ήδη αρχίσει να φορτώνει το Leaflet, το ίδιο φόρτωμα (όχι δεύτερο) */
-function zones(){ if(window.ZONES||zl) return; zl=true; var z=document.createElement('script'); z.src='../zones.js'; z.onload=function(){ if(map) drawOverlays(); }; document.head.appendChild(z); }
+function zones(){ if(zl) return; zl=true; [['ZONES','../zones.js'],['ZONES_GR','../zones-gr.js']].forEach(function(x){ if(window[x[0]]) return; var z=document.createElement('script'); z.src=x[1]; z.onload=function(){ if(map) drawOverlays(); }; document.head.appendChild(z); }); }
+/* 1.11.3: η χώρα που δείχνει ο χάρτης (για τον τίτλο της «Απαγόρευσης» και το EMODnet, που καλύπτει μόνο την Ευρώπη) */
+function viewReg(){ try{ var c=map.getCenter(); return B.region?B.region(c.lat,c.lng):null; }catch(e){ return null; } }
+function inEurope(){ try{ var c=map.getCenter(); return c.lat>26&&c.lat<72&&c.lng>-32&&c.lng<45; }catch(e){ return true; } }
+var zwT=0, zwKey='';
+function zonePoly(z,src){ return L.polygon(z.p,{color:'#ff3b30',weight:1.6,dashArray:'6 5',opacity:.85,fillColor:'#ff3b30',fillOpacity:.09,bubblingMouseEvents:false}) /* 1.8.6: λεπτό διακεκομμένο περίγραμμα */
+  .on('click',function(){ B.sheet({title:z.n,body:h('div',null,h('p',{class:'p',text:z.d||''}),h('p',{class:'foot',text:src==='cy'?T('Περιοχή όπου απαγορεύεται η αλιεία. Πηγή: Τμήμα Αλιείας. Επιβεβαίωνε πάντα την ισχύουσα νομοθεσία.','Area where fishing is prohibited. Source: Department of Fisheries. Always check the current regulations.'):T('Περιοχή όπου απαγορεύεται το ψάρεμα αναψυχής ή με καλάμι. Πηγή: ProtectedSeas Navigator (CC BY 4.0), ενδεικτικά. Επιβεβαίωνε πάντα την ισχύουσα νομοθεσία.','Area where recreational or rod fishing is prohibited. Source: ProtectedSeas Navigator (CC BY 4.0), indicative. Always check the current regulations.')}))}); }); }
+/* απαγορεύσεις εκτός Κύπρου και Ελλάδας: από τα κομμάτια του Navigator γύρω από το κέντρο του χάρτη */
+function drawWorldZones(){ if(!map||!cfg.zones||!B.navWorldZonesFor) return; var c=map.getCenter(), key=Math.floor(c.lat/5)+'_'+Math.floor(c.lng/5)+'_'+(viewReg()||'w');
+  if(key===zwKey&&ov.zonesW) return; zwKey=key;
+  B.navWorldZonesFor(c.lat,c.lng).then(function(zs){ if(!map||!cfg.zones) return; if(ov.zonesW){ map.removeLayer(ov.zonesW); ov.zonesW=null; } if(!zs||!zs.length) return;
+    ov.zonesW=L.layerGroup(); zs.forEach(function(z){ zonePoly(z,'w').addTo(ov.zonesW); }); ov.zonesW.addTo(map); }).catch(function(){}); }
 function leaflet(){ zones(); if(window.L) return Promise.resolve(window.L); if(lp) return lp;
   if(lzLeaf){ lp=lzLeaf().catch(function(e){ lp=null; throw e; }); return lp; }
   lp=new Promise(function(res,rej){ var c=document.createElement('link'); c.rel='stylesheet'; c.href='../leaflet.css'; document.head.appendChild(c);
@@ -201,8 +212,9 @@ function drawOverlays(){
   if(!map) return;
   Object.keys(ov).forEach(function(k){ if(ov[k]){ map.removeLayer(ov[k]); ov[k]=null; } });
   drawSat(); drawRain(); if(B.seaRep) B.seaRep.draw(map); /* 1.9.17 */
-  if(cfg.mpa){ ov.mpa=L.tileLayer.wms('https://ows.emodnet-humanactivities.eu/wms',{layers:'nationallydesignatedareas',format:'image/png',transparent:true,opacity:.6,version:'1.3.0',attribution:'EMODnet Human Activities'}).addTo(map); }
-  if(cfg.zones&&window.ZONES){ ov.zones=L.layerGroup(); window.ZONES.forEach(function(z){ L.polygon(z.p,{color:'#ff3b30',weight:1.6,dashArray:'6 5',opacity:.85,fillColor:'#ff3b30',fillOpacity:.09}) /* 1.8.6: λεπτό διακεκομμένο περίγραμμα */.on('click',function(){ B.sheet({title:z.n,body:h('div',null,h('p',{class:'p',text:z.d||''}),h('p',{class:'foot',text:T('Περιοχή όπου απαγορεύεται η αλιεία. Πηγή: Τμήμα Αλιείας. Επιβεβαίωνε πάντα την ισχύουσα νομοθεσία.','Area where fishing is prohibited. Source: Department of Fisheries. Always check the current regulations.')}))}); }).addTo(ov.zones); }); ov.zones.addTo(map); }
+  /* 1.11.4: το επίπεδο EMODnet «Προστατευόμενες» αφαιρέθηκε */
+  if(cfg.zones&&(window.ZONES||window.ZONES_GR)){ ov.zones=L.layerGroup(); (window.ZONES||[]).forEach(function(z){ zonePoly(z,'cy').addTo(ov.zones); }); (window.ZONES_GR||[]).forEach(function(z){ zonePoly(z,'gr').addTo(ov.zones); }); ov.zones.addTo(map); }
+  if(cfg.zones){ zwKey=''; drawWorldZones(); }
   if(cfg.dams){ ov.dams=L.layerGroup().addTo(map); var put=function(){ if(!ov.dams) return; ov.dams.clearLayers(); DAMS.forEach(function(d){ var lv=null; if(LV&&LV.dams) for(var n in LV.dams){ if(nrm(n)===nrm(d[0])) lv=LV.dams[n]; }
       L.marker([d[2],d[3]],{icon:icon('dam '+(DST[d[4]]||DST.check)[1],'<b>'+(lv?Math.round(lv.pct)+'%':'')+'</b><i>'+esc(EN?d[1]:d[0])+'</i>')}).on('click',function(){ damSheet(d,lv); }).addTo(ov.dams); }); };
     put(); if(!LV) fetch('../dams_levels.json').then(function(r){ return r.json(); }).then(function(j){ LV=j; put(); }).catch(function(){}); }
@@ -494,7 +506,7 @@ function pointMenu(ll){
     window.AlkyonRuler?a('<svg viewBox="0 0 24 24"><path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/></svg>',T('Μέτρηση από εδώ','Measure from here'),function(){ map.setView([lat,lon],map.getZoom(),{animate:false}); if(!pressed('bRuler')) cbtn('bRuler').click(); setTimeout(function(){ var b=document.getElementById('ndRulAdd'); if(b) b.click(); },150); }):null,
     a('<svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>',T('Αντιγραφή θέσης','Copy position'),function(){ var t=(PC?PC.fmt(lat,lon):lat+', '+lon); try{ navigator.clipboard.writeText(t).then(function(){ B.toast(T('Αντιγράφηκε: ','Copied: ')+t); }); }catch(e){ B.toast(t); } }),
     B.gearPanel?a('<svg viewBox="0 0 24 24"><path d="M3 7h18M3 12h18M3 17h18M7 4v16M12 4v16M17 4v16"/></svg>',T('Εργαλείο','Gear'),function(){ B.gearPanel(); }):null);
-  var head=h('div',{class:'pmhead'},h('b',{class:'pmc',text:PC?PC.fmt(lat,lon):lat.toFixed(5)+', '+lon.toFixed(5)}),info,dep);
+  var head=h('div',{class:'pmhead'},h('b',{class:'pmc',text:PC?PC.fmt(lat,lon):lat.toFixed(5)+', '+lon.toFixed(5)}),info,dep,window.AlkyonNavInfo?window.AlkyonNavInfo(lat,lon):null); /* 1.11.4: και οι περιοχές του Navigator εδώ */
   sh=B.sheet({title:T('Σε αυτό το σημείο','At this point'),body:h('div',{class:'lyr'},head,grid),onclose:function(){ if(tapMk&&map){ map.removeLayer(tapMk); tapMk=null; } }});
 }
 
@@ -646,8 +658,8 @@ function layersSheet(o){ o=o&&o.into?o:{}; /* 1.7.4: o.into = μέσα στο μ
   body.append(h('h3',{class:'lyh',text:T('Βάθη θάλασσας','Sea depths')}),dbox);
   grid(T('Θάλασσα και κανόνες','Sea and rules'),[
     tile('marks',T('Ναυτικά σήματα','Sea marks'),'OpenSeaMap',function(){ return !!cfg.sea; },function(v){ cfg.sea=v; saveCfg(); drawBase(); applyDepth(); }),
-    tile('zone',T('Απαγόρευση','No fishing'),T('Τμήμα Αλιείας','Fisheries Dept'),function(){ return !!cfg.zones; },function(v){ cfg.zones=v; saveCfg(); drawOverlays(); }),
-    tile('mpa',T('Προστατευόμενες','Protected'),'EMODnet',function(){ return !!cfg.mpa; },function(v){ cfg.mpa=v; saveCfg(); drawOverlays(); }),
+    /* 1.11.3: ένα κουμπί «Απαγόρευση» για κάθε χώρα· η πηγή αλλάζει ανάλογα με το πού κοιτάς. 1.11.4: χωρίς EMODnet (περιοχές Natura χωρίς κανόνες ψαρέματος· τις θαλάσσιες τις έχει το ProtectedSeas). */
+    tile('zone',T('Απαγόρευση','No fishing'),viewReg()==='cy'?T('Τμήμα Αλιείας','Fisheries Dept'):'ProtectedSeas',function(){ return !!cfg.zones; },function(v){ cfg.zones=v; saveCfg(); drawOverlays(); }),
     cbtn('bNav')?tile('nav',T('Περιορισμοί','Restrictions'),'ProtectedSeas',function(){ return pressed('bNav'); },function(v){ if(pressed('bNav')!==v){ var b=cbtn('bNav'); if(b) b.click(); } }):null,
     cbtn('bPorts')?tile('port',T('Λιμάνια','Ports'),T('και ράμπες','and ramps'),function(){ return pressed('bPorts'); },function(v){ if(pressed('bPorts')!==v){ var b=cbtn('bPorts'); if(b) b.click(); } }):null]);
   grid(T('Τα δικά μου','My data'),[
@@ -997,7 +1009,7 @@ function mount(el){
     var p=B.lastPos(), v=ls.get('alkyon-v4-mapview',null);
     map=L.map(lmEl,{zoomControl:false,attributionControl:true,tap:true}).setView(v?[v.lat,v.lon]:(p?[p.lat,p.lon]:[35.0,33.2]),v?v.z:(p?12:9));
     drawBase(); drawData(); drawOverlays(); applyDepth(); applyPend(); locate(false); drawDirect(); if(cfg.cur) currents(true);
-    map.on('zoomend',function(){ drawData(); depthFade(); }); map.on('zoomend moveend',posCheckSoon); map.on('moveend',function(){ declutterSoon(); if(cfg.cur) currents(false); var c=map.getCenter(); ls.set('alkyon-v4-mapview',{lat:+c.lat.toFixed(5),lon:+c.lng.toFixed(5),z:map.getZoom()}); });
+    map.on('zoomend',function(){ drawData(); depthFade(); }); map.on('zoomend moveend',posCheckSoon); map.on('moveend',function(){ declutterSoon(); if(cfg.zones){ clearTimeout(zwT); zwT=setTimeout(drawWorldZones,400); } if(cfg.cur) currents(false); var c=map.getCenter(); ls.set('alkyon-v4-mapview',{lat:+c.lat.toFixed(5),lon:+c.lng.toFixed(5),z:map.getZoom()}); });
     map.on('contextmenu',function(e){ try{ e.originalEvent&&e.originalEvent.preventDefault(); }catch(x){} pointMenu(e.latlng); });
     map.on('dragstart',function(){ setFollow(false); }); map.on('popupopen',function(){ followPause=Date.now()+20000; });
     map.on('popupopen',function(e){ var c=e.popup.getContent(); if(c&&c.classList&&c.classList.contains('portpop')&&!c.querySelector('.pgo')){ var ll=e.popup.getLatLng(), nm=(c.querySelector('b')||{}).textContent||''; var r=c.querySelector('.pbtns')||c; var g=h('button',{class:'pb pgo',type:'button',text:T('Πήγαινε εκεί','Go there'),onclick:function(){ map.closePopup(); B.goTo(ll.lat,ll.lng,nm); }}); r.insertBefore(g,r.firstChild); e.popup.update(); } });

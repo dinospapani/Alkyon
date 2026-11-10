@@ -568,6 +568,36 @@ check('Νέα: η έκδοση 1.10.8 υπάρχει στα «Τι νέο»', /\
   check('σκοτάδι: κείμενο', PF.darkTxt({ s: 1040, e: 1800, why: 'dawn' }) === 'σκοτάδι 17:20 ως το πρωί' && PF.darkTxt({ s: 1360, e: 1530, why: 'moon' }) === 'σκοτάδι 22:40–01:30 (βγαίνει το φεγγάρι)', 0);
 }
 
+/* ---------- 1.11.3: Navigator για όλο τον κόσμο ---------- */
+{
+  const dir = path.join(ROOT, 'nav'), idx = JSON.parse(fs.readFileSync(path.join(dir, 'index.json'), 'utf8'));
+  const names = fs.readdirSync(dir).filter(n => /^w_.*\.json$/.test(n));
+  let n = 0, own = 0, big = 0, ids = new Set();
+  for (const nm of names) { const st = fs.statSync(path.join(dir, nm)); if (st.size > 900000) big++; const j = JSON.parse(fs.readFileSync(path.join(dir, nm), 'utf8')); for (const f of j.f) { n++; ids.add(f.i); if (f.c === 'Cyprus' || f.c === 'Greece') own++; } }
+  check('Κόσμος: περιοχές Navigator σε κομμάτια 10° (index = αρχεία) (1.11.3)', names.length === Object.keys(idx.t).length && names.length >= 200 && ids.size >= 4000, [names.length, ids.size]);
+  check('Κόσμος: χωρίς Κύπρο/Ελλάδα (έχουν δικά τους αρχεία) και κανένα κομμάτι πάνω από 900 KB (1.11.3)', own === 0 && big === 0, [own, big]);
+  const { tilesOf, worldWanted } = await import(pathToFileURL(path.join(ROOT, 'tools', 'nav_world.mjs')).href);
+  check('Κόσμος: περιοχή που περνά τη γραμμή των 10° μπαίνει και στα δύο κομμάτια (1.11.3)', JSON.stringify(tilesOf([19.5, -81, 20.5, -80.5])) === JSON.stringify(['10_-90', '20_-90']), tilesOf([19.5, -81, 20.5, -80.5]));
+  check('Κόσμος: μόνο LFP 4–5, όχι Κύπρος/Ελλάδα, όχι κατηγορία 9 (1.11.3)', worldWanted({ country: 'Australia', lfp: 5, category_id: 1 }) && !worldWanted({ country: 'Greece', lfp: 5, category_id: 1 }) && !worldWanted({ country: 'Australia', lfp: 3, category_id: 1 }) && !worldWanted({ country: 'Australia', lfp: 5, category_id: 9 }));
+  const mv = fs.readFileSync(path.join(ROOT, 'v4', 'map-view.js'), 'utf8');
+  check('Χάρτης: ένα κουμπί «Απαγόρευση» για όλες τις χώρες (1.11.3)', /viewReg\(\)==='cy'\?T\('Τμήμα Αλιείας'/.test(mv) && /ZONES_GR/.test(mv));
+  check('Νέα: η έκδοση 1.11.3 υπάρχει στα «Τι νέο»', /\['1\.11\.3',\[T\('Απαγορεύσεις ψαρέματος σε όλο τον κόσμο/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
+}
+
+/* ---------- 1.11.4: πάτημα σε περιοχή, περιοχές της στεριάς ---------- */
+{
+  const nj = fs.readFileSync(path.join(ROOT, 'navigator.js'), 'utf8'), mv = fs.readFileSync(path.join(ROOT, 'v4', 'map-view.js'), 'utf8');
+  const nv = JSON.parse(fs.readFileSync(path.join(ROOT, 'navigator-mpa.json'), 'utf8'));
+  check('Χάρτης: απλό πάτημα σε περιοχή του Navigator ανοίγει τις πληροφορίες, και στο «Σε αυτό το σημείο» (1.11.4)', /map\.on\('click',function\(e\)\{ if\(!on\|\|!DATA/.test(nj) && /window\.AlkyonNavInfo\?window\.AlkyonNavInfo\(lat,lon\)/.test(mv));
+  check('Navigator: % θάλασσας σε κάθε περιοχή, οι περιοχές σχεδόν όλες στη στεριά κρύβονται (εκτός αν απαγορεύουν το ψάρεμα) (1.11.4)', nv.f.every(f => typeof f.pm === 'number') && /f\.pm<5&&sev\(f\)<2/.test(nj) && nv.f.some(f => /^GF_/.test(f.n) && f.pm < 5));
+  const { relevant } = await import(pathToFileURL(path.join(ROOT, 'tools', 'nav_world.mjs')).href);
+  check('Κόσμος: ίδιος κανόνας για τη στεριά, και κρύβονται όσα δεν αφορούν ψάρεμα (1.11.4)', !relevant({ rf: 2, pm: 1 }) && relevant({ rf: 1, pm: 1 }) && relevant({ rf: 2, pm: 50 }) && !relevant({ rf: 0, hl: 0, pm: 80 }) && relevant({ rf: 0, an: 1 }));
+  check('Χάρτης: χωρίς το EMODnet «Προστατευόμενες» (1.11.4)', !/tile\('mpa'/.test(mv) && !/emodnet-humanactivities/.test(mv));
+  const ny = fs.readFileSync(path.join(ROOT, '.github', 'workflows', 'navigator-sync.yml'), 'utf8');
+  check('Navigator: αλλαγή σε περιοχή της Κύπρου ανοίγει θέμα στο GitHub για έλεγχο του zones.js (1.11.4)', /noteCy\(nf/.test(fs.readFileSync(path.join(ROOT, 'navigator-sync.mjs'), 'utf8')) && /gh issue create/.test(ny) && /issues: write/.test(ny));
+  check('Νέα: η έκδοση 1.11.4 υπάρχει στα «Τι νέο»', /\['1\.11\.4',\[T\('Χάρτης: πάτα πάνω σε περιοχή/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
+}
+
 /* ---------- υγεία του server (βήμα 9) ---------- */
 NOW = RealDate.parse('2026-11-09T07:00:00Z');
 {

@@ -71,7 +71,9 @@ export function compact(p, G) {
     i: p.ps_id, n: trunc(p.site_name, 120), c: p.country, d: trunc(p.designation, 60), k: p.category_id, l: p.lfp,
     rf: p.recreational_fishing, hl: p.hook_and_line, tr: p.trolling, sp: p.spear_fishing, an: p.anchoring, en: p.entry, dv: p.diving,
     pu: trunc(p.purpose, 300), re: trunc(p.restrictions, 420), rn: trunc(p.regulation_name, 160), rs: trunc(p.regulation_source, 160),
-    ma: trunc(p.managing_authority, 80), se: trunc(p.season, 60), u: p.last_update, b: bboxOf(G), g: G
+    ma: trunc(p.managing_authority, 80), se: trunc(p.season, 60), u: p.last_update,
+    pm: typeof p.percent_marine_area === 'number' ? Math.round(p.percent_marine_area * 10) / 10 : undefined,   /* 1.11.4: % θάλασσας (οι περιοχές σχεδόν όλες στη στεριά κρύβονται) */
+    b: bboxOf(G), g: G
   };
 }
 
@@ -129,19 +131,22 @@ export async function sync({ file, fetchFn = fetch, sleep = ms => new Promise(r 
   /* 4. upsert */
   const next = new Map(byId);
   let upd = 0, add = 0, skip = 0, noGeo = 0;
+  const cy = [];   /* 1.11.4: αλλαγές σε περιοχές της Κύπρου → ειδοποίηση για έλεγχο του zones.js (Τμήμα Αλιείας) */
+  const noteCy = (f, what) => { if (f && f.c === 'Cyprus') cy.push(what + ': ' + f.n + ' (' + f.i + ')'); };
   for (const { s } of active.values()) {
     const had = byId.get(s.ps_id);
-    if (s.country && !wanted(s)) { if (had) { next.delete(s.ps_id); upd++; } skip++; continue; }  /* δεν μας αφορά (πια) */
+    if (s.country && !wanted(s)) { if (had) { next.delete(s.ps_id); upd++; noteCy(had, 'αφαιρέθηκε'); } skip++; continue; }  /* δεν μας αφορά (πια) */
     const d = await get('/api/detail/?ps_id=' + encodeURIComponent(s.ps_id) + '&lang=en_EN&export_boundaries=true');
     const p = Object.assign({}, s, d && typeof d === 'object' ? d : {});
-    if (!wanted(p)) { if (had) { next.delete(s.ps_id); upd++; } skip++; continue; }
+    if (!wanted(p)) { if (had) { next.delete(s.ps_id); upd++; noteCy(had, 'αφαιρέθηκε'); } skip++; continue; }
     let G = toRings(p.site_boundary || (d && d.boundary) || null, p.country);
     if (!G) { if (had) G = had.g; else { noGeo++; continue; } }   /* χωρίς όρια δεν σχεδιάζεται */
     if (!plausible(G)) { log('Εκτός περιοχής ή ύποπτες συντεταγμένες, παραλείπεται: ' + s.ps_id); if (had) next.delete(s.ps_id); skip++; continue; }   /* π.χ. τουρκικές περιοχές στη Μαύρη Θάλασσα */
-    next.set(s.ps_id, compact(p, G));
+    const nf = compact(p, G); next.set(s.ps_id, nf);
+    if (!had || JSON.stringify([had.l, had.rf, had.hl, had.tr, had.sp, had.an, had.se, had.re, had.g]) !== JSON.stringify([nf.l, nf.rf, nf.hl, nf.tr, nf.sp, nf.an, nf.se, nf.re, nf.g])) noteCy(nf, had ? 'άλλαξε' : 'νέα');
     had ? upd++ : add++;
   }
-  for (const id of toRemove) next.delete(id);
+  for (const id of toRemove) { noteCy(byId.get(id), 'διαγράφηκε'); next.delete(id); }
 
   /* 5. τελικός έλεγχος */
   if (next.size < local.length * (1 - MAX_SHRINK_FRAC)) throw new Error('Το αρχείο θα μίκραινε από ' + local.length + ' σε ' + next.size + '. Σταματώ.');
@@ -150,11 +155,11 @@ export async function sync({ file, fetchFn = fetch, sleep = ms => new Promise(r 
   log('Προσθήκες ' + add + ', ενημερώσεις ' + upd + ', διαγραφές ' + toRemove.length + ', παραλείφθηκαν ' + skip + ', χωρίς όρια ' + noGeo + '. Σύνολο ' + out.length);
   if (changed) fs.writeFileSync(file, JSON.stringify({ v: startDate, f: out }));
   else if (doc.v !== startDate) fs.writeFileSync(file, JSON.stringify({ v: startDate, f: local }));
-  return { changed, add, upd, removed: toRemove.length, total: out.length, from, v: startDate };
+  return { changed, add, upd, removed: toRemove.length, total: out.length, from, v: startDate, cy };
 }
 
 if (process.argv[1] && process.argv[1].endsWith('navigator-sync.mjs')) {
   sync({ file: process.env.NAV_FILE || 'navigator-mpa.json', since: process.env.NAV_SINCE || undefined })
-    .then(r => { console.log(JSON.stringify(r)); })
+    .then(r => { console.log(JSON.stringify(r)); if (process.env.NAV_CY_OUT && r.cy && r.cy.length) fs.writeFileSync(process.env.NAV_CY_OUT, r.cy.join('\n') + '\n'); })
     .catch(e => { console.error('ΣΦΑΛΜΑ: ' + e.message); process.exit(1); });
 }

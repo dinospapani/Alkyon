@@ -104,8 +104,18 @@ window.AK.region=function(lat,lon){ if(lat==null||lon==null||isNaN(lat)||isNaN(l
   if(lat>36.68&&lat<=36.93&&lon>27.45) return null;             /* χερσόνησος Δάτσας, Μαρμαρίς (η Σύμη είναι νοτιότερα) */
   if(lat>36.0&&lat<=36.68&&lon>28.3&&!(lat<36.17&&lon>29.5&&lon<29.62)) return null;   /* νότια παράλια Τουρκίας, εκτός Καστελλόριζου */
   return 'gr'; };
-/* η χώρα του χρήστη: ρύθμιση alkyon-country (auto/cy/gr) ή από την τελευταία θέση, αλλιώς Κύπρος */
-window.AK.country=function(){ var c=ls.get('alkyon-country','auto'); if(c==='cy'||c==='gr') return c; var p=lastPos(); var r=p?window.AK.region(p.lat,p.lon):null; if(r){ ls.set('alkyon-country-last',r); return r; } return ls.get('alkyon-country-last','cy')||'cy'; };
+/* η χώρα του χρήστη. 1.11.4: ρύθμιση alkyon-country = 'auto' ή κωδικός ISO (cy, gr, it, …) από όλες τις χώρες.
+   «Αυτόματα»: από την τελευταία θέση (cy, gr ή 'xx' = άλλη χώρα), αλλιώς η τελευταία γνωστή, αλλιώς '' (άγνωστη: ο Οδηγός ρωτάει). */
+window.AK.country=function(){ var c=ls.get('alkyon-country','auto'); if(c&&c!=='auto'&&/^[a-z]{2}$/.test(c)) return c; var p=lastPos(); if(p&&typeof p.lat==='number'){ var r=window.AK.region(p.lat,p.lon)||'xx'; ls.set('alkyon-country-last',r); return r; } return ls.get('alkyon-country-last','')||''; };
+/* όλες οι χώρες (ISO 3166-1), με ονόματα από τον browser (Intl.DisplayNames) στη γλώσσα της εφαρμογής */
+window.AK.COUNTRIES='ad ae af ag ai al am ao ar as at au aw ax az ba bb bd be bf bg bh bi bj bl bm bn bo bq br bs bt bw by bz ca cc cd cf cg ch ci ck cl cm cn co cr cu cv cw cx cy cz de dj dk dm do dz ec ee eg eh er es et fi fj fk fm fo fr ga gb gd ge gf gg gh gi gl gm gn gp gq gr gs gt gu gw gy hk hn hr ht hu id ie il im in io iq ir is it je jm jo jp ke kg kh ki km kn kp kr kw ky kz la lb lc li lk lr ls lt lu lv ly ma mc md me mf mg mh mk ml mm mn mo mp mq mr ms mt mu mv mw mx my mz na nc ne nf ng ni nl no np nr nu nz om pa pe pf pg ph pk pl pm pn pr ps pt pw py qa re ro rs ru rw sa sb sc sd se sg sh si sk sl sm sn so sr ss st sv sx sy sz tc td tf tg th tj tk tl tm tn to tr tt tv tw tz ua ug um us uy uz va vc ve vg vi vn vu wf ws ye yt za zm zw'.split(' ');
+window.AK.countryName=function(c){ if(!c) return ''; if(c==='xx') return EN?'Another country':'Άλλη χώρα'; if(c==='cy') return EN?'Cyprus':'Κύπρος'; if(c==='gr') return EN?'Greece':'Ελλάδα';
+  try{ return new Intl.DisplayNames([EN?'en':'el'],{type:'region'}).of(c.toUpperCase())||c.toUpperCase(); }catch(e){ return c.toUpperCase(); } };
+/* <select> με «Αυτόματα» και όλες τις χώρες, ταξινομημένες με το όνομα */
+window.AK.countrySelect=function(cur,fn){ var A=window.AK, s=document.createElement('select'); s.className='ctrysel'; s.setAttribute('aria-label',EN?'Country':'Χώρα');
+  var o=document.createElement('option'); o.value='auto'; o.textContent=EN?'Automatic (from your location)':'Αυτόματα (από τη θέση σου)'; s.appendChild(o);
+  A.COUNTRIES.map(function(c){ return [c,A.countryName(c)]; }).sort(function(a,b){ return a[1].localeCompare(b[1],EN?'en':'el'); }).forEach(function(x){ var q=document.createElement('option'); q.value=x[0]; q.textContent=x[1]; s.appendChild(q); });
+  s.value=cur&&cur!=='xx'?cur:'auto'; s.addEventListener('change',function(){ fn(s.value); }); return s; };
 /* 1.10.11: υποδιαστολή στα ελληνικά. Ό,τι εμφανίζεται (κείμενο σελίδας και γραφήματα σε canvas) γράφει «1,5 m» αντί «1.5 m».
    Δεν αλλάζουν: αποθηκευμένα δεδομένα, πεδία που γράφεις (input/textarea), εκδόσεις (1.10.11), συντεταγμένες με 4+ δεκαδικά,
    λεπτά μοιρών (42.071′), ό,τι έχει κλάση .nodec. Τα αγγλικά μένουν με τελεία. */

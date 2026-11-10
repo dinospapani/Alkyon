@@ -239,7 +239,7 @@ function lawCard(title,items,src){
   return h('div',{class:'card'},h('h3',{text:title}),h('ul',{class:'law'},items.map(x=>h('li',{},x))),src?h('div',{class:'note',style:'margin-top:8px'},'Πηγή: ',src):null);
 }
 /* 1.11.0: νόμοι για Κύπρο ή Ελλάδα (διαλέγεις πάνω· αρχικά η χώρα όπου βρίσκεσαι) */
-let lawC=(window.AK&&AK.country)?AK.country():'cy';
+let lawC=(window.AK&&AK.country)?AK.country():'cy';   /* 1.11.4: μπορεί να είναι και άλλη χώρα ή '' (άγνωστη) */
 function lawSeg(L){ L.append(h('div',{class:'seg lawc',role:'group','aria-label':'Χώρα'},[['cy','Κύπρος'],['gr','Ελλάδα']].map(x=>h('button',{type:'button','aria-pressed':String(lawC===x[0]),text:x[1],onclick:()=>{ lawC=x[0]; renderLaw(); }})))); }
 const MIN_EU={'Dicentrarchus labrax':25,'Diplodus annularis':12,'Diplodus puntazzo':18,'Diplodus sargus':23,'Diplodus vulgaris':18,'Engraulis encrasicolus':9,'Epinephelus spp.':45,'Lithognathus mormyrus':20,'Merluccius merluccius':20,'Mullus spp.':11,'Pagellus acarne':17,'Pagellus bogaraveo':33,'Pagellus erythrinus':15,'Pagrus pagrus':18,'Polyprion americanus':45,'Sardina pilchardus':11,'Scomber spp.':18,'Solea vulgaris':20,'Sparus aurata':23,'Trachurus spp.':15};
 function renderLawGR(L){
@@ -296,6 +296,11 @@ function renderLawGR(L){
 function renderLaw(){
   const L=$('g-law'); L.replaceChildren(); lawSeg(L);
   if(lawC==='gr'){ renderLawGR(L); return; }
+  if(lawC!=='cy'){ /* 1.11.4: χώρα χωρίς οδηγό νόμων ακόμα, ή άγνωστη */
+    const nm=lawC&&lawC!=='xx'&&AK.countryName?AK.countryName(lawC):'';
+    L.append(h('div',{class:'card'},h('p',{text:(nm?'Δεν έχουμε ακόμα οδηγό νόμων για: '+nm+'.':'Διάλεξε χώρα πάνω.')+' Προς το παρόν υπάρχουν οδηγοί για Κύπρο και Ελλάδα. Για άλλη χώρα ρώτα την αρχή αλιείας ή το λιμεναρχείο της περιοχής πριν ψαρέψεις.'}),
+      h('p',{class:'note',text:'Οι ζώνες όπου απαγορεύεται το ψάρεμα φαίνονται στον χάρτη (Απαγόρευση) σε κάθε χώρα, από το ProtectedSeas Navigator, ενδεικτικά.'})));
+    return; }
   L.append(h('div',{class:'card'},h('p',{text:'Περίληψη για ερασιτεχνικό ψάρεμα από σκάφος στη Δημοκρατία της Κύπρου, ελεγμένη στις 15/10/2026. Δεν αποτελεί νομική συμβουλή. Οι κανονισμοί αλλάζουν και ισχύει πάντα το κείμενο του νόμου και ό,τι ανακοινώνει το Τμήμα Αλιείας και Θαλασσίων Ερευνών (ΤΑΘΕ). Όπου η πηγή είναι δευτερογενής, το γράφει.'})));
   L.append(lawCard('Πώς βγάζω ή ανανεώνω άδεια',[
     'Από στεριά με καλάμι δεν χρειάζεται άδεια. Άδεια χρειάζεται για ψάρεμα με σκάφος, ψαροντούφεκο, δεξαμενές και ψαροπαγίδες.',

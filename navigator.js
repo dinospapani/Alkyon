@@ -1,4 +1,4 @@
-/* Περιορισμοί ψαρέματος και προστατευόμενες περιοχές (Κύπρος και Ανατολική Μεσόγειος).
+/* Περιορισμοί ψαρέματος και προστατευόμενες περιοχές (Κύπρος και Ανατολική Μεσόγειος· από 1.11.3 και ο υπόλοιπος κόσμος, nav/).
    Δεδομένα: ProtectedSeas Navigator, άδεια CC BY 4.0, βάσει έργου στο https://map.navigatormap.org/ (εξαγωγή 27/08/2026).
    Ενδεικτικά δεδομένα, όχι νομική πληροφορία: ισχύει ο επίσημος κανονισμός. Τα όρια είναι απλοποιημένα. */
 (function(){
@@ -8,22 +8,36 @@ if(!C||!bz||!map||typeof L==='undefined') return;
 var EN=window.LANG==='en', T=function(el,en){ return EN?en:el; };
 var KEY='alkyon-nav', FILE='navigator-mpa.json', MAIL='support@protectedseas.net';
 var ATTR='Protected areas: <a href="https://map.navigatormap.org/" target="_blank" rel="noopener">ProtectedSeas Navigator</a> (CC BY 4.0)';
-var DATA=null, loading=null, group=null, rend=null, on=!!C.lsGet(KEY,false), inside={}, lastAlert={}, hideT=null, firstFix=true;
+var DATA=null, group=null, rend=null, on=!!C.lsGet(KEY,false), inside={}, lastAlert={}, hideT=null, firstFix=true;
 
 /* ---------- δεδομένα ---------- */
-function load(){
-  if(DATA) return Promise.resolve(DATA);
-  if(loading) return loading;
-  loading=fetch((window.ALKYON_BASE||'')+FILE).then(function(r){ if(!r.ok) throw new Error('http'); return r.json(); }).then(function(j){
-    DATA=((j&&j.f)||[]).filter(relevant); DATA.forEach(function(f){ f._s=sev(f); }); return DATA;
-  }).catch(function(e){ loading=null; throw e; });
-  return loading;
+/* 1.11.3: Ανατολική Μεσόγειος από το navigator-mpa.json (όλα τα επίπεδα)· ο υπόλοιπος κόσμος από κομμάτια 10°×10° (nav/, μόνο πολύ αυστηρή
+   και πλήρης προστασία), που κατεβαίνουν μόνο εκεί όπου κοιτάς ή βρίσκεσαι. Κάθε περιοχή (ps_id) κρατιέται μία φορά. */
+var SEEN={}, medP=null;
+function inMed(lat,lon){ return lat==null||(lat>27&&lat<43&&lon>9&&lon<37.5); }
+function add(list){ var fresh=[]; (list||[]).forEach(function(f){ if(!f||SEEN[f.i]||!relevant(f)) return; SEEN[f.i]=1; if(f._s==null) f._s=sev(f); DATA.push(f); fresh.push(f); }); if(fresh.length&&group) draw(fresh); return fresh; }
+function loadMed(){
+  if(medP) return medP;
+  medP=fetch((window.ALKYON_BASE||'')+FILE).then(function(r){ if(!r.ok) throw new Error('http'); return r.json(); }).then(function(j){ add((j&&j.f)||[]); return DATA; })
+    .catch(function(e){ medP=null; throw e; });
+  return medP;
 }
-/* Κρατάμε μόνο ό,τι αφορά ψάρεμα ή άγκυρα: αν όλα τα στοιχεία ψαρέματος είναι άγνωστα (π.χ. περιοχές μόνο για πουλιά ή δάση), η περιοχή δεν χρειάζεται. */
+function center(){ try{ var c=map.getCenter(); return [c.lat,c.lng]; }catch(e){ return [null,null]; } }
+function load(lat,lon){
+  if(!DATA) DATA=[];
+  if(lat==null){ var c=center(); lat=c[0]; lon=c[1]; }
+  var A=window.AK, jobs=[];
+  if(inMed(lat,lon)) jobs.push(loadMed());
+  if(A&&A.navTiles&&lat!=null) jobs.push(A.navTiles(lat,lon,0.5).then(add).catch(function(){}));
+  if(!jobs.length) return Promise.resolve(DATA);
+  return Promise.all(jobs).then(function(){ return DATA; });
+}
+/* Κρατάμε μόνο ό,τι αφορά ψάρεμα ή άγκυρα (περιοχές μόνο για πουλιά, δάση ή χωρίς κανέναν περιορισμό για ψάρεμα δεν χρειάζονται). */
 function relevant(f){
-  var k=['rf','hl','tr','sp'];
-  for(var i=0;i<k.length;i++){ var v=f[k[i]]; if(v===0||v===1||v===2) return true; }
-  return f.an===1||f.an===2;
+  /* 1.11.4: περιοχές σχεδόν όλες στη στεριά (κάτω από 5% θάλασσα, π.χ. κυνηγετικές ζώνες, δάση, αλυκές) δεν αφορούν το ψάρεμα στη θάλασσα, εκτός αν απαγορεύουν το ψάρεμα */
+  if(typeof f.pm==='number'&&f.pm<5&&sev(f)<2) return false;
+  /* 1.11.4: μόνο ό,τι αλλάζει κάτι για τον ψαρά: περιορισμός ή απαγόρευση σε ψάρεμα, καλάμι, συρτή, ψαροντούφεκο ή άγκυρα */
+  return sev(f)>0||f.sp===1||f.sp===2||f.an===1||f.an===2;
 }
 var FISHTXT=/\b(fish\w*|angl\w*|rod|hook\w*|line|nets?|trawl\w*|troll\w*|spear\w*|anchor\w*|vessels?|boats?|div(e|es|ing))\b|ψάρ|αλιε|δίχτ|άγκυρ|σκάφ|κατάδυ/i;
 /* 0 = χωρίς γνωστό περιορισμό για καλάμι, 1 = περιορισμοί, 2 = απαγορεύεται (ψάρεμα αναψυχής ή καλάμι) */
@@ -105,16 +119,20 @@ function details(f){
 }
 
 /* ---------- επίπεδο ---------- */
-function build(){
-  if(group) return;
-  rend=L.canvas({padding:.3});
-  group=L.layerGroup();
-  DATA.forEach(function(f){
+function draw(list){
+  list.forEach(function(f){
     /* Γέμισμα = επίπεδο προστασίας (LFP) με τα χρώματα του Navigator. Περίγραμμα = τι ισχύει για καλάμι: κόκκινο απαγορεύεται, πορτοκαλί περιορισμοί. */
     var fc=LFPCOL[f.l]||LFPCOL[1], c=f._s?COL[f._s]:fc.o, p=L.polygon(f.g,{renderer:rend,color:c,weight:f._s?2.2:1,opacity:f._s?.95:.6,fillColor:fc.f,fillOpacity:.32,interactive:false});
     p.addTo(group);
   });
 }
+function build(){
+  if(group) return;
+  rend=L.canvas({padding:.3});
+  group=L.layerGroup();
+  draw(DATA);
+}
+map.on('moveend',function(){ if(on) load().catch(function(){}); });
 function show(){ return load().then(function(){ build(); if(!map.hasLayer(group)) group.addTo(map); try{ map.attributionControl.addAttribution(ATTR); }catch(e){} }); }
 function hide(){ if(group&&map.hasLayer(group)) map.removeLayer(group); try{ map.attributionControl.removeAttribution(ATTR); }catch(e){} }
 function set(v){
@@ -125,7 +143,7 @@ function set(v){
 
 var b=document.createElement('button'); b.type='button'; b.className='mbtn'; b.id='bNav';
 b.setAttribute('aria-label',T('Περιορισμοί ψαρέματος (Navigator)','Fishing restrictions (Navigator)'));
-b.title=T('Περιορισμοί ψαρέματος: Κύπρος και Ανατολική Μεσόγειος (ProtectedSeas Navigator)','Fishing restrictions: Cyprus and Eastern Mediterranean (ProtectedSeas Navigator)');
+b.title=T('Περιορισμοί ψαρέματος (ProtectedSeas Navigator)','Fishing restrictions (ProtectedSeas Navigator)');
 b.innerHTML='<svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6l7-3z"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg>';
 var anchor=document.getElementById('bMpa')||bz; anchor.parentNode.insertBefore(b,anchor.nextSibling);
 b.addEventListener('click',function(){
@@ -154,6 +172,17 @@ window.AlkyonNavInfo=function(lat,lon,closeFn){
   return box;
 };
 
+/* 1.11.4: πάτημα πάνω σε περιοχή (με τα «Περιορισμοί» ανοιχτά) → φύλλο με το τι είναι και τι ισχύει. Πριν φαινόταν μόνο με παρατεταμένο πάτημα σε παλιά έκδοση. */
+var LEGEND=T('Γέμισμα = πόσο προστατεύεται η περιοχή (κόκκινο πλήρης, κίτρινο πολύ αυστηρή, γαλάζιο μέτρια, γκρι λίγη). Περίγραμμα = τι ισχύει για καλάμι: κόκκινο απαγορεύεται, πορτοκαλί περιορισμοί, λεπτό σκούρο χωρίς γνωστό περιορισμό.','Fill = how protected the area is (red full, yellow very strict, blue moderate, grey low). Outline = what applies to rod fishing: red prohibited, orange restricted, thin dark no known restriction.');
+function tapSheet(lat,lon){
+  var box=window.AlkyonNavInfo(lat,lon); if(!box) return false;
+  var A=window.AK; box.appendChild(el('p','note',LEGEND));
+  if(A&&A.sheet) A.sheet({title:T('Προστατευμένη περιοχή','Protected area'),body:box});
+  else L.popup({maxWidth:300}).setLatLng([lat,lon]).setContent(box).openOn(map);
+  return true;
+}
+map.on('click',function(e){ if(!on||!DATA||!e||!e.latlng) return; tapSheet(e.latlng.lat,e.latlng.lng); });
+
 /* ---------- προειδοποίηση εισόδου (μόνο σε έξοδο) ---------- */
 var warn=el('div','zonewarn navwarn'); warn.id='navWarn'; warn.hidden=true; warn.setAttribute('role','alert');
 var mapbox=document.querySelector('.mapbox'); (mapbox||document.body).appendChild(warn);
@@ -171,7 +200,7 @@ function say(f){
 }
 function onPos(lat,lon){
   if(!document.body.classList.contains('ontrip')){ inside={}; firstFix=true; return; }
-  load().then(function(){
+  load(lat,lon).then(function(){
     var hs=hits(lat,lon).filter(function(f){ return f._s>0; }), now=Date.now(), cur={}, worst=null;
     hs.forEach(function(f){
       cur[f.i+'|'+f.n]=1;
@@ -183,5 +212,5 @@ function onPos(lat,lon){
   }).catch(function(){});
 }
 window.addEventListener('alkyon-pos',function(e){ var d=e&&e.detail; if(d) onPos(d.lat,d.lon); });
-window.AlkyonNav={hits:hits,load:load,on:function(){ return on; },data:function(){ return DATA; }};
+window.AlkyonNav={hits:hits,load:load,tap:tapSheet,on:function(){ return on; },data:function(){ return DATA; }};
 })();
