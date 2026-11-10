@@ -5,6 +5,7 @@
 # Secrets (Settings › Secrets and variables › Actions):
 #   ANDROID_KEYSTORE_BASE64   το alkyon-upload.jks σε base64      ANDROID_KEYSTORE_PASSWORD   ο κωδικός του
 #   PLAY_SERVICE_ACCOUNT_JSON το JSON του service account του Play (προαιρετικό: χωρίς αυτό, τα αρχεία μένουν στα Artifacts)
+#   GOOGLE_SERVICES_JSON      το google-services.json του Firebase (ειδοποιήσεις push· χωρίς αυτό, η εφαρμογή χτίζεται χωρίς push)
 # Variable (προαιρετικό): PLAY_RELEASE_STATUS = draft όσο η εφαρμογή δεν έχει δημοσιευτεί ακόμα στο Play (αλλιώς completed).
 # Χωρίς keystore χτίζεται μόνο APK για δοκιμή (debug), που εγκαθίσταται με το χέρι στο κινητό.
 name: Alkyon Android
@@ -54,6 +55,12 @@ jobs:
           echo "Alkyon $V (versionCode $CODE)"
 
       - run: npm ci --no-audit --no-fund
+      - name: Firebase (google-services.json από το secret GOOGLE_SERVICES_JSON)
+        env:
+          GSJ: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GSJ" ]; then printf '%s' "$GSJ" > android/app/google-services.json; python3 -c "import json;j=json.load(open('android/app/google-services.json'));print('Firebase project:',j['project_info']['project_id'])"
+          else echo "::warning::Λείπει το secret GOOGLE_SERVICES_JSON — η εφαρμογή χτίζεται χωρίς ειδοποιήσεις push (Firebase)."; fi
       - name: Αρχεία εφαρμογής → www → android
         run: |
           node tools/build-web.mjs www --native

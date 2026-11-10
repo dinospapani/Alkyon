@@ -9,3 +9,4 @@ android/app/release/
 android/keystore*
 *.jks
 *.keystore
+android/app/google-services.json

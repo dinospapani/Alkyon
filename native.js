@@ -64,6 +64,67 @@ if(nfetch) window.fetch=function(input,init){
   return nfetch.apply(window,arguments);
 };
 
+/* ---------- 1.12.4: ειδοποιήσεις (Firebase Cloud Messaging + τοπικές) ----------
+   Το WebView του Android δεν έχει Notification / Push API. Αντί να αλλάξουμε όλο τον κώδικα των ειδοποιήσεων, δίνουμε εδώ τα ίδια
+   αντικείμενα με native υλοποίηση, ώστε ο υπάρχων κώδικας (alerts-view.js, trip.js, troll.js, smart.js…) να δουλεύει όπως στο web:
+   - window.Notification: permission / requestPermission (άδεια POST_NOTIFICATIONS του Android) και new Notification(…) → τοπική ειδοποίηση
+   - ServiceWorkerRegistration.showNotification(…) → τοπική ειδοποίηση
+   - registration.pushManager: «συνδρομή» με token του Firebase. Γράφεται στον ίδιο πίνακα push_subs ως {endpoint:'fcm:…', fcm:'…'}
+     και η quick-processor τη στέλνει μέσω Firebase αντί για web-push. */
+/* το build-web.mjs --native το κάνει true όταν υπάρχει android/app/google-services.json (χωρίς Firebase το register() ρίχνει την εφαρμογή) */
+var FCM_ON=false;
+var Push=FCM_ON?reg('PushNotifications'):null, LN=reg('LocalNotifications'), PK='alkyon-native-perm', FK='alkyon-fcm';
+function permStr(v){ return v==='granted'?'granted':v==='denied'?'denied':'default'; }
+var perm=permStr(localStorage.getItem(PK));
+function setPerm(v){ perm=permStr(v); try{ localStorage.setItem(PK,perm); }catch(e){} return perm; }
+if(Push) Push.checkPermissions().then(function(r){ setPerm(r&&r.receive); }).catch(function(){});
+else if(LN) LN.checkPermissions().then(function(r){ setPerm(r&&r.display); }).catch(function(){});
+var chanP=null;
+function channel(){ if(chanP) return chanP; var c={id:'alkyon',name:'Alkyon',description:'Alkyon',importance:4,visibility:1,vibration:true};
+  chanP=Promise.all([Push?Push.createChannel(c).catch(function(){}):null,LN?LN.createChannel(c).catch(function(){}):null]); return chanP; }
+var nid=Math.floor(Date.now()/1000)%100000;
+function show(title,body,data){ if(!LN||perm!=='granted') return Promise.resolve();
+  return channel().then(function(){ return LN.schedule({notifications:[{id:(++nid)%2147483000,title:String(title||'Alkyon'),body:String(body||''),channelId:'alkyon',smallIcon:'ic_stat_alkyon',iconColor:'#FF7A4D',extra:data||null}]}); }).catch(function(){}); }
+function NativeNotification(title,o){ show(title,o&&o.body,o&&o.data); }
+Object.defineProperty(NativeNotification,'permission',{get:function(){ return perm; }});
+NativeNotification.requestPermission=function(cb){
+  var p=Push?Push.requestPermissions().then(function(r){ return setPerm(r&&r.receive); }).catch(function(){ return perm; })
+    :LN?LN.requestPermissions().then(function(r){ return setPerm(r&&r.display); }).catch(function(){ return perm; }):Promise.resolve('denied');
+  p=p.then(function(v){ if(v==='granted'&&LN) return LN.requestPermissions().catch(function(){}).then(function(){ return v; }); return v; });
+  if(typeof cb==='function') p.then(cb); return p; };
+try{ window.Notification=NativeNotification; }catch(e){}
+/* token του Firebase: μία εγγραφή listener, πολλές αναμονές */
+var tokW=[], tokBusy=false;
+if(Push){
+  Push.addListener('registration',function(t){ try{ localStorage.setItem(FK,t.value); }catch(e){} var w=tokW; tokW=[]; tokBusy=false; w.forEach(function(x){ x[0](t.value); }); });
+  Push.addListener('registrationError',function(e){ var w=tokW; tokW=[]; tokBusy=false; w.forEach(function(x){ x[1](new Error((e&&e.error)||'fcm')); }); });
+  /* ειδοποίηση ενώ η εφαρμογή είναι ανοιχτή: το Android δεν τη δείχνει μόνο του, άρα τοπική + στο Ιστορικό */
+  Push.addListener('pushNotificationReceived',function(n){ var d=(n&&n.data)||{}; show(n.title||d.title,n.body||d.body,d);
+    try{ var a=JSON.parse(localStorage.getItem('alkyon-v4-inbox')||'[]'); a.unshift({at:new Date().toISOString(),title:String(n.title||d.title||''),body:String(n.body||d.body||''),kind:d.kind||'info',local:1}); localStorage.setItem('alkyon-v4-inbox',JSON.stringify(a.slice(0,150))); }catch(e){} });
+  Push.addListener('pushNotificationActionPerformed',function(a){ openFrom(a&&a.notification&&a.notification.data); });
+}
+if(LN) LN.addListener('localNotificationActionPerformed',function(a){ openFrom(a&&a.notification&&a.notification.extra); });
+function openFrom(d){ var u=d&&(d.hash||d.url)||''; var m=/#[a-z]+(=[^&\s]*)?$/i.exec(String(u)); var h=m?m[0]:'#inbox';
+  if(/\/v4\/index\.html$/.test(location.pathname)) location.hash=h; else location.replace(ROOT+'v4/index.html'+h); }
+function token(){ if(!Push) return Promise.reject(new Error('no push'));
+  return new Promise(function(res,rej){ tokW.push([res,rej]); if(tokBusy) return; tokBusy=true;
+    channel().then(function(){ return Push.register(); }).catch(function(e){ var w=tokW; tokW=[]; tokBusy=false; w.forEach(function(x){ x[1](e); }); });
+    setTimeout(function(){ if(!tokBusy) return; var w=tokW; tokW=[]; tokBusy=false; w.forEach(function(x){ x[1](new Error('fcm timeout')); }); },20000); }); }
+function mkSub(tk){ var ep='fcm:'+tk; return {endpoint:ep,fcm:tk,expirationTime:null,options:{},
+  toJSON:function(){ return {endpoint:ep,fcm:tk,keys:{}}; },
+  getKey:function(){ return null; },
+  unsubscribe:function(){ try{ localStorage.removeItem(FK); }catch(e){} return (Push?Push.unregister():Promise.resolve()).then(function(){ return true; },function(){ return true; }); }}; }
+var PM={
+  getSubscription:function(){ var tk=localStorage.getItem(FK); if(!tk||perm!=='granted') return Promise.resolve(null);
+    return token().then(mkSub,function(){ return mkSub(tk); }); },   /* το token μπορεί να αλλάξει: ανανεώνεται σε κάθε άνοιγμα */
+  subscribe:function(){ if(perm!=='granted') return Promise.reject(new Error('permission')); return token().then(mkSub); },
+  permissionState:function(){ return Promise.resolve(perm==='default'?'prompt':perm); }
+};
+if(window.ServiceWorkerRegistration&&Push){ var SWR=ServiceWorkerRegistration.prototype;
+  try{ Object.defineProperty(SWR,'pushManager',{configurable:true,get:function(){ return PM; }}); }catch(e){}
+  try{ SWR.showNotification=function(t,o){ return show(t,o&&o.body,o&&o.data); }; SWR.getNotifications=function(){ return Promise.resolve([]); }; }catch(e){} }
+window.AKN.push={token:token,permission:function(){ return perm; },show:show};
+
 /* σύνδεσμος που άνοιξε την εφαρμογή */
 function handleUrl(url){
   if(!url) return;

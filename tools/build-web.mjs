@@ -60,6 +60,12 @@ if (NATIVE) {
     }
     await fs.writeFile(f, html);
   }
+  /* Firebase: μόνο αν υπάρχει το google-services.json (το γράφει το android.yml από το secret GOOGLE_SERVICES_JSON) */
+  let fcm = false; try { await fs.access(path.join(ROOT, 'android/app/google-services.json')); fcm = true; } catch (e) {}
+  const nf = path.join(OUT, 'native.js'); let nj = await fs.readFile(nf, 'utf8');
+  if (!nj.includes('var FCM_ON=false;')) { console.error('native.js: λείπει το «var FCM_ON=false;»'); process.exit(1); }
+  await fs.writeFile(nf, nj.replace('var FCM_ON=false;', 'var FCM_ON=' + fcm + ';'));
+  console.log('Firebase (ειδοποιήσεις push): ' + (fcm ? 'ναι' : 'όχι, λείπει το google-services.json'));
 } else {
   await fs.rm(path.join(OUT, 'native.js'), { force: true }); n--;
 }

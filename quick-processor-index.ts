@@ -1206,6 +1206,45 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
 
 // ---- handler ----
 let vapidSet = false;
+/* 1.12.4: ειδοποιήσεις στην εφαρμογή Android μέσω Firebase Cloud Messaging (HTTP v1).
+   Η εφαρμογή γράφει στο push_subs συνδρομή {endpoint:'fcm:…', fcm:'<token>'}. Το pushx() έχει την ίδια διεπαφή με το web-push
+   (sendNotification(sub, payload, {TTL})): συνδρομή με «fcm» → Firebase, αλλιώς web-push. Ένα token που δεν ισχύει πια (UNREGISTERED)
+   γυρίζει statusCode 410, ώστε ο υπάρχων κώδικας να σβήνει τη συνδρομή όπως κάνει με τις web-push.
+   Secret: FCM_SERVICE_ACCOUNT = όλο το JSON του service account του Firebase (Project settings › Service accounts › Generate new private key). */
+let fcmTok = '', fcmExp = 0;
+function fcmSA() { try { const s = (Deno.env.get('FCM_SERVICE_ACCOUNT') || '').trim(); const j = s ? JSON.parse(s) : null; return j && j.client_email && j.private_key && j.project_id ? j : null; } catch (e) { return null; } }
+function b64u(b) { let s = ''; const u = new Uint8Array(b); for (let i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+async function fcmAccess(sa) {
+  if (fcmTok && Date.now() < fcmExp - 120000) return fcmTok;
+  const now = Math.floor(Date.now() / 1000), te = new TextEncoder();
+  const head = b64u(te.encode(JSON.stringify({ alg: 'RS256', typ: 'JWT' })));
+  const claim = b64u(te.encode(JSON.stringify({ iss: sa.client_email, scope: 'https://www.googleapis.com/auth/firebase.messaging', aud: 'https://oauth2.googleapis.com/token', iat: now, exp: now + 3600 })));
+  const pem = String(sa.private_key).replace(/\\n/g, '\n').replace(/-----[^-]+-----/g, '').replace(/\s+/g, '');
+  const der = Uint8Array.from(atob(pem), c => c.charCodeAt(0));
+  const key = await crypto.subtle.importKey('pkcs8', der, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']);
+  const sig = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, te.encode(head + '.' + claim));
+  const r = await fetch('https://oauth2.googleapis.com/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'grant_type=' + encodeURIComponent('urn:ietf:params:oauth:grant-type:jwt-bearer') + '&assertion=' + head + '.' + claim + '.' + b64u(sig) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || !j.access_token) throw new Error('FCM auth ' + r.status + ' ' + (j.error_description || j.error || ''));
+  fcmTok = j.access_token; fcmExp = Date.now() + (j.expires_in || 3600) * 1000; return fcmTok;
+}
+async function fcmSend(sa, token, payload, ttl) {
+  let p = {}; try { p = typeof payload === 'string' ? JSON.parse(payload) : (payload || {}); } catch (e) { p = { body: String(payload) }; }
+  const data = {}; for (const k of Object.keys(p)) { const v = p[k]; if (v == null) continue; data[k] = typeof v === 'string' ? v : JSON.stringify(v); }
+  const tag = p.tag ? String(p.tag).slice(0, 60) : undefined;
+  const msg = { message: { token, notification: { title: String(p.title || 'Alkyon').slice(0, 200), body: String(p.body || '').slice(0, 1000) }, data,
+    android: { priority: 'HIGH', ttl: Math.max(60, Math.min(2419200, Math.round(ttl || 86400))) + 's', notification: { channel_id: 'alkyon', icon: 'ic_stat_alkyon', color: '#FF7A4D', sound: 'default', tag } } } };
+  const r = await fetch('https://fcm.googleapis.com/v1/projects/' + sa.project_id + '/messages:send', { method: 'POST', headers: { Authorization: 'Bearer ' + await fcmAccess(sa), 'Content-Type': 'application/json' }, body: JSON.stringify(msg) });
+  if (!r.ok) { const t = await r.text().catch(() => ''); const e = new Error('FCM ' + r.status + ' ' + t.slice(0, 200)); e.statusCode = (r.status === 404 || /UNREGISTERED|registration-token-not-registered/i.test(t)) ? 410 : r.status; e.body = t; throw e; }
+  return { statusCode: 200 };
+}
+function pushx(wp) {
+  return { sendNotification: async (sub, payload, opts) => {
+    if (sub && sub.fcm) { const sa = fcmSA(); if (!sa) { const e = new Error('FCM_SERVICE_ACCOUNT missing'); e.statusCode = 500; throw e; } return fcmSend(sa, String(sub.fcm), payload, opts && opts.TTL); }
+    if (!wp) { const e = new Error('VAPID secrets missing'); e.statusCode = 500; throw e; }
+    return wp.sendNotification(sub, payload, opts);
+  } };
+}
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { 'Content-Type': 'application/json', ...CORS } });
 Deno.serve(async (req) => {
@@ -1234,14 +1273,16 @@ Deno.serve(async (req) => {
         const u = await fetch(env.SUPABASE_URL + '/auth/v1/user', { headers: { apikey: env.SUPABASE_SERVICE_KEY, Authorization: auth } });
         if (!u.ok) return J({ ok: false, error: 'unauthorized' }, 401);
         const uid = (await u.json()).id; if (!uid) return J({ ok: false, error: 'unauthorized' }, 401);
-        if (!(E('VAPID_PUBLIC') && E('VAPID_PRIVATE'))) return J({ ok: false, error: 'VAPID secrets missing' });
-        if (!vapidSet) { webpush.setVapidDetails('https://dinospapani.github.io/Alkyon/', V('VAPID_PUBLIC'), V('VAPID_PRIVATE')); vapidSet = true; }
+        const hasV = !!(E('VAPID_PUBLIC') && E('VAPID_PRIVATE'));
+        if (!hasV && !fcmSA()) return J({ ok: false, error: 'VAPID secrets missing' });
+        if (hasV && !vapidSet) { webpush.setVapidDetails('https://dinospapani.github.io/Alkyon/', V('VAPID_PUBLIC'), V('VAPID_PRIVATE')); vapidSet = true; }
+        const px = pushx(hasV ? webpush : null);
         const sr = await fetch(env.SUPABASE_URL + '/rest/v1/push_subs?user_id=eq.' + encodeURIComponent(uid) + '&select=id,sub,checked_at,turn', { headers: { apikey: env.SUPABASE_SERVICE_KEY, Authorization: 'Bearer ' + env.SUPABASE_SERVICE_KEY } });
         const subs = sr.ok ? await sr.json() : [];
         let sent = 0, gone = 0, err = '';
         const at = new Date().toISOString();
         for (const r of subs || []) {
-          try { await webpush.sendNotification(r.sub, JSON.stringify({ title: 'Alkyon ✓', body: body.lang === 'en' ? 'Test notification from the server. Alerts reach this phone.' : 'Δοκιμαστική ειδοποίηση από τον server. Οι ειδοποιήσεις φτάνουν σε αυτό το κινητό.', kind: 'test', id: 'test-' + at, tag: 'alk-test', at }), { TTL: 600 }); sent++; }
+          try { await px.sendNotification(r.sub, JSON.stringify({ title: 'Alkyon ✓', body: body.lang === 'en' ? 'Test notification from the server. Alerts reach this phone.' : 'Δοκιμαστική ειδοποίηση από τον server. Οι ειδοποιήσεις φτάνουν σε αυτό το κινητό.', kind: 'test', id: 'test-' + at, tag: 'alk-test', at }), { TTL: 600 }); sent++; }
           catch (e) { if (e.statusCode === 404 || e.statusCode === 410) { gone++; await fetch(env.SUPABASE_URL + '/rest/v1/push_subs?id=eq.' + encodeURIComponent(r.id), { method: 'DELETE', headers: { apikey: env.SUPABASE_SERVICE_KEY, Authorization: 'Bearer ' + env.SUPABASE_SERVICE_KEY } }); } else err = String(e.statusCode || '') + ' ' + e.message; }
         }
         const last = (subs || []).map(r => r.checked_at).filter(Boolean).sort().pop() || null;
@@ -1253,9 +1294,10 @@ Deno.serve(async (req) => {
       try {
         const u = await fetch(env.SUPABASE_URL + '/auth/v1/user', { headers: { apikey: env.SUPABASE_SERVICE_KEY, Authorization: auth } });
         if (!u.ok) return J({ ok: false, error: 'unauthorized' }, 401);
-        if (!(E('VAPID_PUBLIC') && E('VAPID_PRIVATE'))) return J({ ok: false, error: 'VAPID secrets missing' });
-        if (!vapidSet) { webpush.setVapidDetails('https://dinospapani.github.io/Alkyon/', E('VAPID_PUBLIC'), E('VAPID_PRIVATE')); vapidSet = true; }
-        const r = await run({ env, PF, webpush, sendMail: null, log: m => console.log(String(m)), only: { comm: true } });
+        const hasV = !!(E('VAPID_PUBLIC') && E('VAPID_PRIVATE'));
+        if (!hasV && !fcmSA()) return J({ ok: false, error: 'VAPID secrets missing' });
+        if (hasV && !vapidSet) { webpush.setVapidDetails('https://dinospapani.github.io/Alkyon/', V('VAPID_PUBLIC'), V('VAPID_PRIVATE')); vapidSet = true; }
+        const r = await run({ env, PF, webpush: pushx(hasV ? webpush : null), sendMail: null, log: m => console.log(String(m)), only: { comm: true } });
         return J({ ok: true, stats: r.stats });
       } catch (e) { return J({ ok: false, error: e.message }, 500); }
     }
@@ -1277,7 +1319,7 @@ Deno.serve(async (req) => {
   }
   const logs = [];
   try {
-    const r = await run({ env, PF, webpush: wp, sendMail: null, log: m => { logs.push(String(m)); console.log(m); } });
+    const r = await run({ env, PF, webpush: (wp || fcmSA()) ? pushx(wp) : null, sendMail: null, log: m => { logs.push(String(m)); console.log(m); } });
     return new Response(JSON.stringify({ ok: r.ok, stats: r.stats, logs }), { headers: { 'Content-Type': 'application/json' } });
   } catch (e) {
     console.log('cron error: ' + e.message);
