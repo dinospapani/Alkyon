@@ -137,7 +137,7 @@ export async function sync({ file, fetchFn = fetch, sleep = ms => new Promise(r 
     if (!wanted(p)) { if (had) { next.delete(s.ps_id); upd++; } skip++; continue; }
     let G = toRings(p.site_boundary || (d && d.boundary) || null, p.country);
     if (!G) { if (had) G = had.g; else { noGeo++; continue; } }   /* χωρίς όρια δεν σχεδιάζεται */
-    if (!plausible(G)) throw new Error('Ύποπτες συντεταγμένες για ' + s.ps_id + '. Σταματώ.');
+    if (!plausible(G)) { log('Εκτός περιοχής ή ύποπτες συντεταγμένες, παραλείπεται: ' + s.ps_id); if (had) next.delete(s.ps_id); skip++; continue; }   /* π.χ. τουρκικές περιοχές στη Μαύρη Θάλασσα */
     next.set(s.ps_id, compact(p, G));
     had ? upd++ : add++;
   }
