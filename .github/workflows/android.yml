@@ -19,6 +19,8 @@ on:
         type: choice
         options: [internal, alpha, none]
         default: internal
+permissions:
+  contents: write   # για το δημόσιο release «android-test» με το APK δοκιμής (εγκρίθηκε από τον Dinos, 10/11/2026)
 concurrency:
   group: android
   cancel-in-progress: true
@@ -102,3 +104,16 @@ jobs:
           releaseName: ${{ steps.ver.outputs.name }}
           track: ${{ inputs.track || 'internal' }}
           status: ${{ vars.PLAY_RELEASE_STATUS || 'completed' }}
+
+      # APK για δοκιμή στο κινητό με έναν σύνδεσμο (χωρίς zip, χωρίς λογαριασμό GitHub):
+      # https://github.com/dinospapani/Alkyon/releases/download/android-test/alkyon.apk
+      - name: APK δοκιμής → release «android-test»
+        if: steps.ks.outputs.signed == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V=${{ steps.ver.outputs.name }}
+          cp "out/alkyon-$V.apk" out/alkyon.apk
+          gh release view android-test >/dev/null 2>&1 || gh release create android-test --prerelease --title "Alkyon Android (δοκιμή)" --notes "Δοκιμαστική έκδοση για Android."
+          gh release upload android-test out/alkyon.apk --clobber
+          gh release edit android-test --notes "Alkyon $V για δοκιμή στο κινητό (Android). Κατέβασε το alkyon.apk και άνοιξέ το."
