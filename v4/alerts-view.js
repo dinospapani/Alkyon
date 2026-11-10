@@ -99,7 +99,19 @@ function draw(){
     c3.append(h('label',{class:'tg'},sw,h('span',{text:(p.id!=='gps'&&B.placeName)?B.placeName(p):p.name}))); });
   page.append(c3);
   page.append(h('div',{class:'acts'},h('button',{class:'btn',type:'button',text:T('Δοκιμαστική ειδοποίηση','Test notification'),onclick:function(){ if(!('Notification' in window)||Notification.permission!=='granted'){ B.toast(T('Άνοιξε πρώτα τις ειδοποιήσεις.','Turn on notifications first.')); return; }
-    reg().then(function(r){ var t=T('Δοκιμή Alkyon','Alkyon test'), b=T('Οι ειδοποιήσεις δουλεύουν.','Notifications work.'); if(r) r.showNotification(t,{body:b,icon:'../icon-192.png',tag:'alk-test',data:{url:ROOT,bc:{kind:'info',full:b}}}); else new Notification(t,{body:b}); }); }})));
+    reg().then(function(r){ var t=T('Δοκιμή Alkyon','Alkyon test'), b=T('Οι ειδοποιήσεις δουλεύουν.','Notifications work.'); if(r) r.showNotification(t,{body:b,icon:'../icon-192.png',tag:'alk-test',data:{url:ROOT,bc:{kind:'info',full:b}}}); else new Notification(t,{body:b}); }); }}),
+    /* 1.12.5: δοκιμή όλης της διαδρομής server → Google/Firebase → κινητό (ο quick-processor στέλνει σε όλες τις συσκευές σου) */
+    h('button',{class:'btn',type:'button',text:T('Δοκιμή από τον server','Test from the server'),onclick:function(ev){ var bt=ev.currentTarget, s=B.cloud&&B.cloud.session();
+      if(!s){ B.toast(T('Συνδέσου πρώτα στον λογαριασμό σου.','Sign in to your account first.')); return; }
+      if(!nt().on){ B.toast(T('Άνοιξε πρώτα τις ειδοποιήσεις.','Turn on notifications first.')); return; }
+      bt.disabled=true; var pre=pushServer();
+      pre.then(function(){ return fetch('https://sgfohmqwdwtkhtrebnix.supabase.co/functions/v1/quick-processor',{method:'POST',headers:{apikey:'sb_publishable_LGuwvrvLnAj1CF22Q6g9vg_4OImZYbA','Content-Type':'application/json',Authorization:'Bearer '+s.access_token},body:JSON.stringify({action:'test',lang:B.LANG})}); })
+        .then(function(r){ return r.json().catch(function(){ return {ok:false,error:'HTTP '+r.status}; }); })
+        .then(function(j){ bt.disabled=false;
+          if(!j||!j.ok){ B.toast(T('Ο server δεν απάντησε: ','The server did not answer: ')+((j&&j.error)||'?'),6000); return; }
+          if(!j.subs){ B.toast(T('Ο server δεν έχει συνδρομή αυτού του κινητού. Κλείσε και άνοιξε ξανά τις ειδοποιήσεις.','The server has no subscription for this phone. Turn notifications off and on again.'),7000); return; }
+          B.toast(j.sent?T('Στάλθηκε σε ','Sent to ')+j.sent+T(' συσκευή/ές. Θα έρθει σε λίγα δευτερόλεπτα.',' device(s). It should arrive in a few seconds.'):T('Δεν στάλθηκε: ','Not sent: ')+(j.err||'?'),7000); })
+        .catch(function(e){ bt.disabled=false; B.toast(T('Σφάλμα: ','Error: ')+(e&&e.message||e),6000); }); }})));
   /* αλλαγή ανέμου (ίδια λειτουργία με την κλασική, windwatch.js) */
   if(window.AlkyonWindWatch){ var wcfg=Object.assign({on:false,deg:60,kn:6,hours:6},ls.get('alkyon-wwatch',{})||{}), wmsg=h('p',{class:'sub',role:'status',text:wcfg.on?T('Ενεργό.','Active.'):''});
     function wsave(){ ls.set('alkyon-wwatch',wcfg); writeCfg(); }
