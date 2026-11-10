@@ -3,7 +3,8 @@ name: Alkyon Navigator sync
 # Αν κάτι δεν πάει καλά (σφάλμα δικτύου, ύποπτη απάντηση, πολλές διαγραφές), το script σταματά και το αρχείο δεν αλλάζει.
 on:
   schedule:
-    - cron: '17 4 3 * *'
+    - cron: '17 4 3 * *'            # μηνιαία: μόνο ό,τι άλλαξε (Alex, ProtectedSeas: «incremental updates»)
+    - cron: '41 5 10 1,4,7,10 *'    # κάθε τρίμηνο: πλήρης έλεγχος όλου του καταλόγου («reconciliation»)
   workflow_dispatch:
     inputs:
       since:
@@ -31,7 +32,7 @@ jobs:
           curl -s -A "Alkyon-sync/1.0" "https://map.navigatormap.org/api/detail/?ps_id=${{ github.event.inputs.probe }}&lang=en_EN" | python3 -c "import json,sys; d=json.load(sys.stdin); print(json.dumps({k:(v if not isinstance(v,(dict,list)) or k in ('regulations','designations') else '...') for k,v in d.items()}, ensure_ascii=False, indent=1)[:6000])" || true
       - run: node navigator-sync.mjs
         env:
-          NAV_SINCE: ${{ github.event.inputs.since }}
+          NAV_SINCE: ${{ github.event.inputs.since || (github.event.schedule == '41 5 10 1,4,7,10 *' && '2000-01-01') || '' }}
       - name: Commit αν άλλαξε
         run: |
           if git diff --quiet -- navigator-mpa.json; then echo "Καμία αλλαγή"; exit 0; fi

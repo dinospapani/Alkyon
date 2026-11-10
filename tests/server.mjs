@@ -537,7 +537,7 @@ check('Νέα: η έκδοση 1.10.8 υπάρχει στα «Τι νέο»', /\
   const bad = Object.keys(T).filter(k => R(T[k][0], T[k][1]) !== T[k][2]);
   check('Χώρα από τη θέση: Ελλάδα (και νησιά απέναντι από την Τουρκία), Κύπρος, όχι τα τουρκικά παράλια (1.11.0)', !bad.length, bad);
   const zs = fs.readFileSync(path.join(ROOT, 'zones-gr.js'), 'utf8'); const W = {}; new Function('window', zs)(W);
-  check('Ελλάδα: θαλάσσιες περιοχές χωρίς ψάρεμα (Γυάρος, Σειτάνι) για τις ειδοποιήσεις (1.11.0)', Array.isArray(W.ZONES_GR) && W.ZONES_GR.length >= 8 && W.ZONES_GR.some(z => /Γυάρου/.test(z.n)) && W.ZONES_GR.every(z => z.p && z.n && !/\(Mikro|\(Gyaros/.test(z.n)), W.ZONES_GR && W.ZONES_GR.map(z => z.n));
+  check('Ελλάδα: θαλάσσιες περιοχές χωρίς ψάρεμα (Γυάρος, Αλόννησος, Ζάκυνθος) για τις ειδοποιήσεις (1.11.0, 1.11.2)', Array.isArray(W.ZONES_GR) && W.ZONES_GR.length >= 15 && W.ZONES_GR.some(z => /Γυάρου/.test(z.n)) && W.ZONES_GR.some(z => /Αλοννήσου|Πιπέρι/.test(z.n)) && W.ZONES_GR.some(z => /Ζακύνθου/.test(z.n)) && W.ZONES_GR.every(z => z.p && z.n && !/\([A-Za-zÓó]/.test(z.n)), W.ZONES_GR && W.ZONES_GR.map(z => z.n));
   const gc = fs.readFileSync(path.join(ROOT, 'v4', 'guide-core.js'), 'utf8');
   check('Οδηγός › Νόμοι: και για την Ελλάδα (5 kg, ψαροντούφεκο, Μάιος, ελάχιστα μεγέθη ΕΕ) (1.11.0)', /function renderLawGR/.test(gc) && /Έως 5 kg ψάρια ή κεφαλόποδα/.test(gc) && /Όχι τον Μάιο/.test(gc) && /'Sparus aurata':23/.test(gc));
   check('Νέα: η έκδοση 1.11.0 υπάρχει στα «Τι νέο»', /\['1\.11\.0',\[T\('Το Alkyon και για την Ελλάδα/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
@@ -548,6 +548,14 @@ check('Νέα: η έκδοση 1.10.8 υπάρχει στα «Τι νέο»', /\
   const sa = fs.readFileSync(path.join(ROOT, 'smart-api-index.ts'), 'utf8');
   check('Σταθμοί: METAR ελληνικών αεροδρομίων (πλαίσιο Ελλάδας, μόνο LG…), μαζί με Κύπρο και DoM (1.11.1)', /bbox=\$\{GR_BBOX\}/.test(sa) && /\^LG/.test(sa) && /Promise\.allSettled\(\[metar\(\), dom\(\), metarGR\(\)\]\)/.test(sa));
   check('Νέα: η έκδοση 1.11.1 υπάρχει στα «Τι νέο»', /\['1\.11\.1',\[T\('Σταθμοί ανέμου/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
+}
+
+/* ---------- 1.11.2: Navigator για όλη την Ελλάδα ---------- */
+{
+  const nv = JSON.parse(fs.readFileSync(path.join(ROOT, 'navigator-mpa.json'), 'utf8')), gr = nv.f.filter(x => x.c === 'Greece');
+  const lat = x => { const s = JSON.stringify(x.g).match(/\[(\d+\.\d+),/); return s ? +s[1] : 0; };
+  check('Χάρτης: προστατευόμενες περιοχές σε όλη την Ελλάδα, και βόρειο Αιγαίο / Ιόνιο (Καβάλα–Θάσος) (1.11.2)', gr.length >= 400 && gr.some(x => x.i === 'AIGRC277') && gr.filter(x => lat(x) > 39.5).length >= 40, gr.length);
+  check('Νέα: η έκδοση 1.11.2 υπάρχει στα «Τι νέο»', /\['1\.11\.2',\[T\('Προστατευόμενες περιοχές σε όλη την Ελλάδα/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
 }
 
 /* ---------- σκοτάδι για καλαμάρι ---------- */
