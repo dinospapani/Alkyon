@@ -73,7 +73,10 @@ export function compact(PF, fc, en, lat = null, lon = null) {
     /* 1.9.70: wx = 1 όταν το φεγγάρι μεγαλώνει (αύξουσα), για τη φάση και το σχέδιο στο ρολόι */
     let wx = null; try { if (nd != null) wx = nd < 0 || nd > 14.8 ? 1 : 0; } catch (e) {}
     sq = { il, nd: nd == null ? null : Math.round(nd * 10) / 10, dk, ev, wx }; } catch (e) {}
-  return { ok: 1, now: { s: cur.s, b: cur.b, v: cur.v, p: cur.p }, days, hrs, pr, tn: turns(PF, fc), at: fc.nowLocal.slice(11, 16), td, t2, bw, sq };
+  /* 1.10.9: για τη σελίδα «Έξοδος» του ρολογιού: θερμοκρασία νερού (wt) και αλλαγή πίεσης στις τελευταίες 3 ώρες (pd, hPa) */
+  let wt = null, pd = null; try { const all = []; fc.days.forEach(d => d.hours.forEach(h => all.push(h))); let ci = -1; all.forEach((h, i) => { if (h.t <= now) ci = i; });
+    if (ci < 0) ci = 0; const hc = all[ci]; if (hc) { if (hc.sst != null) wt = r1(hc.sst); const h3 = all[ci - 3]; if (h3 && hc.pres != null && h3.pres != null) pd = r1(hc.pres - h3.pres); } } catch (e) {}
+  return { ok: 1, now: { s: cur.s, b: cur.b, v: cur.v, p: cur.p, wt, pd }, days, hrs, pr, tn: turns(PF, fc), at: fc.nowLocal.slice(11, 16), td, t2, bw, sq };
 }
 /* v31z553: καμπές πίεσης (ίδιες με την ειδοποίηση της εφαρμογής, PF.pressureTurns): k = 'peak' (κορυφή → μετά πέφτει) ή 'low' (πάτος → μετά ανεβαίνει),
    ts = ώρα σε δευτερόλεπτα UTC, t = τοπική ώρα ΩΩ:ΛΛ, p = hPa. Μόνο από 1 ώρα πριν ως 24 ώρες μετά. */

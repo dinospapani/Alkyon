@@ -465,6 +465,13 @@ NOW = RealDate.parse('2026-11-09T10:00:00Z');
 /* ---------- 1.10.8 ---------- */
 check('Νέα: η έκδοση 1.10.8 υπάρχει στα «Τι νέο»', /\['1\.10\.8',\[T\('Ρολόι Garmin: στο «Τέλος εξόδου;»/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
 
+/* ---------- 1.10.9: ρολόι — θερμοκρασία νερού και τάση πίεσης ---------- */
+{
+  const wi = fs.readFileSync(path.join(ROOT, 'watch-index.ts'), 'utf8');
+  check('Ρολόι: η πρόγνωση στέλνει θερμοκρασία νερού (wt) και αλλαγή πίεσης 3 ωρών (pd) (1.10.9)', /now: \{ s: cur\.s, b: cur\.b, v: cur\.v, p: cur\.p, wt, pd \}/.test(wi) && /pd = r1\(hc\.pres - h3\.pres\)/.test(wi) && /wt = r1\(hc\.sst\)/.test(wi));
+  check('Νέα: η έκδοση 1.10.9 υπάρχει στα «Τι νέο»', /\['1\.10\.9',\[T\('Ρολόι Garmin: μεγαλύτερα γράμματα/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
+}
+
 /* ---------- σκοτάδι για καλαμάρι ---------- */
 {
   const dw = d => { const s = PF.sunMoon(d, 35.04, 32.42, 120); return PF.darkWin(d, s.set, s.rise, 35.04, 32.42, 120); };
