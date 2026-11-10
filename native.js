@@ -4,7 +4,9 @@
    - window.AKN: σημάδι «τρέχω σε εφαρμογή» και βοηθητικά (site, oauthReturn, openExternal)
    - κουμπί «πίσω» του Android: πίσω στο ιστορικό, αλλιώς η εφαρμογή πάει στο παρασκήνιο (όχι κλείσιμο: μια έξοδος μπορεί να τρέχει)
    - σύνδεσμοι που ανοίγουν την εφαρμογή (https://alkyonfishing.com/... και com.alkyonfishing.app://auth/#access_token=...)
-   - εξωτερικοί σύνδεσμοι (window.open): σε Chrome Custom Tab, όχι μέσα στην εφαρμογή */
+   - εξωτερικοί σύνδεσμοι (window.open): σε Chrome Custom Tab, όχι μέσα στην εφαρμογή
+   ΠΡΟΣΟΧΗ: ο τοπικός server του Capacitor (html5mode) δίνει το index.html της ρίζας για κάθε διαδρομή χωρίς τελεία, π.χ. «v4/».
+   Γι' αυτό μέσα στην εφαρμογή οι μεταβάσεις πάνε πάντα σε ρητό αρχείο («v4/index.html»). Το build-web.mjs --native διορθώνει και το index.html. */
 (function(){
 'use strict';
 var C=window.Capacitor;
@@ -69,12 +71,14 @@ function handleUrl(url){
   if(u.protocol===SCHEME+':'){
     /* επιστροφή από τη σύνδεση με Google: το v4/account.js διαβάζει το #access_token=… όταν ανοίγει η σελίδα */
     try{ if(Browser) Browser.close().catch(function(){}); }catch(e){}
-    location.replace(ROOT+'v4/?auth='+Date.now()+(u.hash||''));
+    location.replace(ROOT+'v4/index.html?auth='+Date.now()+(u.hash||''));
     return;
   }
   if(/(^|\.)alkyonfishing\.com$/.test(u.hostname)){
     /* ίδια αρχεία υπάρχουν και μέσα στην εφαρμογή: η ρίζα (index.html) περνά τα ?a= και #… στη v4 */
     var p=u.pathname.replace(/^\/+/,'');
+    /* ο τοπικός server του Capacitor σερβίρει το index.html της ΡΙΖΑΣ για κάθε διαδρομή χωρίς τελεία (π.χ. v4/), άρα πάντα ρητό αρχείο */
+    if(p===''||/\/$/.test(p)) p+='index.html'; else if(!/\.[a-z0-9]+$/i.test(p)) p+='.html';
     location.replace(ROOT+p+(u.search?u.search+'&':'?')+'r='+Date.now()+u.hash);
   }
 }

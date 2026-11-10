@@ -218,7 +218,7 @@ function shareSpots(list){
   if(!list.length){ B.toast(T('Δεν υπάρχουν σημεία.','No spots to send.')); return; }
   var pl={v:1,s:list.slice(0,150).map(function(s){ return {n:s.name,t:s.type,la:+s.lat.toFixed(5),lo:+s.lon.toFixed(5),d:s.depth,no:s.notes}; })};
   enc(pl).then(function(code){
-    var url=new URL('./',location.href).href+'#share='+code, title=list.length===1?list[0].name:list.length+T(' σημεία ψαρέματος',' fishing spots');
+    var url=(window.AKN?window.AKN.site+'v4/':new URL('./',location.href).href)+'#share='+code, /* 1.12.1: από την εφαρμογή Android, σύνδεσμος του alkyonfishing.com */ title=list.length===1?list[0].name:list.length+T(' σημεία ψαρέματος',' fishing spots');
     var txt=T('Σημεία ψαρέματος από το Alkyon: ','Fishing spots from Alkyon: ')+title+'\n'+T('Άνοιξε τον σύνδεσμο για να τα προσθέσεις στην εφαρμογή σου.','Open the link to add them to your app.');
     if(navigator.share) navigator.share({title:'Alkyon',text:txt,url:url}).catch(function(){});
     else if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(txt+'\n'+url).then(function(){ B.toast(T('Ο σύνδεσμος αντιγράφηκε.','Link copied.')); });

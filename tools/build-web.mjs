@@ -53,6 +53,11 @@ if (NATIVE) {
     const tag = `<script src="${pre}migrate.js"></script>`;
     if (!html.includes(tag)) { console.error(`Δεν βρέθηκε το ${tag} στο ${file}`); process.exit(1); }
     html = html.replace(tag, `${tag}\n<script src="${pre}capacitor.js"></script>\n<script src="${pre}native.js"></script>`);
+    /* ο server του Capacitor δίνει το index.html της ρίζας για το «v4/» (διαδρομή χωρίς τελεία) → ατέρμονος κύκλος. Πάντα «v4/index.html». */
+    if (file === 'index.html') {
+      html = html.replace(/(['"])v4\/(?=['"#?+])/g, '$1v4/index.html');
+      if (/['"]v4\/['"#?+]/.test(html)) { console.error('Έμεινε «v4/» χωρίς index.html στο index.html'); process.exit(1); }
+    }
     await fs.writeFile(f, html);
   }
 } else {
