@@ -543,6 +543,13 @@ check('Νέα: η έκδοση 1.10.8 υπάρχει στα «Τι νέο»', /\
   check('Νέα: η έκδοση 1.11.0 υπάρχει στα «Τι νέο»', /\['1\.11\.0',\[T\('Το Alkyon και για την Ελλάδα/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
 }
 
+/* ---------- 1.11.1: σταθμοί ανέμου και για την Ελλάδα (METAR) ---------- */
+{
+  const sa = fs.readFileSync(path.join(ROOT, 'smart-api-index.ts'), 'utf8');
+  check('Σταθμοί: METAR ελληνικών αεροδρομίων (πλαίσιο Ελλάδας, μόνο LG…), μαζί με Κύπρο και DoM (1.11.1)', /bbox=\$\{GR_BBOX\}/.test(sa) && /\^LG/.test(sa) && /Promise\.allSettled\(\[metar\(\), dom\(\), metarGR\(\)\]\)/.test(sa));
+  check('Νέα: η έκδοση 1.11.1 υπάρχει στα «Τι νέο»', /\['1\.11\.1',\[T\('Σταθμοί ανέμου/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
+}
+
 /* ---------- σκοτάδι για καλαμάρι ---------- */
 {
   const dw = d => { const s = PF.sunMoon(d, 35.04, 32.42, 120); return PF.darkWin(d, s.set, s.rise, 35.04, 32.42, 120); };
