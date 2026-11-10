@@ -486,6 +486,29 @@ check('Νέα: η έκδοση 1.10.8 υπάρχει στα «Τι νέο»', /\
   check('Νέα: η έκδοση 1.10.10 υπάρχει στα «Τι νέο»', /\['1\.10\.10',\[T\('Ρολόι Garmin: είδη και σημεία στα ελληνικά/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
 }
 
+/* ---------- 1.10.12: αρχεία βυθομέτρου (Lowrance sl2/sl3, NMEA 0183, CSV) ---------- */
+{
+  const req = (await import('node:module')).createRequire(import.meta.url);
+  const P = req(path.join(ROOT, 'v4', 'sounder-parse.js'));
+  const R = 6356752.3142, lat = 34.70123, lon = 33.04567;
+  const X = Math.round(lon * Math.PI / 180 * R), Y = Math.round(R * Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360)));
+  function mk(kind, n) { const hs = kind === 'sl3' ? 168 : 144, F = kind === 'sl3' ? { sz: 8, ch: 12, hw: 40, d: 48, wt: 88, x: 92, y: 96, ms: 124 } : { sz: 28, ch: 32, hw: 60, d: 64, wt: 104, x: 108, y: 112, ms: 140 };
+    const buf = new ArrayBuffer(8 + n * hs), dv = new DataView(buf); dv.setUint16(0, kind === 'sl3' ? 3 : 2, true);
+    for (let i = 0; i < n; i++) { const o = 8 + i * hs; dv.setUint16(o + F.sz, hs, true); dv.setUint16(o + F.ch, i % 3 === 2 ? 5 : 0, true); dv.setFloat32(o + F.d, (30 + i) / 0.3048, true); dv.setFloat32(o + F.wt, 21.5, true);
+      dv.setInt32(o + F.x, X + i * 20, true); dv.setInt32(o + F.y, Y, true); dv.setUint32(o + F.hw, 1794300000, true); dv.setUint32(o + F.ms, i * 1000, true); }
+    return buf; }
+  for (const k of ['sl2', 'sl3']) {
+    const r = P.parse('trip.' + k, mk(k, 6)), p = r.pts;
+    check('Βυθόμετρο: ' + k + ' (Lowrance) — θέση, βάθος σε m, θερμοκρασία, ώρα, χωρίς πλαϊνά κανάλια (1.10.12)', r.kind === k && p.length === 4 && Math.abs(p[0].lat - lat) < 1e-4 && Math.abs(p[0].lon - lon) < 1e-4 && Math.abs(p[0].d - 30) < 0.01 && Math.abs(p[1].d - 31) < 0.01 && Math.abs(p[0].wt - 21.5) < 0.01 && p[1].t === 1794300001000, p.slice(0, 2));
+  }
+  const nm = '$GPRMC,083000,A,3442.071,N,03302.500,E,3.1,90,101126,,*00\n$SDDPT,42.5,0.4*00\n$IIMTW,19.4,C*00\n$GPGGA,083001,3442.080,N,03302.510,E,1,8,1,0,M,0,M,,*00\n$SDDBT,140.0,f,42.7,M,23.3,F*00\n$SDDBT,,f,,M,,F*00\n';
+  const pn = P.parse('log.nmea', new TextEncoder().encode(nm).buffer).pts;
+  check('Βυθόμετρο: καταγραφή NMEA 0183 (DPT με offset, DBT, MTW, θέση RMC/GGA) (1.10.12)', pn.length === 2 && Math.abs(pn[0].d - 42.9) < 0.01 && Math.abs(pn[1].d - 42.7) < 0.01 && Math.abs(pn[0].lat - 34.701183) < 1e-5 && pn[1].wt === 19.4 && pn[0].t === Date.UTC(2026, 10, 10, 8, 30, 0), pn);
+  const pc = P.parse('deeper.csv', new TextEncoder().encode('latitude;longitude;depth (ft);time\n34,7;33,04;100;2026-11-10T08:00:00Z\n0;0;5;x\n').buffer).pts;
+  check('Βυθόμετρο: CSV με «;», δεκαδικό κόμμα και πόδια (1.10.12)', pc.length === 1 && Math.abs(pc[0].d - 30.48) < 0.01 && pc[0].lat === 34.7, pc);
+  check('Νέα: η έκδοση 1.10.12 υπάρχει στα «Τι νέο»', /\['1\.10\.12',\[T\('Βυθόμετρο στην εφαρμογή/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
+}
+
 /* ---------- σκοτάδι για καλαμάρι ---------- */
 {
   const dw = d => { const s = PF.sunMoon(d, 35.04, 32.42, 120); return PF.darkWin(d, s.set, s.rise, 35.04, 32.42, 120); };

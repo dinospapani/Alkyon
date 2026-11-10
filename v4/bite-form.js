@@ -256,7 +256,8 @@ B.biteForm=function(edit,opt){
   /* βάθος από τον χάρτη βυθού όταν δεν το έγραψες (εκτίμηση, σημειώνεται) */
   var depNote=h('small',{class:'wn',hidden:true}), depAuto=false;
   function autoDepth(){ if(e||dep.value||!pos||!B.depthAt||prof==='lake'||prof==='shore') return; B.depthAt(pos.lat,pos.lon).then(function(v){ if(v==null||v<1||dep.value) return; var U=window.AlkyonUnits, o=U&&U.depthOut?U.depthOut(v):Math.round(v);
-      dep.value=String(Math.round(o)); depAuto=true; depNote.hidden=false; depNote.textContent='≈ '+T('βάθος από τον χάρτη βυθού· γράψε το πραγματικό αν το ξέρεις','depth from the seabed chart; enter the real one if you know it'); }).catch(function(){}); }
+      dep.value=String(Math.round(o)); depAuto=true; depNote.hidden=false; var src=B.lastDepthSrc; /* 1.10.12: από το βυθόμετρο ή τον «Βυθό μου» όταν υπάρχουν */
+      depNote.textContent=src==='sounder'?T('βάθος από το βυθόμετρο','depth from the sounder'):src==='mine'?T('βάθος από τον «Βυθό μου» (το βυθόμετρό σου)','depth from “My depths” (your sounder)'):'≈ '+T('βάθος από τον χάρτη βυθού· γράψε το πραγματικό αν το ξέρεις','depth from the seabed chart; enter the real one if you know it'); }).catch(function(){}); }
   dep.addEventListener('input',function(){ depAuto=false; depNote.hidden=true; });
   /* εξοπλισμός σε μία γραμμή (τα επιλεγμένα· πάτα για αλλαγή) */
   var tkWrap=h('div',{class:'bftk',hidden:true},tkBox,tkDet,tkLostBox,tkSug), tkTx=h('span',{class:'bflt'});

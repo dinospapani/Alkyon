@@ -973,6 +973,43 @@ with sync_playwright() as p:
     c=ctx(b, lang='en'); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(2500)
     r=pg.evaluate("()=>{ const p=document.createElement('p'); p.textContent='0.9 m'; document.body.append(p); return new Promise(res=>setTimeout(()=>res(p.textContent),150)); }")
     check('Αγγλικά: η τελεία μένει (0.9 m) (1.10.11)', r=='0.9 m', r); c.close()
+    print('# 1.10.12: βυθόμετρο (Signal K ζωντανά, αρχείο, «Ο βυθός μου»)')
+    import struct as _st, math as _m, tempfile as _tf
+    c=ctx(b); sub=[]
+    def _skws(ws):
+        def _om(m):
+            sub.append(m)
+            ws.send(json.dumps({'context':'vessels.self','updates':[{'values':[{'path':'navigation.position','value':{'latitude':34.7001,'longitude':33.0402}},{'path':'environment.depth.belowTransducer','value':41.6},{'path':'environment.water.temperature','value':292.25},{'path':'navigation.speedOverGround','value':1.0}]}]}))
+        ws.on_message(_om)
+    c.route_web_socket('**/signalk/v1/stream*',_skws)
+    c.add_init_script("if(!sessionStorage.snd){sessionStorage.snd=1;localStorage.setItem('alkyon-sounder',JSON.stringify({src:'sk',host:'boat.local',off:0.5,rec:true}));}")
+    pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(4000)
+    r=pg.evaluate("()=>{const s=AK.sounder.state(); return [s.state, AK.sounder.live(), s.wt&&+s.wt.toFixed(2), AK.sounder.url(AK.sounder.cfg())]}")
+    check('Βυθόμετρο: Signal K ζωντανά — βάθος + βάθος αισθητήρα (41,6 + 0,5 m), νερό 19,1 °C, ws://…:3000 (1.10.12)', r[0]=='live' and r[1] is not None and abs(r[1]-42.1)<0.01 and r[2]==19.1 and r[3]=='ws://boat.local:3000/signalk/v1/stream?subscribe=none' and bool(sub) and 'environment.depth.belowTransducer' in sub[0], [r,sub[:1]])
+    r=pg.evaluate("()=>AK.depthAt(34.7002,33.0403).then(d=>[d,AK.lastDepthSrc])")
+    check('Βάθος: κοντά στο σκάφος έρχεται από το βυθόμετρο (1.10.12)', r==[42.1,'sounder'], r)
+    go(pg,'#map',3500); pg.evaluate("()=>{ const m=window.AlkyonCore&&AlkyonCore.map&&AlkyonCore.map(); if(m) m.setView([34.7001,33.0402],16,{animate:false}); AK.mydepth&&AK.mydepth.set(true); }"); pg.wait_for_timeout(2500)
+    r=pg.evaluate("()=>{ const ch=document.querySelector('.sndchip'); return [!!ch&&!ch.hidden&&ch.textContent, AK.mydepth?AK.mydepth._cells().length:-1, !!document.querySelector('.mdleg:not([hidden])')] }")
+    check('Χάρτης: ζωντανό βάθος πάνω αριστερά και «Ο βυθός μου» με τα σημεία που γράφτηκαν (1.10.12)', bool(r[0]) and '42' in r[0] and r[1]>=1 and r[2], r)
+    pg.evaluate("()=>AK.sounder.set({src:'off'})"); pg.wait_for_timeout(300)
+    r=pg.evaluate("()=>AK.sounder.flush().then(()=>AK.depthAt(34.7001,33.0402)).then(d=>[d,AK.lastDepthSrc,AK.sounder.live()])")
+    check('Βάθος: χωρίς βυθόμετρο έρχεται από τον «Βυθό μου» (1.10.12)', r==[42.1,'mine',None], r)
+    # αρχείο .sl2 από το φύλλο ρυθμίσεων
+    R=6356752.3142; X=round(_m.radians(33.05)*R); Y=round(R*_m.log(_m.tan(_m.pi/4+_m.radians(34.69)/2)))
+    raw=bytearray(8)
+    for i in range(5):
+        f=bytearray(144); _st.pack_into('<H',f,28,144); _st.pack_into('<H',f,32,0); _st.pack_into('<f',f,64,(20+i)/0.3048); _st.pack_into('<i',f,108,X+i*40); _st.pack_into('<i',f,112,Y); raw+=f
+    fp=os.path.join(_tf.mkdtemp(),'trip.sl2'); open(fp,'wb').write(raw)
+    pg.evaluate("()=>AK.sounder.sheet()"); pg.wait_for_timeout(600)
+    pg.set_input_files('.sndsheet input[type=file]',fp); pg.wait_for_timeout(1200)
+    t=pg.evaluate("()=>document.querySelector('.sndimp').textContent")
+    check('Βυθόμετρο: αρχείο Lowrance .sl2 — προεπισκόπηση 5 μετρήσεων (1.10.12)', '5 μετρήσεις' in t, t)
+    pg.click('.sndimp .btn.pri'); pg.wait_for_timeout(1200)
+    r=pg.evaluate("()=>AK.sounder.stats().then(s=>[s.cells,s.n])")
+    check('«Ο βυθός μου»: το αρχείο αποθηκεύτηκε (1.10.12)', r[0]>=6 and r[1]>=6, r)
+    r=pg.evaluate("()=>AK.loadScripts(['sounder-parse.js']).then(()=>AlkSounderParse.gpx('<gpx xmlns:g=\"x\"><trk><trkseg><trkpt lat=\"34.7\" lon=\"33\"><extensions><g:TrackPointExtension><g:Depth>12.5</g:Depth></g:TrackPointExtension></extensions></trkpt><trkpt lat=\"34.71\" lon=\"33\"></trkpt></trkseg></trk></gpx>').map(p=>p.d))")
+    check('Βυθόμετρο: GPX με βάθος στα extensions (Garmin) (1.10.12)', r==[12.5], r)
+    check('1.10.12: χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
     print('# offline')
     c=ctx(b,sw=True); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(6000); pg.reload(); pg.wait_for_timeout(3000)
     c.set_offline(True)

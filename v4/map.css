@@ -1138,3 +1138,12 @@ body.mapclean:has(.mcdrw.open) .mapbar>.bellb.has,body.mapclean:has(.sheet.on) .
 body.mappick .wxcross{display:none!important}
 body.mappick .cross{width:40px;height:40px;margin:-20px 0 0 -20px;z-index:460}
 body.mappick .cross::before{left:19px;height:40px}body.mappick .cross::after{top:19px;width:40px}
+/* 1.10.12: «Ο βυθός μου» και ζωντανό βάθος βυθομέτρου */
+body:has(.sbleg:not(.mdleg):not([hidden])) .sbleg.mdleg{transform:translate(-50%,-48px)}
+.mdleg .mdbar{display:inline-flex;align-items:center;gap:6px}
+.mdleg .mdbar i{display:inline-block;width:120px;height:8px;border-radius:4px}
+.mdleg .mdbar em{white-space:nowrap;font:600 11px var(--font);font-style:normal;color:var(--ink-2)}
+.sndchip{position:fixed;left:12px;bottom:calc(var(--nav-h,64px) + var(--safe-b,0px) + var(--ndwh,0px) + 200px);z-index:19;display:flex;flex-direction:column;align-items:flex-start;gap:0;padding:6px 10px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);box-shadow:0 2px 10px #0004;font:inherit;line-height:1.15;min-width:64px}
+.sndchip b{font:800 19px var(--font);font-variant-numeric:tabular-nums}
+.sndchip small{font-size:11px;color:var(--ink-2)}
+body:not(.mapon) .sndchip,.sndchip[hidden]{display:none}
