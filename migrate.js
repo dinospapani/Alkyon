@@ -9,6 +9,11 @@
      διαβάζεται από την παλιά (window.alkyonOldPhoto).
    - Cache (ρυθμίσεις ειδοποιήσεων, ιστορικό, χάρτες και πρόγνωση εκτός σύνδεσης): αντιγραφή όσων λείπουν, με τη
      διεύθυνση /Pasrovarka/ → /Alkyon/. Το ίδιο κάνει και ο service worker της ρίζας. */
+/* 1.12.3: προεπιλεγμένη γλώσσα: Αγγλικά για όσους ανοίγουν το Alkyon πρώτη φορά. Όσοι το χρησιμοποιούν ήδη (υπάρχουν δεδομένα,
+   αλλά δεν είχαν διαλέξει ποτέ γλώσσα, άρα έβλεπαν Ελληνικά) μένουν στα Ελληνικά. Αλλάζει όποτε θες: Προφίλ › Γλώσσα. */
+(function(){ try{ var L=localStorage; if(L.getItem('alkyon-lang')) return; var old=false;
+  for(var i=0;i<L.length;i++){ var k=L.key(i)||''; if(/^(alkyon|alk-|psaro|bc4|sb-)/.test(k)){ old=true; break; } }
+  L.setItem('alkyon-lang',old?'el':'en'); }catch(e){} })();
 (function(){
 'use strict';
 var OLD='psa'+'ro', NEW='alkyon';

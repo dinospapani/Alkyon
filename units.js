@@ -1,7 +1,7 @@
 /* Μονάδες μέτρησης: αποθηκεύονται σε alkyon-units. Οι εσωτερικές τιμές μένουν kn, °C, hPa, m, km. */
 (function(){
 'use strict';
-var K='alkyon-units', D={wind:'bft',temp:'c',press:'hpa',wave:'m',depth:'m',dist:'km',coord:'dm'}, EN=(function(){ try{ return (localStorage.getItem('alkyon-lang')||'el')==='en'; }catch(e){ return false; } })(), FA=1.83;
+var K='alkyon-units', D={wind:'bft',temp:'c',press:'hpa',wave:'m',depth:'m',dist:'km',coord:'dm'}, EN=(function(){ try{ return (localStorage.getItem('alkyon-lang')||'en')==='en'; }catch(e){ return false; } })(), FA=1.83;
 var OPT={
   wind:[['kn','kn'],['bft','Bft'],['kmh','km/h'],['ms','m/s'],['mph','mph']],
   temp:[['c','°C'],['f','°F']],

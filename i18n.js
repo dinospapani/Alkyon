@@ -3,8 +3,8 @@
    Στο v4 το i18n-en.js μπαίνει αμέσως μετά από αυτό το αρχείο (document.write κατά το φόρτωμα της σελίδας), οπότε τα επόμενα αρχεία βρίσκουν έτοιμο το AlkyonTr.
    Σελίδες που φορτώνουν τα αρχεία δυναμικά (κλασική) βάζουν το i18n-en.js στη λίστα τους. */
 (function(){
-var LANG='el';
-try{ LANG=localStorage.getItem('alkyon-lang')||'el'; /* 1.6.6: πάντα Ελληνικά εκτός αν διαλέξεις English στο Προφίλ */ }catch(e){}
+var LANG='en';
+try{ LANG=localStorage.getItem('alkyon-lang')||'en'; /* 1.12.3: προεπιλογή Αγγλικά (το migrate.js κρατά Ελληνικά για τους παλιούς χρήστες) */ }catch(e){}
 if(LANG!=='en') LANG='el'; /* μόνο ελληνικά (βάση) και αγγλικά (i18n-en.js) */
 window.LANG=LANG;
 if(!window.spName) window.spName=function(n){ return n; };   /* 1.10.11: στα ελληνικά κρατά το spName του v4/data-el.js (αγγλικά ονόματα → ελληνικά) */

@@ -8,8 +8,8 @@
 'use strict';
 
 /* ---------- γλώσσα ---------- */
-var LANG='el';
-try{ LANG=localStorage.getItem('alkyon-lang')||'el'; /* 1.6.6: πάντα Ελληνικά εκτός αν διαλέξεις English στο Προφίλ */ }catch(e){}
+var LANG='en';
+try{ LANG=localStorage.getItem('alkyon-lang')||'en'; /* 1.12.3: προεπιλογή Αγγλικά (το migrate.js κρατά Ελληνικά για τους παλιούς χρήστες) */ }catch(e){}
 if(LANG!=='el'&&LANG!=='en') LANG='el';
 window.LANG=LANG;
 document.documentElement.lang=LANG;

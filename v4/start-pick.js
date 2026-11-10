@@ -66,6 +66,11 @@ function hasData(){ try{ return ['bites','trips','spots','tackle'].some(function
 /* 1.11.3/1.11.4: η χώρα στο καλωσόρισμα, χωρίς να μοιάζει η εφαρμογή «μόνο για Κύπρο και Ελλάδα».
    Αν η εφαρμογή ξέρει πού είσαι: «Χώρα: … (από τη θέση σου) · Αλλαγή». Αλλιώς: κουμπί «Χρήση της θέσης μου» ή λίστα με όλες τις χώρες.
    Η χώρα χρειάζεται μόνο για τους νόμους στον Οδηγό· οι ζώνες απαγόρευσης στον χάρτη ακολουθούν πάντα το μέρος που βλέπεις. */
+/* 1.12.3: γλώσσα στην πρώτη οθόνη (η προεπιλογή για νέους είναι Αγγλικά)· η σελίδα ξαναφορτώνει και η υποδοχή ξεκινά στη νέα γλώσσα */
+function langRow(){ var cur=B.LANG==='en'?'en':'el', box=h('div',{class:'splang',style:'margin:6px 4px 4px;color:rgba(255,255,255,.88);font:550 14.5px var(--font);display:flex;align-items:center;gap:6px;flex-wrap:wrap'});
+  function b(v,t){ return h('button',{type:'button',class:'lnk','aria-pressed':String(cur===v),style:cur===v?'font-weight:700;text-decoration:none':null,text:t,onclick:function(){ if(v===cur) return; try{ localStorage.setItem('alkyon-lang',v); }catch(e){} location.reload(); }}); }
+  box.append(h('span',{text:'🌐 '}),b('en','English'),h('span',{text:' · '}),b('el','Ελληνικά'));
+  return box; }
 function country(){
   var box=h('div',{class:'spctry'}), open=false, busy=false;
   function paint(){ var set=ls.get('alkyon-country','auto'), p=ls.get('alkyon-v4-pos',null), known=p&&typeof p.lat==='number', reg=known&&B.region?(B.region(p.lat,p.lon)||'xx'):null;
@@ -96,7 +101,7 @@ B.tour=function(){
     var dots=h('div',{class:'obd','aria-hidden':'true'}); STEPS.forEach(function(_,i){ dots.append(h('i',{class:i===step?'on':null})); });
     var hero=h('div',{class:'sphero'+(x.pick?'':' tall'),style:{backgroundImage:'url('+x.img+')'}},h('span',{class:'spheroshade'}),x.last?null:h('button',{class:'spskip',type:'button',text:T('Παράλειψη','Skip'),onclick:finish}),brand(),
       h('div',{class:'sptitle'},h('h1',{text:x.t}),h('p',{text:x.b})));
-    var body=h('div',{class:'spbody'}); if(x.pick) body.append(picker(st,null)); if(step===0) body.append(country());
+    var body=h('div',{class:'spbody'}); if(x.pick) body.append(picker(st,null)); if(step===0) body.append(langRow(),country());
     /* 1.9.38: και «Πίσω», όχι μόνο «Επόμενο» */
     var back=step>0?h('button',{class:'spback',type:'button','aria-label':T('Πίσω','Back'),onclick:function(){ step--; paint(); pg.scrollTop=0; }},h('i',{html:CHEV}),h('span',{text:T('Πίσω','Back')})):null;
     body.append(dots,h('div',{class:'spnav'},back,h('button',{class:'spgo',type:'button',onclick:function(){ if(x.pick) save(); if(x.acct){ finish(); setTimeout(function(){ B.authSheet&&B.authSheet({mode:'up'}); },300); return; } if(x.last) finish(); else { step++; paint(); pg.scrollTop=0; } }},h('span',{text:x.acct?T('Δημιουργία λογαριασμού','Create account'):x.last?T('Ξεκινάμε','Get started'):T('Επόμενο','Next')}),h('i',{html:CHEV}))));
