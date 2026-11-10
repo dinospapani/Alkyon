@@ -898,3 +898,9 @@ html.night .pnrow{background:#000;outline:1px solid #fff;outline-offset:-1px}
 .spctry .ctrysel{flex:1 1 60%;min-height:44px;padding:0 10px;border-radius:12px;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.1);color:#fff;font:600 14px var(--font)}
 .spctry .ctrysel option{color:#111}
 .spctry .row button.loc{flex:1 1 100%}
+/* 1.11.5: Οδηγός › Νόμοι για κάθε χώρα */
+.lawbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.lawbar .seg{flex:1 1 auto;margin:0}
+.lawsel{min-height:44px;max-width:100%;padding:0 10px;border-radius:12px;border:1px solid var(--line);background:var(--card,transparent);color:var(--ink);font:600 14px var(--font)}
+.lawwarn{border-left:4px solid #e8861e}
+.lawwarn p{margin:0;font-weight:600}

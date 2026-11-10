@@ -598,6 +598,17 @@ check('Νέα: η έκδοση 1.10.8 υπάρχει στα «Τι νέο»', /\
   check('Νέα: η έκδοση 1.11.4 υπάρχει στα «Τι νέο»', /\['1\.11\.4',\[T\('Χάρτης: πάτα πάνω σε περιοχή/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
 }
 
+/* ---------- 1.11.5: νόμοι ανά χώρα ---------- */
+{
+  const W = {}; new Function('window', fs.readFileSync(path.join(ROOT, 'laws-world.js'), 'utf8'))(W);
+  const L = W.ALKYON_LAWS, ks = Object.keys(L || {});
+  check('Νόμοι: κάθε χώρα έχει ημερομηνία ελέγχου, επίσημες σελίδες και έκτακτη ανάγκη (1.11.5)', ks.length >= 6 && ks.every(k => /^\d{4}-\d\d-\d\d$/.test(L[k].ck) && L[k].off && L[k].off.length && L[k].sos && L[k].off.every(o => /^https:\/\//.test(o[0]))), ks);
+  check('Νόμοι: κάθε κάρτα έχει ελληνικά και αγγλικά (1.11.5)', ks.every(k => L[k].cards.every(c => c.t.length === 2 && c.i.every(x => x.length === 2 && x[0] && x[1]))));
+  check('Νόμοι: Κροατία, Σλοβενία, Ισπανία με ελεγμένη περίληψη· κοινοί κανόνες ΕΕ (1.11.5)', ['hr', 'si', 'es'].every(k => L[k].cards.length >= 2 && !L[k].part) && W.ALKYON_LAWS_EU && W.ALKYON_LAWS_EU.i.length >= 3);
+  check('Νόμοι: η προειδοποίηση «Πάντα να ελέγχεις τις επίσημες σελίδες» σε κάθε χώρα (1.11.5)', /Πάντα να ελέγχεις τις επίσημες σελίδες και τους ισχύοντες κανονισμούς/.test(fs.readFileSync(path.join(ROOT, 'v4', 'guide-core.js'), 'utf8')));
+  check('Νέα: η έκδοση 1.11.5 υπάρχει στα «Τι νέο»', /\['1\.11\.5',\[T\('Οδηγός › Νόμοι για κάθε χώρα/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
+}
+
 /* ---------- υγεία του server (βήμα 9) ---------- */
 NOW = RealDate.parse('2026-11-09T07:00:00Z');
 {

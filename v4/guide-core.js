@@ -240,7 +240,37 @@ function lawCard(title,items,src){
 }
 /* 1.11.0: νόμοι για Κύπρο ή Ελλάδα (διαλέγεις πάνω· αρχικά η χώρα όπου βρίσκεσαι) */
 let lawC=(window.AK&&AK.country)?AK.country():'cy';   /* 1.11.4: μπορεί να είναι και άλλη χώρα ή '' (άγνωστη) */
-function lawSeg(L){ L.append(h('div',{class:'seg lawc',role:'group','aria-label':'Χώρα'},[['cy','Κύπρος'],['gr','Ελλάδα']].map(x=>h('button',{type:'button','aria-pressed':String(lawC===x[0]),text:x[1],onclick:()=>{ lawC=x[0]; renderLaw(); }})))); }
+function lawSeg(L){
+  /* 1.11.5: Κύπρος · Ελλάδα · (η άλλη χώρα που έχεις διαλέξει) + λίστα με όλες τις χώρες. Οι χώρες με οδηγό πρώτα. */
+  const EN=window.LANG==='en', W=window.ALKYON_LAWS||{}, nm=c=>AK.countryName?AK.countryName(c):c.toUpperCase();
+  const btns=[['cy',EN?'Cyprus':'Κύπρος'],['gr',EN?'Greece':'Ελλάδα']]; if(lawC&&lawC!=='cy'&&lawC!=='gr'&&lawC!=='xx') btns.push([lawC,nm(lawC)]);
+  const sel=h('select',{class:'lawsel','aria-label':EN?'Other country':'Άλλη χώρα',onchange:e=>{ if(e.target.value){ lawC=e.target.value; renderLaw(); } }});
+  sel.append(h('option',{value:'',text:EN?'Other country…':'Άλλη χώρα…'}));
+  const all=(AK.COUNTRIES||[]).filter(c=>c!=='cy'&&c!=='gr').map(c=>[c,nm(c)]).sort((a,b)=>a[1].localeCompare(b[1],EN?'en':'el'));
+  const g1=h('optgroup',{label:EN?'With a guide':'Με οδηγό'}), g2=h('optgroup',{label:EN?'All countries':'Όλες οι χώρες'});
+  all.forEach(x=>{ (W[x[0]]&&!W[x[0]].part?g1:g2).append(h('option',{value:x[0],text:x[1]})); }); sel.append(g1,g2);
+  L.append(h('div',{class:'lawbar'},h('div',{class:'seg lawc',role:'group','aria-label':EN?'Country':'Χώρα'},btns.map(x=>h('button',{type:'button','aria-pressed':String(lawC===x[0]),text:x[1],onclick:()=>{ lawC=x[0]; renderLaw(); }}))),sel));
+  /* πάντα, για κάθε χώρα */
+  L.append(h('div',{class:'card lawwarn'},h('p',{text:EN?'Always check the official websites and current regulations of the country before you fish. Rules change, have local exceptions, and this summary is only a guide, not legal advice.':'Πάντα να ελέγχεις τις επίσημες σελίδες και τους ισχύοντες κανονισμούς της χώρας πριν ψαρέψεις. Οι κανόνες αλλάζουν, έχουν τοπικές εξαιρέσεις, και αυτή η περίληψη είναι μόνο οδηγός, όχι νομική συμβουλή.'})));
+}
+/* 1.11.5: άλλες χώρες, από το laws-world.js */
+function renderLawW(L,c){
+  const EN=window.LANG==='en', t=x=>Array.isArray(x)?(EN?x[1]:x[0]):x, W=window.ALKYON_LAWS, nm=c&&c!=='xx'&&AK.countryName?AK.countryName(c):'';
+  if(!W){ if(!renderLawW.ld){ renderLawW.ld=1; const s=document.createElement('script'); s.src='../laws-world.js'; s.onload=()=>renderLaw(); s.onerror=()=>{ renderLawW.ld=0; }; document.head.append(s); } L.append(h('p',{class:'note',text:'…'})); return; }
+  const X=W[c], src=a=>(a||[]).flatMap((x,i)=>[i?' · ':'',lnk(x[0],x[1])]);
+  if(!X||!X.cards.length){
+    L.append(h('div',{class:'card'},h('p',{text:nm?(EN?'We do not have a checked guide for '+nm+' yet. We add countries one by one, only from official sources.':'Δεν έχουμε ακόμα ελεγμένο οδηγό για: '+nm+'. Προσθέτουμε χώρες σιγά σιγά, μόνο από επίσημες πηγές.'):(EN?'Choose a country above.':'Διάλεξε χώρα πάνω.')}),
+      h('p',{text:EN?'Before fishing, ask the fisheries authority or the coast guard of the area.':'Πριν ψαρέψεις, ρώτα την αρχή αλιείας ή το λιμεναρχείο της περιοχής.'}),
+      X&&X.off?h('p',{class:'note'},EN?'Official: ':'Επίσημα: ',...src(X.off)):null));
+  } else {
+    L.append(h('div',{class:'card'},h('p',{text:(EN?'Summary for recreational sea fishing in '+nm+', checked on ':'Περίληψη για ερασιτεχνικό ψάρεμα στη θάλασσα: '+nm+', ελεγμένη στις ')+X.ck.split('-').reverse().join('/')+(EN?'. Only what we found in official sources is listed; anything missing, check locally.':'. Γράφουμε μόνο ό,τι βρήκαμε σε επίσημες πηγές· ό,τι λείπει, έλεγξέ το τοπικά.')}),
+      X.off?h('p',{class:'note'},EN?'Official: ':'Επίσημα: ',...src(X.off)):null));
+    X.cards.forEach(k=>L.append(lawCard(t(k.t),k.i.map(t),k.src?src(k.src):null)));
+  }
+  if(X&&X.eu&&window.ALKYON_LAWS_EU){ const E=window.ALKYON_LAWS_EU; L.append(lawCard(t(E.t),E.i.map(t),src(E.src))); }
+  L.append(lawCard(EN?'Emergency':'Έκτακτη ανάγκη',[X&&X.sos?t(X.sos):(EN?'112 works in most countries · VHF channel 16 at sea':'Το 112 λειτουργεί στις περισσότερες χώρες · VHF κανάλι 16 στη θάλασσα')]));
+  L.append(h('div',{class:'card lawwarn'},h('p',{text:EN?'Always check the official websites and regulations before fishing.':'Πάντα να ελέγχεις τις επίσημες σελίδες και τους κανονισμούς πριν ψαρέψεις.'})));
+}
 const MIN_EU={'Dicentrarchus labrax':25,'Diplodus annularis':12,'Diplodus puntazzo':18,'Diplodus sargus':23,'Diplodus vulgaris':18,'Engraulis encrasicolus':9,'Epinephelus spp.':45,'Lithognathus mormyrus':20,'Merluccius merluccius':20,'Mullus spp.':11,'Pagellus acarne':17,'Pagellus bogaraveo':33,'Pagellus erythrinus':15,'Pagrus pagrus':18,'Polyprion americanus':45,'Sardina pilchardus':11,'Scomber spp.':18,'Solea vulgaris':20,'Sparus aurata':23,'Trachurus spp.':15};
 function renderLawGR(L){
   L.append(h('div',{class:'card'},h('p',{text:'Περίληψη για ερασιτεχνικό ψάρεμα στη θάλασσα στην Ελλάδα, ελεγμένη στις 10/11/2026. Δεν αποτελεί νομική συμβουλή. Ισχύουν ο νόμος και οι οδηγίες του Λιμενικού Σώματος, που μπορεί να αλλάξουν.'})));
@@ -296,11 +326,7 @@ function renderLawGR(L){
 function renderLaw(){
   const L=$('g-law'); L.replaceChildren(); lawSeg(L);
   if(lawC==='gr'){ renderLawGR(L); return; }
-  if(lawC!=='cy'){ /* 1.11.4: χώρα χωρίς οδηγό νόμων ακόμα, ή άγνωστη */
-    const nm=lawC&&lawC!=='xx'&&AK.countryName?AK.countryName(lawC):'';
-    L.append(h('div',{class:'card'},h('p',{text:(nm?'Δεν έχουμε ακόμα οδηγό νόμων για: '+nm+'.':'Διάλεξε χώρα πάνω.')+' Προς το παρόν υπάρχουν οδηγοί για Κύπρο και Ελλάδα. Για άλλη χώρα ρώτα την αρχή αλιείας ή το λιμεναρχείο της περιοχής πριν ψαρέψεις.'}),
-      h('p',{class:'note',text:'Οι ζώνες όπου απαγορεύεται το ψάρεμα φαίνονται στον χάρτη (Απαγόρευση) σε κάθε χώρα, από το ProtectedSeas Navigator, ενδεικτικά.'})));
-    return; }
+  if(lawC!=='cy'){ renderLawW(L,lawC); return; }   /* 1.11.5: άλλες χώρες */
   L.append(h('div',{class:'card'},h('p',{text:'Περίληψη για ερασιτεχνικό ψάρεμα από σκάφος στη Δημοκρατία της Κύπρου, ελεγμένη στις 15/10/2026. Δεν αποτελεί νομική συμβουλή. Οι κανονισμοί αλλάζουν και ισχύει πάντα το κείμενο του νόμου και ό,τι ανακοινώνει το Τμήμα Αλιείας και Θαλασσίων Ερευνών (ΤΑΘΕ). Όπου η πηγή είναι δευτερογενής, το γράφει.'})));
   L.append(lawCard('Πώς βγάζω ή ανανεώνω άδεια',[
     'Από στεριά με καλάμι δεν χρειάζεται άδεια. Άδεια χρειάζεται για ψάρεμα με σκάφος, ψαροντούφεκο, δεξαμενές και ψαροπαγίδες.',
