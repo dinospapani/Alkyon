@@ -276,6 +276,12 @@ B.biteForm=function(edit,opt){
   tech.addEventListener('input',syncTech); bait.addEventListener('input',syncBait); setTimeout(function(){ syncTech(); syncBait(); },0);
   var btRow=(baitChips.children.length||techChips.children.length)?h('div',{class:'bfbt'},baitChips.children.length?h('div',{class:'bfbtr'},h('small',{text:T('Δόλωμα','Bait')}),baitChips):null,techChips.children.length?h('div',{class:'bfbtr'},h('small',{text:T('Τεχνική','Technique')}),techChips):null):null;
   var spLbl=h('div',{class:'bfspl'},h('span',{text:T('Είδος','Species')}),B.speciesPick?h('button',{class:'linkbtn sm',type:'button',text:'📖 '+T('Λίστα ειδών','Species list'),onclick:function(){ B.speciesPick(function(nm){ sp.value=nm; law(); }); }}):null);
+  /* 1.11.6: παράθυρο τσιμπήματος: από–έως ποια ώρα τσιμπούσαν. Στη σελίδα του ψαριού: «Τι άλλαξε όταν σταμάτησαν;» */
+  var wA=h('input',{type:'time','aria-label':T('Τσιμπούσαν από','Biting from'),value:e&&e.win?e.win.a:''}), wB=h('input',{type:'time','aria-label':T('Τσιμπούσαν έως','Biting until'),value:e&&e.win?e.win.b:''}), wErr=h('small',{class:'wn'});
+  var winBox=h('details',{class:'bfmore bfwin',open:(e&&e.win)?true:null},h('summary',{text:'⏱ '+T('Ώρες που τσιμπούσαν (από–έως)','Hours they were biting (from–to)')}),
+    h('p',{class:'sub',text:T('Π.χ. 19:00–21:00 αν τσιμπούσαν συνέχεια και μετά σταμάτησαν. Η εφαρμογή βρίσκει τι άλλαξε (άνεμος, πίεση, παλίρροια, ρεύμα, ήλιος, σελήνη).','E.g. 19:00–21:00 if they bit steadily and then stopped. The app finds what changed (wind, pressure, tide, current, sun, moon).')}),
+    h('div',{class:'inrow'},field(T('Από','From'),wA),field(T('Έως','To'),wB)),wErr);
+  wA.addEventListener('focus',function(){ if(!wA.value&&when.value) wA.value=when.value.slice(11,16); });
   var hasMore=!!(e&&(e.notes||e.rel||e.priv||(e.bait&&!baitChips.children.length)||+e.cnt>1));
   var more=h('details',{class:'bfmore',open:hasMore||null},h('summary',{text:T('Λεπτομέρειες: φωτογραφίες, σημειώσεις…','Details: photos, notes…')}),
       h('div',{class:'fld'},h('span',{text:T('Φωτογραφίες','Photos')}),phBox,file),aiSlot,
@@ -294,7 +300,7 @@ B.biteForm=function(edit,opt){
     kgEst,depNote,
     prof==='spear'?h('label',{class:'fld'},h('span',{text:T('Ορατότητα νερού (m)','Water visibility (m)')}),vis,h('small',{text:T('Πόσα μέτρα έβλεπες. Έτσι η Πρόγνωση μαθαίνει τα νερά σου.','How many metres you could see. This teaches the Forecast your waters.')})):null,
     wwLine,wwBox,tkLine,tkWrap,btRow,
-    more,
+    winBox,more,
     err,save,
     e?h('button',{class:'btn full del',type:'button',text:T('Διαγραφή ψαριού','Delete catch'),onclick:function(){ B.ask(T('Να διαγραφεί αυτό το ψάρι;','Delete this catch?'),T('Διαγραφή','Delete'),true).then(function(y){ if(!y) return;
       S.phKeys(e).forEach(function(k){ S.Photos.del(k).catch(function(){}); }); adjLost(e.tkLost||[],1,null); S.remove('bites',e.id); recount(e.trip); sh.close(); B.toast(T('Το ψάρι διαγράφηκε.','Catch deleted.')); }); }}):null);
@@ -316,6 +322,9 @@ B.biteForm=function(edit,opt){
     else if(w.slice(0,2)==='s:'){ var spt=S.get('spots',w.slice(2)); if(spt){ lat=spt.lat; lon=spt.lon; place=spt.name||''; } }
     var kb=(window.SPKB||[]).filter(function(k){ return k.n.toLowerCase()===name.toLowerCase()||(k.en||'').toLowerCase()===name.toLowerCase(); })[0];
     var techV=techStore(tech.value); rememberTech(techV);
+    if((wA.value&&!wB.value)||(!wA.value&&wB.value)){ wErr.textContent=T('Βάλε και τις δύο ώρες (από και έως), ή καμία.','Enter both times (from and to), or neither.'); winBox.open=true; err.textContent=wErr.textContent; return; }
+    if(wA.value&&wB.value&&wA.value===wB.value){ wErr.textContent=T('Οι δύο ώρες είναι ίδιες.','The two times are the same.'); winBox.open=true; err.textContent=wErr.textContent; return; }
+    wErr.textContent='';
     rec=Object.assign({},e||{},{date:date,time:time,tz:-new Date().getTimezoneOffset(),species:name,latin:kb?kb.l:(pickLa||latinOf(name)||(e&&e.latin)||''),bait:bait.value.trim(),tech:techV,
       depth:(window.AlkyonUnits&&AlkyonUnits.depthIn?AlkyonUnits.depthIn(num(dep)):num(dep)),kg:num(kg),len:num(len),notes:notes.value.trim(),place:place,lat:lat,lon:lon,src:e?(e.src||'app'):'v4'}); if(kgAuto&&rec.kg!=null) rec.kgEst=true; else delete rec.kgEst;
     if(many.checked) rec.cnt=Math.floor(+cnt.value); else delete rec.cnt;
@@ -334,7 +343,9 @@ B.biteForm=function(edit,opt){
     /* συνθήκες: για νέο ψάρι κοντά στην τρέχουσα ώρα */
     var ms=Date.parse(dt), recent=Math.abs(Date.now()-ms)<=90*60000, needHist=false;
     var HK=(window.AlkyonHist&&window.AlkyonHist.keys)||['wind','wdeg','wave','press','ptrend','cloud','temp','sst','tide'];
+    if(wA.value&&wB.value){ var nw={a:wA.value,b:wB.value}; if(!(e&&e.win&&e.win.a===nw.a&&e.win.b===nw.b&&e.date===date)) delete rec.winx; rec.win=nw; } else { delete rec.win; delete rec.winx; }
     var moved=e&&(e.date!==date||e.time!==time||e.lat!==lat||e.lon!==lon);
+    if(moved) delete rec.winx;
     if(!e&&recent){ var c=condFor(lat,lon,date,time); Object.keys(c).forEach(function(k){ rec[k]=c[k]; }); if(!Object.keys(c).length&&lat!=null) needHist=true; }
     else if(lat!=null&&(!e||moved||HK.every(function(k){ return e[k]==null||e[k]===''; }))) needHist=true;
     if(moved){ HK.forEach(function(k){ rec[k]=null; }); delete rec.wavePeriod; delete rec.hist; }

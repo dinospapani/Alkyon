@@ -609,6 +609,14 @@ check('Νέα: η έκδοση 1.10.8 υπάρχει στα «Τι νέο»', /\
   check('Νέα: η έκδοση 1.11.5 υπάρχει στα «Τι νέο»', /\['1\.11\.5',\[T\('Οδηγός › Νόμοι για κάθε χώρα/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
 }
 
+/* ---------- 1.11.6: παράθυρο τσιμπήματος ---------- */
+{
+  const bw = fs.readFileSync(path.join(ROOT, 'v4', 'bitewin.js'), 'utf8'), ix = fs.readFileSync(path.join(ROOT, 'v4', 'index.html'), 'utf8'), sw = fs.readFileSync(path.join(ROOT, 'v4', 'sw.js'), 'utf8');
+  check('Παράθυρο τσιμπήματος: φορτώνει στην εφαρμογή και offline (1.11.6)', /<script src="bitewin\.js"><\/script>/.test(ix) && /'bitewin\.js'/.test(sw));
+  check('Παράθυρο τσιμπήματος: ελέγχει άνεμο, πίεση, παλίρροια, ρεύμα, κύμα, ήλιο, σελήνη (1.11.6)', ['wind-turn', 'press-fall', 'tide-turn', 'cur-turn', 'wave-up', 'sunset', 'moonrise', 'solunar-end'].every(k => bw.includes("'" + k + "'")));
+  check('Νέα: η έκδοση 1.11.6 υπάρχει στα «Τι νέο»', /\['1\.11\.6',\[T\('Ώρες που τσιμπούσαν/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
+}
+
 /* ---------- υγεία του server (βήμα 9) ---------- */
 NOW = RealDate.parse('2026-11-09T07:00:00Z');
 {
