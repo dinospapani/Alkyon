@@ -9,6 +9,10 @@ var ROOT=new URL('../',location.href).href;
 (function(){ try{ if(ls.get('alkyon-mpfix',0)) return; var a=ls.get('alkyon-places',[])||[], ch=false;
   a.forEach(function(p){ if(p&&/^p-?\d+_-?\d+$/.test(String(p.id))&&(p.name==='Σημείο χάρτη'||p.name==='Map point')&&p.watch!==false){ p.watch=false; p.map=1; ch=true; } });
   if(ch) ls.set('alkyon-places',a); ls.set('alkyon-mpfix',1); }catch(e){} })();
+/* 1.10.7: μία φορά: όσα «Σημείο χάρτη / Map point» έχουν ακόμα ειδοποιήσεις (με οποιοδήποτε id) κλείνουν· ανοίγουν ξανά με το 🔔 στις τοποθεσίες */
+(function(){ try{ if(ls.get('alkyon-mpfix2',0)) return; var a=ls.get('alkyon-places',[])||[], ch=false;
+  a.forEach(function(p){ if(p&&/^(Σημείο χάρτη|Map point|Σημείο|Point)$/.test(String(p.name||'').trim())&&p.watch!==false){ p.watch=false; ch=true; } });
+  if(ch) ls.set('alkyon-places',a); ls.set('alkyon-mpfix2',1); }catch(e){} })();
 function nt(){ return Object.assign({on:false,threshold:75,notified:{},server:false,gpsWatch:true,pressure:true,turn:false},ls.get('alkyon-notify',{})); }
 function setNt(o){ ls.set('alkyon-notify',o); }
 function places(){ var g=B.lastPos(), a=(ls.get('alkyon-places',[])||[]).slice(); if(g) a.unshift({id:'gps',name:T('Η θέση μου','My location'),lat:g.lat,lon:g.lon,watch:nt().gpsWatch!==false}); return a; }

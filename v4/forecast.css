@@ -468,3 +468,5 @@ html.night .calmr .exwc{background:#000!important;outline:1px solid currentColor
 .nowcard .nwa .btn{display:inline-flex;align-items:center;justify-content:center}
 /* «Ανά ώρα»: πιο μαζεμένο υπόμνημα */
 .hcard .hleg{gap:4px 12px!important;font-size:12.5px!important}
+/* 1.10.7: 🔔 ειδοποιήσεις ανά τοποθεσία */
+.li .bell{flex:0 0 auto;width:44px;height:44px;border:0;background:none;font-size:20px;opacity:.45;filter:grayscale(1)}.li .bell.on{opacity:1;filter:none}

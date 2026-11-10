@@ -453,6 +453,15 @@ NOW = RealDate.parse('2026-11-09T10:00:00Z');
   check('Νέα: η έκδοση 1.10.6 υπάρχει στα «Τι νέο»', /\['1\.10\.6',\[T\('Ειδοποιήσεις στη γλώσσα της εφαρμογής/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
 }
 
+/* ---------- 1.10.7: νέες τοποθεσίες χωρίς ειδοποιήσεις, 🔔 ανά τοποθεσία ---------- */
+{
+  const fv = fs.readFileSync(path.join(ROOT, 'v4', 'forecast-view.js'), 'utf8'), av = fs.readFileSync(path.join(ROOT, 'v4', 'alerts-view.js'), 'utf8');
+  check('Τοποθεσίες: νέα περιοχή (αναζήτηση/χάρτης) μπαίνει χωρίς ειδοποιήσεις (1.10.7)', /function addPlace[\s\S]{0,200}watch:false\}/.test(fv) && !/function addPlace[\s\S]{0,200}watch:true\}/.test(fv));
+  check('Τοποθεσίες: 🔔 ανοίγει/κλείνει τις ειδοποιήσεις και ενημερώνει τον server (1.10.7)', /x\.watch=x\.watch===false; on=x\.watch;/.test(fv) && /B\.pushSync\(\)/.test(fv));
+  check('Τοποθεσίες: τα «Map point» κλείνουν μία φορά αυτόματα (1.10.7)', /alkyon-mpfix2/.test(av));
+  check('Νέα: η έκδοση 1.10.7 υπάρχει στα «Τι νέο»', /\['1\.10\.7',\[T\('Ειδοποιήσεις μόνο για όσες τοποθεσίες θέλεις/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
+}
+
 /* ---------- σκοτάδι για καλαμάρι ---------- */
 {
   const dw = d => { const s = PF.sunMoon(d, 35.04, 32.42, 120); return PF.darkWin(d, s.set, s.rise, 35.04, 32.42, 120); };

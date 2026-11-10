@@ -18,7 +18,7 @@ function pid(lat,lon){ return 'p'+Math.round(lat*100)+'_'+Math.round(lon*100); }
 function select(id){ ls.set('alkyon-fcsel',id); st.day=null; st.hour=null; st.view='today'; load(false); }
 function addPlace(name,lat,lon){
   var a=saved(), id=pid(lat,lon);
-  if(!a.some(function(p){ return p.id===id; })){ a.unshift({id:id,name:name,lat:+(+lat).toFixed(4),lon:+(+lon).toFixed(4),watch:true}); ls.set('alkyon-places',a.slice(0,10)); }
+  if(!a.some(function(p){ return p.id===id; })){ a.unshift({id:id,name:name,lat:+(+lat).toFixed(4),lon:+(+lon).toFixed(4),watch:false}); /* 1.10.7: νέα περιοχή χωρίς ειδοποιήσεις· τις ανοίγεις με το 🔔 */ ls.set('alkyon-places',a.slice(0,10)); }
   select(id);
 }
 function delPlace(id){ ls.set('alkyon-places',saved().filter(function(p){ return p.id!==id; })); if(ls.get('alkyon-fcsel','gps')===id) select('gps'); }
@@ -878,13 +878,19 @@ function placeSheet(){
     var pick=h('button',{class:'li',type:'button',style:{borderBottom:0,flex:1},onclick:function(){ sh.close(); select(p.id); }},h('span',{class:'ic'},B.icon(p.gps?'gps':'pin')),h('span',{class:'tx'},h('b',{text:p.name}),h('small',{text:p.gps?T('Ακολουθεί το κινητό σου','Follows your phone'):(+p.lat).toFixed(3)+', '+(+p.lon).toFixed(3)})),p.id===cur.id?B.icon('check'):null);
     if(p.id===cur.id) pick.lastChild.setAttribute('class','ck');
     row.append(pick);
+    /* 1.10.7: 🔔 ειδοποιήσεις για αυτή την τοποθεσία (ανοιχτό = ο server στέλνει καλές μέρες, άνεμο κ.λπ. γι' αυτήν) */
+    if(!p.gps){ var bell=h('button',{class:'bell',type:'button'}), paint=function(on){ bell.className='bell'+(on?' on':''); bell.textContent=on?'🔔':'🔕'; bell.setAttribute('aria-pressed',String(on)); bell.setAttribute('aria-label',(on?T('Κλείσιμο ειδοποιήσεων για ','Turn off alerts for '):T('Ειδοποιήσεις για ','Alerts for '))+p.name); };
+      paint(p.watch!==false);
+      bell.onclick=function(){ var a=saved(), on=false; a.forEach(function(x){ if(x.id===p.id){ x.watch=x.watch===false; on=x.watch; } }); ls.set('alkyon-places',a); paint(on); if(B.pushSync) try{ B.pushSync(); }catch(e){}
+        B.toast(on?T('Ειδοποιήσεις για «','Alerts on for “')+p.name+T('» ανοιχτές.','”.'):T('Ειδοποιήσεις για «','Alerts off for “')+p.name+T('» κλειστές.','”.')); };
+      row.append(bell); }
     if(!p.gps) row.append(h('button',{class:'del',type:'button','aria-label':T('Διαγραφή ','Delete ')+p.name,html:B.iconSvg('trash'),onclick:function(){ wrap.querySelector('.swbg').click(); }}));
     var wrap=p.gps?row:B.swipeDel(row,function(){ var before=saved(), wasSel=ls.get('alkyon-fcsel','gps')===p.id; delPlace(p.id);
       B.toast(T('Η τοποθεσία «','Place “')+p.name+T('» διαγράφηκε.','” deleted.'),5000,{label:T('Αναίρεση','Undo'),fn:function(){ ls.set('alkyon-places',before); if(wasSel) select(p.id); if(sh&&sh.el&&sh.el.isConnected) placeSheet(); B.toast(T('Επαναφέρθηκε.','Restored.')); }}); });
     l.append(wrap);
   });
   body.append(l);
-  if(saved().length) body.append(h('p',{class:'foot',text:T('Σύρε μια τοποθεσία προς τα αριστερά για διαγραφή.','Swipe a place to the left to delete it.')}));
+  if(saved().length) body.append(h('p',{class:'foot',text:T('🔔 = σου έρχονται ειδοποιήσεις για αυτή την τοποθεσία (καλές μέρες, άνεμος). Οι νέες περιοχές μπαίνουν χωρίς ειδοποιήσεις. Σύρε μια τοποθεσία προς τα αριστερά για διαγραφή.','🔔 = you get alerts for this place (good days, wind). New places are added without alerts. Swipe a place to the left to delete it.')}));
   var spots=B.records('spots').filter(function(x){ return !x.deleted&&typeof x.lat==='number'&&typeof x.lon==='number'; });
   if(spots.length){
     body.append(h('h3',{class:'listh',text:T('Από τα σημεία σου','From your spots')}));
