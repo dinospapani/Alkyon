@@ -92,6 +92,20 @@ window.AK={LANG:LANG,EN:EN,T:T,ls:ls,records:records,KINDS:KINDS,on:on,emit:emit
 /* v31z542: χωροκατακτητικά τοξικά (λαγοκέφαλοι) και «έφαγε το δόλωμα / έκοψε»: καταγράφονται, αλλά δεν μετράνε ως ψάρια */
 var PEST_L=['Lagocephalus sceleratus','Lagocephalus lagocephalus','Lagocephalus suezensis','Lagocephalus spadiceus','Torquigener flavimaculosus','Sphoeroides pachygaster'];
 window.AK.PEST_L=PEST_L;
+/* 1.11.0: χώρα από τη θέση: 'cy' Κύπρος, 'gr' Ελλάδα, αλλιώς null. Χοντρικά όρια· τα τουρκικά παράλια του Αιγαίου εξαιρούνται. */
+window.AK.region=function(lat,lon){ if(lat==null||lon==null||isNaN(lat)||isNaN(lon)) return null; lat=+lat; lon=+lon;
+  if(lat>34.4&&lat<35.8&&lon>32.1&&lon<34.7) return 'cy';
+  if(lat<34.75||lat>41.8||lon<19.2||lon>29.8) return null;
+  if(lat>40.6&&lon>26.65) return null;                          /* Ανατολική Θράκη */
+  if(lat>38.45&&lat<=40.6&&lon>26.64) return null;              /* απέναντι από Λέσβο (Αϊβαλί) */
+  if(lat>38.15&&lat<=38.45&&lon>26.24) return null;             /* Τσεσμέ, απέναντι από Χίο */
+  if(lat>37.3&&lat<=38.15&&lon>27.15) return null;              /* απέναντι από Σάμο */
+  if(lat>36.93&&lat<=37.3&&lon>27.38) return null;              /* Αλικαρνασσός (η Κως φτάνει ~27,36) */
+  if(lat>36.68&&lat<=36.93&&lon>27.45) return null;             /* χερσόνησος Δάτσας, Μαρμαρίς (η Σύμη είναι νοτιότερα) */
+  if(lat>36.0&&lat<=36.68&&lon>28.3&&!(lat<36.17&&lon>29.5&&lon<29.62)) return null;   /* νότια παράλια Τουρκίας, εκτός Καστελλόριζου */
+  return 'gr'; };
+/* η χώρα του χρήστη: ρύθμιση alkyon-country (auto/cy/gr) ή από την τελευταία θέση, αλλιώς Κύπρος */
+window.AK.country=function(){ var c=ls.get('alkyon-country','auto'); if(c==='cy'||c==='gr') return c; var p=lastPos(); var r=p?window.AK.region(p.lat,p.lon):null; if(r){ ls.set('alkyon-country-last',r); return r; } return ls.get('alkyon-country-last','cy')||'cy'; };
 /* 1.10.11: υποδιαστολή στα ελληνικά. Ό,τι εμφανίζεται (κείμενο σελίδας και γραφήματα σε canvas) γράφει «1,5 m» αντί «1.5 m».
    Δεν αλλάζουν: αποθηκευμένα δεδομένα, πεδία που γράφεις (input/textarea), εκδόσεις (1.10.11), συντεταγμένες με 4+ δεκαδικά,
    λεπτά μοιρών (42.071′), ό,τι έχει κλάση .nodec. Τα αγγλικά μένουν με τελεία. */

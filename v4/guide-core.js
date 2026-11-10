@@ -227,8 +227,8 @@ function renderChecks(){
     C.append(h('div',{class:'chk'},cb,h('label',{for:id,text:t})));
   });
 }
-document.querySelectorAll('#tab-guide .seg button').forEach(b=>b.addEventListener('click',()=>{
-  document.querySelectorAll('#tab-guide .seg button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+document.querySelectorAll('#tab-guide .seg:not(.lawc) button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#tab-guide .seg:not(.lawc) button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
   for(const g of ['species','tech','law','safety','shops']) $('g-'+g).hidden=(g!==b.dataset.g);
 }));
 /* ---------- Law (Cyprus) ---------- */
@@ -238,8 +238,63 @@ function lnk(href,text){return h('a',{href:href,target:'_blank',rel:'noopener',t
 function lawCard(title,items,src){
   return h('div',{class:'card'},h('h3',{text:title}),h('ul',{class:'law'},items.map(x=>h('li',{},x))),src?h('div',{class:'note',style:'margin-top:8px'},'Πηγή: ',src):null);
 }
+/* 1.11.0: νόμοι για Κύπρο ή Ελλάδα (διαλέγεις πάνω· αρχικά η χώρα όπου βρίσκεσαι) */
+let lawC=(window.AK&&AK.country)?AK.country():'cy';
+function lawSeg(L){ L.append(h('div',{class:'seg lawc',role:'group','aria-label':'Χώρα'},[['cy','Κύπρος'],['gr','Ελλάδα']].map(x=>h('button',{type:'button','aria-pressed':String(lawC===x[0]),text:x[1],onclick:()=>{ lawC=x[0]; renderLaw(); }})))); }
+const MIN_EU={'Dicentrarchus labrax':25,'Diplodus annularis':12,'Diplodus puntazzo':18,'Diplodus sargus':23,'Diplodus vulgaris':18,'Engraulis encrasicolus':9,'Epinephelus spp.':45,'Lithognathus mormyrus':20,'Merluccius merluccius':20,'Mullus spp.':11,'Pagellus acarne':17,'Pagellus bogaraveo':33,'Pagellus erythrinus':15,'Pagrus pagrus':18,'Polyprion americanus':45,'Sardina pilchardus':11,'Scomber spp.':18,'Solea vulgaris':20,'Sparus aurata':23,'Trachurus spp.':15};
+function renderLawGR(L){
+  L.append(h('div',{class:'card'},h('p',{text:'Περίληψη για ερασιτεχνικό ψάρεμα στη θάλασσα στην Ελλάδα, ελεγμένη στις 10/11/2026. Δεν αποτελεί νομική συμβουλή. Ισχύουν ο νόμος και οι οδηγίες του Λιμενικού Σώματος, που μπορεί να αλλάξουν.'})));
+  L.append(lawCard('Άδεια',[
+    'Σήμερα δεν χρειάζεται άδεια για ερασιτεχνικό ψάρεμα από στεριά, από σκάφος ή με ψαροντούφεκο. Οι περιορισμοί όμως ισχύουν κανονικά.',
+    'Ερασιτεχνικό ψάρεμα στα χωρικά ύδατα επιτρέπεται μόνο από σκάφη με ελληνική σημαία (ΝΔ 420/1970, άρθρο 32· Καν. ΕΕ 1380/2013).',
+    'Έχει ανακοινωθεί νέο σύστημα (μητρώο ερασιτεχνών, καταγραφή αλιευμάτων από εφαρμογή). Ο νέος κανονισμός ελέγχου της ΕΕ προβλέπει ψηφιακή καταγραφή ορισμένων ερασιτεχνικών αλιευμάτων. Πότε και πώς θα ισχύσει στην Ελλάδα το ανακοινώνουν το Λιμενικό και το Υπουργείο. Έλεγξε πριν βγεις.'
+  ],[lnk('https://alieia.hcg.gr/faq/faq.php','Λιμενικό Σώμα, συχνές ερωτήσεις αλιείας'),', ελέγχθηκε 10/11/2026']));
+  L.append(lawCard('Όρια ποσότητας (ανά άτομο και ανά 24ωρο)',[
+    'Έως 5 kg ψάρια ή κεφαλόποδα. Με παραγάδι έως 10 kg.',
+    'Εξαίρεση: ένα ψάρι που μόνο του ζυγίζει περισσότερο από το όριο.',
+    'Ένα μόνο ροφοειδές (Epinephelus: σφυρίδα, ροφός, στήρα κ.ά.) ανά ψαρά.',
+    'Αχινοί: έως 20 ανά άτομο χωρίς σκάφος, έως 30 συνολικά ανά σκάφος.',
+    'Δολώματα (σκουλήκι άμμου, πεταλίδες, ερημίτες): έως 30 από κάθε είδος χωρίς σκάφος, έως 60 ανά σκάφος.'
+  ],['ΠΔ 373/1985, άρθρο 2 παρ. 2 · ',lnk('https://alieia.hcg.gr/NOMOTHESIA/PD373-85_enop.pdf','ενοποιημένο κείμενο (Λιμενικό)')]));
+  L.append(lawCard('Εργαλεία',[
+    'Καθετή, συρτή, πεταχτάρι, τσαπαρί, καλάμι, πετονιά: χωρίς περιορισμό.',
+    'Παραγάδι: έως 150 αγκίστρια ανά ψαρά και έως 300 ανά σκάφος. Όχι από τη στεριά.',
+    'Κιούρτοι / κοφινέλα: έως 2 ανά ψαρά, μάτι πάνω από 40 mm. Πεζόβολος: ένας ανά ψαρά.',
+    'Δίχτυα (απλάδια, μανωμένα), γρι-γρι, βολκοί, παραγάδια για τόνο: απαγορεύονται στους ερασιτέχνες (άρθρο 17 Καν. ΕΚ 1967/2006).',
+    'Τον Μάιο απαγορεύεται το ψάρεμα με παραγάδι (και με δίχτυα).',
+    'Όχι φως για προσέλκυση ψαριών (εξαίρεση: καμάκι με φανό έως 500 κεριά). Όχι τηλεκατευθυνόμενες συσκευές για αγκίστρια. Ηλεκτρικό καρούλι σε πετονιά χειρός επιτρέπεται προς το παρόν.'
+  ],['ΠΔ 373/1985, άρθρα 1–2 · Λιμενικό, συχνές ερωτήσεις']));
+  L.append(lawCard('Ψαροντούφεκο',[
+    'Όχι κάτω από 16 ετών.',
+    'Όχι από τη δύση ως την ανατολή του ηλίου. Όχι τον Μάιο.',
+    'Όχι με οποιαδήποτε συσκευή παροχής αέρα, όχι με υποβρύχιο φως.',
+    'Όχι ψάρια κάτω από 150 γραμμάρια.',
+    'Τουλάχιστον 200 m από λουόμενους, λιμενικά έργα, αγκυροβολημένα πλοία, διαύλους και εισόδους λιμανιών.',
+    'Σημαδούρα κίτρινη με κίτρινη σημαία με κόκκινη διαγώνια λωρίδα και «Υ.Δ.», ορατή από 300 m. Μένεις έως 50 m από τη σημαδούρα ή το σκάφος σου.',
+    'Όχι δίχτυα, όχι ψάρια από ξένα εργαλεία.'
+  ],['ΠΔ 373/1985, άρθρο 3']));
+  L.append(lawCard('Χειρισμός αλιεύματος και ειδικά είδη',[
+    'Απαγορεύεται η πώληση και κάθε εμπόριο ερασιτεχνικού αλιεύματος.',
+    'Κόκκινος τόνος, μακρύπτερος τόνος και ξιφίας: μόνο από επαγγελματίες με ειδική άδεια. Αν πιαστεί ζωντανός, απελευθέρωση αμέσως. Αν πεθάνει, ενημερώνεις το Λιμενικό.',
+    'Λαγοκέφαλος: τοξικός, δεν τρώγεται.'
+  ],['ΠΔ 373/1985, άρθρο 1 παρ. 7 · Λιμενικό, συχνές ερωτήσεις']));
+  const rows=Object.keys(MIN_EU).map(la=>{const c=CYL[la.toLowerCase()]; return [c?c.n:la,la,MIN_EU[la]];}).sort((a,b)=>a[0].localeCompare(b[0],'el'));
+  L.append(h('div',{class:'card'},h('h3',{text:'Ελάχιστα μεγέθη (ολικό μήκος)'}),
+    h('div',{class:'bar',style:'grid-template-columns:1fr auto;font-weight:600'},h('span',{text:'Είδος'}),h('span',{text:'cm'})),
+    rows.map(r=>h('div',{class:'bar',style:'grid-template-columns:1fr auto'},h('span',{},r[0],' ',h('i',{class:'muted',text:r[1]})),h('span',{class:'n',text:String(r[2])}))),
+    h('div',{class:'note',style:'margin-top:8px'},'Πηγή: Καν. (ΕΚ) 1967/2006, Παράρτημα III (ισχύει σε όλη την ΕΕ στη Μεσόγειο). Για το ψαροντούφεκο ισχύει και το όριο των 150 g. Μπορεί να υπάρχουν και εθνικά όρια για άλλα είδη: έλεγξε με το Λιμενικό.')));
+  L.append(lawCard('Προστατευόμενες περιοχές',[
+    'Εθνικό Θαλάσσιο Πάρκο Αλοννήσου Βορείων Σποράδων: στη ζώνη Α ερασιτεχνικό ψάρεμα μόνο στην περιοχή Α9 και μόνο με συρτή και καθετή. Στη ζώνη Β συρτή και καθετή παντού, ψαροντούφεκο μόνο σε συγκεκριμένες περιοχές. Γύρω από την Ψαθούρα (1,5 ναυτικά μίλια) καθόλου ψάρεμα.',
+    'Θαλάσσιο Καταφύγιο Άγριας Ζωής Γυάρου: ψάρεμα απαγορεύεται στις ζώνες προστασίας. Φαίνεται στον χάρτη (Στρώσεις › Ζώνες).',
+    'Εθνικό Θαλάσσιο Πάρκο Ζακύνθου (κόλπος Λαγανά) και περιοχές Natura: έχουν δικούς τους κανόνες, συχνά εποχικούς. Έλεγξε με τον φορέα διαχείρισης.',
+    'Νέα θαλάσσια πάρκα (Νότιες Κυκλάδες, Ιόνιο): το διάταγμα για τις Νότιες Κυκλάδες υπογράφηκε στις 15/7/2026 και περνά από το ΣτΕ. Δεν ισχύει ακόμα.',
+    'Οι περιοχές του ProtectedSeas Navigator (και για την Ελλάδα) φαίνονται στον χάρτη, μαζί με τους περιορισμούς τους.'
+  ],[lnk('https://alonissos-park.gr/wp-content/uploads/2016/07/flyer_GR_web-compressed.pdf','Φορέας Πάρκου Αλοννήσου'),' · ',lnk('https://www.naftemporiki.gr/politics/2138124/st-papastayroy-ypograftike-to-pd-gia-to-thalassio-parko-notioy-aigaioy-1-noties-kyklades/','Ναυτεμπορική, 15/7/2026')]));
+  L.append(lawCard('Έκτακτη ανάγκη',['112 (ευρωπαϊκός αριθμός) · 108 Λιμενικό Σώμα · VHF κανάλι 16'],[lnk('https://www.gov.gr/sdg/healthcare/national-emergency-numbers','gov.gr: αριθμοί έκτακτης ανάγκης')]));
+}
 function renderLaw(){
-  const L=$('g-law'); L.replaceChildren();
+  const L=$('g-law'); L.replaceChildren(); lawSeg(L);
+  if(lawC==='gr'){ renderLawGR(L); return; }
   L.append(h('div',{class:'card'},h('p',{text:'Περίληψη για ερασιτεχνικό ψάρεμα από σκάφος στη Δημοκρατία της Κύπρου, ελεγμένη στις 15/10/2026. Δεν αποτελεί νομική συμβουλή. Οι κανονισμοί αλλάζουν και ισχύει πάντα το κείμενο του νόμου και ό,τι ανακοινώνει το Τμήμα Αλιείας και Θαλασσίων Ερευνών (ΤΑΘΕ). Όπου η πηγή είναι δευτερογενής, το γράφει.'})));
   L.append(lawCard('Πώς βγάζω ή ανανεώνω άδεια',[
     'Από στεριά με καλάμι δεν χρειάζεται άδεια. Άδεια χρειάζεται για ψάρεμα με σκάφος, ψαροντούφεκο, δεξαμενές και ψαροπαγίδες.',
@@ -281,6 +336,7 @@ function renderLaw(){
     'Ένας ορφός (ή συναγρίδα) το πολύ ανά έξοδο ή 24ωρο, ανά αλιέα ή σκάφος.',
     'Λαγοκέφαλος (Lagocephalus sceleratus): τοξικός, δεν τρώγεται, δεν δίνεται και δεν πωλείται (ΤΑΘΕ).'
   ],[lnk('https://cyprus-faq.com/en/south/entertainment/pravila-rybnoi-lovli-na-kipre/','cyprus-faq.com'),' · βιβλίο ΤΑΘΕ για τον λαγοκέφαλο']));
+  const ZONES=window.ZONES||[]; if(!window.ZONES&&!renderLaw.zl){ renderLaw.zl=1; const zs=document.createElement('script'); zs.src='../zones.js'; zs.onload=()=>{ if(lawC==='cy') renderLaw(); }; document.head.append(zs); } /* 1.11.0: χωρίς να έχει ανοίξει πρώτα ο χάρτης */
   L.append(h('div',{class:'card'},h('h3',{text:'Περιοχές απαγόρευσης ('+ZONES.length+')'}),
     h('p',{class:'note',text:'Τα όρια είναι από το αρχείο «Fishing_restricted_areas» (KMZ) του Cy-FIS και φαίνονται κόκκινα στον χάρτη. Οι ημερομηνίες ισχύος του αρχείου δεν είναι γνωστές και τα διατάγματα αλλάζουν. Πριν ψαρέψεις κοντά σε προστατευόμενη περιοχή, έλεγξε το Cy-FIS και τον νόμο που αναγράφεται.'}),
     ZONES.slice().sort((x,y)=>x.n.localeCompare(y.n,'el')).map(z=>h('div',{class:'item',style:'margin-top:8px'},h('div',{},h('b',{text:z.n}),h('div',{class:'meta',text:z.d})),h('div',{class:'acts'},h('button',{class:'btn ghost sm',type:'button',text:'Χάρτης',onclick:()=>showZone(z)})))),

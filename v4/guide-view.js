@@ -14,7 +14,8 @@ var HTML='<div class="seg gseg" role="group" aria-label="Ενότητα οδηγ
   '<div id="g-tech" class="list" hidden></div><div id="g-law" class="list" hidden></div>'+
   '<div id="g-shops" class="list" hidden><div class="card"><h3>Κοντινά μαγαζιά ψαρικής</h3><p class="note">Ανοίγει το Google Maps με αναζήτηση γύρω από τη θέση σου, με ώρες, τηλέφωνα και οδηγίες. Η θέση δεν αποθηκεύεται στην εφαρμογή.</p><div class="row" style="margin-top:8px"><button class="btn acc" type="button" id="sShops">Άνοιγμα στο Google Maps</button></div></div></div>'+
   '<div id="g-safety" hidden><div class="card"><h3>Λίστα πριν την έξοδο</h3><div id="checks"></div><p class="note" style="margin:10px 0 0">Γενική λίστα. Έλεγξε τις υποχρεώσεις που ισχύουν για το σκάφος και την άδεια ψαρέματος σου.</p></div>'+
-  '<div class="card" style="margin-top:16px"><h3>Κανονισμοί</h3><p>Ελάχιστα μεγέθη, κλειστές περιόδοι, προστατευόμενα είδη και άδειες αλλάζουν. Επιβεβαίωσέ τα πάντα στο Τμήμα Αλιείας και Θαλασσίων Ερευνών πριν κρατήσεις ψάρι.</p></div></div>';
+  '<div class="card" style="margin-top:16px"><h3>Κανονισμοί</h3><p>Ελάχιστα μεγέθη, κλειστές περιόδοι, προστατευόμενα είδη και άδειες αλλάζουν. Επιβεβαίωσέ τα πριν κρατήσεις ψάρι: στην Κύπρο στο Τμήμα Αλιείας και Θαλασσίων Ερευνών, στην Ελλάδα στο Λιμενικό Σώμα.</p></div>'+
+  '<div class="card" style="margin-top:16px"><h3>Έκτακτη ανάγκη στη θάλασσα</h3><p><b>Κύπρος:</b> 112 · VHF κανάλι 16</p><p><b>Ελλάδα:</b> 112 · 108 (Λιμενικό Σώμα) · VHF κανάλι 16</p></div></div>';
 function build(){
   page=h('div',{class:'page guide'});
   page.append(h('div',{class:'top'},h('div',{style:{display:'flex',alignItems:'center',gap:'12px'}},h('a',{class:'iconbtn',href:'#profile','aria-label':T('Πίσω','Back'),html:B.iconSvg('back')}),h('h1',{class:'lt',text:T('Οδηγός','Guide')}))));

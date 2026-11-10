@@ -7,7 +7,7 @@
 var B=window.AK, h=B.h, T=B.T, EN=B.EN, ls=B.ls;
 
 /* ---------- AI ---------- */
-var AI_PROMPT='You are helping an angler in Cyprus (eastern Mediterranean). Identify the fish in the photo. Reply with ONLY a JSON array of up to 3 candidates, best first: [{"el":"Greek common name or null","en":"English common name","latin":"Latin name","confidence":0.0-1.0}]. If the photo does not show a fish, reply []. Be honest about uncertainty.';
+var AI_PROMPT='You are helping an angler in Cyprus or Greece (eastern Mediterranean, Aegean, Ionian). Identify the fish in the photo. Reply with ONLY a JSON array of up to 3 candidates, best first: [{"el":"Greek common name or null","en":"English common name","latin":"Latin name","confidence":0.0-1.0}]. If the photo does not show a fish, reply []. Be honest about uncertainty.';
 function b64(blob){ return new Promise(function(res,rej){ var r=new FileReader(); r.onload=function(){ res(String(r.result).split(',')[1]); }; r.onerror=rej; r.readAsDataURL(blob); }); }
 function identify(blob){
   var key=ls.get('alkyon-akey',''); if(!key) return Promise.reject(new Error('nokey'));

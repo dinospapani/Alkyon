@@ -47,7 +47,7 @@ B.limitsCard=function(){
 function rings(p){ if(!p||!p.length) return []; if(typeof p[0][0]==='number') return [p]; if(typeof p[0][0][0]==='number') return p; var o=[]; p.forEach(function(x){ o=o.concat(rings(x)); }); return o; }
 function inRing(pt,r){ var x=pt[1], y=pt[0], ins=false; for(var i=0,j=r.length-1;i<r.length;j=i++){ var xi=r[i][1], yi=r[i][0], xj=r[j][1], yj=r[j][0]; if(((yi>y)!==(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi)) ins=!ins; } return ins; }
 function segDist(p,a,b){ var k=Math.cos(p[0]*Math.PI/180)*111320, K=111320, ax=(a[1]-p[1])*k, ay=(a[0]-p[0])*K, bx=(b[1]-p[1])*k, by=(b[0]-p[0])*K, dx=bx-ax, dy=by-ay, t=Math.max(0,Math.min(1,-(ax*dx+ay*dy)/((dx*dx+dy*dy)||1))), cx=ax+t*dx, cy=ay+t*dy; return Math.sqrt(cx*cx+cy*cy); }
-B.zoneCheck=function(lat,lon){ var Z=window.ZONES||[], pt=[lat,lon], best=null;
+B.zoneCheck=function(lat,lon){ var Z=(window.ZONES||[]).concat(window.ZONES_GR||[]), pt=[lat,lon], best=null; /* 1.11.0: και Ελλάδα */
   Z.forEach(function(z){ var rs=rings(z.p), inside=rs.some(function(r){ return inRing(pt,r); }), d=1e9;
     if(!inside) rs.forEach(function(r){ for(var i=0;i<r.length;i++){ var dd=segDist(pt,r[i],r[(i+1)%r.length]); if(dd<d) d=dd; } });
     var o={z:z,inside:inside,d:inside?0:d}; if(!best||o.d<best.d) best=o; });
@@ -58,7 +58,8 @@ var zState={};
 function zNotify(title,body){ try{ navigator.vibrate&&navigator.vibrate([300,120,300]); }catch(e){} if(B.inboxAdd) B.inboxAdd(title,body,'zone');
   try{ if(document.hidden&&'Notification' in window&&Notification.permission==='granted'&&navigator.serviceWorker) navigator.serviceWorker.getRegistration().then(function(r){ if(r) r.showNotification(title,{body:body,icon:'../icon-192.png',tag:'alkyon-zone',renotify:true,vibrate:[300,120,300]}); }); }catch(e){}
   B.toast('⚠ '+title+' · '+body,12000); }
-function loadZones(){ return window.ZONES?Promise.resolve():new Promise(function(res){ var s=document.createElement('script'); s.src='../zones.js'; s.onload=res; s.onerror=res; document.head.appendChild(s); }); }
+function loadOne(v,src){ return window[v]?Promise.resolve():new Promise(function(res){ var s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=res; document.head.appendChild(s); }); }
+function loadZones(){ return Promise.all([loadOne('ZONES','../zones.js'),loadOne('ZONES_GR','../zones-gr.js')]); }
 function zTick(){
   var tr=B.trip, act=tr&&tr.active&&tr.active(); if(!act){ zState={}; return; } if(!zOn()) return;
   var f=tr.fix&&tr.fix(); if(!f||Date.now()-(f.t||0)>120000) return;

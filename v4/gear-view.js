@@ -4,6 +4,8 @@
 (function(){
 'use strict';
 var B=window.AK, h=B.h, T=B.T, EN=B.EN, ls=B.ls;
+/* 1.11.0: στην Ελλάδα: δίχτυα απαγορεύονται στους ερασιτέχνες, παραγάδι έως 150 αγκίστρια (300 ανά σκάφος), όχι τον Μάιο */
+function grNote(){ try{ if(B.country&&B.country()==='gr') return T(' Ελλάδα: τα δίχτυα απαγορεύονται στους ερασιτέχνες· παραγάδι έως 150 αγκίστρια ανά ψαρά (300 ανά σκάφος) και όχι τον Μάιο.',' Greece: nets are not allowed for amateurs; longline up to 150 hooks per angler (300 per boat) and not in May.'); }catch(e){} return ''; }
 var KEY='alkyon-gear', sortK=ls.get('alkyon-sort-gear','new');
 var TYPES={ll:{el:'Παραγάδι',en:'Longline',pt:false,c:'#3aa0ff'},net:{el:'Δίχτυ',en:'Net',pt:false,c:'#35c9a7'},trap:{el:'Ζεμπίλι / παγίδα',en:'Trap / pot',pt:true,c:'#b98cff'}};
 function tn(t){ var x=TYPES[t]||TYPES.net; return EN?x.en:x.el; }
@@ -80,7 +82,7 @@ B.gearPts=function(g){ var pts=[]; if(!g) return pts; [g.set,g.haul].forEach(fun
 /* ---------- πίνακας ενεργειών (από τον χάρτη) ---------- */
 B.gearPanel=function(){
   var g=G(), a=active(g), body=h('div',{class:'bform'}), sh;
-  body.append(h('p',{class:'warnbox',text:T('Δίχτυα και παραγάδια είναι συνήθως εργαλεία επαγγελματικής αλιείας. Η καταγραφή δεν νομιμοποιεί το εργαλείο: έλεγξε την ισχύουσα νομοθεσία.','Nets and longlines are usually commercial gear. Logging does not make the gear legal: check the regulations.')}));
+  body.append(h('p',{class:'warnbox',text:T('Δίχτυα και παραγάδια είναι συνήθως εργαλεία επαγγελματικής αλιείας. Η καταγραφή δεν νομιμοποιεί το εργαλείο: έλεγξε την ισχύουσα νομοθεσία.','Nets and longlines are usually commercial gear. Logging does not make the gear legal: check the regulations.')+grNote()}));
   if(a){ var f=fishOf(a), ph=a.state==='setting'?a.set:a.haul;
     body.append(h('div',{class:'card gact'},h('b',{text:(a.state==='setting'?T('Ρίχνεις: ','Setting: '):T('Ανεβάζεις: ','Hauling: '))+nm(a)}),h('p',{class:'sub',text:[km(ph.pts)||'0 km',dur(Date.now()-(ph.ta||Date.now())),a.state==='hauling'?f.n+' '+T('ψάρια','catches'):''].filter(Boolean).join(' · ')}),
       h('div',{class:'acts'},a.state==='hauling'?h('button',{class:'btn',type:'button',text:T('+ Αλίευμα','+ Catch'),onclick:function(){ sh.close(true); B.biteForm(null,{gear:a}); }}):null,
@@ -153,7 +155,7 @@ B.gearPast=function(){
     B.toast(it.name+': '+tot+' '+T('ψάρια','catches')+(kgt?', '+B.num(kgt,1)+' kg':'')+T(' · αποθηκεύτηκε',' · saved'));
   }
   var body=h('div',{class:'bform gearpast'},
-    h('p',{class:'warnbox',text:T('Δίχτυα και παραγάδια είναι συνήθως εργαλεία επαγγελματικής αλιείας. Η καταγραφή δεν νομιμοποιεί το εργαλείο: έλεγξε την ισχύουσα νομοθεσία.','Nets and longlines are usually commercial gear. Logging does not make the gear legal: check the law.')}),
+    h('p',{class:'warnbox',text:T('Δίχτυα και παραγάδια είναι συνήθως εργαλεία επαγγελματικής αλιείας. Η καταγραφή δεν νομιμοποιεί το εργαλείο: έλεγξε την ισχύουσα νομοθεσία.','Nets and longlines are usually commercial gear. Logging does not make the gear legal: check the law.')+grNote()}),
     tseg,
     h('div',{class:'two',style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}},f(T('Ρίψη','Set'),d0),f(T('ώρα','time'),t0),f(T('Ανέβασμα','Haul'),d1),f(T('ώρα','time'),t1)),
     h('div',{class:'two',style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'8px'}},f(T('Μήκος (m)','Length (m)'),ln),f(T('Αγκίστρια','Hooks'),hk),f(T('Βάθος (m)','Depth (m)'),dp)),

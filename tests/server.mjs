@@ -529,6 +529,20 @@ check('Νέα: η έκδοση 1.10.8 υπάρχει στα «Τι νέο»', /\
   check('Νέα: η έκδοση 1.10.13 υπάρχει στα «Τι νέο»', /\['1\.10\.13',\[T\('Βυθόμετρο: και αρχεία Garmin/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
 }
 
+/* ---------- 1.11.0: Ελλάδα — χώρα από τη θέση, απαγορευμένες περιοχές ---------- */
+{
+  const core = fs.readFileSync(path.join(ROOT, 'v4', 'core.js'), 'utf8'), i = core.indexOf('window.AK.region=function'), j = core.indexOf('/* η χώρα του χρήστη');
+  const R = new Function('window', core.slice(i, j) + '; return window.AK.region;')({ AK: {} });
+  const T = { 'Πειραιάς': [37.94, 23.64, 'gr'], 'Κέρκυρα': [39.62, 19.92, 'gr'], 'Ρόδος': [36.43, 28.22, 'gr'], 'Κως': [36.89, 27.29, 'gr'], 'Μυτιλήνη': [39.1, 26.55, 'gr'], 'Χίος': [38.37, 26.14, 'gr'], 'Καστελλόριζο': [36.15, 29.59, 'gr'], 'Λεμεσός': [34.67, 33.04, 'cy'], 'Σμύρνη': [38.42, 27.13, null], 'Αλικαρνασσός': [37.03, 27.43, null], 'Τσεσμέ': [38.32, 26.30, null], 'Κας': [36.2, 29.64, null], 'Δάτσα': [36.73, 27.68, null], 'Ρώμη': [41.9, 12.5, null] };
+  const bad = Object.keys(T).filter(k => R(T[k][0], T[k][1]) !== T[k][2]);
+  check('Χώρα από τη θέση: Ελλάδα (και νησιά απέναντι από την Τουρκία), Κύπρος, όχι τα τουρκικά παράλια (1.11.0)', !bad.length, bad);
+  const zs = fs.readFileSync(path.join(ROOT, 'zones-gr.js'), 'utf8'); const W = {}; new Function('window', zs)(W);
+  check('Ελλάδα: θαλάσσιες περιοχές χωρίς ψάρεμα (Γυάρος, Σειτάνι) για τις ειδοποιήσεις (1.11.0)', Array.isArray(W.ZONES_GR) && W.ZONES_GR.length >= 8 && W.ZONES_GR.some(z => /Γυάρου/.test(z.n)) && W.ZONES_GR.every(z => z.p && z.n && !/\(Mikro|\(Gyaros/.test(z.n)), W.ZONES_GR && W.ZONES_GR.map(z => z.n));
+  const gc = fs.readFileSync(path.join(ROOT, 'v4', 'guide-core.js'), 'utf8');
+  check('Οδηγός › Νόμοι: και για την Ελλάδα (5 kg, ψαροντούφεκο, Μάιος, ελάχιστα μεγέθη ΕΕ) (1.11.0)', /function renderLawGR/.test(gc) && /Έως 5 kg ψάρια ή κεφαλόποδα/.test(gc) && /Όχι τον Μάιο/.test(gc) && /'Sparus aurata':23/.test(gc));
+  check('Νέα: η έκδοση 1.11.0 υπάρχει στα «Τι νέο»', /\['1\.11\.0',\[T\('Το Alkyon και για την Ελλάδα/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
+}
+
 /* ---------- σκοτάδι για καλαμάρι ---------- */
 {
   const dw = d => { const s = PF.sunMoon(d, 35.04, 32.42, 120); return PF.darkWin(d, s.set, s.rise, 35.04, 32.42, 120); };

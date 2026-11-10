@@ -217,6 +217,8 @@ function draw(){
   top.append(h('div',{style:{display:'flex',gap:'8px'}},bell,rf)); page.append(top);
   var pl=h('button',{class:'place',type:'button','aria-label':T('Αλλαγή τοποθεσίας','Change location'),onclick:placeSheet},B.icon(p.gps?'gps':'pin'),h('b',{text:placeLabel(p)}),h('i',{text:'▾'}));
   page.append(pl);
+  /* 1.11.0: Μάιος στην Ελλάδα: ψαροντούφεκο και παραγάδι απαγορεύονται (ΠΔ 373/1985) */
+  if(new Date().getMonth()===4&&p&&B.region&&B.region(p.lat,p.lon)==='gr') page.append(h('div',{class:'offline lawnote',role:'note',text:T('Μάιος: στην Ελλάδα απαγορεύονται το ψαροντούφεκο και το παραγάδι (ΠΔ 373/1985). Οδηγός › Νόμοι.','May: in Greece spearfishing and longlines are not allowed (PD 373/1985). Guide › Laws.')}));
   if(navigator.onLine===false) page.append(h('div',{class:'offline',text:T('Χωρίς σύνδεση. Βλέπεις την τελευταία πρόγνωση που αποθηκεύτηκε.','Offline. Showing the last saved forecast.')}));
   page.append(B.seg([['today',T('Ημέρες','Days')],['adv',T('Είδη','Species')],['mine',T('Δικά μου','Mine')]],st.view,function(v){ st.view=v; st.day=null; st.hour=null; draw(); },T('Όψη πρόγνωσης','Forecast view')));
 
@@ -248,16 +250,23 @@ function dayBody(el,fc,date){ var td=today(); if(date<td){ var fd=allDays(fc).fi
 /* 1.8.6: αντί για «Η θέση μου» / «Σημείο χάρτη»: η κοντινότερη γνωστή περιοχή της Κύπρου και πόσο μακριά είναι από σένα */
 var CYP=[['Ακάμας',35.08,32.32],['Λατσί',35.039,32.395],['Πόλη Χρυσοχούς',35.035,32.425],['Πωμός',35.153,32.553],['Πύργος Τυλληρίας',35.18,32.68],['Λάρα',34.955,32.315],['Άγιος Γεώργιος Πέγειας',34.882,32.322],['Κόραλ Μπέι',34.853,32.366],['Πάφος',34.755,32.406],['Γεροσκήπου',34.737,32.452],['Πισσούρι',34.656,32.7],['Κούριο',34.664,32.887],['Ακρωτήρι',34.58,32.98],['Λεμεσός',34.675,33.045],['Ζύγι',34.727,33.338],['Μαζωτός',34.8,33.49],['Κίτι',34.81,33.61],['Λάρνακα',34.915,33.638],['Ξυλοφάγου',34.97,33.85],['Αγία Νάπα',34.983,34.0],['Κάβο Γκρέκο',34.963,34.077],['Πρωταράς',35.012,34.058],['Παραλίμνι',35.04,33.98]];
 var CYPE={'Ακάμας':'Akamas','Λατσί':'Latchi','Πόλη Χρυσοχούς':'Polis','Πωμός':'Pomos','Πύργος Τυλληρίας':'Pyrgos Tyllirias','Λάρα':'Lara','Άγιος Γεώργιος Πέγειας':'Agios Georgios Pegeias','Κόραλ Μπέι':'Coral Bay','Πάφος':'Paphos','Γεροσκήπου':'Geroskipou','Πισσούρι':'Pissouri','Κούριο':'Kourion','Ακρωτήρι':'Akrotiri','Λεμεσός':'Limassol','Ζύγι':'Zygi','Μαζωτός':'Mazotos','Κίτι':'Kiti','Λάρνακα':'Larnaca','Ξυλοφάγου':'Xylofagou','Αγία Νάπα':'Ayia Napa','Κάβο Γκρέκο':'Cape Greco','Πρωταράς':'Protaras','Παραλίμνι':'Paralimni'};
+/* 1.11.0: και Ελλάδα: παραθαλάσσια μέρη από το OpenStreetMap (../gr-places.js, φορτώνεται μόνο όταν χρειάζεται) */
+function grList(){ var G=window.ALKYON_GR_PLACES; if(!G&&B.loadScripts&&!grList.t){ grList.t=1; B.loadScripts(['../gr-places.js']).then(function(){ try{ window.dispatchEvent(new Event('alkyon-places')); }catch(e){} }).catch(function(){ grList.t=0; }); } return G||[]; }
+function nearKnown(lat,lon){ var reg=B.region?B.region(lat,lon):null, best=null, bd=1e9;
+  if(reg==='gr'){ grList().forEach(function(c){ var dl=Math.abs(c[2]-lat), dn=Math.abs(c[3]-lon); if(dl>0.3||dn>0.4) return; var d=kmTo([lat,lon],[c[2],c[3]])-(c[4]-1)*0.6; if(d<bd){ bd=d; best=c; } });
+    if(best){ bd=kmTo([lat,lon],[best[2],best[3]]); return {name:EN&&best[1]?best[1]:best[0],km:bd}; } return null; }
+  CYP.forEach(function(c){ var d=kmTo([lat,lon],[c[1],c[2]]); if(d<bd){ bd=d; best=c; } }); return best?{name:EN?CYPE[best[0]]||best[0]:best[0],km:bd}:null; }
+B.nearKnown=nearKnown;
 function kmTo(a,b){ var R=6371, r=Math.PI/180, dl=(b[0]-a[0])*r, dn=(b[1]-a[1])*r, x=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin(dn/2)*Math.sin(dn/2); return 2*R*Math.asin(Math.sqrt(x)); }
 /* 1.8.33: όνομα για τοποθεσίες χωρίς όνομα («Σημείο χάρτη»): πρώτα δικό σου σημείο σε ≤1,5 km, αλλιώς η κοντινότερη περιοχή (≤15 km) */
 function genName(n){ return /^(Η θέση μου|My location|Σημείο χάρτη|Map point|Σημείο|Point|Τοποθεσία|Place)?$/.test(String(n||'').trim()); }
 B.placeName=function(p){ if(!p) return ''; if(!genName(p.name)||p.lat==null) return p.name||'';
   var sp=null, sd=1.5; try{ B.store.raw('spots').forEach(function(x){ if(x.deleted||typeof x.lat!=='number'||!x.name) return; var d=kmTo([p.lat,p.lon],[x.lat,x.lon]); if(d<sd){ sd=d; sp=x; } }); }catch(e){} if(sp) return sp.name;
-  var best=null, bd=1e9; CYP.forEach(function(c){ var d=kmTo([p.lat,p.lon],[c[1],c[2]]); if(d<bd){ bd=d; best=c; } }); if(best&&bd<15){ var nm=EN?CYPE[best[0]]||best[0]:best[0]; return bd<1.5?nm:T('Κοντά: ','Near ')+nm; }
+  var nk=nearKnown(p.lat,p.lon); if(nk&&nk.km<15){ return nk.km<1.5?nk.name:T('Κοντά: ','Near ')+nk.name; }
   return (+p.lat).toFixed(3)+', '+(+p.lon).toFixed(3); };
 function placeLabel(p){ if(!p||p.lat==null) return p&&p.name||''; var gen=p.gps||/^(Η θέση μου|My location|Σημείο χάρτη|Map point|Σημείο|Point)$/.test(p.name||''); if(!gen) return p.name; var sn=B.placeName(p); if(sn&&!/^(Κοντά|Near)|^\d/.test(sn)&&!p.gps) return sn;
-  var best=null, bd=1e9; CYP.forEach(function(c){ var d=kmTo([p.lat,p.lon],[c[1],c[2]]); if(d<bd){ bd=d; best=c; } }); var nm=best&&bd<15?(EN?CYPE[best[0]]||best[0]:best[0]):p.name; /* περιοχή, όχι ακριβής τοποθεσία (έως 15 km) */
-  if(best&&bd>=2&&bd<15) nm=T('Κοντά σε ','Near ')+nm+' ('+Math.round(bd)+' km)'; /* 1.9.31: να μη μοιάζει ότι το σημείο είναι πάνω στο χωριό */
+  var nk=nearKnown(p.lat,p.lon), bd=nk?nk.km:1e9, nm=nk&&bd<15?nk.name:p.name; /* περιοχή, όχι ακριβής τοποθεσία (έως 15 km) */
+  if(nk&&bd>=2&&bd<15) nm=T('Κοντά σε ','Near ')+nm+' ('+Math.round(bd)+' km)'; /* 1.9.31: να μη μοιάζει ότι το σημείο είναι πάνω στο χωριό */
   if(p.gps) return nm+(nm!==p.name?' · '+T('εδώ','here'):'');
   var me=B.lastPos&&B.lastPos(); if(me&&me.lat!=null){ var dm=kmTo([me.lat,me.lon],[p.lat,p.lon]); nm+=' · '+(dm<1?T('εδώ','here'):(dm<10?B.num(dm,1):Math.round(dm))+' km '+T('από σένα','from you')); }
   return nm; }
@@ -295,7 +304,7 @@ function seasonCard(){
   function own(k){ return mine[(k.l||'').toLowerCase()]||mine[(k.n||'').toLowerCase()]||null; }
   var nm=function(k){ return EN?(k.en||k.n):k.n; };
   var peak=K.filter(function(k){ return k.m[mo]===3; }), up=K.filter(function(k){ return k.m[nx]>k.m[mo]; }), down=K.filter(function(k){ return k.m[nx]<k.m[mo]&&k.m[mo]===2; }); /* όσα είναι στην κορύφωση δεν μπαίνουν και στο «φεύγουν» */
-  var c=h('section',{class:'card season'},h('h2',{text:T('Εποχή ειδών','Species seasons')}),h('p',{class:'sub',text:MNL[mo]+T(' · ενδεικτικά για την Κύπρο, μαζί με τα δικά σου ψάρια',' · indicative for Cyprus, with your own catches')}));
+  var c=h('section',{class:'card season'},h('h2',{text:T('Εποχή ειδών','Species seasons')}),h('p',{class:'sub',text:MNL[mo]+T(' · ενδεικτικά για την Ανατολική Μεσόγειο (Κύπρο, Ελλάδα), μαζί με τα δικά σου ψάρια',' · indicative for the Eastern Mediterranean (Cyprus, Greece), with your own catches')}));
   var line=function(lab,arr,cls){ if(!arr.length) return; c.append(h('p',{class:'ssl '+cls},h('b',{text:lab}),h('span',{text:arr.map(nm).join(', ')}))); };
   line('● '+T('Στην καλύτερη εποχή τους: ','In peak season: '),peak,'pk'); line('↑ '+T('Έρχονται τον ','Coming in ')+(EN?MNL[nx]:MNL[nx].replace(/ος$/,'ο').replace(/ης$/,'η'))+': ',up,'up'); line('↓ '+T('Φεύγουν: ','Leaving: '),down,'dn');
   var grid=h('div',{class:'ssg'}); grid.append(h('span'),h('div',{class:'ssm'},MN.map(function(x,i){ return h('i',{class:i===mo?'cur':'',text:x}); })));
@@ -364,11 +373,16 @@ function whereGo(){ if(!B.oppsCard){ location.hash='#map'; return; }
    (άνεμος + έκθεση ακτής + swell, ίδιος υπολογισμός με την «Έκθεση ακτής»), ταξινομημένα από το πιο ήρεμο. */
 var calmMem=null;
 function calmNow(pl){
+  var g0=pl&&pl.lat!=null?pl:(B.lastPos&&B.lastPos()); if(g0&&B.region&&B.region(g0.lat,g0.lon)==='gr'&&!window.ALKYON_GR_PLACES&&B.loadScripts&&!calmNow.w){ calmNow.w=1; B.loadScripts(['../gr-places.js']).catch(function(){}).then(function(){ calmNow.w=0; calmNow(pl); }); return; }
   var X=window.AlkyonExposure, list=h('div',{class:'calml'},h('div',{class:'sk',style:{height:'180px'}})), sh=B.sheet({title:T('Πού είναι ήρεμα τώρα','Where is it calm now'),body:h('div',null,
     h('p',{class:'sub',text:T('Εκτίμηση κύματος αυτή την ώρα από τον άνεμο, την ακτή και το swell. Πρώτα τα πιο ήρεμα. Πάτα ένα για πρόγνωση εκεί.','Wave estimate for this hour from wind, coast and swell. Calmest first. Tap one for the forecast there.')}),list,
     h('p',{class:'foot',text:T('Ενδεικτικό, όχι μέτρηση. Δεν βλέπει βουνά και κύμα που στρίβει γύρω από κάβους. Η απόφαση είναι πάντα δική σου.','Indicative, not a measurement. It does not see mountains or waves bending around capes. The decision is always yours.')}))});
-  var P=CYP.map(function(c){ return {name:EN?CYPE[c[0]]||c[0]:c[0],lat:c[1],lon:c[2]}; });
-  try{ B.store.raw('spots').forEach(function(x){ if(x&&!x.deleted&&typeof x.lat==='number'&&x.name&&x.lat>34.4&&x.lat<35.8&&x.lon>32.1&&x.lon<34.7) P.push({name:x.name,lat:x.lat,lon:x.lon,mine:true}); }); }catch(e){}
+  /* 1.11.0: στην Ελλάδα τα κοντινότερα γνωστά μέρη (έως ~60 km, χωριά/λιμάνια/πόλεις), στην Κύπρο η λίστα της Κύπρου· και τα σημεία σου κοντά */
+  var c0=pl&&pl.lat!=null?pl:(B.lastPos&&B.lastPos())||null, reg=c0&&B.region?B.region(c0.lat,c0.lon):'cy', P;
+  if(reg==='gr'){ P=grList().filter(function(c){ return c[4]>=2&&Math.abs(c[2]-c0.lat)<0.6&&Math.abs(c[3]-c0.lon)<0.75; }).map(function(c){ return {name:EN&&c[1]?c[1]:c[0],lat:c[2],lon:c[3],d:kmTo([c0.lat,c0.lon],[c[2],c[3]])}; }).filter(function(x){ return x.d<=60; })
+      .sort(function(a,b){ return a.d-b.d; }); var seen=[]; P=P.filter(function(x){ if(seen.some(function(q){ return kmTo([q.lat,q.lon],[x.lat,x.lon])<3; })) return false; seen.push(x); return true; }).slice(0,30); }
+  else P=CYP.map(function(c){ return {name:EN?CYPE[c[0]]||c[0]:c[0],lat:c[1],lon:c[2]}; });
+  try{ B.store.raw('spots').forEach(function(x){ if(x&&!x.deleted&&typeof x.lat==='number'&&x.name&&(reg==='gr'?c0&&kmTo([c0.lat,c0.lon],[x.lat,x.lon])<=60:(x.lat>34.4&&x.lat<35.8&&x.lon>32.1&&x.lon<34.7))) P.push({name:x.name,lat:x.lat,lon:x.lon,mine:true}); }); }catch(e){}
   P=P.slice(0,45);
   var hr=new Date().toISOString().slice(0,13), q=function(k){ return 'latitude='+P.map(function(p){ return (+p.lat).toFixed(3); }).join(',')+'&longitude='+P.map(function(p){ return (+p.lon).toFixed(3); }).join(','); };
   var get=function(u){ return fetch(u).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }).then(function(j){ return Array.isArray(j)?j:[j]; }); };

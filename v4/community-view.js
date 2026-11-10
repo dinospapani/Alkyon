@@ -137,7 +137,7 @@ function likeC(c){ if(!sess()){ needAcc(); return; } var on=!!F.cliked[c.id], n=
     .catch(function(){ F.cliked[c.id]=on?1:0; F.clk[c.id]=n; draw(); B.toast(T('Δεν έγινε.','Failed.')); }); }
 /* 1.9.65: πρόσκληση φίλου */
 var APPURL='https://dinospapani.github.io/Alkyon/v4/?inv=1#community';
-function invite(){ var txt=T('Έλα στο Alkyon: πρόγνωση για ψάρεμα, ημερολόγιο και Κοινότητα ψαράδων στην Κύπρο. Δωρεάν.','Join me on Alkyon: fishing forecast, logbook and an anglers’ Community in Cyprus. Free.');
+function invite(){ var txt=T('Έλα στο Alkyon: πρόγνωση για ψάρεμα, ημερολόγιο και Κοινότητα ψαράδων σε Κύπρο και Ελλάδα. Δωρεάν.','Join me on Alkyon: fishing forecast, logbook and an anglers’ Community in Cyprus and Greece. Free.');
   if(navigator.share) return navigator.share({title:'Alkyon',text:txt,url:APPURL}).then(function(){ return 'shared'; }).catch(function(){ return 'cancel'; });
   var all=txt+' '+APPURL, done=function(ok){ B.toast(ok?T('Ο σύνδεσμος αντιγράφηκε. Στείλ’ τον σε φίλο.','Link copied. Send it to a friend.'):all); return 'copied'; };
   try{ return navigator.clipboard.writeText(all).then(function(){ return done(true); },function(){ return done(false); }); }catch(e){ return Promise.resolve(done(false)); } }
@@ -145,7 +145,7 @@ B.commInvite=invite;
 /* 1.9.65: όποιος ανοίγει τον σύνδεσμο πρόσκλησης στον browser βλέπει πώς να την εγκαταστήσει (μία φορά) */
 var BIP=null; window.addEventListener('beforeinstallprompt',function(e){ e.preventDefault(); BIP=e; });
 function installSheet(){ var ios=/iphone|ipad|ipod/i.test(navigator.userAgent), body=h('div',{class:'bform'}), sh;
-  body.append(h('p',{text:T('Το Alkyon είναι δωρεάν εφαρμογή για ψάρεμα στην Κύπρο: πρόγνωση, ημερολόγιο, χάρτης και Κοινότητα.','Alkyon is a free fishing app for Cyprus: forecast, logbook, map and Community.')}));
+  body.append(h('p',{text:T('Το Alkyon είναι δωρεάν εφαρμογή για ψάρεμα σε Κύπρο και Ελλάδα: πρόγνωση, ημερολόγιο, χάρτης και Κοινότητα.','Alkyon is a free fishing app for Cyprus and Greece: forecast, logbook, map and Community.')}));
   if(BIP) body.append(h('button',{class:'btn pri full',type:'button',text:T('Εγκατάσταση','Install'),onclick:function(){ try{ BIP.prompt(); }catch(e){} sh.close(); }}));
   body.append(h('p',{class:'sub',text:ios?T('iPhone: πάτα Κοινή χρήση (το τετράγωνο με το βέλος) › «Προσθήκη στην οθόνη Αφετηρίας». Έτσι δουλεύουν και οι ειδοποιήσεις.','iPhone: tap Share (the square with the arrow) › "Add to Home Screen". Notifications work only this way.'):T('Android: μενού ⋮ του Chrome › «Εγκατάσταση εφαρμογής» ή «Προσθήκη στην αρχική οθόνη».','Android: Chrome menu ⋮ › "Install app" or "Add to Home screen".')}));
   body.append(h('button',{class:'btn full',type:'button',text:T('Συνέχεια στον browser','Continue in the browser'),onclick:function(){ sh.close(); }}));
@@ -228,7 +228,7 @@ function shareImg(p){ var W=1080, H=1350, cv=document.createElement('canvas'); c
     g.fillStyle='#fff'; g.font='800 64px system-ui,sans-serif'; g.textBaseline='alphabetic'; g.fillText(String(p.species||'').slice(0,24),56,1170);
     g.fillStyle='#ff8a5c'; g.font='700 52px system-ui,sans-serif'; g.fillText(sz.join(' · ')+(more.length?'  +'+more.length:''),56,1240);
     g.fillStyle='#9fb6bf'; g.font='500 34px system-ui,sans-serif'; g.fillText([p.author,p.day?p.day.split('-').reverse().join('/'):''].filter(Boolean).join(' · ').slice(0,44),56,1300);
-    if(logo) g.drawImage(logo,W-56-110,1110,110,110); g.fillStyle='#fff'; g.font='800 34px system-ui,sans-serif'; g.textAlign='right'; g.fillText('Alkyon',W-56,1270); g.fillStyle='#9fb6bf'; g.font='500 24px system-ui,sans-serif'; g.fillText(T('Ψάρεμα στην Κύπρο','Fishing in Cyprus'),W-56,1305); g.textAlign='left';
+    if(logo) g.drawImage(logo,W-56-110,1110,110,110); g.fillStyle='#fff'; g.font='800 34px system-ui,sans-serif'; g.textAlign='right'; g.fillText('Alkyon',W-56,1270); g.fillStyle='#9fb6bf'; g.font='500 24px system-ui,sans-serif'; g.fillText(B.country&&B.country()==='gr'?T('Ψάρεμα στην Ελλάδα','Fishing in Greece'):T('Ψάρεμα στην Κύπρο','Fishing in Cyprus'),W-56,1305); g.textAlign='left';
     return new Promise(function(res){ cv.toBlob(res,'image/jpeg',0.9); }); }).then(function(blob){ if(!blob) throw new Error('blob');
     var name='alkyon-'+String(p.species||'catch').replace(/\s+/g,'-').toLowerCase()+'.jpg', file=null; try{ file=new File([blob],name,{type:'image/jpeg'}); }catch(e){}
     if(file&&navigator.canShare&&navigator.canShare({files:[file]})) return navigator.share({files:[file],title:'Alkyon',text:(p.species||'')+(p.kg!=null?' '+kgTxt(p.kg):'')}).catch(function(){});
@@ -370,7 +370,7 @@ function draw(){
     h('div',{class:'cmtopr'},(sess()&&F.admin)?h('button',{class:'iconbtn cmrepb',type:'button','aria-label':T('Αναφορές','Reports'),onclick:function(){ reportsSheet(); }},h('span',{text:'🚩'}),(F.reports&&F.reports.filter(function(r){ return !r.hidden; }).length)?h('span',{class:'cmdot',text:String(F.reports.filter(function(r){ return !r.hidden; }).length)}):null):null,
       h('button',{class:'iconbtn',type:'button','aria-label':T('Ανανέωση','Refresh'),html:B.iconSvg('refresh'),onclick:function(){ load(true); loadAll(true); if(F.admin) loadReports(); }}))));
   /* 1.9.65: χωρίς λογαριασμό: διαβάζεις τις αναρτήσεις· για like, σχόλια και μοίρασμα χρειάζεται λογαριασμός */
-  if(!sess()) page.append(h('div',{class:'card cmanon'},h('b',{text:T('Δες τι πιάνουν οι ψαράδες της Κύπρου','See what Cyprus anglers are catching')}),h('p',{class:'sub',text:T('Με δωρεάν λογαριασμό κάνεις like, σχολιάζεις, ρωτάς και μοιράζεσαι τα δικά σου ψάρια. Δεν φαίνεται ποτέ θέση.','With a free account you can like, comment, ask and share your own catches. A location is never shown.')}),h('button',{class:'btn pri full',type:'button',text:T('Σύνδεση ή εγγραφή','Sign in or sign up'),onclick:function(){ needAcc(); }})));
+  if(!sess()) page.append(h('div',{class:'card cmanon'},h('b',{text:T('Δες τι πιάνουν οι ψαράδες σε Κύπρο και Ελλάδα','See what anglers in Cyprus and Greece are catching')}),h('p',{class:'sub',text:T('Με δωρεάν λογαριασμό κάνεις like, σχολιάζεις, ρωτάς και μοιράζεσαι τα δικά σου ψάρια. Δεν φαίνεται ποτέ θέση.','With a free account you can like, comment, ask and share your own catches. A location is never shown.')}),h('button',{class:'btn pri full',type:'button',text:T('Σύνδεση ή εγγραφή','Sign in or sign up'),onclick:function(){ needAcc(); }})));
   /* 1.9.56: αν αυτό το κινητό δεν θα πάρει ειδοποιήσεις (κλειστές, χωρίς άδεια ή χωρίς συνδρομή στον server), το λέει εδώ */
   if(sess()) (function(){ var n=ls.get('alkyon-notify',{})||{}, perm=('Notification' in window)?Notification.permission:'unsupported', off=!n.on||perm!=='granted'||n.server===false;
     if(!off) return;

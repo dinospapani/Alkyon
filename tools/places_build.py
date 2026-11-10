@@ -9,13 +9,13 @@ import base64, json, math, os, re, sys, time, urllib.parse, urllib.request
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, 'gr-places.js')
 UA = 'Alkyon-places/1.0 (fishing app; https://github.com/dinospapani/Alkyon)'
-Q = """[out:json][timeout:900];
-area["ISO3166-1"="GR"][admin_level=2]->.gr;
+# μικρά πλαίσια (1,5° × 1,5°) ώστε κάθε ερώτημα να τελειώνει γρήγορα· η χώρα ελέγχεται μετά (region) 
+Q = """[out:json][timeout:180][bbox:{s},{w},{n},{e}];
 (
-  node(area.gr)["place"~"^(city|town|village|hamlet|suburb|neighbourhood|locality|isolated_dwelling|island|islet)$"]["name"];
-  nwr(area.gr)["leisure"="marina"]["name"];
-  nwr(area.gr)["harbour"="yes"]["name"];
-  nwr(area.gr)["seamark:type"="harbour"]["seamark:name"];
+  node["place"~"^(city|town|village|hamlet|suburb|neighbourhood|locality|isolated_dwelling|island|islet)$"]["name"];
+  nwr["leisure"="marina"]["name"];
+  nwr["harbour"="yes"]["name"];
+  nwr["seamark:type"="harbour"]["seamark:name"];
 );
 out center tags;"""
 SERVERS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter', 'https://overpass.private.coffee/api/interpreter']
@@ -48,16 +48,44 @@ def near_sea(G, lat, lon, cells=6):
     return False
 
 
-def fetch():
-    data = urllib.parse.urlencode({'data': Q}).encode()
-    for k in range(6):
+def region(lat, lon):
+    """ίδιο με το AK.region της εφαρμογής: Ελλάδα χωρίς τα τουρκικά παράλια"""
+    if lat < 34.75 or lat > 41.8 or lon < 19.2 or lon > 29.8: return False
+    if lat > 40.6 and lon > 26.65: return False
+    if 38.45 < lat <= 40.6 and lon > 26.64: return False
+    if 38.15 < lat <= 38.45 and lon > 26.24: return False
+    if 37.3 < lat <= 38.15 and lon > 27.15: return False
+    if 36.93 < lat <= 37.3 and lon > 27.38: return False
+    if 36.68 < lat <= 36.93 and lon > 27.45: return False
+    if 36.0 < lat <= 36.68 and lon > 28.3 and not (lat < 36.17 and 29.5 < lon < 29.62): return False
+    if lon < 20.95 and lat > 39.65 and not (lat < 39.9 and lon < 19.98): return False   # Αλβανία (εκτός βόρειας Κέρκυρας/Οθωνών)
+    if lat > 41.1 and lon < 22.9: return False                                          # Β. Μακεδονία / Αλβανία
+    return True
+
+
+def fetch_box(s_, w, n, e):
+    data = urllib.parse.urlencode({'data': Q.format(s=s_, w=w, n=n, e=e)}).encode()
+    for k in range(8):
         url = SERVERS[k % len(SERVERS)]
         try:
             req = urllib.request.Request(url, data=data, headers={'User-Agent': UA})
-            with urllib.request.urlopen(req, timeout=960) as r: return json.load(r)
-        except Exception as e:
-            print('overpass', url, e, file=sys.stderr); time.sleep(30)
-    raise SystemExit('overpass failed')
+            with urllib.request.urlopen(req, timeout=240) as r: j = json.load(r)
+            if j.get('remark') and not j.get('elements'): raise RuntimeError(j['remark'][:200])
+            return j.get('elements', [])
+        except Exception as ex:
+            print('overpass', url, (s_, w), ex, file=sys.stderr); time.sleep(20)
+    raise SystemExit('overpass failed for box %s' % ((s_, w, n, e),))
+
+
+def fetch():
+    els = []; lat = 34.5
+    while lat < 42:
+        lon = 19.0
+        while lon < 30:
+            els += fetch_box(lat, lon, min(42, lat + 1.5), min(30, lon + 1.5)); time.sleep(3); lon += 1.5
+        lat += 1.5
+    print('elements', len(els))
+    return {'elements': els}
 
 
 RANK = {'city': 3, 'town': 3, 'village': 2, 'suburb': 1, 'hamlet': 1, 'neighbourhood': 1, 'locality': 1, 'isolated_dwelling': 1, 'island': 2, 'islet': 1}
@@ -67,7 +95,7 @@ def main():
     G = grid(); j = fetch(); out = {}
     for e in j.get('elements', []):
         t = e.get('tags', {}); lat = e.get('lat') or (e.get('center') or {}).get('lat'); lon = e.get('lon') or (e.get('center') or {}).get('lon')
-        if lat is None or lon is None: continue
+        if lat is None or lon is None or not region(lat, lon): continue
         name = t.get('name:el') or t.get('name') or t.get('seamark:name') or ''
         if not re.search('[Α-Ωα-ωάέήίόύώϊϋΐΰ]', name): continue          # μόνο με ελληνικό όνομα
         name = re.sub(r'\s+', ' ', name).strip()
