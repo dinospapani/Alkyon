@@ -137,3 +137,7 @@ html.night .wpk .oldhint{background:#000;border:1px solid #fff}
 .spkg .bar .bl,.bar .bl{white-space:normal;line-height:1.15;overflow-wrap:anywhere;text-overflow:clip}
 .pstats .pst b.lng{white-space:normal!important;text-overflow:clip;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;font-size:13px;line-height:1.15;overflow-wrap:anywhere}
 .card .seg button{white-space:normal;line-height:1.12;text-overflow:clip;padding:2px 3px}
+/* 1.10.6: διαδρομή με σημεία στον χάρτη */
+.mpkbar .mplrow{display:flex;align-items:center;gap:8px;margin:6px 0}.mpkbar .mplrow .btn{flex:0 0 auto;width:auto;padding:0 14px}.mpkbar .mplrow .mplcnt{flex:1;min-width:0;text-align:right;color:var(--ink-2)}
+/* 1.10.6: σελίδες με ‹ και τίτλο χωρίς κουμπί δεξιά (Φίλοι, Ειδοποιήσεις): ο τίτλος αριστερά, όχι δεξιά */
+.top>:first-child:last-child{margin-left:0;margin-right:auto;min-width:0}

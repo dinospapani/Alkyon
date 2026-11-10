@@ -1038,19 +1038,20 @@ function replay(t){ replayStop(); if(!map||!t||!t.track||t.track.length<2) retur
   var bar=h('div',{class:'rpbar'},h('div',{class:'rph'},h('span',null,h('b',{text:(t.spot||T('Έξοδος','Trip'))}),h('small',{text:' · '+(t.date||'').split('-').reverse().join('/')})),h('button',{class:'iconbtn sm',type:'button','aria-label':T('Κλείσιμο','Close'),html:B.iconSvg('close'),onclick:function(){ replayStop(); revClear(); }})),
     h('div',{class:'rpc'},play,sl,lab),cnt);
   document.body.append(bar); document.body.classList.add('replaying'); rp={g:g,bar:bar,iv:null}; setPlay(false); show(0); setTimeout(start,700); }
-B.replayTrip=function(t){ if(!t||!t.track||t.track.length<2) return; pend={lat:t.track[0][0],lon:t.track[0][1],z:13,tr:t.track,replay:t}; if(!/^#map/.test(location.hash||'')) location.hash='#map'; else if(map&&root) applyPend(); };
+B.replayTrip=function(t){ if(!t||!t.track||t.track.length<2) return; pend={lat:t.track[0][0],lon:t.track[0][1],z:13,tr:t.track,replay:t,back:from()}; if(!/^#map/.test(location.hash||'')) location.hash='#map'; else if(map&&root) applyPend(); };
 /* v31z520: η διαδρομή ή το σημείο που άνοιξες από το Ημερολόγιο μένει στον χάρτη με ένα κουμπί «✕» για να φύγει */
 var revChip=null;
 var revOnClear=null;
+var revBack=null;
 function revClear(){ if(gRev&&map){ map.removeLayer(gRev); } gRev=null; if(revChip){ revChip.remove(); revChip=null; } var f=revOnClear; revOnClear=null; if(f) f(); }
 B.mapRevClear=revClear;
 function revShow(lab,trip){ if(revChip) revChip.remove();
   revChip=h('div',{class:'revchip',role:'group'},h('span',{class:'rvt',text:lab}),
     trip?h('button',{type:'button',class:'rvp','aria-label':T('Επανάληψη εξόδου','Replay trip'),text:'▶',onclick:function(){ replay(trip); }}):null,
-    h('button',{type:'button',class:'rvx','aria-label':T('Απόκρυψη από τον χάρτη','Hide from the map'),text:'✕',onclick:revClear}));
+    h('button',{type:'button',class:'rvx','aria-label':T('Απόκρυψη από τον χάρτη','Hide from the map'),text:'✕',onclick:function(){ var b=revBack; revBack=null; revClear(); if(b&&/^#map/.test(location.hash||'')) location.hash=b; }}));
   document.body.append(revChip); }
 function applyPend(){ if(!pend||!map) return false; var q=pend; pend=null;
-  revClear();
+  revClear(); revBack=q.back||null;
   if(q.replay&&q.tr&&q.tr.length>1){ setTimeout(function(){ replay(q.replay); },300); }
   if(q.tr&&q.tr.length>1){ gRev=L.layerGroup([L.polyline(q.tr.map(function(p){ return [p[0],p[1]]; }),{color:'#ff8a50',weight:5,opacity:.95}),L.circleMarker(q.tr[0],{radius:7,color:'#fff',weight:3,fillColor:'#3ddc97',fillOpacity:1}),L.circleMarker(q.tr[q.tr.length-1],{radius:7,color:'#fff',weight:3,fillColor:'#ff4d4d',fillOpacity:1})]).addTo(map); /* 1.9.5: δεν γυρνά στη θέση σου όσο βλέπεις τη διαδρομή (το κουμπί θέσης την ξανανοίγει) */ try{ setFollow(false); }catch(e){} map.fitBounds(L.latLngBounds(q.tr.map(function(p){ return [p[0],p[1]]; })),{padding:[40,40]}); revShow(q.lab||T('Διαδρομή εξόδου','Trip route'),q.trip||q.replay||null); }
   else { var lab=q.lab||T('Σημείο από το Ημερολόγιο','Point from the logbook');
@@ -1069,7 +1070,9 @@ function pickPt(q){ var mc=map.getContainer(), R=mc.getBoundingClientRect(), bt=
   var cr=document.querySelector('.cross'); if(cr){ cr.style.left=Math.round(x)+'px'; cr.style.top=Math.round(y)+'px'; } return {ll:ll,cp:cp,c:[R.width/2,R.height/2]}; }
 function pickGo(q,la,lo,z){ map.setView([la,lo],z,{animate:false}); var p=pickPt(q); if(Math.abs(p.c[1]-p.cp[1])>2||Math.abs(p.c[0]-p.cp[0])>2) map.panBy([p.c[0]-p.cp[0],p.c[1]-p.cp[1]],{animate:false}); }
 function pickEnd(ok){ if(!pk) return; var q=pk; pk=null; var pp=ok&&map?pickPt(q):null; document.body.classList.remove('mappick'); var cr=document.querySelector('.cross'); if(cr){ cr.style.left=''; cr.style.top=''; } if(q.bar) q.bar.remove(); if(map&&q.mv) map.off('move',q.mv);
-  if(ok&&map){ var g=q.det&&q.det.open&&q.cb?q.cb.get():null, c=pp?pp.ll:map.getCenter(); var la=g?g.lat:+c.lat.toFixed(5), lo=g?g.lon:+c.lng.toFixed(5); try{ if(q.o.onPick) q.o.onPick(la,lo,q.nm.value.trim()); }catch(e){} }
+  if(q.lay&&map){ map.removeLayer(q.lay); q.lay=null; }
+  if(ok&&map&&q.o.line){ var lp=q.pts.slice(); if(!lp.length&&pp) lp=[[+pp.ll.lat.toFixed(5),+pp.ll.lng.toFixed(5)]]; try{ if(q.o.onLine) q.o.onLine(lp); }catch(e){} }
+  else if(ok&&map){ var g=q.det&&q.det.open&&q.cb?q.cb.get():null, c=pp?pp.ll:map.getCenter(); var la=g?g.lat:+c.lat.toFixed(5), lo=g?g.lon:+c.lng.toFixed(5); try{ if(q.o.onPick) q.o.onPick(la,lo,q.nm.value.trim()); }catch(e){} }
   if(!ok&&q.o.onCancel){ try{ q.o.onCancel(); }catch(e){} }   /* 1.10.5: π.χ. ξανανοίγει τη φόρμα από όπου ήρθες */
   if(q.o.back&&q.nav!==false) setTimeout(function(){ location.hash=q.o.back; },0); }
 function pickUI(){ if(!pk||pk.bar||!map||!root) return; var q=pk, o=q.o, PC=window.AlkyonCoord;
@@ -1081,6 +1084,17 @@ function pickUI(){ if(!pk||pk.bar||!map||!root) return; var q=pk, o=q.o, PC=wind
     h('div',{class:'mpkh'},h('b',{text:o.title||T('Διάλεξε σημείο','Pick a point')}),h('small',{text:T('Μετακίνησε τον χάρτη· το σημείο είναι στον σταυρό.','Move the map; the point is under the crosshair.')})),
     h('div',{class:'mprow'},h('small',{text:T('Κέντρο','Centre')}),rd),q.det,q.nm,
     h('div',{class:'acts'},h('button',{class:'btn',type:'button',text:T('Άκυρο','Cancel'),onclick:function(){ pickEnd(false); }}),h('button',{class:'btn pri',type:'button',text:o.saveLabel||T('Επιλογή','Choose'),onclick:function(){ pickEnd(true); }})));
+  /* 1.10.6: διαδρομή με σημεία (π.χ. παραγάδι, δίχτυ): «+ Σημείο» βάζει σημείο στον σταυρό, «Αναίρεση» βγάζει το τελευταίο */
+  if(o.line){ q.pts=(o.pts||[]).filter(function(p){ return p&&typeof p[0]==='number'; }).map(function(p){ return [p[0],p[1]]; });
+    var cnt=h('small',{class:'mplcnt'}), drawL=function(){ if(q.lay) map.removeLayer(q.lay); var L0=[]; if(q.pts.length>1) L0.push(L.polyline(q.pts,{color:'#ff8a50',weight:5,opacity:.95}));
+      q.pts.forEach(function(p,i){ L0.push(L.circleMarker(p,{radius:i===0||i===q.pts.length-1?7:5,color:'#fff',weight:2,fillColor:i===0?'#3ddc97':(i===q.pts.length-1?'#ff4d4d':'#ff8a50'),fillOpacity:1})); });
+      q.lay=L.layerGroup(L0).addTo(map); cnt.textContent=q.pts.length?q.pts.length+' '+T('σημεία','points'):T('Κανένα σημείο ακόμα','No points yet'); un.disabled=!q.pts.length; };
+    var un=h('button',{class:'btn',type:'button',text:T('Αναίρεση','Undo'),onclick:function(){ q.pts.pop(); drawL(); }});
+    var add=h('button',{class:'btn',type:'button',text:T('+ Σημείο','+ Point'),onclick:function(){ var c=pickPt(q).ll; q.pts.push([+c.lat.toFixed(5),+c.lng.toFixed(5)]); drawL(); }});
+    q.nm.hidden=true; if(q.det) q.det.hidden=true;
+    q.bar.querySelector('.mpkh small').textContent=T('Μετακίνησε τον χάρτη και πάτα «+ Σημείο» σε κάθε σημείο της διαδρομής, από την αρχή ως το τέλος.','Move the map and tap «+ Point» at each point of the line, from start to end.');
+    q.bar.insertBefore(h('div',{class:'acts mplrow'},un,add,cnt),q.bar.querySelector('.acts')); drawL();
+    if(typeof o.lat!=='number'&&q.pts.length){ o.lat=q.pts[q.pts.length-1][0]; o.lon=q.pts[q.pts.length-1][1]; } }
   document.body.append(q.bar); document.body.classList.add('mappick');
   if(typeof o.lat==='number'&&typeof o.lon==='number'){ setFollow(false); followPause=Date.now()+600000; var z0=Math.max(map.getZoom(),o.z||12); pickGo(q,o.lat,o.lon,z0);
     /* η κάρτα παίρνει το τελικό της ύψος λίγο μετά: ξανά, ώστε το σημείο να είναι ακριβώς κάτω από τον σταυρό (αν δεν έχεις κουνήσει τον χάρτη) */
@@ -1115,7 +1129,9 @@ function posCheck(){
   setTimeout(function(){ info.after=posMeasure(); try{ window.AlkyonErr&&AlkyonErr.report('mapdiag',{src:'map-view.js',stack:JSON.stringify(info)}); }catch(x){} },400); }
 var dcT=null; function declutterSoon(){ clearTimeout(dcT); dcT=setTimeout(declutter,120); }
 /* 1.2.2: πάντα μεταφέρει στον Χάρτη (πριν, αν ο χάρτης είχε ανοίξει μία φορά, μετακινούνταν μόνο ο κρυφός χάρτης και έμενες στην ίδια σελίδα) */
-B.mapGo=function(lat,lon,z,tr,o){ o=o||{}; pend={lat:lat,lon:lon,z:z,tr:tr,lab:o.lab||null,sea:!!o.sea}; if(!/^#map/.test(location.hash||'')) location.hash='#map'; else if(map&&root) applyPend(); };
+/* 1.10.6: το ✕ του σημείου/διαδρομής γυρίζει εκεί που ήσουν (Ειδοποιήσεις, Ημερολόγιο…) */
+function from(){ var hs=location.hash||''; return /^#map/.test(hs)?null:(hs||null); }
+B.mapGo=function(lat,lon,z,tr,o){ o=o||{}; pend={lat:lat,lon:lon,z:z,tr:tr,lab:o.lab||null,sea:!!o.sea,back:o.back||from()}; if(!/^#map/.test(location.hash||'')) location.hash='#map'; else if(map&&root) applyPend(); };
 
 B.view('map',{title:T('Χάρτης','Map'),mount:mount,unmount:unmount,resume:function(){ if(map&&root){ map.invalidateSize(); drawData(); applyPend(); pickUI(); } }});
 var ddF=0; B.on('store',function(k){ if(map&&/^alkyon-(bites|spots|gear)$/.test(k)&&!ddF) ddF=requestAnimationFrame(function(){ ddF=0; if(map) drawData(); }); });

@@ -425,6 +425,34 @@ NOW = RealDate.parse('2026-11-09T10:00:00Z');
   check('Νέα: η έκδοση 1.10.5 υπάρχει στα «Τι νέο»', /\['1\.10\.5',\[T\('Δίχτυ, παραγάδι, κλουβί στα Εργαλεία/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
 }
 
+/* ---------- 1.10.6: ειδοποιήσεις σε μία γλώσσα, ελληνικά ονόματα, χάρτης ---------- */
+{
+  const ctx = {}; ctx.globalThis = ctx; ctx.self = ctx;
+  new Function('self', fs.readFileSync(path.join(ROOT, 'v4', 'notif-i18n.js'), 'utf8').replace('(typeof self!=="undefined"?self:globalThis)', '(self)'))(ctx);
+  const tr = ctx.AlkNotifTr, GR = /[Ͱ-Ͽἀ-῿]/;
+  const a = tr('🎣 Αύριο καλή μέρα · Map point', 'en'), b = tr('Αύριο Τρί 10/11 · δείκτης 71 · καλύτερη ώρα 05:00–07:00\nΝέα σελήνη, πίεση πέφτει αργά, ΝΑ 1 Bft, κύμα 0,2 m, νερό 22°C', 'en');
+  const c = tr('📉 Ξεκίνησε κάθοδος πίεσης · Η θέση μου', 'en'), d = tr('Πέρασε η κορυφή (1026,6 hPa στις 19:00), η πίεση άρχισε να πέφτει.', 'en');
+  check('Ειδοποιήσεις: ελληνική ειδοποίηση σε αγγλική εφαρμογή → όλη στα αγγλικά (1.10.6)', [a, b, c, d].every(x => !GR.test(x)) && a === '🎣 Good day tomorrow · Map point' && /score 71 · best time 05:00–07:00/.test(b) && /waves 0\.2 m/.test(b), [a, b, c, d]);
+  const e = tr('📈 Pressure started rising · Map point', 'el'), f = tr('Tomorrow Tue 10/11 · score 72 · best time 16:00–18:00', 'el');
+  check('Ειδοποιήσεις: αγγλική ειδοποίηση σε ελληνική εφαρμογή → ελληνικά (1.10.6)', e === '📈 Ξεκίνησε άνοδος πίεσης · Σημείο χάρτη' && f === 'Αύριο Τρί 10/11 · δείκτης 72 · καλύτερη ώρα 16:00–18:00', [e, f]);
+  const av = fs.readFileSync(path.join(ROOT, 'v4', 'alerts-view.js'), 'utf8'), sw = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
+  check('Ειδοποιήσεις: μετάφραση στη λίστα και στην ειδοποίηση του κινητού (1.10.6)', /txt=NT\(x\.full/.test(av) && /function ibTitle\(t\)\{ t=NT\(t\);/.test(av) && /importScripts\('v4\/notif-i18n\.js'\)/.test(sw) && /title: NT\(m\.title/.test(sw));
+  const w = { LANG: 'el' }; new Function('window', fs.readFileSync(path.join(ROOT, 'v4', 'data-el.js'), 'utf8'))(w);
+  const dn = w.dataName, got = ['Dusky grouper', 'Common dentex', 'Grey triggerfish', 'Goldblotch grouper', 'Rocks / reef', 'Spot', 'Map point', 'Longline 17', 'Dogtooth grouper, Red porgy', 'Λαβράκι', 'Totis net 1'].map(dn);
+  check('Ελληνικά ονόματα για δεδομένα στα αγγλικά (Σφυρίδα, Συναγρίδα, Γουρουνόψαρο, Στήρα…) (1.10.6)', JSON.stringify(got) === JSON.stringify(['Σφυρίδα', 'Συναγρίδα', 'Γουρουνόψαρο', 'Στήρα', 'Βράχια / ύφαλος', 'Σημείο', 'Σημείο χάρτη', 'Παραγάδι 17', 'Ασπρόβλαχος, Φαγκρί', 'Λαβράκι', 'Totis net 1']), got);
+  const w2 = { LANG: 'en' }; new Function('window', fs.readFileSync(path.join(ROOT, 'v4', 'data-el.js'), 'utf8'))(w2);
+  check('Στα αγγλικά τα ονόματα δεν αλλάζουν (1.10.6)', !w2.dataName, Object.keys(w2));
+  const mv = fs.readFileSync(path.join(ROOT, 'v4', 'map-view.js'), 'utf8'), fv = fs.readFileSync(path.join(ROOT, 'v4', 'forecast-view.js'), 'utf8'), lv = fs.readFileSync(path.join(ROOT, 'v4', 'log-view.js'), 'utf8'), cv = fs.readFileSync(path.join(ROOT, 'v4', 'community-view.js'), 'utf8'), css = fs.readFileSync(path.join(ROOT, 'v4', 'polish.css'), 'utf8') + fs.readFileSync(path.join(ROOT, 'v4', 'app.css'), 'utf8');
+  check('Χάρτης: διαδρομή με σημεία (+ Σημείο, Αναίρεση) (1.10.6)', /if\(o\.line\)\{ q\.pts=/.test(mv) && /q\.o\.onLine\(lp\)/.test(mv));
+  check('Χάρτης: το ✕ γυρίζει εκεί που ήσουν (1.10.6)', /back:o\.back\|\|from\(\)/.test(mv) && /var b=revBack; revBack=null; revClear\(\); if\(b&&/.test(mv));
+  check('Πρόγνωση: τη νύχτα το «Γιατί αυτός ο βαθμός» με τις ώρες της νύχτας (1.10.6)', /reasons\(d,tn\?nightHours\(fc,d\):null\)/.test(fv) && /function nightHours\(fc,d\)/.test(fv));
+  check('Πρόγνωση: μετρημένη πίεση σε τοπική ώρα, όχι «Z» (1.10.6)', !/slice\(11,16\)\+'Z, '/.test(fv));
+  check('Ημερολόγιο: σύνολο εξόδων με ψάρια από τις εγγραφές και ώρες με δεκαδικό (1.10.6)', /Math\.max\(\+t\.count\|\|0,bsid\[t\.sid\|\|t\.id\]\|\|0\)/.test(lv) && /B\.num\(tot,tot>0&&tot<10\?1:0\)/.test(lv));
+  check('Κοινότητα: τίτλος = το πιο βαρύ ψάρι (1.10.6)', /species:M\.species/.test(cv) && /function mainOf\(\)/.test(cv));
+  check('Εμφάνιση: τίτλος αριστερά, χωρίς γραμμή πάνω από τα κουμπιά των ειδοποιήσεων, Σωσμένα με σωστή σειρά (1.10.6)', /\.top>:first-child:last-child\{margin-left:0/.test(css) && /\.list \.li\.ibrow:has\(\+ \.ibacts\)\{border-bottom:0\}/.test(css) && /noSaved\?null:filters\(\)/.test(cv));
+  check('Νέα: η έκδοση 1.10.6 υπάρχει στα «Τι νέο»', /\['1\.10\.6',\[T\('Ειδοποιήσεις στη γλώσσα της εφαρμογής/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
+}
+
 /* ---------- σκοτάδι για καλαμάρι ---------- */
 {
   const dw = d => { const s = PF.sunMoon(d, 35.04, 32.42, 120); return PF.darkWin(d, s.set, s.rise, 35.04, 32.42, 120); };

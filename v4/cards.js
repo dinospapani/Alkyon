@@ -72,7 +72,7 @@ function fishCard(b){
     txt(cv,SN(b.species)||T('Ψάρι','Fish'),70,885,84,'800','#fff','left',940);
     var sz=[b.kg?b.kg+' kg':null,b.len?b.len+' cm':null].filter(Boolean).join('  ·  ');
     if(sz) txt(cv,sz,70,965,60,'700','#ffb27a','left',940);
-    var when=dmy(b.date)+(b.time?'  ·  '+b.time:''), where=b.place||'';
+    var when=dmy(b.date)+(b.time?'  ·  '+b.time:''), where=SN(b.place)||'';
     txt(cv,[when,where].filter(Boolean).join('  ·  '),70,1030,34,'500','rgba(255,255,255,.85)','left',940);
     var cd=[b.wind!=null&&U?U.wind(b.wind):null,b.wave!=null&&U?U.wave(b.wave):null,b.press!=null&&U?U.press(b.press):null,b.temp!=null&&U?U.temp(b.temp):null].filter(Boolean);
     if(cd.length) txt(cv,cd.join('  ·  '),70,1085,32,'500','rgba(255,255,255,.7)','left',940);
@@ -87,7 +87,7 @@ function tripStats(t){
 }
 function tripCard(t){
   var s=tripStats(t), cv=mk(1080,1350); brand(cv,T('Η έξοδός μου','My trip'));
-  txt(cv,[dmy(t.date),t.spot].filter(Boolean).join('  ·  '),70,185,40,'700','#fff','left',940);
+  txt(cv,[dmy(t.date),SN(t.spot)].filter(Boolean).join('  ·  '),70,185,40,'700','#fff','left',940);
   route(cv,t.track,70,225,940,560);
   var w=296, g=26, y0=830, h=190, X=[70,70+w+g,70+2*(w+g)];
   stat(cv,X[0],y0,w,h,s.ms?fmtDur(s.ms):'–',T('Διάρκεια','Duration'));

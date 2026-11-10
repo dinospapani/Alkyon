@@ -380,8 +380,9 @@ function draw(){
   if(sess()) page.append(B.seg([['all',T('Όλα','All')],['follow',T('Ακολουθώ','Following')],['saved',T('Σωσμένα','Saved')],['mine',T('Δικά μου','Mine')]],F.mode,function(v){ if(v===F.mode) return; F.mode=v; F.user=null; load(true); },T('Αναρτήσεις','Posts')));
   if(sess()) page.append(h('div',{class:'cmask'},h('button',{class:'btn sm',type:'button',text:T('Ρώτα την Κοινότητα','Ask the Community'),onclick:function(){ ask({k:'q'}); }}),h('button',{class:'btn sm',type:'button',text:T('Τι ψάρι είναι;','What fish is this?'),onclick:function(){ ask({k:'id'}); }})));
   if(F.mode==='all'&&!F.user){ var wk=weekCard(), ch=F.all?chalCard():null, bd=boardCard(); if(wk) page.append(wk); if(ch) page.append(ch); if(bd) page.append(bd); }
-  if(F.mode==='saved'&&!saved().length) page.append(h('div',{class:'card empty'},h('p',{text:T('Δεν έχεις σώσει ακόμη αναρτήσεις. Πάτα ☆ σε μια ανάρτηση για να τη βρίσκεις εδώ.','No saved posts yet. Tap ☆ on a post to find it here.')})));
-  var flt=filters(); if(flt) page.append(flt);
+  /* 1.10.6: τα φίλτρα πάνω, το «δεν έχεις σώσει» από κάτω (και χωρίς φίλτρα όταν δεν υπάρχει τίποτα να φιλτράρεις) */
+  var noSaved=F.mode==='saved'&&!saved().length, flt=noSaved?null:filters(); if(flt) page.append(flt);
+  if(noSaved) page.append(h('div',{class:'card empty'},h('p',{text:T('Δεν έχεις σώσει ακόμη αναρτήσεις. Πάτα ☆ σε μια ανάρτηση για να τη βρίσκεις εδώ.','No saved posts yet. Tap ☆ on a post to find it here.')})));
   if(F.mode==='follow'&&!follows().length) page.append(h('div',{class:'card empty'},h('p',{text:T('Δεν ακολουθείς ακόμη κανέναν. Πάτα το όνομα ενός ψαρά › Ακολούθησε. Στις Ειδοποιήσεις μπορείς να διαλέξεις να ειδοποιείσαι μόνο για όσους ακολουθείς.','You do not follow anyone yet. Tap an angler’s name › Follow. In Alerts you can choose to be notified only about people you follow.')})));
   page.append(h('p',{class:'sub',style:{margin:'10px 4px'},text:T('Οι αναρτήσεις δεν δείχνουν ποτέ θέση ή όνομα σημείου. Μοιράζεσαι ένα ψάρι από το Ημερολόγιο: πάτα το ψάρι › Κοινότητα.','Posts never show a location or spot name. Share a catch from the Log: tap the catch › Community.')}));
   var bl=blocked(), shown=F.items.filter(function(p){ return bl.indexOf(p.user_id)<0; });
@@ -449,13 +450,17 @@ B.commShare=function(b){
   var blob=null, body=h('div',{class:'bform cmshare'}), prev=h('div'), withCond=false, sh;
   (b.photo?B.store.Photos.get(b.id).catch(function(){ return null; }):Promise.resolve(null)).then(function(bl){ blob=bl; if(bl) prev.append(h('img',{class:'cmimg',alt:'',src:URL.createObjectURL(bl)})); });
   var sz=[]; if(b.kg!=null&&b.kg!=='') sz.push(b.kg+' kg'); if(b.len!=null&&b.len!=='') sz.push(b.len+' cm');
-  body.append(prev,h('div',{class:'cmtitle'},h('b',{text:b.species}),sz.length?h('span',{text:sz.join(' · ')}):null));
+  /* 1.10.6: τίτλος της ανάρτησης = το πιο βαρύ ψάρι από όσα στέλνεις (το ίδιο ή τα άλλα της μέρας) */
+  var tB=h('b',{text:b.species}), tS=h('span',{text:sz.join(' · '),hidden:!sz.length});
+  body.append(prev,h('div',{class:'cmtitle'},tB,tS));
+  function mainOf(){ var c=[b].concat((others||[]).filter(function(x){ return pick[x.id]; })), m=b; c.forEach(function(x){ if(x.kg!=null&&x.kg!==''&&isFinite(+x.kg)&&(m.kg==null||m.kg===''||!isFinite(+m.kg)||+x.kg>+m.kg)) m=x; }); return m; }
+  function retitle(){ var m=mainOf(), z=[]; if(m.kg!=null&&m.kg!=='') z.push(m.kg+' kg'); if(m.len!=null&&m.len!=='') z.push(m.len+' cm'); tB.textContent=m.species; tS.textContent=z.join(' · '); tS.hidden=!z.length; }
   var ch=chips({wind:b.wind,wave:b.wave,press:b.press,sst:b.sst,moon:moonIdx(b)});
   var others=b.date?sameDay(b):[], pick={};
   if(others.length){ var ob=h('div',{class:'cmpick'},h('b',{text:T('Και άλλα ψάρια της ίδιας μέρας','Other catches from the same day')}));
-    others.forEach(function(x){ pick[x.id]=1; var c=h('input',{type:'checkbox',checked:true}); c.addEventListener('change',function(){ pick[x.id]=c.checked?1:0; });
+    others.forEach(function(x){ pick[x.id]=1; var c=h('input',{type:'checkbox',checked:true}); c.addEventListener('change',function(){ pick[x.id]=c.checked?1:0; retitle(); });
       ob.append(h('label',{class:'tg'},c,h('span',{text:x.species+(x.kg!=null&&x.kg!==''?' '+kgTxt(x.kg):'')+(x.len!=null&&x.len!==''?' · '+x.len+' cm':'')}))); });
-    body.append(ob); }
+    body.append(ob); retitle(); }
   var areaIn=h('input',{type:'text',maxlength:'40',placeholder:T('π.χ. Λεμεσός','e.g. Limassol'),value:nearArea(b),hidden:true,'aria-label':T('Περιοχή','Area')}), withArea=false, acb=h('input',{type:'checkbox'});
   acb.addEventListener('change',function(){ withArea=acb.checked; areaIn.hidden=!withArea; if(withArea) try{ areaIn.focus(); }catch(e){} });
   body.append(h('label',{class:'tg'},acb,h('span',{text:T('Να φαίνεται η περιοχή (π.χ. «Λεμεσός», ποτέ το σημείο)','Show the area (e.g. "Limassol", never the spot)')})),areaIn);
@@ -468,9 +473,9 @@ B.commShare=function(b){
       var th=false;
       rest('community_posts?select=id&limit=1').then(function(){ if(!blob) return; return jpeg(blob).then(function(jb){ path=uid()+'/'+uuid()+'.jpg'; return C().storage('POST','community/'+path,jb,'image/jpeg'); }).then(function(r){ if(!r.ok) throw new Error('photo '+r.status); return upThumb(blob,path).then(function(ok){ th=ok; }); }); })
         .then(function(){ var cond=withCond?{wind:b.wind,wave:b.wave,press:b.press,ptrend:b.ptrend,sst:b.sst,temp:b.temp,moon:moonIdx(b)}:{}; Object.keys(cond).forEach(function(k){ if(cond[k]==null||cond[k]==='') delete cond[k]; else if(typeof cond[k]==='number') cond[k]=Math.round(cond[k]*10)/10; });
-          var mo=others.filter(function(x){ return pick[x.id]; }).map(function(x){ var o={s:String(x.species).slice(0,40)}; if(x.kg!=null&&x.kg!==''&&isFinite(+x.kg)) o.kg=+x.kg; if(x.len!=null&&x.len!==''&&isFinite(+x.len)) o.len=+x.len; return o; }); if(mo.length) cond.more=mo;
+          var M=mainOf(), mo=[b].concat(others.filter(function(x){ return pick[x.id]; })).filter(function(x){ return x!==M; }).map(function(x){ var o={s:String(x.species).slice(0,40)}; if(x.kg!=null&&x.kg!==''&&isFinite(+x.kg)) o.kg=+x.kg; if(x.len!=null&&x.len!==''&&isFinite(+x.len)) o.len=+x.len; return o; }); if(mo.length) cond.more=mo;
           var ar=withArea?areaIn.value.trim().slice(0,40):''; if(ar) cond.area=ar; if(b.rel) cond.rel=true; if(th) cond.th=1;
-          return rest('community_posts',{method:'POST',body:JSON.stringify({src:b.id,author:author(),species:b.species,latin:b.latin||null,kg:b.kg!=null&&b.kg!==''?+b.kg:null,len:b.len!=null&&b.len!==''?+b.len:null,bait:b.bait||null,tech:b.tech||null,day:b.date||null,cond:cond,photo:path}),headers:{'Content-Type':'application/json',Prefer:'return=representation'}}).then(function(r){ return r.json(); }); })
+          return rest('community_posts',{method:'POST',body:JSON.stringify({src:b.id,author:author(),species:M.species,latin:M.latin||null,kg:M.kg!=null&&M.kg!==''?+M.kg:null,len:M.len!=null&&M.len!==''?+M.len:null,bait:M.bait||b.bait||null,tech:M.tech||b.tech||null,day:b.date||null,cond:cond,photo:path}),headers:{'Content-Type':'application/json',Prefer:'return=representation'}}).then(function(r){ return r.json(); }); })
         .then(function(rows){ pingComm(); var s=ls.get('alkyon-comm-shared',{})||{}; s[b.id]=(rows&&rows[0]&&rows[0].id)||1; ls.set('alkyon-comm-shared',s); sh.close(); B.toast(T('Δημοσιεύτηκε στην κοινότητα.','Shared to the community.')); F.items=[]; F.end=false; F.offset=0; F.all=null; })
         .catch(function(e){ if(path) C().storage('DELETE','community/'+path).catch(function(){}); var m=String(e&&e.message||e); go.disabled=false; go.textContent=T('Δημοσίευση','Publish');
           B.toast(/409|duplicate/i.test(m)?T('Έχει ήδη μοιραστεί.','Already shared.'):/rate/i.test(m)?T('Πολλές αναρτήσεις σήμερα.','Too many posts today.'):/404|relation|does not exist/i.test(m)?T('Η κοινότητα δεν έχει ενεργοποιηθεί ακόμη.','Community is not enabled yet.'):T('Δεν στάλθηκε. Έλεγξε τη σύνδεση.','Not sent. Check your connection.')); }); }); }});

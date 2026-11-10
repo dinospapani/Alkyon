@@ -403,6 +403,11 @@ function seaState(d){
   return ['good',T('Καλή','Good'),det];
 }
 /* 1.10.1: βαθμός για απόψε: η καλύτερη ασφαλής ώρα από τώρα ως την ανατολή (και το παράθυρό της), για όσους ψαρεύουν νύχτα */
+/* 1.10.6: οι ώρες της νύχτας (από τώρα ως την ανατολή· αν υπάρχει καλύτερη ώρα απόψε, μόνο εκείνες), για το «Γιατί αυτός ο βαθμός» τη νύχτα */
+function nightHours(fc,d){ var nh=nowHr(), nx=(fc.days||[]).filter(function(x){ return x.date>d.date; })[0], rh=nx&&nx.rise!=null?Math.floor(nx.rise/60):6;
+  var hs=(d.hours||[]).filter(function(q){ return q.hr>=nh; }).concat(nx?(nx.hours||[]).filter(function(q){ return q.hr<rh; }):[]), nb=nightBest(fc,d);
+  if(nb){ var a=-1,b=-1; hs.forEach(function(q,i){ if(a<0&&q.hr===nb.s) a=i; if(a>=0&&b<0&&q.hr===nb.e) b=i; }); if(a>=0&&b>=a) return hs.slice(a,b+1); }
+  return hs; }
 function nightBest(fc,d){
   var nh=nowHr(), nx=(fc.days||[]).filter(function(x){ return x.date>d.date; })[0], rh=nx&&nx.rise!=null?Math.floor(nx.rise/60):6;
   var hs=(d.hours||[]).filter(function(q){ return q.hr>=nh; }).concat(nx?(nx.hours||[]).filter(function(q){ return q.hr<rh; }):[]).filter(function(q){ return q.safe!==false&&q.score!=null; });
@@ -432,7 +437,7 @@ function dayView(page,fc,d){
   /* κεντρικό: απόφαση, καλύτερη ώρα, καμπύλη της μέρας */
   var tn=(isToday&&!d.safe&&d.why==='night')?tonight(fc,d,nh):null; /* 1.9.99: τη νύχτα όχι «Δεν μένει φως»: πώς είναι η θάλασσα απόψε */
   var hero=h('section',{class:'hero lv-'+(tn?tn[0]:d.safe?lvl(d.best):'poor'),'aria-label':T('Σύνοψη ημέρας','Day summary')});
-  var fh=focusHours(d), tg=seaTag({wave:avgOf(fh,'wave'),wind:avgOf(fh,'wind')});
+  var fh=tn?nightHours(fc,d):focusHours(d), tg=seaTag({wave:avgOf(fh,'wave'),wind:avgOf(fh,'wind')});
   hero.append(h('div',{class:'hv'},h('h2',{text:tn?tn[1]:verdict(d)})));
   if(tn){ var nbt=nightBest(fc,d); if(nbt) hero.append(h('div',{class:'hw'},h('span',{text:T('Καλύτερη ώρα απόψε','Best time tonight')}),h('b',{text:B.pad(nbt.s)+':00–'+B.pad((nbt.e+1)%24)+':00'})),h('p',{class:'hidx',text:T('Δείκτης ψαρέματος ','Fishing index ')+nbt.best+'/100'})); }
   if(tn&&tn[2]) hero.append(h('p',{class:'hwhy',text:tn[2]})); /* 1.8.6: ο βαθμός φαίνεται ήδη στη μέρα πάνω· εδώ μπαίνει το «γιατί» */
@@ -488,7 +493,7 @@ function dayView(page,fc,d){
   /* ανά ώρα: μπάρες και λεπτομέρειες της ώρας (σύρε το δάχτυλο πάνω στις μπάρες) */
   /* 1.6.8: σειρά = οι ερωτήσεις πριν βγεις: αξίζει/πότε → ασφαλές τώρα; → ποιες ώρες (και γιατί) → πού → με τι → εξέλιξη → κάτω από το νερό → ήλιος/σελήνη */
   var hSel=(isToday&&st.hour==null&&d.safe&&d.win&&d.win.s>nh)?d.win.s:selH; /* 1.9.10: το «Τώρα» φαίνεται ήδη πάνω· εδώ ανοίγει στην καλύτερη ώρα */
-  var why2=reasons(d), hcd=hr?hourCard(fc,d,hSel,isToday?nh:null):null;
+  var why2=reasons(d,tn?nightHours(fc,d):null), hcd=hr?hourCard(fc,d,hSel,isToday?nh:null):null;
   if(hcd){ if(!d.safe&&why2.length) hcd.append(h('h3',{class:'whyh',text:T('Γιατί αυτός ο βαθμός','Why this score')}),h('ul',{class:'why'},why2.map(function(r){ return h('li',{class:r[0]},r[1]); }))); page.append(hcd); }
   /* 1.9.30: σειρά κατά σημασία: απόφαση → τώρα → ανά ώρα → θα βγω → πού (σημεία σου, έκθεση ακτής) → εξέλιξη → κάτω από το νερό → σύγκριση */
   if(oppsLater&&B.oppsCard) page.append(B.oppsCard(2,{hideEmpty:true}));
@@ -618,8 +623,8 @@ function workedCard(d){
   return h('section',{class:'card worked'},h('h2',{text:T('Τι δούλεψε σε παρόμοιες μέρες','What worked on similar days')}),
     h('p',{class:'sub',text:sim.length+T(' ψαριές σου σε ',' of your catches on ')+Object.keys(days).length+T(' μέρες με παρόμοιο άνεμο, κύμα, νερό, πίεση και εποχή. Δεν είναι πρόγνωση: είναι τα δικά σου ψάρια.',' days with similar wind, waves, water, pressure and season. Not a forecast: these are your own catches.')}),
     h('div',{class:'rows one'},rows.map(function(r){ return h('div',{class:'row'},h('span',{text:r[0]}),h('b',{text:r[1].join(', ')})); }))); }
-function reasons(d){
-  var hs=focusHours(d); if(!hs.length) return [];
+function reasons(d,hs0){
+  var hs=hs0&&hs0.length?hs0:focusHours(d); if(!hs.length) return [];
   var av=function(k){ var a=hs.map(function(q){ return q[k]; }).filter(function(v){ return typeof v==='number'; }); return a.length?a.reduce(function(x,y){ return x+y; },0)/a.length:null; };
   var out=[], wd=av('wind'), wv=av('wave'), pf=B.prof();
   /* 1.9.17: εύρος μέσα στο παράθυρο («1–2 Bft», «0,3–0,4 m») ώστε να συμφωνεί με ό,τι δείχνει κάθε ώρα από κάτω */
@@ -673,7 +678,7 @@ function measured(box,p,modelNow){
       var dx=(s.lon-p.lon)*Math.cos(p.lat*Math.PI/180)*111.2, dy=(s.lat-p.lat)*111.2, d=Math.sqrt(dx*dx+dy*dy); if(d<bd){ bd=d; best=s; } }); return best&&bd<=60?{s:best,d:bd}:null; }
   function show(r){ if(!r) return; var s=r.s, U=window.AlkyonUnits, pf=function(v){ return U&&U.press?U.press(v):Math.round(v)+' hPa'; }, dif=modelNow!=null?Math.round((s.pres-modelNow)*10)/10:null;
     var old=box.querySelector('.measp'); if(old) old.remove();
-    box.append(h('p',{class:'foot measp',text:T('Μετρημένη πίεση: ','Measured pressure: ')+pf(s.pres)+' · '+(s.name||s.id)+' ('+(s.src||'')+', '+String(s.t).slice(11,16)+'Z, '+Math.round(r.d)+' km)'+(dif!=null?' · '+T('μοντέλο τώρα: ','model now: ')+pf(modelNow)+' ('+(dif>0?'+':'')+B.num(dif,1)+' hPa)':'')})); }
+    box.append(h('p',{class:'foot measp',text:T('Μετρημένη πίεση: ','Measured pressure: ')+pf(s.pres)+' · '+(s.name||s.id)+' ('+(s.src||'')+', '+(function(){ var d=new Date(/Z|[+-]\d\d:?\d\d$/.test(String(s.t))?s.t:String(s.t)+'Z'); return isNaN(d)?String(s.t).slice(11,16)+' UTC':B.pad(d.getHours())+':'+B.pad(d.getMinutes()); })()+', '+   /* 1.10.6: τοπική ώρα, όχι «20:50Z» */Math.round(r.d)+' km)'+(dif!=null?' · '+T('μοντέλο τώρα: ','model now: ')+pf(modelNow)+' ('+(dif>0?'+':'')+B.num(dif,1)+' hPa)':'')})); }
   if(p.lat==null) return; var c=ls.get('alkyon-obsp',null); if(c&&Date.now()-c.t<10*60000&&c.v){ show(pick(c.v)); return; }
   var to; try{ to=AbortSignal.timeout(10000); }catch(e){}
   fetch(SUPA+'/functions/v1/smart-api',{signal:to,headers:{apikey:SKEY,Authorization:'Bearer '+SKEY}}).then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(j){ var l=Array.isArray(j)?j:[]; ls.set('alkyon-obsp',{t:Date.now(),v:l}); show(pick(l)); }).catch(function(){});

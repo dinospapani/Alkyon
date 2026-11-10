@@ -1,7 +1,8 @@
 // Network first for the app's own files so updates arrive at once; cache is the offline fallback.
 // Weather APIs and fonts are cross-origin and always go straight to the network.
 importScripts('forecast.js');
-const V = 'alkyon-1.10.5';
+try{ importScripts('v4/notif-i18n.js'); }catch(e){}   /* 1.10.6: ειδοποίηση στη γλώσσα της εφαρμογής */
+const V = 'alkyon-1.10.6';
 const CFG = 'alkyon-cfg';
 /* 1.4.2: η κλασική αποσύρθηκε, οπότε εδώ μένουν μόνο οι σελίδες της ρίζας (ανακατεύθυνση στο v4/) και τα εικονίδια.
    Τα αρχεία της εφαρμογής τα κρατά για offline το v4/sw.js. Πριν κατέβαιναν εδώ ~6 MB σε κάθε ενημέρωση. */
@@ -61,7 +62,9 @@ async function inboxAdd(it) {
 }
 async function showMsg(m, src) {
   const id = m.id || ('n' + Date.now() + Math.random().toString(36).slice(2, 6));
-  const it = { id, at: m.at || new Date().toISOString(), kind: m.kind || 'info', title: m.title || 'Alkyon', body: m.body || '', full: m.full || m.body || '', place: m.place || null, t: m.t || null, locs: m.locs || null, src: src || 'push' };
+  let lg = null; try { const c = await readCfg(); lg = c && c.lang; } catch (x) {}
+  const NT = x => { try { return lg && self.AlkNotifTr ? self.AlkNotifTr(x, lg) : x; } catch (e) { return x; } };
+  const it = { id, at: m.at || new Date().toISOString(), kind: m.kind || 'info', title: NT(m.title || 'Alkyon'), body: NT(m.body || ''), full: NT(m.full || m.body || ''), place: m.place || null, t: m.t || null, locs: m.locs || null, src: src || 'push' };
   await inboxAdd(it);
   /* 1.9.61: πού ανοίγει όταν την πατάς: Κοινότητα (url), καλαμάρια → Πρόγνωση, έξοδος (καιρός, επιστροφή, δύση) → Χάρτης, αλλιώς Ειδοποιήσεις με αυτήν ανοιχτή */
   const hash = m.url && /^#[a-z]+$/.test(m.url) ? m.url : /^sq:/.test(id) ? '#forecast' : (/^trip-wx:/.test(id) || (m.place && /^(Έξοδος|Trip)$/.test(m.place.name || ''))) ? '#map' : '#inbox';
