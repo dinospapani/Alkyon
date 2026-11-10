@@ -614,6 +614,7 @@ check('Νέα: η έκδοση 1.10.8 υπάρχει στα «Τι νέο»', /\
   const bw = fs.readFileSync(path.join(ROOT, 'v4', 'bitewin.js'), 'utf8'), ix = fs.readFileSync(path.join(ROOT, 'v4', 'index.html'), 'utf8'), sw = fs.readFileSync(path.join(ROOT, 'v4', 'sw.js'), 'utf8');
   check('Παράθυρο τσιμπήματος: φορτώνει στην εφαρμογή και offline (1.11.6)', /<script src="bitewin\.js"><\/script>/.test(ix) && /'bitewin\.js'/.test(sw));
   check('Παράθυρο τσιμπήματος: ελέγχει άνεμο, πίεση, παλίρροια, ρεύμα, κύμα, ήλιο, σελήνη (1.11.6)', ['wind-turn', 'press-fall', 'tide-turn', 'cur-turn', 'wave-up', 'sunset', 'moonrise', 'solunar-end'].every(k => bw.includes("'" + k + "'")));
+  check('Νέα: η έκδοση 1.11.8 υπάρχει στα «Τι νέο»', /\['1\.11\.8',\[T\('Ώρες που τσιμπούσαν: το κουμπί/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')) && /'solunar-start'/.test(bw));
   check('Νέα: η έκδοση 1.11.7 υπάρχει στα «Τι νέο»', /\['1\.11\.7',\[T\('Ώρες που τσιμπούσαν: μόλις γράψεις/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
   check('Νέα: η έκδοση 1.11.6 υπάρχει στα «Τι νέο»', /\['1\.11\.6',\[T\('Ώρες που τσιμπούσαν/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
 }

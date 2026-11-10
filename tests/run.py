@@ -1075,12 +1075,17 @@ with sync_playwright() as p:
     r=pg.evaluate("()=>{ const b={date:'2026-11-09',tz:120,win:{a:'23:00',b:'01:30'}}; const s=AK.biteWin.span(b); return (s.e-s.a)/3600000 }")
     check('Παράθυρο τσιμπήματος: περνά τα μεσάνυχτα (23:00–01:30 = 2,5 ώρες) (1.11.6)', r==2.5, r)
     r=pg.evaluate("()=>{ const b=AK.store.bites().filter(x=>x.win)[0]; AK.biteDetail(b); const c=document.querySelector('.bwin'); return c?[c.querySelector('h2').textContent, !!c.querySelector('button')]:null }")
-    check('Σελίδα ψαριού: «Τσιμπούσαν 19:00–21:00» με κουμπί «Τι άλλαξε όταν σταμάτησαν;» (1.11.6)', r and r[0].startswith('Τσιμπούσαν 19:00–21:00') and r[1], r)
+    check('Σελίδα ψαριού: «Τσιμπούσαν 19:00–21:00» με κουμπί «Τι άλλαξε…» (1.11.6)', r and r[0].startswith('Τσιμπούσαν 19:00–21:00') and r[1], r)
     pg.evaluate("()=>{ document.querySelectorAll('.sheet .x, .sheet button[aria-label]').forEach(()=>0); AK.biteForm(); }"); pg.wait_for_timeout(800)
     pg.evaluate("()=>{ const f=[...document.querySelectorAll('.bform')].pop(); f.querySelector('.bfwin').open=true; }")
     pg.evaluate("()=>{ const f=[...document.querySelectorAll('.bform')].pop(); const a=f.querySelector('.bfwin input[aria-label=\"Τσιμπούσαν από\"]'); a.value='19:00'; a.dispatchEvent(new Event('input')); }"); pg.wait_for_timeout(200)
     r=pg.evaluate("()=>{ const f=[...document.querySelectorAll('.bform')].pop(); const w=f.querySelector('.bfww input[type=datetime-local]'), d=f.querySelector('.bfww input[type=date]'); return [w.closest('label').hidden, d.closest('label').hidden, w.value.slice(11,16)] }")
     check('Ώρες που τσιμπούσαν: η ώρα του ψαριού γίνεται το «Από» και κρύβεται το «Πότε» (μένει η ημερομηνία) (1.11.7)', r==[True,False,'19:00'], r)
+    r=pg.evaluate("""()=>{ const b={date:'2026-11-09',tz:120,lat:34.75,lon:32.40,win:{a:'19:00',b:'21:00'}};
+      const s=AK.biteWin.span(b), H=3600000, t=[], w=[], d=[], sl=[];
+      for(let i=-4;i<=6;i++){ const ms=s.a+i*H; t.push(ms); const before=ms<s.a; w.push(before?15:5); d.push(before?200:20); sl.push(i<=0?-0.05*i:0.05*i); }
+      const ch=AK.biteWin.analyze(b,{t:t,wind_speed_10m:w,wind_direction_10m:d,sea_level_height_msl:sl},'start').map(c=>c.k); return [ch.includes('wind-down'), ch.includes('wind-turn'), ch.includes('tide-turn')]; }""")
+    check('Ώρες που τσιμπούσαν: βρίσκει και τι άλλαξε όταν άρχισαν (έπεσε/γύρισε ο άνεμος, γύρισε η παλίρροια) (1.11.8)', r==[True,True,True], r)
     check('1.11.6: χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
     print('# offline')
     c=ctx(b,sw=True); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(6000); pg.reload(); pg.wait_for_timeout(3000)
