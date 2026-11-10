@@ -77,6 +77,22 @@ def fetch_box(s_, w, n, e):
     raise SystemExit('overpass failed for box %s' % ((s_, w, n, e),))
 
 
+def fetch_pbf(path):
+    """από απόσπασμα OSM της Geofabrik (greece-latest.osm.pbf) με pyosmium· χωρίς Overpass, που συχνά δεν απαντά"""
+    import osmium
+    els = []
+    class H(osmium.SimpleHandler):
+        def node(self, n):
+            t = n.tags
+            if ('place' in t and t.get('place') in RANK) or t.get('leisure') == 'marina' or t.get('harbour') == 'yes' or t.get('seamark:type') == 'harbour':
+                if not (t.get('name') or t.get('seamark:name')): return
+                if not n.location.valid(): return
+                els.append({'lat': n.location.lat, 'lon': n.location.lon, 'tags': {k: t.get(k) for k in ('name', 'name:el', 'name:en', 'int_name', 'place', 'leisure', 'harbour', 'seamark:type', 'seamark:name') if t.get(k)}})
+    H().apply_file(path)
+    print('elements', len(els))
+    return {'elements': els}
+
+
 def fetch():
     els = []; lat = 34.5
     while lat < 42:
@@ -92,7 +108,7 @@ RANK = {'city': 3, 'town': 3, 'village': 2, 'suburb': 1, 'hamlet': 1, 'neighbour
 
 
 def main():
-    G = grid(); j = fetch(); out = {}
+    G = grid(); j = fetch_pbf(sys.argv[1]) if len(sys.argv) > 1 else fetch(); out = {}
     for e in j.get('elements', []):
         t = e.get('tags', {}); lat = e.get('lat') or (e.get('center') or {}).get('lat'); lon = e.get('lon') or (e.get('center') or {}).get('lon')
         if lat is None or lon is None or not region(lat, lon): continue
@@ -112,7 +128,7 @@ def main():
     rows = sorted(out.values(), key=lambda r: (-r[4], r[0]))
     if len(rows) < 1500: raise SystemExit('too few places: %d' % len(rows))
     head = ('/* Παραθαλάσσια μέρη της Ελλάδας: [όνομα, αγγλικά, lat, lon, βαθμός 3 πόλη / 2 χωριό, λιμάνι, νησί / 1 οικισμός].\n'
-            '   Πηγή: OpenStreetMap (Overpass), (c) OpenStreetMap contributors, ODbL 1.0. Φτιάχνεται από το places-sync.yml (%s). */\n' % time.strftime('%Y-%m-%d'))
+            '   Πηγή: OpenStreetMap (Geofabrik / Overpass), (c) OpenStreetMap contributors, ODbL 1.0. Φτιάχνεται από το places-sync.yml (%s). */\n' % time.strftime('%Y-%m-%d'))
     open(OUT, 'w', encoding='utf-8').write(head + 'window.ALKYON_GR_PLACES=' + json.dumps(rows, ensure_ascii=False, separators=(',', ':')) + ';\n')
     print('places', len(rows), 'by rank', {k: sum(1 for r in rows if r[4] == k) for k in (1, 2, 3)})
 

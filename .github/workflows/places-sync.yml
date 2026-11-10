@@ -27,8 +27,12 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Build gr-places.js
-        run: python3 tools/places_build.py
+      - name: Build gr-places.js (OSM απόσπασμα Ελλάδας από τη Geofabrik)
+        run: |
+          pip install osmium
+          curl -sSfL --retry 3 -o /tmp/greece.osm.pbf https://download.geofabrik.de/europe/greece-latest.osm.pbf
+          ls -la /tmp/greece.osm.pbf
+          python3 tools/places_build.py /tmp/greece.osm.pbf
 
       - name: Commit if changed
         run: |
