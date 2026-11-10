@@ -98,7 +98,9 @@ wrap(); setTimeout(wrap,0); document.addEventListener('DOMContentLoaded',wrap);
 /* ---------- εισαγωγή αρχείου ---------- */
 function loadParser(){ return window.AlkSounderParse?Promise.resolve(window.AlkSounderParse):(B.loadScripts?B.loadScripts(['sounder-parse.js']):Promise.reject()).then(function(){ return window.AlkSounderParse; }); }
 function readFile(f){ return new Promise(function(res,rej){ var r=new FileReader(); r.onload=function(){ res(r.result); }; r.onerror=function(){ rej(r.error); }; r.readAsArrayBuffer(f); }); }
-function importFile(f){ return Promise.all([loadParser(),readFile(f)]).then(function(a){ return a[0].parse(f.name,a[1]); }); }
+function importFile(f){ return importFiles([f]); }
+/* 1.10.13: πολλά αρχεία μαζί (Humminbird: το .DAT και τα B00x.SON της καταγραφής) */
+function importFiles(fs){ fs=[].slice.call(fs); return Promise.all([loadParser()].concat(fs.map(readFile))).then(function(a){ var P=a[0]; return P.parseMany(fs.map(function(f,i){ return {name:f.name,buf:a[i+1]}; })); }); }
 
 /* ---------- ρυθμίσεις ---------- */
 function fmtD(d){ var U=window.AlkyonUnits; return U&&U.depth?U.depth(d):(Math.round(d*10)/10+' m'); }
@@ -115,7 +117,7 @@ function sheet(){
   function seg(v){ return h('button',{type:'button',class:'chip'+(cfg().src===v?' on':''),'aria-pressed':String(cfg().src===v),text:v==='sk'?'Signal K':T('Ανενεργό','Off'),onclick:function(){ setCfg({src:v,demo:false,host:host.value.trim()}); connect(); paint(); }}); }
   function preset(lbl,val){ return h('button',{type:'button',class:'chip sm',text:lbl,onclick:function(){ host.value=val; setCfg({src:'sk',host:val,demo:false}); connect(); paint(); }}); }
   var segs=h('div',{class:'chips'}), box=h('div',{class:'sndsk'}), mine=h('div',{class:'sndmine'}), imp=h('div',{class:'sndimp'});
-  var file=h('input',{type:'file',accept:'.sl2,.sl3,.gpx,.csv,.nmea,.txt,.log,.nma',hidden:true});
+  var file=h('input',{type:'file',accept:'.sl2,.sl3,.son,.dat,.rsd,.gpx,.csv,.nmea,.txt,.log,.nma',multiple:true,hidden:true});
   function paint(){ var c2=cfg(); segs.replaceChildren(seg('off'),seg('sk')); box.hidden=c2.src!=='sk'; stEl.textContent=stTxt(); }
   host.addEventListener('change',function(){ setCfg({host:host.value.trim(),demo:false}); connect(); paint(); });
   off.addEventListener('change',function(){ var v=parseFloat(String(off.value).replace(',','.')); setCfg({off:isFinite(v)&&v>=0&&v<=5?v:0}); });
@@ -134,10 +136,10 @@ function sheet(){
       h('p',{text:T('Και στα δύο: στον Signal K άνοιξε SSL (πόρτα 3443) και «Allow Readonly Access». Το κινητό στο WiFi του σκάφους. Την πρώτη φορά πάτα «Σελίδα server» και δέξου το πιστοποιητικό, μετά «Επανασύνδεση».','Both: in Signal K turn on SSL (port 3443) and “Allow Readonly Access”. Phone on the boat WiFi. The first time tap “Server page”, accept the certificate, then “Reconnect”.')}),
       h('p',{text:T('Αν δεν βρίσκει το «venus.local» ή το «openplotter.local», γράψε τη διεύθυνση IP (π.χ. 192.168.1.10), όπως φαίνεται στις ρυθμίσεις δικτύου του Cerbo ή του Pi. Αν ο Chrome ρωτήσει για «συσκευές στο τοπικό δίκτυο», πάτα «Να επιτρέπεται».','If it cannot find “venus.local” or “openplotter.local”, enter the IP address (e.g. 192.168.1.10) shown in the Cerbo’s or Pi’s network settings. If Chrome asks about “devices on your local network”, tap “Allow”.')}),
       h('p',{text:T('Το «Δοκιμή (demo)» συνδέεται στον δημόσιο server του Signal K για να δεις ότι δουλεύει. Δεν καταγράφει.','“Try (demo)” connects to the public Signal K server so you can see it working. It does not record.')})));
-  imp.append(h('p',{class:'sub',text:T('Lowrance/Simrad (.sl2, .sl3), καταγραφή NMEA 0183, GPX με βάθος, CSV (Deeper κ.ά.). Το αρχείο διαβάζεται στο κινητό.','Lowrance/Simrad (.sl2, .sl3), NMEA 0183 log, GPX with depth, CSV (Deeper etc.). The file is read on the phone.')}),
+  imp.append(h('p',{class:'sub',text:T('Lowrance/Simrad (.sl2, .sl3), Garmin (.RSD), Humminbird (διάλεξε μαζί το .DAT και τα .SON της καταγραφής), καταγραφή NMEA 0183, GPX με βάθος, CSV (Deeper κ.ά.). Τα αρχεία διαβάζονται στο κινητό.','Lowrance/Simrad (.sl2, .sl3), Garmin (.RSD), Humminbird (pick the recording’s .DAT and .SON files together), NMEA 0183 log, GPX with depth, CSV (Deeper etc.). Files are read on the phone.')}),
     h('button',{type:'button',class:'btn',text:T('Διάλεξε αρχείο','Choose a file'),onclick:function(){ file.click(); }}),file);
-  file.addEventListener('change',function(){ var f=file.files&&file.files[0]; file.value=''; if(!f) return; var out=h('p',{class:'sub',text:T('Ανάγνωση…','Reading…')}); imp.append(out);
-    importFile(f).then(function(r){ var p=r.pts; if(!p.length){ out.textContent=T('Δεν βρέθηκαν βάθη με θέση σε αυτό το αρχείο.','No depths with a position were found in this file.'); return; }
+  file.addEventListener('change',function(){ var fl=file.files?[].slice.call(file.files):[]; file.value=''; if(!fl.length) return; var out=h('p',{class:'sub',text:T('Ανάγνωση…','Reading…')}); imp.append(out);
+    importFiles(fl).then(function(r){ var p=r.pts; if(!p.length){ out.textContent=T('Δεν βρέθηκαν βάθη με θέση σε αυτό το αρχείο.','No depths with a position were found in this file.'); return; }
       var mn=1e9, mx=0; p.forEach(function(x){ if(x.d<mn) mn=x.d; if(x.d>mx) mx=x.d; });
       out.replaceChildren(h('span',{text:p.length+T(' μετρήσεις · βάθη ',' readings · depths ')+fmtD(mn)+' – '+fmtD(mx)+' '}),
         h('button',{type:'button',class:'btn pri sm',text:T('Αποθήκευση στον «Βυθό μου»','Save to “My depths”'),onclick:function(ev){ ev.target.disabled=true; add(p).then(flush).then(function(){ out.textContent=T('Αποθηκεύτηκαν ','Saved ')+p.length+T(' μετρήσεις.',' readings.'); paintMine(); }); }})); })
@@ -157,6 +159,6 @@ function sheet(){
   return api; }
 
 B.sounder={cfg:cfg,set:function(p){ setCfg(p); connect(); },connect:connect,state:function(){ return st; },live:live,liveAt:liveAt,near:near,nearSync:nearSync,cellsIn:cellsIn,
-  add:add,flush:flush,stats:stats,clear:clearAll,importFile:importFile,sheet:sheet,summary:summary,url:url,_delta:onDelta,_tiles:function(){ return tiles; }};
+  add:add,flush:flush,stats:stats,clear:clearAll,importFile:importFile,importFiles:importFiles,sheet:sheet,summary:summary,url:url,_delta:onDelta,_tiles:function(){ return tiles; }};
 if(cfg().src==='sk') setTimeout(connect,1200);
 })();

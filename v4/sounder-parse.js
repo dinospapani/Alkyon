@@ -5,7 +5,12 @@
      sl3: πλαίσιο 168 bytes, μέγεθος @8,  βάθος (ft) @48, θερμοκρασία @88,  x/y @92/@96,  χρόνος (ms) @124, ώρα συσκευής @40
    - NMEA 0183 (καταγραφή .nmea/.txt/.log από plotter ή gateway): DPT/DBT/DBS με την τελευταία θέση GGA/RMC/GLL
    - GPX: σημεία διαδρομής ή waypoints με βάθος στα extensions (Garmin gpxx/gpxtpx:Depth, <depth> κ.ά.)
-   - CSV: στήλες πλάτος/μήκος/βάθος (Deeper, Humminbird, Garmin, εξαγωγές από Excel), βάθος σε m ή ft */
+   - CSV: στήλες πλάτος/μήκος/βάθος (Deeper, Humminbird, Garmin, εξαγωγές από Excel), βάθος σε m ή ft
+   - Humminbird (1.10.13): καταγραφή sonar = φάκελος με B00x.SON (+ το .DAT δίπλα για την ώρα). Κάθε ping αρχίζει με C0 DE AB 21 και
+     ακολουθούν ετικέτες big-endian (≥128 → 4 bytes, αλλιώς 1): 130/131 = x/y σε Mercator διεθνούς ελλειψοειδούς 1924 (6378388),
+     135 = βάθος σε δέκατα του μέτρου, 129 = ms από την αρχή, 160 = μήκος δεδομένων, 33 = τέλος κεφαλίδας (όπως στο PING-Mapper / PyHum)
+   - Garmin (1.10.13): .RSD (Quickdraw / sonar recording). Από το byte 20480 εγγραφές «μεταβλητής δομής» (varint κλειδί = πεδίο<<3 | μήκος),
+     μαγικός αριθμός 0xB7E9DA86· στο σώμα: 1 = βάθος βυθού (mm), 9/10 = lat/lon (×360/2³²), 11 = θερμοκρασία (float) */
 (function(root){
 'use strict';
 var FT=0.3048, R_LOW=6356752.3142;
@@ -73,7 +78,51 @@ function csv(txt){
     if(okD(d)&&okLL(la,lo)) out.push({lat:la,lon:lo,d:d,t:isFinite(t)?t:null,wt:isFinite(w)?w:null}); }
   return out; }
 
+/* ---------- Humminbird .SON / .DAT ---------- */
+function humDat(buf){ var dv=new DataView(buf); if(buf.byteLength<28) return null; var le=buf.byteLength!==64, t=dv.getUint32(20,le); return t>1e9&&t<4e9?t*1000:null; }
+function humSon(buf,t0){
+  var u8=new Uint8Array(buf), dv=new DataView(buf), n=u8.length, out=[], pos=0, last=null, guard=0;
+  function next(from){ for(var i=from;i+3<n;i++) if(u8[i]===0xC0&&u8[i+1]===0xDE&&u8[i+2]===0xAB&&u8[i+3]===0x21) return i; return -1; }
+  pos=next(0);
+  while(pos>=0&&pos<n&&guard++<5e6){
+    var i=pos+4, x=null, y=null, d=null, ms=null, cnt=null, ok=false;
+    while(i<n&&i<pos+260){ var tag=u8[i++]; if(tag===0x21){ ok=cnt!=null; break; }
+      if(tag>=128){ if(i+4>n) break; var v=dv.getUint32(i,false);
+        if(tag===130) x=dv.getInt32(i,false); else if(tag===131) y=dv.getInt32(i,false); else if(tag===135) d=v/10; else if(tag===129) ms=v; else if(tag===160) cnt=v; i+=4; }
+      else i+=1; }
+    if(ok&&x!=null&&y!=null&&d!=null){ var lat=Math.atan(Math.tan(Math.atan(Math.exp(y/6378388))*2-Math.PI/2)*1.0067642927)*180/Math.PI, lon=x*180/Math.PI/6378388;
+      if(okD(d)&&okLL(lat,lon)){ var key=lat.toFixed(5)+','+lon.toFixed(5)+','+d.toFixed(1); if(key!==last){ out.push({lat:lat,lon:lon,d:d,t:t0!=null&&ms!=null?t0+ms:null,wt:null}); last=key; } } }
+    var nx=ok&&cnt!=null&&cnt<5e6?i+cnt:pos+4; if(nx+3<n&&u8[nx]===0xC0&&u8[nx+1]===0xDE) pos=nx; else pos=next(Math.max(pos+4,Math.min(nx,n)-4)); }
+  return out; }
+
+/* ---------- Garmin .RSD ---------- */
+function garmin(buf){
+  var u8=new Uint8Array(buf), n=u8.length, out=[], last=null, MAGIC=3085556358, p=0;
+  function vu(){ var r=0, m=1, b; do{ if(p>=n) throw 0; b=u8[p++]; r+=(b&0x7f)*m; m*=128; }while(b&0x80&&m<Math.pow(2,64)); return r; }
+  function vuB(a){ var r=0, m=1; for(var k=0;k<a.length;k++){ r+=(a[k]&0x7f)*m; m*=128; if(!(a[k]&0x80)) return r; } return NaN; }
+  function le(a,signed){ var v=0; for(var k=a.length-1;k>=0;k--) v=v*256+a[k]; if(signed&&a.length===4&&v>=2147483648) v-=4294967296; return v; }
+  /* βάθος: VarInt32 με zig-zag κατά την περιγραφή· κάποιες συσκευές γράφουν απλό varint. Αποφασίζεται για όλο το αρχείο:
+     με zig-zag όλες οι τιμές είναι ζυγές (θετικό βάθος), με απλό varint περίπου οι μισές μονές. */
+  function depthOf(a){ var u=vuB(a); return isNaN(u)?(a.length<=4?le(a):NaN):u; }
+  function fields(end){ var cnt=vu(), f=[]; for(var k=0;k<cnt;k++){ if(end!=null&&p>=end) break; var key=vu(), num=Math.floor(key/8), len=key%8; if(len===7) len=vu(); if(p+len>(end!=null?end:n)) break; f.push([num,u8.subarray(p,p+len)]); p+=len; } return f; }
+  function find(from){ for(var i=Math.max(2,from);i+3<n;i++) if(u8[i]===0x86&&u8[i+1]===0xDA&&u8[i+2]===0xE9&&u8[i+3]===0xB7) return i-2; return n; }
+  var i=20480, guard=0;
+  while(i<n-8&&guard++<5e6){ var rec;
+    try{ p=i; var hf=fields(null), magic=null, state=null, size=null;
+      hf.forEach(function(f){ if(f[0]===0&&f[1].length===4) magic=le(f[1]); else if(f[0]===4&&f[1].length===2) size=le(f[1]); else if(f[0]===1){ var q=p; var sub=u8.subarray(0); var save=p; p=f[1].byteOffset-u8.byteOffset; var e=p+f[1].length; try{ fields(e).forEach(function(g){ if(g[0]===0) state=vuB(g[1]); }); }catch(x){} p=save; } });
+      if(magic!==MAGIC||size==null){ i=find(i+1); continue; }
+      p+=4; var hl=p-i;
+      if(state===2&&size>0){ var be=i+hl+size, lat=null, lon=null, d=null, wt=null;
+        try{ fields(be).forEach(function(f){ if(f[0]===1) d=depthOf(f[1]); else if(f[0]===9) lat=le(f[1],true)*360/4294967296; else if(f[0]===10) lon=le(f[1],true)*360/4294967296; else if(f[0]===11&&f[1].length===4) wt=new DataView(f[1].buffer,f[1].byteOffset,4).getFloat32(0,true); }); }catch(x){}
+        if(lat>180) lat-=360; if(lon>180) lon-=360;
+        if(d!=null&&isFinite(d)&&okLL(lat,lon)){ var key=lat.toFixed(5)+','+lon.toFixed(5)+','+d; if(key!==last){ out.push({lat:lat,lon:lon,d:d,t:null,wt:(wt>-5&&wt<45&&wt!==0)?Math.round(wt*10)/10:null}); last=key; } } }
+      var nx=i+hl+(state===2?size:0)+12; if(nx+6<=n&&u8[nx]===6&&le(u8.subarray(nx+2,nx+6))===MAGIC) i=nx; else i=find(Math.max(i+1,nx-16)); }
+    catch(e){ i=find(i+1); } }
+  var odd=out.filter(function(q){ return q.d%2===1; }).length, zz=odd<=out.length*0.1;
+  return out.map(function(q){ q.d=(zz?(q.d%2?-(q.d+1)/2:q.d/2):q.d)/1000; return q; }).filter(function(q){ return okD(q.d); }); }
+
 function kindOf(name,head){ var n=(name||'').toLowerCase();
+  if(/\.son$/.test(n)) return 'son'; if(/\.dat$/.test(n)) return 'hdat'; if(/\.rsd$/.test(n)) return 'rsd';
   if(/\.sl2$/.test(n)) return 'sl2'; if(/\.sl3$/.test(n)) return 'sl3';
   if(/\.gpx$/.test(n)) return 'gpx'; if(/\.csv$/.test(n)) return 'csv';
   if(/\.(nmea|n0183|log|txt|nma)$/.test(n)) return 'nmea';
@@ -81,10 +130,15 @@ function kindOf(name,head){ var n=(name||'').toLowerCase();
 /* f: File ή {name, buf (ArrayBuffer)} */
 function parse(name,buf){ var k=kindOf(name,null);
   if(k==='sl2'||k==='sl3') return {kind:k,pts:sl(buf,k)};
+  if(k==='son') return {kind:k,pts:humSon(buf,null)}; if(k==='rsd') return {kind:k,pts:garmin(buf)}; if(k==='hdat') return {kind:k,pts:[],t0:humDat(buf)};
   var txt=new TextDecoder('utf-8').decode(new Uint8Array(buf)); if(!k) k=kindOf('',txt.slice(0,4000));
   if(k==='gpx') return {kind:k,pts:gpx(txt)}; if(k==='csv') return {kind:k,pts:csv(txt)}; if(k==='nmea') return {kind:k,pts:nmea(txt)};
   var p=csv(txt); if(p.length) return {kind:'csv',pts:p}; p=nmea(txt); if(p.length) return {kind:'nmea',pts:p};
   return {kind:null,pts:[]}; }
-var API={parse:parse,sl:sl,nmea:nmea,gpx:gpx,csv:csv,kindOf:kindOf};
+/* πολλά αρχεία μαζί (Humminbird: .DAT + B00x.SON): η ώρα από το .DAT περνά στα .SON */
+function parseMany(files){ var t0=null; files.forEach(function(f){ if(kindOf(f.name)==='hdat') t0=humDat(f.buf); });
+  var pts=[], kinds=[]; files.forEach(function(f){ var k=kindOf(f.name,null), r=k==='son'?{kind:k,pts:humSon(f.buf,t0)}:k==='hdat'?{kind:k,pts:[]}:parse(f.name,f.buf); if(r.kind&&kinds.indexOf(r.kind)<0) kinds.push(r.kind); pts=pts.concat(r.pts); });
+  return {kind:kinds.join('+')||null,pts:pts}; }
+var API={parse:parse,parseMany:parseMany,sl:sl,nmea:nmea,gpx:gpx,csv:csv,humSon:humSon,humDat:humDat,garmin:garmin,kindOf:kindOf};
 if(typeof module!=='undefined'&&module.exports) module.exports=API; else root.AlkSounderParse=API;
 })(typeof window!=='undefined'?window:this);

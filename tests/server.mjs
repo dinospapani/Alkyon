@@ -509,6 +509,26 @@ check('Νέα: η έκδοση 1.10.8 υπάρχει στα «Τι νέο»', /\
   check('Νέα: η έκδοση 1.10.12 υπάρχει στα «Τι νέο»', /\['1\.10\.12',\[T\('Βυθόμετρο στην εφαρμογή/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
 }
 
+/* ---------- 1.10.13: Humminbird (.DAT + .SON) και Garmin (.RSD) ---------- */
+{
+  const req = (await import('node:module')).createRequire(import.meta.url);
+  const P = req(path.join(ROOT, 'v4', 'sounder-parse.js'));
+  const lat = 34.70123, lon = 33.04567;
+  /* Humminbird: Mercator με ελλειψοειδές 1924 (αντίστροφο του τύπου του PyHum / PING-Mapper) */
+  const hy = Math.round(6378388 * Math.log(Math.tan((Math.atan(Math.tan(lat * Math.PI / 180) / 1.0067642927) + Math.PI / 2) / 2))), hx = Math.round(lon * Math.PI / 180 * 6378388);
+  const son = []; const be = (v) => [(v >>> 24) & 255, (v >>> 16) & 255, (v >>> 8) & 255, v & 255];
+  for (let i = 0; i < 4; i++) { const data = new Array(10).fill(i === 1 ? 0x21 : 7);
+    son.push(0xC0, 0xDE, 0xAB, 0x21, 128, ...be(i), 129, ...be(i * 1000), 130, ...be(hx + i * 30), 131, ...be(hy), 132, 0, 0, 0, 0, 135, ...be(425 + i * 10), 80, 0, 146, ...be(200000), 160, ...be(data.length), 0x21, ...data); }
+  const dat = new Uint8Array(64); new DataView(dat.buffer).setUint32(20, 1794300000, false);
+  const r = P.parseMany([{ name: 'R00012.DAT', buf: dat.buffer }, { name: 'B000.SON', buf: new Uint8Array(son).buffer }]), p = r.pts;
+  check('Βυθόμετρο: Humminbird .SON + .DAT — θέση, βάθος (δέκατα m), ώρα από το .DAT (1.10.13)', r.kind === 'hdat+son' && p.length === 4 && Math.abs(p[0].lat - lat) < 2e-5 && Math.abs(p[0].lon - lon) < 2e-5 && p[0].d === 42.5 && p[3].d === 45.5 && p[2].t === 1794300002000, p.slice(0, 2));
+  const { mkRsd } = await import(pathToFileURL(path.join(ROOT, 'tests', 'mkrsd.mjs')).href);
+  const R = [{ lat, lon, d: 42.503, wt: 21.3 }, { lat: 34.7013, lon: 33.0458, d: 43.117, wt: 21.3 }, { lat: 34.7014, lon: 33.05, d: 7.251, wt: 20 }];
+  const g1 = P.parse('Sonar000.RSD', mkRsd(R, true)).pts, g2 = P.parse('Sonar001.rsd', mkRsd(R, false)).pts;
+  check('Βυθόμετρο: Garmin .RSD — θέση, βάθος (mm, zig-zag ή απλό varint), θερμοκρασία (1.10.13)', g1.length === 3 && g2.length === 3 && Math.abs(g1[0].lat - lat) < 1e-6 && Math.abs(g1[0].lon - lon) < 1e-6 && g1.map(x => x.d).join() === '42.503,43.117,7.251' && g2.map(x => x.d).join() === '42.503,43.117,7.251' && g1[0].wt === 21.3, [g1, g2]);
+  check('Νέα: η έκδοση 1.10.13 υπάρχει στα «Τι νέο»', /\['1\.10\.13',\[T\('Βυθόμετρο: και αρχεία Garmin/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
+}
+
 /* ---------- σκοτάδι για καλαμάρι ---------- */
 {
   const dw = d => { const s = PF.sunMoon(d, 35.04, 32.42, 120); return PF.darkWin(d, s.set, s.rise, 35.04, 32.42, 120); };

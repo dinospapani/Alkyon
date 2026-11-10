@@ -1001,6 +1001,7 @@ with sync_playwright() as p:
         f=bytearray(144); _st.pack_into('<H',f,28,144); _st.pack_into('<H',f,32,0); _st.pack_into('<f',f,64,(20+i)/0.3048); _st.pack_into('<i',f,108,X+i*40); _st.pack_into('<i',f,112,Y); raw+=f
     fp=os.path.join(_tf.mkdtemp(),'trip.sl2'); open(fp,'wb').write(raw)
     pg.evaluate("()=>AK.sounder.sheet()"); pg.wait_for_timeout(600)
+    check('Βυθόμετρο: πολλά αρχεία μαζί και .RSD/.SON/.DAT στην επιλογή (1.10.13)', pg.evaluate("()=>{const i=document.querySelector('.sndsheet input[type=file]'); return i.multiple&&/\\.rsd/.test(i.accept)&&/\\.son/.test(i.accept)&&/\\.dat/.test(i.accept)}"))
     pg.set_input_files('.sndsheet input[type=file]',fp); pg.wait_for_timeout(1200)
     t=pg.evaluate("()=>document.querySelector('.sndimp').textContent")
     check('Βυθόμετρο: αρχείο Lowrance .sl2 — προεπισκόπηση 5 μετρήσεων (1.10.12)', '5 μετρήσεις' in t, t)
