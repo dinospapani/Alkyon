@@ -13,7 +13,8 @@
    αλλά δεν είχαν διαλέξει ποτέ γλώσσα, άρα έβλεπαν Ελληνικά) μένουν στα Ελληνικά. Αλλάζει όποτε θες: Προφίλ › Γλώσσα. */
 (function(){ try{ var L=localStorage; if(L.getItem('alkyon-lang')) return; var old=false;
   for(var i=0;i<L.length;i++){ var k=L.key(i)||''; if(/^(alkyon|alk-|psaro|bc4|sb-)/.test(k)){ old=true; break; } }
-  L.setItem('alkyon-lang',old?'el':'en'); }catch(e){} })();
+  var hl=/[?&]hl=(el|en)(&|$)/.exec(location.search); /* 1.12.6: από την παλιά διεύθυνση έρχεται και η γλώσσα */
+  L.setItem('alkyon-lang',hl?hl[1]:old?'el':'en'); }catch(e){} })();
 (function(){
 'use strict';
 var OLD='psa'+'ro', NEW='alkyon';
@@ -93,24 +94,25 @@ window.alkyonOldPhoto=function(id){ if(flagged()) return Promise.resolve(undefin
 
 /* ---------- 1.12.0: νέο domain (dinospapani.github.io/Alkyon → alkyonfishing.com) ----------
    Ο browser κρατά χωριστά τα δεδομένα κάθε διεύθυνσης. Γι' αυτό:
-   - Στην ΠΑΛΙΑ διεύθυνση: όταν το MOVE γίνει true, κάθε σελίδα πάει στην ίδια σελίδα του alkyonfishing.com με ?from=gh.
+   - Στην ΠΑΛΙΑ διεύθυνση (MOVE=true από 1.12.6, 11/11/2026): κάθε σελίδα πάει στην ίδια σελίδα του alkyonfishing.com με ?from=gh.
      (Εξαίρεση: handoff.html, που διαβάζει τα παλιά δεδομένα.) Μένει false μέχρι να επιβεβαιωθεί ότι το νέο site δουλεύει.
    - Στη ΝΕΑ διεύθυνση: με ?from=gh και χωρίς δικά της δεδομένα, προτείνει «Μεταφορά». Ανοίγει το handoff.html της παλιάς σε νέο
      παράθυρο, παίρνει localStorage + IndexedDB με postMessage (ελέγχοντας την προέλευση) και τα γράφει εδώ.
    window.alkyonHandoff() το ξεκινά και με το χέρι (π.χ. από την κονσόλα ή από κουμπί). */
 (function(){
-  var MOVE=false, OLDO='https://dinospapani.github.io', NEWO='https://alkyonfishing.com';
+  var MOVE=true, OLDO='https://dinospapani.github.io', NEWO='https://alkyonfishing.com';
   var h=location.hostname;
   if(h==='dinospapani.github.io'){
     if(!MOVE||/handoff\.html$/.test(location.pathname)) return;
     var p=location.pathname.replace(/^\/alkyon\//i,'/');
-    var q=location.search?location.search+'&from=gh':'?from=gh';
+    var lg='el'; try{ lg=localStorage.getItem('alkyon-lang')==='en'?'en':'el'; }catch(e){}
+    var q=(location.search?location.search+'&':'?')+'from=gh&hl='+lg;
     location.replace(NEWO+p+q+location.hash);
     return;
   }
   if(h!=='alkyonfishing.com') return;
-  var SKIP={'alkyon-lang':1,'alkyon-migrated':1,'alkyon-cachemig':1,'alkyon-idbmig':1};
-  function hasData(){ try{ for(var i=0;i<L.length;i++){ var k=L.key(i); if(k&&/^(alkyon|alk-|sb-)/.test(k)&&!SKIP[k]) return true; } }catch(e){} return false; }
+  /* «δεδομένα» εδώ = ψάρια, έξοδοι, σημεία, εξοπλισμός ή σύνδεση σε λογαριασμό (όχι ρυθμίσεις που γράφει η εφαρμογή στο πρώτο άνοιγμα) */
+  function hasData(){ try{ if(L.getItem('alkyon-sess')) return true; return ['bites','trips','spots','tackle'].some(function(k){ var a=JSON.parse(L.getItem('alkyon-'+k)||'[]'); return Array.isArray(a)&&a.length>0; }); }catch(e){ return false; } }
   function writeDB(d){ return new Promise(function(res){
     var r=indexedDB.open(d.name);
     r.onerror=function(){ res(false); };
@@ -151,6 +153,7 @@ window.alkyonOldPhoto=function(id){ if(flagged()) return Promise.resolve(undefin
   };
   /* πρόταση μεταφοράς: μόνο αν ήρθες από την παλιά διεύθυνση και εδώ δεν υπάρχει τίποτα ακόμα */
   var fromGh=/[?&]from=gh(&|$)/.test(location.search);
+  try{ if(L.getItem('alkyon-handoff')||L.getItem('alkyon-handoff-skip')) return; }catch(e){}
   if(!fromGh||hasData()) return;
   function card(){
     if(!document.body) return document.addEventListener('DOMContentLoaded',card);
@@ -166,7 +169,7 @@ window.alkyonOldPhoto=function(id){ if(flagged()) return Promise.resolve(undefin
       +'<button id="akhno" style="width:100%;padding:11px;margin-top:8px;border:0;background:none;color:#8FA9B3;font-size:15px">'+T('Όχι τώρα','Not now')+'</button></div>';
     document.body.appendChild(d);
     var m=d.querySelector('#akhm');
-    d.querySelector('#akhno').onclick=function(){ d.remove(); };
+    d.querySelector('#akhno').onclick=function(){ try{ L.setItem('alkyon-handoff-skip',String(Date.now())); }catch(e){} d.remove(); };
     d.querySelector('#akhgo').onclick=function(){ m.textContent=T('Μεταφορά…','Transferring…');
       window.alkyonHandoff().then(function(r){ m.style.color='#9EE6B8';
         m.textContent=T('Έγινε ✓ ','Done ✓ ')+(r?r.keys:0)+T(' εγγραφές. Αν είχες ειδοποιήσεις, άνοιξέ τες ξανά στο Προφίλ › Ειδοποιήσεις.',' entries. If you had alerts on, turn them on again in Profile › Alerts.');
