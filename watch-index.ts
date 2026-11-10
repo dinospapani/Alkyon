@@ -10,7 +10,17 @@
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS' };
 const J = (o, status = 200, cache = 'no-store') => new Response(JSON.stringify(o), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': cache, ...CORS } });
 const SRC = 'https://dinospapani.github.io/Alkyon/forecast.js';
-const mem = { pf: null, pfAt: 0, fc: new Map(), codes: new Map() };
+const mem = { pf: null, pfAt: 0, fc: new Map(), codes: new Map(), el: null, elAt: 0 };
+/* 1.10.10: ελληνικά ονόματα για είδη που γράφτηκαν στα αγγλικά (ίδιος πίνακας με την εφαρμογή, v4/data-el.js) */
+export async function elNames(F, now) {
+  if (mem.el && now - mem.elAt < 6 * 3600e3) return mem.el;
+  try { const r = await F('https://raw.githubusercontent.com/dinospapani/Alkyon/main/v4/data-el.js'); const t = r.ok ? await r.text() : '';
+    const m = t.match(/var M=(\{[\s\S]*?\}), G=/); if (m) { mem.el = JSON.parse(m[1]); mem.elAt = now; } } catch (e) {}
+  return mem.el || {};
+}
+export function elName(M, n) { const s = String(n || ''); if (!/[A-Za-z]{3}/.test(s)) return s; const k = s.trim().toLowerCase(), v = M[k];
+  if (v) return /^[A-Z]/.test(s.trim()) ? v.charAt(0).toUpperCase() + v.slice(1) : v;
+  const g = k.match(/^(longline|net|pot|trap) (\d+)$/); return g ? ({ longline: 'Παραγάδι', net: 'Δίχτυ', pot: 'Κλουβί', trap: 'Κλουβί' })[g[1]] + ' ' + g[2] : s; }
 const env = (k) => (typeof Deno !== 'undefined' ? Deno.env.get(k) : (globalThis.process && process.env[k])) || '';
 
 export async function loadPF(F = fetch, now = Date.now()) {
@@ -195,10 +205,11 @@ export async function handle(req, F = fetch, now = Date.now()) {
           const d2 = (x) => (x.lat - lat) ** 2 + ((x.lon - lon) * Math.cos(lat * Math.PI / 180)) ** 2;
           const sp = (a || []).map(x => x && x.data).filter(x => x && Number.isFinite(+x.lat) && Number.isFinite(+x.lon) && !x.deleted).map(x => ({ n: String(x.name || '').slice(0, 20), lat: +x.lat, lon: +x.lon }))
             .sort((p, q) => d2(p) - d2(q)).slice(0, 12).map(x => [x.n, Math.round(x.lat * 1e5) / 1e5, Math.round(x.lon * 1e5) / 1e5]);
+          if (sp.length && !en) { const M = await elNames(F, now); sp.forEach(x => { x[0] = elName(M, x[0]).slice(0, 20); }); }   /* 1.10.10: «Map point» → «Σημείο χάρτη» */
           if (sp.length) o = { ...o, sp }; } catch (e) {}
         /* 1.9.75: τα 4 είδη που πιάνεις πιο συχνά στη συρτή (αλλιώς γενικά), για την επιλογή είδους στο ρολόι */
         try { const r = await sb(F, 'records?user_id=eq.' + us.user_id + '&kind=eq.bites&deleted=eq.false&select=sp:data->>species,tech:data->>tech,w:data->wtr,m:data->>miss,la:data->>lat,lo:data->>lon&order=updated_at.desc&limit=1500'); const a = r.ok ? await r.json() : [];
-          const tsp = trollSpecies(a || []); if (tsp.length) o = { ...o, tsp };
+          const tsp = trollSpecies(a || []); if (tsp.length) o = { ...o, tsp }; if (tsp.length && !en) { const M = await elNames(F, now); const tspl = tsp.map(n => elName(M, n)); if (tspl.some((x, i) => x !== tsp[i])) o = { ...o, tspl }; }   /* 1.10.10: όνομα στη γλώσσα του ρολογιού, η τιμή μένει ίδια */
           const tc = trollSpots(a || [], lat, lon); if (tc.length) o = { ...o, tc }; } catch (e) {}
         return o; };
       const hit = mem.fc.get(key); if (hit && now - hit.at < 30 * 60e3) return J(small(await withDue(hit.v)), 200, 'private, max-age=300');

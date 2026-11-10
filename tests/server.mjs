@@ -472,6 +472,20 @@ check('Νέα: η έκδοση 1.10.8 υπάρχει στα «Τι νέο»', /\
   check('Νέα: η έκδοση 1.10.9 υπάρχει στα «Τι νέο»', /\['1\.10\.9',\[T\('Ρολόι Garmin: μεγαλύτερα γράμματα/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
 }
 
+/* ---------- 1.10.10: ρολόι — ελληνικά ονόματα ειδών και σημείων ---------- */
+{
+  const tmp = path.join(ROOT, 'tests', '.watch-tmp5.mjs'); fs.writeFileSync(tmp, fs.readFileSync(path.join(ROOT, 'watch-index.ts'), 'utf8'));
+  const W = await import(pathToFileURL(tmp).href); fs.unlinkSync(tmp);
+  const de = fs.readFileSync(path.join(ROOT, 'v4', 'data-el.js'), 'utf8');
+  const F = async (u) => ({ ok: true, text: async () => de });
+  const M = await W.elNames(F, RealDate.now());
+  const got = ['Dusky grouper', 'Map point', 'Λαβράκι', 'Longline 3', 'Totis net'].map(n => W.elName(M, n));
+  check('Ρολόι: είδη και σημεία στα ελληνικά (Σφυρίδα, Σημείο χάρτη, Παραγάδι 3), τα ελληνικά μένουν (1.10.10)', JSON.stringify(got) === JSON.stringify(['Σφυρίδα', 'Σημείο χάρτη', 'Λαβράκι', 'Παραγάδι 3', 'Totis net']), got);
+  const wi = fs.readFileSync(path.join(ROOT, 'watch-index.ts'), 'utf8');
+  check('Ρολόι: η τιμή του είδους μένει όπως στο ημερολόγιο, αλλάζει μόνο η ετικέτα (tspl) (1.10.10)', /o = \{ \.\.\.o, tspl \}/.test(wi) && /if \(tsp\.length\) o = \{ \.\.\.o, tsp \};/.test(wi));
+  check('Νέα: η έκδοση 1.10.10 υπάρχει στα «Τι νέο»', /\['1\.10\.10',\[T\('Ρολόι Garmin: είδη και σημεία στα ελληνικά/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
+}
+
 /* ---------- σκοτάδι για καλαμάρι ---------- */
 {
   const dw = d => { const s = PF.sunMoon(d, 35.04, 32.42, 120); return PF.darkWin(d, s.set, s.rise, 35.04, 32.42, 120); };
