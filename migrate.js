@@ -85,4 +85,89 @@ window.alkyonOldPhoto=function(id){ if(flagged()) return Promise.resolve(undefin
     return Promise.all(jobs);
   }).then(function(){ try{ L.setItem(NEW+'-cachemig',String(Date.now())); }catch(e){} }).catch(function(){});
 })();
+
+/* ---------- 1.12.0: νέο domain (dinospapani.github.io/Alkyon → alkyonfishing.com) ----------
+   Ο browser κρατά χωριστά τα δεδομένα κάθε διεύθυνσης. Γι' αυτό:
+   - Στην ΠΑΛΙΑ διεύθυνση: όταν το MOVE γίνει true, κάθε σελίδα πάει στην ίδια σελίδα του alkyonfishing.com με ?from=gh.
+     (Εξαίρεση: handoff.html, που διαβάζει τα παλιά δεδομένα.) Μένει false μέχρι να επιβεβαιωθεί ότι το νέο site δουλεύει.
+   - Στη ΝΕΑ διεύθυνση: με ?from=gh και χωρίς δικά της δεδομένα, προτείνει «Μεταφορά». Ανοίγει το handoff.html της παλιάς σε νέο
+     παράθυρο, παίρνει localStorage + IndexedDB με postMessage (ελέγχοντας την προέλευση) και τα γράφει εδώ.
+   window.alkyonHandoff() το ξεκινά και με το χέρι (π.χ. από την κονσόλα ή από κουμπί). */
+(function(){
+  var MOVE=false, OLDO='https://dinospapani.github.io', NEWO='https://alkyonfishing.com';
+  var h=location.hostname;
+  if(h==='dinospapani.github.io'){
+    if(!MOVE||/handoff\.html$/.test(location.pathname)) return;
+    var p=location.pathname.replace(/^\/alkyon\//i,'/');
+    var q=location.search?location.search+'&from=gh':'?from=gh';
+    location.replace(NEWO+p+q+location.hash);
+    return;
+  }
+  if(h!=='alkyonfishing.com') return;
+  var SKIP={'alkyon-lang':1,'alkyon-migrated':1,'alkyon-cachemig':1,'alkyon-idbmig':1};
+  function hasData(){ try{ for(var i=0;i<L.length;i++){ var k=L.key(i); if(k&&/^(alkyon|alk-|sb-)/.test(k)&&!SKIP[k]) return true; } }catch(e){} return false; }
+  function writeDB(d){ return new Promise(function(res){
+    var r=indexedDB.open(d.name);
+    r.onerror=function(){ res(false); };
+    r.onsuccess=function(){ var db=r.result, miss=d.stores.filter(function(s){ return !db.objectStoreNames.contains(s.name); });
+      if(miss.length){ var v=Math.max(db.version+1,d.version); db.close(); var r2=indexedDB.open(d.name,v);
+        r2.onupgradeneeded=function(){ miss.forEach(function(s){ var st=r2.result.createObjectStore(s.name,{keyPath:s.keyPath||undefined,autoIncrement:!!s.autoIncrement});
+          s.indexes.forEach(function(ix){ try{ st.createIndex(ix.name,ix.keyPath,{unique:ix.unique,multiEntry:ix.multiEntry}); }catch(e){} }); }); };
+        r2.onerror=function(){ res(false); }; r2.onsuccess=function(){ put(r2.result); }; }
+      else put(db); };
+    function put(db){ try{ var names=d.stores.map(function(s){ return s.name; }), t=db.transaction(names,'readwrite');
+        d.stores.forEach(function(s){ var st=t.objectStore(s.name); s.rows.forEach(function(row){ try{ if(st.keyPath!=null) st.put(row[1]); else st.put(row[1],row[0]); }catch(e){} }); });
+        t.oncomplete=function(){ db.close(); res(true); }; t.onerror=function(){ db.close(); res(false); }; }catch(e){ try{ db.close(); }catch(e2){} res(false); } }
+  }); }
+  function apply(data){
+    var ls=data&&data.ls||{}, n=0;
+    Object.keys(ls).forEach(function(k){ try{ L.setItem(k,ls[k]); n++; }catch(e){} });
+    /* ειδοποιήσεις: εδώ χρειάζονται νέα άδεια και νέα συνδρομή (ξανά αυτόματα μόλις δοθεί η άδεια) */
+    ['alkyon-moved-push','alkyon-push-heal'].forEach(function(k){ try{ L.removeItem(k); }catch(e){} });
+    try{ L.setItem('alkyon-handoff',String(Date.now())); }catch(e){}
+    return Promise.all((data&&data.idb||[]).map(writeDB)).then(function(r){ return {keys:n,dbs:r.filter(Boolean).length}; });
+  }
+  var busy=false;
+  window.alkyonHandoff=function(){
+    if(busy) return Promise.resolve(null); busy=true;
+    return new Promise(function(res,rej){
+      var w=window.open(OLDO+'/Alkyon/handoff.html','alkhandoff');
+      if(!w){ busy=false; return rej(new Error('popup')); }
+      var to=setTimeout(function(){ done(); busy=false; rej(new Error('timeout')); },120000);
+      function done(){ clearTimeout(to); window.removeEventListener('message',on); }
+      function on(ev){
+        if(ev.origin!==OLDO||!ev.data) return;
+        if(ev.data.type==='alk-handoff-hello'){ ev.source.postMessage({type:'alk-handoff-ready'},OLDO); return; }
+        if(ev.data.type==='alk-handoff'){ var src=ev.source;
+          apply(ev.data.data).then(function(r){ try{ src.postMessage({type:'alk-handoff-done'},OLDO); }catch(e){} done(); busy=false; res(r); }); }
+      }
+      window.addEventListener('message',on);
+    });
+  };
+  /* πρόταση μεταφοράς: μόνο αν ήρθες από την παλιά διεύθυνση και εδώ δεν υπάρχει τίποτα ακόμα */
+  var fromGh=/[?&]from=gh(&|$)/.test(location.search);
+  if(!fromGh||hasData()) return;
+  function card(){
+    if(!document.body) return document.addEventListener('DOMContentLoaded',card);
+    var en=(function(){ try{ return L.getItem('alkyon-lang')==='en'; }catch(e){ return false; } })();
+    var T=function(a,b){ return en?b:a; };
+    var d=document.createElement('div');
+    d.setAttribute('style','position:fixed;inset:0;z-index:2147483000;visibility:visible!important;background:rgba(3,10,14,.86);display:grid;place-items:center;padding:20px;font:16px system-ui,sans-serif;color:#E6F1F2');
+    d.innerHTML='<div style="max-width:420px;background:#0B2230;border:1px solid #23404d;border-radius:16px;padding:20px;text-align:left">'
+      +'<div style="font-weight:700;font-size:18px;margin-bottom:8px">'+T('Νέα διεύθυνση: alkyonfishing.com','New address: alkyonfishing.com')+'</div>'
+      +'<div style="color:#B5C8CF;line-height:1.45;margin-bottom:16px">'+T('Το Alkyon μεταφέρθηκε. Πάτα «Μεταφορά» για να φέρεις εδώ το ημερολόγιο, τις φωτογραφίες και τις ρυθμίσεις σου από την παλιά διεύθυνση. Θα ανοίξει για λίγο ένα δεύτερο παράθυρο.','Alkyon has moved. Tap “Transfer” to bring your logbook, photos and settings from the old address. A second window opens briefly.')+'</div>'
+      +'<div id="akhm" style="color:#FFB08F;min-height:1.2em;margin-bottom:12px"></div>'
+      +'<button id="akhgo" style="width:100%;padding:13px;border:0;border-radius:12px;background:#FF7A4D;color:#06171F;font-weight:700;font-size:16px">'+T('Μεταφορά','Transfer')+'</button>'
+      +'<button id="akhno" style="width:100%;padding:11px;margin-top:8px;border:0;background:none;color:#8FA9B3;font-size:15px">'+T('Όχι τώρα','Not now')+'</button></div>';
+    document.body.appendChild(d);
+    var m=d.querySelector('#akhm');
+    d.querySelector('#akhno').onclick=function(){ d.remove(); };
+    d.querySelector('#akhgo').onclick=function(){ m.textContent=T('Μεταφορά…','Transferring…');
+      window.alkyonHandoff().then(function(r){ m.style.color='#9EE6B8';
+        m.textContent=T('Έγινε ✓ ','Done ✓ ')+(r?r.keys:0)+T(' εγγραφές. Αν είχες ειδοποιήσεις, άνοιξέ τες ξανά στο Προφίλ › Ειδοποιήσεις.',' entries. If you had alerts on, turn them on again in Profile › Alerts.');
+        setTimeout(function(){ location.replace(location.pathname+location.hash); },3500); })
+      .catch(function(e){ m.textContent=(e&&e.message==='popup')?T('Ο browser μπλόκαρε το παράθυρο. Επέτρεψε τα αναδυόμενα και ξαναδοκίμασε.','The browser blocked the window. Allow pop-ups and try again.'):T('Δεν ολοκληρώθηκε. Ξαναδοκίμασε.','It did not finish. Try again.'); }); };
+  }
+  card();
+})();
 })();

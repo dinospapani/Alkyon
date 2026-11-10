@@ -1,0 +1,10 @@
+# Alkyon · κεφαλίδες για τα αρχεία του alkyonfishing.com (Cloudflare Workers static assets).
+# Τα δεδομένα (.json) τα διαβάζει και η εφαρμογή Android (από το https://localhost), για να έχει τις φρέσκες εκδόσεις.
+/*.json
+  Access-Control-Allow-Origin: *
+/nav/*
+  Access-Control-Allow-Origin: *
+/sw.js
+  Cache-Control: no-cache
+/v4/sw.js
+  Cache-Control: no-cache

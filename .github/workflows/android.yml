@@ -1,0 +1,104 @@
+# Alkyon · χτίσιμο της εφαρμογής Android (Capacitor) και ανέβασμα στο Google Play.
+# Πότε τρέχει:
+#   - όταν αλλάζει το version.js στο main (νέα έκδοση) → AAB + APK, και αν υπάρχει το secret του Play, ανέβασμα στο «Internal testing»
+#   - με το χέρι (Actions › Alkyon Android › Run workflow), με επιλογή track: internal / alpha (κλειστό τεστ) / none (μόνο αρχεία)
+# Secrets (Settings › Secrets and variables › Actions):
+#   ANDROID_KEYSTORE_BASE64   το alkyon-upload.jks σε base64      ANDROID_KEYSTORE_PASSWORD   ο κωδικός του
+#   PLAY_SERVICE_ACCOUNT_JSON το JSON του service account του Play (προαιρετικό: χωρίς αυτό, τα αρχεία μένουν στα Artifacts)
+# Variable (προαιρετικό): PLAY_RELEASE_STATUS = draft όσο η εφαρμογή δεν έχει δημοσιευτεί ακόμα στο Play (αλλιώς completed).
+# Χωρίς keystore χτίζεται μόνο APK για δοκιμή (debug), που εγκαθίσταται με το χέρι στο κινητό.
+name: Alkyon Android
+on:
+  push:
+    branches: [main]
+    paths: ['version.js', 'android/**', 'native.js', 'capacitor.config.json', 'package.json', '.github/workflows/android.yml']
+  workflow_dispatch:
+    inputs:
+      track:
+        description: 'Google Play track'
+        type: choice
+        options: [internal, alpha, none]
+        default: internal
+concurrency:
+  group: android
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      KS_PW: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      PLAY_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Έκδοση από το version.js
+        id: ver
+        run: |
+          V=$(grep -oE "ALKYON_VERSION='[0-9]+\.[0-9]+\.[0-9]+'" version.js | grep -oE "[0-9]+\.[0-9]+\.[0-9]+")
+          IFS=. read -r A B C <<< "$V"
+          CODE=$((A*1000000 + B*1000 + C))
+          echo "name=$V" >> "$GITHUB_OUTPUT"; echo "code=$CODE" >> "$GITHUB_OUTPUT"
+          echo "Alkyon $V (versionCode $CODE)"
+
+      - run: npm ci --no-audit --no-fund
+      - name: Αρχεία εφαρμογής → www → android
+        run: |
+          node tools/build-web.mjs www --native
+          npx cap sync android
+
+      - name: Κλειδί υπογραφής
+        id: ks
+        run: |
+          if [ -n "$KS_B64" ] && [ -n "$KS_PW" ]; then
+            echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+            echo "ALKYON_KEYSTORE_PATH=$RUNNER_TEMP/upload.jks" >> "$GITHUB_ENV"
+            echo "ALKYON_KEYSTORE_PASSWORD=$KS_PW" >> "$GITHUB_ENV"
+            echo "signed=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Λείπει το ANDROID_KEYSTORE_BASE64 / ANDROID_KEYSTORE_PASSWORD — χτίζεται μόνο APK δοκιμής (debug)."
+          fi
+
+      - name: Χτίσιμο (υπογεγραμμένο AAB + APK)
+        if: steps.ks.outputs.signed == '1'
+        working-directory: android
+        run: ./gradlew --no-daemon bundleRelease assembleRelease -PalkVersionName=${{ steps.ver.outputs.name }} -PalkVersionCode=${{ steps.ver.outputs.code }}
+      - name: Χτίσιμο (APK δοκιμής, χωρίς κλειδί)
+        if: steps.ks.outputs.signed != '1'
+        working-directory: android
+        run: ./gradlew --no-daemon assembleDebug -PalkVersionName=${{ steps.ver.outputs.name }} -PalkVersionCode=${{ steps.ver.outputs.code }}
+
+      - name: Μετονομασία αρχείων
+        run: |
+          mkdir -p out
+          V=${{ steps.ver.outputs.name }}
+          [ -f android/app/build/outputs/bundle/release/app-release.aab ] && cp android/app/build/outputs/bundle/release/app-release.aab "out/alkyon-$V.aab"
+          [ -f android/app/build/outputs/apk/release/app-release.apk ] && cp android/app/build/outputs/apk/release/app-release.apk "out/alkyon-$V.apk"
+          [ -f android/app/build/outputs/apk/debug/app-debug.apk ] && cp android/app/build/outputs/apk/debug/app-debug.apk "out/alkyon-$V-debug.apk"
+          ls -la out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: alkyon-android-${{ steps.ver.outputs.name }}
+          path: out/*
+          retention-days: 30
+
+      - name: Ανέβασμα στο Google Play
+        if: steps.ks.outputs.signed == '1' && env.PLAY_JSON != '' && (github.event_name == 'push' || inputs.track != 'none')
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.alkyonfishing.app
+          releaseFiles: out/alkyon-${{ steps.ver.outputs.name }}.aab
+          releaseName: ${{ steps.ver.outputs.name }}
+          track: ${{ inputs.track || 'internal' }}
+          status: ${{ vars.PLAY_RELEASE_STATUS || 'completed' }}

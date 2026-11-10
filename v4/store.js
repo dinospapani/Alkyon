@@ -80,7 +80,7 @@ function signUp(email,pw){ return auth('signup?redirect_to='+encodeURIComponent(
   var u=j&&(j.user||j); if(u&&Array.isArray(u.identities)&&u.identities.length===0) return 'exists';
   return 'confirm'; }); }
 /* 1.4.0: κωδικός από το email, «Ξέχασα τον κωδικό», σύνδεσμος από email, νέος κωδικός (πριν ήταν μόνο στην κλασική) */
-function site(){ return location.origin+location.pathname.replace(/v4\/.*$/,''); }
+function site(){ if(window.AKN) return window.AKN.site; /* 1.12.0: στην εφαρμογή Android οι σύνδεσμοι των email πάνε στο alkyonfishing.com */ return location.origin+location.pathname.replace(/v4\/.*$/,''); }
 function verify(type,email,token){ return auth('verify',{type:type,email:email,token:token}).then(function(j){ if(!j.access_token) throw new Error('Invalid token'); setSess(j,null); return sync(true); }); }
 function recover(email){ return auth('recover?redirect_to='+encodeURIComponent(site()),{email:email}); }
 function resend(email){ return auth('resend?redirect_to='+encodeURIComponent(site()),{type:'signup',email:email}); }
@@ -89,7 +89,7 @@ function fromLink(p){ return fetch(URL_+'/auth/v1/user',{headers:{apikey:KEY,Aut
 /* 1.5.0: σύνδεση με Google (OAuth του Supabase). Το κουμπί φαίνεται μόνο αν ο πάροχος είναι ενεργός στο Supabase (/auth/v1/settings). */
 function providers(){ var c=ls.get('alkyon-v4-authprov',null); if(c&&Date.now()-c.t<6*3600e3) return Promise.resolve(c.p);
   return fetch(URL_+'/auth/v1/settings',{headers:{apikey:KEY}}).then(function(r){ return r.ok?r.json():{}; }).then(function(j){ var p=(j&&j.external)||{}; ls.set('alkyon-v4-authprov',{t:Date.now(),p:p}); return p; }).catch(function(){ return (c&&c.p)||{}; }); }
-function oauthUrl(pv){ return URL_+'/auth/v1/authorize?provider='+encodeURIComponent(pv)+'&redirect_to='+encodeURIComponent(site()); }
+function oauthUrl(pv){ return URL_+'/auth/v1/authorize?provider='+encodeURIComponent(pv)+'&redirect_to='+encodeURIComponent(window.AKN?window.AKN.oauthReturn:site()); /* 1.12.0: στην εφαρμογή γυρίζει με com.alkyonfishing.app://auth/ */ }
 function setPassword(pw){ return ensure().then(function(s){ return fetch(URL_+'/auth/v1/user',{method:'PUT',headers:H(s),body:JSON.stringify({password:pw})}).then(function(r){ if(!r.ok) return r.json().catch(function(){ return {}; }).then(function(j){ throw new Error(j.msg||j.message||('HTTP '+r.status)); }); }); }); }
 /* v31z545: αποσύνδεση που ολοκληρώνεται πάντα: συγχρονισμός (έως 12″), αποσύνδεση στον server (έως 5″), μετά καθαρισμός.
    opt.wipe: σβήνει και τα δεδομένα από αυτό το κινητό, ΜΟΝΟ αν ο συγχρονισμός πέτυχε (μένουν στον λογαριασμό). Επιστρέφει {wiped, synced}. */

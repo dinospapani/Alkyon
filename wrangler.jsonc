@@ -1,0 +1,22 @@
+// Alkyon · ρυθμίσεις Cloudflare (Worker + αρχεία) για το alkyonfishing.com.
+// Ανεβαίνει από το .github/workflows/deploy-web.yml σε κάθε push στο main.
+// Μόνο το alkyonfishing.com (χωρίς www: θα ήταν άλλος «τόπος», με χωριστά δεδομένα στον browser).
+// Το «custom_domain» φτιάχνει μόνο του τις εγγραφές DNS, αρκεί το alkyonfishing.com να είναι στον ίδιο λογαριασμό Cloudflare.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "alkyon",
+  "main": "cloudflare/worker.js",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./dist/web",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/.well-known/*", "/privacy", "/privacy/"]
+  },
+  "routes": [
+    { "pattern": "alkyonfishing.com", "custom_domain": true }
+  ],
+  "workers_dev": false,
+  "observability": { "enabled": true }
+}

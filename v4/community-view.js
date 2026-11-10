@@ -136,7 +136,7 @@ function likeC(c){ if(!sess()){ needAcc(); return; } var on=!!F.cliked[c.id], n=
   (on?rest('community_comment_likes?comment_id=eq.'+c.id+'&user_id=eq.'+esc(uid()),{method:'DELETE'}):rest('community_comment_likes',{method:'POST',body:JSON.stringify({comment_id:c.id}),headers:{'Content-Type':'application/json',Prefer:'return=minimal'}}))
     .catch(function(){ F.cliked[c.id]=on?1:0; F.clk[c.id]=n; draw(); B.toast(T('Δεν έγινε.','Failed.')); }); }
 /* 1.9.65: πρόσκληση φίλου */
-var APPURL='https://dinospapani.github.io/Alkyon/v4/?inv=1#community';
+var APPURL=(window.AKN||/(^|\.)alkyonfishing\.com$/.test(location.hostname)?'https://alkyonfishing.com':'https://dinospapani.github.io/Alkyon')+'/v4/?inv=1#community'; /* 1.12.0: νέο domain */
 function invite(){ var txt=T('Έλα στο Alkyon: πρόγνωση για ψάρεμα, ημερολόγιο και Κοινότητα ψαράδων σε Κύπρο και Ελλάδα. Δωρεάν.','Join me on Alkyon: fishing forecast, logbook and an anglers’ Community in Cyprus and Greece. Free.');
   if(navigator.share) return navigator.share({title:'Alkyon',text:txt,url:APPURL}).then(function(){ return 'shared'; }).catch(function(){ return 'cancel'; });
   var all=txt+' '+APPURL, done=function(ok){ B.toast(ok?T('Ο σύνδεσμος αντιγράφηκε. Στείλ’ τον σε φίλο.','Link copied. Send it to a friend.'):all); return 'copied'; };

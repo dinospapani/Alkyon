@@ -1,0 +1,25 @@
+{
+  "appId": "com.alkyonfishing.app",
+  "appName": "Alkyon",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#06171F",
+    "allowMixedContent": false,
+    "captureInput": false,
+    "webContentsDebuggingEnabled": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1200,
+      "launchAutoHide": true,
+      "backgroundColor": "#06171F",
+      "showSpinner": false,
+      "androidScaleType": "CENTER_INSIDE"
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#06171F",
+      "overlaysWebView": false
+    }
+  }
+}

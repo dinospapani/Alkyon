@@ -1,1 +1,11 @@
 __pycache__/
+
+# Alkyon · Android / Cloudflare
+node_modules/
+www/
+dist/
+.wrangler/
+android/app/release/
+android/keystore*
+*.jks
+*.keystore

@@ -16,5 +16,6 @@
 })();
 </script>
 </head>
-<body><p>Η σελίδα δεν βρέθηκε · Page not found<br><br><a href="/Alkyon/v4/">Άνοιγμα Alkyon · Open Alkyon</a></p></body>
+<body><p>Η σελίδα δεν βρέθηκε · Page not found<br><br><a id="go" href="/Alkyon/v4/">Άνοιγμα Alkyon · Open Alkyon</a></p>
+<script>/* 1.12.0: στο alkyonfishing.com η εφαρμογή είναι στη ρίζα (/v4/) */ if(!/^\/alkyon\//i.test(location.pathname)) document.getElementById('go').href='/v4/';</script></body>
 </html>

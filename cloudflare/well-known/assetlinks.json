@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.alkyonfishing.app",
+      "sha256_cert_fingerprints": [
+        "BC:3E:1D:01:13:FB:28:1B:CC:3B:91:F2:A3:C9:64:62:A7:46:06:BD:93:E7:29:38:6F:B9:A4:C5:CC:68:10:B4"
+      ]
+    }
+  }
+]
