@@ -222,7 +222,7 @@ async function modelFetch(base,px){
   throw err||new Error('fail');
 }
 async function load(){
-  var id=++loadId, b=map.getBounds().pad(0.05), s=b.getSouth(), n=b.getNorth(), w=b.getWest(), e=b.getEast();
+  var id=++loadId, b=map.getBounds().pad(0.3), /* 1.12.10: πλέγμα μεγαλύτερο από την οθόνη, ώστε μικρή μετακίνηση να μη θέλει νέο φόρτωμα */ s=b.getSouth(), n=b.getNorth(), w=b.getWest(), e=b.getEast();
   /* 1.12.7: όρια «κουμπωμένα» σε σταθερό πλέγμα: μικρή μετακίνηση ή ζουμ ξαναχρησιμοποιεί το ίδιο αίτημα (cache στον server)
      αντί για νέο αίτημα στο Open-Meteo κάθε φορά, που γέμιζε το όριο (429) και ο άνεμος χανόταν */
   var qd=Math.max(0.125,Math.pow(2,Math.ceil(Math.log(Math.max(n-s,e-w)/4)/Math.LN2))); s=Math.floor(s/qd)*qd; n=Math.ceil(n/qd)*qd; w=Math.floor(w/qd)*qd; e=Math.ceil(e/qd)*qd;
@@ -261,7 +261,10 @@ async function load(){
   }catch(err){ if(id===loadId&&on){
     var m=String(err&&err.message||''), lim=/429/.test(m);
     /* 1.12.7: αν υπάρχει ήδη άνεμος (πριν το ζουμ/μετακίνηση), μένει αυτός· όχι κενός χάρτης και «δοκίμασε ξανά» */
-    if(grid){ coolUntil=Date.now()+(lim?180000:60000); seed(); if(!raf) loop(0); label(); drawPanel();
+    /* 1.12.10: αν το παλιό πλέγμα δεν καλύπτει το σημείο που κοιτάς, νέα προσπάθεια σε 15″ (όχι 1–3 λεπτά) */
+    var cc=map.getCenter(), cov=grid&&cc.lat>=grid.lat[0]&&cc.lat<=grid.lat[grid.lat.length-1]&&cc.lng>=grid.lon[0]&&cc.lng<=grid.lon[grid.lon.length-1];
+    if(grid&&!cov&&!lim&&N<=7){ clearTimeout(window._wRetry); window._wRetry=setTimeout(function(){ if(on){ loadId++; load(); } },15000); seed(); if(!raf) loop(0); return; }
+    if(grid&&cov){ coolUntil=Date.now()+(lim?180000:60000); seed(); if(!raf) loop(0); label(); drawPanel();
       if(window.AK&&window.AK.toast) window.AK.toast(T('Δεν ήρθε νεότερος άνεμος για εδώ. Δείχνω τον προηγούμενο.','Could not refresh the wind here. Showing the previous one.'));
       clearTimeout(window._wRetry); window._wRetry=setTimeout(function(){ coolUntil=0; if(on){ loadId++; load(); } },lim?180000:60000); return; }
     if(N>7&&!lim&&!(err&&err.message==='nodata')){ N=7; grid=null; loadId++; return load(); }
@@ -336,7 +339,7 @@ function loop(ts){
   }
   ctx.globalAlpha=1;
 }
-function moved(){ if(!on) return; clear(); clearTimeout(mvT); mvT=setTimeout(function(){ if(!on) return; var b=map.getBounds(); var L1=grid?grid.lat.length-1:0, O1=grid?grid.lon.length-1:0; if(grid&&Date.now()<coolUntil){ seed(); label(); return; } if(!grid||!(b.getSouth()>=grid.lat[0]-0.001&&b.getNorth()<=grid.lat[L1]+0.001&&b.getWest()>=grid.lon[0]-0.001&&b.getEast()<=grid.lon[O1]+0.001)||(!grid.st&&map.getBounds().getNorth()-map.getBounds().getSouth()<(grid.lat[L1]-grid.lat[0])/3)) load(); else{ seed(); label(); } },900); }
+function moved(){ if(!on) return; clear(); clearTimeout(mvT); mvT=setTimeout(function(){ if(!on) return; var b=map.getBounds(); var L1=grid?grid.lat.length-1:0, O1=grid?grid.lon.length-1:0; if(grid&&Date.now()<coolUntil){ seed(); label(); return; } if(!grid||!(b.getSouth()>=grid.lat[0]-0.001&&b.getNorth()<=grid.lat[L1]+0.001&&b.getWest()>=grid.lon[0]-0.001&&b.getEast()<=grid.lon[O1]+0.001)||(!grid.st&&map.getBounds().getNorth()-map.getBounds().getSouth()<(grid.lat[L1]-grid.lat[0])/4.5)) load(); else{ seed(); label(); } },450); }
 function onUnits(){ if(!on) return; drawPanel(); drawStations(); label(); }
 function start(opt){ if(on) return; on=true; shown=!(opt&&opt.hidden); document.body.classList.add('ndwind'); ensure(); cv.style.display=shown?'block':'none'; btn.setAttribute('aria-pressed',String(shown)); btn.classList.toggle('on',shown); fit(); map.on('moveend zoomend resize',moved); map.getContainer().addEventListener('click',onTap,true); window.addEventListener('alkyon-units',onUnits); window.addEventListener('resize',fit); load(); }
 function stop(){ pause(); on=false; try{ window.dispatchEvent(new Event('alkyon-windstop')); }catch(e){} document.body.classList.remove('ndwind'); document.documentElement.style.removeProperty('--ndwh'); loadId++; btn.setAttribute('aria-pressed','false'); btn.classList.remove('on'); map.off('moveend zoomend resize',moved); try{ map.getContainer().removeEventListener('click',onTap,true); }catch(e){} window.removeEventListener('alkyon-units',onUnits); clearTap(); if(raf){ cancelAnimationFrame(raf); raf=0; } if(cv) cv.style.display='none'; if(panel){ panel.remove(); panel=null; } shown=false; clear(); parts=[]; var D=document.getElementById('ndMapDock'); if(D&&D._sync) D._sync(); }

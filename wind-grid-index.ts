@@ -13,11 +13,11 @@ export function plan(q) {
   const models = String(q.get('models') || '');
   if (![s, n, w, e].every(Number.isFinite)) return { error: 'bad bounds' };
   if (!(n > s) || !(e > w)) return { error: 'bad bounds' };
-  if (s < 20 || n > 55 || w < 0 || e > 65) return { error: 'outside supported area' };
+  if (s < -80 || n > 80 || w < -180 || e > 180) return { error: 'outside supported area' };   /* 1.12.10: όλος ο κόσμος (πριν μόνο Ευρώπη–Μ. Ανατολή, ανατολικά του Greenwich) */
   if (!(N >= 5 && N <= 13)) return { error: 'bad N' };
   if (!/^[a-z0-9_,]{0,90}$/.test(models)) return { error: 'bad models' };
-  const span = Math.max(n - s, e - w); if (span > 14) return { error: 'area too large' };
-  const step = span <= 3 ? 0.5 : span <= 8 ? 1 : 2;
+  const span = Math.max(n - s, e - w); if (span > 40) return { error: 'area too large' };   /* 1.12.10: έως 40° (πριν 14°), με βήμα 4° για μεγάλες περιοχές */
+  const step = span <= 3 ? 0.5 : span <= 8 ? 1 : span <= 16 ? 2 : 4;
   const sn = Math.floor(s / step) * step, nn = Math.ceil(n / step) * step, wn = Math.floor(w / step) * step, en = Math.ceil(e / step) * step;
   const lat = [], lon = [];
   for (let k = 0; k < N; k++) { lat.push(+(sn + (nn - sn) * k / (N - 1)).toFixed(4)); lon.push(+(wn + (en - wn) * k / (N - 1)).toFixed(4)); }
