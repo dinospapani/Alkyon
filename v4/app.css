@@ -1002,3 +1002,8 @@ html.night .btn.pri,html.night button.pri{background:#000!important;color:#fff!i
 .sppage.splight .spfoot{color:var(--ink-3)}
 .sppage.splight .spgo{box-shadow:0 8px 18px color-mix(in srgb,var(--accent) 28%,transparent)}
 .sppage.splight .spbrand{color:#fff}.sppage.splight .spcard{background:var(--surface-2)}
+
+/* 1.12.22: το «Συνέχεια» / «Επόμενο» μένει πάντα ορατό κάτω, ακόμη κι αν η σελίδα δεν χωράει (μικρή οθόνη, μεγάλα γράμματα) */
+.sppage:not(.tour) .spgo{position:sticky;bottom:calc(var(--safe-b) + 10px);z-index:2}
+.sppage.tour .spnav{position:sticky;bottom:calc(var(--safe-b) + 10px);z-index:2}
+.splang .lnk{background:none;border:0;padding:6px 4px;min-height:44px;color:#fff;font:600 14.5px var(--font);text-decoration:underline;cursor:pointer}

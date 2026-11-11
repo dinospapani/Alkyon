@@ -49,7 +49,12 @@ B.startPick=function(){
   /* 1.12.15: η φωτογραφία ακολουθεί την επιλογή (ακτή / σκάφος / ψαροντούφεκο) */
   function heroImg(){ return st.p==='spear'?'alk-hero-spear.jpg':st.s==='shore'?'alk-card-shore.jpg':'alk-hero-boat.jpg'; }
   function lab(){ go.replaceChildren(h('span',{text:T('Συνέχεια · ','Continue · ')+label(st.p,st.s)}),h('i',{html:CHEV})); try{ var hi=pg&&pg.querySelector('.sphero'); if(hi) hi.style.backgroundImage='url('+heroImg()+')'; }catch(e){} }
-  function close(){ pg.classList.add('out'); cover(false); document.removeEventListener('keydown',key); setTimeout(function(){ pg.remove(); },260); try{ prev&&prev.focus&&prev.focus(); }catch(e){} }
+  /* 1.12.22: το «πίσω» του κινητού κλείνει τη σελίδα χωρίς αλλαγή (όπως το «Παράλειψη»), αντί να βγάζει από την εφαρμογή ή τη σελίδα.
+     Μπαίνει μία εγγραφή στο ιστορικό· αν κλείσει με κουμπί, την αφαιρούμε εμείς (δεν αλλάζει η διεύθυνση, άρα δεν μπλέκει με την πλοήγηση). */
+  var hist=false, gone=false;
+  function onPop(){ if(!hist) return; hist=false; close(true); }
+  function close(fromPop){ if(gone) return; gone=true; pg.classList.add('out'); cover(false); document.removeEventListener('keydown',key); setTimeout(function(){ pg.remove(); window.removeEventListener('popstate',onPop); },260); try{ prev&&prev.focus&&prev.focus(); }catch(e){}
+    if(fromPop!==true&&hist){ hist=false; try{ if(history.state&&history.state.spk) history.back(); }catch(e){} } }
   function key(e){ if(e.key==='Escape') close(); }
   go.addEventListener('click',function(){ put('alkyon-fside',st.s); put('alkyon-fprof',st.p); put('alkyon-fprof-done','1'); put('alkyon-askfp',ask.checked?'0':'1'); B.emit('store','alkyon-fprof'); close(); });
   var pg=h('div',{class:'sppage',role:'dialog','aria-modal':'true','aria-label':T('Πού ψαρεύεις σήμερα;','Where are you fishing today?')},
@@ -62,6 +67,7 @@ B.startPick=function(){
   /* 1.12.20: με φωτεινό θέμα η είσοδος ταιριάζει με την εφαρμογή: η φωτογραφία μένει πάνω, από κάτω ανοιχτό φόντο και λευκές κάρτες */
   if(isLight()){ pg.classList.add('splight'); var ttl=pg.querySelector('.sptitle'), bd=pg.querySelector('.spbody'); if(ttl&&bd) bd.insertBefore(ttl,bd.firstChild); }
   lab(); cover(true); document.body.append(pg); document.addEventListener('keydown',key);
+  try{ history.pushState({spk:1},''); hist=true; window.addEventListener('popstate',onPop); }catch(e){}
 };
 function isLight(){ var r=document.documentElement, t=r.getAttribute('data-theme'); if(r.classList.contains('night')) return false; if(t==='light') return true; if(t==='dark') return false; try{ return !matchMedia('(prefers-color-scheme: dark)').matches; }catch(e){ return false; } }
 /* 1.12.15: χαιρετισμός και «σήμερα» από την τελευταία πρόγνωση (χωρίς δίκτυο, από το κινητό) */
@@ -126,6 +132,8 @@ B.tour=function(){
     if(x.acct) body.append(h('button',{class:'spsec',type:'button',text:T('Συνέχεια χωρίς λογαριασμό','Continue without an account'),onclick:finish}),h('button',{class:'spsec',type:'button',text:T('Έχω ήδη λογαριασμό · Σύνδεση','I already have an account · Sign in'),onclick:function(){ finish(); setTimeout(function(){ B.authSheet&&B.authSheet({mode:'in'}); },300); }}));
     if(x.alerts) body.append(h('button',{class:'spsec',type:'button',text:T('Ορισμός επαφής ασφαλείας','Set a safety contact'),onclick:function(){ finish(); location.hash='#profile'; setTimeout(function(){ var c=[].slice.call(document.querySelectorAll('section.card')).filter(function(n){ return /Επαφή ασφαλείας|Safety contact/.test(n.textContent); }); if(c[0]) c[0].scrollIntoView({block:'start',behavior:'smooth'}); },500); }}));
     pg.append(hero,body); }
+  /* 1.12.22: στην εφαρμογή Android το «πίσω» πηγαίνει ένα βήμα πίσω στο καλωσόρισμα· στο πρώτο βήμα βγάζει την εφαρμογή στο παρασκήνιο, όπως πριν */
+  B.backHook=function(){ if(!pg||!pg.isConnected||pg.classList.contains('out')) return false; if(step>0){ step--; paint(); pg.scrollTop=0; return true; } return false; };
   pg=h('div',{class:'sppage tour',role:'dialog','aria-modal':'true','aria-label':T('Καλωσόρισμα','Welcome')}); cover(true); document.body.append(pg); document.addEventListener('keydown',key); paint();
 };
 

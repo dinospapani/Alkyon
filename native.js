@@ -147,6 +147,8 @@ if(App){
   App.addListener('appUrlOpen',function(ev){ handleUrl(ev&&ev.url); });
   /* πίσω: πρώτα ό,τι είναι ανοιχτό (sheet, σελίδα) μέσω ιστορικού· αλλιώς η εφαρμογή στο παρασκήνιο */
   App.addListener('backButton',function(ev){
+    /* 1.12.22: πρώτα ρωτάμε την εφαρμογή (π.χ. καλωσόρισμα: ένα βήμα πίσω) */
+    try{ if(window.AK&&AK.backHook&&AK.backHook()) return; }catch(e){}
     if(ev&&ev.canGoBack) history.back();
     else App.minimizeApp().catch(function(){});
   });
