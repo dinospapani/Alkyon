@@ -29,7 +29,8 @@ function deps(){ var p=Promise.resolve(), L=['../cy100.js'].concat(window.SPECIE
 B.guideReady=function(){ if(ready) return ready;
   ready=deps().then(function(){ var tmp=null; if(!page.isConnected){ tmp=h('div',{hidden:true}); tmp.append(page); document.body.append(tmp); } var sec=page.querySelector('#tab-guide'); if(EN&&window.AlkyonTrWatch&&!window.ALKYON_TRBODY) AlkyonTrWatch(sec);
     try{ core=window.AlkyonGuideCore(); }catch(e){ console.error(e); }
-    return load('../knots.js').then(function(){ if(tmp){ tmp.remove(); } }); }).then(function(){ return core; });
+    /* 1.12.27: οι κόμποι αφαιρέθηκαν προσωρινά ώσπου να έρθουν επαγγελματικά βίντεο (ο κώδικας μένει στο ../knots.js) */
+    if(tmp){ tmp.remove(); } }).then(function(){ return core; });
   return ready; };
 /* για τη φόρμα ψαριού: ελάχιστο μέγεθος από τους κανονισμούς (ίδιο με την κλασική) */
 B.minSize=function(name){ if(!window.MIN_SIZES) return null; var c=core; if(!c) return null; var sp=c.matchSp(name); if(!sp) return null; return {la:sp.la,min:c.minOf(sp.la)}; };

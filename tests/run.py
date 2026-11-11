@@ -1268,16 +1268,9 @@ with sync_playwright() as p:
     check('Προφίλ › Αποκλεισμένοι χρήστες: άρση αποκλεισμού (1.12.14)', pg.evaluate("()=>localStorage.getItem('alkyon-comm-block')")=='[]', pg.evaluate("()=>localStorage.getItem('alkyon-comm-block')"))
     check('1.12.14: αποκλεισμός χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
 
-    print('# 1.12.26 κόμποι: 3D βίντεο')
+    print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)
-    pg.click('#tab-guide .seg button[data-g=knots]'); pg.wait_for_timeout(1500)
-    kn=pg.evaluate("()=>({cards:document.querySelectorAll('.kv').length, steps:[...document.querySelectorAll('.kv')].map(c=>c.querySelectorAll('.ksteps li').length), svg:document.querySelectorAll('.kn:not(.kv) svg').length})")
-    check('Κόμποι: 9 κάρτες βίντεο με βήματα + dropper (SVG)', kn['cards']==9 and min(kn['steps'])>=3 and kn['svg']==1, kn)
-    pg.evaluate("()=>document.querySelectorAll('.kv')[0].querySelectorAll('.kvar button')[1].click()"); pg.wait_for_timeout(600)
-    check('Κόμποι: Clinch › Αγκίστρι αλλάζει βίντεο', pg.evaluate("()=>/knot_clinch_hook\\.mp4$/.test(document.querySelector('.kv video').src)"))
-    import os as _os
-    check('Κόμποι: όλα τα αρχεία υπάρχουν (mp4, webp, index.json)', all(_os.path.exists(_os.path.join(ROOT,'knots','knot_%s%s'%(k,e))) for k in json.load(open(_os.path.join(ROOT,'knots','index.json'),encoding='utf-8')) for e in ('.mp4','_poster.webp')))
-    check('Κόμποι: χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
+    check('Οδηγός χωρίς καρτέλα Κόμποι (αφαιρέθηκε προσωρινά)', not pg.query_selector('#tab-guide .seg button[data-g=knots]') and not pg._errs, pg._errs); c.close()
     b.close()
 
 # 1.9.48: server (quick-processor): ίδιος κώδικας, ψεύτικα δεδομένα, χωρίς δίκτυο

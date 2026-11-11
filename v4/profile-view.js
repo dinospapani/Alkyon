@@ -90,7 +90,7 @@ function mineTab(page){
   var bt=ls.get('alkyon-boat',null), bn=bt&&bt.boat&&bt.boat.name;
   /* 1.12.14: ο Οδηγός πρώτος (είναι από τα μεγάλα κομμάτια της εφαρμογής)· η εισαγωγή δεδομένων πήγε στον Λογαριασμό › Δεδομένα */
   page.append(group(T('Οδηγός και εξοπλισμός','Guide and gear'),[
-    row('guide',T('Οδηγός','Guide'),T('Είδη, μεγέθη, νόμοι, τεχνικές, κόμποι','Species, sizes, laws, techniques, knots'),'#guide'),
+    row('guide',T('Οδηγός','Guide'),T('Είδη, μεγέθη, νόμοι, τεχνικές','Species, sizes, laws, techniques'),'#guide'),
     row('tackle',T('Εξοπλισμός','Tackle'),n?n+' '+(n===1?T('κομμάτι','item'):T('κομμάτια','items')):T('Καλάμια, μουλινέ, τεχνητά, ψαροντούφεκα','Rods, reels, lures, spearguns'),'#tackle'),
     row('boat',T('Σκάφος','Boat'),bn||T('Κινητήρας, συντήρηση, λήξεις, μπαταρίες','Engine, maintenance, expiries, batteries'),'#boat'),
     /* v31z552 */ B.garmin?row('watch',T('Ρολόι Garmin','Garmin watch'),B.garmin.code()?T('Συνδεδεμένο ✓','Linked ✓'):T('Πρόγνωση, πίεση και καταγραφή ψαριού στο ρολόι','Forecast, pressure and catch logging on the watch'),null,function(){ B.garmin.sheet(); }):null].filter(Boolean)));
