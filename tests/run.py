@@ -1197,6 +1197,15 @@ with sync_playwright() as p:
     tb=pg.evaluate("()=>{const r=[AK.backHook()]; document.querySelector('.sppage .spgo').click(); r.push(document.querySelectorAll('.obd i')[1].className==='on'); r.push(AK.backHook()); r.push(document.querySelectorAll('.obd i')[0].className==='on'); const l=document.querySelector('.splang .lnk'); r.push(l?getComputedStyle(l).backgroundColor:''); return r}")
     check('Καλωσόρισμα: «πίσω» της εφαρμογής = ένα βήμα πίσω, στο πρώτο βήμα όχι· κουμπιά γλώσσας χωρίς λευκό κουτί (1.12.22)', tb[:4]==[False,True,True,True] and tb[4] in ('rgba(0, 0, 0, 0)','transparent'), tb)
     c.close()
+    # 1.12.23: παλιότερο ψάρι: «πάτα για φόρτωση» → το γράφημα εμφανίζεται χωρίς να ξανανοίξει η κάρτα
+    import datetime as _dt
+    _d=(_dt.datetime.now()-_dt.timedelta(days=3)).strftime('%Y-%m-%d')
+    c=ctx(b); c.add_init_script("localStorage.setItem('alkyon-bites',JSON.stringify([{id:'wx1',date:'"+_d+"',time:'07:20',tz:120,species:'Λαβράκι',cnt:1,kg:1.2,lat:34.73,lon:32.38,_u:1}]))"); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(2500)
+    pg.locator('.li.fishrow').first.click(); pg.wait_for_timeout(1200)
+    pg.evaluate("()=>{const s=[...document.querySelectorAll('.sheet.on summary')].find(x=>/Πίεση/.test(x.textContent)); s&&s.click();}"); pg.wait_for_timeout(5000)
+    wq=pg.evaluate("()=>{const s=document.querySelector('.sheet.on .bwx'); return s?[!!s.querySelector('.bwxch,.bwpw'),(s.querySelector('summary')||{}).textContent||'']:null}")
+    check('Κάρτα ψαριού: το γράφημα καιρού εμφανίζεται μόλις φορτώσει, χωρίς ξανάνοιγμα (1.12.23)', wq and wq[0] and 'φορτώνει' not in wq[1], wq)
+    c.close()
     # 1.12.21: πυκνές γραμμές βάθους: πυκνές ως 30·βήμα, μετά κάθε 50 m ως 500 και κάθε 100 m, ως τον πάτο (όχι κόψιμο στα 300 m)
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_function("()=>window.AlkyonDense&&AlkyonDense.levels",timeout=20000)
     dl=pg.evaluate("()=>[5,10,20].map(s=>AlkyonDense.levels(2,950,s).map(x=>x.lv))")

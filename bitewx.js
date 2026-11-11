@@ -62,7 +62,7 @@ function pump(){
   fetchWx(b.lat,b.lon,C.biteMs(b)).then(function(wx){
     if(wx) return save(b,{wx:wx,wxNA:false});
     return save(b,{wxNA:true});
-  }).catch(function(){ tried[b.id]=0; }).then(function(){ running=false; setTimeout(pump,350); });
+  }).then(function(){ refresh(b.id); }).catch(function(){ tried[b.id]=0; refresh(b.id); }).then(function(){ running=false; setTimeout(pump,350); });
 }
 function enqueue(b,force){
   if(typeof b.lat!=='number'||typeof b.lon!=='number') return;
@@ -188,8 +188,13 @@ function fullChart(b,box){ var W=window.AK&&window.AK.biteWin, PC=window.AK&&win
     var nt=box.parentNode&&box.parentNode.querySelector('.bwn'); if(nt) nt.textContent=T('Ωριαία δεδομένα μοντέλου (Open-Meteo), ενδεικτικά, όχι μέτρηση στο σημείο. Ίδιο γράφημα με την Πρόγνωση: πίεση, άνεμος (βέλη = προς πού φυσά), σελήνη (περίοδοι solunar), παλίρροια. Γκρι ζώνη: ±30′ από το πιάσιμο'+(sp?'· πράσινη: όσο τσιμπούσαν· κόκκινη γραμμή: πότε σταμάτησαν':'')+'. Σύρε το δάχτυλο για κάθε ώρα.','Hourly model data (Open-Meteo), indicative, not measured on the spot. Same chart as the Forecast: pressure, wind (arrows = where it blows to), moon (solunar periods), tide. Grey band: ±30′ around the catch'+(sp?'; green: while they were biting; red line: when they stopped':'')+'. Drag across for each hour.');
   }); }
 function line2(t){ var p=document.createElement('div'); p.className='bwl'; p.textContent=t; return p; }
+/* 1.12.23: η κάρτα που είναι ήδη ανοιχτή ξαναχτίζεται μόλις φορτώσουν τα δεδομένα (πριν έμενε «φορτώνει…» ως να την ξανανοίξεις) */
+var live={};
+function refresh(id){ var l=(live[id]||[]).filter(function(x){ return x.isConnected; }); live[id]=l; if(!l.length) return;
+  var cur=((C.Store.raw?C.Store.raw('bites'):C.Store.get('bites'))||[]).find(function(x){ return x.id===id; }); if(!cur) return;
+  l.forEach(function(box){ build(cur,box); }); }
 function slot(b){
-  var box=document.createElement('div'); box.className='bwx'; build(b,box);
+  var box=document.createElement('div'); box.className='bwx'; build(b,box); (live[b.id]=(live[b.id]||[]).filter(function(x){ return x.isConnected; })).push(box);
   var ms=C.biteMs(b);
   if(!valid(b)&&eligible(b)&&!b.wxNA&&Date.now()-ms<36*HOUR) enqueue(b);
   else if(valid(b)&&b.wx.fc&&Date.now()>ms+4*HOUR&&!tried[b.id+'f']){ tried[b.id+'f']=1; enqueue(b,true); }
