@@ -1143,9 +1143,9 @@ with sync_playwright() as p:
     _shift=lambda ts: _d0+ts[10:] if ts[:10]==_base else ts
     c=ctx(b); c.route('**/marine?*hourly=sea_level_height_msl*',lambda r: r.fulfill(json={'hourly':{'time':[_shift(x) for x in _SL['t']],'sea_level_height_msl':_SL['v']}}))
     pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(5000)
-    pg.evaluate("()=>{const d=[...document.querySelectorAll('details.fold')].find(x=>/Παλίρροια/.test(x.textContent)); if(d) d.open=true;}"); pg.wait_for_timeout(1500)
-    td=pg.evaluate("()=>{const d=[...document.querySelectorAll('details.fold')].find(x=>/Παλίρροια/.test(x.textContent)); return d?[d.querySelector('summary').innerText,d.querySelectorAll('.tdi').length,!!d.querySelector('.tdsvg')]:null}")
-    check('Πρόγνωση: Παλίρροια με ψηλές/χαμηλές και καμπύλη (1.12.16)', td and td[1]>=3 and td[2] and 'ψηλή' in td[0].lower()+' ', td)
+    pg.evaluate("()=>{const d=document.querySelector('details.fold[data-k=pw]'); if(d) d.open=true;}"); pg.wait_for_timeout(1500)
+    td=pg.evaluate("()=>{const d=document.querySelector('details.fold[data-k=pw]'); return d?[d.querySelector('summary').innerText,d.querySelectorAll('.tdi').length,!!d.querySelector('.tdsvg')]:null}")
+    check('Πρόγνωση: Παλίρροια μέσα στην κάρτα πίεσης/ανέμου/σελήνης, με ψηλές/χαμηλές και καμπύλη (1.12.17)', td and td[1]>=3 and td[2] and 'παλίρροια' in td[0].lower(), td)
     pg.evaluate("()=>{location.hash='#guide'}"); pg.wait_for_timeout(3500)
     pg.click("#spFs button:has-text('Δεν κρατιούνται')"); pg.wait_for_timeout(700)
     gl=pg.evaluate("()=>[...document.querySelectorAll('#spList summary b')].map(e=>e.textContent)")
@@ -1164,6 +1164,19 @@ with sync_playwright() as p:
     pg=page(c); pg.goto(BASE+'/v4/'); pg.wait_for_timeout(2500)
     sp=pg.evaluate("()=>{const p=document.querySelector('.sppage'); return p?[!!p.querySelector('.sptoday'),(p.querySelector('.sptoday')||{}).textContent||'',(p.querySelector('.sphi')||{}).textContent||'']:null}")
     check('Είσοδος: χαιρετισμός και «Σήμερα 72 · καλύτερη ώρα» (1.12.16)', sp and sp[0] and '72' in sp[1] and 'καλύτερη ώρα 23:00' in sp[1] and sp[2], sp)
+    c.close()
+    # 1.12.17: ανάλυση ωρών τσιμπήματος με τα πραγματικά δεδομένα των θράψαλων 9/11 (Πάφος): άπνοια + στροφή ανέμου στην αρχή, δυνάμωμα + κρύωμα + γύρισμα παλίρροιας στο τέλος
+    import calendar as _cal
+    _R=[(14,4.1,225,8.6,1026.4,72,19.6,.62,-.63,.8,315),(15,4.2,236,8.9,1026.3,59,19.2,.58,-.66,.8,315),(16,4,235,8.7,1025.8,89,18.7,.56,-.64,.6,326),(17,3,220,8.2,1026.4,100,18,.52,-.6,.6,326),(18,1.8,193,5.6,1026.4,100,17.7,.5,-.54,.6,326),(19,1.2,108,3.1,1026.8,100,17.6,.46,-.46,.5,315),(20,3.7,51,7,1026.6,100,15.5,.44,-.4,.5,315),(21,5.1,50,9.1,1026.5,100,14.9,.44,-.37,.5,315),(22,5.2,45,9.5,1026.3,69,14.9,.42,-.37,.5,315),(23,5.1,43,9.7,1026.5,0,14.3,.42,-.41,.5,315),(24,5.2,42,9.7,1026.5,0,13.8,.4,-.47,.6,326),(25,5.5,39,10.1,1026.2,0,13.4,.4,-.55,.6,326)]
+    _K=['wind_speed_10m','wind_direction_10m','wind_gusts_10m','pressure_msl','cloud_cover','temperature_2m','wave_height','sea_level_height_msl','ocean_current_velocity','ocean_current_direction']
+    _S={'t':[(_cal.timegm((2026,11,9,0,0,0))+(r[0]-2)*3600)*1000 for r in _R]}
+    for _i,_k in enumerate(_K): _S[_k]=[r[_i+1] for r in _R]
+    _bq={'id':'x','date':'2026-11-09','time':'19:00','tz':120,'lat':34.72453,'lon':32.36531,'win':{'a':'19:00','b':'21:00'},'species':'Θράψαλο'}
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(2500)
+    rq=pg.evaluate("([b,S])=>{const W=AK.biteWin; return {st:W.analyze(b,S,'start').map(x=>x.k),en:W.analyze(b,S,'end').map(x=>x.k),du:W.during(b,S).map(x=>x.t).join(' | ')}}",[_bq,_S])
+    check('Ώρες τσιμπήματος: αρχή = άπνοια και στροφή ανέμου ΝΔ→ΒΑ σε ελαφρύ άνεμο (1.12.17)', 'wind-calm' in rq['st'] and 'wind-turn' in rq['st'], rq)
+    check('Ώρες τσιμπήματος: τέλος = γύρισμα παλίρροιας, δυνάμωμα ανέμου, κρύωμα αέρα (1.12.17)', all(k in rq['en'] for k in ['tide-turn','wind-build','air']), rq)
+    check('Ώρες τσιμπήματος: «όσο τσιμπούσαν» δείχνει άνεμο από→σε και αέρα (1.12.17)', '→' in rq['du'].split(' | ')[0] and 'Αέρας' in rq['du'], rq['du'])
     c.close()
     # 1.12.14: Προφίλ (ομάδες, Σχετικά, γνώμη, θέμα), δολώματα, αποκλεισμός χρήστη
     c=ctx(b); c.add_init_script("localStorage.setItem('alkyon-smart',JSON.stringify({weekly:Date.now()}))"); pg=page(c); pg.goto(BASE+'/v4/#profile'); pg.wait_for_timeout(2500)

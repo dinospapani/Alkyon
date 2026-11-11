@@ -527,10 +527,12 @@ function dayView(page,fc,d){
     if(isToday){ if(i0>=0&&all[i0+24]){ hint=ptx(all[i0+24].pres-all[i0].pres,all[i0].pres,all[i0+24].pres)+T(' τις επόμενες 24 ώρες',' over the next 24 hours'); } }
     else { /* 1.9.17: για άλλη μέρα, η πίεση εκείνης της μέρας (πριν έδειχνε πάντα τις επόμενες 24 ώρες από τώρα) */
       var dh=(d.hours||[]).filter(function(q){ return q.pres!=null; }); if(dh.length>1){ var a0=dh[0].pres, a1=dh[dh.length-1].pres; hint=ptx(a1-a0,a0,a1)+T(' μέσα στη μέρα',' during the day'); } }
-    page.append(fold('pw',T('Πίεση, άνεμος, σελήνη','Pressure, wind, moon'),hint,[pwc])); })();
-  /* 1.12.15: παλίρροια (στάθμη θάλασσας): ψηλές/χαμηλές της μέρας και πώς πέφτει η καλύτερη ώρα */
-  if(B.tideCard&&B.prof()!=='lake'){ var tpl=st.place||current(), tdf=null, tdc=B.tideCard(tpl,d.date,d.win||null,isToday,function(hn){ var sm=tdf&&tdf.querySelector('summary small'); if(sm) sm.textContent=hn||T('στάθμη θάλασσας','sea level'); });
-    if(tdc){ tdf=fold('tide',T('Παλίρροια','Tides'),T('στάθμη θάλασσας…','sea level…'),[tdc]); page.append(tdf); } }
+    /* 1.12.17: η παλίρροια μπήκε στην ίδια κάρτα με πίεση, άνεμο, σελήνη (πριν ήταν ξεχωριστή) */
+    var tdc=(B.tideCard&&B.prof()!=='lake')?B.tideCard(st.place||current(),d.date,d.win||null,isToday,null):null, tdw=tdc?h('div',{class:'pwtide'},h('h3',{class:'pwth',text:T('Παλίρροια (στάθμη θάλασσας)','Tides (sea level)')}),tdc):null;
+    /* αμέσως μετά το γράφημα, πριν την «έρευνα για τη σελήνη» (που φτιάχνεται αργότερα) */
+    if(tdw){ var mvT=function(){ var mres=pwc.querySelector('.mres'); if(mres&&mres.parentNode&&mres.previousSibling!==tdw){ mres.parentNode.insertBefore(tdw,mres); tdw.classList.add('pwmid'); } return !!mres; };
+      if(!mvT()){ try{ var moT=new MutationObserver(function(){ if(mvT()) moT.disconnect(); }); moT.observe(pwc,{childList:true,subtree:true}); }catch(e){} } }
+    page.append(fold('pw',tdc?T('Πίεση, άνεμος, σελήνη, παλίρροια','Pressure, wind, moon, tides'):T('Πίεση, άνεμος, σελήνη','Pressure, wind, moon'),hint,[pwc,tdw&&!tdw.parentNode?tdw:null])); })();
   /* 1.6.8: θερμοκρασία σε βάθος + ρεύμα σε μία κάρτα «Κάτω από την επιφάνεια» (μόνο σήμερα) */
   if(isToday){ var ug=h('section',{class:'card under'},h('h2',{text:T('Κάτω από την επιφάνεια','Below the surface')})), nU=0;
     if(B.thermoCard&&(B.prof()==='boat'||B.prof()==='spear')){ var tcd=B.thermoCard(st.place); if(tcd){ tcd.classList.remove('card'); tcd.classList.add('usub'); ug.append(tcd); nU++; } }

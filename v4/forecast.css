@@ -482,3 +482,7 @@ html.night .calmr .exwc{background:#000!important;outline:1px solid currentColor
 .tide .tdw{margin:6px 0}
 .fold .worked{padding-top:2px}
 .fold .opps{padding:0;box-shadow:none;background:none}
+/* 1.12.17: παλίρροια μέσα στην κάρτα πίεσης/ανέμου/σελήνης */
+.pwtide{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.pwtide .pwth{margin:0 0 6px;font-size:16px}
+.pwtide.pwmid{margin:12px 0 14px;padding:12px 0;border-bottom:1px solid var(--line)}

@@ -54,7 +54,17 @@ function analyze(b,S,edge){
     /* άνεμος: κατά τη διάρκεια (από–έως) σε σχέση με τις 2 ώρες μετά */
     var w0=mean(S,'wind_speed_10m',A,E), w1=mean(S,'wind_speed_10m',E,AF);
     if(w0!=null&&w1!=null){ var dw=w1-w0; if(dw>=3) add('wind-up',T('Ο άνεμος δυνάμωσε: από ','The wind picked up: from ')+W(w0)+T(' σε ',' to ')+W(w1)+'.',dw>=6?3:2); else if(dw<=-3) add('wind-down',T('Ο άνεμος έπεσε: από ','The wind dropped: from ')+W(w0)+T(' σε ',' to ')+W(w1)+'.',2); }
+    /* 1.12.17: και οι αλλαγές σε ελαφρύ άνεμο (π.χ. θαλάσσια αύρα που σβήνει και γυρίζει σε στεριανή το βράδυ), η άπνοια ακριβώς στη στιγμή,
+       το δυνάμωμα μέσα στο παράθυρο και η θερμοκρασία του αέρα. Πριν κοιτούσε μόνο μέσους όρους 2 ωρών και κατεύθυνση μόνο από 4 kn. */
+    var wAt=function(ms){ return at(S,'wind_speed_10m',ms); }, dAt=function(ms){ return amean(S,'wind_direction_10m',ms-31*MIN,ms+31*MIN); };
+    var wPre=wAt(E-H2), wE=wAt(E);
+    if(wPre!=null&&wE!=null&&wE<=1.6&&wPre>=2.5) add('wind-calm',T('Ο άνεμος έσβησε σε σχεδόν άπνοια (','The wind died to almost calm (')+W(wE)+T(') γύρω στις ',') around ')+end+'.',2);
+    if(edge!=='start'){ var wS=wAt(s.a), gE=at(S,'wind_gusts_10m',E); if(wS!=null&&wE!=null&&wE-wS>=2.5) add('wind-build',T('Όσο τσιμπούσαν ο άνεμος δυνάμωνε: από ','While they were biting the wind kept building: from ')+W(wS)+T(' σε ',' to ')+W(wE)+(gE!=null&&gE-wE>=3?T(', ριπές ',', gusts ')+W(gE):'')+T(' τη στιγμή που σταμάτησαν.',' when they stopped.'),2); }
+    var tP=at(S,'temperature_2m',E-H2), tE=at(S,'temperature_2m',E); if(tP!=null&&tE!=null&&Math.abs(tE-tP)>=1.5) add('air',(tE<tP?T('Ο αέρας κρύωσε ','The air cooled ')+B.num(tP-tE,1):T('Ο αέρας ζέστανε ','The air warmed ')+B.num(tE-tP,1))+T('° τις 2 ώρες ως τις ','° in the 2 hours to ')+end+' ('+B.num(tP,1)+' → '+B.num(tE,1)+' °C).',1);
     var d0=amean(S,'wind_direction_10m',A,E), d1=amean(S,'wind_direction_10m',E,AF);
+    var dP=dAt(E-H2), dN=dAt(edge==='start'?E+HOUR:E), wN=wAt(edge==='start'?E+HOUR:E), lightTurn=dP!=null&&dN!=null&&Math.max(wPre||0,wN||0)>=2.5&&Math.abs(turn(dP,dN))>=90;
+    if(lightTurn&&!(d0!=null&&d1!=null&&Math.max(w0||0,w1||0)>=4&&Math.abs(turn(d0,d1))>=45)){ var hrE=+hm(E,tz).slice(0,2);
+      add('wind-turn',T('Ο άνεμος γύρισε: από ','The wind shifted: from ')+dn(dP)+T(' σε ',' to ')+dn(dN)+((hrE>=17||hrE<=3)?T(' (το βράδυ αυτό συνήθως σημαίνει ότι η θαλάσσια αύρα σβήνει και αρχίζει η στεριανή).',' (in the evening this usually means the sea breeze dies and the land breeze starts).'):'.'),3); }
     if(d0!=null&&d1!=null&&Math.max(w0||0,w1||0)>=4&&Math.abs(turn(d0,d1))>=45) add('wind-turn',T('Ο άνεμος γύρισε: από ','The wind shifted: from ')+dn(d0)+T(' σε ',' to ')+dn(d1)+'.',Math.abs(turn(d0,d1))>=90?3:2);
     var g0=mean(S,'wind_gusts_10m',A,E), g1=mean(S,'wind_gusts_10m',E,AF); if(g0!=null&&g1!=null&&g1-g0>=5) add('gust-up',T('Ανέβηκαν οι ριπές: ','Gusts rose: ')+W(g0)+' → '+W(g1)+'.',1);
     /* πίεση: τάση στις 3 ώρες πριν το τέλος και στις 2 μετά */
@@ -105,7 +115,10 @@ function during(b,S){
   function add(t){ out.push({t:t,w:1}); }
   if(S){
     var w=mean(S,'wind_speed_10m',A,E), d=amean(S,'wind_direction_10m',A,E), g=mean(S,'wind_gusts_10m',A,E);
-    if(w!=null) add(T('Άνεμος: ','Wind: ')+(w>=2&&d!=null?dn(d)+' ':'')+W(w)+(g!=null&&g-w>=4?T(', ριπές ',', gusts ')+W(g):'')+'.');
+    var wA=at(S,'wind_speed_10m',A), wB=at(S,'wind_speed_10m',E), dA=amean(S,'wind_direction_10m',A-31*MIN,A+31*MIN), dB=amean(S,'wind_direction_10m',E-31*MIN,E+31*MIN), gB=at(S,'wind_gusts_10m',E);
+    if(wA!=null&&wB!=null&&Math.abs(wB-wA)>=2.5) add(T('Άνεμος: ','Wind: ')+(dA!=null&&wA>=1.5?dn(dA)+' ':'')+W(wA)+' → '+(dB!=null&&wB>=1.5?dn(dB)+' ':'')+W(wB)+(gB!=null&&gB-wB>=3?T(', ριπές ',', gusts ')+W(gB):'')+(wB>wA?T(' (δυνάμωνε)',' (building)'):T(' (έπεφτε)',' (easing)'))+'.');   /* 1.12.17 */
+    else if(w!=null) add(T('Άνεμος: ','Wind: ')+(w>=2&&d!=null?dn(d)+' ':'')+W(w)+(g!=null&&g-w>=4?T(', ριπές ',', gusts ')+W(g):'')+'.');
+    var ta=at(S,'temperature_2m',A), tb=at(S,'temperature_2m',E); if(ta!=null&&tb!=null) add(T('Αέρας: ','Air: ')+(Math.abs(tb-ta)>=1?B.num(ta,1)+' → '+B.num(tb,1)+' °C':B.num((ta+tb)/2,1)+' °C')+'.');
     var p0=at(S,'pressure_msl',A), p1=at(S,'pressure_msl',E);
     if(p0!=null&&p1!=null){ var dp=p1-p0; add(T('Πίεση: ','Pressure: ')+P(p0)+' → '+P(p1)+' ('+(Math.abs(dp)<0.4?T('σταθερή','steady'):dp>0?T('ανέβαινε','rising'):T('έπεφτε','falling'))+').'); }
     var v=mean(S,'wave_height',A,E); if(v!=null) add(T('Κύμα: ','Waves: ')+M(v)+'.');
