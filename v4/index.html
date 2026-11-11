@@ -14,6 +14,8 @@
 <link rel="icon" href="../icon-192.png">
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
 <link rel="preload" as="font" type="font/woff2" href="fonts/commissioner-greek.woff2" crossorigin>
+<script>/* 1.12.14: θέμα από το Προφίλ › Ρυθμίσεις › Εμφάνιση (πριν φορτώσει η σελίδα, για να μην αναβοσβήνει) */
+(function(){ try{ var v=JSON.parse(localStorage.getItem('alkyon-theme')||'"auto"'); if(v==='light'||v==='dark'){ document.documentElement.setAttribute('data-theme',v); var c=v==='dark'?'#06171F':'#E9F0EF'; [].forEach.call(document.querySelectorAll('meta[name=theme-color]'),function(m){ m.setAttribute('content',c); }); } }catch(e){} })();</script>
 <script src="../migrate.js"></script>
 <script>/* «Πού ψαρεύεις σήμερα;» ανοίγει πρώτο: κρύβει την εφαρμογή από πίσω μέχρι να φορτώσει η σελίδα επιλογής */
 try{(function(){var g=function(k){return localStorage.getItem(k);},s=JSON.parse(g('alkyon-safe')||'null');if(/#(new|trip|addfriend)/.test(location.hash)||(s&&s.active))return;

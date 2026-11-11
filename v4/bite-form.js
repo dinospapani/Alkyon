@@ -38,6 +38,9 @@ function condFor(lat,lon,date,time){
 var SPEARTY=['gun','shaft','band','float','fins','mask','suit','weights','knife','watch','set','other'], ANGTY=['rod','reel','line','leader','lure','hook','acc','set','other'];
 var TYN={rod:T('Καλάμι','Rod'),reel:T('Μουλινέ','Reel'),line:T('Νήμα','Line'),leader:'Leader',lure:T('Τεχνητό','Lure'),hook:T('Αγκίστρι','Hook'),acc:T('Αξεσουάρ','Accessory'),gun:T('Ψαροντούφεκο','Speargun'),shaft:T('Ακόντιο','Shaft'),band:T('Λάστιχο','Band'),float:T('Σημαδούρα','Float'),fins:T('Πέδιλα','Fins'),mask:T('Μάσκα','Mask'),suit:T('Στολή','Wetsuit'),weights:T('Βάρη','Weights'),knife:T('Μαχαίρι','Knife'),watch:T('Ρολόι','Watch'),set:T('Σετ','Set'),other:T('Άλλο','Other')};
 function famOf(p){ return p==='spear'?'spear':p==='lake'?'lake':'sea'; }
+/* 1.12.14: συνηθισμένα δολώματα (σειρά: πιο συχνά πρώτα) */
+function commonBaits(fm){ return fm==='lake'?(EN?['Worm','Corn','Bread','Maggots','Boilie','Spinner','Soft plastic']:['Σκουλήκι','Καλαμπόκι','Ψωμί','Σκουληκάκια','Boilie','Κουταλάκι','Σιλικόνη'])
+  :(EN?['Sardine','Squid','Shrimp','Worm','Live bait fish','Crab','Jig','Squid jig','Soft plastic','Popper','Bread']:['Σαρδέλα','Καλαμάρι','Γαρίδα','Σκουλήκι','Ζωντανό ψαράκι','Καβουράκι','Jig','Καλαμαριέρα','Σιλικόνη','Popper','Ψωμί']); }
 function tackleFor(prof){ var sp=prof==='spear', ty=sp?SPEARTY:ANGTY;
   return st().raw('tackle').filter(function(x){ if(x.deleted||ty.indexOf(x.type||'other')<0) return false; if(prof==='lake'&&x.water==='sea') return false; if((prof==='boat'||prof==='shore')&&x.water==='fresh') return false; return true; })
     .sort(function(a,b){ return ty.indexOf(a.type)-ty.indexOf(b.type)||String(a.name).localeCompare(String(b.name)); }); }
@@ -113,6 +116,8 @@ B.biteForm=function(edit,opt){
   (function(){ var fm=famOf(prof), mine=all.filter(function(b){ return famOf(b.prof||'boat')===fm; }).sort(function(a,b){ return (b.date+b.time).localeCompare(a.date+a.time); }), seen={}, n=0, sb={}, nb=0;
     mine.forEach(function(b){ var v=(b.species||'').trim(); if(v&&!seen[v]&&n<6){ seen[v]=1; n++; var dv=dispSp(v,b.latin); spChips.append(h('button',{type:'button',class:'chip sm',text:dv,onclick:function(){ sp.value=dv; pickLa=b.latin||latinOf(v)||''; spSug.hidden=true; law(); sugTk(); }})); }
       var w=(b.bait||'').trim(); if(w&&!sb[w]&&nb<6){ sb[w]=1; nb++; baitChips.append(h('button',{type:'button',class:'chip sm',data:{v:w},text:w,onclick:function(){ bait.value=w; }})); } });
+    /* 1.12.14: και τα συνηθισμένα δολώματα (θάλασσα / λίμνη), ώστε να μη γράφεις κάθε φορά: πρώτα τα δικά σου, μετά αυτά, ως 8 */
+    if(fm!=='spear') commonBaits(fm).forEach(function(w){ if(nb>=8||sb[w]||Object.keys(sb).some(function(k){ return k.toLowerCase()===w.toLowerCase(); })) return; sb[w]=1; nb++; baitChips.append(h('button',{type:'button',class:'chip sm cb',data:{v:w},text:w,onclick:function(){ bait.value=w; }})); });
     spChips.hidden=!n; baitChips.hidden=!nb; })();
   var many=h('input',{type:'checkbox'}), cnt=h('input',{type:'number',min:'2',max:'999',inputmode:'numeric',placeholder:'2'});
   var kg=h('input',{type:'number',step:'0.01',min:'0',inputmode:'decimal',placeholder:'0,0'}), len=h('input',{type:'number',step:'0.5',min:'0',inputmode:'decimal',placeholder:'cm'}), dep=h('input',{type:'number',step:'0.5',min:'0',inputmode:'decimal',placeholder:window.AlkyonUnits&&AlkyonUnits.depthUnit?AlkyonUnits.depthUnit():'m'});
@@ -301,7 +306,7 @@ B.biteForm=function(edit,opt){
       h('label',{class:'tg'},rel,h('span',{text:T('Το άφησα ελεύθερο','I released it')})),
       h('label',{class:'tg'},priv,h('span',{text:T('Ιδιωτικό: δεν το βλέπουν οι φίλοι','Private: friends cannot see it')})));
   var form=h('form',{class:'bform bf2',novalidate:true},
-    datalist('bfBait',uniq(all.map(function(b){ return b.bait; }))),techList(prof,uniq(all.map(function(b){ return b.tech; }))),
+    datalist('bfBait',uniq(all.map(function(b){ return b.bait; }).concat(commonBaits(famOf(prof))))),techList(prof,uniq(all.map(function(b){ return b.tech; }))),
     top,
     gearIt?h('p',{class:'gearnote',text:T('Εργαλείο: ','Gear: ')+(gearIt.name||'')}):null,
     h('section',{class:'bfcard'},

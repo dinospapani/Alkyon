@@ -951,3 +951,8 @@ html.night .chip{background:#141414;color:#fff;border-color:#5a5a5a}
 html.night .card,html.night .list{box-shadow:0 0 0 1px #333}
 html.night .nav .fab{background:#000;color:#fff;box-shadow:0 0 0 3px #fff}
 html.night .btn.pri,html.night button.pri{background:#000!important;color:#fff!important;box-shadow:inset 0 0 0 2px #fff!important}
+/* 1.12.14: Προφίλ › Σχετικά και «Πες μας τη γνώμη σου» */
+.about .abhd{display:flex;align-items:center;gap:14px;margin:2px 0 4px}
+.about .abhd img{border-radius:14px;flex:none}
+.about .abhd b{display:block;font-size:20px}.about .abhd small{color:var(--ink-2)}
+.bform textarea{width:100%;box-sizing:border-box;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;padding:10px 12px;resize:vertical;min-height:110px}

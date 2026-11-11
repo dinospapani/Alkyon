@@ -40,6 +40,10 @@ window.addEventListener('error',function(e){ if(e&&e.target&&e.target!==window&&
 window.addEventListener('unhandledrejection',function(e){ var r=e&&e.reason; if(!r) return; var m=r.message||String(r); if(/no session|Failed to fetch|NetworkError|Load failed|network/i.test(m)) return; rec('Promise: '+m,(r.stack||'').split('\n')[1]||'',0,0,r.stack,'promise'); });
 window.AlkyonErr={list:function(){ return get(K,[])||[]; },clear:function(){ set(K,[]); set(Q,[]); },pending:function(){ return (get(Q,[])||[]).length; },status:function(){ return get('alkyon-v4-errst',{})||{}; },flush:function(){ missing=false; flush(); },
   report:function(msg,extra){ rec(msg,extra&&extra.src||'manual',0,0,extra&&extra.stack||'','manual'); },
+  /* 1.12.14: «Πες μας τη γνώμη σου»: το μήνυμα πάει στον ίδιο πίνακα (kind=feedback), με έκδοση, σελίδα και τύπο κινητού */
+  feedback:function(text,contact,topic){ var s=sess(), hd={apikey:KEY,'Content-Type':'application/json',Prefer:'return=minimal'}; if(s) hd.Authorization='Bearer '+s.access_token;
+    var meta=['topic: '+(topic||''),'contact: '+short(contact||'',120),'lang: '+(document.documentElement.lang||''),'screen: '+screen.width+'x'+screen.height,'native: '+(!!window.AKN)].join('\n');
+    return fetch(URL_+'/rest/v1/app_errors',{method:'POST',headers:hd,body:JSON.stringify([{ver:window.ALKYON_VERSION||'',msg:short(text,4000),kind:'feedback',hash:short((location.hash||'').replace(/=.*/,'='),40),stack:meta,ua:short(navigator.userAgent,200),n:1}])}).then(function(r){ if(!r.ok) throw new Error(r.status); return r.status; }); },
   /* έλεγχος ότι ο πίνακας δέχεται εγγραφές (από τη σελίδα «Έλεγχος συστήματος») */
   test:function(){ var s=sess(), hd={apikey:KEY,'Content-Type':'application/json',Prefer:'return=minimal'}; if(s) hd.Authorization='Bearer '+s.access_token;
     return fetch(URL_+'/rest/v1/app_errors',{method:'POST',headers:hd,body:JSON.stringify([{ver:window.ALKYON_VERSION||'',msg:'selftest',kind:'test',hash:'#check',ua:short(navigator.userAgent,200),n:1}])}).then(function(r){ return r.status; }); }};

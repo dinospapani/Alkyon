@@ -15,6 +15,14 @@ function rest(p,o){ if(sess()) return C().rest(p,o); if(o&&o.method&&o.method!==
 function needAcc(why){ B.authSheet({reason:why||T('Για like, σχόλια και μοίρασμα χρειάζεται λογαριασμός.','Likes, comments and sharing need an account.')}); }
 function esc(s){ return encodeURIComponent(s); }
 function blocked(){ var a=ls.get('alkyon-comm-block',[]); return Array.isArray(a)?a:[]; }
+/* 1.12.14: αποκλεισμός χρήστη: κρύβει αναρτήσεις ΚΑΙ σχόλιά του σε αυτό το κινητό· λίστα με ονόματα για άρση (Προφίλ › Αποκλεισμένοι χρήστες) */
+function blockNames(){ var o=ls.get('alkyon-comm-blockn',{}); return o&&typeof o==='object'&&!Array.isArray(o)?o:{}; }
+function blockUser(u,name){ if(!u||u===uid()) return; B.ask(T('Αποκλεισμός του «','Block “')+(name||T('Ψαράς','Angler'))+T('»; Δεν θα βλέπεις τις αναρτήσεις και τα σχόλιά του. Μπορείς να το αναιρέσεις από το Προφίλ.','”? You will no longer see their posts and comments. You can undo this from your Profile.'),T('Αποκλεισμός','Block'),true).then(function(y){ if(!y) return;
+  var b=blocked(); if(b.indexOf(u)<0) b.push(u); ls.set('alkyon-comm-block',b); var nm=blockNames(); nm[u]=String(name||'').slice(0,40); ls.set('alkyon-comm-blockn',nm);
+  if(isF(u)) toggleFollow(u,name); B.closeSheet(); draw(); B.toast(T('Ο χρήστης αποκλείστηκε.','User blocked.'),6000,{label:T('Αναίρεση','Undo'),fn:function(){ unblock(u); }}); }); }
+function unblock(u){ ls.set('alkyon-comm-block',blocked().filter(function(x){ return x!==u; })); var nm=blockNames(); delete nm[u]; ls.set('alkyon-comm-blockn',nm); draw(); }
+B.commBlocked=function(){ var nm=blockNames(); return blocked().map(function(u){ return {u:u,n:nm[u]||''}; }); };
+B.commUnblock=function(u){ unblock(u); };
 function author(){ var s=sess(); return ((s&&s.name)||T('Ψαράς','Angler')).trim().slice(0,40)||T('Ψαράς','Angler'); }
 var F={pname:{},lk:{},prof:{},admin:null,clk:{},cliked:{},reports:null,items:[],offset:0,end:false,loading:false,mode:'all',sp:'',tech:'',user:null,liked:{},open:{},err:'',all:null,allT:0,allBusy:0,ans:{},top:{week:true}};
 /* 1.9.63: ακόλουθοι (συγχρονίζεται με τον λογαριασμό και στέλνεται στον server για τις ειδοποιήσεις «μόνο όσους ακολουθώ») */
@@ -204,6 +212,7 @@ function profile(u,name){ if(!u) return; var ps=(F.all||[]).filter(function(p){ 
   if(u===uid()&&sess()) body.append(h('div',{class:'row2'},h('button',{class:'btn pri',type:'button',text:F.prof[u]?T('Άλλαξε φωτογραφία','Change photo'):T('Βάλε φωτογραφία','Add photo'),onclick:function(){ sh.close(); pickAvatar(); }}),F.prof[u]?h('button',{class:'btn',type:'button',text:T('Αφαίρεση','Remove'),onclick:function(){ sh.close(); removeAvatar(); }}):null));
   if(u!==uid()&&sess()) body.append(h('button',{class:'btn full'+(isF(u)?'':' pri'),type:'button',text:isF(u)?T('✓ Ακολουθείς','✓ Following'):T('Ακολούθησε','Follow'),onclick:function(){ toggleFollow(u,name); sh.close(); }}));
   body.append(h('button',{class:'btn full',type:'button',text:u===uid()?T('Οι αναρτήσεις μου','My posts'):T('Οι αναρτήσεις του','Their posts'),onclick:function(){ sh.close(); F.user={u:u,n:name}; F.mode='all'; load(true); }}));
+  if(u!==uid()&&sess()) body.append(h('button',{class:'btn full del',type:'button',text:T('Αποκλεισμός χρήστη','Block user'),onclick:function(){ blockUser(u,name); }}));
   sh=B.sheet({title:u===uid()?T('Το προφίλ μου','My profile'):T('Προφίλ ψαρά','Angler profile'),body:body}); }
 B.commProfile=profile;
 /* 1.9.64: σήματα επιτευγμάτων (υπολογίζονται από τις αναρτήσεις του, ίδια για όλους) */
@@ -315,7 +324,7 @@ function post(p){
     if(!sess()){ needAcc(); return; }
     if(mine) body.append(h('button',{class:'btn full',type:'button',text:T('Επεξεργασία','Edit'),onclick:function(){ sh.close(true); editPost(p); }}),h('button',{class:'btn full del',type:'button',text:T('Διαγραφή ανάρτησης','Delete post'),onclick:function(){ sh.close(true); delPost(p); }}));
     else if(F.admin) body.append(h('button',{class:'btn full del',type:'button',text:T('Απόκρυψη (διαχειριστής)','Hide (admin)'),onclick:function(){ sh.close(true); hide('post',p.id,true); }}));
-    else body.append(h('button',{class:'btn full',type:'button',text:isF(p.user_id)?T('Να μην ακολουθώ','Unfollow'):T('Ακολούθησε','Follow'),onclick:function(){ sh.close(); toggleFollow(p.user_id,p.author); }}),h('button',{class:'btn full',type:'button',text:T('Αναφορά','Report'),onclick:function(){ sh.close(true); report('post',p.id); }}),h('button',{class:'btn full',type:'button',text:T('Απόκρυψη χρήστη','Hide this user'),onclick:function(){ var b=blocked(); b.push(p.user_id); ls.set('alkyon-comm-block',b); sh.close(); draw(); }}));
+    else body.append(h('button',{class:'btn full',type:'button',text:isF(p.user_id)?T('Να μην ακολουθώ','Unfollow'):T('Ακολούθησε','Follow'),onclick:function(){ sh.close(); toggleFollow(p.user_id,p.author); }}),h('button',{class:'btn full',type:'button',text:T('Αναφορά','Report'),onclick:function(){ sh.close(true); report('post',p.id); }}),h('button',{class:'btn full del',type:'button',text:T('Αποκλεισμός χρήστη','Block user'),onclick:function(){ blockUser(p.user_id,p.author); }}));
     sh=B.sheet({title:p.species||T('Ανάρτηση','Post'),body:body}); }});
   var fw=!mine&&isF(p.user_id);
   card.append(h('div',{class:'cmhd'},h('button',{type:'button',class:'cmwhob','aria-label':T('Προφίλ: ','Profile: ')+(p.author||''),onclick:function(){ profile(p.user_id,p.author); }},avEl(p.user_id,p.author),h('span',{class:'cmwho'},h('b',{text:(p.author||T('Ψαράς','Angler'))+(fw?' ✓':'')}),h('small',{text:ago(p.created_at)}))),more));
@@ -347,7 +356,7 @@ function post(p){
     h('button',{type:'button',class:'cmbtn cmic'+(saved().indexOf(p.id)>=0?' on':''),'aria-pressed':String(saved().indexOf(p.id)>=0),'aria-label':T('Αποθήκευση','Save'),text:saved().indexOf(p.id)>=0?'★':'☆',onclick:function(){ toggleSave(p); }})));
   var ll=likersLine(p); if(ll) card.append(ll);
   if(F.open[p.id]){ var cm=h('div',{class:'cmcom'}), ci=h('input',{type:'text',maxlength:'300',placeholder:T('Γράψε σχόλιο…','Write a comment…'),enterkeyhint:'send'});
-    (p._c||[]).forEach(function(c){ var mineC=c.user_id===uid(), body=String(c.body||''), tx=h('p',{class:'noik'},h('b',{text:(c.author||T('Ψαράς','Angler'))+' '}));
+    var cbl=blocked(); (p._c||[]).filter(function(c){ return cbl.indexOf(c.user_id)<0; }).forEach(function(c){ var mineC=c.user_id===uid(), body=String(c.body||''), tx=h('p',{class:'noik'},h('b',{text:(c.author||T('Ψαράς','Angler'))+' '}));
       var mm=/^@(\S+(?: \S+)?)/.exec(body), who=null; if(mm){ (p._c||[]).concat([{author:p.author}]).forEach(function(o){ var a=o.author||''; if(a&&body.indexOf('@'+a)===0&&(!who||a.length>who.length)) who=a; }); }
       if(who){ tx.append(h('span',{class:'cmat',text:'@'+who}),body.slice(who.length+1)); } else tx.append(body);
       if(c.user_id===p.user_id&&/^✓/.test(body)){ tx.replaceChildren(h('b',{text:(c.author||'')+' '}),h('span',{class:'cmat',text:'✓ '+T('Είναι: ','It is: ')}),body.replace(/^✓\s*/,'')); }
@@ -357,6 +366,7 @@ function post(p){
       if(!mineC&&sess()) acts.append(h('button',{type:'button',class:'linkbtn',text:T('Απάντηση','Reply'),onclick:function(){ ci.value='@'+(c.author||'')+' '; try{ ci.focus(); ci.setSelectionRange(ci.value.length,ci.value.length); }catch(e){} }}));
       if(sess()) acts.append(h('button',{type:'button',class:'linkbtn',text:mineC?T('Διαγραφή','Delete'):T('Αναφορά','Report'),onclick:function(){ if(mineC) delComment(p,c); else report('comment',c.id); }}));
       if(F.admin&&!mineC) acts.append(h('button',{type:'button',class:'linkbtn',text:T('Απόκρυψη','Hide'),onclick:function(){ hide('comment',c.id,true); }}));
+      if(!mineC&&sess()&&!F.admin) acts.append(h('button',{type:'button',class:'linkbtn',text:T('Αποκλεισμός','Block'),onclick:function(){ blockUser(c.user_id,c.author); }}));
       cm.append(h('div',{class:'cmc'},avEl(c.user_id,c.author,'sm'),h('div',{class:'cmcb'},tx,acts))); });
     if(p._cerr) cm.append(h('p',{class:'sub',text:T('Τα σχόλια δεν φόρτωσαν.','Comments did not load.')}));
     if(qk==='id') ci.placeholder=T('Πρότεινε είδος…','Suggest a species…'); else if(qk) ci.placeholder=T('Γράψε απάντηση…','Write an answer…');
