@@ -1185,6 +1185,11 @@ with sync_playwright() as p:
       const q=s=>C.svg.querySelectorAll(s).length; return [q('.pl'),q('.wl'),q('.tl'),q('.th')+q('.tlo'),q('.pmk.stop'),q('.shd.win'),!!C.svg.querySelector('.axh.mk'),C.rd.textContent]; }""")
     check('Γράφημα ψαριού = ίδιο με Πρόγνωση: πίεση, άνεμος, σελήνη, παλίρροια, «σταμάτησαν» (1.12.19)', rc[0]>=1 and rc[1]>=1 and rc[2]==1 and rc[3]>=1 and rc[4]==1 and rc[5]==1 and rc[6] and 'στάθμη' in rc[7], rc)
     check('1.12.19 χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
+    # 1.12.21: πυκνές γραμμές βάθους: πυκνές ως 30·βήμα, μετά κάθε 50 m ως 500 και κάθε 100 m, ως τον πάτο (όχι κόψιμο στα 300 m)
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_function("()=>window.AlkyonDense&&AlkyonDense.levels",timeout=20000)
+    dl=pg.evaluate("()=>[5,10,20].map(s=>AlkyonDense.levels(2,950,s).map(x=>x.lv))")
+    check('Γραμμές βάθους: 5 m ως 150, μετά 200…500, 600…900· δεν κόβονται στα 300 m (1.12.21)', dl[0][29]==150 and dl[0][30:]==[200,250,300,350,400,450,500,600,700,800,900] and dl[1][-5:]==[500,600,700,800,900] and dl[2][-4:]==[600,700,800,900], dl)
+    c.close()
     # 1.12.14: Προφίλ (ομάδες, Σχετικά, γνώμη, θέμα), δολώματα, αποκλεισμός χρήστη
     c=ctx(b); c.add_init_script("localStorage.setItem('alkyon-smart',JSON.stringify({weekly:Date.now()}))"); pg=page(c); pg.goto(BASE+'/v4/#profile'); pg.wait_for_timeout(2500)
     def grp(): return pg.evaluate("()=>[...document.querySelectorAll('main .pgrp')].map(g=>[(g.querySelector('h3')||{}).textContent||'',[...g.querySelectorAll('.li b')].map(e=>e.textContent)])")

@@ -7,6 +7,14 @@ var C=window.AlkyonCore, map=C&&C.map&&C.map();
 if(!C||!map||typeof L==='undefined') return;
 var EN=window.LANG==='en', T=function(el,en){ return EN?en:el; };
 var KEY='alkyon-dl', WCS='https://ows.emodnet-bathymetry.eu/wcs', CELL=1/960, MAXCELLS=520, MINZOOM=11, MAXLEVELS=60;
+/* 1.12.21: πυκνές γραμμές μέχρι DETAIL(step) μέτρα, μετά αραιές (κάθε 50 m ως τα 500, κάθε 100 m πιο βαθιά) μέχρι τον πάτο.
+   Πριν σταματούσαν απότομα στα step·60 m (5 m → 300 m) και το βαθύ νερό έμενε άδειο, σαν να έλειπαν δεδομένα,
+   ενώ στις απότομες πλαγιές 60 γραμμές των 5 m γίνονταν μια μπλε μουτζούρα. */
+function DETAIL(step){ return step*30; }
+function levels(mn,mx,step){ var out=[], d=DETAIL(step), lv;
+  for(lv=Math.max(step,Math.ceil(mn/step)*step); lv<=mx&&lv<=d; lv+=step) out.push({lv:lv,major:(lv/step)%5===0});
+  lv=Math.floor(d/50)*50+50; if(lv>500) lv=Math.ceil(lv/100)*100; while(lv<=mx){ if(lv>=mn) out.push({lv:lv,major:true}); lv+=lv<500?50:100; }
+  return out; }
 var mode=String(C.lsGet(KEY,'std')); if(['std','5','10','20'].indexOf(mode)<0) mode='std';
 var dm=0, group=L.layerGroup(), rend=L.canvas({padding:.2}), grid=null, cache=[], timer=null, ctl=null, seq=0, failedToast=0;
 
@@ -137,10 +145,10 @@ function draw(g,step){
   for(var i=0;i<g.data.length;i++){ var v=g.data[i]; if(v>0){ if(v>mx) mx=v; if(v<mn) mn=v; } }
   if(mx<=0) return 0;
   var cp=g.data; blur(g);
-  var first=Math.max(step,Math.ceil(mn/step)*step), last=Math.min(Math.floor(mx/step)*step,step*MAXLEVELS), sat=satBase(), nlines=0, labels=0, placed=[];
+  var LV=levels(mn,mx,step), sat=satBase(), nlines=0, labels=0, placed=[];
   var minorC=sat?'#8fd8ff':'#2f7fc0', majorC=sat?'#ffffff':'#0a3a6a';
-  for(var lv=first;lv<=last;lv+=step){
-    var major=(lv/step)%5===0, chains=contour(g,lv);
+  for(var li=0;li<LV.length;li++){
+    var lv=LV[li].lv, major=LV[li].major, chains=contour(g,lv);
     for(var c=0;c<chains.length;c++){
       var ch=chains[c]; if(ch.length<3) continue;
       var pts=ch.map(function(p){ return [g.y0+g.dy*(p.y+.5), g.x0+g.dx*(p.x+.5)]; }); /* κέντρο κελιού */
@@ -192,7 +200,7 @@ function update(){
     if(Date.now()-failedToast>30000){ failedToast=Date.now(); try{ C.toast(T('Οι πυκνές γραμμές βάθους θέλουν ίντερνετ.','Dense depth lines need internet.')); }catch(x){} }
   });
 }
-function drawStatus(n,step){ return n?(T('Γραμμές κάθε ','Lines every ')+step+' m'+T(' · έως ',' · up to ')+(step*MAXLEVELS)+' m'):T('Δεν υπάρχουν βάθη εδώ','No depths here'); }
+function drawStatus(n,step){ return n?(T('Κάθε ','Every ')+step+' m'+T(' ως ',' to ')+DETAIL(step)+' m'+T(', μετά κάθε 50–100 m',', then every 50–100 m')):T('Δεν υπάρχουν βάθη εδώ','No depths here'); }
 
 /* ---------- επιλογή πυκνότητας ---------- */
 function buildUi(){
@@ -230,7 +238,7 @@ function area(lat,lon,rad){ rad=rad||2500; var dla=rad/111320, dlo=rad/(111320*M
   if(areaG&&covers(areaG,inner)) return Promise.resolve(areaG); if(areaP) return areaP;
   var b={w:+(lon-dlo).toFixed(4),e:+(lon+dlo).toFixed(4),s:+(lat-dla).toFixed(4),n:+(lat+dla).toFixed(4)};
   areaP=fetchGrid(b,CELL).then(function(g){ areaG=g; areaP=null; return g; }).catch(function(e){ areaP=null; throw e; }); return areaP; }
-window.AlkyonDense={setMode:setMode,on:active,parse:parseTiff,contour:contour,mode:function(){ return mode; },update:update,area:area,at:sampleG,grid:function(){ return areaG; }};
+window.AlkyonDense={levels:levels,setMode:setMode,on:active,parse:parseTiff,contour:contour,mode:function(){ return mode; },update:update,area:area,at:sampleG,grid:function(){ return areaG; }};
 dm=window.AlkyonDepthMode?window.AlkyonDepthMode():(+C.lsGet('alkyon-depth',0)||0);
 sync();
 if(dm===2&&mode!=='std'&&window.AlkyonDepthRefresh) window.AlkyonDepthRefresh();
