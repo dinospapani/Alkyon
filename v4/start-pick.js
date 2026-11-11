@@ -67,7 +67,11 @@ B.startPick=function(){
   /* 1.12.20: με φωτεινό θέμα η είσοδος ταιριάζει με την εφαρμογή: η φωτογραφία μένει πάνω, από κάτω ανοιχτό φόντο και λευκές κάρτες */
   if(isLight()){ pg.classList.add('splight'); var ttl=pg.querySelector('.sptitle'), bd=pg.querySelector('.spbody'); if(ttl&&bd) bd.insertBefore(ttl,bd.firstChild); }
   lab(); cover(true); document.body.append(pg); document.addEventListener('keydown',key);
-  try{ history.pushState({spk:1},''); hist=true; window.addEventListener('popstate',onPop); }catch(e){}
+  /* 1.12.28: η εγγραφή στο ιστορικό μπαίνει στο πρώτο άγγιγμα της σελίδας, όχι με το άνοιγμα.
+     Το Chrome σημαδεύει ως «παρακάμψιμη» μια σελίδα που προσθέτει εγγραφή χωρίς άγγιγμα του χρήστη, και το history.back()
+     την προσπερνά: με «Συνέχεια» χωρίς άλλο πάτημα (π.χ. Σκάφος, καλάμι που είναι ήδη επιλεγμένα) έβγαινε στην αρχική του Chrome. */
+  function arm(){ if(hist||gone) return; try{ history.pushState({spk:1},''); hist=true; window.addEventListener('popstate',onPop); }catch(e){} }
+  pg.addEventListener('pointerdown',arm,true); pg.addEventListener('keydown',arm,true);
 };
 function isLight(){ var r=document.documentElement, t=r.getAttribute('data-theme'); if(r.classList.contains('night')) return false; if(t==='light') return true; if(t==='dark') return false; try{ return !matchMedia('(prefers-color-scheme: dark)').matches; }catch(e){ return false; } }
 /* 1.12.15: χαιρετισμός και «σήμερα» από την τελευταία πρόγνωση (χωρίς δίκτυο, από το κινητό) */
