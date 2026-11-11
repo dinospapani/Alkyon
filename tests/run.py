@@ -1130,6 +1130,12 @@ with sync_playwright() as p:
     nv("()=>document.querySelector('.mclay').click()"); r3=nv("()=>[...document.querySelectorAll('.mcdrw button')].find(x=>/^(Ειδοποιήσεις|Notifications)/.test(x.textContent.trim())).click()",1500); r4=nv(BK); r5=nv(BK)
     check('Πλοήγηση: μενού χάρτη κλείνει με «πίσω»· μενού → Ειδοποιήσεις → «πίσω» Χάρτης → «πίσω» Ημερολόγιο (1.12.13)', (not pg.evaluate("()=>!!document.querySelector('.mcdrw.open')") and r2[0]=='#map' and r3[0]=='#inbox' and r4[0]=='#map' and r5[0]=='#log'), [r1,r2,r3,r4,r5])
     check('1.12.13: πλοήγηση χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
+    # 1.12.15: με <base> /v4/ και διεύθυνση άλλη από /v4/ (π.χ. /v4/index.html ή alkyonfishing.com/), οι καρτέλες δεν ξαναφορτώνουν την εφαρμογή
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/index.html'); pg.wait_for_timeout(2500); pg.evaluate("()=>{window.__mk=1}"); rr=[]
+    for v in ['map','log','profile','forecast']:
+        pg.click('.nav a[data-v="%s"]'%v); pg.wait_for_timeout(1000); rr.append(pg.evaluate("()=>[location.pathname,location.hash,window.__mk===1]"))
+    check('Καρτέλες: χωρίς νέα φόρτωση της σελίδας όταν η διεύθυνση δεν είναι /v4/ (1.12.15)', all(x[0]=='/v4/index.html' and x[2] for x in rr) and rr[0][1]=='#map', rr)
+    c.close()
     # 1.12.14: Προφίλ (ομάδες, Σχετικά, γνώμη, θέμα), δολώματα, αποκλεισμός χρήστη
     c=ctx(b); c.add_init_script("localStorage.setItem('alkyon-smart',JSON.stringify({weekly:Date.now()}))"); pg=page(c); pg.goto(BASE+'/v4/#profile'); pg.wait_for_timeout(2500)
     def grp(): return pg.evaluate("()=>[...document.querySelectorAll('main .pgrp')].map(g=>[(g.querySelector('h3')||{}).textContent||'',[...g.querySelectorAll('.li b')].map(e=>e.textContent)])")

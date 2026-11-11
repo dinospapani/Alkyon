@@ -74,8 +74,13 @@ B.goBack=function(fb,strict){ var nm=(fb||'').replace(/^#/,'')||'forecast', prev
   if(prev&&history.length>1&&(!strict||prev===nm)){ history.back(); return; } var u=location.pathname+location.search+(fb||'#forecast'); try{ history.replaceState(history.state,'',u); }catch(e){ location.hash=fb||''; return; } route(); };
 /* 1.12.13: πάτημα σε σύνδεσμο για τη σελίδα που ήδη είσαι (π.χ. «Πρόγνωση» όταν η διεύθυνση δεν έχει #) δεν γράφει νέα εγγραφή στο ιστορικό
    (αλλιώς το «πίσω» του κινητού χρειαζόταν ένα πάτημα παραπάνω που δεν έκανε τίποτα): απλώς πάει στην κορυφή. */
-document.addEventListener('click',function(ev){ var a=ev.target&&ev.target.closest&&ev.target.closest('a[href^="#"]'); if(!a||ev.defaultPrevented||ev.button||ev.ctrlKey||ev.metaKey||ev.shiftKey) return;
-  var nm=(a.getAttribute('href')||'').slice(1)||'forecast'; if(!VIEWS[nm]||nm!==cur||(location.hash||'').slice(1)===nm) return; ev.preventDefault(); try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){} });
+/* 1.12.15: ΟΛΟΙ οι σύνδεσμοι «#σελίδα» αλλάζουν μόνο το # της τωρινής διεύθυνσης. Από την 1.12.9 η διεύθυνση είναι alkyonfishing.com/ ενώ το <base> είναι /v4/,
+   οπότε ένα <a href="#map"> πήγαινε στο /v4/#map: ολόκληρη νέα φόρτωση της εφαρμογής (αργό, και ξανάβγαινε το «Πού ψαρεύεις σήμερα;»). */
+document.addEventListener('click',function(ev){ var a=ev.target&&ev.target.closest&&ev.target.closest('a[href^="#"]'); if(!a||ev.defaultPrevented||ev.button||ev.ctrlKey||ev.metaKey||ev.shiftKey||a.target||a.hasAttribute('download')) return;
+  var href=a.getAttribute('href')||''; if(href==='#'){ ev.preventDefault(); return; }
+  var nm=href.slice(1)||'forecast'; ev.preventDefault();
+  if(VIEWS[nm]&&nm===cur&&(location.hash||'').slice(1)!==nm){ try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){} return; }
+  if(location.hash!==href) location.hash=href; else if(VIEWS[nm]&&nm===cur){ try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){} } });
 document.addEventListener('click',function(ev){ var a=ev.target&&ev.target.closest&&ev.target.closest('.top a.iconbtn[href^="#"]'); if(!a||!/^(Πίσω|Back)/.test(a.getAttribute('aria-label')||'')) return;
   if(ev.button||ev.ctrlKey||ev.metaKey||ev.shiftKey) return; ev.preventDefault(); B.goBack(a.getAttribute('href')); },true);
 B.remount=function(){ if(!cur||!main) return; if(VIEWS[cur].unmount) VIEWS[cur].unmount(); cur=null; route(); };
