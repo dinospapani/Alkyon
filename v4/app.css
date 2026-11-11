@@ -306,7 +306,7 @@ html.pg-open body{overflow:hidden}
 .sppage .obd i{background:rgba(255,255,255,.25)}
 .sppage.tour .spbody{padding-top:4px}
 .sppage.tour{display:flex;flex-direction:column}
-.sppage.tour .sphero.tall{flex:1 0 auto;height:auto;min-height:clamp(360px,62vh,640px)}
+.sppage.tour .sphero.tall{flex:1 1 auto;height:auto;min-height:clamp(170px,30dvh,420px)}  /* 1.12.28: η φωτογραφία μικραίνει ώστε όλο το καλωσόρισμα να χωρά στην οθόνη χωρίς κύλιση */
 .sppage.tour .spbody{flex:none;width:100%}
 .sppage .spgo:focus:not(:focus-visible){outline:none}
 /* 5 επιλογές (π.χ. Ημερολόγιο): μικρότερα γράμματα, χωρίς κόψιμο */
