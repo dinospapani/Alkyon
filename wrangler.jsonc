@@ -17,6 +17,7 @@
   "routes": [
     { "pattern": "alkyonfishing.com", "custom_domain": true }
   ],
+  "triggers": { "crons": ["*/15 * * * *"] },   // 1.12.12: ραντάρ ΤΜ Κύπρου κάθε 15′ (cloudflare/worker.js › scheduled)
   "workers_dev": false,
   "observability": { "enabled": true }
 }
