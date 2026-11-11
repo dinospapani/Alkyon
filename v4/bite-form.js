@@ -267,7 +267,9 @@ B.biteForm=function(edit,opt){
   function tkPaint(){ var nm=tkSel.map(function(id){ var x=tkItems.filter(function(y){ return y.id===id; })[0]; return x&&x.type==='set'?x.name:null; }).filter(Boolean);
     var other=tkSel.filter(function(id){ var x=tkItems.filter(function(y){ return y.id===id; })[0]; return x&&x.type!=='set'; }).length;
     tkTx.textContent=nm.length?nm.join(', '):(other?other+T(' επιλεγμένα',' selected'):T('κανένας','none')); }
-  var tkLine=tkItems.length?h('button',{type:'button',class:'bfline',onclick:function(){ tkWrap.hidden=!tkWrap.hidden; tkLine.classList.toggle('open',!tkWrap.hidden); }},h('span',{class:'bfll',text:T('Εξοπλισμός','Tackle')}),tkTx,h('i',{text:'✎'})):null;
+  /* 1.12.8: η γραμμή «Εξοπλισμός» φαίνεται πάντα· χωρίς καταχωρισμένο εξοπλισμό πάει στη σελίδα για να τον προσθέσεις */
+  var tkLine=tkItems.length?h('button',{type:'button',class:'bfline',onclick:function(){ tkWrap.hidden=!tkWrap.hidden; tkLine.classList.toggle('open',!tkWrap.hidden); }},h('span',{class:'bfll',text:T('Εξοπλισμός','Tackle')}),tkTx,h('i',{text:'✎'}))
+    :h('button',{type:'button',class:'bfline',onclick:function(){ sh.close(); setTimeout(function(){ location.hash='#tackle'; },250); }},h('span',{class:'bfll',text:T('Εξοπλισμός','Tackle')}),h('span',{class:'bflt mut',text:T('Πρόσθεσε τον εξοπλισμό σου','Add your tackle')}),h('i',{text:'＋'}));
   tkBox.addEventListener('click',function(){ setTimeout(tkPaint,30); }); tkPaint();
   /* τεχνική: στη συρτή συμπληρώνεται μόνη της· κουμπιά δολωμάτων από το ιστορικό */
   try{ if(!e&&!tech.value&&B.troll&&B.troll.on&&B.troll.on()){ var tc=B.troll.cfg?B.troll.cfg():null; tech.value=techShow(tc&&tc.mode==='bottom'?'Συρτή βυθού':'Συρτή αφρού'); } }catch(x){}
@@ -302,16 +304,20 @@ B.biteForm=function(edit,opt){
     datalist('bfBait',uniq(all.map(function(b){ return b.bait; }))),techList(prof,uniq(all.map(function(b){ return b.tech; }))),
     top,
     gearIt?h('p',{class:'gearnote',text:T('Εργαλείο: ','Gear: ')+(gearIt.name||'')}):null,
+    h('section',{class:'bfcard'},
     h('div',{class:'fld spfld'},spLbl,h('div',{class:'spwrap'},sp,spSug),spChips,h('small',{class:'spopt',text:T('Για χαμένο ψάρι είναι προαιρετικό.','Optional for a lost fish.')})),
     lawNote,
     (sizeRow=h('div',{class:'g3',hidden:miss.checked},field(T('Βάρος (kg)','Weight (kg)'),kg),field(T('Μήκος (cm)','Length (cm)'),len),field(T('Βάθος','Depth')+' ('+(window.AlkyonUnits&&AlkyonUnits.depthUnit?AlkyonUnits.depthUnit():'m')+')',dep))),
     kgEst,depNote,
     /* 1.12.7: «Πολλά ψάρια μαζί» αμέσως κάτω από βάρος/μήκος */
     (manyRow=h('div',{class:'bfmany',hidden:miss.checked},h('label',{class:'tg'},many,h('span',{text:T('Πολλά ψάρια μαζί (μία εγγραφή)','Several fish together (one entry)')})),cntRow)),
-    prof==='spear'?h('label',{class:'fld'},h('span',{text:T('Ορατότητα νερού (m)','Water visibility (m)')}),vis,h('small',{text:T('Πόσα μέτρα έβλεπες. Έτσι η Πρόγνωση μαθαίνει τα νερά σου.','How many metres you could see. This teaches the Forecast your waters.')})):null,
-    h('p',{class:'bfsec',text:T('Πότε, πού και με τι','When, where and with what')}),
-    wwLine,wwBox,tkLine,tkWrap,btRow,
-    more,
+    prof==='spear'?h('label',{class:'fld'},h('span',{text:T('Ορατότητα νερού (m)','Water visibility (m)')}),vis,h('small',{text:T('Πόσα μέτρα έβλεπες. Έτσι η Πρόγνωση μαθαίνει τα νερά σου.','How many metres you could see. This teaches the Forecast your waters.')})):null),
+    /* 1.12.8: ενότητες σε κάρτες, με τίτλο */
+    h('p',{class:'bfsec',text:T('Πότε και πού','When and where')}),
+    h('section',{class:'bfcard bflist'},wwLine,wwBox),
+    h('p',{class:'bfsec',text:T('Με τι','With what')}),
+    h('section',{class:'bfcard bflist'},tkLine,tkWrap,btRow),
+    h('section',{class:'bfcard bfmorec'},more),
     err,h('div',{class:'bfsavebar'},save),
     e?h('button',{class:'btn full del',type:'button',text:T('Διαγραφή ψαριού','Delete catch'),onclick:function(){ B.ask(T('Να διαγραφεί αυτό το ψάρι;','Delete this catch?'),T('Διαγραφή','Delete'),true).then(function(y){ if(!y) return;
       S.phKeys(e).forEach(function(k){ S.Photos.del(k).catch(function(){}); }); adjLost(e.tkLost||[],1,null); S.remove('bites',e.id); recount(e.trip); sh.close(); B.toast(T('Το ψάρι διαγράφηκε.','Catch deleted.')); }); }}):null);

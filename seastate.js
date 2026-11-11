@@ -550,7 +550,8 @@ function stop(){
   try{ map.getContainer().removeEventListener('click',onTap,true); }catch(e){}
   if(tapMk){ try{ map.removeLayer(tapMk); }catch(e){} tapMk=null; } tapLL=null; var pt=document.getElementById('ndSeaPt'); if(pt) pt.hidden=true;
   var W=window.AlkyonWindMap;
-  if(windOn()&&W&&W.stop&&(ownWind||!(W.shown&&W.shown()))){ W.stop(); } else if(windOn()&&W&&W.show){ W.show(true); }
+  /* 1.12.8: αν ο άνεμος φαίνεται (τον άνοιξες κι εσύ), μένει· σταματά μόνο ο «κρυφός» άνεμος που χρειαζόταν το κύμα */
+  if(windOn()&&W){ if(W.shown&&W.shown()){ if(W.show) W.show(true); } else if(W.stop) W.stop(); }
   ownWind=false; depthSync();
   var D=document.getElementById('ndMapDock'); if(D&&D._sync) D._sync();
 }

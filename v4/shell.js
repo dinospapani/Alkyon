@@ -42,7 +42,7 @@ function nav(){
       ['pointerup','pointerleave','pointercancel'].forEach(function(n){ fab.addEventListener(n,function(){ clearTimeout(lp); }); });
       fab.addEventListener('contextmenu',function(ev){ ev.preventDefault(); });
       bar.append(fab); return; }
-    var a=h('a',{href:'#'+t[0],data:{v:t[0]}}); a.innerHTML=B.iconSvg(t[2]); a.append(h('span',{text:t[1]})); bar.append(a); });
+    var a=h('a',{href:'#'+t[0],data:{v:t[0]}}); a.innerHTML=B.iconSvg?B.iconSvg(t[2]):''; a.append(h('span',{text:t[1]})); bar.append(a); });
   return h('nav',{class:'nav','aria-label':T('Κύρια πλοήγηση','Main navigation')},bar);
 }
 var HS=[];

@@ -920,3 +920,34 @@ html.night .pnrow{background:#000;outline:1px solid #fff;outline-offset:-1px}
 .bwin .law li.big{font-weight:700}
 .bwin .bwpat{margin-top:8px;font-weight:600}
 .bwin .bwres:empty{display:none}
+/* 1.12.8: φόρμα ψαριού σε κάρτες (όπως οι ρυθμίσεις του κινητού): ενότητες με τίτλο, γραμμές με διαχωριστικό, χωρίς «κουτιά μέσα σε κουτιά» */
+.bf2 .bfcard{display:flex;flex-direction:column;gap:10px;background:var(--surface);border-radius:18px;padding:14px;box-shadow:0 1px 2px rgba(0,0,0,.06),0 2px 10px rgba(0,0,0,.05)}
+.bf2 .bfcard[hidden]{display:none}
+.bf2 .bfcard.bflist{gap:0;padding:2px 14px}
+.bf2 .bfcard.bflist>.bfline{border:0;border-radius:0;background:transparent;padding:10px 0;min-height:54px}
+.bf2 .bfcard.bflist>.bfline+*:not([hidden]),.bf2 .bfcard.bflist>.bfww+.bfline,.bf2 .bfcard.bflist>.bftk+.bfbt2,.bf2 .bfcard.bflist>.bfline+.bfbt2{border-top:1px solid var(--line)}
+.bf2 .bfcard.bflist>.bfww,.bf2 .bfcard.bflist>.bftk{padding:10px 0 12px}
+.bf2 .bfcard.bflist>.bfbt2{padding:12px 0 14px}
+.bf2 .bfline.open{border-color:transparent}
+.bf2 .bfline.open .bfll{color:var(--accent,#c4502a)}
+.bf2 .bfline .bflt.mut{color:var(--ink-3);font-weight:600}
+.bf2 .bfline i{font-size:16px}
+.bf2 .bfsec{margin:8px 4px -4px;font:800 11.5px var(--font);letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
+.bf2 .bfcard.bfmorec{padding:0 14px}
+.bf2 .bfcard.bfmorec>.bfmore{border-top:0;padding-top:0}
+.bf2 .bfcard input,.bf2 .bfcard select,.bf2 .bfcard textarea{background:var(--surface-2)}
+.bf2 .bftop{margin-bottom:2px}
+form.bform .bfsavebar{bottom:-18px;padding-bottom:calc(28px + var(--safe-b,0px));margin-bottom:-18px}
+html.night .bf2 .bfcard{background:#000;box-shadow:inset 0 0 0 1px #5a0000}
+/* 1.12.8: νυχτερινή λειτουργία: τα χρώματα γίνονται κόκκινα με βάση τη φωτεινότητα, άρα ό,τι είχε μικρή διαφορά φωτεινότητας
+   (δευτερεύον κείμενο, εικονίδια μπάρας, γραμμές) χανόταν. Εδώ μαύρο φόντο και πολύ φωτεινό κείμενο, για μέγιστη αντίθεση. */
+html.night,html.night[data-theme]{--bg:#000;--surface:#0d0d0d;--surface-2:#191919;--ink:#fff;--ink-2:#e6e6e6;--ink-3:#c4c4c4;--line:#4a4a4a;--shadow:0 0 0 1px #3a3a3a}
+html.night .nav{background:#0d0d0d;box-shadow:0 0 0 1px #4a4a4a}
+html.night .nav a,html.night .nav button{color:#d8d8d8}
+html.night .nav a[aria-current=page],html.night .nav .on{color:#fff}
+html.night input,html.night select,html.night textarea{background:#111;color:#fff;border-color:#5a5a5a}
+html.night input::placeholder,html.night textarea::placeholder{color:#9a9a9a}
+html.night .chip{background:#141414;color:#fff;border-color:#5a5a5a}
+html.night .card,html.night .list{box-shadow:0 0 0 1px #333}
+html.night .nav .fab{background:#000;color:#fff;box-shadow:0 0 0 3px #fff}
+html.night .btn.pri,html.night button.pri{background:#000!important;color:#fff!important;box-shadow:inset 0 0 0 2px #fff!important}

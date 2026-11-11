@@ -65,7 +65,7 @@ function world({ subs = [], notifLog = 'ok', W = calm, community = {}, meteoFail
 const go = async (w, tg) => run({ env: { SUPABASE_URL: 'https://x.supabase.co', SUPABASE_SERVICE_KEY: 'k', TELEGRAM_BOT_TOKEN: tg ? 'T' : '' }, fetch: w.fetch, PF, webpush: w.webpush, sendMail: null, log: () => {} });
 
 let ok = 0; const fail = [];
-const check = (name, cond, info) => { if (cond) { ok++; console.log('  ok   ' + name); } else { fail.push(name); console.log('  FAIL ' + name + ' ' + JSON.stringify(info).slice(0, 400)); } };
+const check = (name, cond, info) => { if (cond) { ok++; console.log('  ok   ' + name); } else { fail.push(name); console.log('  FAIL ' + name + ' ' + String(JSON.stringify(info)).slice(0, 400)); } };
 const SUB = (places, id = 's1', user = 'u1') => ({ id, user_id: user, sub: { endpoint: 'https://push/' + id }, places });
 const sq = s => s.sent.filter(x => String(x.id || '').startsWith('sq:'));
 
@@ -554,7 +554,7 @@ check('Νέα: η έκδοση 1.10.8 υπάρχει στα «Τι νέο»', /\
 {
   const nv = JSON.parse(fs.readFileSync(path.join(ROOT, 'navigator-mpa.json'), 'utf8')), gr = nv.f.filter(x => x.c === 'Greece');
   const lat = x => { const s = JSON.stringify(x.g).match(/\[(\d+\.\d+),/); return s ? +s[1] : 0; };
-  check('Χάρτης: προστατευόμενες περιοχές σε όλη την Ελλάδα, και βόρειο Αιγαίο / Ιόνιο (Καβάλα–Θάσος) (1.11.2)', gr.length >= 400 && gr.some(x => x.i === 'AIGRC277') && gr.filter(x => lat(x) > 39.5).length >= 40, gr.length);
+  check('Χάρτης: προστατευόμενες περιοχές σε όλη την Ελλάδα, και βόρειο Αιγαίο / Ιόνιο (Καβάλα–Θάσος) (1.11.2)', gr.length >= 250 && /* 1.12.8: χωρίς τις περιοχές της στεριάς */  gr.some(x => x.i === 'AIGRC277') && gr.filter(x => lat(x) > 39.5).length >= 40, gr.length);
   check('Νέα: η έκδοση 1.11.2 υπάρχει στα «Τι νέο»', /\['1\.11\.2',\[T\('Προστατευόμενες περιοχές σε όλη την Ελλάδα/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
 }
 
@@ -589,7 +589,7 @@ check('Νέα: η έκδοση 1.10.8 υπάρχει στα «Τι νέο»', /\
   const nj = fs.readFileSync(path.join(ROOT, 'navigator.js'), 'utf8'), mv = fs.readFileSync(path.join(ROOT, 'v4', 'map-view.js'), 'utf8');
   const nv = JSON.parse(fs.readFileSync(path.join(ROOT, 'navigator-mpa.json'), 'utf8'));
   check('Χάρτης: απλό πάτημα σε περιοχή του Navigator ανοίγει τις πληροφορίες, και στο «Σε αυτό το σημείο» (1.11.4)', /map\.on\('click',function\(e\)\{ if\(!on\|\|!DATA/.test(nj) && /window\.AlkyonNavInfo\?window\.AlkyonNavInfo\(lat,lon\)/.test(mv));
-  check('Navigator: % θάλασσας σε κάθε περιοχή, οι περιοχές σχεδόν όλες στη στεριά κρύβονται (εκτός αν απαγορεύουν το ψάρεμα) (1.11.4)', nv.f.every(f => typeof f.pm === 'number') && /f\.pm<5&&sev\(f\)<2/.test(nj) && nv.f.some(f => /^GF_/.test(f.n) && f.pm < 5));
+  check('Navigator: % θάλασσας σε κάθε περιοχή, οι περιοχές σχεδόν όλες στη στεριά κρύβονται (εκτός αν απαγορεύουν το ψάρεμα) (1.11.4)', nv.f.every(f => typeof f.pm === 'number') && /f\.pm<5&&sev\(f\)<2/.test(nj) && !nv.f.some(f => /^GF_/.test(f.n)));   // 1.12.8: οι περιοχές της στεριάς βγαίνουν πια από το αρχείο (tools/nav_clip.py)
   const { relevant } = await import(pathToFileURL(path.join(ROOT, 'tools', 'nav_world.mjs')).href);
   check('Κόσμος: ίδιος κανόνας για τη στεριά, και κρύβονται όσα δεν αφορούν ψάρεμα (1.11.4)', !relevant({ rf: 2, pm: 1 }) && relevant({ rf: 1, pm: 1 }) && relevant({ rf: 2, pm: 50 }) && !relevant({ rf: 0, hl: 0, pm: 80 }) && relevant({ rf: 0, an: 1 }));
   check('Χάρτης: χωρίς το EMODnet «Προστατευόμενες» (1.11.4)', !/tile\('mpa'/.test(mv) && !/emodnet-humanactivities/.test(mv));

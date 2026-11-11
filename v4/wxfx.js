@@ -215,13 +215,15 @@ function loop(ts){
   if(document.hidden||ts-last<40) return; last=ts;
   var sz=map.getSize(), Sx=S(); dctx.clearRect(0,0,sz.x,sz.y); dctx.lineCap='round'; dctx.strokeStyle='#ffffff'; dctx.lineWidth=1.6;
   for(var i=0;i<parts.length;i++){ var p=parts[i];
-    if(p.m===undefined||p.age%25===0){ var ll=map.containerPointToLatLng([p.x,p.y]); p.m=land(ll.lat,ll.lng)===1?null:Sx.modelAt(ll.lat,ll.lng); }
+    if(p.m===undefined||p.age%25===0){ var ll=map.containerPointToLatLng([p.x,p.y]); p.m=land(ll.lat,ll.lng)===1?null:Sx.modelAt(ll.lat,ll.lng);
+      /* 1.12.8: κάθε γραμμή στο χρώμα του ύψους κύματος (πιο ανοιχτό από το γέμισμα για να ξεχωρίζει), όπως ο άνεμος */
+      if(p.m){ var wc=wvcol(p.m.h); p.c='rgb('+wc.map(function(v){ return Math.round(v+(255-v)*0.55); }).join(',')+')'; } }
     var m=p.m; if(!m||m.dir==null||p.age++>p.life){ parts[i]=np(sz); continue; }
     if(p.vis==null) p.vis=Math.random(); if(p.vis>Math.min(1,0.1+m.h/1.3)){ continue; }
     var go=(m.dir+180)*Math.PI/180, sp=RM?0:(0.18+Math.min(10,m.tp||4)*0.045), dx=Math.sin(go), dy=-Math.cos(go);
     p.x+=dx*sp; p.y+=dy*sp; if(p.x<0||p.y<0||p.x>sz.x||p.y>sz.y){ parts[i]=np(sz); continue; }
-    var f=p.age/p.life, al=Math.sin(Math.PI*f)*Math.min(0.9,0.3+m.h*0.45), len=2.5+Math.min(9,m.h*6); dctx.lineWidth=1+Math.min(1.8,m.h*1.2);
-    dctx.globalAlpha=al; dctx.beginPath(); dctx.moveTo(p.x-dy*len,p.y+dx*len); dctx.lineTo(p.x+dy*len,p.y-dx*len); dctx.stroke();
+    var f=p.age/p.life, al=Math.sin(Math.PI*f)*Math.min(0.95,0.45+m.h*0.35), len=1.8+Math.min(3.6,m.h*2.2); dctx.lineWidth=1.3+Math.min(1.2,m.h*0.8);
+    dctx.strokeStyle=p.c||'#fff'; dctx.globalAlpha=al; dctx.beginPath(); dctx.moveTo(p.x-dy*len,p.y+dx*len); dctx.lineTo(p.x+dy*len,p.y-dx*len); dctx.stroke();
   }
   dctx.globalAlpha=1;
 }

@@ -48,7 +48,10 @@ function sev(f){
 }
 var COL=['#4f86b5','#e8861e','#d33'];
 /* Χρώματα Navigator ανά LFP: 5 κόκκινο, 4 κίτρινο, 3 γαλάζιο, 2 σκούρο γκρι (Less), 1 ανοιχτό γκρι (Least). Οι αποχρώσεις είναι προσεγγιστικές, από screenshots. */
-var LFPCOL={5:{f:'#f06a6a',o:'#c04646'},4:{f:'#f5d33f',o:'#b8962a'},3:{f:'#8fc1d6',o:'#4f86b5'},2:{f:'#7f7f7f',o:'#5f5f5f'},1:{f:'#bcc2c3',o:'#939a9b'}};
+/* 1.12.8: ακριβώς τα χρώματα του υπομνήματος του Navigator (map.navigatormap.org): περίγραμμα και γέμισμα στο ίδιο χρώμα ανά LFP */
+var LFPCOL={5:{f:'#ed7173',o:'#ed7173'},4:{f:'#f7de5f',o:'#e8c832'},3:{f:'#90bece',o:'#6fa8bd'},2:{f:'#707070',o:'#707070'},1:{f:'#707070',o:'#707070'}};
+var LFPNAME={5:T('Πλήρης προστασία (απαγορεύεται κάθε αλίευση)','Most restrictive (no-take)'),4:T('Πολύ αυστηρή προστασία','Heavily restrictive'),3:T('Μέτρια προστασία','Moderately restrictive'),2:T('Λίγη προστασία','Less restrictive'),1:T('Ελάχιστη προστασία','Least restrictive')};
+function lfpCol(l){ return (LFPCOL[l]||LFPCOL[1]).o; }
 
 /* ---------- έλεγχος θέσης ---------- */
 function inPoly(lat,lon,poly){
@@ -93,7 +96,8 @@ function mailLink(f){
 function details(f){
   var d=el('div','pop');
   var h=el('b',null,title(f)); d.appendChild(h);
-  d.appendChild(el('div','meta',[f.c,f.d,'LFP '+f.l+'/5'].filter(Boolean).join(' · ')));
+  var lf=el('div','meta'); var sw=el('span'); sw.style.cssText='display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px;background:'+lfpCol(f.l); lf.appendChild(sw); lf.appendChild(document.createTextNode('LFP '+f.l+' · '+(LFPNAME[f.l]||''))); d.appendChild(lf);
+  d.appendChild(el('div','meta',[f.c,f.d].filter(Boolean).join(' · ')));
   function known(n){ return n===0||n===1||n===2; }
   if(known(f.rf)) d.appendChild(row(T('Ψάρεμα αναψυχής','Recreational fishing'),lv(f.rf),lvCol(f.rf)));
   if(known(f.hl)) d.appendChild(row(T('Καλάμι / πετονιά','Rod & line'),lv(f.hl),lvCol(f.hl)));
@@ -120,9 +124,9 @@ function details(f){
 
 /* ---------- επίπεδο ---------- */
 function draw(list){
-  list.forEach(function(f){
-    /* Γέμισμα = επίπεδο προστασίας (LFP) με τα χρώματα του Navigator. Περίγραμμα = τι ισχύει για καλάμι: κόκκινο απαγορεύεται, πορτοκαλί περιορισμοί. */
-    var fc=LFPCOL[f.l]||LFPCOL[1], c=f._s?COL[f._s]:fc.o, p=L.polygon(f.g,{renderer:rend,color:c,weight:f._s?2.2:1,opacity:f._s?.95:.6,fillColor:fc.f,fillOpacity:.32,interactive:false});
+  list.slice().sort(function(a,c){ return (a.l||0)-(c.l||0); }).forEach(function(f){
+    /* 1.12.8: όπως στο Navigator: περίγραμμα και γέμισμα με το χρώμα του επιπέδου προστασίας (LFP). Τι ισχύει για καλάμι φαίνεται με πάτημα. */
+    var fc=LFPCOL[f.l]||LFPCOL[1], hi=f.l>=4, p=L.polygon(f.g,{renderer:rend,color:fc.o,weight:hi?2.2:1.4,opacity:.95,fillColor:fc.f,fillOpacity:hi?.42:.26,interactive:false});
     p.addTo(group);
   });
 }
@@ -148,20 +152,26 @@ b.innerHTML='<svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-
 var anchor=document.getElementById('bMpa')||bz; anchor.parentNode.insertBefore(b,anchor.nextSibling);
 b.addEventListener('click',function(){
   var willOn=!on; set(willOn);
-  if(willOn) try{ C.toast(T('Πάτα στον χάρτη για λεπτομέρειες. Γέμισμα: προστασία (κόκκινο πολύ αυστηρή, κίτρινο αυστηρή, γαλάζιο μέτρια). Περίγραμμα: κόκκινο απαγορεύεται το ψάρεμα, πορτοκαλί περιορισμοί.','Tap the map for details. Fill: protection level (red very strict, yellow strict, blue moderate). Outline: red fishing prohibited, orange restricted.')); }catch(e){}
+  if(willOn) try{ C.toast(T('Πάτα σε μια περιοχή για λεπτομέρειες. Κόκκινο: πλήρης προστασία · κίτρινο: πολύ αυστηρή · γαλάζιο: μέτρια · γκρι: λίγη.','Tap an area for details. Red: no-take · yellow: heavily restrictive · blue: moderate · grey: less restrictive.'),7000); }catch(e){}
 });
 b.setAttribute('aria-pressed',String(on));
 if(on) set(true);
 
+function known3(n){ return n===0||n===1||n===2; }
 /* ---------- πληροφορίες στο popup του χάρτη ---------- */
 window.AlkyonNavInfo=function(lat,lon,closeFn){
   if(!on||!DATA) return null;
   var hs=hits(lat,lon).filter(function(f){ return true; }); if(!hs.length) return null;
-  hs.sort(function(a,c){ return c._s-a._s; });
+  hs.sort(function(a,c){ return (c.l||0)-(a.l||0)||c._s-a._s; });
   var box=el('div','navbox'); box.style.margin='2px 0 6px';
+  /* 1.12.8: στην Κύπρο πρώτα το επίσημο κείμενο του Τμήματος Αλιείας (Cy-FIS), με την ΚΔΠ */
+  (window.ZONES||[]).forEach(function(z){ if(z.p&&inPoly(lat,lon,z.p)){ var o=el('div','note'); o.style.cssText='margin:4px 0 8px;padding:8px 10px;border-radius:10px;background:rgba(237,113,115,.14);border-left:5px solid #ed7173;font-size:13px;line-height:1.4';
+    var bb=el('b',null,z.n); o.appendChild(bb); o.appendChild(el('div',null,z.d||'')); var sm=el('small',null,T('Τμήμα Αλιείας (Cy-FIS)','Department of Fisheries (Cy-FIS)')); sm.style.opacity='.75'; o.appendChild(sm); box.appendChild(o); } });
   hs.slice(0,3).forEach(function(f){
-    var line=el('div','note'); line.style.color=COL[f._s]; line.style.fontWeight='700';
-    line.textContent=(f._s===2?'⛔ ':f._s===1?'⚠ ':'ℹ ')+title(f)+(f._s?' · '+T('ψάρεμα: ','fishing: ')+lv(f.rf):'');
+    var line=el('div','note navln'); line.style.fontWeight='700'; line.style.borderLeft='5px solid '+lfpCol(f.l); line.style.paddingLeft='8px'; line.style.margin='6px 0';
+    line.appendChild(document.createTextNode(title(f)));
+    var sub=el('div',null,'LFP '+f.l+' · '+(LFPNAME[f.l]||'')+(known3(f.rf)?' · '+T('ψάρεμα αναψυχής: ','recreational fishing: ')+lv(f.rf):''));
+    sub.style.cssText='font-weight:500;font-size:12.5px;color:var(--ink-2)'; line.appendChild(sub);
     var more=el('button','btn sm ghost',T('Λεπτομέρειες','Details')); more.type='button'; more.style.marginLeft='6px';
     /* v31z391: οι λεπτομέρειες ανοίγουν μέσα στο ίδιο φύλλο (πριν άνοιγε νέο παράθυρο στον χάρτη, που έκλεινε αμέσως μαζί με το φύλλο) */
     var det=el('div','navdet'); det.hidden=true; det.style.cssText='margin:8px 0 4px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);font-weight:400;color:var(--ink);font-size:13px;line-height:1.45';
@@ -173,11 +183,17 @@ window.AlkyonNavInfo=function(lat,lon,closeFn){
 };
 
 /* 1.11.4: πάτημα πάνω σε περιοχή (με τα «Περιορισμοί» ανοιχτά) → φύλλο με το τι είναι και τι ισχύει. Πριν φαινόταν μόνο με παρατεταμένο πάτημα σε παλιά έκδοση. */
-var LEGEND=T('Γέμισμα = πόσο προστατεύεται η περιοχή (κόκκινο πλήρης, κίτρινο πολύ αυστηρή, γαλάζιο μέτρια, γκρι λίγη). Περίγραμμα = τι ισχύει για καλάμι: κόκκινο απαγορεύεται, πορτοκαλί περιορισμοί, λεπτό σκούρο χωρίς γνωστό περιορισμό.','Fill = how protected the area is (red full, yellow very strict, blue moderate, grey low). Outline = what applies to rod fishing: red prohibited, orange restricted, thin dark no known restriction.');
+var LEGEND=T('Χρώματα όπως στο ProtectedSeas Navigator: κόκκινο = πλήρης προστασία (LFP 5, απαγορεύεται κάθε αλίευση), κίτρινο = πολύ αυστηρή (LFP 4), γαλάζιο = μέτρια (LFP 3), γκρι = λίγη (LFP 1–2). Τι ισχύει για το καλάμι, στις Λεπτομέρειες.','Colours as in ProtectedSeas Navigator: red = most restrictive (LFP 5, no-take), yellow = heavily restrictive (LFP 4), blue = moderately restrictive (LFP 3), grey = less restrictive (LFP 1–2). What applies to rod fishing is under Details.');
+/* 1.12.8: σημάδι στο σημείο που πάτησες, στο χρώμα της αυστηρότερης περιοχής (όπως η καρφίτσα του Navigator, αλλά χρωματιστή) */
+var tapPin=null;
+function pinAt(lat,lon,col){ if(tapPin){ try{ map.removeLayer(tapPin); }catch(e){} tapPin=null; } if(!col) return;
+  tapPin=L.marker([lat,lon],{interactive:false,keyboard:false,zIndexOffset:900,icon:L.divIcon({className:'navpin',iconSize:[30,40],iconAnchor:[15,38],
+    html:'<svg viewBox="0 0 30 40" width="30" height="40"><path d="M15 39C15 39 28 24 28 14A13 13 0 0 0 2 14C2 24 15 39 15 39Z" fill="'+col+'" stroke="#1d1d1d" stroke-opacity=".55" stroke-width="1.5"/><circle cx="15" cy="14" r="5" fill="#fff" fill-opacity=".9"/></svg>'})}).addTo(map); }
 function tapSheet(lat,lon){
   var box=window.AlkyonNavInfo(lat,lon); if(!box) return false;
+  var top=hits(lat,lon).sort(function(a,c){ return (c.l||0)-(a.l||0); })[0]; pinAt(lat,lon,top?lfpCol(top.l):null);
   var A=window.AK; box.appendChild(el('p','note',LEGEND));
-  if(A&&A.sheet) A.sheet({title:T('Προστατευμένη περιοχή','Protected area'),body:box});
+  if(A&&A.sheet) A.sheet({title:T('Προστατευμένη περιοχή','Protected area'),body:box,onclose:function(){ pinAt(); }});
   else L.popup({maxWidth:300}).setLatLng([lat,lon]).setContent(box).openOn(map);
   return true;
 }

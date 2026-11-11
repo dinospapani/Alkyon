@@ -1150,3 +1150,6 @@ body.mappick .cross::before{left:19px;height:40px}body.mappick .cross::after{top
 body:not(.mapon) .sndchip,.sndchip[hidden]{display:none}
 /* 1.12.7: η δομή βυθού πάνω από το υπόμνημα θερμοκρασίας όταν είναι ανοιχτά και τα δύο */
 body.mapon:has(.sstleg:not([hidden])) .sbleg:not(.mdleg){bottom:calc(var(--nav-h,64px) + var(--safe-b,0px) + var(--ndwh,0px) + 190px)}
+/* 1.12.8: όλα τα στρογγυλά κουμπιά του χάρτη στο ίδιο μέγεθος (48 px) και με ίσες αποστάσεις 12 px */
+body.mapon .mapbar .gpsb,body.mapon .mapbar .iconbtn,body.mapon .mclay,body.mapon .mapbar>.bellb.has,body.mapon .mo-btn,body.mapon .mo-n,body.mapon .seabar .mobbtn,body.mapon .seabar .trbtn,body.mapon .ancbtn,body.mapon .btx,body.mapon .mapbtns .mbtn,body.mapclean.maptrip .seabar .mobbtn,body.mapclean.maptrip .seabar .mo-btn,body.mapclean.maptrip .mapbar .gpsb{width:48px!important;height:48px!important}
+
