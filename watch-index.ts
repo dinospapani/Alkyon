@@ -9,7 +9,7 @@
 // Χρειάζεται: Verify JWT = off. Τα SUPABASE_URL και SUPABASE_SERVICE_ROLE_KEY υπάρχουν ήδη σε κάθε Edge Function.
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS' };
 const J = (o, status = 200, cache = 'no-store') => new Response(JSON.stringify(o), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': cache, ...CORS } });
-const SRC = 'https://dinospapani.github.io/Alkyon/forecast.js';
+const SRC = 'https://raw.githubusercontent.com/dinospapani/Alkyon/main/forecast.js'; /* 1.12.24: όχι από το GitHub Pages (το site είναι πλέον στο Cloudflare) */
 const mem = { pf: null, pfAt: 0, fc: new Map(), codes: new Map(), el: null, elAt: 0 };
 /* 1.10.10: ελληνικά ονόματα για είδη που γράφτηκαν στα αγγλικά (ίδιος πίνακας με την εφαρμογή, v4/data-el.js) */
 export async function elNames(F, now) {
