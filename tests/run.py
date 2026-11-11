@@ -1206,6 +1206,15 @@ with sync_playwright() as p:
     wq=pg.evaluate("()=>{const s=document.querySelector('.sheet.on .bwx'); return s?[!!s.querySelector('.bwxch,.bwpw'),(s.querySelector('summary')||{}).textContent||'']:null}")
     check('Κάρτα ψαριού: το γράφημα καιρού εμφανίζεται μόλις φορτώσει, χωρίς ξανάνοιγμα (1.12.23)', wq and wq[0] and 'φορτώνει' not in wq[1], wq)
     c.close()
+    # 1.12.24: κουμπί «Βάθη»: κάθε πάτημα δείχνει την πυκνότητα (ετικέτα + μήνυμα)· λευκές γραμμές στον δορυφόρο
+    c=ctx(b); c.add_init_script("localStorage.setItem('alkyon-v4-map',JSON.stringify({base:'sat'}))"); pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(4000)
+    dq=[]
+    for _ in range(3):
+        pg.evaluate("()=>{const b=[...document.querySelectorAll('.mchip')].find(x=>x._lab); b.click();}"); pg.wait_for_timeout(700)
+        dq.append(pg.evaluate("()=>{const b=[...document.querySelectorAll('.mchip')].find(x=>x._lab); const t=[...document.querySelectorAll('.toast')].map(x=>x.textContent).pop()||''; return [b._lab(),t]}"))
+    st=pg.evaluate("()=>{const s=[...document.querySelectorAll('style')].some(x=>/dlbl\.sat/.test(x.textContent)); return s}")
+    check('Βάθη: Στάνταρ → 5 m → 10 m με ετικέτα και μήνυμα, στυλ για λευκούς αριθμούς (1.12.24)', [x[0] for x in dq]==['Βάθη','5 m','10 m'] and 'κάθε 5 m' in dq[1][1] and 'κάθε 10 m' in dq[2][1] and st, [dq,st])
+    c.close()
     # 1.12.21: πυκνές γραμμές βάθους: πυκνές ως 30·βήμα, μετά κάθε 50 m ως 500 και κάθε 100 m, ως τον πάτο (όχι κόψιμο στα 300 m)
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_function("()=>window.AlkyonDense&&AlkyonDense.levels",timeout=20000)
     dl=pg.evaluate("()=>[5,10,20].map(s=>AlkyonDense.levels(2,950,s).map(x=>x.lv))")

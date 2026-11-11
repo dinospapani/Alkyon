@@ -48,7 +48,7 @@ function leaflet(){ zones(); if(window.L) return Promise.resolve(window.L); if(l
 B.leaflet=leaflet; /* v31z532: και για τον μικρό χάρτη επιλογής σημείου (coordpick) */
 function icon(cls,html){ return L.divIcon({className:'mk '+cls,html:html||'',iconSize:null}); }
 /* 1.7.7: πίσω στο σίγουρο (η 1.7.6 με blankTile=false έδειξε μαύρο χάρτη στο κινητό) */
-function drawBase(){ if(base) map.removeLayer(base); base=L.tileLayer(TILES[cfg.base],{maxZoom:19,maxNativeZoom:cfg.base==='sat'?18:19,attribution:cfg.base==='sat'?'Esri':'© OpenStreetMap'}).addTo(map); base.bringToBack();
+function drawBase(){ setTimeout(function(){ try{ if(window.AlkyonDense&&AlkyonDense.on()) AlkyonDense.update(); }catch(e){} },60); if(base) map.removeLayer(base); base=L.tileLayer(TILES[cfg.base],{maxZoom:19,maxNativeZoom:cfg.base==='sat'?18:19,attribution:cfg.base==='sat'?'Esri':'© OpenStreetMap'}).addTo(map); base.bringToBack();
   if(sea){ map.removeLayer(sea); sea=null; } if(cfg.sea) sea=L.tileLayer(TILES.sea,{maxZoom:19,maxNativeZoom:18,opacity:.9}).addTo(map); }
 /* ---------- «Πού πιάνω»: πυκνότητα των δικών σου ψαριών, με φίλτρο μήνα και είδους ---------- */
 var gHeat=null, heatPill=null;
@@ -846,7 +846,7 @@ function mcDrFill2(){ var pan=mcDr.querySelector('.mcpan'), keep=pan.scrollTop; 
   var FAV=[], QN=['wind','wave','cur','sst','depth'];
   function reg(k,lab,ic,get,run,kind){ if(!k||FAV.some(function(x){ return x.k===k; })) return; FAV.push({k:k,lab:lab,ic:ic,get:get,run:run,kind:kind}); }
   chips.forEach(function(b,i){ var sp=b.querySelector('span'), lb=b.querySelector('b');
-    reg('q:'+(QN[i]||i),lb?lb.textContent:'',sp?sp.innerHTML:'',function(){ try{ return !!b._g(); }catch(e){ return false; } },function(){ b.click(); setTimeout(mcPaint,150); setTimeout(mcPaint,1000); },'layer'); });
+    reg('q:'+(QN[i]||i),b._lab?function(){ try{ return b._lab(); }catch(e){ return lb?lb.textContent:''; } }:(lb?lb.textContent:''),sp?sp.innerHTML:'',function(){ try{ return !!b._g(); }catch(e){ return false; } },function(){ b.click(); setTimeout(mcPaint,150); setTimeout(mcPaint,1000); },'layer'); });
   var favHead=h('div',{class:'mcfh'},h('h4',{text:T('Αγαπημένα','Favourites')}),h('button',{type:'button',class:'mcfe',text:T('Επεξεργασία','Edit'),onclick:function(){ favEdit(FAV); }})), L1=h('div',{class:'mcg5 mcfav'});
   pan.append(favHead,L1);
   function preset(want){ /* σειρά: άνεμος, κύμα, ρεύματα, νερό, βάθη */ want.forEach(function(w,i){ var b=chips[i]; if(!b||w==null) return; var on=false; try{ on=!!b._g(); }catch(e){} if(on!==w) b.click(); }); setTimeout(mcPaint,200); setTimeout(mcPaint,1200); }
@@ -900,7 +900,7 @@ function mcDrFill2(){ var pan=mcDr.querySelector('.mcpan'), keep=pan.scrollTop; 
   [].forEach.call(pan.querySelectorAll('.lacts .li[data-fk]'),function(el){ var lb=el.querySelector('b'), ic=el.querySelector('.lic'); reg(el.getAttribute('data-fk'),lb?lb.textContent:'',ic?ic.innerHTML:'',null,function(){ el.click(); },'action'); });
   function paintFav(){ var ks=favKeys(), byK={}; FAV.forEach(function(x){ byK[x.k]=x; }); L1.replaceChildren();
     ks.forEach(function(k){ var x=byK[k]; if(!x) return; var on=null; try{ on=x.get?!!x.get():null; }catch(e){}
-      L1.append(tile(x.ic,x.lab,on,function(){ x.run(); if(x.kind==='layer'){ setTimeout(paintFav,150); setTimeout(paintFav,900); } },x.kind!=='layer'?'mcfa':'')); });
+      L1.append(tile(x.ic,typeof x.lab==='function'?x.lab():x.lab,on,function(){ x.run(); if(x.kind==='layer'){ setTimeout(paintFav,150); setTimeout(paintFav,900); } },x.kind!=='layer'?'mcfa':'')); });
     if(!L1.children.length) L1.append(h('button',{type:'button',class:'mctile mcfadd',onclick:function(){ favEdit(FAV); }},h('span',{class:'mcti',text:'＋'}),h('b',{text:T('Πρόσθεσε','Add')}))); }
   paintFav();
   mcCounts(pan); pan.addEventListener('click',function(){ setTimeout(function(){ mcCounts(pan); },400); });
@@ -912,7 +912,7 @@ function favEdit(ALL){ var sel=favKeys(), sh, box=h('div',{class:'fved'}), byK={
   function save(){ ls.set(FAVK,sel); }
   function row(x,inSel,i){ var star=h('button',{type:'button',class:'fvst'+(inSel?' on':''),'aria-label':inSel?T('Αφαίρεση από τα αγαπημένα','Remove from favourites'):T('Προσθήκη στα αγαπημένα','Add to favourites'),text:inSel?'★':'☆',onclick:function(){
       if(inSel) sel.splice(sel.indexOf(x.k),1); else { if(sel.length>=10){ B.toast(T('Έως 10 αγαπημένα. Βγάλε πρώτα ένα.','Up to 10 favourites. Remove one first.')); return; } sel.push(x.k); } save(); draw(); }});
-    var r=h('div',{class:'fvr'},h('span',{class:'fvi',html:x.ic||''}),h('b',{text:x.lab}),inSel?h('span',{class:'fvmv'},h('button',{type:'button','aria-label':T('Πάνω','Up'),text:'↑',disabled:i===0,onclick:function(){ sel.splice(i-1,0,sel.splice(i,1)[0]); save(); draw(); }}),h('button',{type:'button','aria-label':T('Κάτω','Down'),text:'↓',disabled:i===sel.length-1,onclick:function(){ sel.splice(i+1,0,sel.splice(i,1)[0]); save(); draw(); }})):null,star);
+    var r=h('div',{class:'fvr'},h('span',{class:'fvi',html:x.ic||''}),h('b',{text:typeof x.lab==='function'?T('Βάθη','Depths'):x.lab}),inSel?h('span',{class:'fvmv'},h('button',{type:'button','aria-label':T('Πάνω','Up'),text:'↑',disabled:i===0,onclick:function(){ sel.splice(i-1,0,sel.splice(i,1)[0]); save(); draw(); }}),h('button',{type:'button','aria-label':T('Κάτω','Down'),text:'↓',disabled:i===sel.length-1,onclick:function(){ sel.splice(i+1,0,sel.splice(i,1)[0]); save(); draw(); }})):null,star);
     return r; }
   function draw(){ box.replaceChildren(); sel=sel.filter(function(k){ return byK[k]; });
     box.append(h('h3',{class:'h3',text:T('Αγαπημένα','Favourites')+' ('+sel.length+'/10)'}));
@@ -961,7 +961,8 @@ function mount(el){
   var DSEQ=['off','std','5','10','20'];
   function dcur(){ var m=dmode(); if(m===0) return 'off'; if(m===1) return 'col'; return String((window.AlkyonDense&&AlkyonDense.mode())||ls.get('alkyon-dl','std')); }
   var dchip=h('button',{type:'button',class:'mchip',onclick:function(){ var c=dcur(), i=DSEQ.indexOf(c), nx=DSEQ[(i<0?0:i+1)%DSEQ.length]; if(nx==='off') setDepth(0); else { ls.set('alkyon-dl',nx); setDepth(2,nx); }
-      if(nx!=='off'&&+nx&&map&&map.getZoom()<11) B.toast(T('Οι γραμμές ','The ')+nx+T(' m φαίνονται από ζουμ 11 και πάνω.',' m lines show from zoom 11 up.'));
+      /* 1.12.24: κάθε πάτημα λέει τι διάλεξες (πριν δεν φαινόταν η αλλαγή 5 / 10 / 20 m) */
+      B.toast(nx==='off'?T('Βάθη: κλειστά','Depths: off'):nx==='std'?T('Βάθη: κύριες ισοβαθείς (50, 100, 200 m…)','Depths: main contours (50, 100, 200 m…)'):(T('Γραμμές βάθους κάθε ','Depth lines every ')+nx+' m'+(map&&map.getZoom()<11?T(' · ζούμαρε πιο κοντά για να φανούν',' · zoom in closer to see them'):'')));
       setTimeout(qpaint,80); setTimeout(qpaint,900); }},h('span',{html:LIC.depth}),h('b',{text:T('Βάθη','Depths')}));
   dchip._g=function(){ return dmode()>0; }; dchip._lab=function(){ var c=dcur(); return c==='off'?T('Βάθη','Depths'):c==='col'?T('Χρώματα','Colours'):c==='std'?T('Βάθη','Depths'):c+' m'; }; qc.append(dchip);
   B.qpaint=qpaint; setTimeout(qpaint,400); setTimeout(qpaint,2500);

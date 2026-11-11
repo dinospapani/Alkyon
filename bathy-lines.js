@@ -138,7 +138,9 @@ function ensureSign(){
 }
 
 /* ---------- σχεδίαση ---------- */
-function satBase(){ var l=C.lsGet('alkyon-layer','osm'); return l==='sat'||l==='satellite'||l==='esri'; }
+/* 1.12.24: στη νέα εφαρμογή ο χάρτης βάσης είναι στο alkyon-v4-map.base· πριν διαβαζόταν μόνο το παλιό κλειδί, άρα στον δορυφόρο οι γραμμές έβγαιναν σκούρες μπλε */
+function satBase(){ var v=C.lsGet('alkyon-v4-map',null); if(v&&v.base) return v.base==='sat'; var l=C.lsGet('alkyon-layer','osm'); return l==='sat'||l==='satellite'||l==='esri'; }
+(function(){ var st=document.createElement('style'); st.textContent='.leaflet-marker-icon.dlbl{background:none;border:0}.dlbl span{display:block;text-align:center;font:700 11px/14px var(--font,system-ui);color:#0a3a6a;text-shadow:0 0 3px #fff,0 0 3px #fff;white-space:nowrap}.dlbl.sat span{color:#fff;text-shadow:0 0 3px rgba(0,0,0,.85),0 0 2px rgba(0,0,0,.85)}'; document.head.appendChild(st); })();
 function draw(g,step){
   group.clearLayers();
   var w=g.w,h=g.h, mx=0, mn=1e9;
@@ -146,14 +148,14 @@ function draw(g,step){
   if(mx<=0) return 0;
   var cp=g.data; blur(g);
   var LV=levels(mn,mx,step), sat=satBase(), nlines=0, labels=0, placed=[];
-  var minorC=sat?'#8fd8ff':'#2f7fc0', majorC=sat?'#ffffff':'#0a3a6a';
+  var minorC=sat?'#ffffff':'#2f7fc0', majorC=sat?'#ffffff':'#0a3a6a'; /* 1.12.24: στον δορυφόρο λευκές (οι ενδιάμεσες πιο αχνές) */
   for(var li=0;li<LV.length;li++){
     var lv=LV[li].lv, major=LV[li].major, chains=contour(g,lv);
     for(var c=0;c<chains.length;c++){
       var ch=chains[c]; if(ch.length<3) continue;
       var pts=ch.map(function(p){ return [g.y0+g.dy*(p.y+.5), g.x0+g.dx*(p.x+.5)]; }); /* κέντρο κελιού */
       pts=chaikin(pts);
-      L.polyline(pts,{renderer:rend,color:major?majorC:minorC,weight:major?1.6:0.8,opacity:major?(sat?.8:.9):(sat?.4:.6), /* 1.8.6: πιο λεπτές, λιγότερο λευκό στον δορυφόρο */interactive:false,smoothFactor:1}).addTo(group); nlines++;
+      L.polyline(pts,{renderer:rend,color:major?majorC:minorC,weight:major?1.6:0.8,opacity:major?(sat?.85:.9):(sat?.38:.6), /* 1.8.6: πιο λεπτές, λιγότερο λευκό στον δορυφόρο */interactive:false,smoothFactor:1}).addTo(group); nlines++;
       if(major&&pts.length>14&&labels<40){
         var m=pts[Math.floor(pts.length/2)];
         /* 1.8.4: οι αριθμοί δεν μπαίνουν ο ένας πάνω στον άλλο (τουλάχιστον ~70 px μεταξύ τους) */
