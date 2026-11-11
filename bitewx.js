@@ -144,7 +144,7 @@ function build(b,box){
   var ms=C.biteMs(b), ok=valid(b), wx=ok?b.wx:null;
   var d=document.createElement('details'); if(openIds[b.id]) d.open=true;
   var sm=document.createElement('summary');
-  var head=T('Πίεση και άνεμος ±30′','Pressure & wind ±30′');
+  var head=T('Πίεση, άνεμος, σελήνη, παλίρροια','Pressure, wind, moon, tides');
   if(wx){ sm.textContent=head+': '+(brief(wx)||T('χωρίς αλλαγή','no change')); }
   else if(typeof b.lat!=='number') sm.textContent=T('Σελήνη','Moon')+': '+MOON[moonAt(ms).i];
   else if(b.wxNA) sm.textContent=head+': '+T('δεν βρέθηκαν δεδομένα','no data found');
@@ -161,13 +161,32 @@ function build(b,box){
     if(ch.length){ var l=line2(T('Αλλαγή: ','Change: ')+ch.join(' · ')); l.style.fontWeight='600'; body.append(l); }
     var p3=dPress(f0.p,c.p), p3b=dPress(c.p,f1.p);
     if(p3||p3b) body.append(line2(T('Πίεση: 3 ώρες πριν ','Pressure: 3 h before ')+(p3||'–')+T(' · 3 ώρες μετά ',' · 3 h after ')+(p3b||'–')));
-    body.append(chart(wx,b));
+    var cw=document.createElement('div'); cw.className='bwxch'; cw.append(chart(wx,b)); body.append(cw); fullChart(b,cw);   /* 1.12.19: μετά γίνεται το ίδιο γράφημα με την Πρόγνωση */
     var n=document.createElement('div'); n.className='bwn'; n.textContent=T('Ωριαία δεδομένα μοντέλου με παρεμβολή ανά 30 λεπτά. Ενδεικτικά, όχι μέτρηση στο σημείο. Πάνω: πίεση. Κάτω: άνεμος (διακεκομμένη = ριπές, βέλη = προς πού πηγαίνει ο άνεμος). Η σκιασμένη ζώνη είναι ±30′ από το πιάσιμο.','Hourly model data interpolated every 30 minutes. Indicative, not measured on the spot. Top: pressure. Bottom: wind (dotted = gusts, arrows = where the wind goes). The shaded band is ±30′ around the catch.')+(wx.fc?T(' Περιλαμβάνει πρόγνωση, θα ανανεωθεί.',' Includes forecast, will refresh.'):''); body.append(n);
   } else if(b.wxNA){ body.append(line2(T('Δεν βρέθηκαν δεδομένα για αυτή την ώρα και θέση.','No data found for this time and place.'))); }
   var mo=line2(moonTxt(ms)); mo.style.marginTop='6px'; body.append(mo);
   d.append(body); box.append(d);
   d.addEventListener('toggle',function(){ if(d.open){ openIds[b.id]=1; if(!valid(b)&&eligible(b)&&!b.wxNA){ tried[b.id]=0; enqueue(b,true); sm.textContent=head+': '+T('φορτώνει…','loading…'); } } else delete openIds[b.id]; });
 }
+/* 1.12.19: το ίδιο γράφημα με την Πρόγνωση (πίεση, άνεμος, σελήνη, παλίρροια), 6 ώρες πριν ως 6 ώρες μετά (ή γύρω από το «από–έως»).
+   Φορτώνει ωριαία δεδομένα (καιρός + θάλασσα)· χωρίς δίκτυο μένει το αποθηκευμένο γράφημα ±3 ωρών. */
+var fcCache={};
+function fullChart(b,box){ var W=window.AK&&window.AK.biteWin, PC=window.AK&&window.AK.pwChart; if(!W||!W.fetch||!PC||typeof b.lat!=='number'||navigator.onLine===false) return;
+  var ms=C.biteMs(b), sp=W.span?W.span(b):null, a=sp?Math.min(sp.a,ms):ms, e=sp?Math.max(sp.e,ms):ms, tz=typeof b.tz==='number'?b.tz:-new Date(ms).getTimezoneOffset();
+  if(e-a>18*HOUR){ a=ms; e=ms; }
+  var k=b.id+'|'+a+'|'+e+'|'+b.lat+'|'+b.lon, pr=fcCache[k]||(fcCache[k]=W.fetch(b.lat,b.lon,{a:a-3*HOUR,e:e+3*HOUR,tz:tz}).catch(function(){ delete fcCache[k]; return null; }));
+  pr.then(function(S){ if(!S||!box.isConnected) return; var idx=S.t.map(function(t,i){ return i; }).sort(function(x,y){ return S.t[x]-S.t[y]; }), g=function(key,i){ var v=S[key]; return v&&typeof v[i]==='number'?v[i]:null; };
+    var pts=idx.map(function(i){ return {t:S.t[i],p:g('pressure_msl',i),w:g('wind_speed_10m',i),g:g('wind_gusts_10m',i),d:g('wind_direction_10m',i),l:g('sea_level_height_msl',i)}; }).filter(function(q){ return q.t>=a-6*HOUR-1&&q.t<=e+6*HOUR+1&&(q.p!=null||q.w!=null); });
+    if(pts.length<6) return;
+    var hm=function(t){ return new Date(t+tz*MIN).toISOString().slice(11,16); }, ci=0; pts.forEach(function(q,i){ if(Math.abs(q.t-ms)<Math.abs(pts[ci].t-ms)) ci=i; });
+    var marks=[{t:ms,cls:'catch',lbl:sp?null:T('πιάσιμο ','catch ')+hm(ms)}], shade=[{a:ms-30*MIN,b:ms+30*MIN,cls:'c30'}];
+    if(sp){ shade.push({a:sp.a,b:sp.e,cls:'win'}); marks.push({t:sp.e,cls:'stop',lbl:T('σταμάτησαν ','stopped ')+hm(sp.e)}); }
+    var CH=PC(pts,{lat:b.lat,lon:b.lon,tz:tz,rk:'catch',nowI:-1,sel:ci,marks:marks,shade:shade,timeLabel:function(t){ return hm(t)+(Math.abs(t-ms)<31*MIN?' ('+T('πιάσιμο','catch')+')':''); }});
+    var wrap=document.createElement('div'); wrap.className='bwpw'; wrap.append(CH.svg,CH.rd);
+    var lg=document.createElement('div'); lg.className='pwl'; [['k1',T('Πίεση','Pressure')],['k2',T('Άνεμος, ριπές','Wind, gusts')],['k3',T('Σελήνη','Moon')]].concat(CH.hasTide?[['k5',T('Παλίρροια ● ψηλή ○ χαμηλή','Tide ● high ○ low')]]:[]).forEach(function(x){ var sx=document.createElement('span'); sx.className=x[0]; sx.textContent=x[1]; lg.append(sx); });
+    wrap.append(lg); box.replaceChildren(wrap);
+    var nt=box.parentNode&&box.parentNode.querySelector('.bwn'); if(nt) nt.textContent=T('Ωριαία δεδομένα μοντέλου (Open-Meteo), ενδεικτικά, όχι μέτρηση στο σημείο. Ίδιο γράφημα με την Πρόγνωση: πίεση, άνεμος (βέλη = προς πού φυσά), σελήνη (περίοδοι solunar), παλίρροια. Γκρι ζώνη: ±30′ από το πιάσιμο'+(sp?'· πράσινη: όσο τσιμπούσαν· κόκκινη γραμμή: πότε σταμάτησαν':'')+'. Σύρε το δάχτυλο για κάθε ώρα.','Hourly model data (Open-Meteo), indicative, not measured on the spot. Same chart as the Forecast: pressure, wind (arrows = where it blows to), moon (solunar periods), tide. Grey band: ±30′ around the catch'+(sp?'; green: while they were biting; red line: when they stopped':'')+'. Drag across for each hour.');
+  }); }
 function line2(t){ var p=document.createElement('div'); p.className='bwl'; p.textContent=t; return p; }
 function slot(b){
   var box=document.createElement('div'); box.className='bwx'; build(b,box);

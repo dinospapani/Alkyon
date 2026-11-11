@@ -1144,8 +1144,8 @@ with sync_playwright() as p:
     c=ctx(b); c.route('**/marine?*hourly=sea_level_height_msl*',lambda r: r.fulfill(json={'hourly':{'time':[_shift(x) for x in _SL['t']],'sea_level_height_msl':_SL['v']}}))
     pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(5000)
     pg.evaluate("()=>{const d=document.querySelector('details.fold[data-k=pw]'); if(d) d.open=true;}"); pg.wait_for_timeout(1500)
-    td=pg.evaluate("()=>{const d=document.querySelector('details.fold[data-k=pw]'); return d?[d.querySelector('summary').innerText,d.querySelectorAll('.tdi').length,!!d.querySelector('.tdsvg')]:null}")
-    check('Πρόγνωση: Παλίρροια μέσα στην κάρτα πίεσης/ανέμου/σελήνης, με ψηλές/χαμηλές και καμπύλη (1.12.17)', td and td[1]>=3 and td[2] and 'παλίρροια' in td[0].lower(), td)
+    td=pg.evaluate("()=>{const d=document.querySelector('details.fold[data-k=pw]'); return d?[d.querySelector('summary').innerText,d.querySelectorAll('svg.pwc .th, svg.pwc .tlo').length,!!d.querySelector('svg.pwc .tl')]:null}")
+    check('Πρόγνωση: παλίρροια ΜΕΣΑ στο γράφημα πίεσης/ανέμου/σελήνης, με ψηλές/χαμηλές (1.12.19)', td and td[1]>=3 and td[2] and 'παλίρροια' in td[0].lower(), td)
     pg.evaluate("()=>{location.hash='#guide'}"); pg.wait_for_timeout(3500)
     pg.click("#spFs button:has-text('Δεν κρατιούνται')"); pg.wait_for_timeout(700)
     gl=pg.evaluate("()=>[...document.querySelectorAll('#spList summary b')].map(e=>e.textContent)")
@@ -1178,6 +1178,13 @@ with sync_playwright() as p:
     check('Ώρες τσιμπήματος: τέλος = γύρισμα παλίρροιας, δυνάμωμα ανέμου, κρύωμα αέρα (1.12.17)', all(k in rq['en'] for k in ['tide-turn','wind-build','air']), rq)
     check('Ώρες τσιμπήματος: «όσο τσιμπούσαν» δείχνει άνεμο από→σε και αέρα (1.12.17)', '→' in rq['du'].split(' | ')[0] and 'Αέρας' in rq['du'], rq['du'])
     c.close()
+    # 1.12.19: κοινό γράφημα (Πρόγνωση + ψάρι): πίεση, άνεμος, σελήνη, παλίρροια, σημάδι «σταμάτησαν»
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(2500)
+    rc=pg.evaluate("""()=>{ const t0=Date.UTC(2026,10,9,12), pts=[]; for(let i=0;i<13;i++) pts.push({t:t0+i*3600e3,p:1026+Math.sin(i/3),w:3+i/3,g:6+i/3,d:220-i*15,l:-0.5+0.12*Math.sin(i/2)});
+      const C=AK.pwChart(pts,{lat:34.72,lon:32.37,tz:120,rk:'catch',nowI:-1,sel:6,marks:[{t:t0+6*3600e3,cls:'catch'},{t:t0+8*3600e3,cls:'stop',lbl:'σταμάτησαν 20:00'}],shade:[{a:t0+6*3600e3,b:t0+8*3600e3,cls:'win'}]});
+      const q=s=>C.svg.querySelectorAll(s).length; return [q('.pl'),q('.wl'),q('.tl'),q('.th')+q('.tlo'),q('.pmk.stop'),q('.shd.win'),!!C.svg.querySelector('.axh.mk'),C.rd.textContent]; }""")
+    check('Γράφημα ψαριού = ίδιο με Πρόγνωση: πίεση, άνεμος, σελήνη, παλίρροια, «σταμάτησαν» (1.12.19)', rc[0]>=1 and rc[1]>=1 and rc[2]==1 and rc[3]>=1 and rc[4]==1 and rc[5]==1 and rc[6] and 'στάθμη' in rc[7], rc)
+    check('1.12.19 χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
     # 1.12.14: Προφίλ (ομάδες, Σχετικά, γνώμη, θέμα), δολώματα, αποκλεισμός χρήστη
     c=ctx(b); c.add_init_script("localStorage.setItem('alkyon-smart',JSON.stringify({weekly:Date.now()}))"); pg=page(c); pg.goto(BASE+'/v4/#profile'); pg.wait_for_timeout(2500)
     def grp(): return pg.evaluate("()=>[...document.querySelectorAll('main .pgrp')].map(g=>[(g.querySelector('h3')||{}).textContent||'',[...g.querySelectorAll('.li b')].map(e=>e.textContent)])")
