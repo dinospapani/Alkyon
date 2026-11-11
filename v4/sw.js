@@ -1,10 +1,10 @@
 /* Alkyon 4 · service worker (μόνο για τον φάκελο v4/).
    Δικά μας αρχεία: πρώτα δίκτυο, αλλιώς αποθηκευμένο αντίγραφο. Γραμματοσειρές: αποθηκευμένο αντίγραφο πρώτα. */
-const V = 'alkyon4-1.12.24';
+const V = 'alkyon4-1.12.26';
 const SHELL = ['./', 'index.html', 'errlog.js', 'app.css', 'forecast.css', 'core.js', 'notif-i18n.js', 'data-el.js', 'sounder.js', 'sounder-parse.js', 'mydepth.js', 'ui.js', 'shell.js', 'lazy.js', 'clarity.js', 'forecast-view.js', 'forecast-more.js', 'tide.js', 'pwchart.js', 'advise.js', 'tripfill.js', 'common.js', 'store.js', 'account.js', 'bite-form.js', 'log-view.js', 'bitewin.js', 'profile-view.js', 'log.css', 'map.css', 'polish.css', 'polish.js', 'fonts/commissioner-greek.woff2', 'fonts/commissioner-latin.woff2', 'fonts/commissioner-latin-ext.woff2', 'map-view.js', 'worldland.js', 'worldland.bin', 'medland.js', 'wxfx.js', 'opps.js', 'coordpick.js', 'extras.js', 'seabed.js', 'bestspot.js', 'seareports.js', 'coordscan.js', 'portnotes.js', 'tackle-view.js', 'tackle-core.js', 'gear-view.js', 'boat-view.js', 'friends-view.js', 'community-view.js', 'trip.js', 'say.js', 'troll.js', 'trip-extra.js', 'autostart.js', 'night.js', 'bigtrip.js', 'records.js', 'live.js', 'help.js', 'sea-tools.js', 'smart.js', '../ext.js', '../divelog.js', '../coords.js', '../regions.js', '../windwatch.js', '../coastgrid.js', '../exposure.js', '../bitewx.js', 'alerts-view.js', 'cards.js', 'datatools.js', 'import-view.js', 'insights.js', 'years.js', 'backup.js', 'garmin.js', 'prefetch.js', 'syscheck.js', 'start-pick.js', 'alk-hero-boat.jpg', 'alk-hero.jpg', 'alk-card-shore.jpg', 'alk-card-boat.jpg', 'alk-hero-spear.jpg', 'alk-th-boatrod.jpg', 'alk-th-spear.jpg', 'alk-th-lake.jpg', 'alk-th-shorerod.jpg', '../species.js', '../rules.js', 'guide-core.js', 'guide-view.js', '../cy100.js', '../regions.js', '../knots.js', '../coastgrid.js', '../exposure.js', '../bathy-lines.js', '../windmap.js', '../windlocal.js', '../seastate.js', '../ruler.js', '../ports.js', '../orient.js', '../navigator.js', '../route.js', '../leaflet.js', '../leaflet.css', '../zones.js', '../zones-gr.js', '../gr-places.js', '../laws-world.js', '../dams_levels.json', '../version.js', '../hist.js', 'manifest.webmanifest',
   '../units.js', '../knowledge.js', '../i18n.js', '../i18n-en.js', '../forecast.js', '../personal.js', '../icon-192.png', '../migrate.js',
   /* 1.3.0: αρχεία που φορτώνονται αργότερα: αποθηκεύονται από την αρχή για να δουλεύουν offline χωρίς να έχουν ανοιχτεί πρώτα */
-  '../tackle-lib.js', '../tackle-guide.js', '../fish-photos.js', '../cy100-en.js', '../push-config.js'];
+  '../knots/index.json', '../tackle-lib.js', '../tackle-guide.js', '../fish-photos.js', '../cy100-en.js', '../push-config.js'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(V).then(c => Promise.all(SHELL.map(u => c.add(new Request(u, { cache: 'reload' })).catch(() => {})) /* 1.3.3: χωρίς την HTTP cache, ώστε να μη μπουν παλιά αρχεία στη νέα έκδοση */)).then(() => self.skipWaiting()));
 });
@@ -39,8 +39,24 @@ self.addEventListener('fetch', e => {
     return;
   }
   if (u.origin !== location.origin) return;
+  /* 1.12.26: βίντεο κόμπων: από την αποθήκη «χωρίς σήμα» αν κατέβηκαν (με Range για το <video>), αλλιώς δίκτυο */
+  if (u.pathname.indexOf('/knots/') === 0 && /\.(mp4|webp)$/.test(u.pathname)) { e.respondWith(knotFile(e.request)); return; }
   e.respondWith(own(e));
 });
+function knotFile(req) {
+  return caches.open('alkyon-knots').then(c => c.match(req.url)).then(hit => {
+    if (!hit) return fetch(req);
+    const rg = req.headers.get('range');
+    if (!rg) return hit;
+    return hit.arrayBuffer().then(buf => {
+      const m = /bytes=(\d*)-(\d*)/.exec(rg) || [], n = buf.byteLength;
+      let s = m[1] ? +m[1] : 0, en = m[2] ? Math.min(+m[2], n - 1) : n - 1;
+      if (!m[1] && m[2]) { s = Math.max(0, n - +m[2]); en = n - 1; }
+      return new Response(buf.slice(s, en + 1), { status: 206, headers: { 'Content-Type': hit.headers.get('Content-Type') || 'video/mp4',
+        'Content-Range': 'bytes ' + s + '-' + en + '/' + n, 'Content-Length': String(en - s + 1), 'Accept-Ranges': 'bytes' } });
+    });
+  });
+}
 /* v31z550: δικά μας αρχεία — πρώτα δίκτυο για να έρχονται αμέσως οι ενημερώσεις, ΑΛΛΑ αν το δίκτυο αργεί (αδύναμο σήμα στη θάλασσα)
    ή δεν υπάρχει, ανοίγει αμέσως από το αποθηκευμένο αντίγραφο και το δίκτυο συνεχίζει στο παρασκήνιο να ενημερώνει την αποθήκη. */
 function own(e) {
