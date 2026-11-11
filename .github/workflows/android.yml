@@ -124,3 +124,17 @@ jobs:
           gh release view android-test >/dev/null 2>&1 || gh release create android-test --prerelease --title "Alkyon Android (δοκιμή)" --notes "Δοκιμαστική έκδοση για Android."
           gh release upload android-test out/alkyon.apk --clobber
           gh release edit android-test --notes "Alkyon $V για δοκιμή στο κινητό (Android). Κατέβασε το alkyon.apk και άνοιξέ το."
+
+      # AAB στο κλαδί «play-aab» (μόνο αυτό το αρχείο), για ανέβασμα στο Play Console από τον browser
+      # (raw.githubusercontent.com δίνει CORS). Μόνο όταν το ζητάς: Run workflow με track = none.
+      - name: AAB → κλαδί «play-aab»
+        if: steps.ks.outputs.signed == '1' && github.event_name == 'workflow_dispatch'
+        run: |
+          V=${{ steps.ver.outputs.name }}
+          mkdir -p /tmp/pa && cd /tmp/pa
+          git init -q -b play-aab
+          cp "$GITHUB_WORKSPACE/out/alkyon-$V.aab" alkyon.aab
+          echo "$V" > VERSION
+          git add alkyon.aab VERSION
+          git -c user.name="github-actions" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -q -m "AAB $V"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" play-aab
