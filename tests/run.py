@@ -1110,6 +1110,25 @@ with sync_playwright() as p:
       const tr=JSON.parse(localStorage.getItem('alkyon-trips')||'[]').filter(x=>x.sid==='g'+it.id)[0]||{};
       return [it.state, it.type, it.len, it.past, bt.length, bt.reduce((a,x)=>a+x.cnt,0), tr.count, tr.kg, (tr.endMs-tr.startMs)/3600000];}"""); pg.wait_for_timeout(800); r=r and r+[pg.evaluate("()=>!!document.querySelector('.gearpast')")]
     check('Εργαλεία: παλιά ρίψη διχτυού με ψάρια ανά είδος (1.10.2)', r and r[0]=='done' and r[1]=='net' and r[2]==300 and r[3] and r[4]==2 and r[5]==12 and r[6]==12 and abs(r[7]-2.4)<0.01 and r[8]==12 and not r[9] and not pg._errs, [r,pg._errs]); c.close()
+    # 1.12.13: πλοήγηση: τα ‹ γυρίζουν πίσω (όχι νέα σελίδα), το «πίσω» δεν χρειάζεται άδεια πατήματα
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/'); pg.wait_for_timeout(2500)
+    def nv(js=None,ms=1100):
+        if js: pg.evaluate(js); pg.wait_for_timeout(ms)
+        return pg.evaluate("()=>[location.hash||'',navigation.currentEntry.index,navigation.canGoBack,document.querySelectorAll('.sheet.on').length]")
+    BK="()=>history.back()"
+    nv("()=>{location.hash='#profile'}"); nv("()=>{location.hash='#tackle'}"); r1=nv("()=>document.querySelector('.top a.iconbtn').click()"); r2=nv(BK)
+    check('Πλοήγηση: ‹ από Εξοπλισμό → Προφίλ, μετά «πίσω» → Πρόγνωση (όχι ξανά Εξοπλισμός) (1.12.13)', r1[0]=='#profile' and r2[0]=='' and not r2[2], [r1,r2])
+    r0=nv("()=>document.querySelector('.nav a[data-v=forecast]').click()")
+    check('Πλοήγηση: «Πρόγνωση» ενώ είσαι ήδη εκεί δεν γράφει νέα εγγραφή (1.12.13)', r0[1]==0 and not r0[2], r0)
+    nv("()=>{location.hash='#log'}"); nv("()=>AK.biteForm()"); r1=nv("()=>[...document.querySelectorAll('.sheet.on .bfline')].find(x=>/Εξοπλισμός|Tackle/.test(x.textContent)).click()",1600)
+    r2=nv(BK); r3=nv(BK)
+    check('Πλοήγηση: φόρμα → Εξοπλισμός, «πίσω» → Ημερολόγιο, «πίσω» → Πρόγνωση χωρίς άδειο πάτημα (1.12.13)', r1[0]=='#tackle' and r2[0]=='#log' and r2[3]==0 and r3[0]=='', [r1,r2,r3])
+    pg.goto(BASE+'/v4/?n=1#boat'); pg.wait_for_timeout(2000); r0=nv(); r1=nv("()=>document.querySelector('.top a.iconbtn').click()")
+    check('Πλοήγηση: άνοιγμα απευθείας στο #boat, ‹ → Προφίλ χωρίς νέα εγγραφή (1.12.13)', r1[0]=='#profile' and r1[1]==r0[1], [r0,r1])
+    pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(2000); nv("()=>{location.hash='#map'}",2500); r1=nv("()=>document.querySelector('.mclay').click()"); r2=nv(BK)
+    nv("()=>document.querySelector('.mclay').click()"); r3=nv("()=>[...document.querySelectorAll('.mcdrw button')].find(x=>/^(Ειδοποιήσεις|Notifications)/.test(x.textContent.trim())).click()",1500); r4=nv(BK); r5=nv(BK)
+    check('Πλοήγηση: μενού χάρτη κλείνει με «πίσω»· μενού → Ειδοποιήσεις → «πίσω» Χάρτης → «πίσω» Ημερολόγιο (1.12.13)', (not pg.evaluate("()=>!!document.querySelector('.mcdrw.open')") and r2[0]=='#map' and r3[0]=='#inbox' and r4[0]=='#map' and r5[0]=='#log'), [r1,r2,r3,r4,r5])
+    check('1.12.13: πλοήγηση χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
     b.close()
 
 # 1.9.48: server (quick-processor): ίδιος κώδικας, ψεύτικα δεδομένα, χωρίς δίκτυο

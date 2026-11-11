@@ -64,7 +64,11 @@ var hEntry=false, selfBack=false, hChk=null;
 var hPush=null;
 function sheetHist(){ clearTimeout(hPush); hPush=setTimeout(function(){ if(openSheet&&!hEntry){ try{ history.pushState({alks:1},''); hEntry=true; }catch(e){} } },150); clearTimeout(hChk); hChk=setTimeout(sheetHistChk,900); }
 function sheetHistChk(){ if(openSheet||limbo){ hChk=setTimeout(sheetHistChk,800); return; } if(hEntry){ hEntry=false; if(history.state&&history.state.alks){ selfBack=true; try{ history.back(); }catch(e){ selfBack=false; } } } }
-window.addEventListener('popstate',function(){ if(selfBack){ selfBack=false; return; } if(!hEntry) return; hEntry=false;
+/* 1.12.13: όταν το «πίσω» προσγειώνεται σε παλιά εγγραφή φύλλου που έχει ήδη κλείσει (π.χ. από φύλλο πήγες σε άλλη σελίδα και γύρισες),
+   την προσπερνά, για να μη χρειάζεται δεύτερο «πίσω» που δεν κάνει τίποτα. */
+window.addEventListener('popstate',function(ev){ if(selfBack){ selfBack=false; return; }
+  if(!hEntry&&!openSheet&&!limbo&&ev.state&&(ev.state.alks||(ev.state.mcd&&!document.querySelector('.mcdrw.open')))&&history.length>1){ selfBack=true; try{ history.back(); }catch(e){ selfBack=false; } return; }
+  if(!hEntry) return; hEntry=false;
   if(openSheet){ var o=openSheet; try{ o.close(false,o._back&&o._back()?'back':'user'); }catch(e){} if(openSheet){ try{ history.pushState({alks:1},''); hEntry=true; }catch(e){} } } });
 function dropLimbo(){ if(!limbo) return; clearTimeout(limbo.tm); var a=limbo.api; limbo=null; a._kill(); }
 function sheet(o){

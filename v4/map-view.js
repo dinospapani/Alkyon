@@ -1063,7 +1063,7 @@ B.mapRevClear=revClear;
 function revShow(lab,trip){ if(revChip) revChip.remove();
   revChip=h('div',{class:'revchip',role:'group'},h('span',{class:'rvt',text:lab}),
     trip?h('button',{type:'button',class:'rvp','aria-label':T('Επανάληψη εξόδου','Replay trip'),text:'▶',onclick:function(){ replay(trip); }}):null,
-    h('button',{type:'button',class:'rvx','aria-label':T('Απόκρυψη από τον χάρτη','Hide from the map'),text:'✕',onclick:function(){ var b=revBack; revBack=null; revClear(); if(b&&/^#map/.test(location.hash||'')) location.hash=b; }}));
+    h('button',{type:'button',class:'rvx','aria-label':T('Απόκρυψη από τον χάρτη','Hide from the map'),text:'✕',onclick:function(){ var b=revBack; revBack=null; revClear(); if(b&&/^#map/.test(location.hash||'')){ if(B.goBack) B.goBack(b,true); else location.hash=b; } }}));
   document.body.append(revChip); }
 function applyPend(){ if(!pend||!map) return false; var q=pend; pend=null;
   revClear(); revBack=q.back||null;
@@ -1089,7 +1089,7 @@ function pickEnd(ok){ if(!pk) return; var q=pk; pk=null; var pp=ok&&map?pickPt(q
   if(ok&&map&&q.o.line){ var lp=q.pts.slice(); if(!lp.length&&pp) lp=[[+pp.ll.lat.toFixed(5),+pp.ll.lng.toFixed(5)]]; try{ if(q.o.onLine) q.o.onLine(lp); }catch(e){} }
   else if(ok&&map){ var g=q.det&&q.det.open&&q.cb?q.cb.get():null, c=pp?pp.ll:map.getCenter(); var la=g?g.lat:+c.lat.toFixed(5), lo=g?g.lon:+c.lng.toFixed(5); try{ if(q.o.onPick) q.o.onPick(la,lo,q.nm.value.trim()); }catch(e){} }
   if(!ok&&q.o.onCancel){ try{ q.o.onCancel(); }catch(e){} }   /* 1.10.5: π.χ. ξανανοίγει τη φόρμα από όπου ήρθες */
-  if(q.o.back&&q.nav!==false) setTimeout(function(){ location.hash=q.o.back; },0); }
+  if(q.o.back&&q.nav!==false) setTimeout(function(){ if(!/^#map/.test(location.hash||'')) return; if(B.goBack) B.goBack(q.o.back,true); else location.hash=q.o.back; },0); }   /* 1.12.13: πίσω στο ιστορικό, όχι νέα σελίδα */
 function pickUI(){ if(!pk||pk.bar||!map||!root) return; var q=pk, o=q.o, PC=window.AlkyonCoord;
   var rd=h('b',{class:'mpcoord'}), show=function(){ var c=pickPt(q).ll; rd.textContent=PC&&PC.fmt?PC.fmt(c.lat,c.lng):c.lat.toFixed(5)+', '+c.lng.toFixed(5); };
   q.cb=B.coordBox?B.coordBox(null,null,{noMap:true,onChange:function(la,lo){ if(map) pickGo(q,la,lo,Math.max(map.getZoom(),12)); }}):null;

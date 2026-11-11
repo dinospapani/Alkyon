@@ -67,6 +67,17 @@ function route(){
   if(ry>0){ var rok=false, uT=function(){ rok=true; }; window.addEventListener('touchstart',uT,{once:true,passive:true}); [0,80,250,600,1200].forEach(function(ms){ setTimeout(function(){ if(rok||cur!==name) return; if(document.documentElement.scrollHeight>=ry+window.innerHeight*0.5){ try{ window.scrollTo(0,ry); }catch(e){} if(Math.abs(window.scrollY-ry)<=4) rok=true; } },ms); }); }
   document.title=(VIEWS[name].title||'Alkyon')+' · Alkyon';
 }
+/* 1.12.13: τα ‹ στην κορυφή των σελίδων (Εξοπλισμός, Σκάφος, Φίλοι, Οδηγός…) γυρίζουν στη σελίδα που ήσουν, όπως το «πίσω» του κινητού.
+   Πριν πρόσθεταν νέα σελίδα στο ιστορικό (href="#profile"), οπότε το «πίσω» του κινητού σε ξανάβαζε στη σελίδα που μόλις άφησες.
+   Αν δεν υπάρχει προηγούμενη σελίδα μέσα στην εφαρμογή (άνοιξες απευθείας από σύνδεσμο), πάει στη «γονική» χωρίς νέα εγγραφή. */
+B.goBack=function(fb,strict){ var nm=(fb||'').replace(/^#/,'')||'forecast', prev=HS.length>=2?HS[HS.length-2].n:null;
+  if(prev&&history.length>1&&(!strict||prev===nm)){ history.back(); return; } var u=location.pathname+location.search+(fb||'#forecast'); try{ history.replaceState(history.state,'',u); }catch(e){ location.hash=fb||''; return; } route(); };
+/* 1.12.13: πάτημα σε σύνδεσμο για τη σελίδα που ήδη είσαι (π.χ. «Πρόγνωση» όταν η διεύθυνση δεν έχει #) δεν γράφει νέα εγγραφή στο ιστορικό
+   (αλλιώς το «πίσω» του κινητού χρειαζόταν ένα πάτημα παραπάνω που δεν έκανε τίποτα): απλώς πάει στην κορυφή. */
+document.addEventListener('click',function(ev){ var a=ev.target&&ev.target.closest&&ev.target.closest('a[href^="#"]'); if(!a||ev.defaultPrevented||ev.button||ev.ctrlKey||ev.metaKey||ev.shiftKey) return;
+  var nm=(a.getAttribute('href')||'').slice(1)||'forecast'; if(!VIEWS[nm]||nm!==cur||(location.hash||'').slice(1)===nm) return; ev.preventDefault(); try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){} });
+document.addEventListener('click',function(ev){ var a=ev.target&&ev.target.closest&&ev.target.closest('.top a.iconbtn[href^="#"]'); if(!a||!/^(Πίσω|Back)/.test(a.getAttribute('aria-label')||'')) return;
+  if(ev.button||ev.ctrlKey||ev.metaKey||ev.shiftKey) return; ev.preventDefault(); B.goBack(a.getAttribute('href')); },true);
 B.remount=function(){ if(!cur||!main) return; if(VIEWS[cur].unmount) VIEWS[cur].unmount(); cur=null; route(); };
 function start(){
   main=h('main',{class:'app',id:'main'});
