@@ -2,6 +2,9 @@
 <html lang="el">
 <head>
 <meta charset="utf-8">
+<script>/* 1.12.9: η διεύθυνση δείχνει alkyonfishing.com/ (χωρίς /v4/). Τα αρχεία μένουν στο v4/: το <base> κρατά τις σχετικές διαδρομές σωστές */
+(function(){ try{ var d=location.pathname.replace(/[^\/]*$/,''); document.write('<base href="'+d+'">');
+  if(location.hostname==='alkyonfishing.com'&&/^\/v4\/(index\.html)?$/.test(location.pathname)) history.replaceState(history.state,'','/'+location.search+location.hash); }catch(e){} })();</script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#E9F0EF" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#06171F" media="(prefers-color-scheme: dark)">
