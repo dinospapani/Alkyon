@@ -1139,7 +1139,8 @@ body.mappick .wxcross{display:none!important}
 body.mappick .cross{width:40px;height:40px;margin:-20px 0 0 -20px;z-index:460}
 body.mappick .cross::before{left:19px;height:40px}body.mappick .cross::after{top:19px;width:40px}
 /* 1.10.12: «Ο βυθός μου» και ζωντανό βάθος βυθομέτρου */
-body:has(.sbleg:not(.mdleg):not([hidden])) .sbleg.mdleg{transform:translate(-50%,-48px)}
+/* 1.12.7: «Ο βυθός μου» πάνω αριστερά, κάτω από τη μπάρα· δεν πέφτει πάνω στα υπομνήματα και στη μπάρα ώρας κάτω */
+.sbleg.mdleg{left:12px;right:auto;top:calc(var(--safe-t,0px) + 76px);bottom:auto!important;transform:none;max-width:calc(100vw - 96px);padding:6px 10px}
 .mdleg .mdbar{display:inline-flex;align-items:center;gap:6px}
 .mdleg .mdbar i{display:inline-block;width:120px;height:8px;border-radius:4px}
 .mdleg .mdbar em{white-space:nowrap;font:600 11px var(--font);font-style:normal;color:var(--ink-2)}
@@ -1147,3 +1148,5 @@ body:has(.sbleg:not(.mdleg):not([hidden])) .sbleg.mdleg{transform:translate(-50%
 .sndchip b{font:800 19px var(--font);font-variant-numeric:tabular-nums}
 .sndchip small{font-size:11px;color:var(--ink-2)}
 body:not(.mapon) .sndchip,.sndchip[hidden]{display:none}
+/* 1.12.7: η δομή βυθού πάνω από το υπόμνημα θερμοκρασίας όταν είναι ανοιχτά και τα δύο */
+body.mapon:has(.sstleg:not([hidden])) .sbleg:not(.mdleg){bottom:calc(var(--nav-h,64px) + var(--safe-b,0px) + var(--ndwh,0px) + 190px)}

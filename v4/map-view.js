@@ -150,8 +150,9 @@ function drawSat(){ if(cfg.sats){ cfg.sats=false; saveCfg(); ls.set('alkyon-v4-s
   satInfo().then(function(v){ if(!map) return;
     var add=function(k,d){ if(!d||!d.url||ov[k]) return;
       /* 1.2.2: στενή κλίμακα χρωμάτων (url2) για να φαίνονται οι διαφορές στη Μεσόγειο· αν δεν φορτώνει, γυρίζει στην προεπιλεγμένη */
-      var u=d.url2||d.url, bad=0, ly=L.tileLayer(u,{opacity:k==='chl'?.75:.65,maxZoom:19,maxNativeZoom:10,attribution:'Copernicus Marine',zIndex:250,className:'sattile'});
-      ly.on('tileerror',function(){ if(u!==d.url&&++bad>=3){ u=d.url; ly.setUrl(d.url); } }); ov[k]=ly.addTo(map); };
+      var u=d.url2||d.url, bad=0, ly=k==='chl'?new (satGL())({url:u,opacity:.75,maxZoom:19,maxNativeZoom:10,attribution:'Copernicus Marine',zIndex:250,className:'sattile'}):L.tileLayer(u,{opacity:.65,maxZoom:19,maxNativeZoom:10,attribution:'Copernicus Marine',zIndex:250,className:'sattile'});
+      /* 1.12.7: η χλωροφύλλη με μάσκα στεριάς ανά pixel (όπως το νερό από δορυφόρο), για να μη βάφει πράσινη τη στεριά */
+      ly.on('tileerror',function(){ if(u!==d.url&&++bad>=3){ u=d.url; if(ly.setUrl) ly.setUrl(d.url); else { ly.options.url=d.url; ly.redraw(); } } }); ov[k]=ly.addTo(map); };
     if(cfg.chl) add('chl',v&&v.chl); if(cfg.sats) add('sats',v&&v.sst);
     if((cfg.chl&&!(v&&v.chl))||(cfg.sats&&!(v&&v.sst))) B.toast(T('Η δορυφορική στρώση δεν είναι διαθέσιμη τώρα. Δοκίμασε αργότερα.','The satellite layer isn’t available right now. Try later.')); }); }
 /* 1.9.12: «Νερό» από δορυφόρο (χθες, 1 km) ως επιλογή μέσα στο «Νερό»· χωρίς να βάφει τη στεριά (μάσκα στεριάς ανά pixel) */
@@ -168,6 +169,7 @@ B.satWater=function(on){ if(!map) return; if(!on){ if(satW){ map.removeLayer(sat
   satInfo().then(function(v){ var d=v&&v.sst; if(!d||!d.url){ B.toast(T('Το νερό από δορυφόρο δεν είναι διαθέσιμο τώρα. Δοκίμασε αργότερα.','Satellite water isn’t available right now. Try later.')); return; }
     if(satW||!(B.sst&&B.sst.on())) return; satW=new (satGL())({url:d.url2||d.url,opacity:.8,maxZoom:19,maxNativeZoom:10,zIndex:250,className:'sattile',attribution:'Copernicus Marine'}).addTo(map);
     try{ window.dispatchEvent(new Event('alkyon-satwater')); }catch(e){} }); };
+window.addEventListener('alkyon-worldland',function(){ try{ if(ov.chl&&ov.chl.redraw) ov.chl.redraw(); if(satW) satW.redraw(); }catch(e){} });
 B.satWaterInfo=function(){ var c=ls.get(SATK,null); return c&&c.v&&c.v.sst||null; };
 function satNote(k){ var c=ls.get(SATK,null), d=c&&c.v&&c.v[k]; var day=d&&d.day?' · '+d.day.slice(8,10)+'/'+d.day.slice(5,7):'';
   B.toast(k==='chl'?T('Χλωροφύλλη (πλαγκτόν)','Chlorophyll (plankton)')+day+': '+T('ανοιχτό = λίγη τροφή, σκούρο πράσινο = πολλή. Εκεί που αλλάζει απότομα το χρώμα (μέτωπο) μαζεύεται η τροφή και τα ψάρια.','light = little food, dark green = a lot. Where the colour changes sharply (a front), food and fish gather.'):T('Θερμοκρασία νερού από δορυφόρο','Satellite water temperature')+day+': '+T('σκούρο = πιο κρύο, κίτρινο = πιο ζεστό','dark = colder, yellow = warmer')+(d&&d.range?' ('+d.range[0]+'–'+d.range[1]+'°C)':'')+T('. Ψάξε τα σημεία όπου αλλάζει απότομα το χρώμα (θερμικό μέτωπο).','. Look for places where the colour changes sharply (a thermal front).'),7000); }

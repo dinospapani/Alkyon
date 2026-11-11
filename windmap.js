@@ -9,7 +9,7 @@ var btn=document.createElement('button'); btn.type='button'; btn.id='bWind'; btn
 btn.setAttribute('aria-label',T('Άνεμος στον χάρτη','Wind on the map')); btn.title=btn.getAttribute('aria-label');
 btn.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8h11a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 16h8a3 3 0 1 1-3 3"/></svg>';
 mb.appendChild(btn);
-var N=11, MODELS=[['ecmwf_ifs025','ECMWF'],['icon_global','ICON'],['gfs_global','GFS']], SEL=0, nowIdx=0, stations=null, stLayer=null, stErr=null, grid=null, hours=[], hi=0, on=false, cv=null, ctx=null, panel=null, parts=[], raf=0, loadId=0, mvT=null, last=0;
+var coolUntil=0, N=11, MODELS=[['ecmwf_ifs025','ECMWF'],['icon_global','ICON'],['gfs_global','GFS']], SEL=0, nowIdx=0, stations=null, stLayer=null, stErr=null, grid=null, hours=[], hi=0, on=false, cv=null, ctx=null, panel=null, parts=[], raf=0, loadId=0, mvT=null, last=0;
 var wxSrc='', wxAt=null, shown=false, stOn=false; /* από πού ήρθε το πλέγμα: live (νέο από την πηγή), cache (κοινή μνήμη), stale (παλαιότερο, η πηγή δεν απαντούσε), direct (απευθείας) */
 var COLS=[[0,'#6c78d8'],[3,'#4f9fd8'],[7,'#3fc4a6'],[11,'#66d46a'],[16,'#c9dc4a'],[22,'#f2b134'],[28,'#ec6a3c'],[34,'#d6394f'],[41,'#a62a8a']];
 function col(kn){ var c=COLS[0][1]; for(var i=0;i<COLS.length;i++){ if(kn>=COLS[i][0]) c=COLS[i][1]; } return c; }
@@ -223,6 +223,9 @@ async function modelFetch(base,px){
 }
 async function load(){
   var id=++loadId, b=map.getBounds().pad(0.05), s=b.getSouth(), n=b.getNorth(), w=b.getWest(), e=b.getEast();
+  /* 1.12.7: όρια «κουμπωμένα» σε σταθερό πλέγμα: μικρή μετακίνηση ή ζουμ ξαναχρησιμοποιεί το ίδιο αίτημα (cache στον server)
+     αντί για νέο αίτημα στο Open-Meteo κάθε φορά, που γέμιζε το όριο (429) και ο άνεμος χανόταν */
+  var qd=Math.max(0.125,Math.pow(2,Math.ceil(Math.log(Math.max(n-s,e-w)/4)/Math.LN2))); s=Math.floor(s/qd)*qd; n=Math.ceil(n/qd)*qd; w=Math.floor(w/qd)*qd; e=Math.ceil(e/qd)*qd;
   var lat=[], lon=[]; for(var k=0;k<N;k++){ lat.push(s+(n-s)*k/(N-1)); lon.push(w+(e-w)*k/(N-1)); }
   var la=[], lo=[]; for(var j=0;j<N;j++) for(var i=0;i<N;i++){ la.push(lat[j].toFixed(3)); lo.push(lon[i].toFixed(3)); }
   var base='https://api.open-meteo.com/v1/forecast?latitude='+la.join(',')+'&longitude='+lo.join(',')+'&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=kn&past_hours=1&forecast_hours=120&timezone=UTC';
@@ -256,8 +259,13 @@ async function load(){
     if(keepT){ var ki=hours.indexOf(keepT); if(ki>=0) hi=ki; }
     window.AlkyonWindErr=null; drawPanel(); if(panel&&keepSc) panel.scrollTop=keepSc; seed(); if(!raf) loop(0); loadStations();
   }catch(err){ if(id===loadId&&on){
-    if(N>7&&!(err&&err.message==='nodata')){ N=7; grid=null; loadId++; return load(); }
-    var m=String(err&&err.message||''), lim=/429/.test(m), why=lim?T(' Το όριο της πηγής (Open-Meteo) εξαντλήθηκε, δοκίμασε ξανά σε λίγα λεπτά.',' The data source (Open-Meteo) rate limit was reached. Try again in a few minutes.'):(/abort/i.test(m)?T(' Η πηγή άργησε να απαντήσει.',' The source was too slow.'):(m?' ('+m+')':''));
+    var m=String(err&&err.message||''), lim=/429/.test(m);
+    /* 1.12.7: αν υπάρχει ήδη άνεμος (πριν το ζουμ/μετακίνηση), μένει αυτός· όχι κενός χάρτης και «δοκίμασε ξανά» */
+    if(grid){ coolUntil=Date.now()+(lim?180000:60000); seed(); if(!raf) loop(0); label(); drawPanel();
+      if(window.AK&&window.AK.toast) window.AK.toast(T('Δεν ήρθε νεότερος άνεμος για εδώ. Δείχνω τον προηγούμενο.','Could not refresh the wind here. Showing the previous one.'));
+      clearTimeout(window._wRetry); window._wRetry=setTimeout(function(){ coolUntil=0; if(on){ loadId++; load(); } },lim?180000:60000); return; }
+    if(N>7&&!lim&&!(err&&err.message==='nodata')){ N=7; grid=null; loadId++; return load(); }
+    var why=lim?T(' Το όριο της πηγής (Open-Meteo) εξαντλήθηκε, δοκίμασε ξανά σε λίγα λεπτά.',' The data source (Open-Meteo) rate limit was reached. Try again in a few minutes.'):(/abort/i.test(m)?T(' Η πηγή άργησε να απαντήσει.',' The source was too slow.'):(m?' ('+m+')':''));
     grid=null; window.AlkyonWindErr=lim?'429':'fail'; try{ window.dispatchEvent(new CustomEvent('alkyon-wxchange')); }catch(e2){} drawPanel(T('Ο άνεμος δεν φορτώθηκε.','Wind did not load.')+why); clear();
     /* 1.7.4: νέα προσπάθεια μόνη της σε 3′ (όχι πιο συχνά, για να μη γεμίζει το όριο) */ clearTimeout(window._wRetry); window._wRetry=setTimeout(function(){ if(on&&!grid){ loadId++; load(); } },180000); } }
 }
@@ -328,7 +336,7 @@ function loop(ts){
   }
   ctx.globalAlpha=1;
 }
-function moved(){ if(!on) return; clear(); clearTimeout(mvT); mvT=setTimeout(function(){ if(!on) return; var b=map.getBounds(); var L1=grid?grid.lat.length-1:0, O1=grid?grid.lon.length-1:0; if(!grid||!(b.getSouth()>=grid.lat[0]-0.001&&b.getNorth()<=grid.lat[L1]+0.001&&b.getWest()>=grid.lon[0]-0.001&&b.getEast()<=grid.lon[O1]+0.001)||(!grid.st&&map.getBounds().getNorth()-map.getBounds().getSouth()<(grid.lat[L1]-grid.lat[0])/3)) load(); else{ seed(); label(); } },600); }
+function moved(){ if(!on) return; clear(); clearTimeout(mvT); mvT=setTimeout(function(){ if(!on) return; var b=map.getBounds(); var L1=grid?grid.lat.length-1:0, O1=grid?grid.lon.length-1:0; if(grid&&Date.now()<coolUntil){ seed(); label(); return; } if(!grid||!(b.getSouth()>=grid.lat[0]-0.001&&b.getNorth()<=grid.lat[L1]+0.001&&b.getWest()>=grid.lon[0]-0.001&&b.getEast()<=grid.lon[O1]+0.001)||(!grid.st&&map.getBounds().getNorth()-map.getBounds().getSouth()<(grid.lat[L1]-grid.lat[0])/3)) load(); else{ seed(); label(); } },900); }
 function onUnits(){ if(!on) return; drawPanel(); drawStations(); label(); }
 function start(opt){ if(on) return; on=true; shown=!(opt&&opt.hidden); document.body.classList.add('ndwind'); ensure(); cv.style.display=shown?'block':'none'; btn.setAttribute('aria-pressed',String(shown)); btn.classList.toggle('on',shown); fit(); map.on('moveend zoomend resize',moved); map.getContainer().addEventListener('click',onTap,true); window.addEventListener('alkyon-units',onUnits); window.addEventListener('resize',fit); load(); }
 function stop(){ pause(); on=false; try{ window.dispatchEvent(new Event('alkyon-windstop')); }catch(e){} document.body.classList.remove('ndwind'); document.documentElement.style.removeProperty('--ndwh'); loadId++; btn.setAttribute('aria-pressed','false'); btn.classList.remove('on'); map.off('moveend zoomend resize',moved); try{ map.getContainer().removeEventListener('click',onTap,true); }catch(e){} window.removeEventListener('alkyon-units',onUnits); clearTap(); if(raf){ cancelAnimationFrame(raf); raf=0; } if(cv) cv.style.display='none'; if(panel){ panel.remove(); panel=null; } shown=false; clear(); parts=[]; var D=document.getElementById('ndMapDock'); if(D&&D._sync) D._sync(); }

@@ -324,6 +324,8 @@ B.sstLegend=function(L2){ if(!L2){ if(legEl) legEl.hidden=true; return; }
   sw.addEventListener('click',function(){ B.ls.set('alkyon-v4-sstscale',L2.fixed?'local':'fixed'); sstDraw(); }); row.append(sw); legEl.append(row); legEl.append(srcRow()); };
 B.landAt=land;
 window.addEventListener('alkyon-satwater',function(){ sstDraw(); });
+/* 1.12.7: όταν φορτωθεί η μάσκα στεριάς όλου του κόσμου, ξαναβάφονται κύμα/ρεύματα/θερμοκρασία ώστε να μη μένουν πάνω στη στεριά */
+window.addEventListener('alkyon-worldland',function(){ try{ render(); }catch(e){} if(sstOn) try{ sstDraw(); }catch(e){} });
 B.sst={on:function(){ return sstOn; },set:function(v){ sstOn=!!v; B.ls.set(SK,sstOn); if(sstOn) sstLoad(true); sstDraw(); try{ window.dispatchEvent(new Event('alkyon-wxchange')); }catch(e){} },color:scol};
 /* μέρες κάτω από τη μπάρα ώρας */
 function days(){

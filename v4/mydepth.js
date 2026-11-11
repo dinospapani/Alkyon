@@ -24,8 +24,9 @@ function short(d){ var U=window.AlkyonUnits, p=U&&U.depthP?U.depthP(Math.round(d
 function draw(){
   if(!ensure()) return; var sz=map.getSize(), dpr=Math.min(window.devicePixelRatio||1,2); cv.width=Math.round(sz.x*dpr); cv.height=Math.round(sz.y*dpr); cv.style.width=sz.x+'px'; cv.style.height=sz.y+'px'; pin(cv);
   var c=cv.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0); c.clearRect(0,0,sz.x,sz.y);
-  if(!on||!document.body.classList.contains('mapon')){ cv.style.opacity='0'; legend(null); return; }
-  if(map.getZoom()<12){ cv.style.opacity='0'; legend(cells.length?T('Κάνε ζουμ (12+) για τα βάθη σου.','Zoom in (12+) to see your depths.'):''); return; }
+  if(!on||!document.body.classList.contains('mapon')){ cv.style.opacity='0'; legend(false); return; }
+  /* 1.12.7: χωρίς βάθη στην οθόνη δεν δείχνει άδεια κλίμακα 0–50 m */
+  if(map.getZoom()<12){ cv.style.opacity='0'; legend(false); return; }
   var CELL=0.0002, z=map.getZoom(), labels=z>=17;
   cells.forEach(function(q){ var a=map.latLngToContainerPoint([q.lat-CELL/2,q.lon-CELL/2]), b=map.latLngToContainerPoint([q.lat+CELL/2,q.lon+CELL/2]);
     var x=Math.min(a.x,b.x), y=Math.min(a.y,b.y), w=Math.max(2,Math.abs(b.x-a.x)), hh=Math.max(2,Math.abs(b.y-a.y)); if(x>sz.x||y>sz.y||x+w<0||y+hh<0) return;
@@ -33,9 +34,9 @@ function draw(){
   if(labels){ c.font='600 11px system-ui,sans-serif'; c.textAlign='center'; c.textBaseline='middle'; var used=[];
     cells.forEach(function(q){ var p=map.latLngToContainerPoint([q.lat,q.lon]); if(p.x<0||p.y<0||p.x>sz.x||p.y>sz.y) return; if(used.some(function(u){ return Math.abs(u[0]-p.x)<30&&Math.abs(u[1]-p.y)<16; })) return; used.push([p.x,p.y]);
       var t=short(q.d); c.lineWidth=3; c.strokeStyle='rgba(0,0,0,.55)'; c.strokeText(t,p.x,p.y); c.fillStyle='#fff'; c.fillText(t,p.x,p.y); }); }
-  cv.style.opacity='1'; legend(cells.length?null:T('Δεν έχεις βάθη εδώ ακόμα.','No depths of yours here yet.'),true); }
-function legend(msg,show){
-  if(!on||!document.body.classList.contains('mapon')){ if(legEl) legEl.hidden=true; return; }
+  cv.style.opacity='1'; legend(cells.length?null:false); }
+function legend(msg){
+  if(msg===false||!on||!document.body.classList.contains('mapon')){ if(legEl) legEl.hidden=true; return; }
   if(!legEl){ legEl=h('div',{class:'sbleg mdleg',role:'note'}); document.body.append(legEl); }
   legEl.hidden=false; var g='linear-gradient(90deg,'+[0,0.15,0.35,0.6,0.85,1].map(function(x){ var k=col(minD+x*(maxD-minD)); return 'rgb('+k.join(',')+')'; }).join(',')+')';
   legEl.replaceChildren(h('b',{text:T('Ο βυθός μου','My depths')}),

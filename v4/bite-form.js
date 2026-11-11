@@ -193,7 +193,7 @@ B.biteForm=function(edit,opt){
     Promise.all(S.phKeys(e).map(function(k){ return S.Photos.get(k).catch(function(){ return null; }); })).then(function(bl){ photos=bl.filter(Boolean).concat(photos); drawPh(); }); }
   var cntRow=h('div',{class:'inl',hidden:!many.checked},field(T('Πόσα ψάρια','How many'),cnt));
   many.addEventListener('change',function(){ cntRow.hidden=!many.checked; if(many.checked) cnt.focus(); });
-  var sizeRow=null; miss.addEventListener('change',function(){ if(sizeRow) sizeRow.hidden=miss.checked; });
+  var sizeRow=null, manyRow=null; miss.addEventListener('change',function(){ if(sizeRow) sizeRow.hidden=miss.checked; if(manyRow) manyRow.hidden=miss.checked; });
   /* σε ποια έξοδο ανήκει (αλλαγή εκ των υστέρων, όπως στην κλασική) */
   var tripSel=null, tsel=null;
   if(e){ var trs=S.raw('trips').filter(function(t){ return !t.deleted&&t.sid; }).sort(function(a,b){ return (b.startMs||0)-(a.startMs||0); }).slice(0,40);
@@ -277,7 +277,8 @@ B.biteForm=function(edit,opt){
   function syncBait(){ var cur=String(bait.value||'').trim().toLowerCase(); [].forEach.call(baitChips.children,function(c){ c.setAttribute('aria-pressed',String(!!cur&&String(c.dataset.v||c.textContent).trim().toLowerCase()===cur)); }); }
   [].forEach.call(baitChips.children,function(c){ c.addEventListener('click',function(){ setTimeout(syncBait,0); }); });
   tech.addEventListener('input',syncTech); bait.addEventListener('input',syncBait); setTimeout(function(){ syncTech(); syncBait(); },0);
-  var btRow=(baitChips.children.length||techChips.children.length)?h('div',{class:'bfbt'},baitChips.children.length?h('div',{class:'bfbtr'},h('small',{text:T('Δόλωμα','Bait')}),baitChips):null,techChips.children.length?h('div',{class:'bfbtr'},h('small',{text:T('Τεχνική','Technique')}),techChips):null):null;
+  /* 1.12.7: δόλωμα και τεχνική σε ένα σημείο: πεδίο και από κάτω τα πρόσφατα (πριν ήταν δύο φορές, κουμπιά εδώ και πεδία στις «Λεπτομέρειες») */
+  var btRow=h('div',{class:'g2 bfbt2'},h('div',{class:'bfbtc'},field(T('Δόλωμα','Bait'),bait),baitChips),h('div',{class:'bfbtc'},field(T('Τεχνική','Technique'),tech),techChips));
   var spLbl=h('div',{class:'bfspl'},h('span',{text:T('Είδος','Species')}),B.speciesPick?h('button',{class:'linkbtn sm',type:'button',text:'📖 '+T('Λίστα ειδών','Species list'),onclick:function(){ B.speciesPick(function(nm){ sp.value=nm; law(); }); }}):null);
   /* 1.11.6: παράθυρο τσιμπήματος: από–έως ποια ώρα τσιμπούσαν. Στη σελίδα του ψαριού: «Τι άλλαξε όταν σταμάτησαν;» */
   var wA=h('input',{type:'time','aria-label':T('Τσιμπούσαν από','Biting from'),value:e&&e.win?e.win.a:''}), wB=h('input',{type:'time','aria-label':T('Τσιμπούσαν έως','Biting until'),value:e&&e.win?e.win.b:''}), wErr=h('small',{class:'wn'});
@@ -289,11 +290,11 @@ B.biteForm=function(edit,opt){
     if(on){ if(!whenDate.value) whenDate.value=(when.value||nowLocal()).slice(0,10); var nv=whenDate.value+'T'+wA.value; if(when.value!==nv){ when.value=nv; try{ when.dispatchEvent(new Event('change')); }catch(x){} } } }
   [wA,wB,whenDate].forEach(function(x){ x.addEventListener('input',winSync); x.addEventListener('change',winSync); }); wB.addEventListener('change',wwPaint);
   setTimeout(winSync,0);
-  var hasMore=!!(e&&(e.notes||e.rel||e.priv||(e.bait&&!baitChips.children.length)||+e.cnt>1));
+  /* 1.12.7: οι «Ώρες που τσιμπούσαν» μέσα στο «Πότε · Πού», αμέσως κάτω από την ώρα */
+  wwBox.insertBefore(winBox,dateFld.nextSibling);
+  var hasMore=!!(e&&(e.notes||e.rel||e.priv||S.phKeys(e).length));
   var more=h('details',{class:'bfmore',open:hasMore||null},h('summary',{text:T('Λεπτομέρειες: φωτογραφίες, σημειώσεις…','Details: photos, notes…')}),
       h('div',{class:'fld'},h('span',{text:T('Φωτογραφίες','Photos')}),phBox,file),aiSlot,
-      h('div',{class:'g2'},field(T('Δόλωμα','Bait'),bait),field(T('Τεχνική','Technique'),tech)),
-      h('label',{class:'tg'},many,h('span',{text:T('Πολλά ψάρια μαζί (μία εγγραφή)','Several fish together (one entry)')})),cntRow,
       field(T('Σημειώσεις','Notes'),notes),tripSel,
       h('label',{class:'tg'},rel,h('span',{text:T('Το άφησα ελεύθερο','I released it')})),
       h('label',{class:'tg'},priv,h('span',{text:T('Ιδιωτικό: δεν το βλέπουν οι φίλοι','Private: friends cannot see it')})));
@@ -305,10 +306,13 @@ B.biteForm=function(edit,opt){
     lawNote,
     (sizeRow=h('div',{class:'g3',hidden:miss.checked},field(T('Βάρος (kg)','Weight (kg)'),kg),field(T('Μήκος (cm)','Length (cm)'),len),field(T('Βάθος','Depth')+' ('+(window.AlkyonUnits&&AlkyonUnits.depthUnit?AlkyonUnits.depthUnit():'m')+')',dep))),
     kgEst,depNote,
+    /* 1.12.7: «Πολλά ψάρια μαζί» αμέσως κάτω από βάρος/μήκος */
+    (manyRow=h('div',{class:'bfmany',hidden:miss.checked},h('label',{class:'tg'},many,h('span',{text:T('Πολλά ψάρια μαζί (μία εγγραφή)','Several fish together (one entry)')})),cntRow)),
     prof==='spear'?h('label',{class:'fld'},h('span',{text:T('Ορατότητα νερού (m)','Water visibility (m)')}),vis,h('small',{text:T('Πόσα μέτρα έβλεπες. Έτσι η Πρόγνωση μαθαίνει τα νερά σου.','How many metres you could see. This teaches the Forecast your waters.')})):null,
-    wwLine,wwBox,winBox,tkLine,tkWrap,btRow,
+    h('p',{class:'bfsec',text:T('Πότε, πού και με τι','When, where and with what')}),
+    wwLine,wwBox,tkLine,tkWrap,btRow,
     more,
-    err,save,
+    err,h('div',{class:'bfsavebar'},save),
     e?h('button',{class:'btn full del',type:'button',text:T('Διαγραφή ψαριού','Delete catch'),onclick:function(){ B.ask(T('Να διαγραφεί αυτό το ψάρι;','Delete this catch?'),T('Διαγραφή','Delete'),true).then(function(y){ if(!y) return;
       S.phKeys(e).forEach(function(k){ S.Photos.del(k).catch(function(){}); }); adjLost(e.tkLost||[],1,null); S.remove('bites',e.id); recount(e.trip); sh.close(); B.toast(T('Το ψάρι διαγράφηκε.','Catch deleted.')); }); }}):null);
   form.addEventListener('submit',function(ev){ ev.preventDefault(); submit(); });

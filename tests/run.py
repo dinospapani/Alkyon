@@ -1056,6 +1056,7 @@ with sync_playwright() as p:
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3000)
     pg.evaluate("()=>AK.biteForm()"); pg.wait_for_timeout(800)
     pg.fill('.bform .spwrap input', 'Θράψαλο')
+    pg.click('.bform .bfline'); pg.wait_for_timeout(200)   # 1.12.7: οι ώρες είναι μέσα στο «Πότε · Πού»
     pg.evaluate("()=>{ document.querySelector('.bfwin').open=true; }")
     pg.fill('.bfwin input[aria-label=\"Τσιμπούσαν από\"]','19:00'); pg.fill('.bfwin input[aria-label=\"Τσιμπούσαν έως\"]','')
     pg.click('.bform .bfsave'); pg.wait_for_timeout(500)

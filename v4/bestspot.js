@@ -31,7 +31,11 @@ function bedAt(sb,lat,lon){ if(!sb) return null; var g=sb.g, x=Math.floor((lon-g
 /* 1.2.7: μέγιστο βάθος ανά τρόπο ψαρέματος (πάνω από αυτό το σημείο δεν προτείνεται): βάρκα 300 m, ψαροντούφεκο 30 m, ακτή 50 m */
 /* 1.2.8: πόσο μακριά πας με τη βάρκα από εκεί που είσαι (ρύθμιση, 30 km). Χωρίς θέση GPS μετράει από το κέντρο του χάρτη. */
 function range(){ var v=+ls.get('alkyon-v4-boatrange',30); return v>0?v:30; }
-function home(c){ var g=null; try{ g=B.lastPos?B.lastPos():null; }catch(e){} return g&&g.lat!=null?{lat:+g.lat,lon:+g.lon,gps:true}:{lat:c.lat,lon:c.lon,gps:false}; }
+function home(c){ var g=null; try{ g=B.lastPos?B.lastPos():null; }catch(e){}
+  /* 1.12.7: αν κοιτάς τον χάρτη μακριά από τη θέση σου (άλλη περιοχή/χώρα), η απόσταση μετρά από το κέντρο του χάρτη·
+     αλλιώς όλα έβγαιναν «μακριά» και έλεγε «Κανένα σημείο εδώ» */
+  if(g&&g.lat!=null&&c&&km(+g.lat,+g.lon,c.lat,c.lon)>range()*2) g=null;
+  return g&&g.lat!=null?{lat:+g.lat,lon:+g.lon,gps:true}:{lat:c.lat,lon:c.lon,gps:false}; }
 /* 1.6.4: τεχνική και ώρες. Κάθε τεχνική θέλει άλλο βάθος και δίνει άλλο βάρος σε κλίση / μέτωπα.
    d: [ιδανικό από, έως, ανεκτό έως] m · sl: βάρος κλίσης βυθού · fr: βάρος μετώπων (χλωροφύλλη/θερμοκρασία) · deepOk: ανοιχτά βαθιά νερά */
 var TECH={all:{d:[10,150,300],sl:1,fr:1},bottom:{d:[15,90,160],sl:1.1,fr:0.6},jig:{d:[40,160,260],sl:1.4,fr:0.7},spin:{d:[2,25,40],sl:0.9,fr:0.8,sun:1},
@@ -209,7 +213,7 @@ function show(quiet){ if(!last) return; var res=score(last.data,last.sb,dayIx,la
 /* 1.2.6: μικρό κουμπί στον χάρτη όσο είναι ανοιχτό: πόσα σημεία, και πάτημα για τη λίστα */
 function paintPill(res){ if(!active){ if(pill) pill.hidden=true; return; }
   if(!pill){ pill=h('button',{type:'button',class:'bsPill',onclick:function(){ if(last&&lastRes) summary(lastRes,last.data); }}); document.body.append(pill); }
-  pill.hidden=false; pill.textContent=busy?'🎯 '+T('Ψάχνω…','Searching…'):'🎯 '+(res&&res.top.length?res.top.length+T(' καλύτερα σημεία · λίστα',' best spots · list'):T('Κανένα σημείο εδώ','No spot here')); }
+  pill.hidden=false; pill.textContent=busy?'🎯 '+T('Ψάχνω…','Searching…'):'🎯 '+(res&&res.top.length?res.top.length+T(' καλύτερα σημεία · λίστα',' best spots · list'):(res&&res.unsafe&&!res.n?T('Πάνω από τα όριά σου εδώ','Over your limits here'):res&&res.far&&!res.n?T('Εκτός εμβέλειας · ρύθμιση','Out of range · settings'):T('Κανένα σημείο εδώ','No spot here'))); }
 /* όταν μετακινείς τον χάρτη: νέα αναζήτηση για την περιοχή που βλέπεις (αν πήγες αρκετά μακριά ή άλλαξες ζουμ) */
 function hook(){ var m=M(); if(!m||hooked===m) return; hooked=m;
   m.on('moveend',function(){ if(!active) return; clearTimeout(mvT); mvT=setTimeout(function(){ if(!active||!/^#map/.test(location.hash||'')) return; var c=m.getCenter(), z=m.getZoom();

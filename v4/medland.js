@@ -8,7 +8,7 @@ var OFF=null, TR=null;
 function dec(){ if(OFF) return; var s=atob(D), n=s.length, p=0, rows=new Uint32Array(H+1), t=[];
   function v(){ var x=0, k=0, b; do{ b=s.charCodeAt(p++); x|=(b&127)<<k; k+=7; }while(b&128); return x; }
   for(var y=0;y<H;y++){ rows[y]=t.length; var c=v(), pr=0; for(var i=0;i<c;i++){ pr+=v(); t.push(pr); } } rows[H]=t.length; OFF=rows; TR=new Uint16Array(t); }
-function isLand(lat,lon){ var r=Math.floor((LAT1-lat)*R), c=Math.floor((lon-LON0)*R); if(r<0||c<0||r>=H||c>=W) return -1; dec();
+function isLand(lat,lon){ var r=Math.floor((LAT1-lat)*R), c=Math.floor((lon-LON0)*R); if(r<0||c<0||r>=H||c>=W){ var WL=window.AlkyonWorldLand; return WL?WL.isLand(lat,lon):-1; } dec(); /* 1.12.7: έξω από τη Μεσόγειο, η μάσκα όλου του κόσμου */
   var a=OFF[r], b=OFF[r+1], lo=a, hi=b; while(lo<hi){ var m=(lo+hi)>>1; if(TR[m]<=c) lo=m+1; else hi=m; } return (lo-a)&1; }
 window.AlkyonMedLand={isLand:isLand};
 /* η λεπτομερής ακτή έχει προτεραιότητα· όπου δεν ξέρει (-1), απαντά η μάσκα της Μεσογείου */
