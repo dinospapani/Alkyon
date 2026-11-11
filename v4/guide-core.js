@@ -146,6 +146,12 @@ function wikiPic(la){
       return v||null;
     }).catch(()=>null);
 }
+function spBadges(sp){ const en=window.LANG==='en', b=h('span',{class:'spbd'}), mn=minOf(sp.la), k=kbOf(sp.la);
+  if(noKeep(sp)) b.append(h('i',{class:'bd no',text:en?'Release':'Ελευθέρωσε'}));
+  else if(mn) b.append(h('i',{class:'bd mn',text:(en?'Min ':'Ελάχ. ')+mn+' cm'}));
+  if(k&&k.m&&k.m[new Date().getMonth()]>=2) b.append(h('i',{class:'bd ss',text:en?'In season':'Εποχή του'}));
+  if(k&&k.d) b.append(h('i',{class:'bd dp',text:k.d[0]+'–'+k.d[1]+' m'}));
+  return b.children.length?b:null; }
 function spItem(sp){
   const d0=DETAIL[(sp.la||'').toLowerCase()], d=d0&&window.LANG==='en'&&SPEN[d0.l.toLowerCase()]?Object.assign({},d0,SPEN[d0.l.toLowerCase()]):d0, cy=CYL[(sp.la||'').toLowerCase()];
   const slug=(sp.la||'').trim().replace(/\s+/g,'-');
@@ -155,7 +161,7 @@ function spItem(sp){
   if(!d&&!cy) body.append(fb);
   const ci=cy?CY.indexOf(cy):-1; const pic=h('img',{class:'gdimg',alt:cy?cy.n:'',hidden:true});
   const det=h('details',{class:'sp'},
-    h('summary',{},h('span',{},h('b',{text:cy?((window.LANG==='en'&&cy.e)?cy.e:cy.n):(d?((window.LANG==='en'&&(d.mol||d.cr)&&sp.en)?sp.en:d.n):(window.LANG==='en'?(sp.en||dispName(sp)):dispName(sp)))}),d&&d.warn?h('span',{class:'tag',text:d.warn}):null,(sp.el&&sp.en&&!d&&!cy&&window.LANG!=='en')?h('span',{class:'muted',text:' · '+sp.en}):null),h('span',{class:'lat',text:sp.la})),
+    h('summary',{},h('span',{class:'spn'},h('b',{text:cy?((window.LANG==='en'&&cy.e)?cy.e:cy.n):(d?((window.LANG==='en'&&(d.mol||d.cr)&&sp.en)?sp.en:d.n):(window.LANG==='en'?(sp.en||dispName(sp)):dispName(sp)))}),d&&d.warn?h('span',{class:'tag',text:d.warn}):null,(sp.el&&sp.en&&!d&&!cy&&window.LANG!=='en')?h('span',{class:'muted',text:' · '+sp.en}):null,spBadges(sp)),h('span',{class:'lat',text:sp.la})),
     h('div',{class:'body'},cy?h('p',{text:(window.LANG==='en'&&window.CY100EN&&window.CY100EN[cy.l])||cy.t}):null,cy?h('p',{class:'note',text:'Πηγή: «Τα 100 σημαντικότερα είδη ψαριών των κυπριακών θαλασσών», Τμήμα Αλιείας και Θαλασσίων Ερευνών, Κύπρος.'}):null,(d&&cy)?h('h3',{text:'Πρακτικά για το ψάρεμα',style:'margin-top:10px'}):null,d?body:(cy?null:body)));
   det.querySelector('.body').prepend(pic);
   if(ci<0&&sp.la) det.addEventListener('toggle',()=>{ if(!det.open||pic.src||pic._w) return; pic._w=1; wikiPic(sp.la).then(r=>{ if(r&&r.src){ pic.src=r.src; pic.hidden=false; if(r.page&&!det.querySelector('.spcr')){ const c=h('p',{class:'note spcr'}); const en=window.LANG==='en'; c.append(en?'Photo: ':'Φωτογραφία: ',h('a',{href:r.page,target:'_blank',rel:'noopener',text:'Wikipedia / Wikimedia Commons'}),en?' (author and licence on the page).':' (δημιουργός και άδεια στη σελίδα).'); pic.after(c); } } }); });
@@ -165,6 +171,16 @@ function spItem(sp){
 let enP=null;
 function loadEN(){ if(window.LANG!=='en'||window.CY100EN) return Promise.resolve(); if(!enP) enP=new Promise(r=>{const s=document.createElement('script');s.src='../cy100-en.js';s.onload=()=>r(true);s.onerror=()=>{enP=null;r(false);};document.head.append(s);}); return enP; }
 let spReg='cy';
+/* 1.12.15: φίλτρα και ετικέτες: ελάχιστο μέγεθος (rules.js), εποχή και βάθος (knowledge.js), δεν κρατιούνται */
+let spF='all';
+function kbOf(la){ const l=(la||'').toLowerCase(); return (window.SPKB||[]).find(k=>(k.l||'').toLowerCase()===l)||null; }
+function noKeep(sp){ const la=(sp.la||'').toLowerCase(), n=((sp.el||'')+' '+(sp.en||'')).toLowerCase(); return /^(thunnus thynnus|xiphias gladius)$/.test(la)||/^(lagocephalus|torquigener|sphoeroides) /.test(la)||/καρχαρ|γαλεό|σκυλόψαρ|σαλάχ|τρυγόνα|shark|\bray\b|skate|stingray/.test(n)||/^(carcharhinus|prionace|isurus|mustelus|squalus|raja|dasyatis|myliobatis|torpedo|scyliorhinus|galeorhinus|hexanchus|alopias|sphyrna|lamna|rhinobatos|glaucostegus|pteroplatytrygon|gymnura|aetomylaeus) /.test(la); }
+function inSeason(sp){ const k=kbOf(sp.la); return !!(k&&k.m&&k.m[new Date().getMonth()]>=2); }
+function spFilter(list){ if(spF==='all') return list; return list.filter(sp=>spF==='season'?inSeason(sp):spF==='min'?minOf(sp.la)>0:spF==='nokeep'?noKeep(sp):true); }
+function spFBar(){ const en=window.LANG==='en'; let bar=$('spFs'); if(!bar){ bar=h('div',{class:'spregs spfs',id:'spFs',role:'group','aria-label':en?'Filter':'Φίλτρο'}); $('spRegs').after(bar); }
+  bar.replaceChildren(); const MN=en?['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']:['Ιαν','Φεβ','Μάρ','Απρ','Μάι','Ιούν','Ιούλ','Αύγ','Σεπ','Οκτ','Νοέ','Δεκ'];
+  [['all',en?'All':'Όλα'],['season',(en?'In season · ':'Τώρα πιάνεται · ')+MN[new Date().getMonth()]],['min',en?'Minimum size':'Ελάχιστο μέγεθος'],['nokeep',en?'Not allowed to keep':'Δεν κρατιούνται']].forEach(([k,t])=>{
+    bar.append(h('button',{type:'button',class:'chip sm','aria-pressed':String(spF===k),text:t,onclick:()=>{ spF=k; renderSpecies(); }})); }); }
 function spRegBar(){
   const en=window.LANG==='en'; let bar=$('spRegs'); if(!bar){ bar=h('div',{class:'spregs',id:'spRegs',role:'group','aria-label':en?'Region':'Περιοχή'}); $('spQ').after(bar); }
   bar.replaceChildren();
@@ -194,8 +210,10 @@ function renderSpecies(extra){
     SPECIES.forEach(x=>{ if(!CYL[x.l.toLowerCase()])list.push({el:x.n,en:x.e||'',la:x.l}); });
   }
   else list=searchDB(q,60).concat(Array.isArray(extra)?extra.filter(e=>!DB.some(d=>d.la.toLowerCase()===e.la.toLowerCase())):[]);
+  spFBar(); const tot=list.length; list=spFilter(list);
+  if(spF!=='all') $('spCount').textContent=list.length+(window.LANG==='en'?' of ':' από ')+tot+(window.LANG==='en'?' species':' είδη')+(spF==='season'?(window.LANG==='en'?' usually caught this month (indicative, from general knowledge).':' που συνήθως πιάνονται αυτόν τον μήνα (ενδεικτικά, από γενική γνώση).'):spF==='min'?(window.LANG==='en'?' with a legal minimum size (Cyprus).':' με ελάχιστο νόμιμο μέγεθος (Κύπρος).'):(window.LANG==='en'?' that may not be kept: release them.':' που δεν επιτρέπεται να κρατήσεις: ελευθέρωσέ τα.'));
   for(const sp of list) L.append(spItem(sp));
-  if(!L.children.length) L.append(h('div',{class:'empty',text:'Κανένα είδος δεν ταιριάζει. Δοκίμασε αναζήτηση online.'}));
+  if(!L.children.length) L.append(h('div',{class:'empty',text:spF!=='all'?(window.LANG==='en'?'No species with this filter here.':'Κανένα είδος με αυτό το φίλτρο εδώ.'):'Κανένα είδος δεν ταιριάζει. Δοκίμασε αναζήτηση online.'}));
   $('spOnline').hidden=q.length<3;
 }
 $('spOnline').addEventListener('click',async()=>{

@@ -470,3 +470,15 @@ html.night .calmr .exwc{background:#000!important;outline:1px solid currentColor
 .hcard .hleg{gap:4px 12px!important;font-size:12.5px!important}
 /* 1.10.7: 🔔 ειδοποιήσεις ανά τοποθεσία */
 .li .bell{flex:0 0 auto;width:44px;height:44px;border:0;background:none;font-size:20px;opacity:.45;filter:grayscale(1)}.li .bell.on{opacity:1;filter:none}
+/* 1.12.15: Παλίρροια */
+.tide .tdch{margin:4px 0 6px}
+.tide .tdsvg{width:100%;height:96px;display:block}
+.tide .tdx{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 8px}
+.tide .tdi{flex:1 1 70px;display:flex;flex-direction:column;align-items:center;padding:8px 6px;border-radius:12px;background:var(--surface-2)}
+.tide .tdi b{font-size:18px;font-variant-numeric:tabular-nums}
+.tide .tdi small{color:var(--ink-2);font-size:12px}
+.tide .tdi.hi small:first-child{color:var(--sea)}
+.tide .tdi.past{opacity:.5}
+.tide .tdw{margin:6px 0}
+.fold .worked{padding-top:2px}
+.fold .opps{padding:0;box-shadow:none;background:none}

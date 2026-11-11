@@ -46,19 +46,32 @@ B.startPick=function(){
   if(document.querySelector('.sppage')) return;
   var st={s:side(),p:cur()}, prev=document.activeElement;
   var ask=h('input',{type:'checkbox',checked:raw('alkyon-askfp')==='0'}), go=h('button',{class:'spgo',type:'button'});
-  function lab(){ go.replaceChildren(h('span',{text:T('Συνέχεια · ','Continue · ')+label(st.p,st.s)}),h('i',{html:CHEV})); }
+  /* 1.12.15: η φωτογραφία ακολουθεί την επιλογή (ακτή / σκάφος / ψαροντούφεκο) */
+  function heroImg(){ return st.p==='spear'?'alk-hero-spear.jpg':st.s==='shore'?'alk-card-shore.jpg':'alk-hero-boat.jpg'; }
+  function lab(){ go.replaceChildren(h('span',{text:T('Συνέχεια · ','Continue · ')+label(st.p,st.s)}),h('i',{html:CHEV})); try{ var hi=pg&&pg.querySelector('.sphero'); if(hi) hi.style.backgroundImage='url('+heroImg()+')'; }catch(e){} }
   function close(){ pg.classList.add('out'); cover(false); document.removeEventListener('keydown',key); setTimeout(function(){ pg.remove(); },260); try{ prev&&prev.focus&&prev.focus(); }catch(e){} }
   function key(e){ if(e.key==='Escape') close(); }
   go.addEventListener('click',function(){ put('alkyon-fside',st.s); put('alkyon-fprof',st.p); put('alkyon-fprof-done','1'); put('alkyon-askfp',ask.checked?'0':'1'); B.emit('store','alkyon-fprof'); close(); });
   var pg=h('div',{class:'sppage',role:'dialog','aria-modal':'true','aria-label':T('Πού ψαρεύεις σήμερα;','Where are you fishing today?')},
-    h('div',{class:'sphero',style:{backgroundImage:'url(alk-hero-boat.jpg)'}},h('span',{class:'spheroshade'}),
+    h('div',{class:'sphero',style:{backgroundImage:'url('+heroImg()+')'}},h('span',{class:'spheroshade'}),
       h('button',{class:'spskip',type:'button',text:T('Παράλειψη','Skip'),title:T('Κλείσιμο χωρίς αλλαγή: θα ξαναρωτήσει την επόμενη φορά','Close without changes: it will ask again next time'),onclick:close}),brand(),
-      h('div',{class:'sptitle'},h('h1',{text:T('Πού ψαρεύεις σήμερα;','Where are you fishing today?')}),h('p',{text:T('Διάλεξε πού και πώς ψαρεύεις','Choose where and how you fish')}))),
+      h('div',{class:'sptitle'},h('p',{class:'sphi',text:hello()}),h('h1',{text:T('Πού ψαρεύεις σήμερα;','Where are you fishing today?')}),todayChip()||h('p',{text:T('Διάλεξε πού και πώς ψαρεύεις','Choose where and how you fish')}))),
     h('div',{class:'spbody'},picker(st,lab),
       h('label',{class:'spask'},ask,h('span',{class:'spbox',html:CHK}),h('span',{text:T('Να μη ρωτάει κάθε φορά','Don’t ask every time')})),
       go,h('p',{class:'spfoot',text:T('Αλλαγή αργότερα: Προφίλ › Τύπος ψαρέματος','Change later: Profile › Fishing type')})));
   lab(); cover(true); document.body.append(pg); document.addEventListener('keydown',key);
 };
+/* 1.12.15: χαιρετισμός και «σήμερα» από την τελευταία πρόγνωση (χωρίς δίκτυο, από το κινητό) */
+function hello(){ var hr=new Date().getHours(), g=hr<5?T('Καλή νύχτα','Good night'):hr<12?T('Καλημέρα','Good morning'):hr<18?T('Καλησπέρα','Good afternoon'):T('Καλό βράδυ','Good evening');
+  var nm=''; try{ var s=B.cloud&&B.cloud.session&&B.cloud.session(); nm=s&&(s.name||'').trim().split(/\s+/)[0]||''; }catch(e){} return nm?g+', '+nm:g; }
+function todayChip(){ try{ var c=ls.get('alkyon-fc7',null); if(!c||!c.fc||!c.fc.days||Date.now()-(c.t||0)>12*3600e3) return null;
+  var d0=new Date(), td=d0.getFullYear()+'-'+B.pad(d0.getMonth()+1)+'-'+B.pad(d0.getDate()), d=c.fc.days.filter(function(x){ return x.date===td; })[0]; if(!d) return null;
+  var pl=(ls.get('alkyon-places',[])||[]).filter(function(x){ return x&&x.id===c.id; })[0], nm=pl&&pl.name?pl.name:'', U=window.AlkyonUnits;
+  var wx=[d.avgWind!=null?(U&&U.windP?U.windP(d.avgWind).join(' '):Math.round(d.avgWind)+' kn'):'',d.avgWave!=null?B.num(d.avgWave,1)+' m':''].filter(Boolean).join(' · ');
+  var past=d.win&&d.win.e<d0.getHours(), ch=h('div',{class:'sptoday'+(d.safe?'':' bad')},
+    h('span',{class:'stsc',text:d.safe&&d.best!=null?String(d.best):'!'}),
+    h('span',{class:'sttx'},h('b',{text:T('Σήμερα','Today')+(nm?' · '+nm:'')}),h('small',{text:d.safe&&d.win?(past?T('η καλύτερη ώρα πέρασε','the best time has passed'):T('καλύτερη ώρα ','best time ')+B.pad(d.win.s)+':00–'+B.pad((d.win.e+1)%24)+':00')+(wx?' · '+wx:''):T('εκτός ορίων ασφαλείας σου','outside your safety limits')+(wx?' · '+wx:'')})));
+  return ch; }catch(e){ return null; } }
 function wanted(){ if(!raw('alkyon-onboard')) return false; if(raw('alkyon-askfp')==='0'&&raw('alkyon-fprof-done')) return false; var s=ls.get('alkyon-safe',null); if(s&&s.active) return false; if(/#(new|trip|addfriend)/.test(location.hash)) return false; return true; }
 
 /* ---------- καλωσόρισμα πρώτου ανοίγματος (όπως η κλασική: alkyon-onboard). Δεν εμφανίζεται αν υπάρχουν ήδη δεδομένα. ---------- */

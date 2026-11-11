@@ -64,10 +64,11 @@ function notifyBest(top){
 /* κάρτα για την Πρόγνωση */
 B.oppsCard=function(max,opt){ opt=opt||{};
   var box=h('section',{class:'card opps','aria-label':T('Ευκαιρίες για τα σημεία σου','Chances at your spots')}), list=h('div',{class:'opl'});
-  box.append(h('div',{class:'oph'},h('h2',{text:T('Ευκαιρίες για τα σημεία σου','Chances at your spots')}),h('button',{class:'linkbtn',type:'button',text:T('Ανανέωση','Refresh'),onclick:function(){ list.replaceChildren(h('p',{class:'sub',text:T('Υπολογισμός…','Calculating…')})); compute(true).then(paint); }})),
+  if(opt.inFold) box.classList.remove('card'); /* 1.12.15: μέσα σε κάρτα που ανοίγει/κλείνει (ο τίτλος είναι στην κάρτα) */
+  box.append(h('div',{class:'oph'},opt.inFold?h('span'):h('h2',{text:T('Ευκαιρίες για τα σημεία σου','Chances at your spots')}),h('button',{class:'linkbtn',type:'button',text:T('Ανανέωση','Refresh'),onclick:function(){ list.replaceChildren(h('p',{class:'sub',text:T('Υπολογισμός…','Calculating…')})); compute(true).then(paint); }})),
     /* 1.9.17: εξήγηση γιατί η ώρα και ο βαθμός εδώ διαφέρουν από την πρόγνωση της τοποθεσίας πάνω */
     h('p',{class:'sub opx',text:T('Η πρόγνωση σε κάθε σημείο σου, με μπόνους όπου έχεις πιάσει ψάρια αυτή την εποχή. Γι’ αυτό ώρα και βαθμός μπορεί να διαφέρουν από την πρόγνωση πάνω.','The forecast at each of your spots, with a bonus where you have caught fish this season. That is why time and score can differ from the forecast above.')}),list);
-  function paint(items){ list.replaceChildren(); items=(items||[]).slice(0,max||3);
+  function paint(items){ list.replaceChildren(); items=(items||[]).slice(0,max||3); if(opt.onPaint) setTimeout(function(){ try{ opt.onPaint(items); }catch(e){} },0);
     if(!items.length){ if(opt.hideEmpty){ box.hidden=true; return; } list.append(h('p',{class:'sub',text:cands().length?T('Καμία καλή και ασφαλής ευκαιρία τις επόμενες μέρες.','No good, safe chance in the coming days.'):T('Πρόσθεσε τοποθεσίες στις Ειδοποιήσεις ή σημεία με ψάρια για να βλέπεις ευκαιρίες εδώ.','Add places in Alerts or spots with catches to see chances here.')})); return; }
     box.hidden=false;
     items.forEach(function(it){ var cls=it.score>=80?'hi':it.score>=65?'mid':'lo';

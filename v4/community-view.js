@@ -19,8 +19,9 @@ function blocked(){ var a=ls.get('alkyon-comm-block',[]); return Array.isArray(a
 function blockNames(){ var o=ls.get('alkyon-comm-blockn',{}); return o&&typeof o==='object'&&!Array.isArray(o)?o:{}; }
 function blockUser(u,name){ if(!u||u===uid()) return; B.ask(T('Αποκλεισμός του «','Block “')+(name||T('Ψαράς','Angler'))+T('»; Δεν θα βλέπεις τις αναρτήσεις και τα σχόλιά του. Μπορείς να το αναιρέσεις από το Προφίλ.','”? You will no longer see their posts and comments. You can undo this from your Profile.'),T('Αποκλεισμός','Block'),true).then(function(y){ if(!y) return;
   var b=blocked(); if(b.indexOf(u)<0) b.push(u); ls.set('alkyon-comm-block',b); var nm=blockNames(); nm[u]=String(name||'').slice(0,40); ls.set('alkyon-comm-blockn',nm);
-  if(isF(u)) toggleFollow(u,name); B.closeSheet(); draw(); B.toast(T('Ο χρήστης αποκλείστηκε.','User blocked.'),6000,{label:T('Αναίρεση','Undo'),fn:function(){ unblock(u); }}); }); }
-function unblock(u){ ls.set('alkyon-comm-block',blocked().filter(function(x){ return x!==u; })); var nm=blockNames(); delete nm[u]; ls.set('alkyon-comm-blockn',nm); draw(); }
+  if(isF(u)) toggleFollow(u,name); B.closeSheet(); draw(); syncSoon(); B.toast(T('Ο χρήστης αποκλείστηκε.','User blocked.'),6000,{label:T('Αναίρεση','Undo'),fn:function(){ unblock(u); }}); }); }
+function syncSoon(){ try{ if(sess()&&C().sync) setTimeout(function(){ C().sync(); },600); }catch(e){} } /* 1.12.15: η λίστα ανεβαίνει στον λογαριασμό */
+function unblock(u){ ls.set('alkyon-comm-block',blocked().filter(function(x){ return x!==u; })); var nm=blockNames(); delete nm[u]; ls.set('alkyon-comm-blockn',nm); draw(); syncSoon(); }
 B.commBlocked=function(){ var nm=blockNames(); return blocked().map(function(u){ return {u:u,n:nm[u]||''}; }); };
 B.commUnblock=function(u){ unblock(u); };
 function author(){ var s=sess(); return ((s&&s.name)||T('Ψαράς','Angler')).trim().slice(0,40)||T('Ψαράς','Angler'); }

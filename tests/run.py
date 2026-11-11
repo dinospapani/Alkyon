@@ -422,7 +422,7 @@ with sync_playwright() as p:
     r=pg.evaluate("()=>{const a=[...document.querySelectorAll('.pstats .pst')]; return [a.filter(x=>x.tagName=='BUTTON').length, new Set(a.map(x=>x.offsetHeight)).size]}")
     pg.locator('.pstats .pst').nth(1).click(); pg.wait_for_timeout(1500)
     r2=pg.evaluate("()=>[location.hash, (document.querySelector('.lseg button[aria-pressed=true]')||{}).textContent]")
-    check('προφίλ: τα 4 κουτάκια πατιούνται και έχουν ίδιο ύψος (1.9.15)', r[0]==4 and r[1]==1 and r2==['#log','Ψάρια'] and not pg._errs, [r,r2,pg._errs])
+    check('προφίλ: τα κουτάκια (6 από την 1.12.16) πατιούνται και έχουν ίδιο ύψος (1.9.15)', r[0]==6 and r[1]==1 and r2==['#log','Ψάρια'] and not pg._errs, [r,r2,pg._errs])
     pg.evaluate("()=>AK.biteForm()"); pg.wait_for_timeout(1200)
     r=pg.evaluate("()=>{const f=document.querySelector('.sheet.on form.bf2'); if(!f) return null; return [f.querySelectorAll('.bfseg button').length, !!f.querySelector('details.bfmore'), !!f.querySelector('.bfsave')]}")
     check('νέο ψάρι: νέα φόρμα (Ψάρι/Χάθηκε, Λεπτομέρειες, Αποθήκευση) (1.9.15)', r and r[0]==2 and r[1] and r[2] and not pg._errs, [r,pg._errs]); c.close()
@@ -514,7 +514,7 @@ with sync_playwright() as p:
     r=pg.evaluate("()=>({n:document.querySelectorAll('.ibday').length, why:document.querySelectorAll('.ibwhy').length, pl:!!document.querySelector('.ibpl')})")
     check('ειδοποίηση «Καλές μέρες»: μία κάρτα ανά μέρα (1.9.29)', r['n']==2 and r['why']==2 and not r['pl'] and not pg._errs, [r,pg._errs]); c.close()
     c=ctx(b); c.set_geolocation({'latitude':35.045,'longitude':32.40}); c.add_init_script("localStorage.setItem('alkyon-v4-fcopen',JSON.stringify({expo:1}))"); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(6000)
-    r=pg.evaluate("()=>{const x=document.querySelector('#fcExposure'); const order=[...document.querySelectorAll('#main .hero, #main .nowcard, #main .hcard, #main details.fold')].map(e=>e.classList.contains('hero')?'h':e.classList.contains('nowcard')?'n':e.classList.contains('hcard')?'u':e.querySelector('#fcExposure')?'e':'f').join(''); return {v:x&&x.dataset.v, cv:!!(x&&x.querySelector('.exmap canvas')), v1:!!(x&&x.querySelector('.exv')), est:!!(x&&x.querySelector('.exest:not([hidden]) b')), order:order}}")
+    r=pg.evaluate("()=>{const x=document.querySelector('#fcExposure'); const order=[...document.querySelectorAll('#main .hero, #main .nowcard, #main .hcard, #main details.fold')].filter(e=>!e.hidden&&e.dataset.k!=='opps').map(e=>e.classList.contains('hero')?'h':e.classList.contains('nowcard')?'n':e.classList.contains('hcard')?'u':e.querySelector('#fcExposure')?'e':'f').join(''); return {v:x&&x.dataset.v, cv:!!(x&&x.querySelector('.exmap canvas')), v1:!!(x&&x.querySelector('.exv')), est:!!(x&&x.querySelector('.exest:not([hidden]) b')), order:order}}")
     check('έκθεση ακτής με χάρτη, σειρά σημασίας στη σελίδα (1.9.30)', r['v']=='2' and r['cv'] and r['v1'] and r['est'] and r['order'].startswith('hnue') and not pg._errs, [r,pg._errs]); c.close()
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_selector('.dstrip .dtile:not(.past)'); pg.wait_for_timeout(1000)
     # 1.9.58: αύριο, όχι σήμερα: μετά τη δύση η σημερινή μέρα δεν έχει άλλες ώρες φωτός και η κάρτα δεν βγαίνει (το test αποτύγχανε μόνο το βράδυ)
@@ -1135,6 +1135,35 @@ with sync_playwright() as p:
     for v in ['map','log','profile','forecast']:
         pg.click('.nav a[data-v="%s"]'%v); pg.wait_for_timeout(1000); rr.append(pg.evaluate("()=>[location.pathname,location.hash,window.__mk===1]"))
     check('Καρτέλες: χωρίς νέα φόρτωση της σελίδας όταν η διεύθυνση δεν είναι /v4/ (1.12.15)', all(x[0]=='/v4/index.html' and x[2] for x in rr) and rr[0][1]=='#map', rr)
+    c.close()
+    # 1.12.16: παλίρροια, φίλτρα Οδηγού, GPX/KML, «Είδη» στο Προφίλ, «Σήμερα» στην είσοδο
+    import json as _jj, time as _tt
+    _SL=_jj.load(open(_os.path.join(os.path.dirname(os.path.abspath(__file__)),'sealevel.json')))
+    _d0=_tt.strftime('%Y-%m-%d'); _base=_SL['t'][24][:10]
+    _shift=lambda ts: _d0+ts[10:] if ts[:10]==_base else ts
+    c=ctx(b); c.route('**/marine?*hourly=sea_level_height_msl*',lambda r: r.fulfill(json={'hourly':{'time':[_shift(x) for x in _SL['t']],'sea_level_height_msl':_SL['v']}}))
+    pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(5000)
+    pg.evaluate("()=>{const d=[...document.querySelectorAll('details.fold')].find(x=>/Παλίρροια/.test(x.textContent)); if(d) d.open=true;}"); pg.wait_for_timeout(1500)
+    td=pg.evaluate("()=>{const d=[...document.querySelectorAll('details.fold')].find(x=>/Παλίρροια/.test(x.textContent)); return d?[d.querySelector('summary').innerText,d.querySelectorAll('.tdi').length,!!d.querySelector('.tdsvg')]:null}")
+    check('Πρόγνωση: Παλίρροια με ψηλές/χαμηλές και καμπύλη (1.12.16)', td and td[1]>=3 and td[2] and 'ψηλή' in td[0].lower()+' ', td)
+    pg.evaluate("()=>{location.hash='#guide'}"); pg.wait_for_timeout(3500)
+    pg.click("#spFs button:has-text('Δεν κρατιούνται')"); pg.wait_for_timeout(700)
+    gl=pg.evaluate("()=>[...document.querySelectorAll('#spList summary b')].map(e=>e.textContent)")
+    check('Οδηγός: φίλτρο «Δεν κρατιούνται» (τόνος, ξιφίας, λαγοκέφαλος, σαλάχια) (1.12.16)', 'Ξιφίας' in gl and 'Λαγοκέφαλος' in gl and 'Σφυρίδα' not in gl, gl)
+    pg.click("#spFs button:has-text('Ελάχιστο μέγεθος')"); pg.wait_for_timeout(700)
+    gb=pg.evaluate("()=>[...document.querySelectorAll('#spList .bd.mn')].length===document.querySelectorAll('#spList details.sp').length&&document.querySelectorAll('#spList details.sp').length>10")
+    check('Οδηγός: φίλτρο «Ελάχιστο μέγεθος» με ετικέτα σε κάθε είδος (1.12.16)', gb, gb)
+    gx=pg.evaluate("()=>[AK.geoText('gpx',{spots:1,fish:1,tracks:1}),AK.geoText('kml',{spots:1,fish:1,tracks:1})]")
+    check('Εξαγωγή GPX/KML: έγκυρα XML (1.12.16)', gx[0].startswith('<?xml') and '<gpx' in gx[0] and '</gpx>' in gx[0] and '<kml' in gx[1] and '</kml>' in gx[1] and pg.evaluate("(t)=>!new DOMParser().parseFromString(t,'application/xml').querySelector('parsererror')",gx[0]) and pg.evaluate("(t)=>!new DOMParser().parseFromString(t,'application/xml').querySelector('parsererror')",gx[1]), [x[:120] for x in gx])
+    pg.evaluate("()=>{location.hash='#profile'}"); pg.wait_for_timeout(1500)
+    ps=pg.evaluate("()=>[...document.querySelectorAll('.pstats .pst small')].map(e=>e.textContent)")
+    check('Προφίλ: 6 κουτάκια με «Είδη» (1.12.16)', len(ps)==6 and any(x.startswith('Είδη') for x in ps), ps)
+    check('1.12.16 χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
+    _fc={'id':'gps','t':int(_tt.time()*1000),'fc':{'days':[{'date':_d0,'best':72,'safe':True,'win':{'s':23,'e':23},'avgWind':4,'avgWave':0.4}]}}
+    c=ctx(b); c.add_init_script("if(!sessionStorage.sp){sessionStorage.sp=1;localStorage.setItem('alkyon-askfp','1');localStorage.setItem('alkyon-fc7',%s);}"%_jj.dumps(_jj.dumps(_fc)))
+    pg=page(c); pg.goto(BASE+'/v4/'); pg.wait_for_timeout(2500)
+    sp=pg.evaluate("()=>{const p=document.querySelector('.sppage'); return p?[!!p.querySelector('.sptoday'),(p.querySelector('.sptoday')||{}).textContent||'',(p.querySelector('.sphi')||{}).textContent||'']:null}")
+    check('Είσοδος: χαιρετισμός και «Σήμερα 72 · καλύτερη ώρα» (1.12.16)', sp and sp[0] and '72' in sp[1] and 'καλύτερη ώρα 23:00' in sp[1] and sp[2], sp)
     c.close()
     # 1.12.14: Προφίλ (ομάδες, Σχετικά, γνώμη, θέμα), δολώματα, αποκλεισμός χρήστη
     c=ctx(b); c.add_init_script("localStorage.setItem('alkyon-smart',JSON.stringify({weekly:Date.now()}))"); pg=page(c); pg.goto(BASE+'/v4/#profile'); pg.wait_for_timeout(2500)

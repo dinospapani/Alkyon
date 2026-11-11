@@ -101,6 +101,37 @@ function diagCard(){
 }
 function csvCard(){ return h('section',{class:'card'},h('h2',{text:T('Εξαγωγή σε Excel (CSV)','Export to Excel (CSV)')}),h('p',{class:'sub',text:T('Όλα τα ψάρια ή όλες οι έξοδοι σε αρχείο που ανοίγει στο Excel.','All catches or all trips in a file that opens in Excel.')}),
   h('div',{class:'acts'},h('button',{class:'btn',type:'button',text:T('Ψάρια','Catches'),onclick:B.csvBites}),h('button',{class:'btn',type:'button',text:T('Έξοδοι','Trips'),onclick:B.csvTrips}))); }
+/* ---------- 1.12.15: εξαγωγή σε GPX / KML (για plotter, GPS, Google Earth) ---------- */
+function xe(v){ return String(v==null?'':v).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]; }); }
+function geoItems(o){ var S=B.store, sp=[], fi=[], tr=[];
+  if(o.spots) sp=S.raw('spots').filter(function(x){ return !x.deleted&&typeof x.lat==='number'&&typeof x.lon==='number'; }).map(function(x){ return {lat:x.lat,lon:x.lon,name:x.name||T('Σημείο','Spot'),desc:[x.depth!=null?x.depth+' m':'',x.notes||''].filter(Boolean).join(' · ')}; });
+  if(o.fish) fi=S.raw('bites').filter(function(b){ return !b.deleted&&!b.gear&&typeof b.lat==='number'&&typeof b.lon==='number'; }).map(function(b){ var nm=(b.species||(b.miss?T('Χαμένο','Lost'):T('Ψάρι','Fish'))); return {lat:b.lat,lon:b.lon,name:nm+(b.kg?' '+b.kg+' kg':''),desc:[b.date+' '+(b.time||''),b.depth!=null?b.depth+' m':'',b.bait||'',b.tech||''].filter(Boolean).join(' · '),t:B.biteMs(b)}; });
+  if(o.tracks) tr=S.raw('trips').filter(function(t){ return !t.deleted&&Array.isArray(t.track)&&t.track.length>1; }).map(function(t){ return {name:(t.date||'')+' '+(t.spot||T('Έξοδος','Trip')),pts:t.track.filter(function(p){ return p&&typeof p[0]==='number'; })}; });
+  return {sp:sp,fi:fi,tr:tr}; }
+function gpx(G){ var w=function(x){ return '<wpt lat="'+(+x.lat).toFixed(6)+'" lon="'+(+x.lon).toFixed(6)+'">'+(x.t?'<time>'+new Date(x.t).toISOString()+'</time>':'')+'<name>'+xe(x.name)+'</name>'+(x.desc?'<desc>'+xe(x.desc)+'</desc>':'')+'</wpt>'; };
+  return '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Alkyon" xmlns="http://www.topografix.com/GPX/1/1">\n'+G.sp.concat(G.fi).map(w).join('\n')+'\n'
+    +G.tr.map(function(t){ return '<trk><name>'+xe(t.name)+'</name><trkseg>'+t.pts.map(function(p){ return '<trkpt lat="'+p[0].toFixed(6)+'" lon="'+p[1].toFixed(6)+'"/>'; }).join('')+'</trkseg></trk>'; }).join('\n')+'\n</gpx>\n'; }
+function kml(G){ var pm=function(x,st){ return '<Placemark><name>'+xe(x.name)+'</name>'+(x.desc?'<description>'+xe(x.desc)+'</description>':'')+'<styleUrl>#'+st+'</styleUrl><Point><coordinates>'+(+x.lon).toFixed(6)+','+(+x.lat).toFixed(6)+',0</coordinates></Point></Placemark>'; };
+  var f=function(n,a){ return a.length?'<Folder><name>'+xe(n)+'</name>'+a.join('')+'</Folder>':''; };
+  return '<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>Alkyon</name>'
+    +'<Style id="sp"><IconStyle><color>ff2e57e4</color></IconStyle></Style><Style id="fi"><IconStyle><color>ff85be3d</color></IconStyle></Style><Style id="tr"><LineStyle><color>ff508aff</color><width>3</width></LineStyle></Style>'
+    +f(T('Σημεία','Spots'),G.sp.map(function(x){ return pm(x,'sp'); }))+f(T('Ψάρια','Catches'),G.fi.map(function(x){ return pm(x,'fi'); }))
+    +f(T('Διαδρομές','Tracks'),G.tr.map(function(t){ return '<Placemark><name>'+xe(t.name)+'</name><styleUrl>#tr</styleUrl><LineString><tessellate>1</tessellate><coordinates>'+t.pts.map(function(p){ return p[1].toFixed(6)+','+p[0].toFixed(6)+',0'; }).join(' ')+'</coordinates></LineString></Placemark>'; }))
+    +'</Document></kml>\n'; }
+function saveFile(name,txt,type){ var bl=new Blob([txt],{type:type});
+  try{ var fl=new File([bl],name,{type:type}); if(window.AKN&&navigator.canShare&&navigator.canShare({files:[fl]})){ navigator.share({files:[fl],title:name}).catch(function(){}); return; } }catch(e){}
+  var a=h('a',{href:URL.createObjectURL(bl),download:name}); document.body.append(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },1500); }
+B.geoExport=function(fmt,o){ var G=geoItems(o||{spots:1,fish:1,tracks:1}), n=G.sp.length+G.fi.length+G.tr.length; if(!n) return 0;
+  if(fmt==='kml') saveFile('alkyon-'+today()+'.kml',kml(G),'application/vnd.google-earth.kml+xml'); else saveFile('alkyon-'+today()+'.gpx',gpx(G),'application/gpx+xml'); return n; };
+B.geoText=function(fmt,o){ var G=geoItems(o||{spots:1,fish:1,tracks:1}); return fmt==='kml'?kml(G):gpx(G); };
+B.geoSheet=function(){ var S=B.store, ns=S.raw('spots').filter(function(x){ return !x.deleted&&typeof x.lat==='number'; }).length, nf=S.raw('bites').filter(function(b){ return !b.deleted&&!b.gear&&typeof b.lat==='number'; }).length, nt=S.raw('trips').filter(function(t){ return !t.deleted&&Array.isArray(t.track)&&t.track.length>1; }).length;
+  var cs=h('input',{type:'checkbox',checked:true}), cf=h('input',{type:'checkbox',checked:nf<=300}), ct=h('input',{type:'checkbox',checked:true}), fmt='gpx', msg=h('p',{class:'sub',role:'status'});
+  function tg(c,t,n){ return h('label',{class:'tg',style:'padding:8px 2px'},c,h('span',null,h('b',{text:t}),h('small',{class:'tgs',text:n+' '+T('με θέση','with a position')}))); }
+  var body=h('div',{class:'bform'},h('p',{class:'sub',text:T('Για plotter (Garmin, Lowrance, Simrad, Raymarine), GPS ή Google Earth. Το GPX το διαβάζουν σχεδόν όλα τα plotter· το KML ανοίγει στο Google Earth.','For a plotter (Garmin, Lowrance, Simrad, Raymarine), a GPS or Google Earth. Almost every plotter reads GPX; KML opens in Google Earth.')}),
+    tg(cs,T('Σημεία','Spots'),ns),tg(cf,T('Ψάρια (ως σημεία)','Catches (as waypoints)'),nf),tg(ct,T('Διαδρομές εξόδων','Trip tracks'),nt),
+    B.seg([['gpx','GPX'],['kml','KML (Google Earth)']],fmt,function(v){ fmt=v; },T('Μορφή','Format')),msg,
+    h('button',{class:'btn pri full',type:'button',text:T('Εξαγωγή','Export'),onclick:function(){ var n=B.geoExport(fmt,{spots:cs.checked,fish:cf.checked,tracks:ct.checked}); msg.textContent=n?T('Έτοιμο: ','Done: ')+n+T(' στοιχεία.',' items.'):T('Δεν υπάρχει κάτι με θέση για εξαγωγή.','Nothing with a position to export.'); }}));
+  B.sheet({title:T('Εξαγωγή σε GPX / KML','Export to GPX / KML'),body:body}); };
 B.dataCards=function(){ return [csvCard(),aiCard(),diagCard()]; };
 /* ---------- επιλογή είδους ανά θαλάσσια περιοχή (όπως η κλασική speciespick.js) ---------- */
 function strip(x){ return (x||'').toLowerCase().replace(/ς/g,'σ').normalize('NFD').replace(/[̀-ͯ]/g,''); }

@@ -104,7 +104,7 @@ function wxIco(c){ if(c==null) return ''; return c>=95?'⛈️':c>=80?'🌦️':
 function sky(c){ if(c==null) return ''; return c>=95?T('Καταιγίδα','Thunderstorm'):c>=80?T('Μπόρες','Showers'):c>=61?T('Βροχή','Rain'):c>=51?T('Ψιχάλα','Drizzle'):c>=45?T('Ομίχλη','Fog'):c>=3?T('Συννεφιά','Overcast'):c>=1?T('Λίγα σύννεφα','Partly cloudy'):T('Καθαρός','Clear'); }
 function trendTxt(t){ return {fast:T('πέφτει απότομα','falling fast'),slow:T('πέφτει αργά','falling'),rise:T('ανεβαίνει','rising'),stable:T('σταθερή','steady')}[t]||''; }
 /* 1.9.10: πτυσσόμενη κάρτα (όπως τα groups στο μενού του χάρτη)· θυμάται ποιες άφησες ανοιχτές */
-function fold(key,title,hint,kids){ var O=ls.get('alkyon-v4-fcopen',{})||{}; var d=h('details',{class:'card fold'}); if(O[key]) d.open=true;
+function fold(key,title,hint,kids){ var O=ls.get('alkyon-v4-fcopen',{})||{}; var d=h('details',{class:'card fold'}); d.dataset.k=key; if(O[key]) d.open=true;
   d.append(h('summary',null,h('span',{class:'fdt'},h('b',{text:title}),hint?h('small',{text:hint}):null),h('i',{class:'fdo','aria-hidden':'true'})));
   (kids||[]).forEach(function(k){ if(k) d.append(k); });
   d.addEventListener('toggle',function(){ var o=ls.get('alkyon-v4-fcopen',{})||{}; if(d.open) o[key]=1; else delete o[key]; ls.set('alkyon-v4-fcopen',o); }); return d; }
@@ -510,7 +510,8 @@ function dayView(page,fc,d){
   var why2=reasons(d,tn?nightHours(fc,d):null), hcd=hr?hourCard(fc,d,hSel,isToday?nh:null):null;
   if(hcd){ if(!d.safe&&why2.length) hcd.append(h('h3',{class:'whyh',text:T('Γιατί αυτός ο βαθμός','Why this score')}),h('ul',{class:'why'},why2.map(function(r){ return h('li',{class:r[0]},r[1]); }))); page.append(hcd); }
   /* 1.9.30: σειρά κατά σημασία: απόφαση → τώρα → ανά ώρα → θα βγω → πού (σημεία σου, έκθεση ακτής) → εξέλιξη → κάτω από το νερό → σύγκριση */
-  if(oppsLater&&B.oppsCard) page.append(B.oppsCard(2,{hideEmpty:true}));
+  if(oppsLater&&B.oppsCard){ var opf=null, opc=B.oppsCard(2,{hideEmpty:true,inFold:true,onPaint:function(items){ var sm=opf&&opf.querySelector('summary small'); if(sm) sm.textContent=items&&items[0]?items[0].name+' · '+items[0].score:''; if(opf) opf.hidden=opc.hidden; }});
+    opf=fold('opps',T('Ευκαιρίες για τα σημεία σου','Chances at your spots'),T('υπολογισμός…','calculating…'),[opc]); opf.hidden=opc.hidden; page.append(opf); }
   var p=st.place||current();
   if(d.date>=td&&B.prof()!=='lake'&&window.AlkyonExposure){ /* 1.10.1: και για τις επόμενες μέρες, με τον άνεμο της καλύτερης ώρας */ var exAt=isToday?null:d.date+'T'+B.pad(d.win?d.win.s:12), ex=h('div',{class:'expo'},h('div',{id:'fcDays',hidden:true})); var wv0=hr&&hr.wave!=null&&hr.wave>=0.8; var exf=fold('expo',T('Έκθεση ακτής','Coast exposure'),exAt?T('πού είσαι απάνεμα με τον άνεμο στις '+exAt.slice(11,13)+':00','where you are sheltered from the wind at '+exAt.slice(11,13)+':00'):T('πού είσαι απάνεμα με τον σημερινό άνεμο','where you are sheltered from today’s wind'),[ex]); if(wv0) exf.open=true; exf.hidden=true; page.append(exf); tidyExpo(ex);
     /* 1.10.11: όταν το σημείο δεν είναι κοντά στην ακτή, μια γραμμή εξηγεί γιατί δεν υπάρχει «Έκθεση ακτής» */
@@ -527,6 +528,9 @@ function dayView(page,fc,d){
     else { /* 1.9.17: για άλλη μέρα, η πίεση εκείνης της μέρας (πριν έδειχνε πάντα τις επόμενες 24 ώρες από τώρα) */
       var dh=(d.hours||[]).filter(function(q){ return q.pres!=null; }); if(dh.length>1){ var a0=dh[0].pres, a1=dh[dh.length-1].pres; hint=ptx(a1-a0,a0,a1)+T(' μέσα στη μέρα',' during the day'); } }
     page.append(fold('pw',T('Πίεση, άνεμος, σελήνη','Pressure, wind, moon'),hint,[pwc])); })();
+  /* 1.12.15: παλίρροια (στάθμη θάλασσας): ψηλές/χαμηλές της μέρας και πώς πέφτει η καλύτερη ώρα */
+  if(B.tideCard&&B.prof()!=='lake'){ var tpl=st.place||current(), tdf=null, tdc=B.tideCard(tpl,d.date,d.win||null,isToday,function(hn){ var sm=tdf&&tdf.querySelector('summary small'); if(sm) sm.textContent=hn||T('στάθμη θάλασσας','sea level'); });
+    if(tdc){ tdf=fold('tide',T('Παλίρροια','Tides'),T('στάθμη θάλασσας…','sea level…'),[tdc]); page.append(tdf); } }
   /* 1.6.8: θερμοκρασία σε βάθος + ρεύμα σε μία κάρτα «Κάτω από την επιφάνεια» (μόνο σήμερα) */
   if(isToday){ var ug=h('section',{class:'card under'},h('h2',{text:T('Κάτω από την επιφάνεια','Below the surface')})), nU=0;
     if(B.thermoCard&&(B.prof()==='boat'||B.prof()==='spear')){ var tcd=B.thermoCard(st.place); if(tcd){ tcd.classList.remove('card'); tcd.classList.add('usub'); ug.append(tcd); nU++; } }
@@ -636,9 +640,11 @@ function workedCard(d){
     [T('Σημείο','Spot'),cnt(function(b){ return b.place; })]].filter(function(r){ return r[1].length; });
   if(!rows.length) return null;
   var days={}; sim.forEach(function(x){ days[x.b.date]=1; });
-  return h('section',{class:'card worked'},h('h2',{text:T('Τι δούλεψε σε παρόμοιες μέρες','What worked on similar days')}),
+  /* 1.12.15: ανοίγει/κλείνει όπως οι άλλες κάρτες */
+  var spTop=cnt(function(b){ return b.species; }).slice(0,2).map(function(x){ return x.replace(/ \(\d+\)$/,''); }).join(', ');
+  return fold('worked',T('Τι δούλεψε σε παρόμοιες μέρες','What worked on similar days'),sim.length+T(' ψαριές σε ',' catches on ')+Object.keys(days).length+T(' μέρες',' days')+(spTop?' · '+spTop:''),[h('div',{class:'worked'},
     h('p',{class:'sub',text:sim.length+T(' ψαριές σου σε ',' of your catches on ')+Object.keys(days).length+T(' μέρες με παρόμοιο άνεμο, κύμα, νερό, πίεση και εποχή. Δεν είναι πρόγνωση: είναι τα δικά σου ψάρια.',' days with similar wind, waves, water, pressure and season. Not a forecast: these are your own catches.')}),
-    h('div',{class:'rows one'},rows.map(function(r){ return h('div',{class:'row'},h('span',{text:r[0]}),h('b',{text:r[1].join(', ')})); }))); }
+    h('div',{class:'rows one'},rows.map(function(r){ return h('div',{class:'row'},h('span',{text:r[0]}),h('b',{text:r[1].join(', ')})); })))]); }
 function reasons(d,hs0){
   var hs=hs0&&hs0.length?hs0:focusHours(d); if(!hs.length) return [];
   var av=function(k){ var a=hs.map(function(q){ return q[k]; }).filter(function(v){ return typeof v==='number'; }); return a.length?a.reduce(function(x,y){ return x+y; },0)/a.length:null; };
