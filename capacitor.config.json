@@ -32,5 +32,12 @@
       "smallIcon": "ic_stat_alkyon",
       "iconColor": "#FF7A4D"
     }
+  },
+  "ios": {
+    "backgroundColor": "#06171F",
+    "contentInset": "never",
+    "scheme": "Alkyon",
+    "limitsNavigationsToAppBoundDomains": false,
+    "webContentsDebuggingEnabled": false
   }
 }

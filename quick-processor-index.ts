@@ -1238,8 +1238,35 @@ async function fcmSend(sa, token, payload, ttl) {
   if (!r.ok) { const t = await r.text().catch(() => ''); const e = new Error('FCM ' + r.status + ' ' + t.slice(0, 200)); e.statusCode = (r.status === 404 || /UNREGISTERED|registration-token-not-registered/i.test(t)) ? 410 : r.status; e.body = t; throw e; }
   return { statusCode: 200 };
 }
+/* 1.13.0: ειδοποιήσεις στο iPhone/iPad κατευθείαν μέσω Apple Push Notification service (APNs, HTTP/2, κλειδί .p8 με JWT ES256).
+   Η εφαρμογή iOS γράφει {endpoint:'apns:…', apns:'<device token hex>', apns_env:'production'|'sandbox'}.
+   Secrets: APNS_KEY_P8 (όλο το .p8), APNS_KEY_ID, APNS_TEAM_ID· προαιρετικά APNS_TOPIC (αλλιώς com.alkyonfishing.app). */
+let apnsJwt = '', apnsAt = 0;
+function apnsCfg() { const k = (Deno.env.get('APNS_KEY_P8') || '').trim(), id = (Deno.env.get('APNS_KEY_ID') || '').trim(), team = (Deno.env.get('APNS_TEAM_ID') || '').trim();
+  return k && id && team ? { k, id, team, topic: (Deno.env.get('APNS_TOPIC') || 'com.alkyonfishing.app').trim() } : null; }
+async function apnsToken(c) {
+  if (apnsJwt && Date.now() - apnsAt < 45 * 60000) return apnsJwt;   /* η Apple δέχεται το ίδιο token 20′–60′ */
+  const te = new TextEncoder(), now = Math.floor(Date.now() / 1000);
+  const head = b64u(te.encode(JSON.stringify({ alg: 'ES256', kid: c.id }))), claim = b64u(te.encode(JSON.stringify({ iss: c.team, iat: now })));
+  const pem = c.k.replace(/\\n/g, '\n').replace(/-----[^-]+-----/g, '').replace(/\s+/g, '');
+  const key = await crypto.subtle.importKey('pkcs8', Uint8Array.from(atob(pem), ch => ch.charCodeAt(0)), { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
+  const sig = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, key, te.encode(head + '.' + claim));   /* r||s, όπως θέλει το JWT */
+  apnsJwt = head + '.' + claim + '.' + b64u(sig); apnsAt = Date.now(); return apnsJwt;
+}
+async function apnsSend(c, sub, payload, ttl) {
+  let p = {}; try { p = typeof payload === 'string' ? JSON.parse(payload) : (payload || {}); } catch (e) { p = { body: String(payload) }; }
+  const body = Object.assign({}, p, { aps: { alert: { title: String(p.title || 'Alkyon').slice(0, 200), body: String(p.body || '').slice(0, 1000) }, sound: 'default', 'thread-id': p.tag ? String(p.tag).slice(0, 60) : undefined } });
+  const host = sub.apns_env === 'sandbox' ? 'api.sandbox.push.apple.com' : 'api.push.apple.com';
+  const exp = Math.floor(Date.now() / 1000) + Math.max(60, Math.min(2419200, Math.round(ttl || 86400)));
+  const h = { authorization: 'bearer ' + await apnsToken(c), 'apns-topic': c.topic, 'apns-push-type': 'alert', 'apns-priority': '10', 'apns-expiration': String(exp), 'content-type': 'application/json' };
+  if (p.tag) h['apns-collapse-id'] = String(p.tag).slice(0, 60);
+  const r = await fetch('https://' + host + '/3/device/' + encodeURIComponent(String(sub.apns)), { method: 'POST', headers: h, body: JSON.stringify(body) });
+  if (!r.ok) { const t = await r.text().catch(() => ''); const e = new Error('APNs ' + r.status + ' ' + t.slice(0, 200)); e.statusCode = (r.status === 410 || /BadDeviceToken|Unregistered|DeviceTokenNotForTopic/.test(t)) ? 410 : r.status; e.body = t; throw e; }
+  return { statusCode: 200 };
+}
 function pushx(wp) {
   return { sendNotification: async (sub, payload, opts) => {
+    if (sub && sub.apns) { const c = apnsCfg(); if (!c) { const e = new Error('APNS secrets missing'); e.statusCode = 500; throw e; } return apnsSend(c, sub, payload, opts && opts.TTL); }
     if (sub && sub.fcm) { const sa = fcmSA(); if (!sa) { const e = new Error('FCM_SERVICE_ACCOUNT missing'); e.statusCode = 500; throw e; } return fcmSend(sa, String(sub.fcm), payload, opts && opts.TTL); }
     if (!wp) { const e = new Error('VAPID secrets missing'); e.statusCode = 500; throw e; }
     return wp.sendNotification(sub, payload, opts);
@@ -1274,7 +1301,7 @@ Deno.serve(async (req) => {
         if (!u.ok) return J({ ok: false, error: 'unauthorized' }, 401);
         const uid = (await u.json()).id; if (!uid) return J({ ok: false, error: 'unauthorized' }, 401);
         const hasV = !!(E('VAPID_PUBLIC') && E('VAPID_PRIVATE'));
-        if (!hasV && !fcmSA()) return J({ ok: false, error: 'VAPID secrets missing' });
+        if (!hasV && !fcmSA() && !apnsCfg()) return J({ ok: false, error: 'VAPID secrets missing' });
         if (hasV && !vapidSet) { webpush.setVapidDetails('https://dinospapani.github.io/Alkyon/', V('VAPID_PUBLIC'), V('VAPID_PRIVATE')); vapidSet = true; }
         const px = pushx(hasV ? webpush : null);
         const sr = await fetch(env.SUPABASE_URL + '/rest/v1/push_subs?user_id=eq.' + encodeURIComponent(uid) + '&select=id,sub,checked_at,turn', { headers: { apikey: env.SUPABASE_SERVICE_KEY, Authorization: 'Bearer ' + env.SUPABASE_SERVICE_KEY } });
@@ -1295,7 +1322,7 @@ Deno.serve(async (req) => {
         const u = await fetch(env.SUPABASE_URL + '/auth/v1/user', { headers: { apikey: env.SUPABASE_SERVICE_KEY, Authorization: auth } });
         if (!u.ok) return J({ ok: false, error: 'unauthorized' }, 401);
         const hasV = !!(E('VAPID_PUBLIC') && E('VAPID_PRIVATE'));
-        if (!hasV && !fcmSA()) return J({ ok: false, error: 'VAPID secrets missing' });
+        if (!hasV && !fcmSA() && !apnsCfg()) return J({ ok: false, error: 'VAPID secrets missing' });
         if (hasV && !vapidSet) { webpush.setVapidDetails('https://dinospapani.github.io/Alkyon/', V('VAPID_PUBLIC'), V('VAPID_PRIVATE')); vapidSet = true; }
         const r = await run({ env, PF, webpush: pushx(hasV ? webpush : null), sendMail: null, log: m => console.log(String(m)), only: { comm: true } });
         return J({ ok: true, stats: r.stats });
@@ -1319,7 +1346,7 @@ Deno.serve(async (req) => {
   }
   const logs = [];
   try {
-    const r = await run({ env, PF, webpush: (wp || fcmSA()) ? pushx(wp) : null, sendMail: null, log: m => { logs.push(String(m)); console.log(m); } });
+    const r = await run({ env, PF, webpush: (wp || fcmSA() || apnsCfg()) ? pushx(wp) : null, sendMail: null, log: m => { logs.push(String(m)); console.log(m); } });
     return new Response(JSON.stringify({ ok: r.ok, stats: r.stats, logs }), { headers: { 'Content-Type': 'application/json' } });
   } catch (e) {
     console.log('cron error: ' + e.message);

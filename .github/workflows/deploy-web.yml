@@ -43,6 +43,8 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Αρχεία της ιστοσελίδας → dist/web
         if: steps.chk.outputs.skip != '1'
+        env:
+          APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}   # για το apple-app-site-association (Universal Links του iOS)
         run: node tools/build-web.mjs dist/web
       - name: Ανέβασμα στο Cloudflare
         if: steps.chk.outputs.skip != '1'

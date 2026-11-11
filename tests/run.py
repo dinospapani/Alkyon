@@ -1187,6 +1187,7 @@ with sync_playwright() as p:
     check('1.12.19 χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
     # 1.12.22: είσοδος: «Συνέχεια» πάντα ορατό, «πίσω» κλείνει την ερώτηση, Continue αφαιρεί την εγγραφή ιστορικού, βήμα πίσω στο καλωσόρισμα
     c=b.new_context(viewport={'width':411,'height':640},is_mobile=True,has_touch=True); c.add_init_script("localStorage.setItem('alkyon-onboard','1')"); pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(2500)
+    pg.evaluate("()=>{const p=document.querySelector('.sppage'); if(p) p.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}))}")   # 1.12.28: η εγγραφή ιστορικού μπαίνει στο πρώτο άγγιγμα
     sp1=pg.evaluate("()=>{const g=document.querySelector('.sppage .spgo'); return g?[Math.round(g.getBoundingClientRect().bottom)<=innerHeight,!!(history.state&&history.state.spk)]:null}")
     pg.go_back(); pg.wait_for_timeout(600); sp2=pg.evaluate("()=>[!!document.querySelector('.sppage'),location.hash]")
     pg.evaluate("()=>AK.startPick()"); pg.wait_for_timeout(400); pg.evaluate("()=>document.querySelector('.sppage .spgo').click()"); pg.wait_for_timeout(800)

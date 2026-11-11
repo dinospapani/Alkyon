@@ -1,4 +1,4 @@
-/* Alkyon · κόλλα για την εφαρμογή Android (Capacitor).
+/* Alkyon · κόλλα για τις εφαρμογές Android και iOS (Capacitor).
    Φορτώνεται ΜΟΝΟ μέσα στην εφαρμογή: το tools/build-web.mjs --native το βάζει στο index.html και στο v4/index.html, μετά το
    capacitor.js. Στον browser (alkyonfishing.com) δεν φορτώνεται καθόλου, άρα window.AKN δεν υπάρχει εκεί.
    - window.AKN: σημάδι «τρέχω σε εφαρμογή» και βοηθητικά (site, oauthReturn, openExternal)
@@ -14,6 +14,7 @@ if(!C||typeof C.isNativePlatform!=='function'||!C.isNativePlatform()) return;
 var reg=function(n){ try{ return C.registerPlugin(n); }catch(e){ return null; } };
 var App=reg('App'), Browser=reg('Browser'), SB=reg('StatusBar');
 var SITE='https://alkyonfishing.com/', SCHEME='com.alkyonfishing.app';
+var IOS=C.getPlatform()==='ios';
 var ROOT=location.origin+'/';   /* https://localhost/ : τα αρχεία της εφαρμογής, μέσα στο κινητό */
 
 function isLocal(u){ try{ return new URL(u,location.href).origin===location.origin; }catch(e){ return true; } }
@@ -73,7 +74,10 @@ if(nfetch) window.fetch=function(input,init){
      και η quick-processor τη στέλνει μέσω Firebase αντί για web-push. */
 /* το build-web.mjs --native το κάνει true όταν υπάρχει android/app/google-services.json (χωρίς Firebase το register() ρίχνει την εφαρμογή) */
 var FCM_ON=false;
-var Push=FCM_ON?reg('PushNotifications'):null, LN=reg('LocalNotifications'), PK='alkyon-native-perm', FK='alkyon-fcm';
+/* 1.13.0: στο iOS οι ειδοποιήσεις έρχονται κατευθείαν από την Apple (APNs): το token είναι της Apple, όχι του Firebase.
+   Η συνδρομή γράφεται ως {endpoint:'apns:…', apns:'<token>', apns_env} και η quick-processor τη στέλνει στο APNs. */
+var APNS_ENV='production';
+var Push=(FCM_ON||IOS)?reg('PushNotifications'):null, LN=reg('LocalNotifications'), PK='alkyon-native-perm', FK='alkyon-fcm';
 function permStr(v){ return v==='granted'?'granted':v==='denied'?'denied':'default'; }
 var perm=permStr(localStorage.getItem(PK));
 function setPerm(v){ perm=permStr(v); try{ localStorage.setItem(PK,perm); }catch(e){} return perm; }
@@ -99,7 +103,7 @@ if(Push){
   Push.addListener('registration',function(t){ try{ localStorage.setItem(FK,t.value); }catch(e){} var w=tokW; tokW=[]; tokBusy=false; w.forEach(function(x){ x[0](t.value); }); });
   Push.addListener('registrationError',function(e){ var w=tokW; tokW=[]; tokBusy=false; w.forEach(function(x){ x[1](new Error((e&&e.error)||'fcm')); }); });
   /* ειδοποίηση ενώ η εφαρμογή είναι ανοιχτή: το Android δεν τη δείχνει μόνο του, άρα τοπική + στο Ιστορικό */
-  Push.addListener('pushNotificationReceived',function(n){ var d=(n&&n.data)||{}; show(n.title||d.title,n.body||d.body,d);
+  Push.addListener('pushNotificationReceived',function(n){ var d=(n&&n.data)||{}; if(!IOS) show(n.title||d.title,n.body||d.body,d);   /* στο iOS τη δείχνει το ίδιο το σύστημα (presentationOptions) */
     try{ var a=JSON.parse(localStorage.getItem('alkyon-v4-inbox')||'[]'); a.unshift({at:new Date().toISOString(),title:String(n.title||d.title||''),body:String(n.body||d.body||''),kind:d.kind||'info',local:1}); localStorage.setItem('alkyon-v4-inbox',JSON.stringify(a.slice(0,150))); }catch(e){} });
   Push.addListener('pushNotificationActionPerformed',function(a){ openFrom(a&&a.notification&&a.notification.data); });
 }
@@ -110,8 +114,9 @@ function token(){ if(!Push) return Promise.reject(new Error('no push'));
   return new Promise(function(res,rej){ tokW.push([res,rej]); if(tokBusy) return; tokBusy=true;
     channel().then(function(){ return Push.register(); }).catch(function(e){ var w=tokW; tokW=[]; tokBusy=false; w.forEach(function(x){ x[1](e); }); });
     setTimeout(function(){ if(!tokBusy) return; var w=tokW; tokW=[]; tokBusy=false; w.forEach(function(x){ x[1](new Error('fcm timeout')); }); },20000); }); }
-function mkSub(tk){ var ep='fcm:'+tk; return {endpoint:ep,fcm:tk,expirationTime:null,options:{},
-  toJSON:function(){ return {endpoint:ep,fcm:tk,keys:{}}; },
+function mkSub(tk){ var ep=(IOS?'apns:':'fcm:')+tk, js=IOS?{endpoint:ep,apns:tk,apns_env:APNS_ENV,keys:{}}:{endpoint:ep,fcm:tk,keys:{}};
+  return {endpoint:ep,fcm:IOS?undefined:tk,apns:IOS?tk:undefined,expirationTime:null,options:{},
+  toJSON:function(){ return js; },
   getKey:function(){ return null; },
   unsubscribe:function(){ try{ localStorage.removeItem(FK); }catch(e){} return (Push?Push.unregister():Promise.resolve()).then(function(){ return true; },function(){ return true; }); }}; }
 var PM={
@@ -124,6 +129,35 @@ if(window.ServiceWorkerRegistration&&Push){ var SWR=ServiceWorkerRegistration.pr
   try{ Object.defineProperty(SWR,'pushManager',{configurable:true,get:function(){ return PM; }}); }catch(e){}
   try{ SWR.showNotification=function(t,o){ return show(t,o&&o.body,o&&o.data); }; SWR.getNotifications=function(){ return Promise.resolve([]); }; }catch(e){} }
 window.AKN.push={token:token,permission:function(){ return perm; },show:show};
+
+/* 1.13.0 · iOS: το WKWebView με τη διεύθυνση capacitor:// δεν έχει service worker ούτε (πάντα) Cache Storage.
+   Δίνουμε μια ελάχιστη «εγγραφή» με τα ίδια ονόματα, ώστε ο κώδικας των ειδοποιήσεων (alerts-view, smart, trip, troll…) να δουλεύει όπως
+   στο Android: showNotification → τοπική ειδοποίηση, pushManager → APNs, active.postMessage({localMsg}) → ειδοποίηση / Ιστορικό.
+   Οι χάρτες εκτός σύνδεσης (cache του service worker) δεν υπάρχουν στο iOS. */
+function inboxAdd(t,b,k){ try{ var a=JSON.parse(localStorage.getItem('alkyon-v4-inbox')||'[]'); a.unshift({at:new Date().toISOString(),title:String(t||''),body:String(b||''),kind:k||'info',local:1}); localStorage.setItem('alkyon-v4-inbox',JSON.stringify(a.slice(0,150))); }catch(e){} }
+if(IOS&&!('caches' in window)){ var CS={};
+  var mkC=function(){ var m={}; var k=function(r){ return typeof r==='string'?new URL(r,location.href).href:r.url; };
+    return {match:function(r){ var v=m[k(r)]; return Promise.resolve(v?v.clone():undefined); },
+      put:function(r,res){ return Promise.resolve(res&&res.clone?res.clone():res).then(function(x){ m[k(r)]=x; }); },
+      add:function(r){ return fetch(r).then(function(x){ m[k(r)]=x; }); },
+      addAll:function(a){ return Promise.all((a||[]).map(this.add)); },
+      delete:function(r){ var h=k(r) in m; delete m[k(r)]; return Promise.resolve(h); },
+      keys:function(){ return Promise.resolve(Object.keys(m).map(function(u){ return new Request(u); })); }}; };
+  try{ window.caches={open:function(n){ return Promise.resolve(CS[n]||(CS[n]=mkC())); },has:function(n){ return Promise.resolve(n in CS); },
+    delete:function(n){ var h=n in CS; delete CS[n]; return Promise.resolve(h); },keys:function(){ return Promise.resolve(Object.keys(CS)); },
+    match:function(r){ var ns=Object.keys(CS); return ns.reduce(function(p,n){ return p.then(function(v){ return v||CS[n].match(r); }); },Promise.resolve(undefined)); }}; }catch(e){}
+}
+if(IOS&&!('serviceWorker' in navigator)){
+  var FREG={scope:ROOT,pushManager:PM,update:function(){ return Promise.resolve(); },unregister:function(){ return Promise.resolve(true); },
+    showNotification:function(t,o){ return show(t,o&&o.body,o&&o.data); },getNotifications:function(){ return Promise.resolve([]); },
+    active:{state:'activated',postMessage:function(d){ var m=d&&d.localMsg; if(!m) return; if(m.notify===false) inboxAdd(m.title,m.full||m.body,m.kind); else { show(m.title,m.body,{hash:'#inbox'}); inboxAdd(m.title,m.full||m.body,m.kind); } }},
+    addEventListener:function(){},removeEventListener:function(){}};
+  if(!Push) FREG.pushManager=undefined;
+  var FSW={controller:null,ready:Promise.resolve(FREG),
+    register:function(){ return Promise.resolve(FREG); },getRegistration:function(){ return Promise.resolve(FREG); },getRegistrations:function(){ return Promise.resolve([FREG]); },
+    addEventListener:function(){},removeEventListener:function(){},startMessages:function(){}};
+  try{ Object.defineProperty(navigator,'serviceWorker',{configurable:true,get:function(){ return FSW; }}); }catch(e){}
+}
 
 /* σύνδεσμος που άνοιξε την εφαρμογή */
 function handleUrl(url){

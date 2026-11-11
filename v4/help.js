@@ -70,6 +70,7 @@ var HELP=[
 ];
 /* έκδοση → αλλαγές (νεότερες πρώτες). Προσθέτεις γραμμή εδώ σε κάθε νέα λειτουργία. */
 var NEWS=[
+ ['1.13.0',[T('Λογαριασμός: νέο κουμπί «Συνέχεια με Apple» (εμφανίζεται μόλις ενεργοποιηθεί), δίπλα στο «Συνέχεια με Google». Ετοιμάζεται η εφαρμογή για iPhone και iPad.','Account: new “Continue with Apple” button (appears once enabled), next to “Continue with Google”. The iPhone and iPad app is being prepared.')]],
  ['1.12.28',[T('Είσοδος: το «Συνέχεια» χωρίς άλλο πάτημα (π.χ. όταν το «Σκάφος, καλάμι» είναι ήδη επιλεγμένο) δεν βγάζει πια στην αρχική σελίδα του Chrome.','Start page: tapping “Continue” straight away (e.g. when “Offshore, rod” is already selected) no longer takes you to Chrome’s home page.')]],
  ['1.12.24',[T('Γραμμές βάθους: στον δορυφόρο είναι πλέον λευκές (οι ενδιάμεσες πιο αχνές) και οι αριθμοί βάθους διαβάζονται καθαρά. Το κουμπί «Βάθη» δείχνει τι διάλεξες (5 m, 10 m, 20 m) και κάθε πάτημα το λέει με μήνυμα.','Depth lines: on the satellite map they are now white (the in-between lines fainter) and the depth numbers are easy to read. The «Depths» button shows what you picked (5 m, 10 m, 20 m) and each tap says it in a message.')]],
  ['1.12.23',[T('Κάρτα ψαριού: όταν πατάς «Πίεση, άνεμος, σελήνη, παλίρροια» σε παλιότερο ψάρι, το γράφημα εμφανίζεται μόλις φορτώσει. Πριν έμενε «φορτώνει…» ώσπου να ξανανοίξεις την κάρτα.','Catch card: when you tap «Pressure, wind, moon, tides» on an older catch, the chart appears as soon as it loads. Before, it stayed on «loading…» until you reopened the card.')]],

@@ -532,6 +532,9 @@ html.night .mobbtn{background:#1a0000!important;color:#fff!important;box-shadow:
 .authf .gbox{display:flex;flex-direction:column;gap:12px;margin:4px 0 6px}
 .authf .gbtn{display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#1f1f1f;border:1px solid #dadce0;font-weight:650}
 .authf .gbtn svg{width:20px;height:20px}
+.authf .abtn{display:flex;align-items:center;justify-content:center;gap:10px;background:#000;color:#fff;border:1px solid #000;font-weight:650}
+.authf .abtn svg{width:17px;height:20px}
+.authf .gbox [hidden]{display:none}
 .authf .orline{display:flex;align-items:center;gap:10px;color:var(--muted,#8a9aa5);font-size:13px}
 .authf .orline::before,.authf .orline::after{content:'';flex:1;height:1px;background:var(--line)}
 html.night .tripbar{background:#1a0000!important;color:#fff!important;box-shadow:0 0 0 2px #fff!important}

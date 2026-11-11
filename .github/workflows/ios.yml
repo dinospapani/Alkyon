@@ -1,0 +1,125 @@
+# Alkyon · χτίσιμο της εφαρμογής iOS (iPhone + iPad, Capacitor) και ανέβασμα στο App Store Connect / TestFlight.
+# Χτίζεται σε μηχάνημα macOS του GitHub (Xcode 26): δεν χρειάζεται Mac.
+# Πότε τρέχει:
+#   - όταν αλλάζει το version.js στο main (νέα έκδοση) ή κάτι στο ios/
+#   - με το χέρι (Actions › Alkyon iOS › Run workflow)
+# Χωρίς τα secrets της Apple: μόνο έλεγχος ότι χτίζεται (για τον προσομοιωτή, χωρίς υπογραφή).
+# Με τα secrets: υπογεγραμμένο archive → ανέβασμα στο App Store Connect (εμφανίζεται στο TestFlight σε ~10–30′).
+# Secrets (Settings › Secrets and variables › Actions):
+#   ASC_KEY_ID       Key ID του κλειδιού App Store Connect API (Users and Access › Integrations › Team Keys, ρόλος Admin)
+#   ASC_ISSUER_ID    Issuer ID (στην ίδια σελίδα)
+#   ASC_KEY_P8       όλο το περιεχόμενο του AuthKey_XXXX.p8
+# Variable: APPLE_TEAM_ID = το Team ID (developer.apple.com › Account › Membership details), 10 χαρακτήρες.
+# Η υπογραφή γίνεται αυτόματα από το Xcode (cloud signing) με το κλειδί API: δεν χρειάζονται πιστοποιητικά .p12.
+name: Alkyon iOS
+on:
+  push:
+    branches: [main]
+    paths: ['version.js', 'ios/**', 'native.js', 'capacitor.config.json', 'package.json', '.github/workflows/ios.yml']
+  workflow_dispatch:
+    inputs:
+      upload:
+        description: 'Ανέβασμα στο App Store Connect (TestFlight)'
+        type: boolean
+        default: true
+permissions:
+  contents: read
+concurrency:
+  group: ios
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 60
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+      TEAM: ${{ vars.APPLE_TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Xcode
+        run: |
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+
+      - name: Έκδοση από το version.js
+        id: ver
+        run: |
+          V=$(grep -oE "ALKYON_VERSION='[0-9]+\.[0-9]+\.[0-9]+'" version.js | grep -oE "[0-9]+\.[0-9]+\.[0-9]+")
+          IFS=. read -r A B C <<< "$V"
+          CODE=$((A*1000000 + B*1000 + C))
+          # CFBundleVersion: ίδιο νούμερο με το versionCode του Android + αύξων αριθμός, ώστε κάθε ανέβασμα να είναι μοναδικό
+          echo "name=$V" >> "$GITHUB_OUTPUT"; echo "build=$CODE.$GITHUB_RUN_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "Alkyon $V (build $CODE.$GITHUB_RUN_NUMBER)"
+
+      - run: npm ci --no-audit --no-fund
+      - name: Αρχεία εφαρμογής → www → ios
+        run: |
+          node tools/build-web.mjs www --native
+          npx cap sync ios
+
+      - name: Κλειδί App Store Connect
+        id: key
+        run: |
+          if [ -n "$ASC_KEY_ID" ] && [ -n "$ASC_ISSUER_ID" ] && [ -n "$ASC_KEY_P8" ] && [ -n "$TEAM" ]; then
+            mkdir -p "$RUNNER_TEMP/keys"
+            printf '%s\n' "$ASC_KEY_P8" > "$RUNNER_TEMP/keys/AuthKey_$ASC_KEY_ID.p8"
+            echo "path=$RUNNER_TEMP/keys/AuthKey_$ASC_KEY_ID.p8" >> "$GITHUB_OUTPUT"
+            echo "signed=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Λείπουν τα ASC_KEY_ID / ASC_ISSUER_ID / ASC_KEY_P8 ή η variable APPLE_TEAM_ID — γίνεται μόνο έλεγχος χτισίματος (προσομοιωτής)."
+          fi
+
+      - name: Έλεγχος χτισίματος (προσομοιωτής, χωρίς υπογραφή)
+        if: steps.key.outputs.signed != '1'
+        working-directory: ios/App
+        run: |
+          set -o pipefail
+          xcodebuild -project App.xcodeproj -scheme App -configuration Release \
+            -destination 'generic/platform=iOS Simulator' \
+            MARKETING_VERSION=${{ steps.ver.outputs.name }} CURRENT_PROJECT_VERSION=${{ steps.ver.outputs.build }} \
+            CODE_SIGNING_ALLOWED=NO build | tail -n 60
+
+      - name: Archive (υπογεγραμμένο)
+        if: steps.key.outputs.signed == '1'
+        working-directory: ios/App
+        run: |
+          set -o pipefail
+          xcodebuild -project App.xcodeproj -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/Alkyon.xcarchive" \
+            DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic \
+            MARKETING_VERSION=${{ steps.ver.outputs.name }} CURRENT_PROJECT_VERSION=${{ steps.ver.outputs.build }} \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "${{ steps.key.outputs.path }}" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            archive | tail -n 80
+
+      - name: Ανέβασμα στο App Store Connect (TestFlight)
+        if: steps.key.outputs.signed == '1' && (github.event_name == 'push' || inputs.upload)
+        run: |
+          set -o pipefail
+          cat > "$RUNNER_TEMP/export.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>$TEAM</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>uploadSymbols</key><true/>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict></plist>
+          EOF
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/Alkyon.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/export.plist" -exportPath "$RUNNER_TEMP/out" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "${{ steps.key.outputs.path }}" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" | tail -n 60
+          echo "Ανέβηκε το Alkyon ${{ steps.ver.outputs.name }} (${{ steps.ver.outputs.build }}). Θα φανεί στο TestFlight όταν το επεξεργαστεί η Apple."
+
+      - name: Καθάρισμα κλειδιού
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/keys"

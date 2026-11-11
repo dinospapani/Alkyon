@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* Alkyon · αντιγράφει τα αρχεία της εφαρμογής σε έναν φάκελο για ανέβασμα.
    node tools/build-web.mjs dist/web            → για το Cloudflare (alkyonfishing.com)
-   node tools/build-web.mjs www --native        → για την εφαρμογή Android (Capacitor)
+   node tools/build-web.mjs www --native        → για τις εφαρμογές Android και iOS (Capacitor)
    Η εφαρμογή δεν έχει βήμα «χτισίματος»: τα αρχεία πάνε όπως είναι. Εδώ απλώς αφήνουμε έξω ό,τι δεν είναι για τον browser
    (κώδικας server, SQL, εργαλεία, tests, workflows, το έργο Android). */
 import { promises as fs } from 'node:fs';
@@ -41,6 +41,17 @@ if (!NATIVE) {
   const wk = path.join(ROOT, 'cloudflare', 'well-known');
   try { n += await copyDir(wk, path.join(OUT, '.well-known')); } catch (e) { /* δεν υπάρχει ακόμα */ }
   await fs.copyFile(path.join(ROOT, 'cloudflare', '_headers'), path.join(OUT, '_headers')); n++;
+  /* 1.13.0: Universal Links του iOS. Χρειάζεται το Team ID της Apple (GitHub › Settings › Variables › APPLE_TEAM_ID). */
+  const team = (process.env.APPLE_TEAM_ID || '').trim();
+  if (/^[A-Z0-9]{10}$/.test(team)) {
+    const appID = team + '.com.alkyonfishing.app';
+    await fs.mkdir(path.join(OUT, '.well-known'), { recursive: true });
+    await fs.writeFile(path.join(OUT, '.well-known', 'apple-app-site-association'), JSON.stringify({
+      applinks: { details: [{ appIDs: [appID], components: [{ '/': '/*' }] }] },
+      webcredentials: { apps: [appID] }
+    }, null, 2) + '\n'); n++;
+    console.log('apple-app-site-association: ' + appID);
+  } else if (team) console.warn('APPLE_TEAM_ID δεν είναι 10 χαρακτήρες A–Z/0–9: ' + team);
 }
 
 /* Android: το capacitor.js (γέφυρα προς τα πρόσθετα) και το native.js μπαίνουν αμέσως μετά το migrate.js,
@@ -72,5 +83,5 @@ if (NATIVE) {
 
 /* σημάδι για τον κώδικα: σε ποια μορφή τρέχει (το native.js το ελέγχει ξανά από το Capacitor) */
 await fs.writeFile(path.join(OUT, 'build-info.json'),
-  JSON.stringify({ target: NATIVE ? 'android' : 'web', built: new Date().toISOString() }) + '\n');
+  JSON.stringify({ target: NATIVE ? 'native' : 'web', built: new Date().toISOString() }) + '\n');
 console.log(`Alkyon: ${n} αρχεία → ${path.relative(ROOT, OUT)} (${NATIVE ? 'Android' : 'web'})`);
