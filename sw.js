@@ -2,7 +2,7 @@
 // Weather APIs and fonts are cross-origin and always go straight to the network.
 importScripts('forecast.js');
 try{ importScripts('v4/notif-i18n.js'); }catch(e){}   /* 1.10.6: ειδοποίηση στη γλώσσα της εφαρμογής */
-const V = 'alkyon-1.12.10';
+const V = 'alkyon-1.12.11';
 const CFG = 'alkyon-cfg';
 /* 1.4.2: η κλασική αποσύρθηκε, οπότε εδώ μένουν μόνο οι σελίδες της ρίζας (ανακατεύθυνση στο v4/) και τα εικονίδια.
    Τα αρχεία της εφαρμογής τα κρατά για offline το v4/sw.js. Πριν κατέβαιναν εδώ ~6 MB σε κάθε ενημέρωση. */

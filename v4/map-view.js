@@ -204,13 +204,15 @@ function rainDom(force){
     var tm=function(t){ return Date.UTC(+t.slice(0,4),+t.slice(4,6)-1,+t.slice(6,8),+t.slice(8,10),+t.slice(10,12))/1000; };
     var age=Math.round((Date.now()/1000-tm(fr[fr.length-1].t))/60);
     if(force&&age>360) throw 0;
-    if(!force&&age>100){ if(!rainDom.told){ rainDom.told=1; B.toast(T('Το ραντάρ ΤΜ Κύπρου δεν έχει πρόσφατη εικόνα (τελευταία πριν ','The DoM Cyprus radar has no recent image (last one ')+(age>=120?Math.floor(age/60)+T(' ώρ.',' h'):age+'′')+T('). Δείχνω RainViewer· με «⇄» βλέπεις την τελευταία του ΤΜ.',' ago). Showing RainViewer; «⇄» shows the latest DoM image.')); } throw 0; } /* 1.9.23: έως 100′ (το ραντάρ Πάφου στέλνει αραιά και το GitHub καθυστερεί) */
+    if(!force&&age>100){ rainDom.stale=Date.now(); if(!rainDom.told){ rainDom.told=1; B.toast(T('Το ραντάρ ΤΜ Κύπρου δεν έχει πρόσφατη εικόνα (τελευταία πριν ','The DoM Cyprus radar has no recent image (last one ')+(age>=120?Math.floor(age/60)+T(' ώρ.',' h'):age+'′')+T('). Δείχνω RainViewer· με «⇄» βλέπεις την τελευταία του ΤΜ.',' ago). Showing RainViewer; «⇄» shows the latest DoM image.')); } throw 0; } /* 1.9.23: έως 100′ (το ραντάρ Πάφου στέλνει αραιά και το GitHub καθυστερεί) */
     if(!cfg.rain||!map) return true; rainStop(); rainSrc='dom';
     rainFr=fr.map(function(f){ return {time:tm(f.t)}; });
     rainL=fr.map(function(f){ return L.imageOverlay(DOMR+f.img,j.bounds,{opacity:0,interactive:false,className:'raintile domradar',attribution:T('Ραντάρ: Τμήμα Μετεωρολογίας Κύπρου','Radar: Cyprus Department of Meteorology')}).addTo(map); });
     rainBarMake(); return true; }); }
+/* 1.12.11: η πηγή ραντάρ αλλάζει όταν μετακινείς τον χάρτη μέσα ή έξω από την Κύπρο (πριν έμενε αυτή που διαλέχτηκε στο άνοιγμα) */
+var rainSrcT=0; function rainAuto(){ if(!cfg.rain||!map) return; clearTimeout(rainSrcT); rainSrcT=setTimeout(function(){ var rs=ls.get('alkyon-v4-rainsrc','auto'), want=(rs!=='rv'&&inCyR())?'dom':'rv'; if(want!==rainSrc&&!(want==='dom'&&rainDom.stale&&Date.now()-rainDom.stale<600000)) drawRain(); },800); }
 function drawRain(){ rainStop(); if(!cfg.rain||!map) return;
-  var rsrc=ls.get('alkyon-v4-rainsrc','auto'); if(rsrc!=='rv'&&inCyR()) rainDom(rsrc==='dom').catch(function(){ if(cfg.rain&&map&&!rainL.length) rainRV(); });
+  var rsrc=ls.get('alkyon-v4-rainsrc','auto'); if(rsrc!=='rv'&&inCyR()) rainDom(rsrc==='dom').catch(function(){ rainDom.stale=Date.now(); if(cfg.rain&&map&&!rainL.length) rainRV(); });
   else rainRV(); }
 function drawOverlays(){
   if(!map) return;
@@ -1009,7 +1011,7 @@ function mount(el){
     var p=B.lastPos(), v=ls.get('alkyon-v4-mapview',null);
     map=L.map(lmEl,{zoomControl:false,attributionControl:true,tap:true}).setView(v?[v.lat,v.lon]:(p?[p.lat,p.lon]:[35.0,33.2]),v?v.z:(p?12:9));
     drawBase(); drawData(); drawOverlays(); applyDepth(); applyPend(); locate(false); drawDirect(); if(cfg.cur) currents(true);
-    map.on('zoomend',function(){ drawData(); depthFade(); }); map.on('zoomend moveend',posCheckSoon); map.on('moveend',function(){ declutterSoon(); if(cfg.zones){ clearTimeout(zwT); zwT=setTimeout(drawWorldZones,400); } if(cfg.cur) currents(false); var c=map.getCenter(); ls.set('alkyon-v4-mapview',{lat:+c.lat.toFixed(5),lon:+c.lng.toFixed(5),z:map.getZoom()}); });
+    map.on('zoomend',function(){ drawData(); depthFade(); }); map.on('zoomend moveend',posCheckSoon); map.on('moveend',rainAuto); map.on('moveend',function(){ declutterSoon(); if(cfg.zones){ clearTimeout(zwT); zwT=setTimeout(drawWorldZones,400); } if(cfg.cur) currents(false); var c=map.getCenter(); ls.set('alkyon-v4-mapview',{lat:+c.lat.toFixed(5),lon:+c.lng.toFixed(5),z:map.getZoom()}); });
     map.on('contextmenu',function(e){ try{ e.originalEvent&&e.originalEvent.preventDefault(); }catch(x){} pointMenu(e.latlng); });
     map.on('dragstart',function(){ setFollow(false); }); map.on('popupopen',function(){ followPause=Date.now()+20000; });
     map.on('popupopen',function(e){ var c=e.popup.getContent(); if(c&&c.classList&&c.classList.contains('portpop')&&!c.querySelector('.pgo')){ var ll=e.popup.getLatLng(), nm=(c.querySelector('b')||{}).textContent||''; var r=c.querySelector('.pbtns')||c; var g=h('button',{class:'pb pgo',type:'button',text:T('Πήγαινε εκεί','Go there'),onclick:function(){ map.closePopup(); B.goTo(ll.lat,ll.lng,nm); }}); r.insertBefore(g,r.firstChild); e.popup.update(); } });
