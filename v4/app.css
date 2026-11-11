@@ -976,3 +976,29 @@ html.night .btn.pri,html.night button.pri{background:#000!important;color:#fff!i
 .sptoday .sttx b{font:750 14px var(--font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sptoday .sttx small{font:500 12.5px var(--font);color:rgba(255,255,255,.82)}
 .spskip{background:rgba(6,20,32,.35);border-color:rgba(255,255,255,.3)}
+/* 1.12.20: είσοδος σε φωτεινό θέμα (ίδιο ύφος με την εφαρμογή) */
+.sppage.splight{background:var(--bg);color:var(--ink)}
+.sppage.splight:not(.tour) .sphero{min-height:clamp(150px,22dvh,230px);flex:0 0 auto}
+.sppage.splight .spheroshade{background:linear-gradient(180deg,rgba(6,20,32,.45) 0%,rgba(6,20,32,0) 40%,rgba(6,20,32,0) 70%,var(--bg) 100%)}
+.sppage.splight .spbody{padding-top:4px}
+.sppage.splight .sptitle{position:static;margin:2px 2px 14px}
+.sppage.splight .sptitle h1{color:var(--ink);text-shadow:none}
+.sppage.splight .sptitle .sphi{color:var(--ink-2);text-shadow:none}
+.sppage.splight .sptitle p{color:var(--ink-2)}
+.sppage.splight .sptoday{background:var(--surface);border:0;box-shadow:var(--shadow);-webkit-backdrop-filter:none;backdrop-filter:none}
+.sppage.splight .sptoday .sttx small{color:var(--ink-2)}
+.sppage.splight .spcard{border-color:transparent;box-shadow:var(--shadow)}
+.sppage.splight .spcard.on{border-color:var(--accent)}
+.sppage.splight .sph3{color:var(--ink)}
+.sppage.splight .spmeth{background:var(--surface);border:0;box-shadow:var(--shadow)}
+.sppage.splight .sprow{color:var(--ink)}
+.sppage.splight .sprow+.sprow{border-top:1px solid var(--line)}
+.sppage.splight .sprow .tx small{color:var(--ink-2)}
+.sppage.splight .sprad{border-color:var(--line)}
+.sppage.splight .spmi{background:var(--surface-2)}
+.sppage.splight .spmi svg{stroke:var(--ink)}
+.sppage.splight .spask{color:var(--ink)}
+.sppage.splight .spbox{border-color:var(--ink-3);background:var(--surface)}
+.sppage.splight .spfoot{color:var(--ink-3)}
+.sppage.splight .spgo{box-shadow:0 8px 18px color-mix(in srgb,var(--accent) 28%,transparent)}
+.sppage.splight .spbrand{color:#fff}.sppage.splight .spcard{background:var(--surface-2)}

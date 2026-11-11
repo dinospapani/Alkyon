@@ -59,8 +59,11 @@ B.startPick=function(){
     h('div',{class:'spbody'},picker(st,lab),
       h('label',{class:'spask'},ask,h('span',{class:'spbox',html:CHK}),h('span',{text:T('Να μη ρωτάει κάθε φορά','Don’t ask every time')})),
       go,h('p',{class:'spfoot',text:T('Αλλαγή αργότερα: Προφίλ › Τύπος ψαρέματος','Change later: Profile › Fishing type')})));
+  /* 1.12.20: με φωτεινό θέμα η είσοδος ταιριάζει με την εφαρμογή: η φωτογραφία μένει πάνω, από κάτω ανοιχτό φόντο και λευκές κάρτες */
+  if(isLight()){ pg.classList.add('splight'); var ttl=pg.querySelector('.sptitle'), bd=pg.querySelector('.spbody'); if(ttl&&bd) bd.insertBefore(ttl,bd.firstChild); }
   lab(); cover(true); document.body.append(pg); document.addEventListener('keydown',key);
 };
+function isLight(){ var r=document.documentElement, t=r.getAttribute('data-theme'); if(r.classList.contains('night')) return false; if(t==='light') return true; if(t==='dark') return false; try{ return !matchMedia('(prefers-color-scheme: dark)').matches; }catch(e){ return false; } }
 /* 1.12.15: χαιρετισμός και «σήμερα» από την τελευταία πρόγνωση (χωρίς δίκτυο, από το κινητό) */
 function hello(){ var hr=new Date().getHours(), g=hr<5?T('Καλή νύχτα','Good night'):hr<12?T('Καλημέρα','Good morning'):hr<18?T('Καλησπέρα','Good afternoon'):T('Καλό βράδυ','Good evening');
   var nm=''; try{ var s=B.cloud&&B.cloud.session&&B.cloud.session(); nm=s&&(s.name||'').trim().split(/\s+/)[0]||''; }catch(e){} return nm?g+', '+nm:g; }
