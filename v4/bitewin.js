@@ -99,6 +99,39 @@ function analyze(b,S,edge){
   return out;
 }
 
+/* 1.12.12: τι ίσχυε ΟΣΟ τσιμπούσαν (από–έως): άνεμος, πίεση, κύμα, στάθμη, ρεύμα, νερό, ουρανός, φως, σελήνη */
+function during(b,S){
+  var s=span(b), out=[]; if(!s) return out; var A=s.a, E=s.e, tz=s.tz;
+  function add(t){ out.push({t:t,w:1}); }
+  if(S){
+    var w=mean(S,'wind_speed_10m',A,E), d=amean(S,'wind_direction_10m',A,E), g=mean(S,'wind_gusts_10m',A,E);
+    if(w!=null) add(T('Άνεμος: ','Wind: ')+(w>=2&&d!=null?dn(d)+' ':'')+W(w)+(g!=null&&g-w>=4?T(', ριπές ',', gusts ')+W(g):'')+'.');
+    var p0=at(S,'pressure_msl',A), p1=at(S,'pressure_msl',E);
+    if(p0!=null&&p1!=null){ var dp=p1-p0; add(T('Πίεση: ','Pressure: ')+P(p0)+' → '+P(p1)+' ('+(Math.abs(dp)<0.4?T('σταθερή','steady'):dp>0?T('ανέβαινε','rising'):T('έπεφτε','falling'))+').'); }
+    var v=mean(S,'wave_height',A,E); if(v!=null) add(T('Κύμα: ','Waves: ')+M(v)+'.');
+    if(S.sea_level_height_msl){ var l0=at(S,'sea_level_height_msl',A), l1=at(S,'sea_level_height_msl',E), lm=at(S,'sea_level_height_msl',(A+E)/2);
+      if(l0!=null&&l1!=null&&lm!=null){ var u1=lm-l0, u2=l1-lm, cm=function(x){ return (x>0?'+':'')+Math.round(x*100)+' cm'; };
+        add(T('Στάθμη θάλασσας: ','Sea level: ')+(u1>0.004&&u2<-0.004?T('ανέβαινε και μετά κατέβαινε (γύρισε μέσα στο παράθυρο)','rose then fell (turned during the window)'):u1<-0.004&&u2>0.004?T('κατέβαινε και μετά ανέβαινε (γύρισε μέσα στο παράθυρο)','fell then rose (turned during the window)'):Math.abs(l1-l0)<0.006?T('σχεδόν ακίνητη (νεκρό νερό)','almost still (slack)'):l1>l0?T('ανέβαινε (πλημμυρίδα)','rising (flood)'):T('κατέβαινε (άμπωτη)','falling (ebb)'))+' · '+cm(l1-l0)+'.'); } }
+    var c=mean(S,'ocean_current_velocity',A,E), cd=amean(S,'ocean_current_direction',A,E);
+    if(c!=null) add(T('Ρεύμα: ','Current: ')+(Math.round(c/1.852*10)/10)+' kn'+(cd!=null&&c>=0.2?T(' προς ',' towards ')+dn(cd):'')+'.');
+    var st=mean(S,'sea_surface_temperature',A,E); if(st!=null) add(T('Νερό: ','Water: ')+st.toFixed(1)+' °C.');
+    var k=mean(S,'cloud_cover',A,E); if(k!=null) add(T('Ουρανός: ','Sky: ')+(k<20?T('καθαρός','clear'):k<60?T('λίγα σύννεφα','some clouds'):T('συννεφιά','cloudy'))+' ('+Math.round(k)+'%).');
+  }
+  var PF=window.PF, la=b.lat, lo=b.lon;
+  if(PF&&PF.sunMoon&&typeof la==='number'){
+    try{ var sm=PF.sunMoon(b.date,la,lo,tz), d0m=Date.UTC.apply(null,b.date.split('-').map(Number).map(function(x,i){ return i===1?x-1:x; }))-tz*MIN,
+        ss=sm.set!=null?d0m+sm.set*MIN:null, sr=sm.rise!=null?d0m+sm.rise*MIN:null, dk=ss!=null?ss+35*MIN:null;
+      var light=function(ms){ return (sr!=null&&ms<sr-30*MIN)||(dk!=null&&ms>=dk)?'night':(ss!=null&&ms>=ss&&ms<dk)||(sr!=null&&ms>=sr-30*MIN&&ms<sr+20*MIN)?'twi':'day'; },
+          LN={day:T('μέρα','daylight'),twi:T('σούρουπο/χάραμα','twilight'),night:T('σκοτάδι','dark')}, la0=light(A), la1=light(E);
+      add(T('Φως: ','Light: ')+(la0===la1?LN[la0]:LN[la0]+' → '+LN[la1])+(ss!=null?T(' · δύση ',' · sunset ')+hm(ss,tz):'')+'.');
+      var ill=Math.round((sm.illum||0)*100), up0=PF.moonAlt?PF.moonAlt(A,la,lo)>0.125:null, up1=PF.moonAlt?PF.moonAlt(E,la,lo)>0.125:null;
+      add(T('Σελήνη: ','Moon: ')+ill+'%'+T(' φωτισμένη',' lit')+(up0==null?'':' · '+(up0&&up1?T('πάνω από τον ορίζοντα','above the horizon'):!up0&&!up1?T('κάτω από τον ορίζοντα','below the horizon'):up1?T('ανέτειλε μέσα στο παράθυρο','rose during the window'):T('έδυσε μέσα στο παράθυρο','set during the window')))+'.');
+      if(PF.solunarPeriods){ var per=PF.solunarPeriods(A-HOUR,E+HOUR,la,lo).filter(function(p){ return p.e>A&&p.s<E; });
+        if(per.length) add(T('Περίοδος solunar μέσα στο παράθυρο: ','Solunar period inside the window: ')+per.map(function(p){ return (p.kind==='major'?T('κύρια','major'):T('δευτερεύουσα','minor'))+' '+hm(p.s,tz)+'–'+hm(p.e,tz); }).join(', ')+'.'); }
+    }catch(e){}
+  }
+  return out;
+}
 /* ---------- εμφάνιση ---------- */
 function pattern(edge){ var f=edge==='start'?'ks':'k', S=B.store, all=(S&&S.bites?S.bites():[]).filter(function(x){ return x.winx&&x.winx[f]; }), n=all.length; if(n<3) return null;
   var c={}; all.forEach(function(x){ x.winx[f].forEach(function(k){ c[k]=(c[k]||0)+1; }); });
@@ -113,23 +146,27 @@ function card(b){
   var dur=Math.round((s.e-s.a)/MIN), dtx=dur>=60?(Math.floor(dur/60)+T(' ώρ.',' h')+(dur%60?' '+dur%60+T(' λ.',' min'):'')):dur+T(' λ.',' min');
   var go=h('button',{type:'button',class:'btn full',text:T('Τι άλλαξε όταν άρχισαν και όταν σταμάτησαν;','What changed when they started and stopped?'),onclick:function(){ run(); }});
   box.append(h('h2',{text:T('Τσιμπούσαν ','Biting ')+b.win.a+'–'+b.win.b+' ('+dtx+')'}),res,go);
+  /* 1.12.12: η ανάλυση τρέχει μόνη της όταν ανοίγεις το ψάρι (αν έχει ίντερνετ)· το κουμπί μένει για νέα προσπάθεια */
+  if(navigator.onLine!==false&&typeof b.lat==='number'&&s.e<=Date.now()+10*MIN) setTimeout(function(){ if(box.isConnected||true) run(); },50);
   function run(){ if(typeof b.lat!=='number'){ res.replaceChildren(h('p',{class:'sub',text:T('Χρειάζεται θέση στο ψάρι για τον καιρό.','The catch needs a position for the weather.')})); return; }
     if(s.e>Date.now()+10*MIN){ res.replaceChildren(h('p',{class:'sub',text:T('Το παράθυρο δεν έχει τελειώσει ακόμα.','The window has not ended yet.')})); return; }
     go.disabled=true; go.textContent=T('Αναζήτηση καιρού…','Looking up weather…');
     var net=navigator.onLine===false?Promise.resolve(null):fetchSeries(b.lat,b.lon,s).catch(function(){ return null; });
-    net.then(function(S){ var c0=analyze(b,S,'start'), c1=analyze(b,S,'end'); show(c0,c1,!!S); go.dataset.ok=S?'1':'';
+    net.then(function(S){ var c0=analyze(b,S,'start'), c1=analyze(b,S,'end'), cd=during(b,S); show(c0,c1,!!S,cd); go.dataset.ok=S?'1':'';
       try{ var St=B.store, cur=St&&St.get?St.get('bites',b.id):null; if(cur&&S){ St.save('bites',Object.assign({},cur,{winx:{v:2,k:c1.map(function(c){ return c.k; }),ks:c0.map(function(c){ return c.k; }),at:Date.now()}})); } }catch(e){} })
       .then(function(){ if(go.dataset.ok) go.hidden=true; else { go.disabled=false; go.textContent=T('Ξαναδοκίμασε με ίντερνετ','Try again with internet'); } }); }
   function part(title,ch,hasWx,edge){ var d=h('div',{class:'bwpart'}); d.append(h('h3',{text:title}));
     if(ch.length) d.append(h('ul',{class:'law'},ch.slice(0,6).map(function(c){ return h('li',{class:c.w>=3?'big':null,text:c.t}); })));
     else d.append(h('p',{class:'p',text:hasWx?T('Καμία μεγάλη αλλαγή σε άνεμο, πίεση, κύμα, στάθμη, ρεύμα, ήλιο ή σελήνη.','No big change in wind, pressure, waves, sea level, current, sun or moon.'):T('Καμία αλλαγή σε ήλιο ή σελήνη.','No change in sun or moon.')}));
     var pt=pattern(edge); if(pt) d.append(h('p',{class:'p bwpat',text:'📊 '+pt})); return d; }
-  function show(c0,c1,hasWx){ res.replaceChildren();
+  function show(c0,c1,hasWx,cd){ res.replaceChildren();
     if(!hasWx) res.append(h('p',{class:'sub',text:T('Δεν βρέθηκε καιρός για εκείνες τις ώρες (χρειάζεται ίντερνετ). Δείχνω μόνο ήλιο και σελήνη.','No weather found for those hours (needs internet). Showing only sun and moon.')}));
-    res.append(part(T('Όταν άρχισαν (','When they started (')+b.win.a+T('): σε σχέση με τις 2 ώρες πριν','): compared with the 2 hours before'),c0,hasWx,'start'),
-      part(T('Όταν σταμάτησαν (','When they stopped (')+b.win.b+T('): σε σχέση με τις 2 ώρες μετά','): compared with the 2 hours after'),c1,hasWx,'end'));
+    /* 1.12.12: τρία κομμάτια: τι άλλαξε πριν αρχίσουν · τι ίσχυε όσο τσιμπούσαν · τι άλλαξε όταν σταμάτησαν */
+    var dur=h('div',{class:'bwpart bwdur'},h('h3',{text:T('② Όσο τσιμπούσαν (','② While they were biting (')+b.win.a+'–'+b.win.b+')'}),cd&&cd.length?h('ul',{class:'law'},cd.map(function(c){ return h('li',{text:c.t}); })):h('p',{class:'p',text:'–'}));
+    res.append(part(T('① Πριν αρχίσουν (','① Before they started (')+b.win.a+T('): τι άλλαξε σε σχέση με τις 2 ώρες πριν','): what changed compared with the 2 hours before'),c0,hasWx,'start'),dur,
+      part(T('③ Όταν σταμάτησαν (','③ When they stopped (')+b.win.b+T('): τι άλλαξε τις 2 ώρες μετά','): what changed in the 2 hours after'),c1,hasWx,'end'));
     if(!c0.length&&!c1.length&&hasWx) res.append(h('p',{class:'p',text:T('Ίσως άλλαξε κάτι τοπικά (π.χ. το κοπάδι ήρθε ή έφυγε, θόρυβος, φώτα, άλλα σκάφη).','Something local may have changed (e.g. the school arrived or left, noise, lights, other boats).')}));
     res.append(h('p',{class:'note',text:T('Καιρός από μοντέλο (Open-Meteo), όχι μέτρηση στο σημείο· η στάθμη θάλασσας είναι εκτίμηση. Δείχνει τι συνέπεσε χρονικά, όχι σίγουρα την αιτία. Με περισσότερα παράθυρα φαίνεται μοτίβο.','Model weather (Open-Meteo), not a measurement at the spot; sea level is an estimate. It shows what coincided, not a sure cause. More windows reveal a pattern.')})); }
   return box; }
-B.biteWin={span:span,analyze:analyze,card:card,fetch:fetchSeries,pattern:pattern};
+B.biteWin={span:span,analyze:analyze,during:during,card:card,fetch:fetchSeries,pattern:pattern};
 })();

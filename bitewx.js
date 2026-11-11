@@ -124,6 +124,14 @@ function chart(wx,b){
   for(var i=0;i<N;i+=2){ if(wx.d[i]==null||(wx.w[i]||0)<2) continue; var g=mk('g',{transform:'translate('+X(i).toFixed(1)+','+(wTop+H2+9)+') rotate('+wx.d[i]+')'}); g.append(mk('path',{d:'M0,-5 L0,5 M-3,2 L0,5 L3,2',fill:'none',stroke:wcol,'stroke-width':1.4,'stroke-linecap':'round','stroke-linejoin':'round'})); svg.append(g); }
   [[0,'start'],[K,'middle'],[N-1,'end']].forEach(function(q2){ txt(q2[1]==='end'?Wd-R:X(q2[0]),Ht-3,hhmm(wx.t0+(q2[0]-K)*30*MIN,b),q2[1]==='end'?'end':q2[1],8); });
   txt(X(K),TP-3,'±30′','middle',8,ink);
+  /* 1.12.12: με «Ώρες που τσιμπούσαν»: δεύτερη γραμμή εκεί που σταμάτησαν (και ελαφριά σκίαση για όλο το παράθυρο) */
+  try{ var bw=window.AK&&window.AK.biteWin&&window.AK.biteWin.span?window.AK.biteWin.span(b):null;
+    if(bw){ var xs=K+(bw.a-wx.t0)/(30*MIN), xe=K+(bw.e-wx.t0)/(30*MIN), stop='#d6453a';
+      var cx=function(i){ return X(Math.max(0,Math.min(N-1,i))); };
+      if(xe>0&&xs<N-1) svg.insertBefore(mk('rect',{x:cx(xs),y:TP-4,width:Math.max(0,cx(xe)-cx(xs)),height:Ht-BT-TP+2,fill:'#3dbe85','fill-opacity':.08}),svg.firstChild);
+      if(xe>=0&&xe<=N-1){ svg.append(mk('line',{x1:X(xe),x2:X(xe),y1:TP-4,y2:Ht-BT-2,stroke:stop,'stroke-width':1.4,'stroke-dasharray':'4 2'}));
+        txt(Math.min(X(xe),Wd-R-2),TP-3,T('σταμάτησαν ','stopped ')+hhmm(bw.e,b),xe>N-3?'end':'middle',8,stop); }
+      else if(xe>N-1) txt(Wd-R,TP-3,T('σταμάτησαν ','stopped ')+hhmm(bw.e,b)+' →','end',8,stop); } }catch(e){}
   return svg;
 }
 
