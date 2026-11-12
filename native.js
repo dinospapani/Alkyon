@@ -34,6 +34,25 @@ window.AKN={
 };
 try{ document.documentElement.classList.add('native','native-'+window.AKN.platform); }catch(e){}
 
+/* 1.13.2: κοινοποίηση αρχείων (κάρτα ψαριού, εξαγωγές) μέσα στην εφαρμογή. Το WebView δεν έχει navigator.share με αρχεία,
+   οπότε γράφουμε το αρχείο στην cache της εφαρμογής (@capacitor/filesystem) και ανοίγουμε το μενού κοινοποίησης του
+   συστήματος (@capacitor/share): Facebook, Instagram, WhatsApp, Viber, email… */
+var ShareP=reg('Share'), FS=reg('Filesystem');
+function b64(blob){ return new Promise(function(res,rej){ var r=new FileReader(); r.onload=function(){ res(String(r.result).split(',')[1]||''); }; r.onerror=function(){ rej(r.error); }; r.readAsDataURL(blob); }); }
+function safeName(n,i){ n=String(n||('alkyon-'+i)).replace(/[^\w.\-]+/g,'_').slice(-80); return n.indexOf('.')>0?n:n+'.png'; }
+if(ShareP&&FS){
+  var nshare=navigator.share&&navigator.share.bind(navigator), ncan=navigator.canShare&&navigator.canShare.bind(navigator);
+  var mine=function(d){ d=d||{}; var fs=[].slice.call(d.files||[]);
+    var files=Promise.all(fs.map(function(f,i){ var path='share/'+Date.now()+'-'+safeName(f.name,i);
+      return b64(f).then(function(data){ return FS.writeFile({path:path,data:data,directory:'CACHE',recursive:true}); }).then(function(r){ return r.uri; }); }));
+    return files.then(function(uris){ var o={dialogTitle:d.title||'Alkyon'}; if(d.title) o.title=d.title; if(d.text) o.text=d.text; if(d.url) o.url=d.url; if(uris.length) o.files=uris;
+      return ShareP.share(o); }).then(function(){ return undefined; },function(e){ var m=String(e&&e.message||e); if(/cancel/i.test(m)){ var er=new Error('AbortError'); er.name='AbortError'; throw er; } throw e; }); };
+  try{
+    Object.defineProperty(navigator,'share',{configurable:true,value:function(d){ return (d&&d.files&&d.files.length)||!nshare?mine(d):nshare(d).catch(function(e){ if(e&&e.name==='AbortError') throw e; return mine(d); }); }});
+    Object.defineProperty(navigator,'canShare',{configurable:true,value:function(d){ return true; }});
+  }catch(e){}
+}
+
 /* εξωτερικοί σύνδεσμοι από window.open (χάρτες, Telegram, οδηγοί, νόμοι): Custom Tab· οι εσωτερικοί μένουν ως έχουν */
 var wopen=window.open;
 window.open=function(u,t,f){

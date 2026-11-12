@@ -229,7 +229,10 @@ function clip(s,n){ return String(s==null?'':s).replace(/[\u0000-\u001f]/g,' ').
 
 /* ---------- προεπισκόπηση / κοινοποίηση ---------- */
 function blobOf(cv){ return new Promise(function(r){ cv.c.toBlob(r,'image/png'); }); }
-function save(cv,name){ return blobOf(cv).then(function(b){ var a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=name; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },1500); }); }
+/* 1.13.2: στην εφαρμογή Android/iPhone το «κατέβασμα» με <a download> δεν δουλεύει στο WebView· η αποθήκευση γίνεται από το
+   μενού κοινοποίησης του συστήματος («Αποθήκευση στη συσκευή», Συλλογή, Drive, Αρχεία…). */
+function save(cv,name){ if(window.AKN&&navigator.share) return blobOf(cv).then(function(b){ return navigator.share({files:[new File([b],name,{type:'image/png'})],title:T('Αποθήκευση κάρτας','Save card')}).catch(function(){}); });
+  return blobOf(cv).then(function(b){ var a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=name; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },1500); }); }
 function preview(p,name,text){
   Promise.resolve(p).then(function(cv){
     var im=h('img',{class:'cdimg',alt:T('Προεπισκόπηση κάρτας','Card preview'),src:cv.c.toDataURL('image/png')});
