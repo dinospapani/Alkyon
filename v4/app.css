@@ -1012,3 +1012,5 @@ html.night .btn.pri,html.night button.pri{background:#000!important;color:#fff!i
 .sppage:not(.tour) .spgo{position:sticky;bottom:calc(var(--safe-b) + 10px);z-index:2}
 .sppage.tour .spnav{position:sticky;bottom:calc(var(--safe-b) + 10px);z-index:2}
 .splang .lnk{background:none;border:0;padding:6px 4px;min-height:44px;color:#fff;font:600 14.5px var(--font);text-decoration:underline;cursor:pointer}
+.grl .grlr{border-left:3px solid #8e8e93;padding:2px 0 2px 10px;margin:10px 0}
+.grl .grlr.x{border-color:#ff3b30}.grl .grlr.ok{border-color:#34c759}.grl .grlr.s{border-color:#af52de}.grl .grlr.b{border-color:#ff9500}

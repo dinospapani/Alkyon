@@ -339,7 +339,26 @@ function renderLawGR(L){
     'Νέα θαλάσσια πάρκα (Νότιες Κυκλάδες, Ιόνιο): το διάταγμα για τις Νότιες Κυκλάδες υπογράφηκε στις 15/7/2026 και περνά από το ΣτΕ. Δεν ισχύει ακόμα.',
     'Οι περιοχές του ProtectedSeas Navigator (και για την Ελλάδα) φαίνονται στον χάρτη, μαζί με τους περιορισμούς τους.'
   ],[lnk('https://alonissos-park.gr/wp-content/uploads/2016/07/flyer_GR_web-compressed.pdf','Φορέας Πάρκου Αλοννήσου'),' · ',lnk('https://www.naftemporiki.gr/politics/2138124/st-papastayroy-ypograftike-to-pd-gia-to-thalassio-parko-notioy-aigaioy-1-noties-kyklades/','Ναυτεμπορική, 15/7/2026')]));
+  L.append(grLocalCard());
   L.append(lawCard('Έκτακτη ανάγκη',['112 (ευρωπαϊκός αριθμός) · 108 Λιμενικό Σώμα · VHF κανάλι 16'],[lnk('https://www.gov.gr/sdg/healthcare/national-emergency-numbers','gov.gr: αριθμοί έκτακτης ανάγκης')]));
+}
+/* 1.13.3: τοπικές απαγορεύσεις ανά Λιμενική Αρχή (gr-local.js), η πιο κοντινή πρώτη */
+let grlLoading=false;
+function grLocalCard(){
+  const G=window.GR_LOCAL, box=h('div',{class:'card'},h('h3',{text:'Τοπικές απαγορεύσεις Λιμενικών Αρχών'}),
+    h('p',{text:'Σε πολλά λιμάνια απαγορεύεται κάθε ψάρεμα, ή επιτρέπεται μόνο από συγκεκριμένα σημεία (π.χ. Καβάλα: μόνο ανάμεσα στην αποβάθρα Νο 1 και Νο 3 μπροστά από το Τελωνείο). Εδώ είναι ό,τι αφορά τον ερασιτέχνη από τις σελίδες του Λιμενικού. Στον χάρτη, με το επίπεδο «Απαγορεύσεις», τα λιμάνια έχουν σήμα ⚓ και οι περιοχές με συντεταγμένες φαίνονται με χρώμα· κατά την έξοδο έρχεται ειδοποίηση.'}));
+  if(!G){ if(!grlLoading){ grlLoading=true; const sc=document.createElement('script'); sc.src='../gr-local.js'; sc.onload=()=>{ if(lawC==='gr') renderLaw(); }; document.head.append(sc); }
+    box.append(h('p',{class:'muted',text:'Φόρτωση…'})); return box; }
+  const p=window.AK&&AK.lastPos&&AK.lastPos(), dk=a=>p?Math.hypot((a.c[0]-p.lat)*111,(a.c[1]-p.lon)*111*Math.cos(p.lat*Math.PI/180)):0;
+  const list=G.a.slice().sort((x,y)=>p?dk(x)-dk(y):x.n.localeCompare(y.n,'el'));
+  const IC={x:'⛔',ok:'✅',s:'🤿',b:'🏖',o:'ℹ️'};
+  list.forEach((a,i)=>box.append(h('details',{class:'sp',style:'margin-top:8px',open:(p&&i===0&&dk(a)<40)?'':null},
+    h('summary',{},h('b',{text:a.n}),p?h('span',{class:'muted',text:Math.round(dk(a))+' km'}):null),
+    h('div',{style:'padding:0 14px 12px'},h('ul',{class:'law'},a.r.map(r=>h('li',{},IC[r[0]]+' '+r[1]+' ',h('span',{class:'muted',text:'('+(r[2]&&r[2]!=='—'?r[2]+' · ':'')+r[3]+')'})))),
+      h('p',{class:'note'},lnk('https://alieia.hcg.gr/prohibitions/local/'+a.k+'.php','Σελίδα Λιμενικού')))) ));
+  box.append(h('div',{class:'note',style:'margin-top:10px'},'Δεν έχουμε ακόμα περάσει: '+G.todo.join(', ')+'. Για αυτές δες τον ',lnk(G.idx,'χάρτη τοπικών απαγορεύσεων του Λιμενικού'),' ή ρώτα το λιμεναρχείο.'));
+  box.append(h('div',{class:'note',style:'margin-top:6px'},'Πηγή: Λιμενικό Σώμα, alieia.hcg.gr › Τοπικές απαγορεύσεις, ελέγχθηκε '+G.ck.split('-').reverse().join('/')+'. Σύντομη απόδοση· ισχύει η απόφαση της κάθε Λιμενικής Αρχής.'));
+  return box;
 }
 function renderLaw(){
   const L=$('g-law'); L.replaceChildren(); lawSeg(L);

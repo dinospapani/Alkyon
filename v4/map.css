@@ -1153,3 +1153,5 @@ body.mapon:has(.sstleg:not([hidden])) .sbleg:not(.mdleg){bottom:calc(var(--nav-h
 /* 1.12.8: όλα τα στρογγυλά κουμπιά του χάρτη στο ίδιο μέγεθος (48 px) και με ίσες αποστάσεις 12 px */
 body.mapon .mapbar .gpsb,body.mapon .mapbar .iconbtn,body.mapon .mclay,body.mapon .mapbar>.bellb.has,body.mapon .mo-btn,body.mapon .mo-n,body.mapon .seabar .mobbtn,body.mapon .seabar .trbtn,body.mapon .ancbtn,body.mapon .btx,body.mapon .mapbtns .mbtn,body.mapclean.maptrip .seabar .mobbtn,body.mapclean.maptrip .seabar .mo-btn,body.mapclean.maptrip .mapbar .gpsb{width:48px!important;height:48px!important}
 
+.mk.grl{translate:-50% -50%}
+.mk.grl b{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#0b3b52;color:#fff;font:700 12px var(--font);border:2px solid #ffcc00;box-shadow:0 1px 4px rgba(0,0,0,.5)}

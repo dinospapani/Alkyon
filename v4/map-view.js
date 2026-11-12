@@ -28,7 +28,7 @@ var SPT=EN?['Rocks / reef','Sand','Wreck','Ledge / drop-off','Current / open wat
 
 /* Leaflet φορτώνεται μόνο όταν ανοίξει ο χάρτης */
 var lp=null, zl=false, lzLeaf=B.leaflet; /* 1.5.2: αν το lazy.js έχει ήδη αρχίσει να φορτώνει το Leaflet, το ίδιο φόρτωμα (όχι δεύτερο) */
-function zones(){ if(zl) return; zl=true; [['ZONES','../zones.js'],['ZONES_GR','../zones-gr.js']].forEach(function(x){ if(window[x[0]]) return; var z=document.createElement('script'); z.src=x[1]; z.onload=function(){ if(map) drawOverlays(); }; document.head.appendChild(z); }); }
+function zones(){ if(zl) return; zl=true; [['ZONES','../zones.js'],['ZONES_GR','../zones-gr.js'],['GR_LOCAL','../gr-local.js']].forEach(function(x){ if(window[x[0]]) return; var z=document.createElement('script'); z.src=x[1]; z.onload=function(){ if(map) drawOverlays(); }; document.head.appendChild(z); }); }
 /* 1.11.3: η χώρα που δείχνει ο χάρτης (για τον τίτλο της «Απαγόρευσης» και το EMODnet, που καλύπτει μόνο την Ευρώπη) */
 function viewReg(){ try{ var c=map.getCenter(); return B.region?B.region(c.lat,c.lng):null; }catch(e){ return null; } }
 function inEurope(){ try{ var c=map.getCenter(); return c.lat>26&&c.lat<72&&c.lng>-32&&c.lng<45; }catch(e){ return true; } }
@@ -221,10 +221,20 @@ function drawOverlays(){
   /* 1.11.4: το επίπεδο EMODnet «Προστατευόμενες» αφαιρέθηκε */
   if(cfg.zones&&(window.ZONES||window.ZONES_GR)){ ov.zones=L.layerGroup(); (window.ZONES||[]).forEach(function(z){ zonePoly(z,'cy').addTo(ov.zones); }); (window.ZONES_GR||[]).forEach(function(z){ zonePoly(z,'gr').addTo(ov.zones); }); ov.zones.addTo(map); }
   if(cfg.zones){ zwKey=''; drawWorldZones(); }
+  if(cfg.zones&&window.GR_LOCAL&&B.grLocal) drawGrLocal(); /* 1.13.3: τοπικές απαγορεύσεις Λιμενικών Αρχών */
   if(cfg.dams){ ov.dams=L.layerGroup().addTo(map); var put=function(){ if(!ov.dams) return; ov.dams.clearLayers(); DAMS.forEach(function(d){ var lv=null; if(LV&&LV.dams) for(var n in LV.dams){ if(nrm(n)===nrm(d[0])) lv=LV.dams[n]; }
       L.marker([d[2],d[3]],{icon:icon('dam '+(DST[d[4]]||DST.check)[1],'<b>'+(lv?Math.round(lv.pct)+'%':'')+'</b><i>'+esc(EN?d[1]:d[0])+'</i>')}).on('click',function(){ damSheet(d,lv); }).addTo(ov.dams); }); };
     put(); if(!LV) fetch('../dams_levels.json').then(function(r){ return r.json(); }).then(function(j){ LV=j; put(); }).catch(function(){}); }
 }
+/* 1.13.3: Λιμενικές Αρχές (σήμα ⚓, πατάς για τους κανόνες) και οι περιοχές τους με συντεταγμένες */
+function drawGrLocal(){ var G=window.GR_LOCAL; ov.grl=L.layerGroup();
+  G.a.forEach(function(a){ L.marker(a.c,{icon:icon('grl','<b>⚓</b>'),title:T('Τοπικοί κανόνες: ','Local rules: ')+(EN?a.e:a.n)}).on('click',function(){ B.grLocal.sheet(a); }).addTo(ov.grl);
+    (a.g||[]).forEach(function(g){ var on=B.grLocal.inWin(g.w), col=g.s===1?'#af52de':(g.w?'#ff9500':'#ff3b30'), st={color:col,weight:g.t==='line'?3:1.6,dashArray:'6 5',opacity:on?.9:.45,fillColor:col,fillOpacity:on?.12:.04,bubblingMouseEvents:false};
+      var ly=g.t==='circle'?L.circle(g.p[0],Object.assign({radius:g.m||100},st)):g.t==='line'?L.polyline(g.p,st):L.polygon(g.p,st);
+      ly.on('click',function(){ B.sheet({title:g.n,body:h('div',null,h('p',{class:'p',text:g.d}),g.w?h('p',{class:'tag '+(on?'poor':'good'),text:(on?T('Ισχύει τώρα · ','In force now · '):T('Δεν ισχύει τώρα · ','Not in force now · '))+g.w.map(function(x){ return x.split('-').reverse().join('/'); }).join('–')}):null,
+        g.t==='line'&&g.m?h('p',{class:'sub',text:T('Η λωρίδα των '+g.m+' m γύρω από τη γραμμή είναι ενδεικτική.','The '+g.m+' m strip around the line is indicative.')}):null,
+        h('div',{class:'acts'},h('button',{class:'btn',type:'button',text:T('Όλοι οι κανόνες της περιοχής','All local rules'),onclick:function(){ B.grLocal.sheet(a); }})))}); }).addTo(ov.grl); }); });
+  ov.grl.addTo(map); }
 function damSheet(d,lv){
   var st=DST[d[4]]||DST.check, rows=[];
   if(lv){ rows.push([T('Πληρότητα','Fullness'),Math.round(lv.pct)+'%'],[T('Νερό','Water'),B.num(lv.stor,2)+' / '+B.num(lv.cap,2)+T(' εκ. m³',' million m³')]); if(lv.lyPct!=null) rows.push([T('Πέρσι, ίδια μέρα','Same day last year'),Math.round(lv.lyPct)+'%']); }
