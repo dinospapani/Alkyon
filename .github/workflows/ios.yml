@@ -4,7 +4,8 @@
 #   - όταν αλλάζει το version.js στο main (νέα έκδοση) ή κάτι στο ios/
 #   - με το χέρι (Actions › Alkyon iOS › Run workflow)
 # Χωρίς τα secrets της Apple: μόνο έλεγχος ότι χτίζεται (για τον προσομοιωτή, χωρίς υπογραφή).
-# Με τα secrets: υπογεγραμμένο archive → ανέβασμα στο App Store Connect (εμφανίζεται στο TestFlight σε ~10–30′).
+# Με τα secrets ΚΑΙ Run workflow με upload = true: υπογεγραμμένο archive → App Store Connect / TestFlight (~10–30′).
+# Σε push: μόνο έλεγχος χτισίματος (απόφαση Dinos 12/11/2026: ανεβάζουμε μαζί iPhone + Google Play όταν το πει).
 # Secrets (Settings › Secrets and variables › Actions):
 #   ASC_KEY_ID       Key ID του κλειδιού App Store Connect API (Users and Access › Integrations › Team Keys, ρόλος Admin)
 #   ASC_ISSUER_ID    Issuer ID (στην ίδια σελίδα)
@@ -23,7 +24,7 @@ on:
       upload:
         description: 'Ανέβασμα στο App Store Connect (TestFlight)'
         type: boolean
-        default: true
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -68,7 +69,11 @@ jobs:
       - name: Κλειδί App Store Connect
         id: key
         run: |
-          if [ -n "$ASC_KEY_ID" ] && [ -n "$ASC_ISSUER_ID" ] && [ -n "$ASC_KEY_P8" ] && [ -n "$TEAM" ]; then
+          # 12/11/2026 (Dinos): ανέβασμα στο TestFlight ΜΟΝΟ όταν το ζητά ο ίδιος (Run workflow, upload = true).
+          # Σε κάθε push γίνεται μόνο έλεγχος χτισίματος· οι εκδόσεις ανεβαίνουν μαζί σε iPhone και Google Play όταν το αποφασίσει.
+          if [ "${{ github.event_name }}" != "workflow_dispatch" ] || [ "${{ inputs.upload }}" != "true" ]; then
+            echo "Χωρίς ανέβασμα (push ή upload=false): μόνο έλεγχος χτισίματος."
+          elif [ -n "$ASC_KEY_ID" ] && [ -n "$ASC_ISSUER_ID" ] && [ -n "$ASC_KEY_P8" ] && [ -n "$TEAM" ]; then
             mkdir -p "$RUNNER_TEMP/keys"
             printf '%s\n' "$ASC_KEY_P8" > "$RUNNER_TEMP/keys/AuthKey_$ASC_KEY_ID.p8"
             echo "path=$RUNNER_TEMP/keys/AuthKey_$ASC_KEY_ID.p8" >> "$GITHUB_OUTPUT"
@@ -101,7 +106,7 @@ jobs:
             archive | tail -n 80
 
       - name: Ανέβασμα στο App Store Connect (TestFlight)
-        if: steps.key.outputs.signed == '1' && (github.event_name == 'push' || inputs.upload)
+        if: steps.key.outputs.signed == '1'
         run: |
           set -o pipefail
           cat > "$RUNNER_TEMP/export.plist" <<EOF

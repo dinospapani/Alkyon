@@ -102,7 +102,7 @@ jobs:
           retention-days: 30
 
       - name: Ανέβασμα στο Google Play
-        if: steps.ks.outputs.signed == '1' && env.PLAY_JSON != '' && (github.event_name == 'push' || inputs.track != 'none')
+        if: steps.ks.outputs.signed == '1' && env.PLAY_JSON != '' && github.event_name == 'workflow_dispatch' && inputs.track != 'none'   # 12/11/2026: στο Play μόνο όταν το ζητά ο Dinos, ποτέ σε push
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
