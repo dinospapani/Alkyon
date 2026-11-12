@@ -27,7 +27,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Build shoals.js (OSM, Geofabrik: Ελλάδα + Κύπρος)
+      - name: "Build shoals.js (OSM, Geofabrik: Ελλάδα + Κύπρος)"
         run: |
           pip install osmium
           curl -sSfL --retry 3 -o /tmp/greece.osm.pbf https://download.geofabrik.de/europe/greece-latest.osm.pbf
