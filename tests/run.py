@@ -1139,8 +1139,10 @@ with sync_playwright() as p:
     # 1.12.16: παλίρροια, φίλτρα Οδηγού, GPX/KML, «Είδη» στο Προφίλ, «Σήμερα» στην είσοδο
     import json as _jj, time as _tt
     _SL=_jj.load(open(_os.path.join(os.path.dirname(os.path.abspath(__file__)),'sealevel.json')))
-    _d0=_tt.strftime('%Y-%m-%d'); _base=_SL['t'][24][:10]
-    _shift=lambda ts: _d0+ts[10:] if ts[:10]==_base else ts
+    # όλες οι ώρες μετακινούνται κατά τις ίδιες μέρες, ώστε σήμερα ΚΑΙ αύριο να έχουν παλίρροια (αλλιώς νωρίς το πρωί UTC φαινόταν μόνο ένα άκρο)
+    import datetime as _dtm
+    _off=_dtm.date.today()-_dtm.date.fromisoformat(_SL['t'][24][:10])
+    _shift=lambda ts: (_dtm.datetime.fromisoformat(ts)+_off).strftime('%Y-%m-%dT%H:%M')
     c=ctx(b); c.route('**/marine?*hourly=sea_level_height_msl*',lambda r: r.fulfill(json={'hourly':{'time':[_shift(x) for x in _SL['t']],'sea_level_height_msl':_SL['v']}}))
     pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(5000)
     pg.evaluate("()=>{const d=document.querySelector('details.fold[data-k=pw]'); if(d) d.open=true;}"); pg.wait_for_timeout(1500)
