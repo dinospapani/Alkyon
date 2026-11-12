@@ -11,7 +11,8 @@
 #   ASC_KEY_P8       όλο το περιεχόμενο του AuthKey_XXXX.p8
 # Variable: APPLE_TEAM_ID = το Team ID (developer.apple.com › Account › Membership details), 10 χαρακτήρες.
 # Η υπογραφή γίνεται αυτόματα από το Xcode (cloud signing) με το κλειδί API: δεν χρειάζονται πιστοποιητικά .p12.
-# Το archive υπογράφεται κατευθείαν για διανομή (Apple Distribution): για υπογραφή ανάπτυξης θα χρειαζόταν καταχωρημένη συσκευή.
+# Το archive υπογράφεται «ad hoc» (μόνο για να κρατήσει τα entitlements: push, associated domains), γιατί η αυτόματη υπογραφή
+# ανάπτυξης θέλει καταχωρημένη συσκευή. Η πραγματική υπογραφή διανομής γίνεται στο -exportArchive (cloud signing, κλειδί API Admin).
 name: Alkyon iOS
 on:
   push:
@@ -93,7 +94,7 @@ jobs:
           set -o pipefail
           xcodebuild -project App.xcodeproj -scheme App -configuration Release \
             -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/Alkyon.xcarchive" \
-            DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic CODE_SIGN_IDENTITY="Apple Distribution" \
+            DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="-" AD_HOC_CODE_SIGNING_ALLOWED=YES PROVISIONING_PROFILE_SPECIFIER="" \
             MARKETING_VERSION=${{ steps.ver.outputs.name }} CURRENT_PROJECT_VERSION=${{ steps.ver.outputs.build }} \
             -allowProvisioningUpdates \
             -authenticationKeyPath "${{ steps.key.outputs.path }}" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
