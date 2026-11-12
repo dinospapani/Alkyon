@@ -1,7 +1,9 @@
 name: mockup relief
 on: { push: { branches: [mockup-relief] } }
+permissions: { contents: write }
 jobs:
   m:
+    if: "!contains(github.event.head_commit.message, 'shots')"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -12,3 +14,7 @@ jobs:
           python tools/mock.py
       - uses: actions/upload-artifact@v4
         with: { name: shots, path: "*.png" }
+      - run: |
+          mkdir -p shots && mv *.png shots/
+          git config user.name bot && git config user.email bot@users.noreply.github.com
+          git add shots && git commit -m "shots" && git push
