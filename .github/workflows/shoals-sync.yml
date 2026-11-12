@@ -1,0 +1,44 @@
+name: Shoals and rocks (OSM)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "tools/shoals_build.py"
+      - ".github/workflows/shoals-sync.yml"
+  schedule:
+    - cron: "17 4 3 */2 *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: shoals-sync
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Build shoals.js (OSM, Geofabrik: Ελλάδα + Κύπρος)
+        run: |
+          pip install osmium
+          curl -sSfL --retry 3 -o /tmp/greece.osm.pbf https://download.geofabrik.de/europe/greece-latest.osm.pbf
+          curl -sSfL --retry 3 -o /tmp/cyprus.osm.pbf https://download.geofabrik.de/europe/cyprus-latest.osm.pbf
+          python3 tools/shoals_build.py /tmp/greece.osm.pbf /tmp/cyprus.osm.pbf
+
+      - name: Commit if changed
+        run: |
+          git config user.name "bitecast-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add shoals.js
+          git diff --cached --quiet || git commit -m "Shoals and rocks update (OSM)"
+          git pull --rebase --autostash
+          git push

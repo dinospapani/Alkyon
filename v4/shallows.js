@@ -1,24 +1,24 @@
-/* Alkyon 4 · 1.13.4: Ρηχά νερά και ξέρες (όπως η σκίαση ρηχών στους ναυτικούς χάρτες)
-   Από το πλέγμα βάθους EMODnet (ίδια πηγή με τις γραμμές βάθους και τη «Δομή βυθού»):
-   - σκίαση: 0–2 m σκούρο, 2–5 m μεσαίο, 5–10 m ανοιχτό (κουκκίδες στα 0–5 m, όπως στους χάρτες)
-   - ξέρες: ρηχά σημεία (≤ 10 m) που δεν ακουμπούν στην ακτή, με ⚠ και το ελάχιστο βάθος
-   Ενδεικτικό: το πλέγμα είναι μέσος όρος ~115 m, άρα μικρές ξέρες μπορεί να λείπουν ή να φαίνονται βαθύτερες.
-   Δεν είναι ναυτικός χάρτης και δεν αντικαθιστά βυθόμετρο ή τα σήματα του OpenSeaMap. */
+/* Alkyon 4 · Ρηχά νερά και ξέρες (όπως η σκίαση ρηχών στους ναυτικούς χάρτες)
+   1.13.4: από το πλέγμα βάθους EMODnet: σκίαση 0–2 / 2–5 / 5–10 m (κουκκίδες κάτω από 5 m) και ⚠ στις ξέρες ≤ 10 m που δεν ακουμπούν στην ακτή.
+   1.13.6: σε σταθερά κομμάτια 0,25° που κρατιούνται στο κινητό (Cache Storage): δεν ξαναφορτώνει σε κάθε μετακίνηση και δουλεύει
+           και χωρίς σύνδεση όπου έχεις ήδη δει. + ξέρες, βράχοι και ναυάγια από το OpenStreetMap (seamarks, shoals.js), με βάθος όπου υπάρχει.
+   Ενδεικτικό: δεν είναι ναυτικός χάρτης και δεν αντικαθιστά βυθόμετρο. */
 (function(){
 var B=window.AK, h=B.h, T=B.T, EN=B.EN, ls=B.ls;
-var KEY='alkyon-v4-shallow', on=!!ls.get(KEY,false), map=null, cv=null, grp=null, G=null, A=null, busy=false, key='', mt=0, legEl=null;
-var LIM=10;
+var KEY='alkyon-v4-shallow', on=!!ls.get(KEY,false), map=null, cv=null, grp=null, busy=0, mt=0, legEl=null;
+var LIM=10, TS=0.25, RES=1/960, CN='alkyon-shallow-v1', TILES={}, PEND={}, SH=null, shP=null;
 function M(){ return window.AlkyonCore&&window.AlkyonCore.map&&window.AlkyonCore.map(); }
 function pane(){ var p=map.getPane('shPane')||map.createPane('shPane'); p.style.zIndex='338'; p.style.pointerEvents='none'; return p; }
 function pin(c){ try{ L.DomUtil.setPosition(c,map.containerPointToLayerPoint([0,0])); }catch(e){} }
 function loadBathy(){ return window.AlkyonBathy?Promise.resolve():new Promise(function(res){ var s=document.createElement('script'); s.src='../bathy-lines.js'; s.onload=res; s.onerror=res; document.head.appendChild(s); }); }
+function loadShoals(){ if(SH) return Promise.resolve(SH); if(shP) return shP; shP=(window.ALKYON_SHOALS?Promise.resolve():new Promise(function(res){ var s=document.createElement('script'); s.src='../shoals.js'; s.onload=res; s.onerror=res; document.head.appendChild(s); })).then(function(){ SH=window.ALKYON_SHOALS||[]; return SH; }); return shP; }
 function ensure(){ var m=M(); if(!m) return false; if(m!==map){ map=m; cv=null;
     map.on('movestart zoomstart',function(){ if(cv) cv.style.opacity='0'; });
     map.on('move',function(){ if(cv) pin(cv); });
-    map.on('moveend zoomend',function(){ clearTimeout(mt); mt=setTimeout(refresh,400); }); }
-  if(!cv){ cv=document.createElement('canvas'); cv.className='shcv'; cv.setAttribute('aria-hidden','true'); cv.style.cssText='position:absolute;left:0;top:0;pointer-events:none;transition:opacity .3s'; pane().appendChild(cv); }
+    map.on('moveend zoomend',function(){ clearTimeout(mt); mt=setTimeout(refresh,250); }); }
+  if(!cv){ cv=document.createElement('canvas'); cv.className='shcv'; cv.setAttribute('aria-hidden','true'); cv.style.cssText='position:absolute;left:0;top:0;pointer-events:none;transition:opacity .25s'; pane().appendChild(cv); }
   if(!grp) grp=L.layerGroup(); return true; }
-/* ξέρες: ομάδες ρηχών κελιών (≤ LIM) που δεν ακουμπούν σε ξηρά ή κενό */
+/* ---------- ξέρες από το πλέγμα: ρηχά κελιά (≤ LIM) που δεν ακουμπούν σε ξηρά ή κενό ---------- */
 function analyze(g){
   var w=g.w, hh=g.h, d=g.data, seen=new Uint8Array(w*hh), shoals=[], n=0;
   function sh(i){ var v=d[i]; return v>0&&v<=LIM; }
@@ -32,45 +32,66 @@ function analyze(g){
   shoals.sort(function(a,b){ return a.d-b.d; });
   return {n:n,shoals:shoals.slice(0,40)}; }
 function ll(g,x,y){ return [g.y0+g.dy*(y+0.5),g.x0+g.dx*(x+0.5)]; }
+/* ---------- κομμάτια 0,25° με μνήμη στο κινητό ---------- */
+function tkey(i,j){ return i+'_'+j; }
+function pack(g){ var q=new Int16Array(g.data.length); for(var i=0;i<q.length;i++){ var v=g.data[i]; q[i]=v>0?Math.min(32000,Math.round(v*10)):(v<0?-1:0); } return {w:g.w,h:g.h,x0:g.x0,y0:g.y0,dx:g.dx,dy:g.dy,q:q}; }
+function unpack(o){ var d=new Float32Array(o.q.length); for(var i=0;i<d.length;i++) d[i]=o.q[i]>0?o.q[i]/10:(o.q[i]<0?-1:0); return {w:o.w,h:o.h,x0:o.x0,y0:o.y0,dx:o.dx,dy:o.dy,data:d}; }
+function cacheGet(k){ try{ if(!window.caches) return Promise.resolve(null); return caches.open(CN).then(function(c){ return c.match('/__sh/'+k); }).then(function(r){ if(!r) return null; return r.arrayBuffer().then(function(b){ var hd=new Float64Array(b,0,6), q=new Int16Array(b.slice(48)); return unpack({w:hd[0],h:hd[1],x0:hd[2],y0:hd[3],dx:hd[4],dy:hd[5],q:q}); }); }).catch(function(){ return null; }); }catch(e){ return Promise.resolve(null); } }
+function cachePut(k,g){ try{ if(!window.caches) return; var p=pack(g), b=new ArrayBuffer(48+p.q.byteLength); new Float64Array(b,0,6).set([p.w,p.h,p.x0,p.y0,p.dx,p.dy]); new Int16Array(b,48).set(p.q);
+    caches.open(CN).then(function(c){ return c.put('/__sh/'+k,new Response(b,{headers:{'content-type':'application/octet-stream'}})); }).catch(function(){}); }catch(e){} }
+function tile(i,j){ var k=tkey(i,j); if(TILES[k]) return Promise.resolve(TILES[k]); if(PEND[k]) return PEND[k];
+  PEND[k]=cacheGet(k).then(function(g){ if(g) return g; var b={w:+(i*TS).toFixed(4),s:+(j*TS).toFixed(4),e:+((i+1)*TS).toFixed(4),n:+((j+1)*TS).toFixed(4)};
+      return loadBathy().then(function(){ if(!window.AlkyonBathy) throw new Error('nobathy'); return window.AlkyonBathy.fetchGrid(b,RES); }).then(function(gg){ cachePut(k,gg); return gg; }); })
+    .then(function(g){ var t={g:g,a:analyze(g),img:null}; TILES[k]=t; delete PEND[k]; return t; },function(e){ delete PEND[k]; throw e; });
+  return PEND[k]; }
+function need(){ var b=map.getBounds(), out=[]; for(var i=Math.floor(b.getWest()/TS);i<=Math.floor(b.getEast()/TS);i++) for(var j=Math.floor(b.getSouth()/TS);j<=Math.floor(b.getNorth()/TS);j++) out.push([i,j]); return out; }
+/* ---------- σχεδίαση ---------- */
 function sat(){ var v=ls.get('alkyon-v4-map',null); return !v||v.base!=='osm'; }
 function band(v){ return v<=2?0:v<=5?1:2; }
+function tileImg(t,S){ if(t.img&&t.imgS===S) return t.img; var g=t.g, col=S?[[120,220,255,.62],[90,190,240,.42],[70,160,230,.22]]:[[30,110,200,.55],[60,140,215,.38],[110,175,230,.22]];
+  var pc=document.createElement('canvas'); pc.width=g.w; pc.height=g.h; var px=pc.getContext('2d'), im=px.createImageData(g.w,g.h), dd=im.data;
+  for(var i=0;i<g.w*g.h;i++){ var v=g.data[i]; if(!(v>0&&v<=LIM)) continue; var k=col[band(v)], o=i*4; dd[o]=k[0]; dd[o+1]=k[1]; dd[o+2]=k[2]; dd[o+3]=Math.round(255*k[3]); }
+  px.putImageData(im,0,0); t.img=pc; t.imgS=S; return pc; }
+var KIND={r:T('βράχος κάτω από το νερό','submerged rock'),a:T('βράχος στην επιφάνεια','rock awash'),c:T('βράχος που σκεπάζεται','rock that covers'),R:T('βράχος','rock'),w:T('ναυάγιο','wreck'),o:T('εμπόδιο','obstruction'),f:T('ύφαλος','reef'),s:T('ξέρα','shoal')};
+function kind(c){ return KIND[c]||T('ξέρα','shoal'); }
+function shoalMk(lat,lon,dep,src,nm){ var lbl=dep!=null?((dep<1?'<1':Math.round(dep))+' m'):'';
+  return L.marker([lat,lon],{keyboard:false,icon:L.divIcon({className:'mk shoal'+(src==='osm'?' osm':''),iconSize:null,html:'<i>⚠</i>'+(lbl?'<b>'+lbl.replace(/</g,'&lt;')+'</b>':'')})})
+    .on('click',function(){ B.toast(src==='osm'?(T('Από το OpenStreetMap: ','From OpenStreetMap: ')+(nm||T('ξέρα / βράχος','shoal / rock'))+(dep!=null?T(' · βάθος ~',' · depth ~')+dep+' m':'')+T(' (σήμα χάρτη, ενδεικτικό).',' (chart mark, indicative).')):(T('Ξέρα μακριά από την ακτή: ελάχιστο βάθος ~','Offshore shoal: minimum depth ~')+(dep<1?'<1':Math.round(dep))+T(' m (EMODnet, ενδεικτικό· μπορεί να είναι πιο ρηχή).',' m (EMODnet, indicative; it may be shallower).')),8000); }); }
 function draw(){
   if(!ensure()) return; var sz=map.getSize(), dpr=Math.min(window.devicePixelRatio||1,2); cv.width=Math.round(sz.x*dpr); cv.height=Math.round(sz.y*dpr); cv.style.width=sz.x+'px'; cv.style.height=sz.y+'px'; pin(cv);
   var c=cv.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0); c.clearRect(0,0,sz.x,sz.y); grp.clearLayers();
-  if(!on||!G||!A||!document.body.classList.contains('mapon')){ cv.style.opacity='0'; if(map&&map.hasLayer(grp)) map.removeLayer(grp); legend(null); return; }
-  var g=G, S=sat(), col=S?[[120,220,255,.62],[90,190,240,.42],[70,160,230,.22]]:[[30,110,200,.55],[60,140,215,.38],[110,175,230,.22]];
-  var pc=document.createElement('canvas'); pc.width=g.w; pc.height=g.h; var px=pc.getContext('2d'), im=px.createImageData(g.w,g.h), dd=im.data;
-  for(var i=0;i<g.w*g.h;i++){ var v=g.data[i]; if(!(v>0&&v<=LIM)) continue; var k=col[band(v)], o=i*4; dd[o]=k[0]; dd[o+1]=k[1]; dd[o+2]=k[2]; dd[o+3]=Math.round(255*k[3]); }
-  px.putImageData(im,0,0);
-  var p0=map.latLngToContainerPoint([g.y0,g.x0]), p1=map.latLngToContainerPoint([g.y0+g.dy*g.h,g.x0+g.dx*g.w]), cw=(p1.x-p0.x)/g.w, ch=(p1.y-p0.y)/g.h;
-  c.imageSmoothingEnabled=true; c.drawImage(pc,0,0,g.w,g.h,p0.x,p0.y,p1.x-p0.x,p1.y-p0.y);
+  var vis=on&&document.body.classList.contains('mapon')&&map.getZoom()>=11, ts=vis?need().map(function(x){ return TILES[tkey(x[0],x[1])]; }).filter(Boolean):[];
+  if(!vis){ cv.style.opacity='0'; if(map&&map.hasLayer(grp)) map.removeLayer(grp); if(!on||!document.body.classList.contains('mapon')) legend(null); return; }
+  var S=sat(), n=0, placed=[];
+  ts.forEach(function(t){ var g=t.g, p0=map.latLngToContainerPoint([g.y0,g.x0]), p1=map.latLngToContainerPoint([g.y0+g.dy*g.h,g.x0+g.dx*g.w]); c.imageSmoothingEnabled=true; c.drawImage(tileImg(t,S),0,0,g.w,g.h,p0.x,p0.y,p1.x-p0.x,p1.y-p0.y); n+=t.a.n;
+    t.a.shoals.forEach(function(p){ var q=ll(g,p.x,p.y); placed.push(q); shoalMk(q[0],q[1],p.d,'emod').addTo(grp); }); });
   /* κουκκίδες στα 0–5 m (όπως οι ναυτικοί χάρτες), μία κάθε ~9 px */
   c.fillStyle=S?'rgba(255,255,255,.75)':'rgba(10,50,110,.55)'; var step=9;
-  for(var yy=Math.max(0,Math.floor(p0.y/step)*step);yy<Math.min(sz.y,p1.y);yy+=step) for(var xx=Math.max(0,Math.floor(p0.x/step)*step)+((yy/step)%2?step/2:0);xx<Math.min(sz.x,p1.x);xx+=step){
-    var gx=Math.floor((xx-p0.x)/cw), gy=Math.floor((yy-p0.y)/ch); if(gx<0||gy<0||gx>=g.w||gy>=g.h) continue; var vv=g.data[gy*g.w+gx]; if(vv>0&&vv<=5){ c.beginPath(); c.arc(xx,yy,1.1,0,6.283); c.fill(); } }
-  A.shoals.forEach(function(p){ L.marker(ll(g,p.x,p.y),{keyboard:false,icon:L.divIcon({className:'mk shoal',iconSize:null,html:'<i>⚠</i><b>'+(p.d<1?'<1':Math.round(p.d))+' m</b>'})})
-    .on('click',function(){ B.toast(T('Ξέρα μακριά από την ακτή: ελάχιστο βάθος ~','Offshore shoal: minimum depth ~')+(p.d<1?'<1':Math.round(p.d))+T(' m (EMODnet, ενδεικτικό· μπορεί να είναι πιο ρηχή).',' m (EMODnet, indicative; it may be shallower).'),8000); }).addTo(grp); });
+  for(var yy=0;yy<sz.y;yy+=step) for(var xx=(yy/step)%2?step/2:0;xx<sz.x;xx+=step){ var la=map.containerPointToLatLng([xx,yy]), t2=TILES[tkey(Math.floor(la.lng/TS),Math.floor(la.lat/TS))]; if(!t2) continue; var g2=t2.g, gx=Math.floor((la.lng-g2.x0)/g2.dx), gy=Math.floor((la.lat-g2.y0)/g2.dy); if(gx<0||gy<0||gx>=g2.w||gy>=g2.h) continue; var vv=g2.data[gy*g2.w+gx]; if(vv>0&&vv<=5){ c.beginPath(); c.arc(xx,yy,1.1,0,6.283); c.fill(); } }
+  /* ξέρες, βράχοι, ναυάγια από το OpenStreetMap */
+  var bd=map.getBounds().pad(.05); (SH||[]).forEach(function(s){ if(!bd.contains([s[0],s[1]])) return; if(placed.some(function(q){ return Math.abs(q[0]-s[0])<0.0015&&Math.abs(q[1]-s[1])<0.002; })) return; shoalMk(s[0],s[1],s[2],'osm',s[4]||kind(s[3])).addTo(grp); });
   if(!map.hasLayer(grp)) grp.addTo(map);
-  cv.style.opacity='1'; legend(A); }
+  cv.style.opacity='1'; legend({n:n}); }
 function legend(a){
   if(!a){ if(legEl) legEl.hidden=true; return; }
   if(!legEl){ legEl=h('div',{class:'sbleg shleg',role:'note'}); document.body.append(legEl); }
   var S=sat(); legEl.hidden=false; legEl.replaceChildren(h('b',{text:T('Ρηχά & ξέρες','Shallows & shoals')}),
     h('span',{class:'sbk'},h('i',{style:'background:'+(S?'#78dcff':'#1e6ec8')}),'0–2 m'),h('span',{class:'sbk'},h('i',{style:'background:'+(S?'#5abef0':'#3c8cd7')+';opacity:.75'}),'2–5 m'),h('span',{class:'sbk'},h('i',{style:'background:'+(S?'#46a0e6':'#6eafe6')+';opacity:.5'}),'5–10 m'),
     h('span',{class:'sbk'},h('em',{text:'⚠'}),T('ξέρα','shoal')),
-    h('small',{text:a.n?T('Ενδεικτικά (πλέγμα ~115 m)· μικρές ξέρες μπορεί να λείπουν. Δες και τα «Ναυτικά σήματα».','Indicative (~115 m grid); small shoals may be missing. See also “Sea marks”.'):T('Δεν υπάρχουν ρηχά κάτω από 10 m εδώ.','No water shallower than 10 m here.')})); }
+    h('small',{text:busy?T('Φόρτωση βαθών… (μένουν στο κινητό)','Loading depths… (kept on your phone)'):a.n?T('Ενδεικτικά (EMODnet ~115 m και σήματα OpenStreetMap)· μικρές ξέρες μπορεί να λείπουν.','Indicative (EMODnet ~115 m and OpenStreetMap marks); small shoals may be missing.'):T('Δεν υπάρχουν ρηχά κάτω από 10 m εδώ.','No water shallower than 10 m here.')})); }
 function msg(t){ if(!legEl){ legEl=h('div',{class:'sbleg shleg',role:'note'}); document.body.append(legEl); } legEl.hidden=false; legEl.replaceChildren(h('b',{text:T('Ρηχά & ξέρες','Shallows & shoals')}),h('small',{text:t})); }
+var fails=0;
 function refresh(){
   if(!on||!ensure()){ draw(); return; } if(!document.body.classList.contains('mapon')) return;
-  if(map.getZoom()<11){ G=null; A=null; draw(); msg(T('Κάνε ζουμ (11+) για να δεις τα ρηχά και τις ξέρες.','Zoom in (11+) to see shallows and shoals.')); return; }
-  var b=map.getBounds(), pw=(b.getEast()-b.getWest())*0.1, ph=(b.getNorth()-b.getSouth())*0.1, bb={w:b.getWest()-pw,s:b.getSouth()-ph,e:b.getEast()+pw,n:b.getNorth()+ph};
-  var k=[bb.w,bb.s,bb.e,bb.n].map(function(v){ return v.toFixed(3); }).join(','); if(k===key&&G){ draw(); return; }
-  if(busy) return; busy=true; msg(T('Φόρτωση βαθών…','Loading depths…'));
-  var res=Math.max(1/960,(bb.e-bb.w)/300);
-  loadBathy().then(function(){ if(!window.AlkyonBathy) throw new Error('nobathy'); return window.AlkyonBathy.fetchGrid(bb,res); }).then(function(g){ key=k; G=g; A=analyze(g); draw(); })
-    .catch(function(){ msg(T('Τα βάθη δεν φορτώθηκαν. Χρειάζεται σύνδεση.','Depths did not load. Needs a connection.')); }).then(function(){ busy=false; }); }
+  loadShoals().then(function(){ draw(); });
+  if(map.getZoom()<11){ draw(); msg(T('Κάνε ζουμ (11+) για να δεις τα ρηχά και τις ξέρες.','Zoom in (11+) to see shallows and shoals.')); return; }
+  var miss=need().filter(function(x){ return !TILES[tkey(x[0],x[1])]; }).slice(0,24);
+  draw(); if(!miss.length) return;
+  busy++; legend({n:1});
+  Promise.all(miss.map(function(x){ return tile(x[0],x[1]).then(draw).catch(function(){ fails++; }); })).then(function(){ busy--; draw();
+    if(fails&&!Object.keys(TILES).length) msg(T('Τα βάθη δεν φορτώθηκαν. Χρειάζεται σύνδεση την πρώτη φορά.','Depths did not load. A connection is needed the first time.')); fails=0; }); }
 B.shallows={on:function(){ return on; },set:function(v){ on=!!v; ls.set(KEY,on); if(on) refresh(); else draw(); try{ window.dispatchEvent(new Event('alkyon-wxchange')); }catch(e){} },
-  analyze:analyze,_inject:function(g){ key='inj'; G=g; A=analyze(g); draw(); return A; }};
+  analyze:analyze,_tiles:TILES,pack:pack,unpack:unpack};
 new MutationObserver(function(){ if(on) setTimeout(refresh,300); }).observe(document.body,{attributes:true,attributeFilter:['class']});
 setTimeout(function(){ if(on) refresh(); },3500);
 })();

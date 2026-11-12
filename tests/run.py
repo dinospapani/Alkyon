@@ -295,11 +295,11 @@ with sync_playwright() as p:
     pg.evaluate("()=>document.querySelector('.mcdim').click()"); pg.wait_for_timeout(400)
     check('πάτημα στον χάρτη κλείνει το μενού', pg.evaluate("()=>!document.querySelector('.mcdrw')"), None)
     r=pg.evaluate("""()=>{ const w=12,hh=12,d=new Float32Array(w*hh).fill(30); for(let y=0;y<hh;y++){ d[y*w]=-5; d[y*w+1]=3; } d[5*w+6]=4; d[5*w+7]=6; d[6*w+6]=7;
-      const g={w:w,h:hh,data:d,x0:22.0,y0:38.0,dx:0.001,dy:-0.001}; const a=AK.shallows.analyze(g); return [a.shoals.length, a.shoals[0]&&a.shoals[0].d, a.n, !!AK.shallows.set]; }""")
-    check('Ρηχά & ξέρες: ξέρα μακριά από την ακτή (4 m), τα ρηχά της ακτής δεν μετράνε σαν ξέρα, πλακίδιο στο μενού (1.13.4)', r==[1,4,15,True], r)
+      const g={w:w,h:hh,data:d,x0:22.0,y0:38.0,dx:0.001,dy:-0.001}; const a=AK.shallows.analyze(g); return [a.shoals.length, a.shoals[0]&&a.shoals[0].d, a.n, !!AK.shallows.set, (()=>{ const u=AK.shallows.unpack(AK.shallows.pack(g)); return [u.data[5*w+6], u.data[0], u.data[1]]; })()]; }""")
+    check('Ρηχά & ξέρες: ξέρα μακριά από την ακτή (4 m), τα ρηχά της ακτής δεν μετράνε σαν ξέρα, πλακίδιο στο μενού (1.13.4)', r==[1,4,15,True,[4,-1,3]], r)
     pg.evaluate("()=>{ localStorage.setItem('alkyon-v4-pos',JSON.stringify({lat:34.7,lon:32.4,t:Date.now()})); AK.goTo(34.8,32.35,'Δοκιμή'); }"); pg.wait_for_timeout(1200)
-    r=pg.evaluate("()=>{ const d=document.querySelector('.dtbar'), m=document.querySelector('.mcbar'); if(!d||!m) return ['x']; const a=d.getBoundingClientRect(), b=m.getBoundingClientRect(); return [getComputedStyle(d).display!=='none', a.top>=b.bottom-1, d.textContent.includes('Δοκιμή')]; }")
-    check('Πλοήγηση προς σημείο: η μπάρα φαίνεται κάτω από τη μπάρα καιρού, όχι από κάτω της (1.13.4)', r==[True,True,True], r)
+    r=pg.evaluate("()=>{ const d=document.querySelector('.dtbar'), m=document.querySelector('.mcbar'); if(!d||!m) return ['x']; const a=d.getBoundingClientRect(), b=m.getBoundingClientRect(); const pts=[[a.right-8,a.top+a.height/2],[a.left+a.width/2,a.top+a.height/2]].map(p=>{ const e=document.elementFromPoint(p[0],p[1]); return !!(e&&d.contains(e)); }); return [getComputedStyle(d).display!=='none', a.top>=b.bottom-1, d.textContent.includes('Δοκιμή'), pts[0]&&pts[1]]; }")
+    check('Πλοήγηση προς σημείο: η μπάρα φαίνεται κάτω από τη μπάρα καιρού και δεν την κρύβουν τα κουμπιά δεξιά (1.13.4, 1.13.6)', r==[True,True,True,True], r)
     pg.evaluate("()=>AK.goClear()")
     check('καθαρός χάρτης χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
 
@@ -324,6 +324,8 @@ with sync_playwright() as p:
     pg.evaluate("()=>document.querySelector('.mcpanel .mph').click()"); pg.wait_for_timeout(800)
     k=pg.evaluate("()=>[AK.mapMode(), document.querySelector('.mcpanel').className, document.querySelector('.mcpanel').textContent]")
     check('ετικέτα: με το χέρι ΠΗΓΑΙΝΩ, κάρτα με απόσταση και στόχο', k[0]=='run' and 'run' in k[1] and 'Ξέρα' in k[2] and 'nm' in k[2], k)
+    k=pg.evaluate("()=>{ const r=document.querySelector('.mcpanel .mpto.mpnav'); if(!r) return ['x']; const x=r.querySelector('.mpstop'), P=document.querySelector('.mcpanel').getBoundingClientRect(), R=r.getBoundingClientRect(), X=x?x.getBoundingClientRect():R, ok=[!!r.querySelector('.mpar svg'), r.textContent.includes('Ξέρα'), !!x&&R.top>=P.top&&R.bottom<=P.bottom+1&&X.left>=R.left+R.width/2&&X.top>=R.top-1]; x.click(); return ok.concat([!localStorage.getItem('alkyon-direct')||localStorage.getItem('alkyon-direct')=='null']); }")
+    check('έξοδος: η πλοήγηση μέσα στο πάνελ (βέλος, προορισμός, ✕ που τη σταματά) (1.13.6)', k==[True,True,True,True], k)
     check('φωνή/οθόνη χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
 
     print('# βελτιώσεις 1.9.6 (εμφάνιση 1.8.33)')

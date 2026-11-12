@@ -747,12 +747,20 @@ function modePaint(){ if(!root) return; var m=md.m;
   md.chip.textContent=(m==='run'?T('ΠΗΓΑΙΝΩ','UNDERWAY'):m==='anchor'?T('ΑΓΚΥΡΑ','ANCHORED'):(B.troll&&B.troll.on&&B.troll.on()?T('ΨΑΡΕΥΩ · ΣΥΡΤΗ','FISHING · TROLLING'):T('ΨΑΡΕΥΩ','FISHING')))+(md.over?' ✋':'');
   var U=window.AlkyonUnits, kn=md.kn; md.el.replaceChildren(); md.el.append(h('button',{type:'button',class:'mph',text:md.chip.textContent,onclick:function(){ md.chip.click(); }}));
   function cell(lab,val,unit,cls){ return h('div',{class:'mpc'+(cls?' '+cls:'')},h('i',{text:lab}),h('b',{text:val}),unit?h('small',{text:unit}):null); }
-  function tgt(){ var t=dtTarget(), f=fixNow; if(!t||!f) return; var d=hav(f,t), b=brg(f,t); md.el.append(h('div',{class:'mpto'},h('span',{text:'➜ '+(t.name||T('Σημείο','Point'))}),h('span',{text:dtFmt(d)+' · '+Math.round(b)+'°'}))); }
+  /* 1.13.6: γραμμή πλοήγησης μέσα στο πάνελ της εξόδου (αντί για ξεχωριστή μπάρα): βέλος προς τα πού στρίβεις, όνομα, απόσταση · άφιξη, ✕. Πάτημα = δείξε βάρκα και προορισμό */
+  function navRow(t,f,showD){ var d=hav(f,t), b=brg(f,t), rel=youHead!=null?((b-youHead)%360+360)%360:b, kn=md.kn, eta='';
+    if(kn!=null&&kn>=1){ var sec=d/(kn/1.94384), at=new Date(Date.now()+sec*1000); eta=B.pad(at.getHours())+':'+B.pad(at.getMinutes()); }
+    var nm=t.name&&!/°/.test(t.name)?t.name:T('Σημείο','Point');
+    var info=(showD?dtFmt(d)+' · ':'')+Math.round(b)+'°'+(eta?T(' · άφιξη ',' · ETA ')+eta:'');
+    return h('div',{class:'mpto mpnav',role:'button',tabindex:'0',onclick:function(ev){ if(ev.target.closest('.mpstop')) return; try{ map.fitBounds(L.latLngBounds([[f.lat,f.lon],[t.lat,t.lon]]),{padding:[90,90],maxZoom:15}); setFollow(false); }catch(e){} }},
+      h('span',{class:'mpar',style:'transform:rotate('+Math.round(rel)+'deg)',html:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l7 19-7-4-7 4z"/></svg>'}),
+      h('span',{class:'mpnm',text:nm}),h('span',{class:'mpin',text:info}),
+      h('button',{class:'mpstop',type:'button','aria-label':T('Τέλος πλοήγησης','Stop navigating'),text:'✕',onclick:function(ev){ ev.stopPropagation(); B.goClear(); md.m=''; modeTick(); }})); }
+  function tgt(){ var t=dtTarget(), f=fixNow; if(!t||!f) return; md.el.append(navRow(t,f,true)); }
   if(m==='run'){ var t=dtTarget(), f=fixNow, hd=youHead;
     md.el.className='mcpanel run'; md.el.append(cell(T('ΤΑΧΥΤΗΤΑ','SPEED'),kn!=null?B.num(kn,1):'–','kn'),cell(T('ΠΟΡΕΙΑ','HEADING'),hd!=null?Math.round(hd)+'°':'–',hd!=null?COMP[Math.round(hd/45)%8]:''));
     if(t&&f){ var d=hav(f,t), nmv=d/1852; md.el.append(cell(T('ΑΠΟΣΤΑΣΗ','DISTANCE'),nmv<10?B.num(nmv,1):String(Math.round(nmv)),'nm'));
-      var eta=''; if(kn!=null&&kn>=1){ var sec=d/(kn/1.94384), at=new Date(Date.now()+sec*1000); eta=B.pad(at.getHours())+':'+B.pad(at.getMinutes())+' · '+(sec<3600?Math.round(sec/60)+'′':Math.floor(sec/3600)+T('ω ','h ')+B.pad(Math.round(sec%3600/60))+'′'); }
-      md.el.append(h('div',{class:'mpto'},h('span',{text:(t.name||T('Σημείο','Point'))+(eta?T(' · άφιξη ',' · ETA ')+eta.split(' · ')[0]:'')}),h('span',{text:eta?eta.split(' · ')[1]:''}))); }
+      md.el.append(navRow(t,f,false)); }
     else md.el.append(cell(T('ΠΡΟΣ','TO'),'—',T('κράτα πατημένο στον χάρτη › Πήγαινε εκεί','long-press the map › Go there'),'wide')); }
   else if(m==='anchor'){ var a=md.anc||ls.get('alkyon-anchor',null)||{}, dd=a.d!=null?a.d:null, bad=dd!=null&&a.r&&dd>a.r;
     md.el.className='mcpanel anc'+(bad?' bad':''); md.el.append(cell(T('ΑΠΟ ΤΗΝ ΑΓΚΥΡΑ','FROM ANCHOR'),dd!=null?String(dd):'…','m · '+T('όριο ','limit ')+(a.r||'–')+' m'+(dd!=null?(bad?T(' · ΣΕΡΝΕΙ',' · DRAGGING'):T(' · δεν σέρνει',' · holding')):''),'wide')); tgt(); }

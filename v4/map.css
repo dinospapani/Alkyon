@@ -750,7 +750,9 @@ body:not(.mapclean) .mcmode,body:not(.mapclean) .mcpanel,body:not(.mapon) .mcmod
 .mcpanel.anc b{color:#3ad07a}.mcpanel.anc.bad{background:rgba(160,20,20,.95)}.mcpanel.anc.bad b{color:#fff}
 body.mapclean.mode-run .fishbtns{display:none!important}
 /* 1.13.4: η μπάρα «Πήγαινε εκεί» έμενε κρυμμένη κάτω από τη μπάρα καιρού (ή εντελώς, σε «ψαρεύω»). Τώρα μπαίνει από κάτω· κρύβεται μόνο όταν το πάνελ δείχνει ήδη τον προορισμό. */
-body.mapclean .dtbar{top:calc(var(--safe-t,0px) + 76px);right:12px;max-width:520px}
+body.mapclean .dtbar{top:calc(var(--safe-t,0px) + 76px);right:84px;max-width:520px}
+/* 1.13.6: δεξιά είναι η στήλη με τα κουμπιά (θέση, στρώματα, ειδοποιήσεις): η μπάρα σταματά πριν από αυτήν */
+body:not(.mapclean) .dtbar{right:84px}
 body.mapclean:has(.mcpanel:not(.off) .mpto) .dtbar{display:none!important}
 body.mapclean:has(.mcpanel.anc) .dtbar{top:auto;bottom:calc(var(--nav-h,64px) + var(--safe-b,0px) + 96px)}
 html.night .mcpanel{background:#1a0000;box-shadow:0 0 0 2px #fff}
@@ -1166,3 +1168,13 @@ body.mapon .mapbar .gpsb,body.mapon .mapbar .iconbtn,body.mapon .mclay,body.mapo
 .sbleg.shleg .sbk em{color:#ff3b30;text-shadow:none}
 body.mapon:has(.sbleg:not(.shleg):not(.mdleg):not([hidden])) .sbleg.shleg{transform:translate(-50%,-56px)}
 body.mapclean.hasdt .sstleg,body.hasdt .sbleg.mdleg{top:calc(var(--safe-t,0px) + 140px)}
+.mk.shoal.osm i{color:#ff9500}.mk.shoal.osm b{background:#b85c00}
+/* 1.13.6: η πλοήγηση μέσα στο πάνελ της εξόδου, μία γραμμή, χωρίς δεύτερη μπάρα στην οθόνη */
+.mcpanel .mpto.mpnav{align-items:center;justify-content:flex-start;gap:8px;cursor:pointer;min-height:34px}
+.mcpanel .mpto.mpnav .mpar{flex:none;width:22px;height:22px;display:inline-flex;transition:transform .4s}
+.mcpanel .mpto.mpnav .mpar svg{width:22px;height:22px;fill:#E4572E}
+.mcpanel .mpto.mpnav .mpnm{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mcpanel .mpto.mpnav .mpin{flex:none;white-space:nowrap;opacity:.9}
+.mcpanel .mpto.mpnav .mpstop{flex:none;width:30px;height:30px;border-radius:50%;border:0;background:rgba(127,127,127,.18);color:inherit;font-size:14px;line-height:30px;padding:0}
+.mcpanel .mpto.mpnav .mpstop{position:static!important;display:inline-flex;align-items:center;justify-content:center;font-weight:800}
+html:not(.night) body.mapclean .mcpanel .mpto.mpnav .mpstop{background:var(--surface-2,#eef2f3)}
