@@ -1034,6 +1034,8 @@ with sync_playwright() as p:
     check('Τοπικές απαγορεύσεις Λιμενικού: Καβάλα (αποβάθρα 1–3), αγκυροβόλιο Καλαμάτας, εποχική Κω–Καλύμνου, ψαροντούφεκο Λαύριο (1.13.3)', r==['KABALA',True,0,True,False,1,True], r)
     r=pg.evaluate("()=>{ const a=window.GR_LOCAL.a; return [a.every(x=>x.r.every(r=>r[4]&&!/[α-ω]/.test(r[4]))), a.every(x=>(x.g||[]).every(g=>g.ne&&g.de))]; }")
     check('Τοπικές απαγορεύσεις: όλοι οι κανόνες και οι περιοχές έχουν αγγλικό κείμενο (1.13.4)', r==[True,True], r)
+    r=pg.evaluate("()=>{ const G=AK.grLocal, h=G.check(40.9335,24.409).hits.filter(x=>x.d===0).map(x=>x.g.s), A=window.GR_LOCAL.a; return [h.includes(2), A.length>=60, A.some(x=>x.k==='hraklio'), A.some(x=>x.k==='thessaloniki'&&x.r.some(r=>r[1].includes('Λιμάνι Θεσσαλονίκης')))]; }")
+    check('Τοπικές απαγορεύσεις: λεκάνη λιμανιού Καβάλας (OSM), όλες οι 66 Λιμενικές Αρχές, Θεσσαλονίκη λιμάνι (1.13.5)', r==[True,True,True,True], r)
     go(pg,'#guide',2500); pg.click('#tab-guide .seg button[data-g=law]') if pg.query_selector('#tab-guide .seg button[data-g=law]') else pg.click('button[data-g=law]'); pg.wait_for_timeout(600)
     t=pg.evaluate("()=>{ const L=document.getElementById('g-law'); const on=L.querySelector('.lawc [aria-pressed=true]'); return [on&&on.textContent, L.textContent.includes('Έως 5 kg ψάρια ή κεφαλόποδα'), L.textContent.includes('108 Λιμενικό')] }")
     check('Οδηγός › Νόμοι: στην Ελλάδα ανοίγει με τους ελληνικούς κανόνες (1.11.0)', t==['Ελλάδα',True,True], t)

@@ -356,7 +356,7 @@ function grLocalCard(){
     h('summary',{},h('b',{text:a.n}),p?h('span',{class:'muted',text:Math.round(dk(a))+' km'}):null),
     h('div',{style:'padding:0 14px 12px'},h('ul',{class:'law'},a.r.map(r=>h('li',{},IC[r[0]]+' '+r[1]+' ',h('span',{class:'muted',text:'('+(r[2]&&r[2]!=='—'?r[2]+' · ':'')+r[3]+')'})))),
       h('p',{class:'note'},lnk('https://alieia.hcg.gr/prohibitions/local/'+a.k+'.php','Σελίδα Λιμενικού')))) ));
-  box.append(h('div',{class:'note',style:'margin-top:10px'},'Δεν έχουμε ακόμα περάσει: '+G.todo.join(', ')+'. Για αυτές δες τον ',lnk(G.idx,'χάρτη τοπικών απαγορεύσεων του Λιμενικού'),' ή ρώτα το λιμεναρχείο.'));
+  box.append(h('div',{class:'note',style:'margin-top:10px'},(G.todo&&G.todo.length?'Δεν έχουμε ακόμα περάσει: '+G.todo.join(', ')+'. ':'Όλες οι Λιμενικές Αρχές του χάρτη του Λιμενικού ('+G.a.length+'). ')+'Ο ',lnk(G.idx,'χάρτης τοπικών απαγορεύσεων του Λιμενικού'),' έχει και τους κανόνες για επαγγελματικά εργαλεία.'));
   box.append(h('div',{class:'note',style:'margin-top:6px'},'Πηγή: Λιμενικό Σώμα, alieia.hcg.gr › Τοπικές απαγορεύσεις, ελέγχθηκε '+G.ck.split('-').reverse().join('/')+'. Σύντομη απόδοση· ισχύει η απόφαση της κάθε Λιμενικής Αρχής.'));
   return box;
 }

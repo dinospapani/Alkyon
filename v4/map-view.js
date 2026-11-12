@@ -229,10 +229,11 @@ function drawOverlays(){
 /* 1.13.3: Λιμενικές Αρχές (σήμα ⚓, πατάς για τους κανόνες) και οι περιοχές τους με συντεταγμένες */
 function drawGrLocal(){ var G=window.GR_LOCAL; ov.grl=L.layerGroup();
   G.a.forEach(function(a){ L.marker(a.c,{icon:icon('grl','<b>⚓</b>'),title:T('Τοπικοί κανόνες: ','Local rules: ')+(EN?a.e:a.n)}).on('click',function(){ B.grLocal.sheet(a); }).addTo(ov.grl);
-    (a.g||[]).forEach(function(g){ var on=B.grLocal.inWin(g.w), col=g.s===1?'#af52de':(g.w?'#ff9500':'#ff3b30'), st={color:col,weight:g.t==='line'?3:1.6,dashArray:'6 5',opacity:on?.9:.45,fillColor:col,fillOpacity:on?.12:.04,bubblingMouseEvents:false};
+    (a.g||[]).forEach(function(g){ var on=B.grLocal.inWin(g.w), col=g.s===0?'#34c759':g.s===1?'#af52de':(g.w?'#ff9500':'#ff3b30'), st={color:col,weight:g.t==='line'?(g.s===0?7:3):1.6,dashArray:g.s===0?null:'6 5',opacity:on?.9:.45,fillColor:col,fillOpacity:on?.12:.04,bubblingMouseEvents:false};
       var ly=g.t==='circle'?L.circle(g.p[0],Object.assign({radius:g.m||100},st)):g.t==='line'?L.polyline(g.p,st):L.polygon(g.p,st);
       ly.on('click',function(){ B.sheet({title:B.grLocal.gn(g),body:h('div',null,h('p',{class:'p',text:B.grLocal.gd(g)}),g.w?h('p',{class:'tag '+(on?'poor':'good'),text:(on?T('Ισχύει τώρα · ','In force now · '):T('Δεν ισχύει τώρα · ','Not in force now · '))+g.w.map(function(x){ return x.split('-').reverse().join('/'); }).join('–')}):null,
         g.t==='line'&&g.m?h('p',{class:'sub',text:T('Η λωρίδα των '+g.m+' m γύρω από τη γραμμή είναι ενδεικτική.','The '+g.m+' m strip around the line is indicative.')}):null,
+        g.osm?h('p',{class:'sub',text:T('Το περίγραμμα είναι από το OpenStreetMap (© συντελεστές OSM)· ο κανόνας από την απόφαση του Λιμενικού.','Outline from OpenStreetMap (© OSM contributors); the rule from the Coast Guard decision.')}):null,
         h('div',{class:'acts'},h('button',{class:'btn',type:'button',text:T('Όλοι οι κανόνες της περιοχής','All local rules'),onclick:function(){ B.grLocal.sheet(a); }})))}); }).addTo(ov.grl); }); });
   ov.grl.addTo(map); }
 function damSheet(d,lv){

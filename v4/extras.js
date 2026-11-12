@@ -74,7 +74,7 @@ function gDist(pt,g){ var p=g.p, m=g.m||0, d=1e9, i;
   if(g.t==='poly'){ if(inRing(pt,p)) return 0; for(i=0;i<p.length;i++) d=Math.min(d,segDist(pt,p[i],p[(i+1)%p.length])); return d; }
   if(g.t==='circle') d=segDist(pt,p[0],p[0]); else for(i=0;i<p.length-1;i++) d=Math.min(d,segDist(pt,p[i],p[i+1]));
   return d<=m?0:d-m; }
-var WEN=[['όλο το έτος','all year'],['όλο το 24ωρο','24 hours'],['θερινή περίοδος','summer season'],['καλοκαίρι','summer'],['απόφαση','decision'],['λιμάνια','harbours'],['ακτές','shores'],['Οκτώβριος','October'],['ως νεότερη ειδοποίηση','until further notice'],['βλ. κανόνες πάρκου','see park rules'],['βλ. απόφαση','see the decision'],['βλ. κείμενο','see the text'],[' και ',' and ']];
+var WEN=[['όλο το έτος','all year'],['όλο το 24ωρο','24 hours'],['θερινή περίοδος','summer season'],['καλοκαίρι','summer'],['απόφαση','decision'],['λιμάνια','harbours'],['ακτές','shores'],['Οκτώβριος','October'],['ως νεότερη ειδοποίηση','until further notice'],['βλ. κανόνες πάρκου','see park rules'],['βλ. απόφαση','see the decision'],['βλ. κείμενο','see the text'],['όταν τρέχει','when it flows'],['έλεγξε αν ανανεώθηκε','check if renewed'],['έως ','until '],[' και ',' and ']];
 function wEn(t){ if(!EN||!t) return t; WEN.forEach(function(x){ t=t.split(x[0]).join(x[1]); }); return t; }
 function rTx(r){ return EN&&r[4]?r[4]:r[1]; }
 B.grLocal={
@@ -93,7 +93,7 @@ B.grLocal={
 };
 var grlSeen={};
 function grlTick(f){ return B.grLocal.load().then(function(){ var r=B.grLocal.check(f.lat,f.lon); if(!r) return;
-  r.hits.forEach(function(x){ var k='g:'+x.a.k+':'+x.g.n, now=x.d===0?'in':'near', prev=grlSeen[k]||'out'; if(now===prev) return; grlSeen[k]=now;
+  r.hits.forEach(function(x){ if(x.g.s===0) return; var k='g:'+x.a.k+':'+x.g.n, now=x.d===0?'in':'near', prev=grlSeen[k]||'out'; if(now===prev) return; grlSeen[k]=now;
     if(now==='in') zNotify(x.g.s===1?T('Εδώ απαγορεύεται το ψαροντούφεκο','Spearfishing prohibited here'):T('Μέσα σε τοπική απαγόρευση','Inside a local prohibition'),B.grLocal.gn(x.g)+' · '+B.grLocal.gd(x.g));
     else if(prev==='out') zNotify(T('Πλησιάζεις τοπική απαγόρευση','Approaching a local prohibition'),B.grLocal.gn(x.g)+' · '+Math.round(x.d)+' m'); });
   if(r.port&&r.port.d<=1500&&!grlSeen['p:'+r.port.a.k]){ grlSeen['p:'+r.port.a.k]=1; var a=r.port.a, x=a.r.filter(function(y){ return y[0]==='x'||y[0]==='ok'; })[0]||a.r[0];
