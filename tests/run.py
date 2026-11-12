@@ -294,6 +294,13 @@ with sync_playwright() as p:
     check('στρώμα από το μενού: ανάβει το ίδιο κουμπί (Ρεύματα)', pg.evaluate("()=>document.querySelectorAll('.mchips .mchip')[2].getAttribute('aria-pressed')==='true'"), None)
     pg.evaluate("()=>document.querySelector('.mcdim').click()"); pg.wait_for_timeout(400)
     check('πάτημα στον χάρτη κλείνει το μενού', pg.evaluate("()=>!document.querySelector('.mcdrw')"), None)
+    r=pg.evaluate("""()=>{ const w=12,hh=12,d=new Float32Array(w*hh).fill(30); for(let y=0;y<hh;y++){ d[y*w]=-5; d[y*w+1]=3; } d[5*w+6]=4; d[5*w+7]=6; d[6*w+6]=7;
+      const g={w:w,h:hh,data:d,x0:22.0,y0:38.0,dx:0.001,dy:-0.001}; const a=AK.shallows.analyze(g); return [a.shoals.length, a.shoals[0]&&a.shoals[0].d, a.n, !!AK.shallows.set]; }""")
+    check('Ρηχά & ξέρες: ξέρα μακριά από την ακτή (4 m), τα ρηχά της ακτής δεν μετράνε σαν ξέρα, πλακίδιο στο μενού (1.13.4)', r==[1,4,15,True], r)
+    pg.evaluate("()=>{ localStorage.setItem('alkyon-v4-pos',JSON.stringify({lat:34.7,lon:32.4,t:Date.now()})); AK.goTo(34.8,32.35,'Δοκιμή'); }"); pg.wait_for_timeout(1200)
+    r=pg.evaluate("()=>{ const d=document.querySelector('.dtbar'), m=document.querySelector('.mcbar'); if(!d||!m) return ['x']; const a=d.getBoundingClientRect(), b=m.getBoundingClientRect(); return [getComputedStyle(d).display!=='none', a.top>=b.bottom-1, d.textContent.includes('Δοκιμή')]; }")
+    check('Πλοήγηση προς σημείο: η μπάρα φαίνεται κάτω από τη μπάρα καιρού, όχι από κάτω της (1.13.4)', r==[True,True,True], r)
+    pg.evaluate("()=>AK.goClear()")
     check('καθαρός χάρτης χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
 
     print('# φωνή + οθόνη που αλλάζει μόνη της (1.7.3)')
@@ -1025,6 +1032,8 @@ with sync_playwright() as p:
     check('Ειδοποίηση απαγορευμένης περιοχής και στην Ελλάδα (Γυάρος) (1.11.0)', r[0] is True and 'Γυάρου' in (r[1] or ''), r)
     r=pg.evaluate("()=>AK.grLocal.load().then(()=>{ const G=AK.grLocal; const k=G.check(40.934,24.409), m=G.check(37.005,22.1), kos=G.check(36.88,27.08,new Date('2027-05-01')), kos2=G.check(36.88,27.08,new Date('2026-11-12')), lv=G.check(37.7203,23.9439); return [k.port.a.k, k.port.a.r.some(x=>x[0]==='ok'&&x[1].includes('Νο 1 και Νο 3')), m.hits.length&&m.hits[0].d, kos.hits.some(x=>x.a.k==='kos'&&x.d===0), kos2.hits.some(x=>x.a.k==='kos'), lv.hits.length&&lv.hits[0].g.s, window.GR_LOCAL.a.length>=30]; })")
     check('Τοπικές απαγορεύσεις Λιμενικού: Καβάλα (αποβάθρα 1–3), αγκυροβόλιο Καλαμάτας, εποχική Κω–Καλύμνου, ψαροντούφεκο Λαύριο (1.13.3)', r==['KABALA',True,0,True,False,1,True], r)
+    r=pg.evaluate("()=>{ const a=window.GR_LOCAL.a; return [a.every(x=>x.r.every(r=>r[4]&&!/[α-ω]/.test(r[4]))), a.every(x=>(x.g||[]).every(g=>g.ne&&g.de))]; }")
+    check('Τοπικές απαγορεύσεις: όλοι οι κανόνες και οι περιοχές έχουν αγγλικό κείμενο (1.13.4)', r==[True,True], r)
     go(pg,'#guide',2500); pg.click('#tab-guide .seg button[data-g=law]') if pg.query_selector('#tab-guide .seg button[data-g=law]') else pg.click('button[data-g=law]'); pg.wait_for_timeout(600)
     t=pg.evaluate("()=>{ const L=document.getElementById('g-law'); const on=L.querySelector('.lawc [aria-pressed=true]'); return [on&&on.textContent, L.textContent.includes('Έως 5 kg ψάρια ή κεφαλόποδα'), L.textContent.includes('108 Λιμενικό')] }")
     check('Οδηγός › Νόμοι: στην Ελλάδα ανοίγει με τους ελληνικούς κανόνες (1.11.0)', t==['Ελλάδα',True,True], t)

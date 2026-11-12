@@ -748,7 +748,11 @@ body:not(.mapclean) .mcmode,body:not(.mapclean) .mcpanel,body:not(.mapon) .mcmod
 .mcpanel.fish .mpc:nth-child(2) b{color:#9fd4ee}
 .mcpanel .mpto{grid-column:1/-1;display:flex;justify-content:space-between;gap:8px;border-top:1px solid rgba(255,255,255,.15);padding-top:8px;font:700 14px var(--font)}
 .mcpanel.anc b{color:#3ad07a}.mcpanel.anc.bad{background:rgba(160,20,20,.95)}.mcpanel.anc.bad b{color:#fff}
-body.mapclean.mode-run .fishbtns,body.mapclean.mode-run .dtbar,body.mapclean.mode-fish .dtbar,body.mapclean.mode-anchor .dtbar{display:none!important}
+body.mapclean.mode-run .fishbtns{display:none!important}
+/* 1.13.4: η μπάρα «Πήγαινε εκεί» έμενε κρυμμένη κάτω από τη μπάρα καιρού (ή εντελώς, σε «ψαρεύω»). Τώρα μπαίνει από κάτω· κρύβεται μόνο όταν το πάνελ δείχνει ήδη τον προορισμό. */
+body.mapclean .dtbar{top:calc(var(--safe-t,0px) + 76px);right:12px;max-width:520px}
+body.mapclean:has(.mcpanel:not(.off) .mpto) .dtbar{display:none!important}
+body.mapclean:has(.mcpanel.anc) .dtbar{top:auto;bottom:calc(var(--nav-h,64px) + var(--safe-b,0px) + 96px)}
 html.night .mcpanel{background:#1a0000;box-shadow:0 0 0 2px #fff}
 /* 1.7.4: υπόμνημα θερμοκρασίας: τιμή στο σταυρό και κλίμακα */
 .sstleg .slr{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px;pointer-events:auto}
@@ -1155,3 +1159,10 @@ body.mapon .mapbar .gpsb,body.mapon .mapbar .iconbtn,body.mapon .mclay,body.mapo
 
 .mk.grl{translate:-50% -50%}
 .mk.grl b{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#0b3b52;color:#fff;font:700 12px var(--font);border:2px solid #ffcc00;box-shadow:0 1px 4px rgba(0,0,0,.5)}
+/* 1.13.4: ρηχά & ξέρες */
+.mk.shoal{display:flex;flex-direction:column;align-items:center;transform:translate(-50%,-70%);pointer-events:auto}
+.mk.shoal i{font-style:normal;color:#ff3b30;font-size:15px;line-height:1;text-shadow:0 0 3px #fff,0 0 5px #fff}
+.mk.shoal b{font:800 10.5px var(--font);color:#fff;background:#c0392b;border-radius:6px;padding:1px 5px;margin-top:1px;white-space:nowrap}
+.sbleg.shleg .sbk em{color:#ff3b30;text-shadow:none}
+body.mapon:has(.sbleg:not(.shleg):not(.mdleg):not([hidden])) .sbleg.shleg{transform:translate(-50%,-56px)}
+body.mapclean.hasdt .sstleg,body.hasdt .sbleg.mdleg{top:calc(var(--safe-t,0px) + 140px)}

@@ -74,9 +74,12 @@ function gDist(pt,g){ var p=g.p, m=g.m||0, d=1e9, i;
   if(g.t==='poly'){ if(inRing(pt,p)) return 0; for(i=0;i<p.length;i++) d=Math.min(d,segDist(pt,p[i],p[(i+1)%p.length])); return d; }
   if(g.t==='circle') d=segDist(pt,p[0],p[0]); else for(i=0;i<p.length-1;i++) d=Math.min(d,segDist(pt,p[i],p[i+1]));
   return d<=m?0:d-m; }
+var WEN=[['όλο το έτος','all year'],['όλο το 24ωρο','24 hours'],['θερινή περίοδος','summer season'],['καλοκαίρι','summer'],['απόφαση','decision'],['λιμάνια','harbours'],['ακτές','shores'],['Οκτώβριος','October'],['ως νεότερη ειδοποίηση','until further notice'],['βλ. κανόνες πάρκου','see park rules'],['βλ. απόφαση','see the decision'],['βλ. κείμενο','see the text'],[' και ',' and ']];
+function wEn(t){ if(!EN||!t) return t; WEN.forEach(function(x){ t=t.split(x[0]).join(x[1]); }); return t; }
+function rTx(r){ return EN&&r[4]?r[4]:r[1]; }
 B.grLocal={
   load:function(){ return loadOne('GR_LOCAL','../gr-local.js'); },
-  inWin:gwIn, dist:gDist,
+  inWin:gwIn, dist:gDist, rTx:rTx, wEn:wEn, gn:function(g){ return EN&&g.ne?g.ne:g.n; }, gd:function(g){ return EN&&g.de?g.de:g.d; },
   /* σημείο → {hits:[{a,g,d}] γεωμετρίες έως 300 m (d=0 μέσα, ενεργές σήμερα), port:{a,d} πιο κοντινή Λιμενική Αρχή} */
   check:function(lat,lon,when){ var G=window.GR_LOCAL, pt=[lat,lon], out={hits:[],port:null}; if(!G) return out;
     G.a.forEach(function(a){ var dp=segDist(pt,a.c,a.c); if(!out.port||dp<out.port.d) out.port={a:a,d:dp};
@@ -84,17 +87,17 @@ B.grLocal={
     out.hits.sort(function(x,y){ return x.d-y.d; }); return out; },
   url:function(a){ return 'https://alieia.hcg.gr/prohibitions/local/'+a.k+'.php'; },
   sheet:function(a){ var K={x:['⛔',T('Απαγόρευση','Ban')],ok:['✅',T('Επιτρέπεται','Allowed')],s:['🤿',T('Ψαροντούφεκο','Spearfishing')],b:['🏖',T('Λουόμενοι','Bathers')],o:['ℹ️',T('Άλλο','Other')]};
-    B.sheet({title:T('Τοπικοί κανόνες · ','Local rules · ')+(EN?a.e:a.n),body:h('div',{class:'grl'},EN?h('p',{class:'sub',text:'Summary of the Hellenic Coast Guard local prohibitions for recreational fishing (in Greek).'}):null,
-      a.r.map(function(r){ var k=K[r[0]]||K.o; return h('div',{class:'grlr '+r[0]},h('p',{class:'p'},h('b',{text:k[0]+' '}),r[1]),h('p',{class:'sub',text:(r[2]&&r[2]!=='—'?r[2]+' · ':'')+r[3]})); }),
+    B.sheet({title:T('Τοπικοί κανόνες · ','Local rules · ')+(EN?a.e:a.n),body:h('div',{class:'grl'},EN?h('p',{class:'sub',text:'Summary of the Hellenic Coast Guard local prohibitions for recreational fishing (translated from Greek).'}):null,
+      a.r.map(function(r){ var k=K[r[0]]||K.o; return h('div',{class:'grlr '+r[0]},h('p',{class:'p'},h('b',{text:k[0]+' '}),rTx(r)),h('p',{class:'sub',text:(r[2]&&r[2]!=='—'?wEn(r[2])+' · ':'')+r[3]})); }),
       h('p',{class:'foot'},T('Πηγή: Λιμενικό Σώμα, τοπικές απαγορεύσεις, ελέγχθηκε ','Source: Hellenic Coast Guard, local prohibitions, checked ')+(window.GR_LOCAL.ck||'').split('-').reverse().join('/')+'. ',h('a',{href:B.grLocal.url(a),target:'_blank',rel:'noopener',text:T('Η σελίδα της Λιμενικής Αρχής','The port authority page')}),T('. Σύντομη απόδοση, όχι νομική συμβουλή· ισχύει η απόφαση. Ρώτα το λιμεναρχείο αν έχεις αμφιβολία.','. Short summary, not legal advice; the decision applies. Ask the port authority if in doubt.')))}); }
 };
 var grlSeen={};
 function grlTick(f){ return B.grLocal.load().then(function(){ var r=B.grLocal.check(f.lat,f.lon); if(!r) return;
   r.hits.forEach(function(x){ var k='g:'+x.a.k+':'+x.g.n, now=x.d===0?'in':'near', prev=grlSeen[k]||'out'; if(now===prev) return; grlSeen[k]=now;
-    if(now==='in') zNotify(x.g.s===1?T('Εδώ απαγορεύεται το ψαροντούφεκο','Spearfishing prohibited here'):T('Μέσα σε τοπική απαγόρευση','Inside a local prohibition'),x.g.n+' · '+x.g.d);
-    else if(prev==='out') zNotify(T('Πλησιάζεις τοπική απαγόρευση','Approaching a local prohibition'),x.g.n+' · '+Math.round(x.d)+' m'); });
+    if(now==='in') zNotify(x.g.s===1?T('Εδώ απαγορεύεται το ψαροντούφεκο','Spearfishing prohibited here'):T('Μέσα σε τοπική απαγόρευση','Inside a local prohibition'),B.grLocal.gn(x.g)+' · '+B.grLocal.gd(x.g));
+    else if(prev==='out') zNotify(T('Πλησιάζεις τοπική απαγόρευση','Approaching a local prohibition'),B.grLocal.gn(x.g)+' · '+Math.round(x.d)+' m'); });
   if(r.port&&r.port.d<=1500&&!grlSeen['p:'+r.port.a.k]){ grlSeen['p:'+r.port.a.k]=1; var a=r.port.a, x=a.r.filter(function(y){ return y[0]==='x'||y[0]==='ok'; })[0]||a.r[0];
-    if(B.inboxAdd) B.inboxAdd(T('Τοπικοί κανόνες: ','Local rules: ')+(EN?a.e:a.n),x[1],'zone'); B.toast('⚓ '+T('Τοπικοί κανόνες Λιμενικού εδώ: ','Coast Guard local rules here: ')+(EN?a.e:a.n)+T(' (Χάρτης › Απαγορεύσεις)',' (Map › Restrictions)'),9000); } }).catch(function(){}); }
+    if(B.inboxAdd) B.inboxAdd(T('Τοπικοί κανόνες: ','Local rules: ')+(EN?a.e:a.n),rTx(x),'zone'); B.toast('⚓ '+T('Τοπικοί κανόνες Λιμενικού εδώ: ','Coast Guard local rules here: ')+(EN?a.e:a.n)+T(' (Χάρτης › Απαγορεύσεις)',' (Map › Restrictions)'),9000); } }).catch(function(){}); }
 function zOn(){ return ls.get('alkyon-v4-zonealert',true)!==false; }
 B.zoneAlert={on:zOn,set:function(v){ ls.set('alkyon-v4-zonealert',!!v); }};
 var zState={};
