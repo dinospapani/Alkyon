@@ -439,7 +439,7 @@ NOW = RealDate.parse('2026-11-09T10:00:00Z');
   check('Ειδοποιήσεις: μετάφραση στη λίστα και στην ειδοποίηση του κινητού (1.10.6)', /txt=NT\(x\.full/.test(av) && /function ibTitle\(t\)\{ t=NT\(t\);/.test(av) && /importScripts\('v4\/notif-i18n\.js'\)/.test(sw) && /title: NT\(m\.title/.test(sw));
   const w = { LANG: 'el' }; new Function('window', fs.readFileSync(path.join(ROOT, 'v4', 'data-el.js'), 'utf8'))(w);
   const dn = w.dataName, got = ['Dusky grouper', 'Common dentex', 'Grey triggerfish', 'Goldblotch grouper', 'Rocks / reef', 'Spot', 'Map point', 'Longline 17', 'Dogtooth grouper, Red porgy', 'Λαβράκι', 'Totis net 1'].map(dn);
-  check('Ελληνικά ονόματα για δεδομένα στα αγγλικά (Σφυρίδα, Συναγρίδα, Γουρουνόψαρο, Στήρα…) (1.10.6)', JSON.stringify(got) === JSON.stringify(['Σφυρίδα', 'Συναγρίδα', 'Γουρουνόψαρο', 'Στήρα', 'Βράχια / ύφαλος', 'Σημείο', 'Σημείο χάρτη', 'Παραγάδι 17', 'Ασπρόβλαχος, Φαγκρί', 'Λαβράκι', 'Totis net 1']), got);
+  check('Ελληνικά ονόματα για δεδομένα στα αγγλικά (Ροφός, Συναγρίδα, Γουρουνόψαρο, Στήρα…) (1.10.6)', JSON.stringify(got) === JSON.stringify(['Ροφός', 'Συναγρίδα', 'Γουρουνόψαρο', 'Στήρα', 'Βράχια / ύφαλος', 'Σημείο', 'Σημείο χάρτη', 'Παραγάδι 17', 'Ασπρόβλαχος, Φαγκρί', 'Λαβράκι', 'Totis net 1']), got);
   const w2 = { LANG: 'en' }; new Function('window', fs.readFileSync(path.join(ROOT, 'v4', 'data-el.js'), 'utf8'))(w2);
   check('Στα αγγλικά τα ονόματα δεν αλλάζουν (1.10.6)', !w2.dataName, Object.keys(w2));
   const mv = fs.readFileSync(path.join(ROOT, 'v4', 'map-view.js'), 'utf8'), fv = fs.readFileSync(path.join(ROOT, 'v4', 'forecast-view.js'), 'utf8'), lv = fs.readFileSync(path.join(ROOT, 'v4', 'log-view.js'), 'utf8'), cv = fs.readFileSync(path.join(ROOT, 'v4', 'community-view.js'), 'utf8'), css = fs.readFileSync(path.join(ROOT, 'v4', 'polish.css'), 'utf8') + fs.readFileSync(path.join(ROOT, 'v4', 'app.css'), 'utf8');
@@ -480,7 +480,7 @@ check('Νέα: η έκδοση 1.10.8 υπάρχει στα «Τι νέο»', /\
   const F = async (u) => ({ ok: true, text: async () => de });
   const M = await W.elNames(F, RealDate.now());
   const got = ['Dusky grouper', 'Map point', 'Λαβράκι', 'Longline 3', 'Totis net'].map(n => W.elName(M, n));
-  check('Ρολόι: είδη και σημεία στα ελληνικά (Σφυρίδα, Σημείο χάρτη, Παραγάδι 3), τα ελληνικά μένουν (1.10.10)', JSON.stringify(got) === JSON.stringify(['Σφυρίδα', 'Σημείο χάρτη', 'Λαβράκι', 'Παραγάδι 3', 'Totis net']), got);
+  check('Ρολόι: είδη και σημεία στα ελληνικά (Ροφός, Σημείο χάρτη, Παραγάδι 3), τα ελληνικά μένουν (1.10.10)', JSON.stringify(got) === JSON.stringify(['Ροφός', 'Σημείο χάρτη', 'Λαβράκι', 'Παραγάδι 3', 'Totis net']), got);
   const wi = fs.readFileSync(path.join(ROOT, 'watch-index.ts'), 'utf8');
   check('Ρολόι: η τιμή του είδους μένει όπως στο ημερολόγιο, αλλάζει μόνο η ετικέτα (tspl) (1.10.10)', /o = \{ \.\.\.o, tspl \}/.test(wi) && /if \(tsp\.length\) o = \{ \.\.\.o, tsp \};/.test(wi));
   check('Νέα: η έκδοση 1.10.10 υπάρχει στα «Τι νέο»', /\['1\.10\.10',\[T\('Ρολόι Garmin: είδη και σημεία στα ελληνικά/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));

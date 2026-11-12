@@ -46,7 +46,11 @@ function nav(){
   return h('nav',{class:'nav','aria-label':T('Κύρια πλοήγηση','Main navigation')},bar);
 }
 var HS=[];
+/* 1.13.7: αλλαγή γλώσσας χωρίς να γυρνάς στην αρχή: κρατά σελίδα και σημείο κύλισης */
+B.relang=function(v){ try{ localStorage.setItem('alkyon-lang',v); sessionStorage.setItem('alkyon-relang',JSON.stringify({h:location.hash||'',y:window.scrollY||0,t:Date.now()})); }catch(e){} location.reload(); };
+var RL=null; try{ RL=JSON.parse(sessionStorage.getItem('alkyon-relang')||'null'); sessionStorage.removeItem('alkyon-relang'); if(RL&&Date.now()-RL.t>30000) RL=null; }catch(e){ RL=null; }
 function route(){
+  if(RL){ var rl=RL; RL=null; if(!location.hash&&rl.h){ try{ history.replaceState(history.state,'',location.pathname+location.search+rl.h); }catch(e){} } if(rl.y>0) [300,900,1800].forEach(function(ms){ setTimeout(function(){ if(Math.abs((window.scrollY||0)-rl.y)>40) try{ window.scrollTo(0,rl.y); }catch(e){} },ms); }); }
   var name=(location.hash||'').slice(1)||'forecast';
   /* συντομεύσεις: #new = νέο ψάρι, #trip = έναρξη εξόδου */
   if(name==='new'||name==='trip'){ var act=name; history.replaceState(null,'',location.pathname+(act==='new'?'#log':'#map')); name=act==='new'?'log':'map'; setTimeout(function(){ if(act==='new'&&B.biteForm) B.biteForm(); else if(B.tripStart) B.tripStart(); },500); }

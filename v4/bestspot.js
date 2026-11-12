@@ -51,7 +51,7 @@ var SPP=[
  {el:'Συναγρίδα',en:'Common dentex',d:[15,120],b:'rock',t:[15,27]},
  {el:'Φαγκρί',en:'Red porgy',d:[20,150],b:'rock',t:[15,26]},
  {el:'Λιθρίνι',en:'Common pandora',d:[15,120],b:'sand',t:[15,27]},
- {el:'Σφυρίδα',en:'Dusky grouper',d:[10,150],b:'rock',t:[15,28]},
+ {el:'Ροφός',en:'Dusky grouper',d:[10,150],b:'rock',t:[15,28]},
  {el:'Μαγιάτικο',en:'Amberjack',d:[20,200],b:'rock',t:[18,29],m:[6,11],cur:1},
  {el:'Λαβράκι',en:'Sea bass',d:[0,20],b:'any',t:[12,24],m:[10,4]},
  {el:'Τσιπούρα',en:'Gilthead seabream',d:[2,30],b:'sand',t:[13,26],m:[9,3]},

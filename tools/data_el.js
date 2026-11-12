@@ -9,7 +9,7 @@ const W = ctx.window, M = {};
 const G = /[Ͱ-Ͽἀ-῿]/;
 const add = (en, el) => { if (!en || !el || !G.test(el) || G.test(en)) return; const k = String(en).trim().toLowerCase(); if (k.length < 3 || M[k]) return; M[k] = String(el).trim(); };
 // 1) διορθώσεις του Dinos (πρώτες, για να κερδίζουν)
-[['Dusky grouper', 'Σφυρίδα'], ['Common dentex', 'Συναγρίδα'], ['Dentex', 'Συναγρίδα'], ['Grey triggerfish', 'Γουρουνόψαρο'], ['Gray triggerfish', 'Γουρουνόψαρο'], ['Goldblotch grouper', 'Στήρα'],
+[['Dusky grouper', 'Ροφός'], ['White grouper', 'Σφυρίδα'], ['Common dentex', 'Συναγρίδα'], ['Dentex', 'Συναγρίδα'], ['Grey triggerfish', 'Γουρουνόψαρο'], ['Gray triggerfish', 'Γουρουνόψαρο'], ['Goldblotch grouper', 'Στήρα'],
  ['Dogtooth grouper', 'Ασπρόβλαχος'], ['Live squid / cuttlefish', 'Ζωντανό καλαμάρι / σουπιά'], ['Rocks / reef', 'Βράχια / ύφαλος'], ['Spot', 'Σημείο'], ['Map point', 'Σημείο χάρτη'],
  ['My location', 'Η θέση μου'], ['Point', 'Σημείο'], ['Point from the logbook', 'Σημείο από το Ημερολόγιο']].forEach(([e, g]) => add(e, g));
 // 2) είδη: species.js, SPKB, CY100

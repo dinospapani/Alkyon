@@ -833,7 +833,9 @@ function cleanSetup(el,qc,seab,bar){ mcRefs={qc:qc,seab:seab,bar:bar}; document.
 /* 1.7.8: πλαϊνό μενού από δεξιά (όπως το Windy): ο χάρτης μένει ζωντανός αριστερά και μετακινείται ώστε το κέντρο του να πέφτει στη λωρίδα
    που φαίνεται· κάθε διακόπτης αλλάζει τον χάρτη αμέσως. Κλείνει: σύρσιμο δεξιά, πάτημα στη λωρίδα, «πίσω» του κινητού, Esc. */
 var mcShift=0;
-function mcClose(fromPop){ if(!mcDr) return; var d=mcDr; mcDr=null; d.classList.remove('open'); setTimeout(function(){ d.remove(); },240);
+/* 1.13.7: το μενού ξανανοίγει εκεί που το άφησες (για να κλείσεις αυτό που μόλις άναψες) */
+var mcScroll=0;
+function mcClose(fromPop){ if(!mcDr) return; var d=mcDr; try{ var pp=d.querySelector('.mcpan'); if(pp) mcScroll=pp.scrollTop; }catch(e){} mcDr=null; d.classList.remove('open'); setTimeout(function(){ d.remove(); },240);
   if(mcShift&&map){ try{ map.panBy([-mcShift,0],{animate:true,duration:.25}); }catch(e){} } mcShift=0;
   if(!fromPop&&history.state&&history.state.mcd){ try{ history.back(); }catch(e){} } }
 window.addEventListener('popstate',function(){ if(mcDr&&!(history.state&&history.state.mcd)) mcClose(true); }); /* 1.9.12: όταν κλείνει φύλλο πάνω από το μενού, το μενού μένει */
@@ -844,7 +846,7 @@ function mcTapHook(){ if(mcTapOn||!map) return; mcTapOn=true;
   document.addEventListener('click',function(e){ if(!mcDr||!map) return; if(dn&&Math.abs(e.clientX-dn[0])+Math.abs(e.clientY-dn[1])>10) return; /* σύρσιμο, όχι πάτημα */ var c=map.getContainer(), t=e.target; if(!c||!t||!c.contains(t)||(t.closest&&t.closest('.mcdrw'))) return;
     e.stopPropagation(); e.preventDefault(); mcClose(); },true); }
 function mcOpen(){ if(mcDr) return mcClose(); mcDr=h('div',{class:'mcdrw'}); var dim=h('div',{class:'mcdim',onclick:mcClose}), pan=h('div',{class:'mcpan',role:'dialog','aria-label':T('Στρώματα και εργαλεία','Layers and tools')});
-  mcDr.append(dim,pan); document.body.append(mcDr); mcDrFill(); mcSig=mcSigNow(); requestAnimationFrame(function(){ if(!mcDr) return; mcDr.classList.add('open');
+  mcDr.append(dim,pan); document.body.append(mcDr); mcDrFill(); mcSig=mcSigNow(); if(mcScroll>0){ pan.scrollTop=mcScroll; requestAnimationFrame(function(){ if(pan.scrollTop<mcScroll-5) pan.scrollTop=mcScroll; }); } requestAnimationFrame(function(){ if(!mcDr) return; mcDr.classList.add('open');
     var w=pan.getBoundingClientRect().width||0; if(map&&w>0&&w<window.innerWidth){ mcShift=Math.round(w/2); try{ map.panBy([mcShift,0],{animate:true,duration:.25}); }catch(e){ mcShift=0; } }
     /* 1.9.6: ο χάρτης αριστερά σέρνεται/ζουμάρει με ανοιχτό το μενού· ένα σκέτο πάτημα κλείνει το μενού */
     if(map){ try{ map.once('dragstart zoomstart',function(){ mcShift=0; }); mcTapHook(); }catch(e){} } });

@@ -101,12 +101,12 @@ B.biteForm=function(edit,opt){
     (window.SPKB||[]).some(function(k){ if((lw&&(k.l||'').toLowerCase()===lw)||(k.n||'').toLowerCase()===q){ hit=k.en||null; return !!hit; } return false; });
     if(!hit) (window.SPECIES_DB||[]).some(function(r){ var el=String(r[0]||''); if((lw&&String(r[2]||'').toLowerCase()===lw)||el.toLowerCase().split('/').map(function(x){ return x.trim(); }).indexOf(q)>=0){ hit=r[1]||null; return !!hit; } return false; });
     return hit||(window.spName?window.spName(v):v); }
-  var SPI=null; function spIndex(){ if(SPI) return SPI; var seen={}; SPI=[];
+  var cyLoc=false; try{ cyLoc=!!(B.country&&B.country()==='cy'); }catch(x){} var SPI=null; function spIndex(){ if(SPI) return SPI; var seen={}; SPI=[];
     (window.SPKB||[]).forEach(function(k){ var la=(k.l||'').toLowerCase(); if(!la||seen[la]) return; seen[la]=1; SPI.push({n:EN&&k.en?k.en:k.n,alt:EN?k.n:(k.en||''),la:k.l}); });
-    (window.SPECIES_DB||[]).forEach(function(r){ var la=(r[2]||'').toLowerCase(); if(!la||seen[la]) return; seen[la]=1; var el=r[0]?String(r[0]).split('/')[0].trim():''; SPI.push({n:EN?(r[1]||el):(el||r[1]),alt:EN?el:(r[1]||''),la:r[2]}); });
+    (window.SPECIES_DB||[]).forEach(function(r){ var la=(r[2]||'').toLowerCase(); if(!la||seen[la]) return; seen[la]=1; var parts=r[0]?String(r[0]).split('/').map(function(x){ return x.trim(); }):[], el=parts[0]||''; /* 1.13.7: ροφός = «ορφός» στην Κύπρο */ if(cyLoc&&parts.length>1&&/^Ορφ/.test(parts[1])) el=parts[1]; SPI.push({n:EN?(r[1]||el):(el||r[1]),alt:EN?el:(r[1]||''),la:r[2],all:parts.join(' ')}); });
     return SPI; }
   function showSug(){ var q=nrmS(sp.value.trim()); spSug.replaceChildren(); if(q.length<2){ spSug.hidden=true; return; }
-    var a=spIndex().filter(function(x){ return nrmS(x.n).indexOf(q)>=0||nrmS(x.alt).indexOf(q)>=0||nrmS(x.la).indexOf(q)>=0; }).sort(function(x,y){ return (nrmS(x.n).indexOf(q)===0?0:1)-(nrmS(y.n).indexOf(q)===0?0:1); }).slice(0,7);
+    var a=spIndex().filter(function(x){ return nrmS(x.n).indexOf(q)>=0||nrmS(x.alt).indexOf(q)>=0||nrmS(x.all).indexOf(q)>=0||nrmS(x.la).indexOf(q)>=0; }).sort(function(x,y){ return (nrmS(x.n).indexOf(q)===0?0:1)-(nrmS(y.n).indexOf(q)===0?0:1); }).slice(0,7);
     a.forEach(function(x){ spSug.append(h('button',{type:'button',class:'sugi',onmousedown:function(ev){ ev.preventDefault(); },onclick:function(){ sp.value=x.n; pickLa=x.la; spSug.hidden=true; law(); sugTk(); }},h('b',{text:x.n}),h('small',{text:(x.alt?x.alt+' · ':'')+x.la}))); });
     spSug.hidden=!a.length; }
   /* v31z521: όταν γράφεις, το πεδίο ανεβαίνει στην κορυφή, ώστε οι προτάσεις να μην κρύβονται πίσω από το πληκτρολόγιο */
@@ -138,7 +138,7 @@ B.biteForm=function(edit,opt){
   function locNow(){ whereNote.textContent=T('Βρίσκω τη θέση σου…','Finding your position…'); return B.locate(8000).then(function(p){ pos=p; if(!p){ whereNote.textContent=T('Δεν βρέθηκε θέση. Διάλεξε σημείο ή «Χωρίς θέση».','No position found. Pick a spot or “No position”.'); return; }
     var ns=nearSpot(p.lat,p.lon); whereNote.textContent=ns?T('Κοντά στο σημείο σου «','Near your spot “')+ns.name+T('». Θα αποθηκευτεί εκεί.','”. It will be saved there.'):p.lat.toFixed(5)+', '+p.lon.toFixed(5); }); }
   /* v31z521: θέση με συντεταγμένες ή διαλέγοντας στον χάρτη, όπως στην κλασική */
-  var cwrap=h('div',{class:'cpwrap',hidden:true}), cbx=null;
+  var cwrap=h('div',{class:'cpwrap',hidden:true}), cbx=null; var cwT=0; cwrap.addEventListener('input',function(){ clearTimeout(cwT); cwT=setTimeout(function(){ try{ paintW(); }catch(x){} },500); }); cwrap.addEventListener('change',function(){ try{ paintW(); }catch(x){} });
   function showCoord(pp){ if(!cbx&&B.coordBox){ var p0=pp||((e&&typeof e.lat==='number')?{lat:e.lat,lon:e.lon}:(opt&&opt.at)||pos||B.lastPos()); cbx=B.coordBox(p0?p0.lat:undefined,p0?p0.lon:undefined); cwrap.append(cbx.el); } cwrap.hidden=false; }
   where.addEventListener('change',function(){ cwrap.hidden=where.value!=='coord'; if(where.value==='gps') locNow(); else if(where.value==='coord'){ whereNote.textContent=''; showCoord(); } else whereNote.textContent=''; });
   if(!e&&opt&&opt.at){ where.value='at'; whereNote.textContent=window.AlkyonCoord?AlkyonCoord.fmt(opt.at.lat,opt.at.lon):opt.at.lat.toFixed(5)+', '+opt.at.lon.toFixed(5); }
@@ -156,7 +156,7 @@ B.biteForm=function(edit,opt){
     else { t=T('Χωρίς θέση','No position'); }
     wSum.replaceChildren(h('b',{text:t}),sub?h('small',{text:sub}):null);
     var k=v==='gps'?'gps':(v==='coord'&&cwrap.hidden)||v==='at'?'map':v.slice(0,2)==='s:'?'spot':v==='coord'?'type':v;
-    Object.keys(wBtns).forEach(function(n){ wBtns[n].setAttribute('aria-pressed',String(n===k)); }); }
+    Object.keys(wBtns).forEach(function(n){ wBtns[n].setAttribute('aria-pressed',String(n===k)); }); try{ depFollow(); }catch(x){} }
   function bigMap(){ var g0=(cbx&&cbx.get())||(where.value.slice(0,2)==='s:'&&S.get('spots',where.value.slice(2)))||pos||(e&&typeof e.lat==='number'?{lat:e.lat,lon:e.lon}:null)||(opt&&opt.at)||B.lastPos()||{lat:35.0,lon:33.2};
     var el=h('div',{class:'bpm'}), rd=h('b',{class:'bprd'}), ov, mm=null;
     function close(){ try{ mm&&mm.remove(); }catch(x){} ov.remove(); }
@@ -260,10 +260,16 @@ B.biteForm=function(edit,opt){
   wPick.addEventListener('click',function(){ wTouched=true; oldHint.hidden=true; },true);
   function oldCheck(){ if(e||wTouched||where.value!=='gps') return; var d=when.value?new Date(when.value):null; if(!d||isNaN(d)||Date.now()-d.getTime()<3*3600000) return;
     setW('none'); oldHint.hidden=false; wwBox.hidden=false; wwLine.classList.add('open'); }
-  when.addEventListener('change',oldCheck); when.addEventListener('input',oldCheck); locP.then(function(){ wwPaint(); autoDepth(); }); wwPaint();
+  when.addEventListener('change',oldCheck); when.addEventListener('input',oldCheck); locP.then(function(){ wwPaint(); depFollow(); }); wwPaint();
   /* βάθος από τον χάρτη βυθού όταν δεν το έγραψες (εκτίμηση, σημειώνεται) */
   var depNote=h('small',{class:'wn',hidden:true}), depAuto=false;
-  function autoDepth(){ if(e||dep.value||!pos||!B.depthAt||prof==='lake'||prof==='shore') return; B.depthAt(pos.lat,pos.lon).then(function(v){ if(v==null||v<1||dep.value) return; var U=window.AlkyonUnits, o=U&&U.depthOut?U.depthOut(v):Math.round(v);
+  /* 1.13.7: το βάθος ακολουθεί τη θέση που διάλεξες (GPS, χάρτης, συντεταγμένες, σημείο), όχι μόνο το GPS */
+  function effPos(){ var v=where.value, g; if(v==='gps') return pos; if(v==='coord'){ g=cbx&&cbx.get(); return g&&isFinite(g.lat)&&isFinite(g.lon)?g:null; }
+    if(v.slice(0,2)==='s:'){ g=S.get('spots',v.slice(2)); return g&&typeof g.lat==='number'?g:null; } if(v==='at') return opt&&opt.at||null; if(v==='keep') return e&&typeof e.lat==='number'?{lat:e.lat,lon:e.lon}:null; return null; }
+  var depKey='';
+  function depFollow(){ var p=effPos(), k=p?p.lat.toFixed(4)+','+p.lon.toFixed(4):''; if(k===depKey) return; var first=!depKey; depKey=k; if(e&&where.value==='keep') return;
+    if(depAuto||(!first&&!dep.value)){ dep.value=''; depAuto=false; depNote.hidden=true; } if(p) autoDepth(); }
+  function autoDepth(){ var p=effPos(); if((e&&where.value==='keep')||dep.value||!p||!B.depthAt||prof==='lake'||prof==='shore') return; var k=depKey; B.depthAt(p.lat,p.lon).then(function(v){ if(v==null||v<1||dep.value||k!==depKey) return; var U=window.AlkyonUnits, o=U&&U.depthOut?U.depthOut(v):Math.round(v);
       dep.value=String(Math.round(o)); depAuto=true; depNote.hidden=false; var src=B.lastDepthSrc; /* 1.10.12: από το βυθόμετρο ή τον «Βυθό μου» όταν υπάρχουν */
       depNote.textContent=src==='sounder'?T('βάθος από το βυθόμετρο','depth from the sounder'):src==='mine'?T('βάθος από τον «Βυθό μου» (το βυθόμετρό σου)','depth from “My depths” (your sounder)'):'≈ '+T('βάθος από τον χάρτη βυθού· γράψε το πραγματικό αν το ξέρεις','depth from the seabed chart; enter the real one if you know it'); }).catch(function(){}); }
   dep.addEventListener('input',function(){ depAuto=false; depNote.hidden=true; });

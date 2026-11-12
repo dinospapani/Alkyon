@@ -136,7 +136,7 @@ B.dataCards=function(){ return [csvCard(),aiCard(),diagCard()]; };
 /* ---------- επιλογή είδους ανά θαλάσσια περιοχή (όπως η κλασική speciespick.js) ---------- */
 function strip(x){ return (x||'').toLowerCase().replace(/ς/g,'σ').normalize('NFD').replace(/[̀-ͯ]/g,''); }
 var SDB=null;
-function sdb(){ if(SDB) return SDB; SDB=(window.SPECIES_DB||[]).map(function(r){ return {el:r[0]?String(r[0]).split('/')[0].trim():null,alt:r[0]||'',en:r[1]||'',la:r[2]||''}; }).filter(function(x){ return x.la; }); return SDB; }
+function sdb(){ if(SDB) return SDB; var cy=false; try{ cy=!!(B.country&&B.country()==='cy'); }catch(x){} SDB=(window.SPECIES_DB||[]).map(function(r){ var ps=r[0]?String(r[0]).split('/').map(function(x){ return x.trim(); }):[]; return {el:ps.length?(cy&&ps[1]&&/^Ορφ/.test(ps[1])?ps[1]:ps[0]):null,alt:r[0]||'',en:r[1]||'',la:r[2]||''}; }).filter(function(x){ return x.la; }); return SDB; }
 function spName(sp){ return EN?(sp.en||sp.el):(sp.el||sp.en); }
 B.speciesPick=function(cb){
   var REG=window.SPECIES_REG||{}, REGS=window.SPECIES_REGIONS||[], tags=function(sp){ return REG[(sp.la||'').toLowerCase()]||'m'; };
