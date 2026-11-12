@@ -995,6 +995,11 @@ with sync_playwright() as p:
     pg.evaluate("()=>AK.sounder.set({src:'off'})"); pg.wait_for_timeout(300)
     r=pg.evaluate("()=>AK.sounder.flush().then(()=>AK.depthAt(34.7001,33.0402)).then(d=>[d,AK.lastDepthSrc,AK.sounder.live()])")
     check('Βάθος: χωρίς βυθόμετρο έρχεται από τον «Βυθό μου» (1.10.12)', r==[42.1,'mine',None], r)
+    # 1.13.1: «Δίκτυο σκάφους»: NMEA 0183 από UDP (DPT με offset, MTW, RMC) → ζωντανό βάθος· στη σελίδα web λέει «μόνο Android»
+    r=pg.evaluate("""()=>{ AK.sounder.set({rec:false}); AK.sounder._net({items:[{p:'udp',port:10110,from:'10.0.0.5',n:40,txt:'$SDDPT,7.5,0.5*55\\r\\n$SDMTW,19.0,C*00\\r\\n'},{p:'udp',port:10110,from:'10.0.0.5',n:60,txt:'$GPRMC,101010,A,3442.006,N,03302.412,E,3.0,90,121126,,*00'}],drop:0});
+      const s=AK.sounder.state(); const r=[AK.sounder.live(), s.wt, s.pos&&+s.pos.lat.toFixed(4), /DPT×1/.test(AK.sounder.diag())]; AK.sounder.set({src:'net'}); return new Promise(res=>setTimeout(()=>res(r.concat([AK.sounder.state().state])),300)); }""")
+    check('Βυθόμετρο: «Δίκτυο σκάφους» διαβάζει NMEA (DPT+offset, MTW, RMC) και στο web λέει «μόνο Android» (1.13.1)', r==[8.0,19.0,34.7001,True,'err'], r)
+    pg.evaluate("()=>AK.sounder.set({src:'off',rec:true})")
     # αρχείο .sl2 από το φύλλο ρυθμίσεων
     R=6356752.3142; X=round(_m.radians(33.05)*R); Y=round(R*_m.log(_m.tan(_m.pi/4+_m.radians(34.69)/2)))
     raw=bytearray(8)

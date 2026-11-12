@@ -898,6 +898,8 @@ html.night .pnrow{background:#000;outline:1px solid #fff;outline-offset:-1px}
 .sndsheet .fld input{width:100%;box-sizing:border-box}
 .sndsheet .row2{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
 .sndsheet .row2 .btn{flex:1 1 140px;white-space:normal}
+.sndsheet .snddiag{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.45 ui-monospace,Menlo,Consolas,monospace;background:var(--surface-2,rgba(127,127,127,.12));border-radius:12px;padding:10px;max-height:46vh;overflow:auto;margin:6px 0}
+.sndsheet .sndnet .chip.sm{margin:2px}
 .sndsheet .sndhow{margin:8px 0}.sndsheet .sndhow p{font-size:13.5px;color:var(--ink-2);margin:6px 0}
 .sndsheet .sndimp .sub{overflow-wrap:anywhere}
 .sndsheet .sndimp .btn.sm{margin-left:6px}

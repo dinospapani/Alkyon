@@ -3,6 +3,8 @@
    1) Ζωντανά μέσω Signal K: ένας «γεφυρωτής» στο δίκτυο NMEA 2000 / 0183 του σκάφους (Victron Cerbo GX με Venus OS Large,
       Raspberry Pi με OpenPlotter, ή όποιος άλλος server Signal K) δίνει βάθος, θερμοκρασία νερού, θέση και ταχύτητα από WebSocket.
       Η εφαρμογή είναι σε https, οπότε η σύνδεση γίνεται με wss (πόρτα 3443 του Signal K, με SSL).
+   1β) (1.13.1, μόνο εφαρμογή Android) «Δίκτυο σκάφους»: NMEA 0183 μέσω WiFi (UDP broadcast/multicast ή TCP) από plotter ή πύλη
+      NMEA, με το πρόσθετο AlkNet (android/…/AlkNetPlugin.java). Δείχνει και ό,τι έρχεται από το δίκτυο, για διάγνωση.
    2) Από αρχείο: Lowrance/Simrad .sl2/.sl3, καταγραφή NMEA 0183, GPX με βάθος, CSV (Deeper κ.ά.) — v4/sounder-parse.js.
    Ό,τι μετριέται μπαίνει στον «Βυθό μου»: πλέγμα ~20 m στη συσκευή (IndexedDB alkyon-depth), με μέσο, ελάχιστο και μέγιστο βάθος.
    Η B.depthAt προτιμά: ζωντανό βυθόμετρο (κοντά στο σκάφος) → «Ο βυθός μου» → χάρτης βυθού (EMODnet). B.lastDepthSrc λέει από πού ήρθε. */
@@ -10,7 +12,7 @@
 'use strict';
 var B=window.AK, h=B.h, T=B.T, EN=B.EN, ls=B.ls;
 var CFG='alkyon-sounder';
-function cfg(){ var c=ls.get(CFG,null)||{}; return {src:c.src==='sk'?'sk':'off',host:String(c.host||''),demo:!!c.demo,rec:c.rec!==false,off:isFinite(+c.off)?+c.off:0}; }
+function cfg(){ var c=ls.get(CFG,null)||{}; return {src:c.src==='sk'||c.src==='net'?c.src:'off',tcp:String(c.tcp||''),scan:String(c.scan||''),host:String(c.host||''),demo:!!c.demo,rec:c.rec!==false,off:isFinite(+c.off)?+c.off:0}; }
 function setCfg(p){ var c=Object.assign(cfg(),p); ls.set(CFG,c); return c; }
 function emit(){ try{ window.dispatchEvent(new CustomEvent('alkyon-sounder',{detail:st})); }catch(e){} }
 function hav(a,b,c,d){ var r=Math.PI/180, x=Math.sin((c-a)*r/2), y=Math.sin((d-b)*r/2), q=x*x+Math.cos(a*r)*Math.cos(c*r)*y*y; return 12742000*Math.asin(Math.min(1,Math.sqrt(q))); }
@@ -73,6 +75,7 @@ function record(){ var c=cfg(); if(c.demo||!c.rec||st.d==null) return; var p=boa
   if(lastRec&&now-lastRec.t<2000) return; if(lastRec&&hav(lastRec.lat,lastRec.lon,p.lat,p.lon)<6&&Math.abs(lastRec.d-st.d)<0.3&&now-lastRec.t<15000) return;
   lastRec={lat:p.lat,lon:p.lon,d:st.d,t:now}; add([{lat:p.lat,lon:p.lon,d:st.d,t:now,wt:st.wt}]); }
 function connect(){ var c=cfg(); want=c.src==='sk'; clearTimeout(rtm); if(ws){ try{ ws.onclose=null; ws.close(); }catch(e){} ws=null; }
+  if(c.src==='net'){ netStart(); return; } netStop();
   if(!want){ st.state='off'; st.d=null; emit(); return; }
   var u=url(c); if(!u){ st.state='err'; st.err=T('Γράψε τη διεύθυνση του server','Enter the server address'); emit(); return; }
   st.state='connecting'; st.host=u; st.err=''; emit();
@@ -85,6 +88,48 @@ function connect(){ var c=cfg(); want=c.src==='sk'; clearTimeout(rtm); if(ws){ t
 function again(){ clearTimeout(rtm); if(!want) return; retry=Math.min(retry+1,6); rtm=setTimeout(function(){ if(want&&document.visibilityState!=='hidden') connect(); else again(); },[0,2,4,8,15,30,60][retry]*1000); }
 document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible'&&want&&!ws) connect(); if(document.visibilityState==='hidden') flush(); });
 window.addEventListener('pagehide',function(){ flush(); });
+/* ---------- 1.13.1 · Δίκτυο σκάφους (NMEA 0183 μέσω WiFi, μόνο στην εφαρμογή Android) ---------- */
+/* Συνηθισμένες πόρτες: 10110 (πρότυπο NMEA/IP), 2000/2002 (Yacht Devices, Digital Yacht), 11101 (PredictWind), 60001 (Quark-elec),
+   10021–10040 (δίκτυο NavNet της Furuno), 50000, 4123, 1456. Multicast: 239.255.0.x (NavNet). */
+var NET_UDP=[10110,2000,2002,11101,60001,50000,4123,1456,8888].concat((function(){ var a=[]; for(var p=10021;p<=10040;p++) a.push(p); return a; })());
+var NET_GROUPS=(function(){ var a=[]; for(var i=1;i<=12;i++) a.push('239.255.0.'+i); return a; })();
+var NET_SCAN=[10110,2000,2001,2002,2003,4123,1456,5000,6000,8000,8080,8888,9000,10000,10021,10110,11101,39150,50000,60001,3000,3443,80,443,23,7];
+var diag={}, diagN=0, diagDrop=0, netL=null, netOn=false, netBuf={};
+function NET(){ return window.AKN&&window.AKN.net||null; }
+function tcpList(c){ return String(c.tcp||'').split(/[\s,;]+/).map(function(x){ var m=/^([^:\s]+):(\d{1,5})$/.exec(x.trim()); return m?{host:m[1],port:+m[2]}:null; }).filter(Boolean); }
+function netStart(){ var P=NET(), c=cfg(); if(!P){ st.state='err'; st.err=T('Μόνο στην εφαρμογή Android','Only in the Android app'); emit(); return; }
+  st.state='connecting'; st.err=''; st.host=T('δίκτυο σκάφους','boat network'); emit();
+  var go=function(){ return P.start({udp:NET_UDP,groups:NET_GROUPS,tcp:tcpList(c)}).then(function(r){ netOn=true; st.state='open'; st.udp=(r&&r.udp)||[]; st.bad=(r&&r.bad)||[]; emit(); }); };
+  (netL?Promise.resolve():Promise.resolve(P.addListener('data',onNet)).then(function(l){ netL=l; })).then(go).catch(function(e){ st.state='err'; st.err=String(e&&e.message||e); emit(); }); }
+function netStop(){ var P=NET(); if(P&&netOn){ netOn=false; try{ P.stop(); }catch(e){} } }
+function dkey(it){ return it.p+':'+it.port; }
+function onNet(ev){ var items=(ev&&ev.items)||[]; diagDrop+=(ev&&ev.drop)||0; var now=Date.now();
+  items.forEach(function(it){ var k=dkey(it), d=diag[k]||(diag[k]={p:it.p,port:it.port,n:0,bytes:0,from:{},lines:[],types:{},hex:'',err:'',at:0});
+    if(it.err){ d.err=it.err; d.at=now; return; } d.n++; diagN++; d.bytes+=it.n||0; d.at=now; if(it.from) d.from[it.from]=1;
+    if(it.hex){ d.hex=it.hex; return; }
+    if(it.txt){ var buf=(netBuf[k+it.from]||'')+it.txt, parts=buf.split(/\r?\n/); netBuf[k+it.from]=parts.pop().slice(-300);
+      if(it.p==='udp'&&parts.length===0&&/^[$!]/.test(buf)){ parts=[buf]; netBuf[k+it.from]=''; } /* ένα NMEA ανά πακέτο UDP χωρίς \n */
+      parts.forEach(function(L){ L=L.trim(); if(!L) return; d.lines.push(L.slice(0,120)); if(d.lines.length>8) d.lines.shift();
+        var m=/^[$!]([A-Z]{2})([A-Z]{3}),/.exec(L); if(m){ d.types[m[2]]=(d.types[m[2]]||0)+1; nmeaLine(L,m[2]); } }); } });
+  if(items.length) emit(); }
+function nmeaLine(L,ty){ var f=L.replace(/\*[0-9A-Fa-f]{2}\s*$/,'').split(','), now=Date.now(), c=cfg(), d=NaN;
+  function ll(v,hm){ var x=parseFloat(v); if(!isFinite(x)) return NaN; var deg=Math.floor(x/100), r=deg+(x-deg*100)/60; return (hm==='S'||hm==='W')?-r:r; }
+  if(ty==='DPT'){ var a=parseFloat(f[1]), off=parseFloat(f[2]); if(isFinite(a)) d=isFinite(off)&&off>0?a+off:a+(c.off||0); }
+  else if(ty==='DBT'){ var mtr=parseFloat(f[3]), ft=parseFloat(f[1]); d=(isFinite(mtr)?mtr:(isFinite(ft)?ft*0.3048:NaN))+(c.off||0); }
+  else if(ty==='DBS'){ var m2=parseFloat(f[3]), f2=parseFloat(f[1]); d=isFinite(m2)?m2:(isFinite(f2)?f2*0.3048:NaN); }
+  else if(ty==='MTW'){ var t=parseFloat(f[1]); if(isFinite(t)) st.wt=t; }
+  else if(ty==='GGA'&&f[6]&&f[6]!=='0'){ var la=ll(f[2],f[3]), lo=ll(f[4],f[5]); if(isFinite(la)&&isFinite(lo)){ st.pos={lat:la,lon:lo}; st.posAt=now; } }
+  else if(ty==='RMC'&&f[2]==='A'){ var la2=ll(f[3],f[4]), lo2=ll(f[5],f[6]); if(isFinite(la2)&&isFinite(lo2)){ st.pos={lat:la2,lon:lo2}; st.posAt=now; } var k=parseFloat(f[7]); if(isFinite(k)) st.sog=k; }
+  else if(ty==='GLL'&&f[6]!=='V'){ var la3=ll(f[1],f[2]), lo3=ll(f[3],f[4]); if(isFinite(la3)&&isFinite(lo3)){ st.pos={lat:la3,lon:lo3}; st.posAt=now; } }
+  else if(ty==='VTG'){ var kn=parseFloat(f[5]); if(isFinite(kn)) st.sog=kn; }
+  if(isFinite(d)&&d>0.2&&d<3000){ st.d=d; st.dAt=now; st.path='nmea:'+ty; st.state='live'; st.err=''; record(); } }
+function diagText(){ var ks=Object.keys(diag).sort(); var out=['Alkyon '+(window.ALKYON_VERSION||'')+' · '+new Date().toISOString()+' · '+T('πακέτα','packets')+' '+diagN+(diagDrop?' (+'+diagDrop+' skip)':'')];
+  if(st.ifs) out.push('phone: '+st.ifs.map(function(i){ return i.name+' '+i.ip+'/'+i.prefix; }).join(', '));
+  if(st.bad&&st.bad.length) out.push('bad: '+st.bad.join('; '));
+  ks.forEach(function(k){ var d=diag[k]; out.push(k+' · '+d.n+' pk · '+d.bytes+' B · from '+Object.keys(d.from).join(' ')+(d.err?' · '+d.err:'')+(Object.keys(d.types).length?' · '+Object.keys(d.types).map(function(t){ return t+'×'+d.types[t]; }).join(' '):''));
+    d.lines.slice(-4).forEach(function(L){ out.push('   '+L); }); if(d.hex) out.push('   hex '+d.hex); });
+  if(!ks.length) out.push(T('Δεν έχει έρθει τίποτα ακόμα.','Nothing received yet.')); return out.join('\n'); }
+
 function live(){ return st.d!=null&&Date.now()-st.dAt<15000?st.d:null; }
 /* ζωντανό βάθος, αν το σημείο είναι κοντά στο σκάφος */
 function liveAt(lat,lon,maxM){ var d=live(); if(d==null) return null; var p=boatPos(); if(!p||lat==null) return d; return hav(lat,lon,p.lat,p.lon)<=(maxM||60)?Math.round(d*10)/10:null; }
@@ -104,21 +149,51 @@ function importFiles(fs){ fs=[].slice.call(fs); return Promise.all([loadParser()
 
 /* ---------- ρυθμίσεις ---------- */
 function fmtD(d){ var U=window.AlkyonUnits; return U&&U.depth?U.depth(d):(Math.round(d*10)/10+' m'); }
-function stTxt(){ var c=cfg(); if(c.src!=='sk') return T('Ανενεργό','Off');
+function stTxt(){ var c=cfg(); if(c.src==='off') return T('Ανενεργό','Off');
+  if(c.src==='net'){ if(st.state==='err') return '⚠ '+(st.err||T('Σφάλμα','Error')); if(live()!=null) return '● '+T('Βάθος από το δίκτυο','Depth from the network')+' · '+fmtD(live())+(st.wt!=null?' · '+st.wt.toFixed(1)+' °C':'');
+    if(st.state==='connecting') return T('Ξεκινά…','Starting…'); return '● '+T('Ακούει στο δίκτυο','Listening on the network')+' · '+diagN+T(' πακέτα',' packets')+(diagN?T(', χωρίς βάθος ακόμα',', no depth yet'):''); }
   if(st.state==='live'&&live()!=null) return '● '+T('Συνδεδεμένο','Connected')+' · '+fmtD(live())+(st.wt!=null?' · '+st.wt.toFixed(1)+' °C':'')+(c.demo?T(' (δοκιμή)',' (demo)'):'');
   if(st.state==='live'||st.state==='open') return '● '+T('Συνδεδεμένο, περιμένει βάθος…','Connected, waiting for depth…');
   if(st.state==='connecting') return T('Σύνδεση…','Connecting…'); if(st.state==='err') return '⚠ '+(st.err||T('Σφάλμα','Error')); return T('Αποσυνδεδεμένο','Disconnected'); }
-function summary(){ var c=cfg(); return c.src==='sk'?T('Signal K · ','Signal K · ')+(c.demo?T('δοκιμή','demo'):(c.host||'—')):T('Ανενεργό · και από αρχείο','Off · or from a file'); }
+function summary(){ var c=cfg(); if(c.src==='net') return T('Δίκτυο σκάφους (WiFi)','Boat network (WiFi)'); return c.src==='sk'?T('Signal K · ','Signal K · ')+(c.demo?T('δοκιμή','demo'):(c.host||'—')):T('Ανενεργό · και από αρχείο','Off · or from a file'); }
 function sheet(){
   var c=cfg(), stEl=h('p',{class:'sndst',role:'status',text:stTxt()});
   var host=h('input',{type:'text',inputmode:'url',autocapitalize:'off',spellcheck:'false',placeholder:'venus.local',value:c.host,'aria-label':T('Διεύθυνση server Signal K','Signal K server address')});
   var off=h('input',{type:'number',inputmode:'decimal',step:'0.1',min:'0',max:'5',value:c.off?String(c.off):'',placeholder:'0','aria-label':T('Βάθος αισθητήρα (m)','Transducer depth (m)')});
   var rec=h('input',{type:'checkbox',checked:c.rec});
-  function seg(v){ return h('button',{type:'button',class:'chip'+(cfg().src===v?' on':''),'aria-pressed':String(cfg().src===v),text:v==='sk'?'Signal K':T('Ανενεργό','Off'),onclick:function(){ setCfg({src:v,demo:false,host:host.value.trim()}); connect(); paint(); }}); }
+  function seg(v){ return h('button',{type:'button',class:'chip'+(cfg().src===v?' on':''),'aria-pressed':String(cfg().src===v),text:v==='sk'?'Signal K':v==='net'?T('Δίκτυο σκάφους (WiFi)','Boat network (WiFi)'):T('Ανενεργό','Off'),onclick:function(){ setCfg({src:v,demo:false,host:host.value.trim()}); connect(); paint(); }}); }
   function preset(lbl,val){ return h('button',{type:'button',class:'chip sm',text:lbl,onclick:function(){ host.value=val; setCfg({src:'sk',host:val,demo:false}); connect(); paint(); }}); }
-  var segs=h('div',{class:'chips'}), box=h('div',{class:'sndsk'}), mine=h('div',{class:'sndmine'}), imp=h('div',{class:'sndimp'});
+  var segs=h('div',{class:'chips'}), box=h('div',{class:'sndsk'}), nbox=h('div',{class:'sndnet'}), mine=h('div',{class:'sndmine'}), imp=h('div',{class:'sndimp'});
   var file=h('input',{type:'file',accept:'.sl2,.sl3,.son,.dat,.rsd,.gpx,.csv,.nmea,.txt,.log,.nma',multiple:true,hidden:true});
-  function paint(){ var c2=cfg(); segs.replaceChildren(seg('off'),seg('sk')); box.hidden=c2.src!=='sk'; stEl.textContent=stTxt(); }
+  function paint(){ var c2=cfg(); segs.replaceChildren.apply(segs,[seg('off'),seg('sk')].concat(NET()||c2.src==='net'?[seg('net')]:[])); box.hidden=c2.src!=='sk'; nbox.hidden=c2.src!=='net'; stEl.textContent=stTxt(); paintDiag(); }
+  /* «Δίκτυο σκάφους»: οδηγίες, TCP, σάρωση plotter, και ό,τι έρχεται από το δίκτυο */
+  var tcpIn=h('input',{type:'text',inputmode:'url',autocapitalize:'off',spellcheck:'false',placeholder:'192.168.4.1:10110',value:c.tcp,'aria-label':T('Σύνδεση TCP','TCP connection')});
+  var scanIn=h('input',{type:'text',inputmode:'decimal',autocapitalize:'off',spellcheck:'false',placeholder:'192.168.43.24',value:c.scan,'aria-label':T('Διεύθυνση plotter','Plotter address')});
+  var scanOut=h('p',{class:'sub'}), ipEl=h('p',{class:'sub'}), diagEl=h('pre',{class:'snddiag'});
+  tcpIn.addEventListener('change',function(){ setCfg({tcp:tcpIn.value.trim()}); connect(); paint(); });
+  scanIn.addEventListener('change',function(){ setCfg({scan:scanIn.value.trim()}); });
+  function paintDiag(){ if(nbox.hidden) return; diagEl.textContent=diagText(); }
+  function showIps(){ var P=NET(); if(!P||!P.info) return; P.info().then(function(r){ st.ifs=(r&&r.ifs)||[]; ipEl.textContent=st.ifs.length?T('Το κινητό: ','This phone: ')+st.ifs.map(function(i){ return i.ip; }).join(', '):T('Το κινητό δεν είναι σε κανένα δίκτυο.','The phone is not on any network.'); }).catch(function(){}); }
+  nbox.append(
+    h('p',{class:'sub',text:T('Το Alkyon ακούει στο WiFi για NMEA 0183 (βάθος, θερμοκρασία νερού, θέση) από το plotter ή από πύλη NMEA (Yacht Devices, Digital Yacht, Quark-elec, PredictWind κ.ά.). Δείχνει και ό,τι άλλο έρχεται, για να δούμε τι στέλνει το plotter.','Alkyon listens on WiFi for NMEA 0183 (depth, water temperature, position) from the plotter or an NMEA gateway (Yacht Devices, Digital Yacht, Quark-elec, PredictWind etc.). It also shows anything else that arrives, so we can see what the plotter sends.')}),
+    h('details',{class:'sndhow',open:true},h('summary',{text:T('Βήματα','Steps')}),
+      h('p',{text:T('1. Άνοιξε το hotspot στο κινητό (ή μπες στο WiFi του σκάφους ή της πύλης).','1. Turn on the phone’s hotspot (or join the boat’s or gateway’s WiFi).')}),
+      h('p',{text:T('2. Στο plotter: Ρυθμίσεις › Wireless LAN › σύνδεση στο hotspot του κινητού. Γράψε τη διεύθυνση IP που δείχνει.','2. On the plotter: Settings › Wireless LAN › join the phone’s hotspot. Note the IP address it shows.')}),
+      h('p',{text:T('3. Άφησε αυτή τη σελίδα ανοιχτή 1–2 λεπτά. Αν φανεί βάθος πάνω, είσαι έτοιμος. Αλλιώς πάτα «Σάρωση» με τη διεύθυνση του plotter και στείλε μας την «Αναφορά».','3. Keep this page open for 1–2 minutes. If a depth shows above, you are done. Otherwise tap “Scan” with the plotter address and send us the “Report”.')})),
+    ipEl,
+    h('label',{class:'fld'},h('span',{text:T('Διεύθυνση plotter ή πύλης (για σάρωση)','Plotter or gateway address (to scan)')}),scanIn),
+    h('div',{class:'row2'},h('button',{type:'button',class:'btn',text:T('Σάρωση πορτών TCP','Scan TCP ports'),onclick:function(ev){ var P=NET(), host=scanIn.value.trim(); if(!P||!host){ scanOut.textContent=T('Γράψε πρώτα τη διεύθυνση IP.','Enter the IP address first.'); return; }
+        setCfg({scan:host}); ev.target.disabled=true; scanOut.textContent=T('Σάρωση…','Scanning…');
+        P.scan({host:host,ports:NET_SCAN,timeout:800}).then(function(r){ var o=(r&&r.open)||[]; st.scanRes=host+': '+(o.length?o.join(', '):'—');
+          scanOut.replaceChildren(h('span',{text:o.length?T('Ανοιχτές πόρτες: ','Open ports: '):T('Καμία ανοιχτή πόρτα από τη λίστα.','No open port from the list.')}),
+            ...o.map(function(p){ return h('button',{type:'button',class:'chip sm',text:String(p),onclick:function(){ tcpIn.value=host+':'+p; setCfg({tcp:tcpIn.value}); connect(); paint(); }}); })); })
+          .catch(function(e){ scanOut.textContent='⚠ '+String(e&&e.message||e); }).then(function(){ ev.target.disabled=false; }); }}),
+      h('button',{type:'button',class:'btn',text:T('Αναφορά (αντιγραφή)','Report (copy)'),onclick:function(ev){ var t=diagText()+(st.scanRes?'\nscan '+st.scanRes:''); var b=ev.target;
+        (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(t):Promise.reject()).then(function(){ b.textContent=T('Αντιγράφηκε ✓','Copied ✓'); },function(){ if(navigator.share) navigator.share({text:t}).catch(function(){}); }); }})),
+    scanOut,
+    h('label',{class:'fld'},h('span',{text:T('Σύνδεση TCP (προαιρετικά, διεύθυνση:πόρτα)','TCP connection (optional, address:port)')}),tcpIn),
+    h('h3',{class:'listh',text:T('Τι έρχεται από το δίκτυο','What arrives from the network')}),diagEl);
+  showIps();
   host.addEventListener('change',function(){ setCfg({host:host.value.trim(),demo:false}); connect(); paint(); });
   off.addEventListener('change',function(){ var v=parseFloat(String(off.value).replace(',','.')); setCfg({off:isFinite(v)&&v>=0&&v<=5?v:0}); });
   rec.addEventListener('change',function(){ setCfg({rec:rec.checked}); });
@@ -148,10 +223,10 @@ function sheet(){
       h('p',{class:'sub',text:s.cells?(s.cells+T(' σημεία βυθού (κελιά ~20 m) από ',' depth cells (~20 m) from ')+s.n+T(' μετρήσεις.',' readings.')):T('Άδειο ακόμα. Γεμίζει από το βυθόμετρο ή από αρχείο.','Empty so far. It fills from the sounder or from a file.')}),
       s.cells?h('div',{class:'row2'},h('button',{type:'button',class:'btn',text:T('Στον χάρτη','On the map'),onclick:function(){ ls.set('alkyon-v4-mydepth',true); if(api) api.close(); if(s.s<=s.nn) try{ ls.set('alkyon-v4-mydepth-fit',[s.s,s.w,s.nn,s.e]); }catch(e){} location.hash='#map'; }}),
         h('button',{type:'button',class:'btn',text:T('Διαγραφή όλων','Delete all'),onclick:function(ev){ var b=ev.target; if(b.dataset.ok){ clearAll().then(paintMine); } else { b.dataset.ok='1'; b.textContent=T('Σίγουρα; Πάτα ξανά','Sure? Tap again'); setTimeout(function(){ if(b.isConnected){ delete b.dataset.ok; b.textContent=T('Διαγραφή όλων','Delete all'); } },4000); } }})):null); }); }
-  var tick=function(){ stEl.textContent=stTxt(); }; window.addEventListener('alkyon-sounder',tick);
+  var dTm=0, tick=function(){ stEl.textContent=stTxt(); var n=Date.now(); if(n-dTm>800){ dTm=n; paintDiag(); } }; window.addEventListener('alkyon-sounder',tick);
   var body=h('div',{class:'sndsheet'},
     h('p',{class:'sub',text:T('Το βάθος από το βυθόμετρο του σκάφους στην εφαρμογή: στον χάρτη, στα ψάρια που γράφεις, στη συρτή βυθού και στον «Βυθό μου».','The depth from your boat’s sounder in the app: on the map, in the catches you log, in bottom trolling and in “My depths”.')}),
-    stEl,h('h3',{class:'listh',text:T('Ζωντανή σύνδεση','Live connection')}),segs,box,
+    stEl,h('h3',{class:'listh',text:T('Ζωντανή σύνδεση','Live connection')}),segs,box,nbox,
     h('h3',{class:'listh',text:T('Από αρχείο βυθομέτρου','From a sounder file')}),imp,
     h('h3',{class:'listh',text:T('Ο βυθός μου','My depths')}),mine);
   paint(); paintMine();
@@ -159,6 +234,6 @@ function sheet(){
   return api; }
 
 B.sounder={cfg:cfg,set:function(p){ setCfg(p); connect(); },connect:connect,state:function(){ return st; },live:live,liveAt:liveAt,near:near,nearSync:nearSync,cellsIn:cellsIn,
-  add:add,flush:flush,stats:stats,clear:clearAll,importFile:importFile,importFiles:importFiles,sheet:sheet,summary:summary,url:url,_delta:onDelta,_tiles:function(){ return tiles; }};
-if(cfg().src==='sk') setTimeout(connect,1200);
+  add:add,flush:flush,stats:stats,clear:clearAll,_net:onNet,diag:diagText,importFile:importFile,importFiles:importFiles,sheet:sheet,summary:summary,url:url,_delta:onDelta,_tiles:function(){ return tiles; }};
+if(cfg().src!=='off') setTimeout(connect,1200);
 })();

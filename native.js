@@ -28,7 +28,9 @@ window.AKN={
   site:SITE,                                 /* διεύθυνση επιστροφής στα email (επιβεβαίωση, νέος κωδικός) */
   oauthReturn:SCHEME+'://auth/',             /* επιστροφή από Google: ανοίγει ξανά την εφαρμογή */
   openExternal:openExternal,
-  version:function(){ return App?App.getInfo().then(function(i){ return i.version+' ('+i.build+')'; }):Promise.resolve(''); }
+  version:function(){ return App?App.getInfo().then(function(i){ return i.version+' ('+i.build+')'; }):Promise.resolve(''); },
+  /* 1.13.1: «Δίκτυο σκάφους» (UDP/TCP προς plotter ή πύλη NMEA). Προς το παρόν μόνο Android. */
+  net:IOS?null:reg('AlkNet')
 };
 try{ document.documentElement.classList.add('native','native-'+window.AKN.platform); }catch(e){}
 
