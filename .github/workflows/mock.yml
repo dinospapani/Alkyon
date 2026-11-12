@@ -1,0 +1,14 @@
+name: mockup relief
+on: { push: { branches: [mockup-relief] } }
+jobs:
+  m:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install numpy matplotlib tifffile imagecodecs
+      - run: |
+          curl -sf -o g.tif "https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage=emodnet:mean&crs=EPSG:4326&bbox=32.30,34.70,32.47,34.84&format=image/tiff&resx=0.0010416667&resy=0.0010416667"
+          ls -la g.tif
+          python tools/mock.py
+      - uses: actions/upload-artifact@v4
+        with: { name: shots, path: "*.png" }
