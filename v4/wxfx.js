@@ -63,6 +63,7 @@ function ensure(){
     /* 1.2.2: στο σύρσιμο το χρώμα του κύματος/ανέμου μένει και κινείται μαζί με τον χάρτη (πριν έσβηνε και φαινόταν μόνο η σκίαση των βαθών)· σβήνει μόνο στο ζουμ */
     map.on('zoomstart',function(){ zooming=true; if(fillCv) fillCv.style.opacity='0'; });
     map.on('movestart zoomstart',function(){ parts=[]; if(dctx){ var s=map.getSize(); dctx.clearRect(0,0,s.x,s.y); } });
+    map.on('movestart',function(){ roMoving=true; }); map.on('moveend',function(){ roMoving=false; roXY=null; roLater(); });
     map.on('move',function(){ if(zooming&&fillCv) pin(fillCv); if(dashCv) pin(dashCv); roLater(); });
     map.on('zoomend',function(){ zooming=false; });
     map.on('moveend zoomend resize',function(){ later(250); if(sstOn) setTimeout(function(){ sstLoad(false); },260); });
@@ -169,14 +170,18 @@ B.wxAt=function(lat,lng){ var o={}, Wx=W(), Sx=S();
   if(seaOn()){ try{ var r=Sx&&Sx.pointInfo?Sx.pointInfo(lat,lng):null; if(r&&r.hs>=0){ o.hs=r.hs; o.hdir=r.wdir; } else { var m=Sx&&Sx.modelAt?Sx.modelAt(lat,lng):null; if(m){ o.hs=m.h; o.hdir=m.dir; } } }catch(e){} }
   return o; };
 B.arrowSvg=arrowSvg;
-function crossAt(mc){ var R=mc.getBoundingClientRect(), top=R.top, bot=R.bottom;
+function crossAt(mc){ if(roMoving&&roXY){ var ll0; try{ ll0=roXY.rot?map.getCenter():map.containerPointToLatLng([roXY.x,roXY.y]); }catch(e){ ll0=map.getCenter(); } B.crossLL=ll0; return ll0; }
+  var R=mc.getBoundingClientRect(), top=R.top, bot=R.bottom;
   function vis(e){ if(!e||e.hidden) return null; var cs=getComputedStyle(e); if(cs.display==='none'||cs.visibility==='hidden') return null; var r=e.getBoundingClientRect(); return r.width&&r.height?r:null; }
   if(document.body.classList.contains('mapclean')) ['.mcbar','.mcpanel','.mcmode'].forEach(function(s2){ var r=vis(document.querySelector(s2)); if(r&&r.bottom>top&&r.bottom<R.top+R.height*0.5) top=r.bottom; });
   var dk=vis(document.getElementById('ndMapDock')), nv=vis(document.querySelector('.nav')); if(dk&&dk.top<bot) bot=dk.top; else if(nv&&nv.top<bot) bot=nv.top;
   var rot=mc.classList.contains('mrot'), x=R.width/2, y=(top+bot)/2-R.top; if(rot||bot-top<120){ x=R.width/2; y=R.height/2; }
-  crEl.style.left=Math.round(x)+'px'; crEl.style.top=Math.round(y)+'px';
+  crEl.style.left=Math.round(x)+'px'; crEl.style.top=Math.round(y)+'px'; if(roMoving) roXY={x:x,y:y,rot:rot};
   var ll; try{ ll=rot?map.getCenter():map.containerPointToLatLng([x,y]); }catch(e){ ll=map.getCenter(); } B.crossLL=ll; return ll; }
-function roLater(){ if(roRaf) return; roRaf=requestAnimationFrame(function(){ roRaf=0; try{ readout(); }catch(e){} }); }
+/* 1.14.1: στο σύρσιμο η ένδειξη του σταυρού ανανεώνεται το πολύ ~6 φορές το δευτερόλεπτο και χωρίς να ξαναμετρά τη σελίδα (πριν σε κάθε καρέ: «κολλούσε» ο χάρτης στο κινητό) */
+var roLast=0, roT=0, roMoving=false, roXY=null;
+function roLater(){ if(roRaf||roT) return; var wait=roMoving?Math.max(0,160-(performance.now()-roLast)):0;
+  roT=setTimeout(function(){ roT=0; roRaf=requestAnimationFrame(function(){ roRaf=0; roLast=performance.now(); try{ readout(); }catch(e){} }); },wait); }
 var numsOn=B.ls.get('alkyon-v4-wxnums',false)===true;
 function drawLabels(){
   if(!ensure()) return;

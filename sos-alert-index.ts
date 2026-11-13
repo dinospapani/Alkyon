@@ -125,5 +125,36 @@ Deno.serve(async (req) => {
         return J({ ok: true, near: near.size, people, sent });
       } catch (e) { return J({ ok: false, error: e.message }, 500); }
     }
+  // 1.14.1: νέο μήνυμα «Πες μας τη γνώμη σου» → push στους διαχειριστές. Ο καθένας μπορεί να το καλέσει, αλλά στέλνει μόνο για μηνύματα
+  // των τελευταίων 10′ που δεν έχουν ήδη σταλεί (notif_log kind 'fb'), οπότε δεν γίνεται κατάχρηση.
+  if (body && body.action === 'fb') {
+    try {
+      const H = { apikey: env.SUPABASE_SERVICE_KEY, Authorization: 'Bearer ' + env.SUPABASE_SERVICE_KEY };
+      const g = async (p) => { const r = await fetch(env.SUPABASE_URL + '/rest/v1/' + p, { headers: H }); return r.ok ? await r.json() : []; };
+      const admins = (await g('app_admins?select=user_id')).map(x => x.user_id).filter(Boolean);
+      if (!admins.length) return J({ ok: true, sent: 0, why: 'no admins' });
+      const since = new Date(Date.now() - 10 * 60000).toISOString();
+      const fbs = await g('app_errors?kind=eq.feedback&at=gt.' + encodeURIComponent(since) + '&select=at,msg,stack&order=at.asc&limit=10');
+      if (!fbs.length) return J({ ok: true, sent: 0, why: 'none' });
+      const done = new Set((await g('notif_log?kind=eq.fb&at=gt.' + encodeURIComponent(new Date(Date.now() - 30 * 60000).toISOString()) + '&select=id')).map(x => x.id));
+      const fresh = fbs.filter(f => !done.has('fb:' + f.at));
+      if (!fresh.length) return J({ ok: true, sent: 0, why: 'already' });
+      const hasV = !!(E('VAPID_PUBLIC') && E('VAPID_PRIVATE'));
+      if (hasV && !vapidSet) { webpush.setVapidDetails('https://dinospapani.github.io/Alkyon/', V('VAPID_PUBLIC'), V('VAPID_PRIVATE')); vapidSet = true; }
+      const px = pushx(hasV ? webpush : null);
+      const TOP = { idea: 'Ιδέα', bug: 'Πρόβλημα', like: 'Μου αρέσει' };
+      let sent = 0;
+      for (const f of fresh) {
+        const tp = (/topic: (\w+)/.exec(f.stack || '') || [])[1] || '';
+        const msg = { id: 'fb:' + f.at, kind: 'fb', tag: 'fb-' + f.at, url: '#profile', title: '💬 ' + (TOP[tp] ? TOP[tp] + ' · ' : '') + 'Νέο μήνυμα χρήστη', body: String(f.msg || '').slice(0, 160) };
+        for (const a of admins) {
+          const subs = await g('push_subs?user_id=eq.' + encodeURIComponent(a) + '&select=id,sub');
+          for (const r of subs) { try { await px.sendNotification(r.sub, JSON.stringify(msg), { TTL: 86400 }); sent++; } catch (e) { if (e.statusCode === 404 || e.statusCode === 410) await fetch(env.SUPABASE_URL + '/rest/v1/push_subs?id=eq.' + encodeURIComponent(r.id), { method: 'DELETE', headers: H }).catch(() => {}); } }
+          await fetch(env.SUPABASE_URL + '/rest/v1/notif_log', { method: 'POST', headers: { ...H, 'Content-Type': 'application/json', Prefer: 'resolution=ignore-duplicates,return=minimal' }, body: JSON.stringify({ id: 'fb:' + f.at, user_id: a, kind: 'fb', title: msg.title, body: msg.body, at: new Date().toISOString() }) }).catch(() => {});
+        }
+      }
+      return J({ ok: true, sent, n: fresh.length });
+    } catch (e) { return J({ ok: false, error: e.message }, 500); }
+  }
   return J({ ok: false, error: 'bad request' }, 400);
 });

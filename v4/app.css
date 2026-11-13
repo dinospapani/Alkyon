@@ -468,11 +468,14 @@ html.night body::before{content:'';position:fixed;inset:0;background:#ff1a00;mix
 html.night body::after{content:'';position:fixed;inset:0;background:#9a1600;mix-blend-mode:multiply;pointer-events:none;z-index:2147483647}
 /* το MOB: πάντα λευκό περίγραμμα και γράμματα πάνω σε σκούρο, για να ξεχωρίζει και τη νύχτα */
 /* ο χάρτης πιο σκοτεινός (τα πλακίδια, το κύμα και ο άνεμος), τα κουμπιά ψαριού με λευκό περίγραμμα */
-html.night .leaflet-tile-pane,html.night .wxfill,html.night .sattile{filter:brightness(.42)}
+/* 1.14.1: ο χάρτης κρατά την αντίθεση στο κόκκινο: γκρι με έντονη αντίθεση (θάλασσα σκούρα, στεριά φωτεινή), όχι απλώς σκοτεινός */
+html.night .leaflet-tile-pane,html.night .sattile{filter:grayscale(1) contrast(1.7) brightness(.78)}
+html.night .wxfill{filter:grayscale(1) brightness(.55);opacity:.45!important}
 html.night #lmap.leaflet-container{background:#0a0a0a!important}
 /* οι δείκτες (ψάρια, σημεία, ρεύματα) και οι γραμμές φωτεινοί πάνω στον σκοτεινό χάρτη */
-html.night .leaflet-marker-pane,html.night .leaflet-overlay-pane{filter:grayscale(1) brightness(1.25) contrast(1.15)}
-html.night #lmap canvas,html.night .leaflet-container:not(#lmap){filter:brightness(.45)}
+html.night .leaflet-marker-pane,html.night .leaflet-overlay-pane{filter:grayscale(1) brightness(1.6) contrast(1.2)}
+html.night #lmap canvas,html.night .leaflet-container:not(#lmap){filter:grayscale(1) brightness(.7) contrast(1.3)}
+html.night #lmap canvas.wxdash{filter:none}
 html.night .fb{background:#1a0000!important;box-shadow:0 0 0 3px #fff!important;color:#fff!important}
 html.night .mobbtn{background:#1a0000!important;color:#fff!important;box-shadow:0 0 0 3px #fff!important;text-shadow:none}
 .mapbar .nightb[hidden]{display:none}
@@ -1029,3 +1032,6 @@ html.night .btn.pri,html.night button.pri{background:#000!important;color:#fff!i
 body.sosme .wxbar,body.sosme .mcbar{margin-top:62px}
 .sosh .sosbig{font-size:18px;font-weight:800;line-height:1.35;margin:4px 0 10px}
 .sosh .btn{margin-top:8px;text-align:center;display:block}
+.fbbadge{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:999px;background:#ff3b30;color:#fff;font-size:12px;font-weight:800;vertical-align:middle}
+.fbin .fbm.fbnew{border-left:4px solid #ff7a4d}
+.fbin .fbdot{display:inline-block;margin-right:6px;padding:0 7px;border-radius:999px;background:#ff7a4d;color:#fff;font-size:11px;font-weight:800}

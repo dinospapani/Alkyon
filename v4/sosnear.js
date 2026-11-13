@@ -50,12 +50,13 @@ function paintBar(){ var m=mine();
 function poll(){ var s=sess(); if(!s) return Promise.resolve([]);
   var since=new Date(Date.now()-6*3600000).toISOString();
   return C().rest('sos_alerts?select=user_id,id,name,lat,lon,at,created_at&status=eq.active&at=gt.'+encodeURIComponent(since)+'&user_id=neq.'+encodeURIComponent(s.uid)).then(function(r){ return r.ok?r.json():[]; }).then(function(a){ LIST=Array.isArray(a)?a:[]; notifyNear(); try{ window.dispatchEvent(new Event('alkyon-sos')); }catch(e){} return LIST; }).catch(function(){ return LIST; }); }
-function notifyNear(){ var f=fix(); if(!f) return; var seen=ls.get(SEEN,{})||{};
-  LIST.forEach(function(x){ var km=hav(f.lat,f.lon,x.lat,x.lon); if(km>NEAR_KM||seen[x.id]) return; seen[x.id]=Date.now(); ls.set(SEEN,seen);
+/* 1.14.1: δείχνει το SOS και χωρίς πρόσφατη θέση (π.χ. ήρθε ειδοποίηση και άνοιξες το app στη στεριά): τότε χωρίς απόσταση, και ο χάρτης πάει στο SOS */
+function notifyNear(){ var f=fix()||B.lastPos(), seen=ls.get(SEEN,{})||{};
+  LIST.forEach(function(x){ var km=f?hav(f.lat,f.lon,x.lat,x.lon):null; if((km!=null&&km>NEAR_KM*3)||seen[x.id]) return; seen[x.id]=Date.now(); ls.set(SEEN,seen);
     try{ navigator.vibrate&&navigator.vibrate([400,200,400,200,800]); }catch(e){}
-    var k=Math.round(brg(f.lat,f.lon,x.lat,x.lon)/45)%8;
+    var k=f?Math.round(brg(f.lat,f.lon,x.lat,x.lon)/45)%8:0; if(document.body.classList.contains('mapon')) setTimeout(function(){ try{ var m=window.AlkyonCore&&AlkyonCore.map&&AlkyonCore.map(); if(m) m.setView([x.lat,x.lon],Math.max(m.getZoom(),12)); }catch(e){} },300);
     var sh=B.sheet({title:'🆘 '+T('SOS κοντά σου','SOS near you'),body:h('div',{class:'bform sosh'},
-      h('p',{class:'sosbig',text:(x.name||T('Ένας ψαράς','An angler'))+T(' χρειάζεται βοήθεια, ',' needs help, ')+nm(km)+' '+CMP[k]+'.'}),
+      h('p',{class:'sosbig',text:(x.name||T('Ένας ψαράς','An angler'))+T(' χρειάζεται βοήθεια',' needs help')+(km!=null?', '+nm(km)+' '+CMP[k]:'')+'.'}),
       h('p',{class:'sub',text:T('Αν μπορείς με ασφάλεια, πήγαινε. Ειδοποίησε και το 112 / VHF 16 με τη θέση του.','If you can do so safely, go. Also tell 112 / VHF 16 his position.')}),
       h('button',{class:'btn pri full',type:'button',text:'➜ '+T('Πήγαινε εκεί','Go there'),onclick:function(){ sh.close(); go(x); }}),
       h('a',{class:'btn full',href:'tel:112',text:'📞 112'}))}); }); }
@@ -65,5 +66,8 @@ function loop(){ clearTimeout(pollT); var on=(B.trip&&B.trip.active&&B.trip.acti
   if(on&&document.visibilityState!=='hidden') poll(); pollT=setTimeout(loop,on?60000:180000); }
 B.sosNear={start:start,ok:ok,mine:mine,poll:poll,active:active,helpSheet:helpSheet,_hav:hav,_notify:notifyNear,_set:function(a){ LIST=a; }};
 paintBar(); if(mine()) keepUpdating();
-setTimeout(loop,5000); document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible') loop(); });
+setTimeout(loop,3000); document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible') loop(); });
+/* μόλις ανοίγει ο χάρτης (π.χ. από την ειδοποίηση), ελέγχει αμέσως */
+var wasMap=false; new MutationObserver(function(){ var on=document.body.classList.contains('mapon'); if(on&&!wasMap) setTimeout(loop,400); wasMap=on; }).observe(document.body,{attributes:true,attributeFilter:['class']});
+window.addEventListener('hashchange',function(){ if(location.hash==='#map') setTimeout(loop,600); });
 })();
