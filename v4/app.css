@@ -1038,3 +1038,15 @@ body.sosme .wxbar,body.sosme .mcbar{margin-top:62px}
 .fbbadge{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:999px;background:#ff3b30;color:#fff;font-size:12px;font-weight:800;vertical-align:middle}
 .fbin .fbm.fbnew{border-left:4px solid #ff7a4d}
 .fbin .fbdot{display:inline-block;margin-right:6px;padding:0 7px;border-radius:999px;background:#ff7a4d;color:#fff;font-size:11px;font-weight:800}
+/* 1.14.3: χάρτης χωρίς θόλωμα πίσω από την κάτω μπάρα: το backdrop-filter ξαναθόλωνε όλο τον χάρτη σε κάθε καρέ (κόλλημα στο σύρσιμο στο κινητό) */
+body.mapon .nav>div{-webkit-backdrop-filter:none!important;backdrop-filter:none!important;background:color-mix(in srgb,var(--surface) 97%,transparent)}
+/* 1.14.3: νυχτερινή λειτουργία στον χάρτη: όχι όλα κόκκινα. Ο χάρτης κρατά τα χρώματά του, χαμηλωμένα (θάλασσα, κύμα, σημάδια ξεχωρίζουν),
+   και μόνο τα κουμπιά και οι μπάρες γίνονται κόκκινα. Οι δύο κόκκινες «κουρτίνες» της οθόνης (βαριές στο σύρσιμο) δεν μπαίνουν πάνω στον χάρτη. */
+html.night body.mapon::before,html.night body.mapon::after{display:none}
+html.night body.mapon .leaflet-tile-pane{filter:brightness(.62) saturate(.85)!important}
+html.night body.mapon .leaflet-tile-pane .nighttile{filter:brightness(1.35)}
+html.night body.mapon .wxfill{filter:brightness(.75) saturate(.9)!important;opacity:.85!important}
+html.night body.mapon .leaflet-marker-pane,html.night body.mapon .leaflet-overlay-pane{filter:brightness(.85)!important}
+html.night body.mapon #lmap canvas{filter:brightness(.8)!important}
+html.night body.mapon #lmap canvas.wxdash{filter:none!important;opacity:.7}
+html.night body.mapon :is(.mchips,.mcbar,.mcpanel,.mcmode,.mapbar,.nav,#wxLeg,.rainbar,.sbleg,.wxread,.dtbar,.tripbar,.mclay,.fb,.mobbtn,#ndMapDock,.attrbtn,.leaflet-control-container){filter:sepia(1) saturate(4.5) hue-rotate(-38deg) brightness(.82)}
