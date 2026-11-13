@@ -1050,3 +1050,5 @@ html.night body.mapon .leaflet-marker-pane,html.night body.mapon .leaflet-overla
 html.night body.mapon #lmap canvas{filter:brightness(.8)!important}
 html.night body.mapon #lmap canvas.wxdash{filter:none!important;opacity:.7}
 html.night body.mapon :is(.mchips,.mcbar,.mcpanel,.mcmode,.mapbar,.nav,#wxLeg,.rainbar,.sbleg,.wxread,.dtbar,.tripbar,.mclay,.fb,.mobbtn,#ndMapDock,.attrbtn,.leaflet-control-container){filter:sepia(1) saturate(4.5) hue-rotate(-38deg) brightness(.82)}
+.fbbadge{width:auto!important;max-width:max-content;align-self:flex-start;flex:none!important;white-space:nowrap;line-height:1.5}
+html.night .fbbadge{background:#000!important;color:#fff!important;box-shadow:0 0 0 2px #fff}
