@@ -104,7 +104,7 @@ function mineTab(page){
     B.commInvite?row('community',T('Πρόσκληση φίλου','Invite a friend'),T('Στείλε τον σύνδεσμο του Alkyon','Send the Alkyon link'),null,function(){ B.commInvite(); }):null,
     /* 1.12.14 */ nbl?row('block',T('Αποκλεισμένοι χρήστες','Blocked users'),String(nbl),null,blockedSheet):null]));
   /* 1.9.19: διαχειριστής: σημειώσεις λιμανιών για έγκριση */
-  if(B.cloud&&B.cloud.session&&B.cloud.session()){ var cg=page.lastChild.querySelector('.list'); B.loadScripts(['portnotes.js']).then(function(){ B.portNotes.adminRow(cg,function(n){ return row('community',T('Σημειώσεις λιμανιών για έγκριση','Port notes to review'),n==null?T('Διαχειριστής','Admin'):n?n+T(' σε αναμονή',' waiting'):T('Τίποτα σε αναμονή','Nothing waiting'),null,function(){ B.portNotes.review(); }); }); }).catch(function(){}); }
+  if(B.cloud&&B.cloud.session&&B.cloud.session()){ var cg=page.lastChild.querySelector('.list'); B.loadScripts(['portnotes.js']).then(function(){ B.portNotes.adminRow(cg,function(n){ return row('community',T('Σημειώσεις λιμανιών για έγκριση','Port notes to review'),n==null?T('Διαχειριστής','Admin'):n?n+T(' σε αναμονή',' waiting'):T('Τίποτα σε αναμονή','Nothing waiting'),null,function(){ B.portNotes.review(); }); }); B.portNotes.isAdmin().then(function(y){ if(y) cg.append(row('chat',T('Μηνύματα χρηστών','User messages'),T('Ό,τι στέλνουν από «Πες μας τη γνώμη σου»','What people send from “Share feedback”'),null,inboxSheet)); }); }).catch(function(){}); }
   page.append(group(T('Βοήθεια','Help'),[
     row('help',T('Πώς δουλεύει','How it works'),T('Όλες οι λειτουργίες με λίγα λόγια','Every feature in a few words'),'#help'),
     row('chat',T('Πες μας τη γνώμη σου','Share feedback'),T('Πρόταση, πρόβλημα ή κάτι που σου άρεσε','An idea, a problem, or something you liked'),null,feedbackSheet),
@@ -136,6 +136,16 @@ function feedbackSheet(){ var sh, s=C()&&C().session&&C().session(), topic='idea
       .catch(function(){ go.disabled=false; msg.textContent=T('Δεν στάλθηκε. Έλεγξε τη σύνδεση ή στείλε email.','Not sent. Check your connection or send an email.'); }); }});
   sh=B.sheet({title:T('Πες μας τη γνώμη σου','Share feedback'),body:h('div',{class:'bform'},seg,ta,em,
     h('p',{class:'foot',text:T('Μαζί με το μήνυμα στέλνονται η έκδοση, η σελίδα και ο τύπος του κινητού. Όχι θέση, ψάρια ή σημεία.','The app version, the page and the phone type are sent with your message. No location, catches or spots.')}),msg,go)}); }
+/* 1.13.8: μόνο για διαχειριστές: τα μηνύματα «Πες μας τη γνώμη σου» (πολιτική ae_admin_read_feedback) */
+function inboxSheet(){ var body=h('div',{class:'bform fbin'},h('p',{class:'sub',text:T('Φόρτωση…','Loading…')})), TOP={idea:T('Ιδέα','Idea'),bug:T('Πρόβλημα','Problem'),like:T('Μου αρέσει','I like it')};
+  B.sheet({title:T('Μηνύματα χρηστών','User messages'),body:body});
+  C().rest('app_errors?select=at,ver,msg,hash,stack,ua&kind=eq.feedback&order=at.desc&limit=100').then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); }).then(function(a){
+    body.replaceChildren(); if(!a.length){ body.append(h('p',{class:'sub',text:T('Κανένα μήνυμα ακόμα.','No messages yet.')})); return; }
+    a.forEach(function(m){ var meta={}; String(m.stack||'').split('\n').forEach(function(l){ var i=l.indexOf(': '); if(i>0) meta[l.slice(0,i)]=l.slice(i+2); });
+      var d=new Date(m.at), when=B.pad(d.getDate())+'/'+B.pad(d.getMonth()+1)+' '+B.pad(d.getHours())+':'+B.pad(d.getMinutes()), dev=/iPhone|iPad/.test(m.ua||'')?'iPhone':/Android/.test(m.ua||'')?'Android':T('Υπολογιστής','Computer');
+      body.append(h('div',{class:'card fbm'},h('div',{class:'fbh'},h('b',{text:TOP[meta.topic]||meta.topic||''}),h('small',{text:' '+when+' · '+(m.ver||'')+' · '+dev+(meta.native==='true'?T(' (app)',' (app)'):'')+(m.hash?' · '+m.hash:'')})),
+        h('p',{class:'fbt',text:m.msg||''}), meta.contact?h('a',{href:'mailto:'+meta.contact,text:'✉ '+meta.contact}):null)); }); })
+  .catch(function(){ body.replaceChildren(h('p',{class:'sub',text:T('Δεν φορτώθηκαν. Δοκίμασε ξανά.','Could not load. Try again.')})); }); }
 /* 1.12.14: αποκλεισμένοι χρήστες της Κοινότητας: άρση αποκλεισμού */
 function blockedSheet(){ var sh, body=h('div',{class:'bform'});
   function paint(){ body.replaceChildren(); var a=B.commBlocked?B.commBlocked():(ls.get('alkyon-comm-block',[])||[]).map(function(u){ return {u:u,n:''}; });
