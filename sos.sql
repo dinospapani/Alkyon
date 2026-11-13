@@ -1,6 +1,6 @@
 -- Alkyon 1.14.0 · SOS σε κοντινά σκάφη
 -- Ένα ενεργό SOS ανά χρήστη. Το βλέπουν οι συνδεδεμένοι χρήστες μόνο όσο είναι ενεργό (και έως 6 ώρες).
--- Τις ειδοποιήσεις push τις στέλνει η Edge Function quick-processor (action 'sos') με το service key.
+-- Τις ειδοποιήσεις push τις στέλνει η Edge Function sos-alert (sos-alert-index.ts) με το service key.
 create table if not exists public.sos_alerts (
   user_id uuid primary key references auth.users(id) on delete cascade,
   id text not null,

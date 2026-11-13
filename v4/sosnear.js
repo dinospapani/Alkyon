@@ -6,7 +6,7 @@
    Δεν αντικαθιστά το 112 / VHF κανάλι 16. */
 (function(){
 var B=window.AK, h=B.h, T=B.T, ls=B.ls;
-var FN='https://sgfohmqwdwtkhtrebnix.supabase.co/functions/v1/quick-processor', KEY='sb_publishable_LGuwvrvLnAj1CF22Q6g9vg_4OImZYbA';
+var FN='https://sgfohmqwdwtkhtrebnix.supabase.co/functions/v1/sos-alert', KEY='sb_publishable_LGuwvrvLnAj1CF22Q6g9vg_4OImZYbA';
 var K='alkyon-sos-me', SEEN='alkyon-sos-seen', NEAR_KM=18.52, upT=0, pollT=0, LIST=[], bar=null;
 function C(){ return B.cloud; } function sess(){ return C()&&C().session&&C().session(); }
 function mine(){ return ls.get(K,null); }

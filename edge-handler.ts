@@ -111,52 +111,6 @@ Deno.serve(async (req) => {
       } catch (e) { return J({ ok: false, error: e.message }, 500); }
     }
     // 1.9.61: άμεση ειδοποίηση Κοινότητας: η εφαρμογή το καλεί αμέσως μετά από νέο ψάρι, like ή σχόλιο (ο cron κάθε 5′ μένει εφεδρικός· το notif_log εμποδίζει διπλή αποστολή)
-    // 1.14.0: SOS σε κοντινά σκάφη: ο χρήστης έχει γράψει τη γραμμή του στο sos_alerts (RLS). Εδώ στέλνουμε push σε όσους είναι στη θάλασσα
-    // (ζωντανή έξοδος ή έξοδος με ασφάλεια, θέση της τελευταίας ώρας) έως 10 ναυτικά μίλια μακριά. phase 'start' μία φορά ανά SOS· 'ok' = «είναι καλά».
-    if (body && body.action === 'sos' && ['start', 'ok'].includes(body.phase)) {
-      try {
-        const u = await fetch(env.SUPABASE_URL + '/auth/v1/user', { headers: { apikey: env.SUPABASE_SERVICE_KEY, Authorization: auth } });
-        if (!u.ok) return J({ ok: false, error: 'unauthorized' }, 401);
-        const uid = (await u.json()).id; if (!uid) return J({ ok: false, error: 'unauthorized' }, 401);
-        const H = { apikey: env.SUPABASE_SERVICE_KEY, Authorization: 'Bearer ' + env.SUPABASE_SERVICE_KEY };
-        const g = async (p) => { const r = await fetch(env.SUPABASE_URL + '/rest/v1/' + p, { headers: H }); return r.ok ? await r.json() : []; };
-        const row = (await g('sos_alerts?user_id=eq.' + encodeURIComponent(uid) + '&select=*'))[0];
-        if (!row) return J({ ok: false, error: 'no sos' }, 400);
-        if (body.phase === 'start' && (row.status !== 'active' || row.notified > 0)) return J({ ok: true, sent: 0, why: 'already' });
-        if (body.phase === 'ok' && (row.status !== 'ok' || !(row.notified > 0))) return J({ ok: true, sent: 0, why: 'skip' });
-        const since = new Date(Date.now() - 60 * 60000).toISOString();
-        const live = await g('trip_live?active=eq.true&at=gt.' + encodeURIComponent(since) + '&select=user_id,lat,lon');
-        const saf = await g('safety_trips?status=in.(active,alerted)&last_at=gt.' + encodeURIComponent(since) + '&select=user_id,last_lat,last_lon');
-        const R = Math.PI / 180, dist = (a, b, c, d) => { const x = Math.sin((c - a) * R / 2) ** 2 + Math.cos(a * R) * Math.cos(c * R) * Math.sin((d - b) * R / 2) ** 2; return 12742 * Math.asin(Math.sqrt(x)); };
-        const brg = (a, b, c, d) => { const y = Math.sin((d - b) * R) * Math.cos(c * R), x = Math.cos(a * R) * Math.sin(c * R) - Math.sin(a * R) * Math.cos(c * R) * Math.cos((d - b) * R); return (Math.atan2(y, x) / R + 360) % 360; };
-        const near = new Map();
-        for (const p of [...live.map(x => ({ u: x.user_id, la: x.lat, lo: x.lon })), ...saf.map(x => ({ u: x.user_id, la: x.last_lat, lo: x.last_lon }))]) {
-          if (!p.u || p.u === uid || typeof p.la !== 'number' || typeof p.lo !== 'number') continue;
-          const km = dist(p.la, p.lo, row.lat, row.lon); if (km > 18.52) continue;
-          const o = near.get(p.u); if (!o || km < o.km) near.set(p.u, { km, b: brg(p.la, p.lo, row.lat, row.lon) });
-        }
-        const hasV = !!(E('VAPID_PUBLIC') && E('VAPID_PRIVATE'));
-        if (hasV && !vapidSet) { webpush.setVapidDetails('https://dinospapani.github.io/Alkyon/', V('VAPID_PUBLIC'), V('VAPID_PRIVATE')); vapidSet = true; }
-        const px = pushx(hasV ? webpush : null);
-        const CMP = ['Β', 'ΒΑ', 'Α', 'ΝΑ', 'Ν', 'ΝΔ', 'Δ', 'ΒΔ'], CEN = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-        const nm = String(row.name || '').slice(0, 40) || 'Ψαράς / Angler';
-        let sent = 0, people = 0;
-        for (const [ru, o] of near) {
-          const subs = await g('push_subs?user_id=eq.' + encodeURIComponent(ru) + '&select=id,sub');
-          if (!subs.length) continue; people++;
-          const nmi = (o.km / 1.852).toFixed(1), k = Math.round(o.b / 45) % 8;
-          const msg = body.phase === 'start'
-            ? { id: 'sos:' + row.id, kind: 'sos', tag: 'sos-' + row.id, url: '#map', title: '🆘 SOS κοντά σου · SOS near you', body: nm + ' χρειάζεται βοήθεια, ' + nmi.replace('.', ',') + ' ν.μ. ' + CMP[k] + '. Αν μπορείς, πήγαινε· ειδοποίησε 112 / VHF 16. · Needs help, ' + nmi + ' nm ' + CEN[k] + '.', place: { name: 'SOS', lat: row.lat, lon: row.lon } }
-            : { id: 'sosok:' + row.id, kind: 'sos', tag: 'sos-' + row.id, url: '#map', title: '✓ SOS έληξε · SOS cancelled', body: nm + ': είναι καλά, δεν χρειάζεται πια βοήθεια. · Is OK now, no help needed.' };
-          for (const r of subs) {
-            try { await px.sendNotification(r.sub, JSON.stringify(msg), { TTL: 3600, urgency: 'high' }); sent++; }
-            catch (e) { if (e.statusCode === 404 || e.statusCode === 410) await fetch(env.SUPABASE_URL + '/rest/v1/push_subs?id=eq.' + encodeURIComponent(r.id), { method: 'DELETE', headers: H }).catch(() => {}); }
-          }
-        }
-        if (body.phase === 'start') await fetch(env.SUPABASE_URL + '/rest/v1/sos_alerts?user_id=eq.' + encodeURIComponent(uid), { method: 'PATCH', headers: { ...H, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify({ notified: Math.max(1, people) }) });
-        return J({ ok: true, near: near.size, people, sent });
-      } catch (e) { return J({ ok: false, error: e.message }, 500); }
-    }
     if (body && body.action === 'comm') {
       try {
         const u = await fetch(env.SUPABASE_URL + '/auth/v1/user', { headers: { apikey: env.SUPABASE_SERVICE_KEY, Authorization: auth } });
