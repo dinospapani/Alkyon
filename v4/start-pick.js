@@ -98,19 +98,25 @@ function langRow(){ var cur=B.LANG==='en'?'en':'el', box=h('div',{class:'splang'
   box.append(h('span',{text:'🌐 '}),b('en','English'),h('span',{text:' · '}),b('el','Ελληνικά'));
   return box; }
 function country(){
-  var box=h('div',{class:'spctry'}), open=false, busy=false;
+  var box=h('div',{class:'spctry'}), open=false, busy=false, failed=false;
+  /* 1.13.8: όταν γυρνάς από τις ρυθμίσεις του κινητού (π.χ. άνοιξες την τοποθεσία), ξαναδοκιμάζει μόνο του και μένεις στο ίδιο σημείο */
+  document.addEventListener('visibilitychange',function(){ if(document.hidden||!failed||!box.isConnected) return; var p0=ls.get('alkyon-v4-pos',null); if(p0&&typeof p0.lat==='number') return; busy=true; paint(); B.locate(9000).then(function(p){ busy=false; if(p){ failed=false; open=false; ls.set('alkyon-country','auto'); } paint(); }); });
   function paint(){ var set=ls.get('alkyon-country','auto'), p=ls.get('alkyon-v4-pos',null), known=p&&typeof p.lat==='number', reg=known&&B.region?(B.region(p.lat,p.lon)||'xx'):null;
     box.replaceChildren();
     if(!open&&(set!=='auto'||known)){ var nm=set!=='auto'?B.countryName(set):reg==='xx'?T('αυτόματα, από τη θέση σου','automatic, from your location'):B.countryName(reg)+T(' (από τη θέση σου)',' (from your location)');
       box.append(h('span',{text:T('Χώρα: ','Country: ')+nm+' '}),h('button',{type:'button',class:'lnk',text:T('Αλλαγή','Change'),onclick:function(){ open=true; paint(); }})); return; }
     var row=h('div',{class:'row'});
-    if(!known) row.append(h('button',{type:'button',class:'loc',disabled:busy,text:busy?T('Αναζήτηση θέσης…','Finding location…'):T('Χρήση της θέσης μου','Use my location'),onclick:function(){ busy=true; paint(); B.locate(9000).then(function(){ busy=false; open=false; ls.set('alkyon-country','auto'); paint(); }); }}));
+    if(!known) row.append(h('button',{type:'button',class:'loc',disabled:busy,text:busy?T('Αναζήτηση θέσης…','Finding location…'):T('Χρήση της θέσης μου','Use my location'),onclick:function(){ busy=true; paint(); B.locate(9000).then(function(p){ busy=false; if(p){ open=false; failed=false; ls.set('alkyon-country','auto'); } else failed=true; paint(); }); }}));
     row.append(B.countrySelect(set,function(v){ ls.set('alkyon-country',v); }));
+    if(failed&&!busy) row.append(h('small',{class:'wn',text:T('Δεν βρέθηκε η θέση. Άνοιξε την Τοποθεσία στο κινητό και δώσε άδεια στο Alkyon (Ρυθμίσεις › Εφαρμογές › Alkyon › Άδειες), μετά γύρνα εδώ: συνεχίζεις από το ίδιο σημείο. Ή διάλεξε χώρα από τη λίστα.','Location not found. Turn on Location on your phone and allow Alkyon (Settings › Apps › Alkyon › Permissions), then come back: you continue from the same place. Or pick a country from the list.')}));
     box.append(h('span',{text:T('Σε ποια χώρα ψαρεύεις;','Which country do you fish in?')}),row,h('small',{text:T('Για τους νόμους στον Οδηγό. Οι ζώνες απαγόρευσης στον χάρτη ακολουθούν πάντα το μέρος που βλέπεις. Αλλαγή: Προφίλ › Ρυθμίσεις › Χώρα.','For the laws in the Guide. No-fishing zones on the map always follow the place you look at. Change: Profile › Settings › Country.')})); }
   paint(); return box; }
 B.tour=function(){
   if(document.querySelector('.sppage')) return;
   var st={s:side(),p:cur()}, step=0, pg, prev=document.activeElement;
+  /* 1.13.8: αν το κινητό κλείσει την εφαρμογή όσο είσαι στις ρυθμίσεις (π.χ. για να ανοίξεις την τοποθεσία), συνεχίζεις από το ίδιο βήμα */
+  var RK='alkyon-tour-at'; try{ var rs=JSON.parse(localStorage.getItem(RK)||'null'); if(rs&&Date.now()-rs.t<60*60000){ step=rs.step|0; if(rs.s) st.s=rs.s; if(rs.p) st.p=rs.p; } }catch(e){}
+  function mark(){ try{ localStorage.setItem(RK,JSON.stringify({step:step,s:st.s,p:st.p,t:Date.now()})); }catch(e){} }
   var STEPS=[{img:'alk-hero.jpg',t:T('Καλώς ήρθες στο Alkyon','Welcome to Alkyon'),b:T('Πρόγνωση, χάρτης και ημερολόγιο ψαρέματος. Σε ένα λεπτό είσαι έτοιμος.','Forecast, map and fishing logbook. You will be ready in a minute.')},
     {img:'alk-hero-boat.jpg',pick:true,t:T('Πού ψαρεύεις συνήθως;','Where do you usually fish?'),b:T('Η εφαρμογή προσαρμόζει τις τεχνικές, τον εξοπλισμό και τα κουμπιά ασφαλείας σε αυτό που κάνεις. Μπορείς να το αλλάξεις όποτε θέλεις από το Προφίλ.','The app adapts techniques, tackle and safety buttons to how you fish. You can change it any time in Profile.')},
     {img:'alk-card-boat.jpg',t:T('Δες τη θάλασσα πριν φύγεις','Check the sea before you leave'),b:T('Στην Πρόγνωση βλέπεις πόσο καλή είναι η μέρα για ψάρεμα (από 0 έως 100), τις καλύτερες ώρες, τον άνεμο, το κύμα και την πίεση εκεί που θα πας. Πάτα «Θα βγω αυτή τη μέρα» και θα σου το θυμίσει. Στον Χάρτη βλέπεις κύμα, άνεμο, ρεύματα και βάθη.','Forecast shows a 0–100 score, the best hours, wind, waves and pressure for the place you choose. Tap “I’ll go out this day” for reminders. The map shows waves, wind, currents and depths.')},
@@ -120,10 +126,10 @@ B.tour=function(){
     {img:'alk-hero.jpg',t:T('Μη χάσεις ποτέ τα ψάρια σου','Never lose your catches'),b:T('Με δωρεάν λογαριασμό τα ψάρια, οι έξοδοι και οι φωτογραφίες σου φυλάγονται με ασφάλεια και τα βλέπεις από κάθε κινητό. Ο λογαριασμός χρειάζεται επίσης για φίλους, κοινότητα, αυτόματη ειδοποίηση ασφαλείας και το ρολόι Garmin.','With a free account your catches, trips and photos are kept in the cloud and on any phone. It is also needed for friends, community, automatic safety alerts and the Garmin watch.'),last:true,acct:true}];
   if(B.cloud&&B.cloud.session()) STEPS=STEPS.filter(function(x){ return !x.acct; }).map(function(x){ return x.alerts?Object.assign({},x,{last:true}):x; });
   function save(){ put('alkyon-fside',st.s); put('alkyon-fprof',st.p); put('alkyon-fprof-done','1'); B.emit('store','alkyon-fprof'); }
-  function finish(){ put('alkyon-onboard','1'); try{ var sm=ls.get('alkyon-smart',{})||{}; if(!sm.weekly){ sm.weekly=Date.now(); ls.set('alkyon-smart',sm); B.emit('store','alkyon-smart'); } }catch(e){} if(!raw('alkyon-fprof-done')) save();
+  function finish(){ try{ localStorage.removeItem(RK); }catch(e){} put('alkyon-onboard','1'); try{ var sm=ls.get('alkyon-smart',{})||{}; if(!sm.weekly){ sm.weekly=Date.now(); ls.set('alkyon-smart',sm); B.emit('store','alkyon-smart'); } }catch(e){} if(!raw('alkyon-fprof-done')) save();
     pg.classList.add('out'); cover(false); setTimeout(function(){ pg.remove(); },260); document.removeEventListener('keydown',key); try{ prev&&prev.focus&&prev.focus(); }catch(e){} }
   function key(e){ if(e.key==='Escape') finish(); else if(e.key==='ArrowLeft'&&step>0){ step--; paint(); } }
-  function paint(){ var x=STEPS[step]; pg.replaceChildren();
+  function paint(){ if(step>=STEPS.length) step=STEPS.length-1; mark(); var x=STEPS[step]; pg.replaceChildren();
     var dots=h('div',{class:'obd','aria-hidden':'true'}); STEPS.forEach(function(_,i){ dots.append(h('i',{class:i===step?'on':null})); });
     var hero=h('div',{class:'sphero'+(x.pick?'':' tall'),style:{backgroundImage:'url('+x.img+')'}},h('span',{class:'spheroshade'}),x.last?null:h('button',{class:'spskip',type:'button',text:T('Παράλειψη','Skip'),onclick:finish}),brand(),
       h('div',{class:'sptitle'},h('h1',{text:x.t}),h('p',{text:x.b})));
