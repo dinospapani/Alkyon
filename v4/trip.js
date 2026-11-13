@@ -182,6 +182,8 @@ function ext(){ var s=load(); s.due=Math.max(s.due,Date.now())+30*60000; save(s)
 function sos(){
   var s=load(); s.due=Date.now()-60000; s.sosAt=Date.now(); save(s);
   var manual=function(){ chooseSend(load(),'sos'); };
+  /* 1.14.0: και στα κοντινά σκάφη (sosnear.js): η επαφή ασφαλείας ειδοποιείται όπως πριν */
+  try{ if(B.sosNear) B.sosNear.start({quiet:true}); }catch(e){}
   trackPos().then(function(){ var d=load(); if(d.tgLinked&&d.synced!==false) B.toast(T('SOS στάλθηκε. Η επαφή σου ειδοποιείται αυτόματα στο Telegram.','SOS sent. Your contact is being notified on Telegram.')); else manual(); },manual);
 }
 
@@ -230,7 +232,7 @@ B.tripSheet=function(){
   var sx=B.tripSheetExtras&&B.tripSheetExtras(); if(sx) body.append(sx);
   body.append(h('div',{class:'acts'},h('button',{class:'btn',type:'button',text:T('+30 λεπτά','+30 min'),onclick:function(){ ext(); sh.close(); }}),h('button',{class:'btn',type:'button',text:T('Στείλε το σχέδιο','Send the plan'),onclick:function(){ sh.close(); chooseSend(load(),'plan'); }})));
   body.append(h('button',{class:'btn pri full',type:'button',text:'■ '+T('Τέλος εξόδου','End trip'),onclick:function(){ sh.close(); back(); }}));
-  body.append(h('button',{class:'btn full sos',type:'button',text:'SOS',onclick:function(){ B.ask(T('Να σταλεί SOS με τη θέση σου στην επαφή ασφαλείας;','Send an SOS with your location to your safety contact?'),T('Αποστολή SOS','Send SOS'),true).then(function(y){ if(y){ sh.close(); sos(); } }); }}));
+  body.append(h('button',{class:'btn full sos',type:'button',text:'SOS',onclick:function(){ B.ask(T('Να σταλεί SOS με τη θέση σου στην επαφή ασφαλείας και στα σκάφη με Alkyon έως 10 ναυτικά μίλια;','Send an SOS with your location to your safety contact and to boats with Alkyon within 10 nautical miles?'),T('Αποστολή SOS','Send SOS'),true).then(function(y){ if(y){ sh.close(); sos(); } }); }}));
   sh=B.sheet({title:T('Έξοδος σε εξέλιξη','Trip in progress'),body:body});
 };
 /* μπάρα εξόδου πάνω από την κάτω πλοήγηση, σε όλες τις σελίδες */

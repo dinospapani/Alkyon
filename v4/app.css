@@ -1021,3 +1021,11 @@ html.night .btn.pri,html.night button.pri{background:#000!important;color:#fff!i
 .fbin .fbm{padding:12px 14px;margin:0 0 10px}
 .fbin .fbh small{opacity:.7}
 .fbin .fbt{white-space:pre-wrap;margin:6px 0}
+/* 1.14.0: SOS: μπάρα όσο είναι ενεργό το δικό σου, κείμενα στα φύλλα */
+.sosbar{position:fixed;left:12px;right:12px;top:calc(var(--safe-t,0px) + 8px);z-index:9000;display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:16px;background:#ff3b30;color:#fff;box-shadow:0 6px 24px rgba(0,0,0,.35);font-weight:700}
+.sosbar b{font-size:18px;letter-spacing:.06em}
+.sosbar span{flex:1}
+.sosbar .sosb{border:0;border-radius:999px;padding:8px 12px;background:#fff;color:#c4170d;font:inherit;font-weight:800;text-decoration:none;cursor:pointer}
+body.sosme .wxbar,body.sosme .mcbar{margin-top:62px}
+.sosh .sosbig{font-size:18px;font-weight:800;line-height:1.35;margin:4px 0 10px}
+.sosh .btn{margin-top:8px;text-align:center;display:block}

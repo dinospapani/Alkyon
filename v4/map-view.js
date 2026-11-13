@@ -228,6 +228,16 @@ function drawOverlays(){
     put(); if(!LV) fetch('../dams_levels.json').then(function(r){ return r.json(); }).then(function(j){ LV=j; put(); }).catch(function(){}); }
 }
 /* 1.13.3: Λιμενικές Αρχές (σήμα ⚓, πατάς για τους κανόνες) και οι περιοχές τους με συντεταγμένες */
+/* 1.14.0: ενεργά SOS άλλων χρηστών (sosnear.js): κόκκινο σημάδι που πάλλεται· πάτημα → απόσταση και «Πήγαινε εκεί» */
+var sosL=null;
+function drawSos(){ if(!map||!B.sosNear) return; if(!sosL) sosL=L.layerGroup().addTo(map); sosL.clearLayers();
+  B.sosNear.active().forEach(function(x){ var mins=Math.round((Date.now()-Date.parse(x.created_at||x.at))/60000);
+    L.marker([x.lat,x.lon],{zIndexOffset:2000,keyboard:false,icon:L.divIcon({className:'mk sosmk',iconSize:null,html:'<i>SOS</i>'})}).addTo(sosL)
+      .on('click',function(){ var f=fixNow||B.lastPos(), km=f?hav(f,{lat:x.lat,lon:x.lon})/1000:null;
+        B.sheet({title:'🆘 SOS',body:h('div',{class:'bform sosh'},h('p',{class:'sosbig',text:(x.name||T('Ένας ψαράς','An angler'))+T(' ζήτησε βοήθεια πριν από ',' asked for help ')+(mins<1?T('λίγο',''):mins+'′')+(B.EN?' ago':'')+(km!=null?' · '+B.num(km/1.852,1)+T(' ν.μ. από σένα',' nm from you'):'')+'.'}),
+          h('p',{class:'sub',text:T('Αν μπορείς με ασφάλεια, πήγαινε. Ειδοποίησε και το 112 / VHF 16 με τη θέση.','If you can do so safely, go. Also tell 112 / VHF 16 the position.')}),
+          h('button',{class:'btn pri full',type:'button',text:'➜ '+T('Πήγαινε εκεί','Go there'),onclick:function(){ B.closeSheet(); B.goTo(x.lat,x.lon,'SOS · '+(x.name||'')); }}),
+          h('a',{class:'btn full',href:'tel:112',text:'📞 112'}))}); }); }); }
 function drawGrLocal(){ var G=window.GR_LOCAL; ov.grl=L.layerGroup();
   G.a.forEach(function(a){ L.marker(a.c,{icon:icon('grl','<b>⚓</b>'),title:T('Τοπικοί κανόνες: ','Local rules: ')+(EN?a.e:a.n)}).on('click',function(){ B.grLocal.sheet(a); }).addTo(ov.grl);
     (a.g||[]).forEach(function(g){ var on=B.grLocal.inWin(g.w), col=g.s===0?'#34c759':g.s===1?'#af52de':(g.w?'#ff9500':'#ff3b30'), st={color:col,weight:g.t==='line'?(g.s===0?7:3):1.6,dashArray:g.s===0?null:'6 5',opacity:on?.9:.45,fillColor:col,fillOpacity:on?.12:.04,bubblingMouseEvents:false};
@@ -1066,6 +1076,7 @@ function mount(el){
     map.on('zoomend',function(){ drawData(); depthFade(); }); map.on('zoomend moveend',posCheckSoon); map.on('moveend',rainAuto); map.on('moveend',function(){ declutterSoon(); if(cfg.zones){ clearTimeout(zwT); zwT=setTimeout(drawWorldZones,400); } if(cfg.cur) currents(false); var c=map.getCenter(); ls.set('alkyon-v4-mapview',{lat:+c.lat.toFixed(5),lon:+c.lng.toFixed(5),z:map.getZoom()}); });
     map.on('contextmenu',function(e){ try{ e.originalEvent&&e.originalEvent.preventDefault(); }catch(x){} pointMenu(e.latlng); });
     try{ tapZoom(map,lmEl); }catch(e){}
+    try{ drawSos(); window.addEventListener('alkyon-sos',drawSos); if(B.sosNear) B.sosNear.poll(); }catch(e){}
     map.on('dragstart',function(){ setFollow(false); }); map.on('popupopen',function(){ followPause=Date.now()+20000; });
     map.on('popupopen',function(e){ var c=e.popup.getContent(); if(c&&c.classList&&c.classList.contains('portpop')&&!c.querySelector('.pgo')){ var ll=e.popup.getLatLng(), nm=(c.querySelector('b')||{}).textContent||''; var r=c.querySelector('.pbtns')||c; var g=h('button',{class:'pb pgo',type:'button',text:T('Πήγαινε εκεί','Go there'),onclick:function(){ map.closePopup(); B.goTo(ll.lat,ll.lng,nm); }}); r.insertBefore(g,r.firstChild); e.popup.update(); } });
     setTimeout(function(){ map.invalidateSize(); pickUI(); },60);

@@ -705,6 +705,14 @@ with sync_playwright() as p:
     pg=page(c); pg.goto(BASE+'/v4/'); pg.wait_for_timeout(3000)
     r=pg.evaluate("()=>{ const t=document.querySelector('.sppage.tour h1'); return t&&t.textContent; }")
     check('Καλωσόρισμα: αν το κινητό κλείσει την εφαρμογή (π.χ. ρυθμίσεις τοποθεσίας), συνεχίζει από το ίδιο βήμα (1.13.8)', r=='Δες τη θάλασσα πριν φύγεις' and not pg._errs, [r,pg._errs]); c.close()
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(4000)
+    r=pg.evaluate("""()=>{ const now=new Date().toISOString(); localStorage.setItem('alkyon-v4-pos',JSON.stringify({lat:35.0,lon:33.3,t:Date.now()}));
+      AK.sosNear._set([{user_id:'u9',id:'s1',name:'Γιώργος',lat:35.03,lon:33.33,at:now,created_at:now}]); window.dispatchEvent(new Event('alkyon-sos')); AK.sosNear._notify();
+      const sh=document.querySelector('.sheet'); return [!!document.querySelector('.mk.sosmk'), !!sh&&/SOS κοντά σου/.test(sh.textContent)&&/Γιώργος/.test(sh.textContent)&&/ν\.μ\./.test(sh.textContent)]; }""")
+    check('SOS κοντά σου: κόκκινο σημάδι στον χάρτη και ειδοποίηση με απόσταση και «Πήγαινε εκεί» (1.14.0)', r==[True,True], [r,pg._errs])
+    pg.evaluate("()=>{ AK.closeSheet(); localStorage.setItem('alkyon-sos-me',JSON.stringify({id:'sos-x',t:Date.now(),lat:35,lon:33.3})); }"); pg.reload(); pg.wait_for_timeout(3000)
+    r=pg.evaluate("()=>{ const b=document.querySelector('.sosbar'); return [!!b&&/SOS/.test(b.textContent)&&/112/.test(b.textContent)&&/Είμαι καλά/.test(b.textContent)]; }")
+    check('Δικό μου SOS: κόκκινη μπάρα με 112 και «Είμαι καλά» μένει και μετά από επαναφόρτωση (1.14.0)', r==[True] and not pg._errs, [r,pg._errs]); c.close()
     c=ctx(b,touch=True); pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(4000)
     cdp=c.new_cdp_session(pg)
     def touch(kind,pts): cdp.send('Input.dispatchTouchEvent',{'type':kind,'touchPoints':[{'x':x,'y':y,'id':i} for i,(x,y) in enumerate(pts)]})
