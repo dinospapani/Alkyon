@@ -79,10 +79,16 @@ function legend(note){
   var show=bnd&&document.body.classList.contains('mapon');
   if(!show){ if(legEl) legEl.hidden=true; return; }
   if(!legEl){ legEl=h('div',{class:'sbleg sfleg',role:'note'}); document.body.append(legEl); }
-  legEl.hidden=false; legEl.replaceChildren(h('b',{text:T('Ζώνη βάθους','Depth band')}),
+  legEl.hidden=false; placeSoon(); legEl.replaceChildren(h('b',{text:T('Ζώνη βάθους','Depth band')}),
     h('span',{class:'sbk'},h('i',{style:'background:#E4572E'}),(BR.sp?BR.sp+' ':'')+BR.a+'–'+BR.b+' m'),
     h('button',{type:'button',class:'sfed',text:T('Αλλαγή','Change'),onclick:pick}),
-    h('small',{text:note||(busy?T('Φόρτωση βαθών…','Loading depths…'):T('Ενδεικτικά (EMODnet ~115 m).','Indicative (EMODnet ~115 m).'))})); }
+    (note||busy)?h('small',{text:note||T('Φόρτωση βαθών…','Loading depths…')}):null); }
+/* 1.13.8: να μη μπαίνει πάνω σε άλλο υπόμνημα (ρηχά, βάθη, καιρός): μπαίνει ακριβώς πάνω από το ψηλότερο που φαίνεται */
+var plT=0; function placeSoon(){ clearTimeout(plT); plT=setTimeout(place,60); }
+function place(){ if(!legEl||legEl.hidden) return; legEl.style.bottom=''; var my=legEl.getBoundingClientRect(), top=1e9;
+  document.querySelectorAll('.sbleg:not(.sfleg)').forEach(function(o){ if(o.hidden||getComputedStyle(o).display==='none') return; var r=o.getBoundingClientRect(); if(r.height&&r.top<top) top=r.top; });
+  if(top<1e9&&my.bottom>top-6) legEl.style.bottom=Math.round(window.innerHeight-top+8)+'px'; }
+setInterval(function(){ if(legEl&&!legEl.hidden) place(); },1200);
 function setR(v){ rel=!!v; ls.set(KR,rel); IMG={}; refresh(); }
 function setB(v){ bnd=!!v; ls.set(KB,bnd); IMG={}; refresh(); if(bnd&&!ls.get(KBR,null)) setTimeout(pick,250); }
 B.seafloor={relief:function(){ return rel; },band:function(){ return bnd; },setRelief:setR,setBand:setB,range:function(){ return BR; },setRange:setBand,pick:pick,_relief:relief,_band:bandImg,_spRange:spRange};
