@@ -222,7 +222,7 @@ async function modelFetch(base,px){
   throw err||new Error('fail');
 }
 async function load(){
-  var id=++loadId, b=map.getBounds().pad(0.3), /* 1.12.10: πλέγμα μεγαλύτερο από την οθόνη, ώστε μικρή μετακίνηση να μη θέλει νέο φόρτωμα */ s=b.getSouth(), n=b.getNorth(), w=b.getWest(), e=b.getEast();
+  var id=++loadId, b=map.getBounds().pad(0.6), /* 1.14.5: 0.6 (ήταν 0.3), για το χρώμα με περιθώριο στο σύρσιμο · 1.12.10: πλέγμα μεγαλύτερο από την οθόνη, ώστε μικρή μετακίνηση να μη θέλει νέο φόρτωμα */ s=b.getSouth(), n=b.getNorth(), w=b.getWest(), e=b.getEast();
   /* 1.12.7: όρια «κουμπωμένα» σε σταθερό πλέγμα: μικρή μετακίνηση ή ζουμ ξαναχρησιμοποιεί το ίδιο αίτημα (cache στον server)
      αντί για νέο αίτημα στο Open-Meteo κάθε φορά, που γέμιζε το όριο (429) και ο άνεμος χανόταν */
   var qd=Math.max(0.125,Math.pow(2,Math.ceil(Math.log(Math.max(n-s,e-w)/4)/Math.LN2))); s=Math.floor(s/qd)*qd; n=Math.ceil(n/qd)*qd; w=Math.floor(w/qd)*qd; e=Math.ceil(e/qd)*qd;
@@ -339,7 +339,7 @@ function loop(ts){
   }
   ctx.globalAlpha=1;
 }
-function moved(){ if(!on) return; clear(); clearTimeout(mvT); mvT=setTimeout(function(){ if(!on) return; var b=map.getBounds(); var L1=grid?grid.lat.length-1:0, O1=grid?grid.lon.length-1:0; if(grid&&Date.now()<coolUntil){ seed(); label(); return; } if(!grid||!(b.getSouth()>=grid.lat[0]-0.001&&b.getNorth()<=grid.lat[L1]+0.001&&b.getWest()>=grid.lon[0]-0.001&&b.getEast()<=grid.lon[O1]+0.001)||(!grid.st&&map.getBounds().getNorth()-map.getBounds().getSouth()<(grid.lat[L1]-grid.lat[0])/4.5)) load(); else{ seed(); label(); } },450); }
+function moved(){ if(!on) return; clear(); clearTimeout(mvT); mvT=setTimeout(function(){ if(!on) return; var b=map.getBounds(); var L1=grid?grid.lat.length-1:0, O1=grid?grid.lon.length-1:0; if(grid&&Date.now()<coolUntil){ seed(); label(); return; } var bp=b.pad(0.15); if(!grid||!(bp.getSouth()>=grid.lat[0]-0.001&&bp.getNorth()<=grid.lat[L1]+0.001&&bp.getWest()>=grid.lon[0]-0.001&&bp.getEast()<=grid.lon[O1]+0.001)||(!grid.st&&map.getBounds().getNorth()-map.getBounds().getSouth()<(grid.lat[L1]-grid.lat[0])/4.5)) load(); else{ seed(); label(); } },450); }
 function onUnits(){ if(!on) return; drawPanel(); drawStations(); label(); }
 function start(opt){ if(on) return; on=true; shown=!(opt&&opt.hidden); document.body.classList.add('ndwind'); ensure(); cv.style.display=shown?'block':'none'; btn.setAttribute('aria-pressed',String(shown)); btn.classList.toggle('on',shown); fit(); map.on('moveend zoomend resize',moved); map.getContainer().addEventListener('click',onTap,true); window.addEventListener('alkyon-units',onUnits); window.addEventListener('resize',fit); load(); }
 function stop(){ pause(); on=false; try{ window.dispatchEvent(new Event('alkyon-windstop')); }catch(e){} document.body.classList.remove('ndwind'); document.documentElement.style.removeProperty('--ndwh'); loadId++; btn.setAttribute('aria-pressed','false'); btn.classList.remove('on'); map.off('moveend zoomend resize',moved); try{ map.getContainer().removeEventListener('click',onTap,true); }catch(e){} window.removeEventListener('alkyon-units',onUnits); clearTap(); if(raf){ cancelAnimationFrame(raf); raf=0; } if(cv) cv.style.display='none'; if(panel){ panel.remove(); panel=null; } shown=false; clear(); parts=[]; var D=document.getElementById('ndMapDock'); if(D&&D._sync) D._sync(); }
@@ -358,6 +358,8 @@ function stSet(v){ stOn=!!v; try{ localStorage.setItem('alkyon-wst',stOn?'1':'0'
 stBtn.addEventListener('click',function(){ stSet(!stOn); if(stOn) try{ C.toast(T('Σταθμοί ανέμου: μετρήσεις των τελευταίων 3 ωρών','Wind stations: observations from the last 3 hours')); }catch(e){} });
 map.on('moveend',function(){ if(stOn) drawStations(); });
 setTimeout(function(){ var v=null; try{ v=localStorage.getItem('alkyon-wst'); }catch(e){} stSet(v==='1'); },1500);
+/* 1.14.5: για το χρώμα στις άκρες (όσο σέρνεις, πριν φορτωθεί νέο πλέγμα): η τιμή του πιο κοντινού σημείου του πλέγματος */
+function sampleNear(lat,lon){ if(!grid) return null; var L1=grid.lat.length-1, O1=grid.lon.length-1, a=Math.min(grid.lat[0],grid.lat[L1]), b=Math.max(grid.lat[0],grid.lat[L1]), c=Math.min(grid.lon[0],grid.lon[O1]), d=Math.max(grid.lon[0],grid.lon[O1]); var la=Math.max(a+1e-6,Math.min(b-1e-6,lat)), lo=Math.max(c+1e-6,Math.min(d-1e-6,lon)); if(Math.abs(la-lat)>3||Math.abs(lo-lon)>3) return null; return sample(la,lo); }
 function sampleAll(lat,lon){ if(!grid) return []; var o=[]; grid.m.forEach(function(m){ var v=sampleSrc(m,hi,lat,lon); if(v) o.push({name:m.name,v:v}); }); return o; }
-window.AlkyonWindMap={start:start,stop:stop,show:show,shown:function(){ return on&&shown; },on:function(){ return on; },sample:sample,sampleAll:sampleAll,obs:function(lat,lon){ return obsAdj(lat,lon,hi); },clearTap:function(){ clearTap(true); },col:col,hour:function(){ return hours[hi]||null; },hours:function(){ return hours; },idx:function(){ return hi; },modelFetch:modelFetch,diffTxt:diffTxt};
+window.AlkyonWindMap={start:start,stop:stop,show:show,shown:function(){ return on&&shown; },on:function(){ return on; },sample:sample,sampleNear:sampleNear,sampleAll:sampleAll,obs:function(lat,lon){ return obsAdj(lat,lon,hi); },clearTap:function(){ clearTap(true); },col:col,hour:function(){ return hours[hi]||null; },hours:function(){ return hours; },idx:function(){ return hi; },modelFetch:modelFetch,diffTxt:diffTxt};
 })();

@@ -106,7 +106,7 @@ function render(){
   for(var yy=0;yy<bh;yy++) for(var xx=0;xx<bw;xx++){
     var la=lat[yy], lo=lon[xx], c=null, a=0, o=(yy*bw+xx)*4;
     if(mode==='sea'){ if(!rings&&land(la,lo)===1) continue; var m=Sx.modelAt(la,lo)||nearSea(Sx,la,lo); if(!m) continue; c=wvcol(m.h); a=0.82; }
-    else { var v=Wx.sample(la,lo); if(!v) continue; c=wcol(v.sp); a=(!rings&&!ringsWait&&LW!=='full'&&land(la,lo)===1)?(LW==='faint'?0.14:0.38):0.62; }
+    else { var v=Wx.sample(la,lo)||(Wx.sampleNear&&Wx.sampleNear(la,lo)); if(!v) continue; c=wcol(v.sp); a=(!rings&&!ringsWait&&LW!=='full'&&land(la,lo)===1)?(LW==='faint'?0.14:0.38):0.62; }
     d[o]=c[0]; d[o+1]=c[1]; d[o+2]=c[2]; d[o+3]=Math.round(255*a); any=true;
   }
   px.putImageData(im,0,0);
