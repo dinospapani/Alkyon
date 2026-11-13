@@ -4,7 +4,7 @@
 'use strict';
 var B=window.AK, h=B.h, T=B.T, EN=B.EN, ls=B.ls;
 var root=null, map=null, layers={}, base=null, sea=null, me=null, meAcc=null, watch=null, gSpots=null, gFish=null;
-var TILES={sat:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',osm:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',sea:'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png'};
+var TILES={night:'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',sat:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',osm:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',sea:'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png'};
 B.tileTpl={sat:TILES.sat,sea:TILES.sea}; /* v31z550: για το κατέβασμα πριν την έξοδο (prefetch.js, sw.js) */
 var cfg=Object.assign({base:'sat',sea:true,spots:true,fish:true,zones:true,depth:false,mpa:false,dams:B.prof()==='lake',wind:false},ls.get('alkyon-v4-map',{}));
 var DAMS=[
@@ -48,7 +48,7 @@ function leaflet(){ zones(); if(window.L) return Promise.resolve(window.L); if(l
 B.leaflet=leaflet; /* v31z532: και για τον μικρό χάρτη επιλογής σημείου (coordpick) */
 function icon(cls,html){ return L.divIcon({className:'mk '+cls,html:html||'',iconSize:null}); }
 /* 1.7.7: πίσω στο σίγουρο (η 1.7.6 με blankTile=false έδειξε μαύρο χάρτη στο κινητό) */
-function drawBase(){ setTimeout(function(){ try{ if(window.AlkyonDense&&AlkyonDense.on()) AlkyonDense.update(); }catch(e){} },60); if(base) map.removeLayer(base); base=L.tileLayer(TILES[cfg.base],{maxZoom:19,maxNativeZoom:cfg.base==='sat'?18:19,attribution:cfg.base==='sat'?'Esri':'© OpenStreetMap'}).addTo(map); base.bringToBack();
+function drawBase(){ setTimeout(function(){ try{ if(window.AlkyonDense&&AlkyonDense.on()) AlkyonDense.update(); }catch(e){} },60); if(base) map.removeLayer(base); /* 1.14.1: τη νύχτα σκούρος χάρτης (θάλασσα σκούρα, στεριά πιο ανοιχτή, καθαρή ακτογραμμή) αντί για δορυφόρο που γίνεται «θόρυβος» στο κόκκινο */ var NB=document.documentElement.classList.contains('night'); base=L.tileLayer(NB?TILES.night:TILES[cfg.base],{maxZoom:19,maxNativeZoom:NB?16:cfg.base==='sat'?18:19,attribution:NB||cfg.base==='sat'?'Esri':'© OpenStreetMap',className:NB?'nighttile':''}).addTo(map); base.bringToBack(); drawBase.night=NB;
   if(sea){ map.removeLayer(sea); sea=null; } if(cfg.sea) sea=L.tileLayer(TILES.sea,{maxZoom:19,maxNativeZoom:18,opacity:.9}).addTo(map); }
 /* ---------- «Πού πιάνω»: πυκνότητα των δικών σου ψαριών, με φίλτρο μήνα και είδους ---------- */
 var gHeat=null, heatPill=null;
@@ -1076,6 +1076,7 @@ function mount(el){
     map.on('zoomend',function(){ drawData(); depthFade(); }); map.on('zoomend moveend',posCheckSoon); map.on('moveend',rainAuto); map.on('moveend',function(){ declutterSoon(); if(cfg.zones){ clearTimeout(zwT); zwT=setTimeout(drawWorldZones,400); } if(cfg.cur) currents(false); var c=map.getCenter(); ls.set('alkyon-v4-mapview',{lat:+c.lat.toFixed(5),lon:+c.lng.toFixed(5),z:map.getZoom()}); });
     map.on('contextmenu',function(e){ try{ e.originalEvent&&e.originalEvent.preventDefault(); }catch(x){} pointMenu(e.latlng); });
     try{ tapZoom(map,lmEl); }catch(e){}
+    try{ new MutationObserver(function(){ var n=document.documentElement.classList.contains('night'); if(n!==!!drawBase.night) drawBase(); }).observe(document.documentElement,{attributes:true,attributeFilter:['class']}); }catch(e){}
     try{ drawSos(); window.addEventListener('alkyon-sos',drawSos); if(B.sosNear) B.sosNear.poll(); }catch(e){}
     map.on('dragstart',function(){ setFollow(false); }); map.on('popupopen',function(){ followPause=Date.now()+20000; });
     map.on('popupopen',function(e){ var c=e.popup.getContent(); if(c&&c.classList&&c.classList.contains('portpop')&&!c.querySelector('.pgo')){ var ll=e.popup.getLatLng(), nm=(c.querySelector('b')||{}).textContent||''; var r=c.querySelector('.pbtns')||c; var g=h('button',{class:'pb pgo',type:'button',text:T('Πήγαινε εκεί','Go there'),onclick:function(){ map.closePopup(); B.goTo(ll.lat,ll.lng,nm); }}); r.insertBefore(g,r.firstChild); e.popup.update(); } });

@@ -469,7 +469,8 @@ html.night body::after{content:'';position:fixed;inset:0;background:#9a1600;mix-
 /* το MOB: πάντα λευκό περίγραμμα και γράμματα πάνω σε σκούρο, για να ξεχωρίζει και τη νύχτα */
 /* ο χάρτης πιο σκοτεινός (τα πλακίδια, το κύμα και ο άνεμος), τα κουμπιά ψαριού με λευκό περίγραμμα */
 /* 1.14.1: ο χάρτης κρατά την αντίθεση στο κόκκινο: γκρι με έντονη αντίθεση (θάλασσα σκούρα, στεριά φωτεινή), όχι απλώς σκοτεινός */
-html.night .leaflet-tile-pane,html.night .sattile{filter:grayscale(1) contrast(1.7) brightness(.78)}
+html.night .leaflet-tile-pane{filter:brightness(1.9) contrast(1.25)}
+html.night .leaflet-tile-pane .raintile{filter:grayscale(1) brightness(.8)}
 html.night .wxfill{filter:grayscale(1) brightness(.55);opacity:.45!important}
 html.night #lmap.leaflet-container{background:#0a0a0a!important}
 /* οι δείκτες (ψάρια, σημεία, ρεύματα) και οι γραμμές φωτεινοί πάνω στον σκοτεινό χάρτη */
