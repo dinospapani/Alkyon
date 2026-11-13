@@ -42,6 +42,8 @@
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSMotionUsageDescription</key>
+	<string>Alkyon reads your phone's barometer to record air pressure on your trips and catches, because changes in pressure affect how fish bite.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Alkyon uses the camera to take photos of your catches and to scan coordinates from your chartplotter screen.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>

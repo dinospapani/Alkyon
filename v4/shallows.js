@@ -91,7 +91,9 @@ function refresh(){
   Promise.all(miss.map(function(x){ return tile(x[0],x[1]).then(draw).catch(function(){ fails++; }); })).then(function(){ busy--; draw();
     if(fails&&!Object.keys(TILES).length) msg(T('Τα βάθη δεν φορτώθηκαν. Χρειάζεται σύνδεση την πρώτη φορά.','Depths did not load. A connection is needed the first time.')); fails=0; }); }
 B.shallows={on:function(){ return on; },set:function(v){ on=!!v; ls.set(KEY,on); if(on) refresh(); else draw(); try{ window.dispatchEvent(new Event('alkyon-wxchange')); }catch(e){} },
-  analyze:analyze,_tiles:TILES,pack:pack,unpack:unpack};
+  analyze:analyze,_tiles:TILES,pack:pack,unpack:unpack,
+  /* 1.13.8: για το seafloor.js (ανάγλυφο, ζώνη βάθους): ίδια κομμάτια και ίδια μνήμη */
+  tile:tile,need:function(m){ var mm=map; map=m||map; try{ return need(); } finally{ map=mm||map; } }};
 new MutationObserver(function(){ if(on) setTimeout(refresh,300); }).observe(document.body,{attributes:true,attributeFilter:['class']});
 setTimeout(function(){ if(on) refresh(); },3500);
 })();

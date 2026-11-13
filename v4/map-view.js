@@ -613,7 +613,33 @@ function paintDl(){ if(!dlBox||!dlBox.isConnected) return; var rec=ls.get('alkyo
     h('div',{class:'acts'},h('button',{class:'btn pri',type:'button',text:T('Κατέβασμα','Download'),disabled:!p.ok,onclick:startDl}),rec.length?h('button',{class:'btn',type:'button',text:T('Διαγραφή','Clear'),onclick:clearDl}):null)); }
 function offlineSection(body){ dlBox=h('div',{class:'dlbox'}); body.append(h('h3',{class:'h3',text:T('Χάρτης εκτός σύνδεσης','Offline map')}),dlBox,h('p',{class:'note',text:T('Αποθηκεύονται ο χάρτης και τα βάθη που βλέπεις. Η πρόγνωση, τα σημεία, τα ψάρια και ό,τι καιρό είδες τελευταία (άνεμος, κύμα, θερμοκρασία νερού) μένουν και χωρίς σήμα. Για νέα δεδομένα καιρού χρειάζεται σύνδεση.','The map and depths you see are saved. The forecast, spots, catches and the last weather you viewed (wind, waves, water temperature) stay available without signal. New weather data needs a connection.')})); paintDl(); }
 
-var LIC={shoal:'<svg viewBox="0 0 24 24"><path d="M2 8c2-1.3 4-1.3 6 0s4 1.3 6 0 4-1.3 6 0"/><path d="M5 19l4-6 3 3 2-3 5 6z"/><path d="M12 2v3"/></svg>',mydepth:'<svg viewBox="0 0 24 24"><path d="M3 5h18"/><path d="M4 9l3 3 3-2 4 4 3-3 3 2"/><path d="M5 16h2M10 18h2M15 17h2M19 19h1"/></svg>',srep:'<svg viewBox="0 0 24 24"><path d="M2 10c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2M2 16c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2"/><circle cx="19" cy="4.5" r="2.2"/></svg>',rain:'<svg viewBox="0 0 24 24"><path d="M7 15a5 5 0 1 1 1.6-9.7A6 6 0 0 1 20 9a4 4 0 0 1-2 7.5"/><path d="M8 18l-1 3M12 18l-1 3M16 18l-1 3"/></svg>',best:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1" fill="currentColor"/><path d="M12 1v3M12 20v3M1 12h3M20 12h3"/></svg>',chl:'<svg viewBox="0 0 24 24"><circle cx="7" cy="8" r="2.2"/><circle cx="15" cy="6" r="1.6"/><circle cx="12" cy="13" r="2.6"/><circle cx="18" cy="14" r="1.8"/><circle cx="8" cy="17" r="1.6"/></svg>',sats:'<svg viewBox="0 0 24 24"><path d="M4 18l4-4M10 8l6 6M7 11l6-6 6 6-6 6z"/><path d="M3 21c2 0 3-1 3-3"/></svg>',sst:'<svg viewBox="0 0 24 24"><path d="M10 13.5V5a2 2 0 0 1 4 0v8.5a4 4 0 1 1-4 0z"/><path d="M17 7h3M17 11h3"/></svg>',heat:'<svg viewBox="0 0 24 24"><path d="M12 3c2 3.5 6 6.2 6 11a6 6 0 0 1-12 0c0-3 1.6-4.9 3-6.5.3 2 1.4 3.2 2.7 3.6C11.3 8.6 11 5.7 12 3z"/></svg>',gear:'<svg viewBox="0 0 24 24"><path d="M3 7h18M3 12h18M3 17h18M7 4v16M12 4v16M17 4v16"/></svg>',
+/* 1.13.8: ζουμ με το δάχτυλο όπως στο Google Maps: διπλό πάτημα = ζουμ μέσα εκεί που πάτησες, διπλό πάτημα και σύρσιμο πάνω/κάτω = ζουμ με ένα δάχτυλο,
+   πάτημα με δύο δάχτυλα = ζουμ έξω. Στο ποντίκι, το διπλό κλικ μένει όπως ήταν. */
+function tapZoom(m,el){
+  m.doubleClickZoom.disable();
+  var last=0, lx=0, ly=0, st=null, two=null, done=0;
+  function rot(){ try{ return window.AlkyonOrient&&AlkyonOrient.mode()!=='NU'; }catch(e){ return false; } }
+  function pt(t){ var r=el.getBoundingClientRect(); return rot()?m.getSize().divideBy(2):L.point(t.clientX-r.left,t.clientY-r.top); }
+  el.addEventListener('touchstart',function(e){ var t=e.touches;
+    if(t.length===2){ st=null; two={t:Date.now(),x:(t[0].clientX+t[1].clientX)/2,y:(t[0].clientY+t[1].clientY)/2,mv:false}; return; }
+    two=null; if(t.length!==1) { st=null; return; } var x=t[0].clientX, y=t[0].clientY, now=Date.now();
+    if(now-last<300&&Math.hypot(x-lx,y-ly)<40){ st={y:y,z:m.getZoom(),p:pt(t[0]),drag:false,snap:m.options.zoomSnap}; try{ m.dragging.disable(); }catch(x2){} e.preventDefault(); }
+    else st={first:true,x:x,y:y,t:now}; },{passive:false});
+  el.addEventListener('touchmove',function(e){ var t=e.touches;
+    if(two){ if(t.length!==2||Math.hypot((t[0].clientX+t[1].clientX)/2-two.x,(t[0].clientY+t[1].clientY)/2-two.y)>12) two.mv=true; return; }
+    if(!st||t.length!==1) return;
+    if(st.first){ if(Math.hypot(t[0].clientX-st.x,t[0].clientY-st.y)>12) st=null; return; }
+    var dy=t[0].clientY-st.y; if(!st.drag&&Math.abs(dy)<8) return; st.drag=true; e.preventDefault();
+    m.options.zoomSnap=0; var z=Math.max(m.getMinZoom(),Math.min(m.getMaxZoom(),st.z+dy/90)); m.setZoomAround(st.p,z,{animate:false}); },{passive:false});
+  el.addEventListener('touchend',function(e){ var now=Date.now();
+    if(two){ var tw=two; if(e.touches.length===0){ two=null; if(!tw.mv&&now-tw.t<300){ done=now; m.setZoom(Math.round(m.getZoom())-1); } } return; }
+    if(!st) return; var s0=st; st=null;
+    if(s0.first){ if(now-s0.t<300){ last=now; lx=s0.x; ly=s0.y; } return; }
+    last=0; try{ m.dragging.enable(); }catch(x){} m.options.zoomSnap=s0.snap==null?1:s0.snap; done=now; e.preventDefault();
+    if(s0.drag) m.setZoomAround(s0.p,Math.round(m.getZoom()),{animate:true}); else m.setZoomAround(s0.p,Math.min(m.getMaxZoom(),Math.round(m.getZoom())+1)); },{passive:false});
+  m.on('dblclick',function(e){ if(Date.now()-done<900) return; var oe=e.originalEvent; if(oe&&oe.sourceCapabilities&&oe.sourceCapabilities.firesTouchEvents) return; m.setZoomAround(e.containerPoint,m.getZoom()+(oe&&oe.shiftKey?-1:1)); });
+}
+var LIC={relief:'<svg viewBox="0 0 24 24"><path d="M2 18l5-7 4 4 3-5 8 8z"/><path d="M7 11l2 5M14 10l-1 6"/></svg>',band:'<svg viewBox="0 0 24 24"><path d="M3 6c3 2 6 2 9 0s6-2 9 0"/><path d="M3 11c3 2 6 2 9 0s6-2 9 0"/><path d="M3 16c3 2 6 2 9 0s6-2 9 0"/><path d="M3 8.5h18v5H3z" fill="currentColor" opacity=".25" stroke="none"/></svg>',shoal:'<svg viewBox="0 0 24 24"><path d="M2 8c2-1.3 4-1.3 6 0s4 1.3 6 0 4-1.3 6 0"/><path d="M5 19l4-6 3 3 2-3 5 6z"/><path d="M12 2v3"/></svg>',mydepth:'<svg viewBox="0 0 24 24"><path d="M3 5h18"/><path d="M4 9l3 3 3-2 4 4 3-3 3 2"/><path d="M5 16h2M10 18h2M15 17h2M19 19h1"/></svg>',srep:'<svg viewBox="0 0 24 24"><path d="M2 10c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2M2 16c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2"/><circle cx="19" cy="4.5" r="2.2"/></svg>',rain:'<svg viewBox="0 0 24 24"><path d="M7 15a5 5 0 1 1 1.6-9.7A6 6 0 0 1 20 9a4 4 0 0 1-2 7.5"/><path d="M8 18l-1 3M12 18l-1 3M16 18l-1 3"/></svg>',best:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1" fill="currentColor"/><path d="M12 1v3M12 20v3M1 12h3M20 12h3"/></svg>',chl:'<svg viewBox="0 0 24 24"><circle cx="7" cy="8" r="2.2"/><circle cx="15" cy="6" r="1.6"/><circle cx="12" cy="13" r="2.6"/><circle cx="18" cy="14" r="1.8"/><circle cx="8" cy="17" r="1.6"/></svg>',sats:'<svg viewBox="0 0 24 24"><path d="M4 18l4-4M10 8l6 6M7 11l6-6 6 6-6 6z"/><path d="M3 21c2 0 3-1 3-3"/></svg>',sst:'<svg viewBox="0 0 24 24"><path d="M10 13.5V5a2 2 0 0 1 4 0v8.5a4 4 0 1 1-4 0z"/><path d="M17 7h3M17 11h3"/></svg>',heat:'<svg viewBox="0 0 24 24"><path d="M12 3c2 3.5 6 6.2 6 11a6 6 0 0 1-12 0c0-3 1.6-4.9 3-6.5.3 2 1.4 3.2 2.7 3.6C11.3 8.6 11 5.7 12 3z"/></svg>',gear:'<svg viewBox="0 0 24 24"><path d="M3 7h18M3 12h18M3 17h18M7 4v16M12 4v16M17 4v16"/></svg>',
   sat:'<svg viewBox="0 0 24 24"><path d="M3 7l6-3 6 3 6-3v13l-6 3-6-3-6 3z"/><path d="M9 4v13M15 7v13"/></svg>',
   wind:'<svg viewBox="0 0 24 24"><path d="M3 8h11a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 16h8a3 3 0 1 1-3 3"/></svg>',
   wave:'<svg viewBox="0 0 24 24"><path d="M2 8c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2"/><path d="M2 13c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2"/><path d="M2 18c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2"/></svg>',
@@ -675,6 +701,8 @@ function layersSheet(o){ o=o&&o.into?o:{}; /* 1.7.4: o.into = μέσα στο μ
   body.append(h('h3',{class:'lyh',text:T('Βάθη θάλασσας','Sea depths')}),dbox);
   grid(T('Θάλασσα και κανόνες','Sea and rules'),[
     B.shallows?tile('shoal',T('Ρηχά & ξέρες','Shallows & shoals'),T('κάτω από 10 m','under 10 m'),function(){ return B.shallows.on(); },function(v){ B.shallows.set(v); }):null, /* 1.13.4 */
+    B.seafloor?tile('relief',T('Ανάγλυφο βυθού','Seabed relief'),T('πρανή, υψώματα','drop-offs, mounts'),function(){ return B.seafloor.relief(); },function(v){ B.seafloor.setRelief(v); }):null, /* 1.13.8 */
+    B.seafloor?tile('band',T('Ζώνη βάθους','Depth band'),(function(){ var r=B.seafloor.range(); return (r.sp?r.sp+' ':'')+r.a+'–'+r.b+' m'; })(),function(){ return B.seafloor.band(); },function(v){ B.seafloor.setBand(v); }):null,
     tile('marks',T('Ναυτικά σήματα','Sea marks'),'OpenSeaMap',function(){ return !!cfg.sea; },function(v){ cfg.sea=v; saveCfg(); drawBase(); applyDepth(); }),
     /* 1.11.3: ένα κουμπί «Απαγόρευση» για κάθε χώρα· η πηγή αλλάζει ανάλογα με το πού κοιτάς. 1.11.4: χωρίς EMODnet (περιοχές Natura χωρίς κανόνες ψαρέματος· τις θαλάσσιες τις έχει το ProtectedSeas). */
     tile('zone',T('Απαγόρευση','No fishing'),viewReg()==='cy'?T('Τμήμα Αλιείας','Fisheries Dept'):'ProtectedSeas',function(){ return !!cfg.zones; },function(v){ cfg.zones=v; saveCfg(); drawOverlays(); }),
@@ -1036,6 +1064,7 @@ function mount(el){
     drawBase(); drawData(); drawOverlays(); applyDepth(); applyPend(); locate(false); drawDirect(); if(cfg.cur) currents(true);
     map.on('zoomend',function(){ drawData(); depthFade(); }); map.on('zoomend moveend',posCheckSoon); map.on('moveend',rainAuto); map.on('moveend',function(){ declutterSoon(); if(cfg.zones){ clearTimeout(zwT); zwT=setTimeout(drawWorldZones,400); } if(cfg.cur) currents(false); var c=map.getCenter(); ls.set('alkyon-v4-mapview',{lat:+c.lat.toFixed(5),lon:+c.lng.toFixed(5),z:map.getZoom()}); });
     map.on('contextmenu',function(e){ try{ e.originalEvent&&e.originalEvent.preventDefault(); }catch(x){} pointMenu(e.latlng); });
+    try{ tapZoom(map,lmEl); }catch(e){}
     map.on('dragstart',function(){ setFollow(false); }); map.on('popupopen',function(){ followPause=Date.now()+20000; });
     map.on('popupopen',function(e){ var c=e.popup.getContent(); if(c&&c.classList&&c.classList.contains('portpop')&&!c.querySelector('.pgo')){ var ll=e.popup.getLatLng(), nm=(c.querySelector('b')||{}).textContent||''; var r=c.querySelector('.pbtns')||c; var g=h('button',{class:'pb pgo',type:'button',text:T('Πήγαινε εκεί','Go there'),onclick:function(){ map.closePopup(); B.goTo(ll.lat,ll.lng,nm); }}); r.insertBefore(g,r.firstChild); e.popup.update(); } });
     setTimeout(function(){ map.invalidateSize(); pickUI(); },60);

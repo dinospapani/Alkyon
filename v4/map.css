@@ -1178,3 +1178,13 @@ body.mapclean.hasdt .sstleg,body.hasdt .sbleg.mdleg{top:calc(var(--safe-t,0px) +
 .mcpanel .mpto.mpnav .mpstop{flex:none;width:30px;height:30px;border-radius:50%;border:0;background:rgba(127,127,127,.18);color:inherit;font-size:14px;line-height:30px;padding:0}
 .mcpanel .mpto.mpnav .mpstop{position:static!important;display:inline-flex;align-items:center;justify-content:center;font-weight:800}
 html:not(.night) body.mapclean .mcpanel .mpto.mpnav .mpstop{background:var(--surface-2,#eef2f3)}
+/* 1.13.8: ζώνη βάθους (υπόμνημα + επιλογή) */
+.sbleg.sfleg .sfed{border:0;background:rgba(127,127,127,.2);color:inherit;border-radius:999px;padding:4px 10px;font:inherit;font-weight:700;cursor:pointer}
+body.mapon:has(.sbleg:not(.sfleg):not([hidden])) .sbleg.sfleg{transform:translate(-50%,-56px)}
+body.mapon:has(.sbleg.shleg:not([hidden])):has(.sbleg:not(.sfleg):not(.shleg):not(.mdleg):not([hidden])) .sbleg.sfleg{transform:translate(-50%,-112px)}
+.sfpick .sfrow{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin:10px 0}
+.sfpick .sfrow label{display:flex;align-items:center;gap:6px;font-weight:700}
+.sfpick .sfrow input{width:84px}
+.sfpick .sfsp{display:flex;flex-wrap:wrap;gap:8px}
+.sfpick .sfsp .chip small{opacity:.75;font-weight:600}
+.sfpick .sfsp .chip.on{outline:2px solid #E4572E}

@@ -86,7 +86,10 @@ function detail(b){
   if(b.tk&&b.tk.length){ var tkn=b.tk.map(function(id){ var x=S().get('tackle',id); return x?x.name:null; }).filter(Boolean); if(tkn.length) body.append(h('div',{class:'card'},h('h2',{text:T('Εξοπλισμός','Tackle')}),h('p',{class:'p',text:tkn.join(', ')}))); }
   if(b.notes) body.append(h('div',{class:'card'},h('p',{class:'p',text:b.notes})));
   if(b.win&&B.biteWin){ try{ var wc=B.biteWin.card(b); if(wc) body.append(wc); }catch(e){} } /* 1.11.6 */
-  if(window.AlkyonBiteWx&&!b.gear){ var wx=h('div',{class:'card bwxcard'},h('h2',{text:T('Καιρός γύρω από το πιάσιμο','Weather around the catch')})); try{ wx.append(AlkyonBiteWx.slot(b)); body.append(wx); }catch(e){} }
+  if(window.AlkyonBiteWx&&!b.gear){ var wx=h('div',{class:'card bwxcard'},h('h2',{text:T('Καιρός γύρω από το πιάσιμο','Weather around the catch')})); try{ wx.append(AlkyonBiteWx.slot(b)); body.append(wx); }catch(e){}
+    /* 1.13.8: μέτρηση από το βαρόμετρο του κινητού */
+    if(b.pb&&b.pb.hpa){ var U=window.AlkyonUnits, pf=function(v){ return U&&U.press?U.press(v):B.num(v,1)+' hPa'; }, sg=function(v){ return (v>0?'+':v<0?'−':'±')+B.num(Math.abs(v),1); };
+      wx.append(h('p',{class:'foot pbline',text:'📱 '+T('Βαρόμετρο κινητού: ','Phone barometer: ')+pf(b.pb.hpa)+(b.pb.d1!=null?' · '+sg(b.pb.d1)+T(' την 1η ώρα',' in 1 h'):'')+(b.pb.d3!=null?' · '+sg(b.pb.d3)+T(' στις 3 ώρες',' in 3 h'):'')})); } }
   var acts=h('div',{class:'acts'},h('button',{class:'btn pri',type:'button',text:T('Επεξεργασία','Edit'),onclick:function(){ sh.close(true); B.biteForm(b); }}));
   if(typeof b.lat==='number') acts.append(h('button',{class:'btn',type:'button',text:T('Στον χάρτη','On the map'),onclick:function(){ sh.close(true); B.mapGo(b.lat,b.lon,15); }}));
   /* 1.6.1: διόρθωση του σημείου στον χάρτη· στη συρτή η εφαρμογή μαθαίνει πόσο πίσω πάει το δόλωμα */

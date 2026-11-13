@@ -701,6 +701,12 @@ function measured(box,p,modelNow){
   function show(r){ if(!r) return; var s=r.s, U=window.AlkyonUnits, pf=function(v){ return U&&U.press?U.press(v):Math.round(v)+' hPa'; }, dif=modelNow!=null?Math.round((s.pres-modelNow)*10)/10:null;
     var old=box.querySelector('.measp'); if(old) old.remove();
     box.append(h('p',{class:'foot measp',text:T('Μετρημένη πίεση: ','Measured pressure: ')+pf(s.pres)+' · '+(s.name||s.id)+' ('+(s.src||'')+', '+(function(){ var d=new Date(/Z|[+-]\d\d:?\d\d$/.test(String(s.t))?s.t:String(s.t)+'Z'); return isNaN(d)?String(s.t).slice(11,16)+' UTC':B.pad(d.getHours())+':'+B.pad(d.getMinutes()); })()+', '+   /* 1.10.6: τοπική ώρα, όχι «20:50Z» */Math.round(r.d)+' km)'+(dif!=null?' · '+T('μοντέλο τώρα: ','model now: ')+pf(modelNow)+' ('+(dif>0?'+':'')+B.num(dif,1)+' hPa)':'')})); }
+  /* 1.13.8: βαρόμετρο του κινητού (εφαρμογές): τελευταία μέτρηση και τάση· διορθώνεται με τον σταθμό ή το μοντέλο */
+  function phone(){ if(!B.baro||!B.baro.ok()) return; var l=B.baro.last(); if(!l||Date.now()-l.t>45*60000) return; var U=window.AlkyonUnits, pf=function(v){ return U&&U.press?U.press(v):B.num(v,1)+' hPa'; }, d1=B.baro.trend(1), d3=B.baro.trend(3), sg=function(v){ return (v>0?'+':v<0?'−':'±')+B.num(Math.abs(v),1)+' hPa'; };
+    var old=box.querySelector('.phonep'); if(old) old.remove();
+    box.append(h('p',{class:'foot phonep',text:'📱 '+T('Βαρόμετρο κινητού: ','Phone barometer: ')+pf(l.hpa)+(d1!=null?' · '+sg(d1)+T(' την τελευταία ώρα',' in the last hour'):'')+(d3!=null?' · '+sg(d3)+T(' σε 3 ώρες',' in 3 h'):'')+(B.baro.offset()?'':T(' (χωρίς διόρθωση ακόμα)',' (not calibrated yet)'))})); }
+  if(B.baro&&B.baro.ok()){ if(modelNow!=null) B.baro.calib(modelNow,'model'); phone(); }
+  var show0=show; show=function(r){ show0(r); if(r&&r.s&&r.s.pres!=null&&r.d<=30&&B.baro&&B.baro.ok()){ B.baro.calib(r.s.pres,'station'); phone(); } };
   if(p.lat==null) return; var c=ls.get('alkyon-obsp',null); if(c&&Date.now()-c.t<10*60000&&c.v){ show(pick(c.v)); return; }
   var to; try{ to=AbortSignal.timeout(10000); }catch(e){}
   fetch(SUPA+'/functions/v1/smart-api',{signal:to,headers:{apikey:SKEY,Authorization:'Bearer '+SKEY}}).then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(j){ var l=Array.isArray(j)?j:[]; ls.set('alkyon-obsp',{t:Date.now(),v:l}); show(pick(l)); }).catch(function(){});

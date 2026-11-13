@@ -47,8 +47,8 @@ def init(lang='el', news=None, prof='boat'):
       "localStorage.setItem('alkyon-v4-news',JSON.stringify(%s||window.ALKYON_VERSION||'9.9.9'));"
       "localStorage.setItem('alkyon-bites',JSON.stringify([{id:'b1',date:'2026-10-20',time:'07:00',species:'Λαβράκι',kg:1.2,lat:35.1,lon:32.5,_u:1}]));}"
       )%(json.dumps(lang),json.dumps(prof),json.dumps(news))
-def ctx(b, sw=False, **kw):
-    c=b.new_context(viewport={'width':390,'height':844}, service_workers='allow' if sw else 'block')
+def ctx(b, sw=False, touch=False, **kw):
+    c=b.new_context(viewport={'width':390,'height':844}, service_workers='allow' if sw else 'block', has_touch=touch)
     c.grant_permissions(['geolocation']); c.set_geolocation({'latitude':35.0,'longitude':33.3})
     c.add_init_script(init(**kw))
     c.route('**/*open-meteo.com/**',respond)
@@ -304,6 +304,16 @@ with sync_playwright() as p:
     r=pg.evaluate("""()=>{ const w=12,hh=12,d=new Float32Array(w*hh).fill(30); for(let y=0;y<hh;y++){ d[y*w]=-5; d[y*w+1]=3; } d[5*w+6]=4; d[5*w+7]=6; d[6*w+6]=7;
       const g={w:w,h:hh,data:d,x0:22.0,y0:38.0,dx:0.001,dy:-0.001}; const a=AK.shallows.analyze(g); return [a.shoals.length, a.shoals[0]&&a.shoals[0].d, a.n, !!AK.shallows.set, (()=>{ const u=AK.shallows.unpack(AK.shallows.pack(g)); return [u.data[5*w+6], u.data[0], u.data[1]]; })()]; }""")
     check('Ρηχά & ξέρες: ξέρα μακριά από την ακτή (4 m), τα ρηχά της ακτής δεν μετράνε σαν ξέρα, πλακίδιο στο μενού (1.13.4)', r==[1,4,15,True,[4,-1,3]], r)
+    r=pg.evaluate("""()=>{ const sf=AK.seafloor; if(!sf) return ['x']; const w=20,hh=20,d=new Float32Array(w*hh); for(let y=0;y<hh;y++)for(let x=0;x<w;x++) d[y*w+x]=x<3?-1:x*5;
+      const g={w:w,h:hh,data:d,x0:33.0,y0:35.0,dx:0.001,dy:0.001}; const rl=sf._relief(g), bd=sf._band(g,20,60);
+      const land=rl[3]===0, sea=rl[(5*w+10)*4+3]===200, inb=bd[(5*w+6)*4+3]>=150, outb=bd[(5*w+15)*4+0]!==228;
+      const sp=sf._spRange((window.SPKB||[]).find(s=>s.l==='Dentex dentex'));
+      return [land,sea,inb,outb,!!sp&&sp.a>0&&sp.b>sp.a]; }""")
+    check('Ανάγλυφο βυθού και ζώνη βάθους: σκίαση στη θάλασσα, όχι στη στεριά, ζώνη 20–60 m, βάθος ψαριού (1.13.8)', r==[True,True,True,True,True], r)
+    pg.evaluate("()=>{ AK.seafloor.setRange(20,60,''); }"); pg.wait_for_timeout(500)
+    r=pg.evaluate("()=>{ const l=document.querySelector('.sbleg.sfleg'); return [!!l&&!l.hidden&&/20–60/.test(l.textContent), AK.seafloor.band()]; }")
+    check('Ζώνη βάθους: υπόμνημα με τα όρια και κουμπί αλλαγής (1.13.8)', r==[True,True], r)
+    pg.evaluate("()=>AK.seafloor.setBand(false)")
     pg.evaluate("()=>{ localStorage.setItem('alkyon-v4-pos',JSON.stringify({lat:34.7,lon:32.4,t:Date.now()})); AK.goTo(34.8,32.35,'Δοκιμή'); }"); pg.wait_for_timeout(1200)
     r=pg.evaluate("()=>{ const d=document.querySelector('.dtbar'), m=document.querySelector('.mcbar'); if(!d||!m) return ['x']; const a=d.getBoundingClientRect(), b=m.getBoundingClientRect(); const pts=[[a.right-8,a.top+a.height/2],[a.left+a.width/2,a.top+a.height/2]].map(p=>{ const e=document.elementFromPoint(p[0],p[1]); return !!(e&&d.contains(e)); }); return [getComputedStyle(d).display!=='none', a.top>=b.bottom-1, d.textContent.includes('Δοκιμή'), pts[0]&&pts[1]]; }")
     check('Πλοήγηση προς σημείο: η μπάρα φαίνεται κάτω από τη μπάρα καιρού και δεν την κρύβουν τα κουμπιά δεξιά (1.13.4, 1.13.6)', r==[True,True,True,True], r)
@@ -687,6 +697,28 @@ with sync_playwright() as p:
     sg=pg.evaluate("()=>{const i=[...document.querySelectorAll('input')].find(x=>/Λαβράκι|Sea bass/.test(x.placeholder||'')); i.value='ορφ'; i.dispatchEvent(new Event('input',{bubbles:true})); return [...document.querySelectorAll('.spsug .sugi')].map(x=>x.textContent).join('|')}")
     sv=pg.evaluate("()=>{const b=document.querySelector('.bfsave').getBoundingClientRect(); return Math.round(innerHeight-b.bottom)}")
     check('νέο ψάρι: το βάθος ακολουθεί το σημείο του χάρτη, ο ροφός/ορφός βρίσκεται, το «Αποθήκευση» χαμηλά (1.13.7)', d0=='150' and d1=='42' and 'marginatus' in sg and 0<=sv<=24 and not pg._errs, [d0,d1,sg[:120],sv,pg._errs]); c.close()
+    c=ctx(b,touch=True); pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(4000)
+    cdp=c.new_cdp_session(pg)
+    def touch(kind,pts): cdp.send('Input.dispatchTouchEvent',{'type':kind,'touchPoints':[{'x':x,'y':y,'id':i} for i,(x,y) in enumerate(pts)]})
+    def tap(x,y): touch('touchStart',[(x,y)]); touch('touchEnd',[]); pg.wait_for_timeout(60)
+    pg.evaluate("()=>AlkyonCore.map().setZoom(10,{animate:false})"); pg.wait_for_timeout(300)
+    tap(200,420); tap(200,420); pg.wait_for_timeout(700); z1=pg.evaluate("()=>AlkyonCore.map().getZoom()")
+    touch('touchStart',[(200,420)]); touch('touchEnd',[]); pg.wait_for_timeout(60); touch('touchStart',[(200,420)])
+    for k in range(1,10): touch('touchMove',[(200,420+k*20)]); pg.wait_for_timeout(20)
+    touch('touchEnd',[]); pg.wait_for_timeout(700); z2=pg.evaluate("()=>AlkyonCore.map().getZoom()")
+    touch('touchStart',[(150,420),(250,420)]); touch('touchEnd',[]); pg.wait_for_timeout(700); z3=pg.evaluate("()=>AlkyonCore.map().getZoom()")
+    check('Χάρτης: διπλό πάτημα = ζουμ μέσα, διπλό πάτημα και σύρσιμο = ζουμ με ένα δάχτυλο, δύο δάχτυλα = ζουμ έξω (1.13.8)', z1==11 and z2==13 and z3==12 and not pg._errs, [z1,z2,z3,pg._errs]); c.close()
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(2500)
+    r=pg.evaluate("""async()=>{ const now=Date.now(); localStorage.removeItem('alkyon-v4-baro'); localStorage.removeItem('alkyon-v4-barooff');
+      for(let i=0;i<=36;i++) AK.baro._save({t:now-(180-i*5)*60000,hpa:1015-i*5/60*0.6});
+      AK.baro._test({available:()=>Promise.resolve({ok:true}),read:()=>Promise.resolve({hpa:1013.2,t:Date.now()})}); await AK.baro.read();
+      const d1=AK.baro.trend(1), d3=AK.baro.trend(3); AK.baro.calib(1014.0,'station'); const off=AK.baro.offset(), fc=AK.baro.forCatch(now);
+      return [d1!=null&&d1<-0.4&&d1>-0.8, d3!=null&&d3<-1.5&&d3>-2.0, Math.abs(off-0.8)<0.05, !!fc&&Math.abs(fc.hpa-1014.0)<0.1]; }""")
+    check('Βαρόμετρο κινητού: τάση 1 και 3 ωρών, διόρθωση με σταθμό, τιμή για το ψάρι (1.13.8)', r==[True,True,True,True], r)
+    pg.evaluate("()=>AK.biteForm()"); pg.wait_for_timeout(1500)
+    pg.evaluate("()=>{ const i=[...document.querySelectorAll('input')].find(x=>/Λαβράκι|Sea bass/.test(x.placeholder||'')); i.value='Σαργός'; i.dispatchEvent(new Event('input',{bubbles:true})); document.querySelector('.bfsave').click(); }"); pg.wait_for_timeout(1500)
+    r=pg.evaluate("()=>{ const b=AK.store.bites().find(x=>x.species==='Σαργός'); return b&&b.pb?[Math.round(b.pb.hpa), b.pb.d1!=null]:null; }")
+    check('Βαρόμετρο κινητού: το ψάρι κρατά την πίεση της στιγμής (1.13.8)', r==[1014,True], [r,pg._errs]); c.close()
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#profile'); pg.wait_for_timeout(2500)
     pg.evaluate("()=>window.scrollTo(0,400)"); pg.wait_for_timeout(300)
     pg.evaluate("()=>AK.relang('en')"); pg.wait_for_timeout(4000)

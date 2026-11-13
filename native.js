@@ -30,7 +30,9 @@ window.AKN={
   openExternal:openExternal,
   version:function(){ return App?App.getInfo().then(function(i){ return i.version+' ('+i.build+')'; }):Promise.resolve(''); },
   /* 1.13.1: «Δίκτυο σκάφους» (UDP/TCP προς plotter ή πύλη NMEA). Προς το παρόν μόνο Android. */
-  net:IOS?null:reg('AlkNet')
+  net:IOS?null:reg('AlkNet'),
+  /* 1.13.8: βαρόμετρο του κινητού (Android SensorManager, iPhone CMAltimeter) */
+  baro:reg('AlkBaro')
 };
 try{ document.documentElement.classList.add('native','native-'+window.AKN.platform); }catch(e){}
 

@@ -4,3 +4,4 @@
 "NSPhotoLibraryAddUsageDescription" = "Alkyon can save catch cards and photos to your library.";
 "NSMicrophoneUsageDescription" = "Alkyon uses the microphone for voice notes and voice logging of catches. Recordings stay on your phone.";
 "NSSpeechRecognitionUsageDescription" = "Alkyon turns your voice into text when you log a catch by voice.";
+"NSMotionUsageDescription" = "Alkyon reads your phone's barometer to record air pressure on your trips and catches, because changes in pressure affect how fish bite.";
