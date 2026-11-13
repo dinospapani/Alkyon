@@ -182,7 +182,8 @@ function rainShow(i){ rainI=i; rainL.forEach(function(l,j){ l.setOpacity(j===i?.
 /* 1.9.20: στην Κύπρο πρώτα το ραντάρ του Τμήματος Μετεωρολογίας (2 ραντάρ, ανά ~10′, ανάλυση ~0,6 km· radar_build.py → κλαδί radar-data).
    Αλλού, ή αν δεν είναι φρέσκο (πάνω από 45′), το RainViewer. Στη μπάρα «⇄» αλλάζει πηγή. */
 var DOMR=window.ALKYON_RADAR_URL||'https://raw.githubusercontent.com/dinospapani/alkyon/radar-data/', DOMBOX=[33.6,30.9,36.15,35.25], rainSrc='rv';
-function inCyR(){ var c=map.getCenter(); return c.lat>DOMBOX[0]&&c.lat<DOMBOX[2]&&c.lng>DOMBOX[1]&&c.lng<DOMBOX[3]; }
+/* 1.13.8: και όταν η Κύπρος απλώς φαίνεται στον χάρτη (π.χ. ζουμ έξω με κέντρο στην Τουρκία), όχι μόνο όταν είναι στο κέντρο */
+function inCyR(){ var c=map.getCenter(); if(c.lat>DOMBOX[0]&&c.lat<DOMBOX[2]&&c.lng>DOMBOX[1]&&c.lng<DOMBOX[3]) return true; try{ return map.getZoom()>=6&&map.getBounds().contains([35.05,33.2]); }catch(e){ return false; } }
 function rainBarMake(){
   rainBar=h('div',{class:'rainbar',role:'group','aria-label':T('Ραντάρ βροχής','Rain radar')},
     h('button',{type:'button',class:'rbp','aria-label':T('Αναπαραγωγή/παύση','Play/pause'),text:'❚❚',onclick:function(){ rainPlay=!rainPlay; this.textContent=rainPlay?'❚❚':'▶'; }}),
