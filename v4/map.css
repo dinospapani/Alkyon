@@ -648,7 +648,7 @@ body:not(.mapon) .trwrap,body.mappick .trwrap,body.replaying .trwrap{display:non
 .trleads{display:grid;grid-template-columns:44px;grid-template-rows:44px auto auto 44px;justify-items:center;align-items:center;padding:4px;border-radius:18px;background:rgba(12,22,32,.9);color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.35)}
 .trleads button{width:44px;height:44px;border-radius:14px;border:0;background:rgba(255,255,255,.12);color:#fff;font:800 22px/1 var(--font);cursor:pointer}
 .trleads b{font:800 20px/1 var(--font)}.trleads small{font:600 9.5px var(--font);opacity:.75;text-transform:uppercase;letter-spacing:.04em}
-html.night .trleads button{background:#1a0000;box-shadow:0 0 0 2px #fff}
+html.nightred .trleads button{background:#1a0000;box-shadow:0 0 0 2px #fff}
 /* 1.6.2: μολύβια κάτω από την ταχύτητα (στα πλάγια έπεφτε πάνω στα κουμπιά ψαριού) */
 .trwrap{flex-direction:column;align-items:stretch;max-width:min(230px,calc(100vw - 180px))}
 .trwrap .trpill{width:auto}
@@ -686,7 +686,7 @@ html.night .trleads button{background:#1a0000;box-shadow:0 0 0 2px #fff}
 .trdrop .trdn span{grid-column:2;grid-row:2;text-align:center;font:700 11px var(--font);opacity:.8;margin-top:-2px}
 .trdrop em{font:600 12px var(--font);font-style:normal;opacity:.9}
 .trdrop .trdb{display:flex;gap:6px}.trdrop .trdb .btn.pri{flex:1;min-height:44px}.trdrop .trdb .btn.ghost{background:rgba(255,255,255,.12)!important;color:#fff!important;border:0!important;min-height:44px}
-html.night .trdrop .trdn b{color:#fff}
+html.nightred .trdrop .trdn b{color:#fff}
 /* 1.7.1: νέος χάρακας: σημεία με πάτημα, μικρή μπάρα κάτω, η μπάρα εξόδου κρύβεται όσο μετράς */
 body.ruling .tripbar,body.ruling .trwrap{display:none!important}
 #ndRuler{position:fixed;left:10px;right:10px;bottom:calc(var(--nav-h,64px) + var(--safe-b,0px) + 12px);z-index:950;max-width:560px;margin:0 auto;display:flex;flex-direction:column;align-items:stretch;gap:8px;padding:10px 10px 10px 14px;border-radius:18px;background:var(--surface,#fff);color:var(--ink,#111);box-shadow:0 6px 22px rgba(0,0,0,.28)}
@@ -701,7 +701,7 @@ body.ruling .tripbar,body.ruling .trwrap{display:none!important}
 .rulpt .rp.a{background:#2a7de1}
 .rultag .rt{display:inline-block;width:max-content;transform:translate(-50%,-50%);background:#3b2a12;color:#ffd27a;border-radius:8px;padding:3px 8px;font:700 12px system-ui;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.5)}
 .rultag .rt.d{transform:translate(-50%,-190%);background:#0d2c40;color:#9fd4ee}
-html.night #ndRuler{background:#1a0000;color:#fff;box-shadow:0 0 0 2px #fff}html.night #ndRuler .rb{background:#2a0000;color:#fff}
+html.nightred #ndRuler{background:#1a0000;color:#fff;box-shadow:0 0 0 2px #fff}html.nightred #ndRuler .rb{background:#2a0000;color:#fff}
 .trsheet .trhint{margin:8px 0 4px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--accent) 10%,var(--surface-2));font:500 13px/1.4 var(--font)}
 /* 1.7.2: «Καθαρός» χάρτης */
 body.mapclean .mchips,body.mapclean .mapwx,body.mapclean .wxread{display:none!important}
@@ -734,7 +734,7 @@ body:not(.mapon) .mcbar,body.mappick .mcbar,body.replaying .mcbar,body.ruling .m
 .mcpic.cl::before{content:'';position:absolute;left:18%;right:18%;top:10px;height:16px;border-radius:8px;background:rgba(12,22,32,.85)}
 .mcpic.cs::before{content:'';position:absolute;left:8px;right:8px;top:8px;height:14px;background:repeating-linear-gradient(90deg,#fff 0 22px,transparent 22px 27px);border-radius:6px}
 .mcpic.cs::after{content:'';position:absolute;left:8px;top:30px;width:16px;height:76px;background:repeating-linear-gradient(180deg,#fff 0 14px,transparent 14px 19px);border-radius:6px;box-shadow:96px 0 0 #fff}
-html.night .mcbar{background:#1a0000;box-shadow:0 0 0 2px #fff}html.night .mcdrw .mcpan{background:#120000;color:#fff}
+html.nightred .mcbar{background:#1a0000;box-shadow:0 0 0 2px #fff}html.nightred .mcdrw .mcpan{background:#120000;color:#fff}
 /* 1.7.3: οθόνη που αλλάζει μόνη της (καθαρός χάρτης) */
 .mcmode{position:fixed;left:50%;transform:translateX(-50%);top:calc(var(--safe-t,0px) + 74px);z-index:31;border:0;border-radius:14px;padding:5px 12px;background:var(--surface,#fff);color:var(--accent);font:800 11px var(--font);letter-spacing:.06em;box-shadow:0 2px 8px rgba(0,0,0,.25);cursor:pointer}
 body:not(.mapclean) .mcmode,body:not(.mapclean) .mcpanel,body:not(.mapon) .mcmode,body:not(.mapon) .mcpanel,body.ruling .mcmode,body.ruling .mcpanel{display:none!important}
@@ -755,7 +755,7 @@ body.mapclean .dtbar{top:calc(var(--safe-t,0px) + 76px);right:84px;max-width:520
 body:not(.mapclean) .dtbar{right:84px}
 body.mapclean:has(.mcpanel:not(.off) .mpto) .dtbar{display:none!important}
 body.mapclean:has(.mcpanel.anc) .dtbar{top:auto;bottom:calc(var(--nav-h,64px) + var(--safe-b,0px) + 96px)}
-html.night .mcpanel{background:#1a0000;box-shadow:0 0 0 2px #fff}
+html.nightred .mcpanel{background:#1a0000;box-shadow:0 0 0 2px #fff}
 /* 1.7.4: υπόμνημα θερμοκρασίας: τιμή στο σταυρό και κλίμακα */
 .sstleg .slr{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px;pointer-events:auto}
 .sstleg .slh{font:800 13px var(--font)}
@@ -833,12 +833,12 @@ body.mapclean .mcbar .mci{display:none!important}
 body.mapclean .mcbar .mct{text-align:left!important;font:800 15px var(--font)!important;color:inherit}
 body.mapclean .mcbar .mcv svg{stroke:currentColor!important;opacity:.6}
 body.mapclean .mcbar::after{display:none}
-html.night body.mapclean .mcbar{background:#1a0000!important;color:#fff!important;box-shadow:0 0 0 2px #fff!important}
+html.nightred body.mapclean .mcbar{background:#1a0000!important;color:#fff!important;box-shadow:0 0 0 2px #fff!important}
 .mcedge{display:none}
 body.mapclean.mapon .mcedge{display:flex;position:fixed;right:0;top:52%;z-index:31;width:26px;height:84px;margin-top:-42px;align-items:center;justify-content:center;padding:0;border:0;border-radius:14px 0 0 14px;background:var(--surface,#fff);color:var(--ink,#0b1f2a);opacity:.92;box-shadow:-2px 2px 10px rgba(0,0,0,.25);touch-action:none}
 .mcedge svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.6}
 body:has(.mcdrw.open) .mcedge,body.ruling .mcedge,body.mappick .mcedge,body.replaying .mcedge{display:none!important}
-html.night .mcedge{background:#1a0000;color:#fff;box-shadow:0 0 0 1px #fff}
+html.nightred .mcedge{background:#1a0000;color:#fff;box-shadow:0 0 0 1px #fff}
 /* κάρτα ΨΑΡΕΥΩ/ΑΓΚΥΡΑ: τώρα που το MOB είναι δεξιά, πιάνει όλο το πλάτος κάτω από την πάνω γραμμή */
 body.mapclean .mcpanel{left:12px!important;right:12px!important;top:calc(var(--safe-t,0px) + 76px)!important}
 body.mapclean .mcpanel.run{top:calc(var(--safe-t,0px) + 76px)!important}
@@ -940,7 +940,7 @@ body.trside-on .mcpanel,body.trside-on .mcmode{display:none!important}
 .trside .tsm span{flex:1;text-align:center}
 .trside .tsiso{display:flex;justify-content:space-between;gap:8px;margin-top:6px;font:600 12px var(--font)}.trside .tsiso b{color:#1d6fa3}
 .trside .tsn{margin:4px 2px 0;font:600 11.5px var(--font);color:var(--ink-2)}.trside .tsn.warn{color:#c2541f}
-html.night .trside{background:#1a0000;color:#fff;box-shadow:0 0 0 2px #fff}html.night .trside .tsc{background:#2a0000}
+html.nightred .trside{background:#1a0000;color:#fff;box-shadow:0 0 0 2px #fff}html.nightred .trside .tsc{background:#2a0000}
 .trside .tsb{display:flex;gap:6px;margin-top:6px;align-items:center}.trside .tsb .btn{flex:1 1 0;min-width:0;padding-left:6px!important;padding-right:6px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:38px!important}.trside .tsb .btn.pri,.trside .tsb .btn:nth-child(3){flex:2 1 0}.trside .tsb .tsn{flex:2;margin:0}
 body.trside-on .trwrap{display:none!important}
 body.trside-on.mapclean.mapon .mcedge{top:58%}
@@ -953,7 +953,7 @@ body.trside-on.mapclean.mapon .mcedge{top:58%}
 @media (prefers-reduced-motion:reduce){.trside .tsspd{animation:none}}
 body:not(.mapclean) .trside{top:calc(var(--safe-t,0px) + 128px)} /* 1.8.8: κλασικός χάρτης, κάτω από τη μπάρα καιρού */
 .trside .tssim{display:flex;align-items:center;gap:6px;margin:-2px 0 6px;padding:4px 6px 4px 10px;border-radius:10px;background:#fff4c2;color:#5a4500}.trside .tssim b{flex:1;font-size:13px;letter-spacing:.02em}.trside .tssim .btn{min-height:30px!important;padding:0 10px!important}
-html.night .trside .tssim{background:#3a2a00;color:#fff}
+html.nightred .trside .tssim{background:#3a2a00;color:#fff}
 body.mapon.trsim .fishbtns{display:flex} /* 1.8.9: ψάρι και στη δοκιμή */
 .leaflet-tooltip.simtip{background:#d84315;color:#fff;border:0;border-radius:8px;font-weight:800;font-size:12px;padding:2px 8px;box-shadow:0 2px 6px rgba(0,0,0,.3)}.leaflet-tooltip.simtip:before{display:none}
 .trside .tsup{display:block;width:100%;margin:4px 0 0;padding:6px;border:0;background:none;color:var(--accent,#c2410c);font-weight:700;font-size:13px;text-align:left}
@@ -972,7 +972,7 @@ body.mapon.trsim .fishbtns{display:flex} /* 1.8.9: ψάρι και στη δοκ
 .trside .tssim{background:var(--tr-sim-bg);color:var(--tr-sim)}
 .trside .tsup{color:var(--accent)}
 .simsum .simsv{background:var(--surface-2)}
-html.night .trside{background:#1a0000;color:#fff}html.night .trside .tsc{background:#2a0000;color:#fff}
+html.nightred .trside{background:#1a0000;color:#fff}html.nightred .trside .tsc{background:#2a0000;color:#fff}
 .trside .tsdep{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px}.trside .tsdep span{background:var(--surface-2);border-radius:10px;padding:4px 8px;min-width:0}.trside .tsdep small{display:block;font:800 9px var(--font);letter-spacing:.05em;color:var(--ink-2)}.trside .tsdep b{font:800 15px var(--font);white-space:nowrap}
 .trside .tsc i{white-space:normal}
 /* 1.8.13: απλή κάρτα */
@@ -1116,23 +1116,23 @@ html:not(.night) body.mapclean .mcpanel.fish .mpc:nth-child(2) b{color:var(--sea
 .srb[aria-pressed=true]{border-color:var(--src);background:color-mix(in srgb,var(--src) 12%,var(--surface))}
 .srw{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
 .srform input[type=text]{width:100%;min-height:46px;padding:0 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-size:15px;box-sizing:border-box}
-html.night .srform input[type=text]{background:#000;color:#fff;border-color:#888}
+html.nightred .srform input[type=text]{background:#000;color:#fff;border-color:#888}
 .srhead{display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;background:color-mix(in srgb,var(--src) 14%,var(--surface))}
 .srhead>i{display:grid;place-items:center;width:42px;height:42px;border-radius:50%;background:var(--src);flex:none}
 .srhead>i svg{width:24px;height:24px;fill:none;stroke:#fff;stroke-width:2.4;stroke-linecap:round}
 .srhead b{display:block;font-size:18px}.srhead small{color:var(--ink-2)}
 .srnote{font-style:italic;margin:12px 2px 0}
-html.night .srb{background:#000;color:#fff;border-color:#888}html.night .srb[aria-pressed=true]{border-color:#fff;background:#222}
-html.night .srhead{background:#000;outline:1px solid #fff;outline-offset:-1px}
+html.nightred .srb{background:#000;color:#fff;border-color:#888}html.nightred .srb[aria-pressed=true]{border-color:#fff;background:#222}
+html.nightred .srhead{background:#000;outline:1px solid #fff;outline-offset:-1px}
 /* 1.9.17: τη νύχτα τα χρώματα χάνονται (μόνο φωτεινότητα), οπότε διαφορετική φωτεινότητα ανά κατάσταση */
-html.night .mk.srmk.sr-calm i{background:#000}
-html.night .mk.srmk.sr-ripple i{background:#555}
-html.night .mk.srmk.sr-rough i{background:#aaa}html.night .mk.srmk.sr-rough i svg{stroke:#000}
-html.night .mk.srmk.sr-danger i{background:#fff;border-color:#000}html.night .mk.srmk.sr-danger i svg{stroke:#000}
-html.night .srb.sr-calm i{background:#000;outline:1px solid #fff}html.night .srb.sr-ripple i{background:#555}html.night .srb.sr-rough i{background:#aaa}html.night .srb.sr-danger i{background:#fff}
+html.nightred .mk.srmk.sr-calm i{background:#000}
+html.nightred .mk.srmk.sr-ripple i{background:#555}
+html.nightred .mk.srmk.sr-rough i{background:#aaa}html.nightred .mk.srmk.sr-rough i svg{stroke:#000}
+html.nightred .mk.srmk.sr-danger i{background:#fff;border-color:#000}html.nightred .mk.srmk.sr-danger i svg{stroke:#000}
+html.nightred .srb.sr-calm i{background:#000;outline:1px solid #fff}html.nightred .srb.sr-ripple i{background:#555}html.nightred .srb.sr-rough i{background:#aaa}html.nightred .srb.sr-danger i{background:#fff}
 /* 1.9.22: στη στεριά */
 .ck .ckland{background:#2b3b4d;color:#fff;border-radius:12px;padding:9px 12px;font:800 14px var(--font);line-height:1.3}
-html.night .ck .ckland{background:#000;outline:1px solid #fff;outline-offset:-1px}
+html.nightred .ck .ckland{background:#000;outline:1px solid #fff;outline-offset:-1px}
 /* 1.9.28: κύμα + άνεμος μαζί: τι δείχνει το χρώμα και τι οι γραμμές */
 #wxLeg .wlnote{display:block;font:600 11px var(--font);color:var(--ink-2);margin:0 0 2px}
 /* 1.9.39: ειδοποιήσεις και στον καθαρό χάρτη, όταν υπάρχουν αδιάβαστες */

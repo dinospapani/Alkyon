@@ -64,30 +64,40 @@ function ensure(){
     map.on('zoomstart',function(){ zooming=true; if(fillCv) fillCv.style.opacity='0'; });
     map.on('movestart zoomstart',function(){ parts=[]; if(dctx){ var s=map.getSize(); dctx.clearRect(0,0,s.x,s.y); } });
     map.on('movestart',function(){ roMoving=true; }); map.on('moveend',function(){ roMoving=false; roXY=null; roLater(); });
-    map.on('move',function(){ if(zooming&&fillCv) pin(fillCv); if(dashCv) pin(dashCv); roLater(); });
+    map.on('move',function(){ if(zooming&&fillCv) pinFill(); if(dashCv) pin(dashCv); roLater(); farCheck(); });
     map.on('zoomend',function(){ zooming=false; });
     map.on('moveend zoomend resize',function(){ later(250); if(sstOn) setTimeout(function(){ sstLoad(false); },260); });
-    map.on('movestart zoomstart',function(){ if(sstCv) sstCv.style.opacity='0'; });
-    map.on('move',function(){ if(sstCv) pin(sstCv); }); }
+    map.on('zoomstart',function(){ if(sstCv) sstCv.style.opacity='0'; });
+    map.on('move',function(){ if(zooming&&sstCv) pinSst(); }); }
   if(!fillCv){ fillCv=document.createElement('canvas'); fillCv.className='wxfill'; fillCv.setAttribute('aria-hidden','true'); fillCv.style.cssText='position:absolute;left:0;top:0;pointer-events:none;transition:opacity .35s'; pane('wxFillPane',336).appendChild(fillCv); }
   if(!dashCv){ dashCv=document.createElement('canvas'); dashCv.className='wxdash'; dashCv.setAttribute('aria-hidden','true'); dashCv.style.cssText='position:absolute;left:0;top:0;pointer-events:none'; pane('wxDashPane',350).appendChild(dashCv); dctx=dashCv.getContext('2d'); }
   return true;
 }
+/* 1.14.5: το χρώμα (και η θερμοκρασία νερού) ζωγραφίζεται με μισή οθόνη περιθώριο γύρω-γύρω και κινείται μαζί με τον χάρτη:
+   στο σύρσιμο δεν φαίνεται κενό· αν σύρεις πιο μακριά από το περιθώριο, ξαναζωγραφίζεται χωρίς να περιμένει να αφήσεις το δάχτυλο. */
+var PADF=0.5, FO=[0,0], RP=null, farT=0, SO=[0,0];
+function pinFill(){ try{ L.DomUtil.setPosition(fillCv,map.containerPointToLayerPoint([-FO[0],-FO[1]])); }catch(e){} }
+function pinSst(){ try{ L.DomUtil.setPosition(sstCv,map.containerPointToLayerPoint([-SO[0],-SO[1]])); }catch(e){} }
+function farCheck(){ if(!RP||zooming||!fillCv||fillCv.style.opacity==='0') return; var q=map.containerPointToLayerPoint([0,0]);
+  if(Math.abs(q.x-RP.x)>FO[0]*0.75||Math.abs(q.y-RP.y)>FO[1]*0.75){ var n=Date.now(); if(n-farT>350){ farT=n; RP=q; later(0); if(sstOn) setTimeout(function(){ sstLoad(false); },30); } } }
 function later(ms){ clearTimeout(rt); rt=setTimeout(render,ms||120); }
 function render(){
   if(!ensure()) return; var sz=map.getSize(), dpr=Math.min(window.devicePixelRatio||1,2);
   var mode=!mapOn()?'':seaOn()?'sea':windOn()?'wind':'';
-  [fillCv,dashCv].forEach(function(c){ c.width=Math.round(sz.x*dpr); c.height=Math.round(sz.y*dpr); c.style.width=sz.x+'px'; c.style.height=sz.y+'px'; pin(c); });
+  dashCv.width=Math.round(sz.x*dpr); dashCv.height=Math.round(sz.y*dpr); dashCv.style.width=sz.x+'px'; dashCv.style.height=sz.y+'px'; pin(dashCv);
+  var ox=Math.round(sz.x*PADF), oy=Math.round(sz.y*PADF), FW=sz.x+2*ox, FH=sz.y+2*oy, fd=Math.min(dpr,1.25); FO=[ox,oy]; RP=map.containerPointToLayerPoint([0,0]);
+  fillCv.width=Math.round(FW*fd); fillCv.height=Math.round(FH*fd); fillCv.style.width=FW+'px'; fillCv.style.height=FH+'px'; pinFill();
   dctx.setTransform(dpr,0,0,dpr,0,0);
   var fx=fillCv.getContext('2d'); fx.setTransform(1,0,0,1,0,0); fx.clearRect(0,0,fillCv.width,fillCv.height);
   parts=[]; stopAnim();
   var legs=[]; if(mode==='sea') legs.push('sea'); if(windOn()&&mode!=='sea') legs.push('wind'); wxLegend(mode?legs:[]);
   setTimeout(drawLabels,mode==='sea'?600:200);
   if(!mode){ fillCv.style.opacity='0'; return; }
-  var st=6, bw=Math.ceil(sz.x/st)+1, bh=Math.ceil(sz.y/st)+1, pc=document.createElement('canvas'); pc.width=bw; pc.height=bh;
+  NS={}; NSn=0;
+  var st=6, bw=Math.ceil(FW/st)+1, bh=Math.ceil(FH/st)+1, pc=document.createElement('canvas'); pc.width=bw; pc.height=bh;
   var px=pc.getContext('2d'), im=px.createImageData(bw,bh), d=im.data, any=false, lat=[], lon=[];
-  for(var y=0;y<bh;y++) lat.push(map.containerPointToLatLng([0,y*st]).lat);
-  for(var x=0;x<bw;x++) lon.push(map.containerPointToLatLng([x*st,0]).lng);
+  for(var y=0;y<bh;y++) lat.push(map.containerPointToLatLng([0,y*st-oy]).lat);
+  for(var x=0;x<bw;x++) lon.push(map.containerPointToLatLng([x*st-ox,0]).lng);
   var Sx=S(), Wx=W(), G=Sx&&Sx.grad;
   if(mode==='sea'&&!(Sx&&Sx.ready&&Sx.ready())){ fillCv.style.opacity='0'; clearTimeout(waitT); waitT=setTimeout(render,1500); return; }
   /* 1.6.1: κοντά (zoom ≥ 10), όπου υπάρχει η λεπτομερής ακτή (Κύπρος/Ελλάδα), το κύμα κόβεται ακριβώς στην ακτογραμμή αντί για «σκαλοπάτια» */
@@ -95,18 +105,18 @@ function render(){
   rings=ringsFor(map); var ringsWait=!rings&&!!RC.pb;
   for(var yy=0;yy<bh;yy++) for(var xx=0;xx<bw;xx++){
     var la=lat[yy], lo=lon[xx], c=null, a=0, o=(yy*bw+xx)*4;
-    if(mode==='sea'){ if(!rings&&land(la,lo)===1) continue; var m=Sx.modelAt(la,lo); if(!m) continue; c=wvcol(m.h); a=0.82; }
+    if(mode==='sea'){ if(!rings&&land(la,lo)===1) continue; var m=Sx.modelAt(la,lo)||nearSea(Sx,la,lo); if(!m) continue; c=wvcol(m.h); a=0.82; }
     else { var v=Wx.sample(la,lo); if(!v) continue; c=wcol(v.sp); a=(!rings&&!ringsWait&&LW!=='full'&&land(la,lo)===1)?(LW==='faint'?0.14:0.38):0.62; }
     d[o]=c[0]; d[o+1]=c[1]; d[o+2]=c[2]; d[o+3]=Math.round(255*a); any=true;
   }
   px.putImageData(im,0,0);
   fx.imageSmoothingEnabled=true; try{ fx.imageSmoothingQuality='high'; }catch(e){}
-  fx.drawImage(pc,0,0,bw,bh,0,0,bw*st*dpr,bh*st*dpr);
-  if(rings){ fx.save(); fx.setTransform(dpr,0,0,dpr,0,0); ringPath(fx,map,rings);
+  fx.drawImage(pc,0,0,bw,bh,0,0,bw*st*fd,bh*st*fd);
+  if(rings){ fx.save(); fx.setTransform(fd,0,0,fd,ox*fd,oy*fd); ringPath(fx,map,rings);
     var er=mode==='wind'?(LW==='full'?0:LW==='faint'?0.78:0.38):1;
     if(er>=1){ fx.globalCompositeOperation='destination-out'; fx.fill('nonzero'); }
     else if(er>0){ /* μερικό σβήσιμο: πρώτα μάσκα στεριάς σε ξεχωριστό καμβά (αδιαφανής, ώστε οι ενώσεις των κομματιών να μη φαίνονται σαν γραμμές), μετά μία φορά με διαφάνεια */
-      var mk=document.createElement('canvas'); mk.width=fillCv.width; mk.height=fillCv.height; var mx=mk.getContext('2d'); mx.setTransform(dpr,0,0,dpr,0,0); ringPath(mx,map,rings); mx.fillStyle='#000'; mx.fill('nonzero'); fx.setTransform(1,0,0,1,0,0); fx.globalCompositeOperation='destination-out'; fx.globalAlpha=er; fx.drawImage(mk,0,0); fx.setTransform(dpr,0,0,dpr,0,0); }
+      var mk=document.createElement('canvas'); mk.width=fillCv.width; mk.height=fillCv.height; var mx=mk.getContext('2d'); mx.setTransform(fd,0,0,fd,ox*fd,oy*fd); ringPath(mx,map,rings); mx.fillStyle='#000'; mx.fill('nonzero'); fx.setTransform(1,0,0,1,0,0); fx.globalCompositeOperation='destination-out'; fx.globalAlpha=er; fx.drawImage(mk,0,0); fx.setTransform(fd,0,0,fd,ox*fd,oy*fd); }
     /* λεπτή ακτογραμμή: ξεχωρίζει πού τελειώνει η θάλασσα και με χρώμα από πάνω */
     if(mode==='wind'){ fx.globalCompositeOperation='source-over'; fx.globalAlpha=1; ringStroke(fx,map,rings); fx.strokeStyle='rgba(255,255,255,.55)'; fx.lineWidth=1; fx.stroke(); }
     fx.restore(); }
@@ -180,6 +190,13 @@ function crossAt(mc){ if(roMoving&&roXY){ var ll0; try{ ll0=roXY.rot?map.getCent
   var ll; try{ ll=rot?map.getCenter():map.containerPointToLatLng([x,y]); }catch(e){ ll=map.getCenter(); } B.crossLL=ll; return ll; }
 /* 1.14.1: στο σύρσιμο η ένδειξη του σταυρού ανανεώνεται το πολύ ~6 φορές το δευτερόλεπτο και χωρίς να ξαναμετρά τη σελίδα (πριν σε κάθε καρέ: «κολλούσε» ο χάρτης στο κινητό) */
 var roLast=0, roT=0, roMoving=false, roXY=null;
+/* 1.14.4: το μοντέλο κύματος (~5 km) δεν έχει τιμή δίπλα στην ακτή, οπότε έμενε σκούρα λωρίδα ανάμεσα στο χρώμα και την ακτογραμμή.
+   Εκεί παίρνουμε την πιο κοντινή τιμή της θάλασσας (έως ~11 km), με μνήμη ανά ~1 km για να μη βαραίνει. */
+var NS={}, NSn=0;
+function nearSea(Sx,la,lo){ var k=la.toFixed(2)+','+lo.toFixed(2); if(k in NS) return NS[k]; if(NSn>20000){ NS={}; NSn=0; }
+  var cl=Math.cos(la*Math.PI/180)||1, out=null;
+  for(var r=0.025;r<=0.1&&!out;r+=0.025) for(var i=0;i<8&&!out;i++){ var an=i*Math.PI/4; out=Sx.modelAt(la+Math.cos(an)*r,lo+Math.sin(an)*r/cl); }
+  NS[k]=out; NSn++; return out; }
 function roLater(){ if(roRaf||roT) return; var wait=roMoving?Math.max(0,160-(performance.now()-roLast)):0;
   roT=setTimeout(function(){ roT=0; roRaf=requestAnimationFrame(function(){ roRaf=0; roLast=performance.now(); try{ readout(); }catch(e){} }); },wait); }
 var numsOn=B.ls.get('alkyon-v4-wxnums',false)===true;
@@ -242,7 +259,7 @@ var SC=[[0,[43,76,155]],[0.2,[46,132,196]],[0.4,[64,182,180]],[0.55,[120,196,110
 function scol(f){ f=Math.max(0,Math.min(1,f)); for(var i=1;i<SC.length;i++){ if(f<=SC[i][0]){ var a=SC[i-1], b=SC[i], t=(f-a[0])/(b[0]-a[0]); return [a[1][0]+(b[1][0]-a[1][0])*t,a[1][1]+(b[1][1]-a[1][1])*t,a[1][2]+(b[1][2]-a[1][2])*t]; } } return SC[SC.length-1][1]; }
 function sstHour(){ var Wx=W(), t=(windOn()&&Wx&&Wx.hour)?Wx.hour():null; if(t) return t.slice(0,13); var d=new Date(); return d.toISOString().slice(0,13); }
 function sstLoad(force){
-  if(!sstOn||!ensure()||sstBusy) return; var b=map.getBounds(), padY=(b.getNorth()-b.getSouth())*0.15, padX=(b.getEast()-b.getWest())*0.15;
+  if(!sstOn||!ensure()||sstBusy) return; var b=map.getBounds(), padY=(b.getNorth()-b.getSouth())*0.5, padX=(b.getEast()-b.getWest())*0.5;
   var s=b.getSouth()-padY, n=b.getNorth()+padY, w=b.getWest()-padX, e=b.getEast()+padX, key=[s,n,w,e].map(function(x){ return x.toFixed(2); }).join(',');
   if(sstG&&!force&&sstG.s<=b.getSouth()&&sstG.n>=b.getNorth()&&sstG.w<=b.getWest()&&sstG.e>=b.getEast()&&Date.now()-sstG.at<3*3600000){ sstDraw(); return; }
   var NY=9, NX=8, la=[], lo=[]; for(var j=0;j<NY;j++) for(var i=0;i<NX;i++){ la.push((s+(n-s)*j/(NY-1)).toFixed(3)); lo.push((w+(e-w)*i/(NX-1)).toFixed(3)); }
@@ -269,19 +286,20 @@ function sstAt(lat,lon){ if(!sstG) return null; var g=sstG, ti=sstIdx(); if(ti<0
 B.sstAt=function(lat,lon){ return sstOn?sstAt(lat,lon):null; };
 function sstDraw(){
   if(!ensure()) return; if(!sstCv){ sstCv=document.createElement('canvas'); sstCv.className='wxsst'; sstCv.setAttribute('aria-hidden','true'); sstCv.style.cssText='position:absolute;left:0;top:0;pointer-events:none;transition:opacity .35s'; sstPane().appendChild(sstCv); }
-  var sz=map.getSize(), dpr=Math.min(window.devicePixelRatio||1,2); sstCv.width=Math.round(sz.x*dpr); sstCv.height=Math.round(sz.y*dpr); sstCv.style.width=sz.x+'px'; sstCv.style.height=sz.y+'px'; pin(sstCv);
-  var cx=sstCv.getContext('2d'); cx.setTransform(dpr,0,0,dpr,0,0); cx.clearRect(0,0,sz.x,sz.y);
+  var sz=map.getSize(), dpr=Math.min(window.devicePixelRatio||1,1.5), sox=Math.round(sz.x*PADF), soy=Math.round(sz.y*PADF), SW=sz.x+2*sox, SH=sz.y+2*soy; SO=[sox,soy];
+  sstCv.width=Math.round(SW*dpr); sstCv.height=Math.round(SH*dpr); sstCv.style.width=SW+'px'; sstCv.style.height=SH+'px'; pinSst();
+  var cx=sstCv.getContext('2d'); cx.setTransform(dpr,0,0,dpr,sox*dpr,soy*dpr); cx.clearRect(-sox,-soy,SW,SH);
   var SRC=B.ls.get('alkyon-v4-sstsrc','model')==='sat'?'sat':'model'; if(B.satWater) B.satWater(sstOn&&mapOn()&&SRC==='sat');
   if(sstOn&&mapOn()&&SRC==='sat'){ sstCv.style.opacity='0'; var si=B.satWaterInfo?B.satWaterInfo():null; B.sstLegend&&B.sstLegend({sat:true,lo:si&&si.range?si.range[0]:15,hi:si&&si.range?si.range[1]:30,day:si&&si.day}); return; }
   if(!sstOn||!mapOn()||!sstG){ sstCv.style.opacity='0'; B.sstLegend&&B.sstLegend(null); return; }
-  var st=8, gw=Math.ceil(sz.x/st)+1, gh=Math.ceil(sz.y/st)+1, V=new Float32Array(gw*gh), A=new Uint8Array(gw*gh), lo=1e9, hi=-1e9, lat=[], lon=[];
-  for(var y=0;y<gh;y++) lat.push(map.containerPointToLatLng([0,y*st]).lat); for(var x=0;x<gw;x++) lon.push(map.containerPointToLatLng([x*st,0]).lng);
+  var st=8, gw=Math.ceil(SW/st)+1, gh=Math.ceil(SH/st)+1, V=new Float32Array(gw*gh), A=new Uint8Array(gw*gh), lo=1e9, hi=-1e9, lat=[], lon=[];
+  for(var y=0;y<gh;y++) lat.push(map.containerPointToLatLng([0,y*st-soy]).lat); for(var x=0;x<gw;x++) lon.push(map.containerPointToLatLng([x*st-sox,0]).lng);
   var bbS=map.getBounds(), rkS=[bbS.getSouth(),bbS.getNorth(),bbS.getWest(),bbS.getEast()].map(function(v){ return v.toFixed(3); }).join(','); var rgS=ringsFor(map);
   for(var yy=0;yy<gh;yy++) for(var xx=0;xx<gw;xx++){ if(!rgS&&land(lat[yy],lon[xx])===1) continue; var v=sstAt(lat[yy],lon[xx]); if(v==null) continue; var q=yy*gw+xx; V[q]=v; A[q]=1; if(v<lo) lo=v; if(v>hi) hi=v; }
   if(hi<lo){ sstCv.style.opacity='0'; B.sstLegend&&B.sstLegend(null); return; }
   var FIX=B.ls.get('alkyon-v4-sstscale','local')==='fixed', mid=(lo+hi)/2, span=FIX?16:Math.max(2,hi-lo), l0=FIX?14:mid-span/2, pc=document.createElement('canvas'); pc.width=gw; pc.height=gh; var px=pc.getContext('2d'), im=px.createImageData(gw,gh), d=im.data;
   for(var k=0;k<gw*gh;k++){ if(!A[k]) continue; var c=scol((V[k]-l0)/span), o=k*4; d[o]=c[0]; d[o+1]=c[1]; d[o+2]=c[2]; d[o+3]=180; }
-  px.putImageData(im,0,0); cx.imageSmoothingEnabled=true; try{ cx.imageSmoothingQuality='high'; }catch(e){} cx.drawImage(pc,0,0,gw,gh,0,0,gw*st,gh*st);
+  px.putImageData(im,0,0); cx.imageSmoothingEnabled=true; try{ cx.imageSmoothingQuality='high'; }catch(e){} cx.drawImage(pc,0,0,gw,gh,-sox,-soy,gw*st,gh*st);
   if(rgS){ cx.save(); ringPath(cx,map,rgS); cx.globalCompositeOperation='destination-out'; cx.fill('nonzero'); cx.restore(); } /* 1.7.4: ακριβώς στην ακτή */
   /* ισόθερμες (marching squares) και μέτωπα */
   var step=(hi-lo)<1.6?0.25:0.5, kmPx=(function(){ var a=map.containerPointToLatLng([0,sz.y/2]), b2=map.containerPointToLatLng([100,sz.y/2]); return map.distance(a,b2)/100000; })();
@@ -289,7 +307,7 @@ function sstDraw(){
   for(var lv=Math.ceil(lo/step)*step;lv<=hi;lv+=step){
     for(var y2=0;y2<gh-1;y2++) for(var x2=0;x2<gw-1;x2++){ var q0=y2*gw+x2, q1=q0+1, q2=q0+gw+1, q3=q0+gw; if(!A[q0]||!A[q1]||!A[q2]||!A[q3]) continue;
       var a0=V[q0], a1=V[q1], a2=V[q2], a3=V[q3], idx=(a0>lv?8:0)|(a1>lv?4:0)|(a2>lv?2:0)|(a3>lv?1:0); if(idx===0||idx===15) continue;
-      var X=x2*st, Y=y2*st, P={t:[X+st*(lv-a0)/(a1-a0),Y],r:[X+st,Y+st*(lv-a1)/(a2-a1)],b:[X+st*(lv-a3)/(a2-a3),Y+st],l:[X,Y+st*(lv-a0)/(a3-a0)]};
+      var X=x2*st-sox, Y=y2*st-soy, P={t:[X+st*(lv-a0)/(a1-a0),Y],r:[X+st,Y+st*(lv-a1)/(a2-a1)],b:[X+st*(lv-a3)/(a2-a3),Y+st],l:[X,Y+st*(lv-a0)/(a3-a0)]};
       var M={1:[['l','b']],2:[['b','r']],3:[['l','r']],4:[['t','r']],5:[['l','t'],['b','r']],6:[['t','b']],7:[['l','t']],8:[['l','t']],9:[['t','b']],10:[['t','r'],['l','b']],11:[['t','r']],12:[['l','r']],13:[['b','r']],14:[['l','b']]}[idx];
       var gx=((a1+a2)-(a0+a3))/2/st, gy=((a3+a2)-(a0+a1))/2/st, gr=Math.sqrt(gx*gx+gy*gy)/kmPx; if(gr>gmax) gmax=gr;
       M.forEach(function(m){ segs.push([P[m[0]],P[m[1]],gr,lv]); }); }

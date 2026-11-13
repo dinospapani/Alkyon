@@ -406,7 +406,7 @@ html[data-theme="dark"] .hbars .hnight{background:rgba(0,0,0,.35)}
 /* 1.9.30: ήλιος/σελήνη σε μία σύντομη γραμμή στο πάνω μέρος */
 .hero .hsun1{display:flex;flex-wrap:wrap;gap:4px 14px;margin:12px 0 0;font:600 14px/1.4 var(--font);color:var(--ink-2)}
 .hero .hsun1 .mj{color:#6b5bd6}
-html.night .hero .hsun1 .mj{color:inherit}
+html.nightred .hero .hsun1 .mj{color:inherit}
 /* 1.9.31: εκτίμηση κύματος εδώ τώρα */
 #fcExposure .exest{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:center;margin:2px 0 10px;padding:10px 12px;border-radius:14px;background:var(--surface-2)}
 #fcExposure .exest b{font:750 16px/1.3 var(--font);color:var(--ink)}
@@ -424,7 +424,7 @@ html.night .hero .hsun1 .mj{color:inherit}
 .hero .hsb.sea-good b{color:var(--good-ink,#2e7d4f)}.hero .hsb.sea-mid b{color:#a06a0a}.hero .hsb.sea-bad b{color:#b0412a}
 @media (prefers-color-scheme:dark){ :root:not([data-theme=light]) .hero .hsb.sea-mid{background:#3a3020} :root:not([data-theme=light]) .hero .hsb.sea-bad{background:#3d2420} }
 :root[data-theme=dark] .hero .hsb.sea-mid{background:#3a3020} :root[data-theme=dark] .hero .hsb.sea-bad{background:#3d2420}
-html.night .hero .hsb{background:#000!important;outline:1px solid currentColor}
+html.nightred .hero .hsb{background:#000!important;outline:1px solid currentColor}
 /* 1.9.34: Πού είναι ήρεμα τώρα */
 .calml{display:flex;flex-direction:column;gap:6px;margin:8px 0}
 .calmr{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border-radius:14px;border:0;background:var(--surface-2);color:var(--ink);text-align:left;font:inherit;cursor:pointer}
@@ -433,7 +433,7 @@ html.night .hero .hsb{background:#000!important;outline:1px solid currentColor}
 .calmr .cm small{font-size:12.5px;color:var(--ink-2);line-height:1.35}
 .calmr .exwc{flex:none;min-width:84px;text-align:center;padding:4px 8px;border-radius:999px;color:#fff;font:800 13px/1.4 var(--font)}
 .exwc.g{background:#3f9d6b}.exwc.y{background:#c9a227}.exwc.o{background:#d9731f}.exwc.r{background:#c93a14}
-html.night .calmr .exwc{background:#000!important;outline:1px solid currentColor}
+html.nightred .calmr .exwc{background:#000!important;outline:1px solid currentColor}
 /* 1.9.34: έξοδοι από τα ψάρια */
 .tfill .tfr{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
 .tfill .tfr input[type=checkbox]{width:20px;height:20px}

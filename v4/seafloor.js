@@ -13,10 +13,9 @@ function any(){ return rel||bnd; }
 function pane(){ var p=map.getPane('sfPane')||map.createPane('sfPane'); p.style.zIndex='336'; p.style.pointerEvents='none'; return p; }
 function pin(c){ try{ L.DomUtil.setPosition(c,map.containerPointToLayerPoint([0,0])); }catch(e){} }
 function ensure(){ var m=M(); if(!m) return false; if(m!==map){ map=m; cv=null;
-    map.on('movestart zoomstart',function(){ if(cv) cv.style.opacity='0'; });
-    map.on('move',function(){ if(cv) pin(cv); });
     map.on('moveend zoomend',function(){ clearTimeout(mt); mt=setTimeout(refresh,250); }); }
-  if(!cv){ cv=document.createElement('canvas'); cv.className='sfcv'; cv.setAttribute('aria-hidden','true'); cv.style.cssText='position:absolute;left:0;top:0;pointer-events:none;transition:opacity .25s'; pane().appendChild(cv); }
+  /* 1.14.5: πλακίδια που κινούνται μαζί με τον χάρτη */
+  if(!cv){ pane(); cv=B.ovTiles(map,'sfPane',paintTile); }
   return true; }
 function sat(){ var v=ls.get('alkyon-v4-map',null); return !v||v.base!=='osm'; }
 /* ---------- εικόνες ανά κομμάτι ---------- */
@@ -45,15 +44,16 @@ function bandImg(g,a,b){ var n=g.w*g.h, out=new Uint8ClampedArray(n*4), d=g.data
 function img(k,t,kind){ var g=t.g, key=k+'|'+kind+(kind==='b'?'|'+BR.a+'-'+BR.b+'|'+(rel?1:0):''); if(IMG[key]) return IMG[key];
   Object.keys(IMG).forEach(function(q){ if(q.indexOf(k+'|'+kind)===0) delete IMG[q]; });
   var px=kind==='r'?relief(g):bandImg(g,BR.a,BR.b), c=document.createElement('canvas'); c.width=g.w; c.height=g.h; c.getContext('2d').putImageData(new ImageData(px,g.w,g.h),0,0); IMG[key]=c; return c; }
+var visNow=false;
+function paintTile(c,P,U,N){ var sh=S(); if(!visNow||!sh) return; var sw=U(0,N), ne=U(N,0), TS=0.25;
+  for(var i=Math.floor(sw.lng/TS);i<=Math.floor(ne.lng/TS);i++) for(var j=Math.floor(sw.lat/TS);j<=Math.floor(ne.lat/TS);j++){ var k=i+'_'+j, t=sh._tiles[k]; if(!t) continue;
+    var g=t.g, p0=P(g.y0,g.x0), p1=P(g.y0+g.dy*g.h,g.x0+g.dx*g.w); c.imageSmoothingEnabled=true;
+    if(rel) c.drawImage(img(k,t,'r'),0,0,g.w,g.h,p0[0],p0[1],p1[0]-p0[0],p1[1]-p0[1]); if(bnd) c.drawImage(img(k,t,'b'),0,0,g.w,g.h,p0[0],p0[1],p1[0]-p0[0],p1[1]-p0[1]); } }
 function draw(){
-  if(!ensure()) return; var sz=map.getSize(), dpr=Math.min(window.devicePixelRatio||1,2); cv.width=Math.round(sz.x*dpr); cv.height=Math.round(sz.y*dpr); cv.style.width=sz.x+'px'; cv.style.height=sz.y+'px'; pin(cv);
-  var c=cv.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0); c.clearRect(0,0,sz.x,sz.y);
-  var sh=S(), vis=any()&&sh&&document.body.classList.contains('mapon')&&map.getZoom()>=10;
-  if(!vis){ cv.style.opacity='0'; legend(); return; }
-  var tl=sh.need(map);
-  tl.forEach(function(x){ var k=x[0]+'_'+x[1], t=sh._tiles[k]; if(!t) return; var g=t.g, p0=map.latLngToContainerPoint([g.y0,g.x0]), p1=map.latLngToContainerPoint([g.y0+g.dy*g.h,g.x0+g.dx*g.w]);
-    c.imageSmoothingEnabled=true; if(rel) c.drawImage(img(k,t,'r'),0,0,g.w,g.h,p0.x,p0.y,p1.x-p0.x,p1.y-p0.y); if(bnd) c.drawImage(img(k,t,'b'),0,0,g.w,g.h,p0.x,p0.y,p1.x-p0.x,p1.y-p0.y); });
-  cv.style.opacity='1'; legend(); }
+  if(!ensure()) return;
+  var sh=S(), vis=any()&&sh&&document.body.classList.contains('mapon')&&map.getZoom()>=10; visNow=!!vis;
+  if(!vis){ cv.show(false); legend(); return; }
+  if(cv.shown()) cv.repaint(); else cv.show(true); legend(); }
 function refresh(){
   if(!any()||!ensure()){ draw(); return; } if(!document.body.classList.contains('mapon')) return;
   var sh=S(); if(!sh) return; if(map.getZoom()<10){ draw(); legend(T('Κάνε ζουμ (10+) για να φανεί.','Zoom in (10+) to see it.')); return; }

@@ -464,23 +464,23 @@ body:has(.sheet.on) .toast{bottom:auto}
 /* v31z545 · νυχτερινή λειτουργία: όλη η οθόνη σε κόκκινο (πολλαπλασιαστικό φίλτρο πάνω από το σκούρο θέμα) */
 /* 1.6.1: νυχτερινή λειτουργία που κρατά τη φωτεινότητα: πρώτα όλα γίνονται κόκκινα με την ίδια φωτεινότητα (blend color),
    μετά σκουραίνουν (multiply). Πριν, μόνο το multiply έκανε το λευκό και το κόκκινο ίδια απόχρωση (το MOB χανόταν). */
-html.night body::before{content:'';position:fixed;inset:0;background:#ff1a00;mix-blend-mode:color;pointer-events:none;z-index:2147483646}
-html.night body::after{content:'';position:fixed;inset:0;background:#9a1600;mix-blend-mode:multiply;pointer-events:none;z-index:2147483647}
+html.nightred body::before{content:'';position:fixed;inset:0;background:#ff1a00;mix-blend-mode:color;pointer-events:none;z-index:2147483646}
+html.nightred body::after{content:'';position:fixed;inset:0;background:#9a1600;mix-blend-mode:multiply;pointer-events:none;z-index:2147483647}
 /* το MOB: πάντα λευκό περίγραμμα και γράμματα πάνω σε σκούρο, για να ξεχωρίζει και τη νύχτα */
 /* ο χάρτης πιο σκοτεινός (τα πλακίδια, το κύμα και ο άνεμος), τα κουμπιά ψαριού με λευκό περίγραμμα */
 /* 1.14.1: ο χάρτης κρατά την αντίθεση στο κόκκινο: γκρι με έντονη αντίθεση (θάλασσα σκούρα, στεριά φωτεινή), όχι απλώς σκοτεινός */
-html.night .leaflet-tile-pane{filter:brightness(1.9) contrast(1.25)}
-html.night .leaflet-tile-pane .raintile{filter:grayscale(1) brightness(.8)}
-html.night .wxfill{filter:grayscale(1) brightness(.5);opacity:.35!important}
-html.night #lmap.leaflet-container{background:#0a0a0a!important}
+html.nightred .leaflet-tile-pane{filter:brightness(1.9) contrast(1.25)}
+html.nightred .leaflet-tile-pane .raintile{filter:grayscale(1) brightness(.8)}
+html.nightred .wxfill{filter:grayscale(1) brightness(.5);opacity:.35!important}
+html.nightred #lmap.leaflet-container{background:#0a0a0a!important}
 /* οι δείκτες (ψάρια, σημεία, ρεύματα) και οι γραμμές φωτεινοί πάνω στον σκοτεινό χάρτη */
-html.night .leaflet-overlay-pane{filter:grayscale(1) brightness(1.6) contrast(1.2)}
+html.nightred .leaflet-overlay-pane{filter:grayscale(1) brightness(1.6) contrast(1.2)}
 /* 1.14.2: τα σημάδια λευκά/μαύρα με έντονη αντίθεση, για να μη χάνονται μέσα στο κόκκινο */
-html.night .leaflet-marker-pane{filter:grayscale(1) contrast(2.4) brightness(1.35)}
-html.night #lmap canvas,html.night .leaflet-container:not(#lmap){filter:grayscale(1) brightness(.7) contrast(1.3)}
-html.night #lmap canvas.wxdash{filter:none}
-html.night .fb{background:#1a0000!important;box-shadow:0 0 0 3px #fff!important;color:#fff!important}
-html.night .mobbtn{background:#1a0000!important;color:#fff!important;box-shadow:0 0 0 3px #fff!important;text-shadow:none}
+html.nightred .leaflet-marker-pane{filter:grayscale(1) contrast(2.4) brightness(1.35)}
+html.nightred #lmap canvas,html.nightred .leaflet-container:not(#lmap){filter:grayscale(1) brightness(.7) contrast(1.3)}
+html.nightred #lmap canvas.wxdash{filter:none}
+html.nightred .fb{background:#1a0000!important;box-shadow:0 0 0 3px #fff!important;color:#fff!important}
+html.nightred .mobbtn{background:#1a0000!important;color:#fff!important;box-shadow:0 0 0 3px #fff!important;text-shadow:none}
 .mapbar .nightb[hidden]{display:none}
 .mapbar .nightb[aria-pressed=true]{background:#7a0d00;color:#ff8a70}
 .mapbar .nightb svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round}
@@ -543,7 +543,7 @@ html.night .mobbtn{background:#1a0000!important;color:#fff!important;box-shadow:
 .authf .gbox [hidden]{display:none}
 .authf .orline{display:flex;align-items:center;gap:10px;color:var(--muted,#8a9aa5);font-size:13px}
 .authf .orline::before,.authf .orline::after{content:'';flex:1;height:1px;background:var(--line)}
-html.night .tripbar{background:#1a0000!important;color:#fff!important;box-shadow:0 0 0 2px #fff!important}
+html.nightred .tripbar{background:#1a0000!important;color:#fff!important;box-shadow:0 0 0 2px #fff!important}
 
 /* 1.6.1: συμπλήρωση ειδών στο τέλος της εξόδου */
 .spfill{display:flex;flex-direction:column;gap:12px;margin:8px 0 14px}.spf{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-radius:14px;background:var(--surface-2)}.spf.ok{opacity:.7}.spf .chips{margin:0}
@@ -566,13 +566,13 @@ html.night .tripbar{background:#1a0000!important;color:#fff!important;box-shadow
 .linkbtn{min-height:36px}
 .mk.fish,.mk.spot{position:absolute} /* 1.6.7: absolute (όχι relative): αλλιώς κάθε σημάδι σπρώχνεται κάτω από τα προηγούμενα */.mk.fish::after,.mk.spot::after{content:'';position:absolute;left:50%;top:50%;width:44px;height:44px;transform:translate(-50%,-50%);border-radius:50%}
 #ndMapDock button{min-height:36px}
-html.night body.trolling .trbtn{background:#1a0000!important;color:#fff!important;box-shadow:0 0 0 3px #fff!important}
+html.nightred body.trolling .trbtn{background:#1a0000!important;color:#fff!important;box-shadow:0 0 0 3px #fff!important}
 /* 1.7.6: κεντρικό κουμπί σε έξοδο: πράσινο, με τον χρόνο που μένει· κόκκινο που πάλλεται όταν πέρασε η ώρα */
 .nav .fab.fabon{background:var(--good,#2f9e5a);box-shadow:0 10px 22px -8px rgba(47,158,90,.7),0 0 0 5px var(--bg);position:relative;flex-direction:column;gap:0}
 .nav .fab.fabon svg{width:28px;height:28px;margin-top:-4px}
 .nav .fab .fabt{position:absolute;bottom:6px;left:0;right:0;text-align:center;font:800 11px/1 var(--font);font-style:normal;color:#fff;letter-spacing:.02em}
 .nav .fab.fabon.late{background:var(--poor,#d93b3b);animation:pulse 1.6s ease-in-out infinite}
-html.night .nav .fab.fabon{background:#1a0000;box-shadow:0 0 0 2px #fff}
+html.nightred .nav .fab.fabon{background:#1a0000;box-shadow:0 0 0 2px #fff}
 
 /* 1.8.32: ‹ Πίσω στα φύλλα */
 .sheet.shhid,.scrim.shhid{display:none!important}
@@ -590,7 +590,7 @@ input[type=range]{accent-color:var(--accent)} /* 1.8.33 */
 .mclay svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .mclay:active{transform:scale(.94)}
 body:not(.mapon) .mclay,body:not(.mapclean) .mclay,body.ruling .mclay,body.mappick .mclay,body.replaying .mclay,body:has(.mcdrw.open) .mclay,body:has(.sheet.on) .mclay{display:none}
-html.night .mclay{background:#1a0000;color:#ff5a45;box-shadow:0 0 0 2px #ff5a45}
+html.nightred .mclay{background:#1a0000;color:#ff5a45;box-shadow:0 0 0 2px #ff5a45}
 /* 1.9.6: με ανοιχτό το πλαϊνό μενού ο χάρτης αριστερά σέρνεται */
 .mcdrw .mcdim{pointer-events:none!important}
 /* 1.9.6: Ημερολόγιο: κάρτες εξόδων με μικρό χάρτη, ιστορία εξόδου */
@@ -630,14 +630,14 @@ html.night .mclay{background:#1a0000;color:#ff5a45;box-shadow:0 0 0 2px #ff5a45}
 .btn.shortbtn{margin-top:10px;font-size:14px;color:var(--ink-2)}
 /* 1.9.7: νυχτερινή: τα «αναμμένα» κουμπιά και διακόπτες διαβάζονται (ήταν κόκκινο σε κόκκινο)
    Η νύχτα κρατά μόνο τη φωτεινότητα, άρα: αναμμένο = μαύρο φόντο, λευκό κείμενο/πλαίσιο */
-html.night .mcpan .mctile[aria-pressed="true"],html.night .lyr .ltile[aria-pressed="true"],html.night .chip[aria-pressed="true"],html.night .seg button[aria-pressed="true"]{background:#000!important;color:#fff!important;box-shadow:inset 0 0 0 3px #fff!important}
-html.night .mcpan .mctile[aria-pressed="true"] svg{stroke:#fff}
-html.night .mcpan .ltile[aria-pressed="true"] .lic{background:#000!important;color:#fff!important;box-shadow:inset 0 0 0 2px #fff}
-html.night .mcpan .ltile[aria-pressed="true"]::after{background:#000!important;box-shadow:inset 0 0 0 2px #fff!important}
-html.night .mcpan .ltile::before{background:#fff!important}
-html.night .tg input:checked{background:#000!important;box-shadow:inset 0 0 0 2px #fff}
-html.night .mcpan .mcpre[aria-pressed="true"]{background:#000!important;color:#fff!important;box-shadow:inset 0 0 0 3px #fff}
-html.night .mclay{background:#000;color:#fff;box-shadow:0 0 0 2px #fff}
+html.nightred .mcpan .mctile[aria-pressed="true"],html.nightred .lyr .ltile[aria-pressed="true"],html.nightred .chip[aria-pressed="true"],html.nightred .seg button[aria-pressed="true"]{background:#000!important;color:#fff!important;box-shadow:inset 0 0 0 3px #fff!important}
+html.nightred .mcpan .mctile[aria-pressed="true"] svg{stroke:#fff}
+html.nightred .mcpan .ltile[aria-pressed="true"] .lic{background:#000!important;color:#fff!important;box-shadow:inset 0 0 0 2px #fff}
+html.nightred .mcpan .ltile[aria-pressed="true"]::after{background:#000!important;box-shadow:inset 0 0 0 2px #fff!important}
+html.nightred .mcpan .ltile::before{background:#fff!important}
+html.nightred .tg input:checked{background:#000!important;box-shadow:inset 0 0 0 2px #fff}
+html.nightred .mcpan .mcpre[aria-pressed="true"]{background:#000!important;color:#fff!important;box-shadow:inset 0 0 0 3px #fff}
+html.nightred .mclay{background:#000;color:#fff;box-shadow:0 0 0 2px #fff}
 /* 1.9.7: «Έναρξη εξόδου» πάντα ορατό στο κάτω μέρος του φύλλου (χωρίς κύλιση)· πιο σφιχτό φύλλο */
 .bform.tstart{gap:10px}
 .bform.tstart .tgo{position:sticky;bottom:0;z-index:3;box-shadow:0 -10px 18px 6px var(--bg)}
@@ -649,7 +649,7 @@ html.night .mclay{background:#000;color:#fff;box-shadow:0 0 0 2px #fff}
 .mcpan .mcacc>summary .mcon{font:800 12px/20px var(--font);font-style:normal;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--accent);color:#fff;text-align:center}
 .mcpan .mcacc>summary .mcon[hidden]{display:none}
 .mcpan .mcacc:first-of-type{margin-top:14px}
-html.night .mcpan .mcacc>summary .mcon{background:#000;color:#fff;box-shadow:inset 0 0 0 2px #fff}
+html.nightred .mcpan .mcacc>summary .mcon{background:#000;color:#fff;box-shadow:inset 0 0 0 2px #fff}
 /* 1.9.8: ραντάρ βροχής: μπάρα κάτω από τα κουμπιά του χάρτη */
 .rainbar{position:fixed;left:12px;right:12px;bottom:calc(var(--nav-h,64px) + var(--safe-b,0px) + 26px);z-index:28;max-width:520px;margin:0 auto;display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:18px;background:color-mix(in srgb,var(--surface) 95%,transparent);color:var(--ink);box-shadow:0 6px 18px rgba(0,0,0,.3)}
 .rainbar .rbt{display:flex;flex-direction:column;min-width:70px;line-height:1.1}
@@ -658,7 +658,7 @@ html.night .mcpan .mcacc>summary .mcon{background:#000;color:#fff;box-shadow:ins
 .rainbar input[type=range]{flex:1;accent-color:var(--accent);min-width:0}
 .rainbar button{flex:none;width:40px;height:40px;border-radius:50%;border:0;background:var(--surface-2);color:var(--ink);font:800 14px var(--font)}
 body:not(.mapon) .rainbar,body:has(.mcdrw.open) .rainbar,body:has(.sheet.on) .rainbar{display:none}
-html.night .raintile{filter:grayscale(1) brightness(1.4)}
+html.nightred .raintile{filter:grayscale(1) brightness(1.4)}
 
 
 /* 1.9.8: φύλλο «Έξοδος» χωρίς κύλιση: πιο σφιχτό */
@@ -684,8 +684,8 @@ html.night .raintile{filter:grayscale(1) brightness(1.4)}
 .fdi.catch{background:#2f8f5b;color:#fff;min-height:58px;font-size:17.5px}
 .fdn{font-style:normal;font-weight:700;font-size:13px;min-width:22px;height:22px;border-radius:11px;display:grid;place-items:center;background:rgba(0,0,0,.12);padding:0 6px}
 .fdi.catch .fdn{background:rgba(255,255,255,.25)}
-html.night .fdi{background:#000;color:#ff5a45;box-shadow:0 0 0 2px #ff5a45}
-html.night .fdi.catch{background:#1a0000}
+html.nightred .fdi{background:#000;color:#ff5a45;box-shadow:0 0 0 2px #ff5a45}
+html.nightred .fdi.catch{background:#1a0000}
 
 /* 1.9.9: πλακίδιο μέρας εκτός ορίων: δείχνει την τιμή (π.χ. 0,8 m) αντί για «—» */
 .dtile .dsc.no.nov{color:var(--poor,#c0392b);font-size:14px;letter-spacing:-.2px;white-space:nowrap}
@@ -703,7 +703,7 @@ html.night .fdi.catch{background:#1a0000}
 .fold .expo #fcExposure>h3:first-child{display:none}
 .hero .hsun{display:flex;flex-wrap:wrap;gap:4px 12px;margin:10px 0 0;font-size:13.5px;color:var(--ink-2);font-weight:550}
 .hero .hworse{margin:8px 0 0;font-size:14.5px;font-weight:650;color:var(--fair,#b7791f)}
-html.night .fold .fdo{border-color:currentColor}
+html.nightred .fold .fdo{border-color:currentColor}
 .fold .card,.fold #fcExposure{background:none!important;box-shadow:none!important;border:0!important;padding:0!important;margin:0!important}
 
 /* 1.9.11: μπάρα εξόδου όπως στη v2 */
@@ -716,7 +716,7 @@ html.night .fold .fdo{border-color:currentColor}
 html:not(.night) body.mapclean .mcpanel .mprow{border-top-color:var(--line,rgba(0,0,0,.1))}
 html:not(.night) body.mapclean .mcpanel.fish .mpc.dep b{color:var(--sea)!important}
 html:not(.night) body.mapclean .mcpanel.fish .mpc:nth-child(2):not(.dep) b{color:inherit!important}
-html.night .mcpanel .mprow{border-top-color:#ff5a45}
+html.nightred .mcpanel .mprow{border-top-color:#ff5a45}
 
 /* 1.9.11: φύλλο συρτής πιο σφιχτό: ταχύτητα και πετονιά σε μία γραμμή */
 .trsheet .cprow{flex-direction:row;gap:10px}
@@ -733,7 +733,7 @@ body.mapon:has(#ndMapDock:not([hidden])) .rainbar{bottom:calc(var(--nav-h,64px) 
 .sstleg .slsrc{display:flex;gap:6px;margin-top:6px}
 .sstleg .slsrc button{flex:1;border:1px solid var(--line,rgba(0,0,0,.12));background:transparent;color:inherit;border-radius:10px;padding:5px 6px;font:650 12px var(--font);min-height:32px}
 .sstleg .slsrc button[aria-pressed=true]{background:var(--ink,#0b1d26);color:var(--surface,#fff);border-color:transparent}
-html.night .sstleg .slsrc button[aria-pressed=true]{background:#000;color:#fff;box-shadow:inset 0 0 0 2px #fff}
+html.nightred .sstleg .slsrc button[aria-pressed=true]{background:#000;color:#fff;box-shadow:inset 0 0 0 2px #fff}
 
 /* 1.9.12: αγαπημένα στο μενού του χάρτη */
 .mcpan .mcfh{display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -751,7 +751,7 @@ html.night .sstleg .slsrc button[aria-pressed=true]{background:#000;color:#fff;b
 .fved .fvmv button{width:36px;height:36px;border-radius:10px;border:1px solid var(--line,rgba(0,0,0,.12));background:none;color:inherit;font:700 16px var(--font)}
 .fved .fvmv button:disabled{opacity:.3}
 .fved .btn{margin-top:14px}
-html.night .fved .fvst.on{color:#fff}
+html.nightred .fved .fvst.on{color:#fff}
 body:has(.sheet.on) .mcdrw{z-index:70}
 /* 1.9.13: το υπόμνημα του «Νερό» πάντα στο ίδιο σημείο με τα άλλα στρώματα (κάτω, πάνω από τη μπάρα πλοήγησης, όπως του ανέμου/κύματος)· αν φαίνεται και η μπάρα ανέμου/κύματος, μπαίνει ακριβώς από πάνω της */
 body.mapon .sstleg.sstleg{top:auto!important;left:12px!important;right:12px!important;transform:none!important;width:auto!important;max-width:540px;margin:0 auto;bottom:calc(var(--nav-h,64px) + var(--safe-b,0px) + 30px)!important}
@@ -760,9 +760,9 @@ body.mapon:has(.rainbar) .sstleg.sstleg{bottom:calc(var(--nav-h,64px) + var(--sa
 body.mapon:has(#ndMapDock:not([hidden])):has(.rainbar) .sstleg.sstleg{bottom:calc(var(--nav-h,64px) + var(--safe-b,0px) + 100px + var(--ndwh,0px))!important}
 body.mapon.maptrip .sstleg small{display:none}
 /* 1.9.13: νυχτερινή: ο χάρτης βάσης (δορυφόρος) ήταν πολύ σκοτεινός και δεν φαινόταν η ακτή· λιγότερο σκοτείνιασμα και περισσότερη αντίθεση. Τα στρώματα (κύμα, νερό) μένουν όπως ήταν, για να φαίνονται οι γραμμές από πάνω */
-html.night .leaflet-tile-pane{filter:brightness(.8) contrast(1.25)!important}
-html.night .leaflet-marker-pane,html.night .leaflet-overlay-pane{filter:grayscale(1) brightness(1.5) contrast(1.2)!important}
-html.night .mcpanel,html.night .mcpanel i,html.night .mcpanel small,html.night .mcbar{color:#fff!important;opacity:1}
+html.nightred .leaflet-tile-pane{filter:brightness(.8) contrast(1.25)!important}
+html.nightred .leaflet-marker-pane,html.nightred .leaflet-overlay-pane{filter:grayscale(1) brightness(1.5) contrast(1.2)!important}
+html.nightred .mcpanel,html.nightred .mcpanel i,html.nightred .mcpanel small,html.nightred .mcbar{color:#fff!important;opacity:1}
 
 /* 1.9.13: οθόνη «Συρτή βυθού» χωρίς κύλιση: το διάγραμμα παίρνει όσο χώρο μένει, τα υπόλοιπα πιο σφιχτά· κουμπί «Τέλος» πάνω */
 .trside.ck{gap:6px!important}
@@ -782,7 +782,7 @@ html.night .mcpanel,html.night .mcpanel i,html.night .mcpanel small,html.night .
 .ck .ckc{height:42px!important}
 .ck .ckib.ckstop{background:var(--ck-bad);color:#fff}
 @media (max-height:700px){ .ck .cknum b{font-size:30px!important} .ck .ckct b{font-size:22px!important} .ck .ckcmd{min-height:54px!important} .ck .ckb{height:48px!important} .ck .ckf{height:46px!important} .ck .ckc{height:38px!important} }
-html.night .ck .ckib.ckstop{background:#000;color:#fff;box-shadow:inset 0 0 0 2px #fff}
+html.nightred .ck .ckib.ckstop{background:#000;color:#fff;box-shadow:inset 0 0 0 2px #fff}
 
 /* 1.9.13: φόρμα «Νέο ψάρι» πιο σφιχτή· η Αποθήκευση πάντα ορατή κάτω */
 form.bform .bfsave{position:relative}
@@ -812,16 +812,16 @@ form.bform .bfmore>*:not(summary){margin-top:8px}
 form.bform:has(.bfsave){overflow-x:clip;overflow-y:visible}
 /* 1.9.13: νυχτερινή: έλεγχος όλων των σελίδων. Στη νυχτερινή μετράει μόνο η φωτεινότητα, οπότε κόκκινο κουμπί με σκούρα γράμματα δεν διαβαζόταν.
    Κύρια κουμπιά, πλακίδια μενού, διακόπτες: μαύρο φόντο, λευκά γράμματα, λευκό περίγραμμα (όπως τα πατημένα) */
-html.night .btn.pri,html.night button.pri,html.night .bfsave,html.night .tgo{background:#000!important;color:#fff!important;box-shadow:inset 0 0 0 2px #fff!important;border-color:#fff!important}
-html.night .mcpan .mctile:not([aria-pressed="true"]),html.night .mcpan .mcpre:not([aria-pressed="true"]),html.night .lyr .ltile:not([aria-pressed="true"]){background:#000!important;color:#fff!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.35)!important}
-html.night .mcpan .mctile:not([aria-pressed="true"]) svg,html.night .lyr .ltile:not([aria-pressed="true"]) svg{stroke:#fff}
-html.night .mcpan .mcpre[aria-pressed="true"]{background:#000!important;color:#fff!important;box-shadow:inset 0 0 0 3px #fff!important}
-html.night .tg input{background:#000!important;box-shadow:inset 0 0 0 2px rgba(255,255,255,.35)}
-html.night .tg input::after{background:#666}
-html.night .tg input:checked{box-shadow:inset 0 0 0 2px #fff!important}
-html.night .tg input:checked::after{background:#fff}
-html.night .nwc.gw{background:#000!important;color:#fff!important;box-shadow:inset 0 0 0 2px #fff}
-html.night .fdi.catch{background:#000!important;color:#fff!important;box-shadow:0 0 0 3px #fff!important}
+html.nightred .btn.pri,html.nightred button.pri,html.nightred .bfsave,html.nightred .tgo{background:#000!important;color:#fff!important;box-shadow:inset 0 0 0 2px #fff!important;border-color:#fff!important}
+html.nightred .mcpan .mctile:not([aria-pressed="true"]),html.nightred .mcpan .mcpre:not([aria-pressed="true"]),html.nightred .lyr .ltile:not([aria-pressed="true"]){background:#000!important;color:#fff!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.35)!important}
+html.nightred .mcpan .mctile:not([aria-pressed="true"]) svg,html.nightred .lyr .ltile:not([aria-pressed="true"]) svg{stroke:#fff}
+html.nightred .mcpan .mcpre[aria-pressed="true"]{background:#000!important;color:#fff!important;box-shadow:inset 0 0 0 3px #fff!important}
+html.nightred .tg input{background:#000!important;box-shadow:inset 0 0 0 2px rgba(255,255,255,.35)}
+html.nightred .tg input::after{background:#666}
+html.nightred .tg input:checked{box-shadow:inset 0 0 0 2px #fff!important}
+html.nightred .tg input:checked::after{background:#fff}
+html.nightred .nwc.gw{background:#000!important;color:#fff!important;box-shadow:inset 0 0 0 2px #fff}
+html.nightred .fdi.catch{background:#000!important;color:#fff!important;box-shadow:0 0 0 3px #fff!important}
 /* 1.9.15: νέα φόρμα ψαριού */
 .bf2 .bftop{display:flex;gap:8px;align-items:stretch}
 .bf2 .bfseg{flex:1;display:flex;background:var(--surface-2);border-radius:16px;padding:4px;gap:4px}
@@ -845,8 +845,8 @@ html.night .fdi.catch{background:#000!important;color:#fff!important;box-shadow:
 .bf2 .bfbtr>small{flex:none;font-weight:700;color:var(--ink-2);min-width:62px}
 .bf2 .bfbtr .chips{flex-wrap:nowrap;margin:0}
 .bf2 .qchips{margin-top:2px}
-html.night .bf2 .bfseg-b[aria-pressed=true]{background:#000;color:#fff;box-shadow:inset 0 0 0 2px #fff}
-html.night .bf2 .bfline{background:#000;color:#fff}
+html.nightred .bf2 .bfseg-b[aria-pressed=true]{background:#000;color:#fff;box-shadow:inset 0 0 0 2px #fff}
+html.nightred .bf2 .bfline{background:#000;color:#fff}
 /* 1.9.15: οι 5 καρτέλες του ημερολογίου χωράνε χωρίς κύλιση */
 .seg.lseg.lseg{overflow:visible;-webkit-mask-image:none;mask-image:none;gap:2px;padding:3px}
 .seg.lseg.lseg.lseg button{flex:1 1 auto!important;min-width:0!important;padding:0 2px!important;font-size:12.5px!important;letter-spacing:-.15px;text-overflow:ellipsis!important}
@@ -859,7 +859,7 @@ html.night .bf2 .bfline{background:#000;color:#fff}
 .pstats .pst b{display:block!important;white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis;line-height:1.25;font-size:16px;max-width:100%}
 .pstats .pst b.lng{font-size:13px;line-height:1.55}
 .pstats .pst small{min-height:2.4em}
-html.night .pstats .pst{outline:1px solid #fff;outline-offset:-1px;background:#000}
+html.nightred .pstats .pst{outline:1px solid #fff;outline-offset:-1px;background:#000}
 /* 1.9.18: συντεταγμένες από εικόνα */
 .cscan .csimg{display:block;width:100%;max-height:200px;object-fit:contain;border-radius:12px;background:#000;margin-bottom:10px}
 .cscan .csbar{height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden}.cscan .csbar i{display:block;height:100%;background:var(--accent);transition:width .3s}
@@ -868,7 +868,7 @@ html.night .pstats .pst{outline:1px solid #fff;outline-offset:-1px;background:#0
 .csopt{display:grid;gap:2px;text-align:left;padding:12px 14px;border-radius:14px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;cursor:pointer}
 .csopt b{font-size:16.5px;font-variant-numeric:tabular-nums}.csopt small{color:var(--ink-3);font-size:12px}
 .csraw pre{white-space:pre-wrap;font-size:12px;max-height:160px;overflow:auto}
-html.night .csopt{background:#000;color:#fff;border-color:#fff}
+html.nightred .csopt{background:#000;color:#fff;border-color:#fff}
 /* 1.9.19: σημειώσεις λιμανιών */
 .pnpop{margin-top:8px;display:grid;gap:6px}
 .pnpop .pnbtn{width:100%}
@@ -887,8 +887,8 @@ html.night .csopt{background:#000;color:#fff;border-color:#fff}
 .pnrow p{margin:0}.pnrow small{color:var(--ink-3);font-size:12px}
 .pnrow.pend{opacity:.75;border:1.5px dashed var(--line)}
 .pnacts{margin-top:4px}
-html.night .pnt,html.night .pnt.bad,html.night .pnt.mid,html.night .pnt.good{background:#000;color:#fff;outline:1px solid #fff;outline-offset:-1px}
-html.night .pnrow{background:#000;outline:1px solid #fff;outline-offset:-1px}
+html.nightred .pnt,html.nightred .pnt.bad,html.nightred .pnt.mid,html.nightred .pnt.good{background:#000;color:#fff;outline:1px solid #fff;outline-offset:-1px}
+html.nightred .pnrow{background:#000;outline:1px solid #fff;outline-offset:-1px}
 /* 1.9.20: αλλαγή πηγής ραντάρ */
 .rainbar .rbs{flex:none;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:800 16px var(--font);cursor:pointer}
 .leaflet-image-layer.domradar{image-rendering:auto;transition:opacity .25s}
@@ -949,19 +949,19 @@ html.night .pnrow{background:#000;outline:1px solid #fff;outline-offset:-1px}
 .bf2 .bfcard input,.bf2 .bfcard select,.bf2 .bfcard textarea{background:var(--surface-2)}
 .bf2 .bftop{margin-bottom:2px}
 form.bform .bfsavebar{bottom:-18px;padding-bottom:calc(28px + var(--safe-b,0px));margin-bottom:-18px}
-html.night .bf2 .bfcard{background:#000;box-shadow:inset 0 0 0 1px #5a0000}
+html.nightred .bf2 .bfcard{background:#000;box-shadow:inset 0 0 0 1px #5a0000}
 /* 1.12.8: νυχτερινή λειτουργία: τα χρώματα γίνονται κόκκινα με βάση τη φωτεινότητα, άρα ό,τι είχε μικρή διαφορά φωτεινότητας
    (δευτερεύον κείμενο, εικονίδια μπάρας, γραμμές) χανόταν. Εδώ μαύρο φόντο και πολύ φωτεινό κείμενο, για μέγιστη αντίθεση. */
-html.night,html.night[data-theme]{--bg:#000;--surface:#0d0d0d;--surface-2:#191919;--ink:#fff;--ink-2:#e6e6e6;--ink-3:#c4c4c4;--line:#4a4a4a;--shadow:0 0 0 1px #3a3a3a}
-html.night .nav{background:#0d0d0d;box-shadow:0 0 0 1px #4a4a4a}
-html.night .nav a,html.night .nav button{color:#d8d8d8}
-html.night .nav a[aria-current=page],html.night .nav .on{color:#fff}
-html.night input,html.night select,html.night textarea{background:#111;color:#fff;border-color:#5a5a5a}
-html.night input::placeholder,html.night textarea::placeholder{color:#9a9a9a}
-html.night .chip{background:#141414;color:#fff;border-color:#5a5a5a}
-html.night .card,html.night .list{box-shadow:0 0 0 1px #333}
-html.night .nav .fab{background:#000;color:#fff;box-shadow:0 0 0 3px #fff}
-html.night .btn.pri,html.night button.pri{background:#000!important;color:#fff!important;box-shadow:inset 0 0 0 2px #fff!important}
+html.nightred,html.nightred[data-theme]{--bg:#000;--surface:#0d0d0d;--surface-2:#191919;--ink:#fff;--ink-2:#e6e6e6;--ink-3:#c4c4c4;--line:#4a4a4a;--shadow:0 0 0 1px #3a3a3a}
+html.nightred .nav{background:#0d0d0d;box-shadow:0 0 0 1px #4a4a4a}
+html.nightred .nav a,html.nightred .nav button{color:#d8d8d8}
+html.nightred .nav a[aria-current=page],html.nightred .nav .on{color:#fff}
+html.nightred input,html.nightred select,html.nightred textarea{background:#111;color:#fff;border-color:#5a5a5a}
+html.nightred input::placeholder,html.nightred textarea::placeholder{color:#9a9a9a}
+html.nightred .chip{background:#141414;color:#fff;border-color:#5a5a5a}
+html.nightred .card,html.nightred .list{box-shadow:0 0 0 1px #333}
+html.nightred .nav .fab{background:#000;color:#fff;box-shadow:0 0 0 3px #fff}
+html.nightred .btn.pri,html.nightred button.pri{background:#000!important;color:#fff!important;box-shadow:inset 0 0 0 2px #fff!important}
 /* 1.12.14: Προφίλ › Σχετικά και «Πες μας τη γνώμη σου» */
 .about .abhd{display:flex;align-items:center;gap:14px;margin:2px 0 4px}
 .about .abhd img{border-radius:14px;flex:none}
@@ -1035,20 +1035,19 @@ html.night .btn.pri,html.night button.pri{background:#000!important;color:#fff!i
 body.sosme .wxbar,body.sosme .mcbar{margin-top:62px}
 .sosh .sosbig{font-size:18px;font-weight:800;line-height:1.35;margin:4px 0 10px}
 .sosh .btn{margin-top:8px;text-align:center;display:block}
-.fbbadge{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:999px;background:#ff3b30;color:#fff;font-size:12px;font-weight:800;vertical-align:middle}
 .fbin .fbm.fbnew{border-left:4px solid #ff7a4d}
 .fbin .fbdot{display:inline-block;margin-right:6px;padding:0 7px;border-radius:999px;background:#ff7a4d;color:#fff;font-size:11px;font-weight:800}
 /* 1.14.3: χάρτης χωρίς θόλωμα πίσω από την κάτω μπάρα: το backdrop-filter ξαναθόλωνε όλο τον χάρτη σε κάθε καρέ (κόλλημα στο σύρσιμο στο κινητό) */
 body.mapon .nav>div{-webkit-backdrop-filter:none!important;backdrop-filter:none!important;background:color-mix(in srgb,var(--surface) 97%,transparent)}
 /* 1.14.3: νυχτερινή λειτουργία στον χάρτη: όχι όλα κόκκινα. Ο χάρτης κρατά τα χρώματά του, χαμηλωμένα (θάλασσα, κύμα, σημάδια ξεχωρίζουν),
    και μόνο τα κουμπιά και οι μπάρες γίνονται κόκκινα. Οι δύο κόκκινες «κουρτίνες» της οθόνης (βαριές στο σύρσιμο) δεν μπαίνουν πάνω στον χάρτη. */
-html.night body.mapon::before,html.night body.mapon::after{display:none}
 html.night body.mapon .leaflet-tile-pane{filter:brightness(.62) saturate(.85)!important}
 html.night body.mapon .leaflet-tile-pane .nighttile{filter:brightness(1.35)}
 html.night body.mapon .wxfill{filter:brightness(.75) saturate(.9)!important;opacity:.85!important}
 html.night body.mapon .leaflet-marker-pane,html.night body.mapon .leaflet-overlay-pane{filter:brightness(.85)!important}
 html.night body.mapon #lmap canvas{filter:brightness(.8)!important}
 html.night body.mapon #lmap canvas.wxdash{filter:none!important;opacity:.7}
-html.night body.mapon :is(.mchips,.mcbar,.mcpanel,.mcmode,.mapbar,.nav,#wxLeg,.rainbar,.sbleg,.wxread,.dtbar,.tripbar,.mclay,.fb,.mobbtn,#ndMapDock,.attrbtn,.leaflet-control-container){filter:sepia(1) saturate(4.5) hue-rotate(-38deg) brightness(.82)}
-.fbbadge{width:auto!important;max-width:max-content;align-self:flex-start;flex:none!important;white-space:nowrap;line-height:1.5}
-html.night .fbbadge{background:#000!important;color:#fff!important;box-shadow:0 0 0 2px #fff}
+
+/* 1.14.4: αδιάβαστα μηνύματα: αριθμός πάνω στο εικονίδιο (όπως στις εφαρμογές μηνυμάτων) */
+.hasbadge{position:relative;overflow:visible!important}
+.icbadge{position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:#ff3b30;color:#fff;font:800 12px/20px var(--font,system-ui);font-style:normal;text-align:center;box-shadow:0 0 0 2px var(--surface,#14242e)}

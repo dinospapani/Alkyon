@@ -36,9 +36,9 @@
 .mcpan .mcg5 .mctile.pvt[aria-pressed="true"]::after{content:'✓';position:absolute;top:2px;right:2px;width:17px;height:17px;border-radius:50%;background:var(--accent);color:#fff;font:800 11px/17px var(--font);text-align:center}
 .mcpan .mctile{transition:transform .1s}.mcpan .mctile:active{transform:scale(.95)}
 @media (max-width:380px){ .mcpan .mcg5{grid-template-columns:repeat(3,1fr)} }
-html.night .mcpan .mcpv{filter:grayscale(1) brightness(.6) sepia(1) hue-rotate(-38deg) saturate(6)}
-html.night .mcdrw.mcb .mcpan,html.night .mcpan .mchead{background:#120000!important}
-html.night .mcpan .mctabs{background:#2a0000}html.night .mcpan .mctabs button{color:#ff8a7a}html.night .mcpan .mctabs button[aria-selected="true"]{background:#000;color:#ff5a45}
+html.nightred .mcpan .mcpv{filter:grayscale(1) brightness(.6) sepia(1) hue-rotate(-38deg) saturate(6)}
+html.nightred .mcdrw.mcb .mcpan,html.nightred .mcpan .mchead{background:#120000!important}
+html.nightred .mcpan .mctabs{background:#2a0000}html.nightred .mcpan .mctabs button{color:#ff8a7a}html.nightred .mcpan .mctabs button[aria-selected="true"]{background:#000;color:#ff5a45}
 
 /* ---------- οθόνη για ήλιο: μαύρο/λευκό, χοντρά περιγράμματα ---------- */
 html.sunv{--bg:#FFFFFF;--surface:#FFFFFF;--surface-2:#F2F2F2;--ink:#000000;--ink-2:#111111;--ink-3:#333333;--line:#000000;--shadow:none}
@@ -54,7 +54,7 @@ html.sunv .mcbar{background:#fff!important;color:#000!important}
 .scrmode{position:fixed;z-index:30;right:12px;width:46px;height:46px;border-radius:50%;border:0;background:var(--surface);color:var(--ink);box-shadow:0 4px 14px rgba(0,0,0,.25);display:grid;place-items:center}
 .scrmode svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 body:not(.mapon) .scrmode,body.ruling .scrmode,body.mappick .scrmode,body:has(.mcdrw.open) .scrmode,body:has(.sheet.on) .scrmode{display:none}
-html.night .scrmode{background:#1a0000;color:#ff5a45;box-shadow:0 0 0 2px #ff5a45}
+html.nightred .scrmode{background:#1a0000;color:#ff5a45;box-shadow:0 0 0 2px #ff5a45}
 html.sunv .scrmode{outline:2px solid #000}
 
 /* κινήσεις: μόνο όταν το κινητό δεν ζητά λιγότερες */
@@ -79,7 +79,7 @@ html.sunv .scrmode{outline:2px solid #000}
 .hero.v2 .planbtn.on{background:color-mix(in srgb,var(--good) 25%,transparent)}
 .hero.v2 .next{background:rgba(255,255,255,.1)!important;color:#fff!important}
 .hero.v2 .perschip{background:rgba(255,255,255,.14)!important;color:#fff!important}
-html.night .hero.v2{background:#1a0403;color:#ff5a45}html.night .hero.v2 *{color:#ff5a45!important}
+html.nightred .hero.v2{background:#1a0403;color:#ff5a45}html.nightred .hero.v2 *{color:#ff5a45!important}
 html.sunv .hero.v2{background:#fff;color:#000;outline:3px solid #000}html.sunv .hero.v2 *{color:#000!important}html.sunv .hero.v2 .hring text{fill:#000}
 .ribbon{padding:14px 14px 12px}
 .ribbon .rbh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:8px}
@@ -156,7 +156,7 @@ details.facc[open]>summary{margin-bottom:8px}
 .mclay svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .mclay:active,.scrmode:active{transform:scale(.94)}
 body:not(.mapon) .mclay,body:not(.mapclean) .mclay,body.ruling .mclay,body.mappick .mclay,body.replaying .mclay,body:has(.mcdrw.open) .mclay,body:has(.sheet.on) .mclay{display:none}
-html.night .mclay{background:#1a0000;color:#ff5a45;box-shadow:0 0 0 2px #ff5a45}
+html.nightred .mclay{background:#1a0000;color:#ff5a45;box-shadow:0 0 0 2px #ff5a45}
 html.sunv .mclay{outline:2px solid #000}
 /* 1.9.3: με ανοιχτό το μενού ο χάρτης από πάνω σέρνεται και ζουμάρει */
 .mcdrw.mcb .mcdim{pointer-events:none!important}
@@ -171,7 +171,7 @@ html.sunv .mclay{outline:2px solid #000}
 /* 1.9.3: προεπισκόπηση στις γραμμές με διακόπτη */
 .mcpan .ltile .lic.lpv{width:50px!important;min-width:50px;height:30px!important;margin-right:12px!important;flex:none!important;border-radius:8px;overflow:hidden;padding:0;background:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
 .mcpan .ltile .lic.lpv svg{width:100%!important;height:100%!important;display:block}
-html.night .mcpan .ltile .lic.lpv{filter:grayscale(1) brightness(.6) sepia(1) hue-rotate(-38deg) saturate(6)}
+html.nightred .mcpan .ltile .lic.lpv{filter:grayscale(1) brightness(.6) sepia(1) hue-rotate(-38deg) saturate(6)}
 .mcpan .ltile:has(.lic.lpv){grid-template-columns:50px 1fr!important}
 .mcpan .ltile .lic.lpv{margin-right:0!important}
 /* 1.9.4: Προφίλ: το «Σημείο» στα στατιστικά σε δύο γραμμές το πολύ */

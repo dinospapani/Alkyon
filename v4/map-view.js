@@ -159,6 +159,21 @@ function drawSat(){ if(cfg.sats){ cfg.sats=false; saveCfg(); ls.set('alkyon-v4-s
     if((cfg.chl&&!(v&&v.chl))||(cfg.sats&&!(v&&v.sst))) B.toast(T('Η δορυφορική στρώση δεν είναι διαθέσιμη τώρα. Δοκίμασε αργότερα.','The satellite layer isn’t available right now. Try later.')); }); }
 /* 1.9.12: «Νερό» από δορυφόρο (χθες, 1 km) ως επιλογή μέσα στο «Νερό»· χωρίς να βάφει τη στεριά (μάσκα στεριάς ανά pixel) */
 var satW=null;
+/* 1.14.5: επίπεδα πάνω στον χάρτη σε πλακίδια (όπως το Windy): κάθε πλακίδιο 256 px είναι δικός του καμβάς μέσα στο pane,
+   οπότε κινείται μαζί με τον χάρτη στο σύρσιμο χωρίς κενά· τα καινούργια πλακίδια στην άκρη ζωγραφίζονται όσο σέρνεις.
+   paint(ctx, P(lat,lon)→[x,y], U(x,y)→latlng, 256, coords) */
+B.ovTiles=function(map,paneName,paint){
+  var GL=L.GridLayer.extend({createTile:function(c){ var t=document.createElement('canvas'); pt(t,c); return t; }});
+  var lay=new GL({pane:paneName,tileSize:256,updateWhenIdle:false,updateWhenZooming:false,updateInterval:120,keepBuffer:3,noWrap:false});
+  function pt(t,c){ var dpr=Math.min(window.devicePixelRatio||1,1.5), N=256; if(t.width!==Math.round(N*dpr)){ t.width=t.height=Math.round(N*dpr); }
+    var x=t.getContext('2d'); x.setTransform(dpr,0,0,dpr,0,0); x.clearRect(0,0,N,N); var ox=c.x*N, oy=c.y*N, z=c.z;
+    function P(la,lo){ var q=map.project([la,lo],z); return [q.x-ox,q.y-oy]; }
+    function U(px,py){ return map.unproject([px+ox,py+oy],z); }
+    try{ paint(x,P,U,N,c); }catch(e){ if(window.console) console.warn('ovTiles',e); } }
+  return {layer:lay,
+    repaint:function(){ var ts=lay._tiles||{}; for(var k in ts){ var q=ts[k]; if(q&&q.el&&q.coords) pt(q.el,q.coords); } },
+    show:function(v){ if(v){ if(!map.hasLayer(lay)) lay.addTo(map); } else if(map.hasLayer(lay)) map.removeLayer(lay); },
+    shown:function(){ return map.hasLayer(lay); }}; };
 var SatGL=null; function satGL(){ if(SatGL) return SatGL; SatGL=L.GridLayer.extend({ createTile:function(c,done){ var t=document.createElement('canvas'); t.width=t.height=256; var u=this.options.url.replace('{z}',c.z).replace('{x}',c.x).replace('{y}',c.y), img=new Image(), tried=false;
   function mask(){ var x=t.getContext('2d'); x.drawImage(img,0,0,256,256); var LA=B.landAt; if(!LA) return; try{ var id=x.getImageData(0,0,256,256), d=id.data, n=256*Math.pow(2,c.z);
       for(var py=0;py<256;py+=2){ var Y=c.y*256+py+1, la=Math.atan(Math.sinh(Math.PI*(1-2*Y/n)))*180/Math.PI;

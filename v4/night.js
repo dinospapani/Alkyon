@@ -15,11 +15,11 @@ function want(){ var o=override(); if(o!=null) return o; var m=mode(); if(m==='o
 function apply(){ var w=want(); if(w===active){ paint(); return; } active=w;
   if(w){ prevTheme=root.getAttribute('data-theme'); root.setAttribute('data-theme','dark'); root.classList.add('night'); }
   else { root.classList.remove('night'); if(prevTheme==null) root.removeAttribute('data-theme'); else root.setAttribute('data-theme',prevTheme); }
-  try{ var mt=document.querySelector('meta[name=theme-color]'); if(mt) mt.setAttribute('content',w?'#1a0000':'#06171F'); }catch(e){}
+  try{ var mt=document.querySelector('meta[name=theme-color]'); if(mt) mt.setAttribute('content','#06171F'); }catch(e){}
   paint(); }
-function paint(){ if(!btn) return; btn.hidden=!(tripId()||active); btn.setAttribute('aria-pressed',String(active)); btn.title=active?T('Κλείσιμο νυχτερινής λειτουργίας','Turn off night mode'):T('Νυχτερινή λειτουργία (κόκκινη οθόνη)','Night mode (red screen)'); }
+function paint(){ if(!btn) return; btn.hidden=!(tripId()||active); btn.setAttribute('aria-pressed',String(active)); btn.title=active?T('Κλείσιμο νυχτερινής λειτουργίας','Turn off night mode'):T('Νυχτερινή λειτουργία','Night mode'); }
 function toggle(){ var v=!active; ls.set(OV,{k:tripId()||today(),v:v}); apply();
-  B.toast(v?T('Νυχτερινή λειτουργία: κόκκινη οθόνη για τα μάτια στο σκοτάδι.','Night mode: red screen to keep your night vision.'):T('Νυχτερινή λειτουργία κλειστή.','Night mode off.')); }
+  B.toast(v?T('Νυχτερινή λειτουργία: σκούρα και χαμηλωμένα χρώματα για το σκοτάδι.','Night mode: dark, dimmed colours for the dark.'):T('Νυχτερινή λειτουργία κλειστή.','Night mode off.')); }
 /* κουμπί στη δεξιά στήλη του χάρτη (φαίνεται κατά την έξοδο ή όταν είναι ανοιχτή) */
 function mountBtn(){ var bar=document.querySelector('.mapbar'); if(!bar) return; if(btn&&btn.isConnected) return;
   btn=h('button',{class:'iconbtn nightb',type:'button',html:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>',onclick:toggle});

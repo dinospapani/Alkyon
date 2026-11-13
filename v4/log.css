@@ -530,8 +530,8 @@ details.sfold[open]>summary::after{transform:rotate(-135deg);margin-top:4px}
 details.sfold>.card{box-shadow:none;margin:0;padding-top:0;background:transparent}
 details.sfold>.card>h2:first-child,details.sfold .gh h2{display:none}
 details.sfold .gh{justify-content:flex-end}
-html.night details.sfold{outline:1px solid #fff;outline-offset:-1px;background:#000}
-html.night .wcols .wc i{background:#888}html.night .wcols .wc.pk i{background:#fff}
+html.nightred details.sfold{outline:1px solid #fff;outline-offset:-1px;background:#000}
+html.nightred .wcols .wc i{background:#888}html.nightred .wcols .wc.pk i{background:#fff}
 /* 1.9.16: κεφαλίδα σύνοψης με «Κάρτα χρονιάς», 3 κουτάκια, ρεκόρ 5+, κιλά ανά είδος */
 .sthd{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 2px 8px}
 .sthd b{font-size:15px}
@@ -545,8 +545,8 @@ html.night .wcols .wc i{background:#888}html.night .wcols .wc.pk i{background:#f
 .recs:not(.all) .rec:has(+.rx){border-bottom:0}
 .spkg .bar .bv{white-space:nowrap;font-size:13px;text-align:right}
 .wcols.w12 .wc span{font-size:10px;letter-spacing:-.3px}
-html.night .sthd .stshare,html.night .recs .recmore{background:#000;color:#fff;outline:1px solid #fff;outline-offset:-1px}
-html.night .kpis .kpi{outline:1px solid #fff;outline-offset:-1px;background:#000}
+html.nightred .sthd .stshare,html.nightred .recs .recmore{background:#000;color:#fff;outline:1px solid #fff;outline-offset:-1px}
+html.nightred .kpis .kpi{outline:1px solid #fff;outline-offset:-1px;background:#000}
 /* 1.9.25: το «Μοίρασμα στην κοινότητα» χωράει σε μία οθόνη: μικρότερη φωτογραφία (όλο το ψάρι, όχι κομμένο), πιο σύντομα κείμενα */
 .cmshare .cmimg{max-height:min(34vh,300px);object-fit:contain;background:var(--surface-2);margin-bottom:8px}
 .cmshare .cmtitle{margin:2px 0 6px}
