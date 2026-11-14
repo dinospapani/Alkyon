@@ -41,6 +41,33 @@ function toast(msg,ms,act){
   clearTimeout(tT); requestAnimationFrame(function(){ tEl.classList.add('on'); });
   tT=setTimeout(function(){ tEl.classList.remove('on'); },ms||Math.min(9000,Math.max(act?5000:2600,String(msg||'').length*60)));
 }
+
+/* 1.14.16: κάμερα μέσα στην εφαρμογή, όπως η κάμερα του κινητού: κουμπί λήψης στη μέση, συλλογή κάτω αριστερά, αλλαγή κάμερας δεξιά.
+   o.onPhotos(πίνακας Blob/File)· o.fallback(): αν δεν επιτρέπεται η κάμερα (π.χ. άρνηση άδειας), ανοίγει η κάμερα του συστήματος. */
+function camera(o){ o=o||{}; var md=navigator.mediaDevices;
+  if(!md||!md.getUserMedia){ if(o.fallback) o.fallback(); return; }
+  var stream=null, face='environment', done=false;
+  var vid=h('video',{class:'camvid',autoplay:'',playsinline:'',muted:''}); vid.muted=true; vid.setAttribute('playsinline','');
+  var gal=h('input',{type:'file',accept:'image/*',class:'vh'}); if(o.multiple!==false) gal.multiple=true;
+  var hint=o.hint?h('p',{class:'camhint',text:o.hint}):null;
+  var shut=h('button',{type:'button',class:'camshut','aria-label':T('Λήψη','Take photo')});
+  var galB=h('button',{type:'button',class:'camgal','aria-label':T('Συλλογή','Gallery'),html:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>'});
+  var flip=h('button',{type:'button',class:'camflip','aria-label':T('Αλλαγή κάμερας','Switch camera'),html:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 0 1-14 5.3M4 12a8 8 0 0 1 14-5.3"/><path d="M18 3v4h-4M6 21v-4h4"/></svg>'});
+  var x=h('button',{type:'button',class:'camx','aria-label':T('Κλείσιμο','Close'),html:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>'});
+  var ov=h('div',{class:'camov',role:'dialog','aria-label':T('Κάμερα','Camera')},vid,x,hint,h('div',{class:'cambar'},galB,shut,flip),gal);
+  function stop(){ try{ stream&&stream.getTracks().forEach(function(t){ t.stop(); }); }catch(e){} stream=null; }
+  function close(){ if(done) return; done=true; stop(); ov.remove(); }
+  function start(){ stop(); md.getUserMedia({video:{facingMode:{ideal:face},width:{ideal:1920},height:{ideal:1440}},audio:false}).then(function(s){ if(done){ s.getTracks().forEach(function(t){ t.stop(); }); return; } stream=s; vid.srcObject=s; var p=vid.play(); if(p&&p.catch) p.catch(function(){}); })
+    .catch(function(){ if(face!=='environment'){ face='environment'; return; } close(); if(o.fallback) o.fallback(); }); }
+  shut.addEventListener('click',function(){ var w=vid.videoWidth, hh=vid.videoHeight; if(!w||!hh) return; var c=document.createElement('canvas'); c.width=w; c.height=hh; c.getContext('2d').drawImage(vid,0,0,w,hh);
+    shut.disabled=true; c.toBlob(function(b){ close(); if(b&&o.onPhotos) o.onPhotos([b]); },'image/jpeg',0.92); });
+  galB.addEventListener('click',function(){ gal.click(); });
+  gal.addEventListener('change',function(){ var fs=[].slice.call(gal.files||[]); gal.value=''; if(!fs.length) return; close(); if(o.onPhotos) o.onPhotos(fs); });
+  flip.addEventListener('click',function(){ face=face==='environment'?'user':'environment'; start(); });
+  x.addEventListener('click',close);
+  document.body.append(ov); start();
+  return {close:close}; }
+B.camera=camera;
 /* σύρσιμο προς τα αριστερά για διαγραφή (λίστες): content = το στοιχείο της γραμμής, onDel = διαγραφή */
 function swipeDel(content,onDel){
   var w=h('div',{class:'swp'}), bg=h('button',{class:'swbg',type:'button',tabindex:'-1','aria-hidden':'true',text:T('Διαγραφή','Delete'),onclick:function(){ go(); }}), fg=h('div',{class:'swfg'},content);

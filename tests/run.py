@@ -67,7 +67,7 @@ def go(pg, h, wait=1800):
 FULL=['forecast','map','log','profile','help','alerts','inbox','boat','guide','check']
 LIGHT=['tackle','community','friends']
 with sync_playwright() as p:
-    b=p.chromium.launch()
+    b=p.chromium.launch(args=['--use-fake-device-for-media-stream','--use-fake-ui-for-media-stream'])  # 1.14.17: ψεύτικη κάμερα
     for lang in ('el','en'):
         print('# pages',lang)
         c=ctx(b,lang=lang); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(2500)
@@ -120,6 +120,13 @@ with sync_playwright() as p:
         check('Μήκος από φωτογραφία: η φόρμα του ψαριού μένει ανοιχτή για αποθήκευση (1.14.15)', fo, fo)
         check('Μήκος από φωτογραφία: κάρτα 8,56 cm × 5 = ~43 cm στο πεδίο μήκους (1.14.13)', h0 and any(x in rs for x in ('42,','43,')) and v in ('42','43'), [h0,rs,v]); c.close()
     except ImportError: print('  (χωρίς PIL)')
+
+    print('# 1.14.17 κάμερα μέσα στην εφαρμογή')
+    c=ctx(b); c.grant_permissions(['camera']); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3000)
+    pg.evaluate("()=>AK.biteForm()"); pg.wait_for_timeout(1200); pg.click('.bf2 .measbtn'); pg.wait_for_timeout(2500)
+    r=pg.evaluate("()=>{ const o=document.querySelector('.camov'); return o?[!!o.querySelector('.camgal'),!!o.querySelector('.camshut'),o.querySelector('video').videoWidth]:null; }")
+    pg.click('.camshut'); pg.wait_for_timeout(2000); m=pg.evaluate("()=>[!document.querySelector('.camov'),!!document.querySelector('.meascv'),document.querySelectorAll('.bf2 .ph').length]")
+    check('Κάμερα της εφαρμογής: λήψη, συλλογή κάτω αριστερά, μετά η μέτρηση με τη φωτογραφία (1.14.17)', bool(r) and r[0] and r[1] and r[2]>0 and m[0] and m[1] and m[2]==1, [r,m]); c.close()
 
     print('# 1.14.13 υπομνήματα κρυμμένα σε έξοδο')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(3000)

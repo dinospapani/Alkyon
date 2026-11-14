@@ -1065,3 +1065,14 @@ html.night body.mapon #lmap canvas.wxdash{filter:none!important;opacity:.7}
 .toast.long{pointer-events:auto}
 .toast .tmore{display:block;margin-top:4px;font-size:12.5px;font-weight:700;opacity:.7}
 .toast.long.full .tmore{display:none}
+/* 1.14.16: κάμερα μέσα στην εφαρμογή */
+.camov{position:fixed;inset:0;z-index:400;background:#000;display:flex;flex-direction:column}
+.camvid{flex:1;width:100%;height:100%;object-fit:cover;background:#000}
+.camx{position:absolute;top:calc(var(--safe-t,0px) + 14px);left:14px;width:46px;height:46px;border-radius:50%;border:0;background:rgba(0,0,0,.45);color:#fff;display:grid;place-items:center}
+.camx svg{width:24px;height:24px}
+.camhint{position:absolute;top:calc(var(--safe-t,0px) + 70px);left:16px;right:16px;margin:0 auto;max-width:420px;padding:8px 12px;border-radius:12px;background:rgba(0,0,0,.5);color:#fff;font-size:14px;text-align:center}
+.cambar{position:absolute;left:0;right:0;bottom:0;padding:22px 28px calc(var(--safe-b,0px) + 28px);display:flex;align-items:center;justify-content:space-between;background:linear-gradient(transparent,rgba(0,0,0,.55))}
+.camshut{width:78px;height:78px;border-radius:50%;border:5px solid rgba(255,255,255,.55);background:#fff;background-clip:padding-box;box-shadow:0 0 0 2px #fff}
+.camshut:active{transform:scale(.93)}
+.camgal,.camflip{width:56px;height:56px;border-radius:50%;border:0;background:rgba(255,255,255,.18);color:#fff;display:grid;place-items:center}
+.camgal svg,.camflip svg{width:28px;height:28px}
