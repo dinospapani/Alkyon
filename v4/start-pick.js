@@ -79,11 +79,13 @@ function hello(){ var hr=new Date().getHours(), g=hr<5?T('Καλή νύχτα','
   var nm=''; try{ var s=B.cloud&&B.cloud.session&&B.cloud.session(); nm=s&&(s.name||'').trim().split(/\s+/)[0]||''; }catch(e){} return nm?g+', '+nm:g; }
 function todayChip(){ try{ var c=ls.get('alkyon-fc7',null); if(!c||!c.fc||!c.fc.days||Date.now()-(c.t||0)>12*3600e3) return null;
   var d0=new Date(), td=d0.getFullYear()+'-'+B.pad(d0.getMonth()+1)+'-'+B.pad(d0.getDate()), d=c.fc.days.filter(function(x){ return x.date===td; })[0]; if(!d) return null;
+  /* 1.14.19: το βράδυ δεν μένουν ώρες φωτός σήμερα (why='night'): δεν είναι «εκτός ορίων», δείχνει το αύριο */
+  var lab=T('Σήμερα','Today'); if(!d.safe&&d.why==='night'){ var i0=c.fc.days.indexOf(d), d2=c.fc.days[i0+1]; if(!d2) return null; d=d2; lab=T('Αύριο','Tomorrow'); }
   var pl=(ls.get('alkyon-places',[])||[]).filter(function(x){ return x&&x.id===c.id; })[0], nm=pl&&pl.name?pl.name:'', U=window.AlkyonUnits; if(B.EN){ nm=({'Σημείο χάρτη':'Map point','Η θέση μου':'My location','Έξοδος τώρα':'Trip now'})[nm]||nm; } /* 1.14.17: όχι «Spot χάρτη» */
   var wx=[d.avgWind!=null?(U&&U.windP?U.windP(d.avgWind).join(' '):Math.round(d.avgWind)+' kn'):'',d.avgWave!=null?B.num(d.avgWave,1)+' m':''].filter(Boolean).join(' · ');
-  var past=d.win&&d.win.e<d0.getHours(), ch=h('div',{class:'sptoday'+(d.safe?'':' bad')},
+  var past=lab===T('Σήμερα','Today')&&d.win&&d.win.e<d0.getHours(), ch=h('div',{class:'sptoday'+(d.safe?'':' bad')},
     h('span',{class:'stsc',text:d.safe&&d.best!=null?String(d.best):'!'}),
-    h('span',{class:'sttx'},h('b',{text:T('Σήμερα','Today')+(nm?' · '+nm:'')}),h('small',{text:d.safe&&d.win?(past?T('η καλύτερη ώρα πέρασε','the best time has passed'):T('καλύτερη ώρα ','best time ')+B.pad(d.win.s)+':00–'+B.pad((d.win.e+1)%24)+':00')+(wx?' · '+wx:''):T('εκτός ορίων ασφαλείας σου','outside your safety limits')+(wx?' · '+wx:'')})));
+    h('span',{class:'sttx'},h('b',{text:lab+(nm?' · '+nm:'')}),h('small',{text:d.safe&&d.win?(past?T('η καλύτερη ώρα πέρασε','the best time has passed'):T('καλύτερη ώρα ','best time ')+B.pad(d.win.s)+':00–'+B.pad((d.win.e+1)%24)+':00')+(wx?' · '+wx:''):T('εκτός ορίων ασφαλείας σου','outside your safety limits')+(wx?' · '+wx:'')})));
   return ch; }catch(e){ return null; } }
 function wanted(){ if(!raw('alkyon-onboard')) return false; try{ if(sessionStorage.getItem('alkyon-sp-seen')) return false; }catch(e){} /* 1.14.17: όχι ξανά στην ίδια καρτέλα (π.χ. όταν η κάμερα του κινητού ξαναφόρτωσε τη σελίδα) */ if(raw('alkyon-askfp')==='0'&&raw('alkyon-fprof-done')) return false; var s=ls.get('alkyon-safe',null); if(s&&s.active) return false; if(/#(new|trip|addfriend)/.test(location.hash)) return false; return true; }
 

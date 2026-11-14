@@ -70,6 +70,7 @@ var HELP=[
 ];
 /* έκδοση → αλλαγές (νεότερες πρώτες). Προσθέτεις γραμμή εδώ σε κάθε νέα λειτουργία. */
 var NEWS=[
+ ['1.14.19',[T('Αρχική οθόνη το βράδυ: όταν δεν μένουν ώρες φωτός σήμερα δείχνει το «Αύριο», όχι «εκτός ορίων ασφαλείας».','Start screen in the evening: when no daylight hours are left today it shows «Tomorrow», not «outside your safety limits».')]],
  ['1.14.18',[T('Το «Πού ψαρεύεις σήμερα;» δεν ξαναβγαίνει αν η σελίδα ξαναφορτώσει (π.χ. μετά την κάμερα του κινητού). Στα αγγλικά «Map point», όχι «Spot χάρτη».','«Where are you fishing today?» no longer comes back when the page reloads (e.g. after the phone camera). In English it says «Map point», not «Spot χάρτη».')]],
  ['1.14.17',[T('Κάμερα μέσα στην εφαρμογή, όπως του κινητού: λήψη στη μέση, συλλογή κάτω αριστερά, αλλαγή κάμερας δεξιά. Ανοίγει από το 📷 και από τη μέτρηση μήκους.','In-app camera like your phone camera: shutter in the middle, gallery bottom-left, switch camera on the right. Opens from the 📷 and from length measuring.'),
   T('Νέο ψάρι: το 📷 πάνω ανοίγει κατευθείαν την κάμερα· το «+» στις Φωτογραφίες ανοίγει τη συλλογή. Το «📏 Μέτρηση μήκους» υπάρχει και κάτω από τις φωτογραφίες.','New catch: the 📷 at the top opens the camera directly; the «+» under Photos opens your gallery. «📏 Measure length» is also under the photos.')]],

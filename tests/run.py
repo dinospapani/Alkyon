@@ -1323,6 +1323,12 @@ with sync_playwright() as p:
     sp=pg.evaluate("()=>{const p=document.querySelector('.sppage'); return p?[!!p.querySelector('.sptoday'),(p.querySelector('.sptoday')||{}).textContent||'',(p.querySelector('.sphi')||{}).textContent||'']:null}")
     check('Είσοδος: χαιρετισμός και «Σήμερα 72 · καλύτερη ώρα» (1.12.16)', sp and sp[0] and '72' in sp[1] and 'καλύτερη ώρα 23:00' in sp[1] and sp[2], sp)
     c.close()
+    _d1=(_dt.date.fromisoformat(_d0)+_dt.timedelta(days=1)).isoformat()
+    _fc={'id':'gps','t':int(_tt.time()*1000),'fc':{'days':[{'date':_d0,'best':0,'safe':False,'why':'night','win':None,'avgWind':3,'avgWave':0.4},{'date':_d1,'best':81,'safe':True,'win':{'s':6,'e':8},'avgWind':4,'avgWave':0.3}]}}
+    c=ctx(b); c.add_init_script("if(!sessionStorage.sp){sessionStorage.sp=1;localStorage.setItem('alkyon-askfp','1');localStorage.setItem('alkyon-fc7',%s);}"%_jj.dumps(_jj.dumps(_fc)))
+    pg=page(c); pg.goto(BASE+'/v4/'); pg.wait_for_timeout(2500)
+    sp=pg.evaluate("()=>(document.querySelector('.sppage .sptoday')||{}).textContent||''")
+    check('Είσοδος το βράδυ: «Αύριο 81», όχι «εκτός ορίων» (1.14.19)', 'Αύριο' in sp and '81' in sp and 'εκτός' not in sp, sp); c.close()
     # 1.12.17: ανάλυση ωρών τσιμπήματος με τα πραγματικά δεδομένα των θράψαλων 9/11 (Πάφος): άπνοια + στροφή ανέμου στην αρχή, δυνάμωμα + κρύωμα + γύρισμα παλίρροιας στο τέλος
     import calendar as _cal
     _R=[(14,4.1,225,8.6,1026.4,72,19.6,.62,-.63,.8,315),(15,4.2,236,8.9,1026.3,59,19.2,.58,-.66,.8,315),(16,4,235,8.7,1025.8,89,18.7,.56,-.64,.6,326),(17,3,220,8.2,1026.4,100,18,.52,-.6,.6,326),(18,1.8,193,5.6,1026.4,100,17.7,.5,-.54,.6,326),(19,1.2,108,3.1,1026.8,100,17.6,.46,-.46,.5,315),(20,3.7,51,7,1026.6,100,15.5,.44,-.4,.5,315),(21,5.1,50,9.1,1026.5,100,14.9,.44,-.37,.5,315),(22,5.2,45,9.5,1026.3,69,14.9,.42,-.37,.5,315),(23,5.1,43,9.7,1026.5,0,14.3,.42,-.41,.5,315),(24,5.2,42,9.7,1026.5,0,13.8,.4,-.47,.6,326),(25,5.5,39,10.1,1026.2,0,13.4,.4,-.55,.6,326)]
