@@ -105,6 +105,13 @@ with sync_playwright() as p:
     c=ctx(b,news='1.2.0'); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(10000)
     check('«Τι νέο υπάρχει» μετά από αναβάθμιση', pg.evaluate("()=>!!document.querySelector('.sheet')")); c.close()
 
+    print('# 1.14.12 ελάχιστο μήκος: πράσινο / κόκκινο')
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3000)
+    pg.evaluate("()=>AK.biteForm()"); pg.wait_for_timeout(1200); pg.fill('.bf2 .spwrap input','Ροφός'); pg.wait_for_timeout(150)
+    pg.fill('.bf2 .g3 .fld:nth-child(2) input','30'); pg.wait_for_timeout(150); r1=pg.evaluate("()=>{ const n=document.querySelector('.bf2 .lawnote'); return [n.className,n.hidden,n.previousElementSibling.className]; }")
+    pg.fill('.bf2 .g3 .fld:nth-child(2) input','50'); pg.wait_for_timeout(150); r2=pg.evaluate("()=>document.querySelector('.bf2 .lawnote').className")
+    check('Νέο ψάρι: ελάχιστο μήκος κάτω από το μήκος, κόκκινο στα 30 cm, πράσινο στα 50 cm (ροφός 45)', r1[0]=='lawnote warn' and not r1[1] and r1[2]=='g3' and r2=='lawnote ok', [r1,r2]); c.close()
+
     print('# 1.14.10 νέα έκδοση στο store (μέσα στην εφαρμογή)')
     c=ctx(b); pg=page(c)
     pg.add_init_script("window.AKN={site:location.origin+'/',platform:'android',openExternal:function(u){ window.__opened=u; }};")

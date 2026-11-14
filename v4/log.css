@@ -643,3 +643,7 @@ html.nightred .kpis .kpi{outline:1px solid #fff;outline-offset:-1px;background:#
 .gearpast .gpwhere{margin:-4px 0 4px;gap:8px}.gearpast .gpwhere .btn{flex:1}
 .gpposrow{display:flex;align-items:center;gap:8px;margin:0 0 10px;min-height:32px}.gpposrow .gppos{flex:1;min-width:0;color:var(--ink-2);font-size:13px;overflow-wrap:anywhere}.gpposrow .btn{min-height:32px;padding:0 12px}
 .gearadd{margin:0 0 12px;gap:8px}.gearadd .btn{flex:1}
+/* 1.14.12: ελάχιστο μήκος κάτω από το μήκος: πράσινο όταν είναι στο όριο ή πάνω, κόκκινο κάτω */
+.lawnote{margin:4px 0 0;padding:8px 12px;border-radius:12px;background:color-mix(in srgb,var(--surface-2,#1d3443) 80%,transparent);font-weight:600}
+.lawnote.ok{color:#fff;background:#1f8f4e}
+.lawnote.warn{color:#fff;background:#c62828;font-weight:700}

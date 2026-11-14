@@ -211,12 +211,12 @@ B.biteForm=function(edit,opt){
   function latinOf(name){ var n=String(name||'').trim().toLowerCase(); if(!n) return ''; var kb=(window.SPKB||[]).filter(function(k){ return k.n.toLowerCase()===n||(k.en||'').toLowerCase()===n; })[0]; if(kb) return kb.l;
     var r=(window.SPECIES_DB||[]).filter(function(x){ return (x[0]&&String(x[0]).toLowerCase().split(/\s*\/\s*/).indexOf(n)>=0)||(x[1]&&x[1].toLowerCase()===n); })[0]; return r?r[2]:''; }
   function minOf(la){ var M=window.MIN_SIZES||{}; if(!la) return 0; if(M[la]) return M[la]; var g=la.split(' ')[0]; if(g==='Chelon'||g==='Liza'||g==='Oedalechilus') return M['Mugil spp.']||0; return M[g+' spp.']||M[g+' sp.']||0; }
-  function law(){ var la=pickLa||latinOf(sp.value), L=+len.value||0, mn=minOf(la), t='', warn=false;
+  function law(){ var la=pickLa||latinOf(sp.value), L=+len.value||0, mn=minOf(la), t='', warn=false, ok=false;
     if(la==='Thunnus thynnus'||la==='Xiphias gladius'){ t=T('Απαγορεύεται η κράτηση (ερασιτεχνική αλιεία).','Not allowed to keep (recreational).'); warn=true; }
     else if((B.PEST_L||[]).indexOf(la)>=0||B.pest({species:sp.value})){ t=(B.pestWarn?B.pestWarn():T('⚠ Τοξικός. Μην τον φας και μην τον δώσεις.','⚠ Toxic. Do not eat it or give it away.'))+' '+T('Δεν μετράει στα ψάρια σου. Αν έκοψε αγκίστρι ή τεχνητό, πάτα το παρακάτω.','It does not count in your catches. If it cut a hook or lure, tap it below.'); warn=true; }
-    else if(mn){ t=T('Ελάχιστο επιτρεπόμενο μέγεθος: ','Minimum legal size: ')+mn+' cm'; if(L&&L<mn){ t='⚠ '+t+T(' – κάτω από το όριο, ελευθέρωσέ το.',' – under the limit, release it.'); warn=true; } }
+    else if(mn){ t=T('Ελάχιστο νόμιμο μήκος: ','Minimum legal length: ')+mn+' cm'; if(L&&L<mn){ t='⚠ '+t+T(' · κάτω από το όριο, ελευθέρωσέ το.',' · under the limit, release it.'); warn=true; } else if(L){ t='✓ '+t+T(' · εντάξει, πάνω από το όριο.',' · OK, at or above the limit.'); ok=true; } } /* 1.14.12: πράσινο ≥ όριο, κόκκινο κάτω */
     if(/καρχαρ|γαλεο|σκυλοψαρ|σαλαχ|τρυγον|βατοσ|βατος|shark|\bray\b|skate|stingray/i.test(sp.value||'')){ t=T('⚠ Καρχαρίες και σαλάχια δεν επιτρέπονται ως ερασιτεχνικό αλίευμα: ελευθέρωσέ τα.','⚠ Sharks and rays are not allowed as a recreational catch: release them.'); warn=true; }
-    lawNote.textContent=t; lawNote.hidden=!t||miss.checked; lawNote.classList.toggle('warn',warn); }
+    lawNote.textContent=t; lawNote.hidden=!t||miss.checked; lawNote.classList.toggle('warn',warn); lawNote.classList.toggle('ok',ok&&!warn); }
   sp.addEventListener('input',law); sp.addEventListener('change',sugTk); if(!window.TACKLE_GUIDE&&prof!=='spear'){ var gs=document.createElement('script'); gs.src='../tackle-guide.js'; gs.onload=sugTk; document.head.appendChild(gs); } len.addEventListener('input',law); miss.addEventListener('change',law);
   /* v31z521: αναγνώριση από φωτογραφία. Με κλειδί AI τρέχει μόνη της μόλις βάλεις φωτογραφία (αν δεν έχεις γράψει είδος)· χωρίς κλειδί, σύνδεσμος για ρύθμιση */
   var aiSlot=h('div',{class:'aislot'}), aiBox=null;
@@ -317,9 +317,8 @@ B.biteForm=function(edit,opt){
     gearIt?h('p',{class:'gearnote',text:T('Εργαλείο: ','Gear: ')+(gearIt.name||'')}):null,
     h('section',{class:'bfcard'},
     h('div',{class:'fld spfld'},spLbl,h('div',{class:'spwrap'},sp,spSug),spChips,h('small',{class:'spopt',text:T('Για χαμένο ψάρι είναι προαιρετικό.','Optional for a lost fish.')})),
-    lawNote,
     (sizeRow=h('div',{class:'g3',hidden:miss.checked},field(T('Βάρος (kg)','Weight (kg)'),kg),field(T('Μήκος (cm)','Length (cm)'),len),field(T('Βάθος','Depth')+' ('+(window.AlkyonUnits&&AlkyonUnits.depthUnit?AlkyonUnits.depthUnit():'m')+')',dep))),
-    kgEst,depNote,
+    lawNote,kgEst,depNote, /* 1.14.12: το ελάχιστο μήκος κάτω από βάρος/μήκος */
     /* 1.12.7: «Πολλά ψάρια μαζί» αμέσως κάτω από βάρος/μήκος */
     (manyRow=h('div',{class:'bfmany',hidden:miss.checked},h('label',{class:'tg'},many,h('span',{text:T('Πολλά ψάρια μαζί (μία εγγραφή)','Several fish together (one entry)')})),cntRow)),
     prof==='spear'?h('label',{class:'fld'},h('span',{text:T('Ορατότητα νερού (m)','Water visibility (m)')}),vis,h('small',{text:T('Πόσα μέτρα έβλεπες. Έτσι η Πρόγνωση μαθαίνει τα νερά σου.','How many metres you could see. This teaches the Forecast your waters.')})):null),
