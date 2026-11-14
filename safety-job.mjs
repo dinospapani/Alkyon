@@ -25,7 +25,7 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
   const PING_WAIT_MIN = 15, LOWBAT = 10;
   // 1.9.50: τα σφάλματα των βημάτων μαζεύονται (για ειδοποίηση στους διαχειριστές στο τέλος· βλ. βήμα 9)
   const ERRS = [], log0 = log;
-  const STEP_ERR = /^(Telegram updates|Telegram send|Email send|Telegram ping|port note decide|port notes|weekly|morning|Forecast job|Πίεση|Πίεση Telegram|Πίεση \(Open-Meteo\)|community push|squid|squid fc|squid notif_log|Καιρός εξόδου)$/;
+  const STEP_ERR = /^(Telegram updates|Telegram send|Email send|Telegram ping|port note decide|port notes|weekly|morning|Forecast job|Πίεση|Πίεση Telegram|Πίεση \(Open-Meteo\)|community push|squid|squid fc|squid notif_log|Καιρός εξόδου|bite stats)$/;
   log = m => { log0(m); const t = String(m), k = t.split(':')[0].trim(); if (STEP_ERR.test(k)) ERRS.push({ k, m: t.slice(0, 300) }); };
   const patch = (id, o) => sb(`safety_trips?id=eq.${encodeURIComponent(id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(o) });
   // 1.9.19: τα Telegram των διαχειριστών (app_admins → το δικό τους Telegram από safety_contacts.self_chat_id)
@@ -644,6 +644,44 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
       }
     }
   } catch (e) { log('Καιρός εξόδου: ' + e.message); }
+  // 8β) 1.14.21: «Πότε τσιμπάνε · από όλους». Μία φορά τη μέρα (μετά τις 03:00 Κύπρου) από τον catch_obs (ανώνυμα, με συγκατάθεση)
+  //     γράφει συγκεντρωτικά στον bite_stats: 'all' και 'sp:<είδος>' (όταν το είδος έχει ≥ 10 ψάρια). Κανένα στοιχείο χρήστη δεν βγαίνει έξω.
+  if (PF) try {
+    const cyH = +new Date().toLocaleString('en-GB', { timeZone: 'Asia/Nicosia', hour: '2-digit', hour12: false }).slice(0, 2);
+    const cur = ((await sb('bite_stats?key=eq.all&select=updated_at')) || [])[0];
+    if (cyH >= 3 && (!cur || Date.now() - Date.parse(cur.updated_at) > 20 * 3600000)) {
+      const rows = [];
+      for (let off = 0; off < 50000; off += 1000) { const a = (await sb(`catch_obs?select=user_id,kind,sp,day,ms,ms2,lat,lon,cnt,cond&order=id.asc&limit=1000&offset=${off}`)) || []; rows.push(...a); if (a.length < 1000) break; }
+      const SMC = {}, tzOf = lon => Math.round((+lon || 0) / 15) * 60;   // περίπου τοπική ώρα (για ανατολή/δύση)
+      const sunBin = (ms, la, lo) => { const d = new Date(ms + tzOf(lo) * 60000).toISOString().slice(0, 10); const ck = d + ',' + la + ',' + lo; const sm = SMC[ck] || (SMC[ck] = PF.sunMoon(d, +la, +lo, tzOf(lo))); const m = (ms + tzOf(lo) * 60000) % 86400000 / 60000;
+        if (!sm || sm.rise == null) return null; if (m < sm.rise - 60 || m > sm.set + 60) return 0; if (m < sm.rise + 90) return 1; if (m > sm.set - 90) return 5; const mid = (sm.rise + sm.set) / 2; return m < mid - 120 ? 2 : m <= mid + 120 ? 3 : 4; };
+      const mk = () => ({ n: 0, u: new Set(), sun: [0, 0, 0, 0, 0, 0], moon: [0, 0, 0, 0, 0, 0, 0, 0], pt: [0, 0, 0], wind: [0, 0, 0, 0], eff: [0, 0, 0, 0, 0, 0], fish: [0, 0, 0, 0, 0, 0] });
+      const G = { all: mk() };
+      for (const r of rows) {
+        if (r.kind !== 'catch' || r.ms == null || r.lat == null) continue;
+        const w = Math.max(1, Math.min(20, r.cnt || 1)), keys = ['all']; if (r.sp) keys.push('sp:' + r.sp);
+        const sb_ = sunBin(+r.ms, r.lat, r.lon), mp = PF.moonPhase(+r.ms), mb = Math.round(mp.f * 8) % 8, c = r.cond || {};
+        const pb = typeof c.ptrend === 'number' ? (c.ptrend <= -0.5 ? 0 : c.ptrend >= 0.5 ? 2 : 1) : null;
+        const wb = typeof c.wind === 'number' ? (c.wind < 5 ? 0 : c.wind < 10 ? 1 : c.wind < 15 ? 2 : 3) : null;
+        for (const k of keys) { const g = G[k] = G[k] || mk(); g.n += w; g.u.add(r.user_id); if (sb_ != null) g.sun[sb_] += w; g.moon[mb] += w; if (pb != null) g.pt[pb] += w; if (wb != null) g.wind[wb] += w; }
+      }
+      // ψάρια ανά ώρα εξόδου, ανά κομμάτι της μέρας (από τις εξόδους: πόσες ώρες ψάρεψαν και πόσα ψάρια έπιασαν)
+      for (const r of rows) {
+        if (r.kind !== 'trip' || !r.ms || !r.ms2 || r.lat == null || r.ms2 - r.ms > 24 * 3600000) continue;
+        const hrs = [], step = 30 * 60000; for (let t = +r.ms; t < +r.ms2; t += step) hrs.push(sunBin(t, r.lat, r.lon));
+        const per = (r.cnt || 0) / Math.max(1, hrs.length); for (const b of hrs) if (b != null) { G.all.eff[b] += 0.5; G.all.fish[b] += per; }
+      }
+      const out = [];
+      for (const [k, g] of Object.entries(G)) {
+        if (k !== 'all' && g.n < 10) continue;
+        const data = { sun: g.sun, moon: g.moon, pt: g.pt.some(Boolean) ? g.pt : null, wind: g.wind.some(Boolean) ? g.wind : null };
+        if (k === 'all' && g.eff.reduce((a, b) => a + b, 0) >= 20) data.rate = g.eff.map((e, i) => e >= 3 ? Math.round(g.fish[i] / e * 100) / 100 : 0);
+        out.push({ key: k, n: g.n, users: g.u.size, data, updated_at: new Date().toISOString() });
+      }
+      if (out.length) await sb('bite_stats?on_conflict=key', { method: 'POST', headers: { 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(out) });
+      stats.bstats = out.length; stats.bobs = rows.length;
+    }
+  } catch (e) { log('bite stats: ' + e.message); }
   log('Safety job: ' + JSON.stringify(stats));
   // 9) 1.9.50: υγεία του server. Σε κάθε εκτέλεση γράφεται «heartbeat» (backups/_system/heartbeat.json, το διαβάζει το watchdog του GitHub).
   //    Αν ένα βήμα αποτύχει σε 2 συνεχόμενες εκτελέσεις (όχι ένα στιγμιαίο σφάλμα δικτύου), μήνυμα Telegram στους διαχειριστές, το πολύ μία φορά ανά 6 ώρες ανά βήμα.

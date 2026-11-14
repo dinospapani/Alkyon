@@ -211,5 +211,5 @@ B.store.delUndo=function(k,rec,msg){
   B.toast(msg||T('Διαγράφηκε.','Deleted.'),7000,{label:T('Αναίρεση','Undo'),fn:function(){ undone=true; clearTimeout(t); var r=Object.assign({},rec); delete r.deleted; save(k,r);
     if(k==='bites'){ var pup=ls.get('alkyon-pup',{})||{}; keys.forEach(function(x){ delete pup[x]; }); ls.set('alkyon-pup',pup); recountTrip(rec.trip); } B.toast(T('Επαναφέρθηκε.','Restored.')); }});
 };
-B.cloud={providers:providers,oauthUrl:oauthUrl,owner:owner,ownerChoice:ownerChoice,localCount:localCount,rest:rest,storage:storage,session:S,signIn:signIn,signUp:signUp,signOut:signOut,setName:setName,sync:sync,verify:verify,recover:recover,resend:resend,fromLink:fromLink,setPassword:setPassword,state:function(){ return state; },errText:errText};
+B.cloud={pub:function(path){ return fetch(URL_+'/rest/v1/'+path,{headers:H(null)}); }, /* 1.14.21: ανάγνωση δημόσιων πινάκων χωρίς λογαριασμό */ providers:providers,oauthUrl:oauthUrl,owner:owner,ownerChoice:ownerChoice,localCount:localCount,rest:rest,storage:storage,session:S,signIn:signIn,signUp:signUp,signOut:signOut,setName:setName,sync:sync,verify:verify,recover:recover,resend:resend,fromLink:fromLink,setPassword:setPassword,state:function(){ return state; },errText:errText};
 })();

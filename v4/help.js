@@ -70,6 +70,8 @@ var HELP=[
 ];
 /* έκδοση → αλλαγές (νεότερες πρώτες). Προσθέτεις γραμμή εδώ σε κάθε νέα λειτουργία. */
 var NEWS=[
+ ['1.14.21',[T('Βοήθησε την πρόγνωση (Προφίλ › Ρυθμίσεις): αν συμφωνήσεις, τα ψάρια και οι έξοδοί σου μετράνε ανώνυμα για να μάθει η εφαρμογή πότε τσιμπάνε πραγματικά, ανά είδος. Περιοχή στρογγυλεμένη στα ~10 km, ποτέ όνομα ή σημείο.','Help the forecast (Profile › Settings): if you agree, your catches and trips count anonymously so the app learns when fish really bite, by species. Area rounded to ~10 km, never your name or spot.'),
+  T('Στατιστικά: νέα κάρτα «Πότε τσιμπάνε · από όλους» (ώρα, σελήνη, πίεση, άνεμος), όταν μαζευτούν αρκετά ψάρια.','Stats: new «When they bite · everyone» card (time, moon, pressure, wind) once enough catches are in.')]],
  ['1.14.20',[T('Μέτρηση μήκους: με πολλές φωτογραφίες, πάνω στη μέτρηση βλέπεις όλες και πατάς αυτή που θέλεις να μετρήσεις.','Length measuring: with several photos, all of them show at the top and you tap the one to measure.')]],
  ['1.14.19',[T('Αρχική οθόνη το βράδυ: όταν δεν μένουν ώρες φωτός σήμερα δείχνει το «Αύριο», όχι «εκτός ορίων ασφαλείας».','Start screen in the evening: when no daylight hours are left today it shows «Tomorrow», not «outside your safety limits».')]],
  ['1.14.18',[T('Το «Πού ψαρεύεις σήμερα;» δεν ξαναβγαίνει αν η σελίδα ξαναφορτώσει (π.χ. μετά την κάμερα του κινητού). Στα αγγλικά «Map point», όχι «Spot χάρτη».','«Where are you fishing today?» no longer comes back when the page reloads (e.g. after the phone camera). In English it says «Map point», not «Spot χάρτη».')]],

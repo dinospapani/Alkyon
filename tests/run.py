@@ -42,7 +42,7 @@ check('node --check (όλα τα .js)', not bad, '; '.join(bad))
 
 def init(lang='el', news=None, prof='boat'):
     return ("if(!sessionStorage.__t){sessionStorage.__t=1;localStorage.clear();"
-      "localStorage.setItem('alkyon-lang',%s);localStorage.setItem('alkyon-onboard','1');localStorage.setItem('alkyon-askfp','0');"
+      "localStorage.setItem('alkyon-lang',%s);localStorage.setItem('alkyon-onboard','1');localStorage.setItem('alkyon-contrib-asked','1');localStorage.setItem('alkyon-askfp','0');"
       "localStorage.setItem('alkyon-fprof-done','1');localStorage.setItem('alkyon-fprof',%s);localStorage.setItem('alkyon-v4-mapui',JSON.stringify('classic'));localStorage.setItem('alkyon-v4-mapui-test','true');"
       "localStorage.setItem('alkyon-v4-news',JSON.stringify(%s||window.ALKYON_VERSION||'9.9.9'));"
       "localStorage.setItem('alkyon-bites',JSON.stringify([{id:'b1',date:'2026-10-20',time:'07:00',species:'Λαβράκι',kg:1.2,lat:35.1,lon:32.5,_u:1}]));}"
@@ -160,6 +160,17 @@ with sync_playwright() as p:
     pg.evaluate("()=>{ localStorage.setItem('alkyon-v4-inbox',JSON.stringify([{at:new Date().toISOString(),title:'💬 Ιδέα · Νέο μήνυμα χρήστη',body:'Hit',kind:'fb',local:1}])); window.__om=null; AK.openMessages=function(k){ window.__om=k; }; location.hash='#inbox'; }"); pg.wait_for_timeout(2500)
     pg.click('.ibrow'); pg.wait_for_timeout(300); r=pg.evaluate("()=>window.__om")
     check('Ειδοποιήσεις: πάτημα σε «Νέο μήνυμα χρήστη» ανοίγει τα μηνύματα (1.14.15)', r=='fb', r); c.close()
+
+    print('# 1.14.21 ανώνυμα στοιχεία τσιμπημάτων')
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3000)
+    r=pg.evaluate("()=>{ const f=AK.contrib._rowOf; const a=f('b',{id:'x1',date:'2026-11-10',time:'06:30',tz:120,latin:'Dicentrarchus labrax',species:'Λαβράκι',lat:34.71234,lon:32.4567,notes:'μυστικό',wind:6.04,ptrend:-1.2,photo:true}); const m=f('b',{id:'x2',date:'2026-11-10',miss:true,lat:34.7,lon:32.4}); const tr=f('trip',{id:'t1',date:'2026-11-10',startMs:1,endMs:3600001,lat:34.7,lon:32.4,count:2}); const n=f('b',{id:'x3',date:'2026-11-10',species:'Λαβράκι'}); return [a,m&&m.kind,tr&&tr.cnt,n]; }")
+    a0=r[0] or {}
+    check('Ανώνυμα στοιχεία: περιοχή 0,1°, ώρα UTC, χωρίς σημειώσεις/φωτογραφίες, χαμένο και έξοδος, όχι χωρίς θέση (1.14.21)', a0.get('lat')==34.7 and a0.get('lon')==32.5 and a0.get('sp')=='dicentrarchus labrax' and a0.get('ms')==1794285000000 and 'notes' not in a0 and 'photo' not in a0 and a0.get('cond',{}).get('wind')==6 and r[1]=='miss' and r[2]==2 and r[3] is None, r)
+    pg.evaluate("()=>{ localStorage.setItem('alkyon-v4-logtab',JSON.stringify('stats')); }"); pg.goto(BASE+'/v4/#profile'); pg.wait_for_timeout(1500)
+    pg.evaluate("()=>{ const b=[...document.querySelectorAll('.seg button')].find(x=>/Ρυθμίσεις/.test(x.textContent)); b&&b.click(); }"); pg.wait_for_timeout(800)
+    s1=pg.evaluate("()=>[...document.querySelectorAll('.li b')].some(x=>/Βοήθησε την πρόγνωση/.test(x.textContent))")
+    card=pg.evaluate("()=>{ const c=AK.biteStatsCard(); document.body.append(c); return new Promise(r=>setTimeout(()=>r(c.textContent),1500)); }")
+    check('Βοήθησε την πρόγνωση στις Ρυθμίσεις και κάρτα «Πότε τσιμπάνε · από όλους» (1.14.21)', s1 and 'από όλους' in card and 'Μαζεύονται' in card, [s1,card[:120]]); c.close()
 
     print('# 1.14.12 ελάχιστο μήκος: πράσινο / κόκκινο')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3000)
