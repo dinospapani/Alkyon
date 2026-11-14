@@ -31,7 +31,7 @@ def kind_of(t):
 
 def collect(paths):
     import osmium
-    els = []
+    els = []; cnt = {'n': 0, 'w': 0, 'wk': 0, 'r': 0}
 
     def keep(t):
         return (t.get('name') or t.get('seamark:name')) and kind_of(t)
@@ -42,10 +42,16 @@ def collect(paths):
     class H(osmium.SimpleHandler):
         def node(self, n):
             if not keep(n.tags) or not n.location.valid(): return
+            cnt['n'] += 1
             els.append((n.location.lat, n.location.lon, 0.0, tg(n.tags)))
 
+        def relation(self, r):
+            if keep(r.tags): cnt['r'] += 1
+
         def way(self, w):
+            cnt['w'] += 1
             if not keep(w.tags): return
+            cnt['wk'] += 1
             pts = [(nd.location.lat, nd.location.lon) for nd in w.nodes if nd.location.valid()]
             if len(pts) < 2: return
             la = [p[0] for p in pts]; lo = [p[1] for p in pts]
@@ -55,7 +61,7 @@ def collect(paths):
 
     for p in paths:
         H().apply_file(p, locations=True)
-        print('elements so far', len(els))
+        print('elements so far', len(els), cnt)
     return els
 
 
