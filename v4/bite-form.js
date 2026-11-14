@@ -189,8 +189,8 @@ B.biteForm=function(edit,opt){
   /* φωτογραφίες */
   var phBox=h('div',{class:'phs'}), file=h('input',{type:'file',accept:'image/*',multiple:true,class:'vh'});
   var addPh=h('button',{type:'button',class:'phadd','aria-label':T('Προσθήκη φωτογραφίας','Add photo'),html:B.iconSvg('plus'),onclick:function(){ file.click(); }});
-  function drawPh(){ if(measBtn) measBtn.hidden=!photos.length; phBox.replaceChildren(); photos.forEach(function(b,i){ var u=URL.createObjectURL(b); phBox.append(h('div',{class:'ph'},h('img',{src:u,alt:''}),h('button',{type:'button',class:'phx','aria-label':T('Αφαίρεση φωτογραφίας','Remove photo'),text:'✕',onclick:function(){ photos.splice(i,1); phDirty=true; drawPh(); }}))); }); phBox.append(addPh); }
-  file.addEventListener('change',function(){ var fs=[].slice.call(file.files||[]); file.value=''; Promise.all(fs.map(function(f){ return S.resize(f).catch(function(){ return null; }); })).then(function(bl){ bl.filter(Boolean).forEach(function(b){ photos.push(b); }); phDirty=true; drawPh(); if(aiBox&&aiBox.run&&!sp.value.trim()&&photos.length) setTimeout(function(){ aiBox.run(); },150); }); });
+  function drawPh(){ phBox.replaceChildren(); photos.forEach(function(b,i){ var u=URL.createObjectURL(b); phBox.append(h('div',{class:'ph'},h('img',{src:u,alt:''}),h('button',{type:'button',class:'phx','aria-label':T('Αφαίρεση φωτογραφίας','Remove photo'),text:'✕',onclick:function(){ photos.splice(i,1); phDirty=true; drawPh(); }}))); }); phBox.append(addPh); }
+  file.addEventListener('change',function(){ var fs=[].slice.call(file.files||[]); file.value=''; Promise.all(fs.map(function(f){ return S.resize(f).catch(function(){ return null; }); })).then(function(bl){ bl.filter(Boolean).forEach(function(b){ photos.push(b); }); phDirty=true; drawPh(); if(measNext&&photos.length){ measNext=false; setTimeout(function(){ measure(photos[photos.length-1]); },200); return; } if(aiBox&&aiBox.run&&!sp.value.trim()&&photos.length) setTimeout(function(){ aiBox.run(); },150); }); });
   drawPh();
   /* επεξεργασία: γέμισμα */
   if(e){ sp.value=e.species||''; if(+e.cnt>1){ many.checked=true; cnt.value=e.cnt; } kg.value=e.kg!=null?e.kg:''; len.value=e.len!=null?e.len:''; dep.value=e.depth!=null?(window.AlkyonUnits&&AlkyonUnits.depthOut?AlkyonUnits.depthOut(e.depth):e.depth):''; vis.value=e.vis!=null?e.vis:'';
@@ -209,7 +209,7 @@ B.biteForm=function(edit,opt){
   /* ελάχιστο νόμιμο μέγεθος και προειδοποιήσεις (ίδιοι κανόνες με την κλασική: rules.js, Τμήμα Αλιείας) */
   var lawNote=h('p',{class:'lawnote',hidden:true,role:'status'});
   /* 1.14.13: μήκος από φωτογραφία: πατάς τις δύο άκρες ενός γνωστού αντικειμένου (κάρτα, κουτάκι, χάρακας) και μετά μύτη–ουρά του ψαριού */
-  var measBtn=h('button',{type:'button',class:'linkbtn measbtn',hidden:true,text:'📏 '+T('Μέτρηση μήκους από τη φωτογραφία','Measure length from the photo'),onclick:function(){ measure(photos[0]); }});
+  var measNext=false, measBtn=h('button',{type:'button',class:'linkbtn measbtn',text:'📏 '+T('Μέτρηση μήκους με φωτογραφία','Measure length with a photo'),onclick:function(){ if(photos.length) measure(photos[photos.length-1]); else { measNext=true; file.click(); } }}); /* 1.14.14: φαίνεται πάντα· χωρίς φωτογραφία ανοίγει πρώτα κάμερα/συλλογή */
   function measure(blob){ if(!blob) return; var REFS=[[8.56,T('Κάρτα (τράπεζας / ταυτότητα), μακριά πλευρά','Card (bank / ID), long side')],[12.2,T('Κουτάκι αναψυκτικού 330 ml, ύψος','Soft-drink can 330 ml, height')],[30,T('Χάρακας 30 cm','30 cm ruler')],[0,T('Άλλο (γράψε cm)','Other (enter cm)')]];
     var ref=REFS[0][0], pts=[], img=new Image(), cv=h('canvas',{class:'meascv'}), info=h('p',{class:'sub meas-i'}), res=h('p',{class:'lawnote ok',hidden:true}), oth=h('input',{type:'number',class:'input',min:'1',step:'0.1',placeholder:'cm',hidden:true,style:'max-width:120px'});
     var sel=h('select',{class:'select'}); REFS.forEach(function(r,i){ sel.append(h('option',{value:String(i),text:r[1]})); });

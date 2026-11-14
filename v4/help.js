@@ -70,6 +70,7 @@ var HELP=[
 ];
 /* έκδοση → αλλαγές (νεότερες πρώτες). Προσθέτεις γραμμή εδώ σε κάθε νέα λειτουργία. */
 var NEWS=[
+ ['1.14.14',[T('Νέο ψάρι: το «📏 Μέτρηση μήκους με φωτογραφία» φαίνεται πάντα κάτω από το μήκος· αν δεν έχεις φωτογραφία, ανοίγει πρώτα την κάμερα.','New catch: «📏 Measure length with a photo» is always under the length; with no photo it opens the camera first.')]],
  ['1.14.13',[T('Ειδοποίηση ενώ είσαι στον χάρτη: εμφανίζεται αμέσως (SOS, σημεία), χωρίς να πας σε άλλη σελίδα και να γυρίσεις.','A notification while you are on the map now shows at once (SOS, places), no need to leave and come back.'),
   T('Μακριά μηνύματα (π.χ. η πίεση στην έναρξη εξόδου): πάτα «▾ Πάτα για ολόκληρο» για να το διαβάσεις όλο.','Long messages (e.g. pressure at trip start): tap «▾ Tap to read all» to read the whole text.'),
   T('Καθαρή οθόνη: τα υπομνήματα «Ρηχά & ξέρες» και «Ζώνη βάθους» δεν φαίνονται καθόλου σε έξοδο· αλλιώς φαίνονται λίγα δευτερόλεπτα όταν ανοίγεις το επίπεδο και μετά κρύβονται.','Clean screen: the «Shallows & shoals» and «Depth band» legends are hidden during a trip; otherwise they show for a few seconds when you turn the layer on, then hide.'),

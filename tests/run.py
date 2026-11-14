@@ -110,7 +110,7 @@ with sync_playwright() as p:
     try:
         from PIL import Image as _I; _f=os.path.join(tempfile.gettempdir(),'ak_meas.png'); _I.new('RGB',(800,400),(30,90,140)).save(_f)
         c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3000)
-        pg.evaluate("()=>AK.biteForm()"); pg.wait_for_timeout(1200); h0=pg.evaluate("()=>document.querySelector('.bf2 .measbtn').hidden")
+        pg.evaluate("()=>AK.biteForm()"); pg.wait_for_timeout(1200); h0=pg.evaluate("()=>!document.querySelector('.bf2 .measbtn').hidden")
         pg.set_input_files('.bf2 input[type=file]',_f); pg.wait_for_timeout(1500); pg.click('.bf2 .measbtn'); pg.wait_for_timeout(1200)
         bx=pg.evaluate("()=>{ const r=document.querySelector('.meascv').getBoundingClientRect(); return [r.left,r.top,r.width,r.height]; }")
         for fx,fy in ((.1,.5),(.2,.5),(.1,.6),(.6,.6)): pg.mouse.click(bx[0]+bx[2]*fx,bx[1]+bx[3]*fy); pg.wait_for_timeout(100)
