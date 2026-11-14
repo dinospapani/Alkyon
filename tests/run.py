@@ -105,6 +105,16 @@ with sync_playwright() as p:
     c=ctx(b,news='1.2.0'); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(10000)
     check('«Τι νέο υπάρχει» μετά από αναβάθμιση', pg.evaluate("()=>!!document.querySelector('.sheet')")); c.close()
 
+    print('# 1.14.10 νέα έκδοση στο store (μέσα στην εφαρμογή)')
+    c=ctx(b); pg=page(c)
+    pg.add_init_script("window.AKN={site:location.origin+'/',platform:'android',openExternal:function(u){ window.__opened=u; }};")
+    pg.route('**/app-version.json*', lambda r: r.fulfill(status=200, content_type='application/json', body='{"android":{"v":"9.0.0","url":"https://example.com/play","el":"από το Google Play"}}'))
+    pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(10500)
+    r=pg.evaluate("()=>{ const b=document.querySelector('.updbar'); if(!b) return null; const t=b.textContent; b.querySelector('.btn').click(); return [t, window.__opened]; }")
+    check('Εφαρμογή: μπάρα «Νέα έκδοση 9.0.0» ανοίγει το store (1.14.10)', bool(r) and '9.0.0' in r[0] and r[1]=='https://example.com/play', r)
+    j=json.load(open(os.path.join(ROOT,'app-version.json'),encoding='utf-8'))
+    check('app-version.json: έκδοση και σύνδεσμος για android και ios (1.14.10)', all(j.get(k,{}).get('v') and j.get(k,{}).get('url') for k in ('android','ios')), j); c.close()
+
     print('# backup (export → καθάρισμα → επαναφορά)')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#profile'); pg.wait_for_timeout(2000)
     pg.evaluate("()=>{AK.store.save('spots',{id:'s1',name:'Βράχος',lat:35,lon:33.3}); AK.store.save('tackle',{id:'k1',type:'lure',kind:'jig',name:'Ζόκα'});}")

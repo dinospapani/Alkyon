@@ -117,12 +117,23 @@ B.start=start;
 /* «Νέα έκδοση διαθέσιμη» (όπως η κλασική): ελέγχει το ../version.js και ανανεώνει όταν το πατήσεις, ποτέ μέσα σε έξοδο */
 (function(){ var B=window.AK, T=B.T, bar=null, dis='';
   function num(v){ var s=/^v?(\d+)\.(\d+)(?:\.(\d+))?$/.exec(v||''); if(s) return 1e7+(+s[1])*1e4+(+s[2])*100+(+(s[3]||0)); var m=/v(\d+)z(\d+)/.exec(v||''); return m?+m[1]*1000+(+m[2]):0; }
+  /* 1.14.10: μέσα στην εφαρμογή Android/iPhone τα αρχεία είναι μέσα στο κινητό· η νέα έκδοση έρχεται μόνο από το store.
+     Το https://alkyonfishing.com/app-version.json λέει ποια έκδοση υπάρχει στο Play / TestFlight (ενημερώνεται όταν εγκριθεί)·
+     αν είναι νεότερη, η μπάρα ανοίγει το store. «Αργότερα»: δεν ξαναρωτά για την ίδια έκδοση για 3 μέρες. */
+  var NK='alkyon-store-upd';
+  function nat(){ return window.AKN&&window.AKN.site; }
+  function showStore(v,url,notes){ if(bar) return; try{ var d=B.ls.get(NK,null); if(d&&d.v===v&&Date.now()-d.t<3*86400000) return; }catch(e){}
+    bar=B.h('div',{class:'updbar',role:'status'},B.h('span',null,B.h('b',{text:T('Νέα έκδοση ','New version ')+v}),notes?B.h('small',{text:' · '+notes}):null),
+      B.h('button',{type:'button',class:'btn sm pri',text:T('Ενημέρωση','Update'),onclick:function(){ if(!/^https?:/.test(url)){ location.href=url; return; } try{ window.AKN.openExternal(url); }catch(e){ location.href=url; } } /* market:// και itms-beta:// ανοίγουν κατευθείαν το Play / TestFlight */}),
+      B.h('button',{type:'button',class:'x','aria-label':T('Αργότερα','Later'),text:'✕',onclick:function(){ B.ls.set(NK,{v:v,t:Date.now()}); bar.remove(); bar=null; }}));
+    document.body.append(bar); }
   function show(v){ if(bar||dis===v) return; bar=B.h('div',{class:'updbar',role:'status'},B.h('span',{text:T('Νέα έκδοση διαθέσιμη','A new version is available')}),
       B.h('button',{type:'button',class:'btn sm pri',text:T('Ανανέωση','Update'),onclick:function(){ var go=function(){ location.reload(); };
         try{ navigator.serviceWorker.getRegistration().then(function(r){ return r?r.update():0; }).catch(function(){}).then(go); }catch(e){ go(); } }}),
       B.h('button',{type:'button',class:'x','aria-label':T('Κλείσιμο','Close'),text:'✕',onclick:function(){ dis=v; bar.remove(); bar=null; }}));
     document.body.append(bar); }
   function check(){ if(navigator.onLine===false||!window.ALKYON_VERSION||document.body.classList.contains('ontrip')) return;
+    if(nat()){ fetch(nat()+'app-version.json?_='+Date.now(),{cache:'no-store'}).then(function(r){ return r.ok?r.json():null; }).then(function(j){ var p=j&&j[window.AKN.platform]; if(p&&p.v&&p.url&&num(p.v)>num(window.ALKYON_VERSION)) showStore(p.v,p.url,(window.LANG==='en'?p.en:p.el)||''); }).catch(function(){}); return; }
     fetch('../version.js?_='+Date.now(),{cache:'no-store'}).then(function(r){ return r.ok?r.text():''; }).then(function(t){ var m=/ALKYON_VERSION\s*=\s*'([^']+)'/.exec(t||''); if(m&&num(m[1])>num(window.ALKYON_VERSION)) show(m[1]); }).catch(function(){}); }
   document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible') check(); });
   setTimeout(check,8000); setInterval(check,15*60000); B.on('tripend',function(){ setTimeout(check,3000); });

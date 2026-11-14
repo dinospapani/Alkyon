@@ -1,0 +1,3 @@
+{"_":"Alkyon: ποια έκδοση υπάρχει στα stores (τη διαβάζει η εφαρμογή Android/iPhone για τη μπάρα «Νέα έκδοση»). Αλλάζει ΜΟΝΟ όταν η έκδοση εγκριθεί και είναι διαθέσιμη στο store.",
+ "android":{"v":"1.13.8","url":"market://details?id=com.alkyonfishing.app","el":"από το Google Play","en":"from Google Play"},
+ "ios":{"v":"1.13.7","url":"itms-beta://","el":"από το TestFlight","en":"from TestFlight"}}
