@@ -70,6 +70,7 @@ var HELP=[
 ];
 /* έκδοση → αλλαγές (νεότερες πρώτες). Προσθέτεις γραμμή εδώ σε κάθε νέα λειτουργία. */
 var NEWS=[
+ ['1.14.18',[T('Το «Πού ψαρεύεις σήμερα;» δεν ξαναβγαίνει αν η σελίδα ξαναφορτώσει (π.χ. μετά την κάμερα του κινητού). Στα αγγλικά «Map point», όχι «Spot χάρτη».','«Where are you fishing today?» no longer comes back when the page reloads (e.g. after the phone camera). In English it says «Map point», not «Spot χάρτη».')]],
  ['1.14.17',[T('Κάμερα μέσα στην εφαρμογή, όπως του κινητού: λήψη στη μέση, συλλογή κάτω αριστερά, αλλαγή κάμερας δεξιά. Ανοίγει από το 📷 και από τη μέτρηση μήκους.','In-app camera like your phone camera: shutter in the middle, gallery bottom-left, switch camera on the right. Opens from the 📷 and from length measuring.'),
   T('Νέο ψάρι: το 📷 πάνω ανοίγει κατευθείαν την κάμερα· το «+» στις Φωτογραφίες ανοίγει τη συλλογή. Το «📏 Μέτρηση μήκους» υπάρχει και κάτω από τις φωτογραφίες.','New catch: the 📷 at the top opens the camera directly; the «+» under Photos opens your gallery. «📏 Measure length» is also under the photos.')]],
  ['1.14.15',[T('Μέτρηση μήκους: ανοίγει κατευθείαν την κάμερα· μετά το «Χρήση» γυρίζεις στη φόρμα του ψαριού και αποθηκεύεις κανονικά (πριν έκλεινε η φόρμα).','Length measuring: opens the camera directly; after «Use» you are back on the catch form and can save (before, the form closed).'),
