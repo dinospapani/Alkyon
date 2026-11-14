@@ -232,7 +232,7 @@ B.tripSheet=function(){
   var sx=B.tripSheetExtras&&B.tripSheetExtras(); if(sx) body.append(sx);
   body.append(h('div',{class:'acts'},h('button',{class:'btn',type:'button',text:T('+30 λεπτά','+30 min'),onclick:function(){ ext(); sh.close(); }}),h('button',{class:'btn',type:'button',text:T('Στείλε το σχέδιο','Send the plan'),onclick:function(){ sh.close(); chooseSend(load(),'plan'); }})));
   body.append(h('button',{class:'btn pri full',type:'button',text:'■ '+T('Τέλος εξόδου','End trip'),onclick:function(){ sh.close(); back(); }}));
-  body.append(h('button',{class:'btn full sos',type:'button',text:'SOS',onclick:function(){ B.ask(T('Να σταλεί SOS με τη θέση σου στην επαφή ασφαλείας και στα σκάφη με Alkyon έως 10 ναυτικά μίλια;','Send an SOS with your location to your safety contact and to boats with Alkyon within 10 nautical miles?'),T('Αποστολή SOS','Send SOS'),true).then(function(y){ if(y){ sh.close(); sos(); } }); }}));
+  body.append(h('button',{class:'btn full sos',type:'button',text:'SOS',onclick:function(){ B.ask(T('Να σταλεί SOS με τη θέση σου στην επαφή ασφαλείας, στους φίλους σου στην εφαρμογή και στα σκάφη με Alkyon έως 10 ναυτικά μίλια;','Send an SOS with your location to your safety contact, your friends in the app and boats with Alkyon within 10 nautical miles?'),T('Αποστολή SOS','Send SOS'),true).then(function(y){ if(y){ sh.close(); sos(); } }); }}));
   sh=B.sheet({title:T('Έξοδος σε εξέλιξη','Trip in progress'),body:body});
 };
 /* μπάρα εξόδου πάνω από την κάτω πλοήγηση, σε όλες τις σελίδες */

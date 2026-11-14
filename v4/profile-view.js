@@ -108,6 +108,8 @@ function mineTab(page){
   page.append(group(T('Βοήθεια','Help'),[
     row('help',T('Πώς δουλεύει','How it works'),T('Όλες οι λειτουργίες με λίγα λόγια','Every feature in a few words'),'#help'),
     row('chat',T('Πες μας τη γνώμη σου','Share feedback'),T('Πρόταση, πρόβλημα ή κάτι που σου άρεσε','An idea, a problem, or something you liked'),null,feedbackSheet),
+    /* 1.14.13 */ (C()&&C().session&&C().session())?(function(){ var rw=row('mail',T('Μηνύματα με την Alkyon','Messages with Alkyon'),T('Οι απαντήσεις μας στα μηνύματά σου','Our replies to your messages'),null,function(){ msgThread({uid:C().session().uid,admin:false,onclose:function(){ draw(); }}); });
+      msgUnread().then(function(n){ if(!n) return; var ic=rw.firstElementChild; if(!ic) return; ic.classList.add('hasbadge'); ic.append(h('i',{class:'icbadge','aria-label':n+T(' νέα',' new'),text:String(n)})); }); return rw; })():null,
     row('mail',T('Επικοινωνία','Contact'),'alkyonfishingapp@gmail.com','mailto:alkyonfishingapp@gmail.com?subject='+encodeURIComponent('Alkyon '+(window.ALKYON_VERSION||''))), /* 1.9.24 */
     row('safety',T('Έλεγχος συστήματος','System check'),T('Δουλεύουν όλα; Καιρός, δορυφόρος, ειδοποιήσεις, αντίγραφο','Is everything working? Weather, satellite, alerts, backup'),'#check'),
     row('info',T('Σχετικά','About'),'Alkyon '+(window.ALKYON_VERSION||'')+' · '+T('Απόρρητο, όροι','Privacy, terms'),null,aboutSheet)]));
@@ -139,15 +141,45 @@ function feedbackSheet(){ var sh, s=C()&&C().session&&C().session(), topic='idea
 /* 1.13.8: μόνο για διαχειριστές: τα μηνύματα «Πες μας τη γνώμη σου» (πολιτική ae_admin_read_feedback) */
 /* 1.14.1: αδιάβαστα: ό,τι ήρθε μετά το τελευταίο άνοιγμα της λίστας (σε αυτή τη συσκευή) */
 var FBR='alkyon-fb-read';
-function fbUnread(){ var t=B.ls.get(FBR,'1970-01-01T00:00:00Z'); return C().rest('app_errors?select=at&kind=eq.feedback&at=gt.'+encodeURIComponent(t)+'&limit=99').then(function(r){ return r.ok?r.json():[]; }).then(function(a){ return a.length; }).catch(function(){ return 0; }); }
+/* 1.14.13: διαχειριστής: συζητήσεις με απαντήσεις χρηστών (πάνω από τα μηνύματα «Πες μας τη γνώμη σου») */
+function inboxConvs(body){ C().rest('user_messages?select=user_id,from_admin,body,name,created_at,read_at,ref&order=created_at.desc&limit=300').then(function(r){ return r.ok?r.json():[]; }).then(function(a){
+    var by={}, order=[]; a.forEach(function(m){ var c=by[m.user_id]; if(!c){ c=by[m.user_id]={uid:m.user_id,last:m,unread:0,name:'',admin:false}; order.push(c); } if(!m.from_admin&&!m.name==false) c.name=c.name||m.name; if(m.from_admin) c.admin=true; if(!m.from_admin&&!m.read_at&&!m.ref) c.unread++; });
+    var conv=order.filter(function(c){ return c.admin; }); if(!conv.length) return;
+    var box=h('div',{class:'mconvs'},h('h3',{class:'listh',text:T('Συζητήσεις','Conversations')}));
+    conv.forEach(function(c){ box.append(h('button',{class:'card fbm mconv'+(c.unread?' fbnew':''),type:'button',onclick:function(){ msgThread({uid:c.uid,admin:true,title:c.name||T('Χρήστης','User')}); }},h('div',{class:'fbh'},c.unread?h('span',{class:'fbdot',text:c.unread+' '+T('νέα','new')}):null,h('b',{text:c.name||T('Χρήστης','User')}),h('small',{text:' '+msgWhen(c.last.created_at)})),h('p',{class:'fbt',text:(c.last.from_admin?T('Εσύ: ','You: '):'')+String(c.last.body).slice(0,140)}))); });
+    body.prepend(box); }).catch(function(){}); }
+function fbUnread(){ var t=B.ls.get(FBR,'1970-01-01T00:00:00Z'); return Promise.all([C().rest('app_errors?select=at&kind=eq.feedback&at=gt.'+encodeURIComponent(t)+'&limit=99').then(function(r){ return r.ok?r.json():[]; }),C().rest('user_messages?select=id&from_admin=eq.false&read_at=is.null&ref=is.null&limit=99').then(function(r){ return r.ok?r.json():[]; }).catch(function(){ return []; })]).then(function(x){ return x[0].length+x[1].length; }).catch(function(){ return 0; }); }
+/* 1.14.13: συζήτηση χρήστη ↔ Alkyon (πίνακας user_messages). Ο χρήστης βλέπει το μήνυμά του και τις απαντήσεις και μπορεί να ξαναγράψει·
+   ο διαχειριστής απαντά από τα «Μηνύματα χρηστών». Κάθε νέο μήνυμα στέλνει push στον άλλον (sos-alert › action 'msg'). */
+var FNU='https://sgfohmqwdwtkhtrebnix.supabase.co/functions/v1/sos-alert';
+function msgPush(id){ try{ var s=C().session(); fetch(FNU,{method:'POST',headers:{apikey:'sb_publishable_LGuwvrvLnAj1CF22Q6g9vg_4OImZYbA','Content-Type':'application/json',Authorization:'Bearer '+s.access_token},body:JSON.stringify({action:'msg',id:id})}).catch(function(){}); }catch(e){} }
+function msgUnread(){ var s=C()&&C().session&&C().session(); if(!s) return Promise.resolve(0); return C().rest('user_messages?select=id&user_id=eq.'+s.uid+'&from_admin=eq.true&read_at=is.null&limit=99').then(function(r){ return r.ok?r.json():[]; }).then(function(a){ return a.length; }).catch(function(){ return 0; }); }
+function msgWhen(t){ var d=new Date(t); return B.pad(d.getDate())+'/'+B.pad(d.getMonth()+1)+' '+B.pad(d.getHours())+':'+B.pad(d.getMinutes()); }
+function msgThread(o){ /* o: {uid, admin, title, ref, onclose} */
+  var s=C().session(), list=h('div',{class:'mthread'},h('p',{class:'sub',text:T('Φόρτωση…','Loading…')})), ta=h('textarea',{class:'input',rows:3,maxlength:4000,placeholder:o.admin?T('Η απάντησή σου…','Your reply…'):T('Γράψε μήνυμα στην Alkyon…','Write to Alkyon…')}), err=h('p',{class:'err',role:'alert'});
+  var send=h('button',{class:'btn pri full',type:'button',text:T('Αποστολή','Send'),onclick:function(){ var t=ta.value.trim(); if(!t) return; send.disabled=true; err.textContent='';
+    var row0={user_id:o.uid,from_admin:!!o.admin,author:s.uid,body:t,name:(s.name||'').slice(0,60)||null,ref:o.ref||null};
+    C().rest('user_messages',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(row0)}).then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); }).then(function(a){ ta.value=''; send.disabled=false; if(a&&a[0]) msgPush(a[0].id); load(); B.toast(T('Στάλθηκε','Sent'),2000); })
+      .catch(function(e){ send.disabled=false; err.textContent=T('Δεν στάλθηκε. Δοκίμασε ξανά.','Not sent. Try again.')+' ('+(e.message||'')+')'; }); }});
+  function load(){ C().rest('user_messages?select=*&user_id=eq.'+o.uid+'&order=created_at.asc&limit=200').then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); }).then(function(a){ list.replaceChildren();
+      if(!a.length) list.append(h('p',{class:'sub',text:o.admin?T('Δεν υπάρχουν μηνύματα σε συζήτηση ακόμα. Γράψε την απάντησή σου.','No messages in this conversation yet. Write your reply.'):T('Δεν υπάρχουν μηνύματα ακόμα. Γράψε μας ό,τι θέλεις: ιδέα, πρόβλημα ή απορία.','No messages yet. Write anything: an idea, a problem or a question.')}));
+      a.forEach(function(m){ var mine=o.admin?m.from_admin:!m.from_admin; list.append(h('div',{class:'mb'+(mine?' me':'')},h('small',{text:(m.from_admin?'Alkyon':(m.name||T('Χρήστης','User')))+' · '+msgWhen(m.created_at)}),h('p',{text:m.body}))); });
+      list.scrollTop=list.scrollHeight;
+      var unread=a.filter(function(m){ return !m.read_at&&(o.admin?!m.from_admin:m.from_admin); }).map(function(m){ return m.id; });
+      if(unread.length) C().rest('user_messages?id=in.('+unread.join(',')+')',{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({read_at:new Date().toISOString()})}).catch(function(){}); })
+    .catch(function(){ list.replaceChildren(h('p',{class:'sub',text:T('Δεν φορτώθηκαν τα μηνύματα.','Could not load the messages.')})); }); }
+  load(); B.sheet({title:o.title||T('Μηνύματα με την Alkyon','Messages with Alkyon'),body:h('div',{class:'bform'},list,ta,err,send),onclose:o.onclose}); }
+B.msgThread=msgThread;
 function inboxSheet(){ var body=h('div',{class:'bform fbin'},h('p',{class:'sub',text:T('Φόρτωση…','Loading…')})), TOP={idea:T('Ιδέα','Idea'),bug:T('Πρόβλημα','Problem'),like:T('Μου αρέσει','I like it')};
   B.sheet({title:T('Μηνύματα χρηστών','User messages'),body:body});
-  C().rest('app_errors?select=at,ver,msg,hash,stack,ua&kind=eq.feedback&order=at.desc&limit=100').then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); }).then(function(a){
+  inboxConvs(body);
+  C().rest('app_errors?select=at,ver,msg,hash,stack,ua,user_id&kind=eq.feedback&order=at.desc&limit=100').then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); }).then(function(a){
     var lastRead=B.ls.get(FBR,'1970-01-01T00:00:00Z'); if(a.length) B.ls.set(FBR,a[0].at); body.replaceChildren(); if(!a.length){ body.append(h('p',{class:'sub',text:T('Κανένα μήνυμα ακόμα.','No messages yet.')})); return; }
     a.forEach(function(m){ var meta={}; String(m.stack||'').split('\n').forEach(function(l){ var i=l.indexOf(': '); if(i>0) meta[l.slice(0,i)]=l.slice(i+2); });
       var d=new Date(m.at), when=B.pad(d.getDate())+'/'+B.pad(d.getMonth()+1)+' '+B.pad(d.getHours())+':'+B.pad(d.getMinutes()), dev=/iPhone|iPad/.test(m.ua||'')?'iPhone':/Android/.test(m.ua||'')?'Android':T('Υπολογιστής','Computer');
       body.append(h('div',{class:'card fbm'+(m.at>lastRead?' fbnew':'')},h('div',{class:'fbh'},m.at>lastRead?h('span',{class:'fbdot',text:T('Νέο','New')}):null,h('b',{text:TOP[meta.topic]||meta.topic||''}),h('small',{text:' '+when+' · '+(m.ver||'')+' · '+dev+(meta.native==='true'?T(' (app)',' (app)'):'')+(m.hash?' · '+m.hash:'')})),
-        h('p',{class:'fbt',text:m.msg||''}), meta.contact?h('a',{href:'mailto:'+meta.contact,text:'✉ '+meta.contact}):null)); }); })
+        h('p',{class:'fbt',text:m.msg||''}), meta.contact?h('a',{href:'mailto:'+meta.contact,text:'✉ '+meta.contact}):null,
+        m.user_id?h('button',{class:'btn sm',type:'button',text:'↩ '+T('Απάντηση μέσα από την εφαρμογή','Reply in the app'),onclick:function(){ msgThread({uid:m.user_id,admin:true,ref:m.at,title:T('Απάντηση σε χρήστη','Reply to user')}); }}):h('small',{class:'sub',text:T('Ανώνυμο (χωρίς λογαριασμό): απάντηση μόνο με email, αν έδωσε.','Anonymous (no account): reply only by email, if given.')}))); }); })
   .catch(function(){ body.replaceChildren(h('p',{class:'sub',text:T('Δεν φορτώθηκαν. Δοκίμασε ξανά.','Could not load. Try again.')})); }); }
 /* 1.12.14: αποκλεισμένοι χρήστες της Κοινότητας: άρση αποκλεισμού */
 function blockedSheet(){ var sh, body=h('div',{class:'bform'});
@@ -238,6 +270,7 @@ function accountCard(s){
   var nm=(s.name||'').trim(), ch=(nm||s.email||'?').charAt(0).toUpperCase();
   c.append(h('h2',{text:T('Λογαριασμός','Account')}),h('p',{class:'sub accmail',text:s.email||''}));
   var ni=h('input',{type:'text',maxlength:'40',value:nm,placeholder:T('Το όνομά σου','Your name'),autocomplete:'name','aria-label':T('Όνομα','Name')});
+  if(!nm) c.append(h('p',{class:'nmwarn',text:T('Βάλε το όνομά σου: έτσι σε βλέπουν οι φίλοι σου (αλλιώς φαίνεσαι «Φίλος»).','Add your name: this is how your friends see you (otherwise you show as “Friend”).')})); /* 1.14.13 */
   c.append(h('div',{class:'inrow'},ni,h('button',{class:'btn',type:'button',text:T('Αποθήκευση','Save'),onclick:function(){ C().setName(ni.value.trim()).then(function(){ B.toast(T('Το όνομα αποθηκεύτηκε.','Name saved.')); draw(); }).catch(function(e){ B.toast(C().errText(e)); }); }})));
   /* η ώρα συγχρονισμού φαίνεται ήδη στην κεφαλίδα· εδώ μόνο πρόοδος ή σφάλμα */
   var sm=h('p',{class:'sub syncmsg'+(st.err?' bad':''),hidden:!st.err,text:st.err?st.msg:''});

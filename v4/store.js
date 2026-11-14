@@ -75,7 +75,7 @@ function errText(e){
 function signIn(email,pw){ return auth('token?grant_type=password',{email:email,password:pw}).then(function(j){ setSess(j,null); return sync(true); }); }
 /* 1.4.3: η διεύθυνση επιστροφής πάει στο ?redirect_to= (όπως στην κλασική)· μέσα στο σώμα την αγνοεί το Supabase και έστελνε στο Site URL */
 function lang(){ return window.LANG==='en'?'en':'el'; }
-function signUp(email,pw){ return auth('signup?redirect_to='+encodeURIComponent(site()),{email:email,password:pw,data:{lang:lang()}}) /* 1.5.1: η γλώσσα για το email επιβεβαίωσης */.then(function(j){ if(j.access_token){ setSess(j,null); return sync(true).then(function(){ return 'in'; }); }
+function signUp(email,pw,name){ var dt={lang:lang()}; if(name) dt.name=String(name).slice(0,40); /* 1.14.13: όνομα από την εγγραφή (το βλέπουν οι φίλοι) */ return auth('signup?redirect_to='+encodeURIComponent(site()),{email:email,password:pw,data:dt}) /* 1.5.1: η γλώσσα για το email επιβεβαίωσης */.then(function(j){ if(j.access_token){ setSess(j,null); return sync(true).then(function(){ return 'in'; }); }
   /* 1.9.60: το email έχει ήδη επιβεβαιωμένο λογαριασμό: το Supabase απαντά «ok» χωρίς identities και ΔΕΝ στέλνει email. Πριν, η εφαρμογή περίμενε κωδικό που δεν θα ερχόταν. */
   var u=j&&(j.user||j); if(u&&Array.isArray(u.identities)&&u.identities.length===0) return 'exists';
   return 'confirm'; }); }

@@ -15,13 +15,17 @@ function load(){
       if(x.viewer===u){ var f=M[x.owner]||(M[x.owner]={uid:x.owner}); f.name=x.owner_name||f.name; f.theyShare=!!x.share; }
       if(x.owner===u){ var g=M[x.viewer]||(M[x.viewer]={uid:x.viewer}); g.name=g.name||x.viewer_name; g.mine=!!x.share; }
     });
-    list=Object.keys(M).map(function(k){ var f=M[k]; if(!f.name) f.name=T('Φίλος','Friend'); if(f.mine==null) f.mine=true; return f; });
+    var NK=ls.get('alkyon-fnick',{})||{}; /* 1.14.13: ψευδώνυμο που βάζεις εσύ (μόνο στο κινητό σου) */
+    list=Object.keys(M).map(function(k){ var f=M[k]; f.real=f.name||''; if(NK[k]) f.name=NK[k]; if(!f.name) f.name=T('Φίλος','Friend'); if(f.mine==null) f.mine=true; return f; });
     draw();
   }).catch(function(e){ list=[]; err=/42P01|PGRST205|relation/.test(String(e.message))?T('Οι φίλοι δεν είναι διαθέσιμοι ακόμα.','Friends are not available yet.'):C().errText(e); draw(); });
 }
 /* v31z537: κωδικός που ήρθε από σύνδεσμο (#addfriend=…), ισχύει 48 ώρες */
 function pend(){ var o=B.ls.get('alk-friend-code',null); if(!o||!o.c) return null; if(Date.now()-o.t>48*3600e3){ clearPend(); return null; } return o.c; }
 function clearPend(){ try{ localStorage.removeItem('alk-friend-code'); }catch(e){} }
+function nick(f){ var inp=h('input',{class:'input',type:'text',maxlength:'40',value:(ls.get('alkyon-fnick',{})||{})[f.uid]||f.real||'',placeholder:T('π.χ. Αντρέας – βάρκα','e.g. Andreas – boat')});
+  var sh=B.sheet({title:T('Όνομα φίλου','Friend name'),body:h('div',{class:'bform'},h('p',{class:'sub',text:T('Το βλέπεις μόνο εσύ. Άφησέ το κενό για το όνομα του λογαριασμού του.','Only you see it. Leave it empty for their account name.')}),inp,
+    h('button',{class:'btn pri full',type:'button',text:T('Αποθήκευση','Save'),onclick:function(){ var m=ls.get('alkyon-fnick',{})||{}, v=inp.value.trim(); if(v&&v!==f.real) m[f.uid]=v; else delete m[f.uid]; ls.set('alkyon-fnick',m); sh.close(); load(); }}))}); }
 function draw(){
   if(!root) return;
   var page=h('div',{class:'page'});
@@ -53,7 +57,7 @@ function draw(){
     list.forEach(function(f){
       var sw=h('input',{type:'checkbox',checked:!!f.mine}); sw.addEventListener('change',function(){ var v=sw.checked;
         C().rest('friends?owner=eq.'+me()+'&viewer=eq.'+f.uid,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({share:v})}).then(function(){ f.mine=v; B.toast(v?f.name+T(' βλέπει ξανά τα δικά σου.',' can see yours again.'):f.name+T(' δεν βλέπει πια τα δικά σου.',' no longer sees yours.')); }).catch(function(e){ sw.checked=!v; B.toast(C().errText(e)); }); });
-      var card=h('section',{class:'card fr'},h('div',{class:'idr'},h('span',{class:'av',text:(f.name||'?').charAt(0).toUpperCase()}),h('div',{class:'tx'},h('b',{text:f.name}),h('small',{text:f.theyShare?T('Μοιράζεται μαζί σου','Shares with you'):T('Δεν μοιράζεται μαζί σου','Not sharing with you')}))),
+      var card=h('section',{class:'card fr'},h('div',{class:'idr'},h('span',{class:'av',text:(f.name||'?').charAt(0).toUpperCase()}),h('div',{class:'tx'},h('button',{class:'frname',type:'button',title:T('Άλλαξε το όνομα που βλέπεις','Change the name you see'),onclick:function(){ nick(f); }},h('b',{text:f.name}),h('span',{class:'frpen',text:' ✎'})),h('small',{text:f.theyShare?T('Μοιράζεται μαζί σου','Shares with you'):T('Δεν μοιράζεται μαζί σου','Not sharing with you')}))),
         h('label',{class:'tg'},sw,h('span',{text:T('Βλέπει τα ψάρια και τα σημεία μου','Can see my catches and spots')})),
         h('div',{class:'acts'},f.theyShare?h('button',{class:'btn pri',type:'button',text:T('Τα ψάρια του','Their catches'),onclick:function(){ showFriend(f); }}):null,
           h('button',{class:'btn del',type:'button',text:T('Αφαίρεση','Remove'),onclick:function(){ B.ask(T('Αφαίρεση του/της ','Remove ')+f.name+T(' από τους φίλους; Σταματάτε να βλέπετε ο ένας τα του άλλου.',' from friends? You both stop seeing each other’s data.'),T('Αφαίρεση','Remove'),true).then(function(y){ if(!y) return;

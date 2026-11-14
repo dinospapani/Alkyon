@@ -115,14 +115,16 @@ function names(bd){ if(!SN){ loadNames().then(function(){ if(SN&&SN.length) draw
     var nm=EN&&r[1]?r[1]:r[0], big=r[4]==='i'&&r[5]>0.05;
     L.marker([r[2],r[3]],{interactive:false,keyboard:false,icon:L.divIcon({className:'snm k'+r[4]+(big?' big':''),iconSize:null,html:'<span>'+nm.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</span>'})}).addTo(grp); } }
 function legend(a){
-  if(!a){ if(legEl) legEl.hidden=true; return; }
-  mkLeg();
+  if(!a){ if(legEl){ legEl.hidden=true; legShown=0; } return; }
+  mkLeg(); legAuto();
   var S=sat(), W=wxOn(); legEl.hidden=false; legEl.replaceChildren(h('b',{text:T('Ρηχά & ξέρες','Shallows & shoals')}),
     h('span',{class:'sbk'},h('i',{style:'background:'+(W?'#fff;outline:1px solid #0a2850':S?'#78dcff':'#1e6ec8')}),'0–2 m'),h('span',{class:'sbk'},h('i',{style:'background:'+(S?'#5abef0':'#3c8cd7')+';opacity:.75'}),'2–5 m'),h('span',{class:'sbk'},h('i',{style:'background:'+(S?'#46a0e6':'#6eafe6')+';opacity:.5'}),'5–10 m'),
     h('span',{class:'sbk'},h('em',{text:'⚠'}),T('ξέρα','shoal')),
     h('small',{text:busy?T('Φόρτωση βαθών… (μένουν στο κινητό)','Loading depths… (kept on your phone)'):a.n?T('Γραμμές: 10 m (έντονη), 5 m, 2 m (διακεκομμένη). Ενδεικτικά (EMODnet ~115 m, OpenStreetMap)· μικρές ξέρες μπορεί να λείπουν.','Lines: 10 m (bold), 5 m, 2 m (dashed). Indicative (EMODnet ~115 m, OpenStreetMap); small shoals may be missing.'):T('Δεν υπάρχουν ρηχά κάτω από 10 m εδώ.','No water shallower than 10 m here.')})); }
 /* 1.14.11: το υπόμνημα είναι μαζεμένο (μόνο ο τίτλος και ⓘ), για να μην πιάνει την οθόνη· πάτα για ανάπτυξη, ξαναμαζεύεται σε 10″ */
-var legT=0;
+var legT=0, legShown=0, legGone=0;
+/* 1.14.13: φαίνεται ~6″ όταν ανοίγει το επίπεδο και μετά κρύβεται (καθαρή οθόνη) */
+function legAuto(){ if(!legEl) return; if(legEl.hidden||!legShown){ legShown=Date.now(); legEl.classList.remove('gone'); clearTimeout(legGone); legGone=setTimeout(function(){ if(legEl&&legEl.classList.contains('mini')) legEl.classList.add('gone'); },6000); } }
 function mkLeg(){ if(legEl) return; legEl=h('div',{class:'sbleg shleg mini',role:'button',tabindex:'0','aria-label':T('Υπόμνημα ρηχών','Shallows legend')});
   legEl.addEventListener('click',function(){ var o=legEl.classList.toggle('mini'); clearTimeout(legT); if(!o) legT=setTimeout(function(){ legEl.classList.add('mini'); },10000); });
   document.body.append(legEl); }

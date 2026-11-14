@@ -105,6 +105,34 @@ with sync_playwright() as p:
     c=ctx(b,news='1.2.0'); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(10000)
     check('«Τι νέο υπάρχει» μετά από αναβάθμιση', pg.evaluate("()=>!!document.querySelector('.sheet')")); c.close()
 
+    print('# 1.14.13 μήκος από φωτογραφία')
+    import os, tempfile
+    try:
+        from PIL import Image as _I; _f=os.path.join(tempfile.gettempdir(),'ak_meas.png'); _I.new('RGB',(800,400),(30,90,140)).save(_f)
+        c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3000)
+        pg.evaluate("()=>AK.biteForm()"); pg.wait_for_timeout(1200); h0=pg.evaluate("()=>document.querySelector('.bf2 .measbtn').hidden")
+        pg.set_input_files('.bf2 input[type=file]',_f); pg.wait_for_timeout(1500); pg.click('.bf2 .measbtn'); pg.wait_for_timeout(1200)
+        bx=pg.evaluate("()=>{ const r=document.querySelector('.meascv').getBoundingClientRect(); return [r.left,r.top,r.width,r.height]; }")
+        for fx,fy in ((.1,.5),(.2,.5),(.1,.6),(.6,.6)): pg.mouse.click(bx[0]+bx[2]*fx,bx[1]+bx[3]*fy); pg.wait_for_timeout(100)
+        rs=pg.evaluate("()=>document.querySelector('.meascv').parentNode.querySelector('.btn.pri').textContent")
+        pg.click('.meascv ~ .btn.pri'); pg.wait_for_timeout(500); v=pg.evaluate("()=>document.querySelector('.bf2 .g3 .fld:nth-child(2) input').value")
+        check('Μήκος από φωτογραφία: κάρτα 8,56 cm × 5 = ~43 cm στο πεδίο μήκους (1.14.13)', h0 and any(x in rs for x in ('42,','43,')) and v in ('42','43'), [h0,rs,v]); c.close()
+    except ImportError: print('  (χωρίς PIL)')
+
+    print('# 1.14.13 υπομνήματα κρυμμένα σε έξοδο')
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(3000)
+    r=pg.evaluate("()=>{ const e=document.createElement('div'); e.className='sbleg shleg mini'; document.body.append(e); document.body.classList.add('ontrip'); const a=getComputedStyle(e).display; document.body.classList.remove('ontrip'); e.classList.add('gone'); const g=getComputedStyle(e).display; e.classList.remove('gone'); const n=getComputedStyle(e).display; return [a,g,n]; }")
+    check('Υπόμνημα ρηχών: κρυμμένο σε έξοδο και μετά από λίγα δευτερόλεπτα (1.14.13)', r[0]=='none' and r[1]=='none' and r[2]!='none', r); c.close()
+
+    print('# 1.14.13 μακρύ μήνυμα πατιέται / ειδοποίηση στον χάρτη')
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(3500)
+    pg.evaluate("()=>AK.toast('Η πίεση ανεβαίνει. '+'x'.repeat(200))"); pg.wait_for_timeout(400)
+    r=pg.evaluate("()=>{ const t=document.querySelector('.toast'); return [getComputedStyle(t).pointerEvents, !!t.querySelector('.tmore')]; }")
+    pg.click('.toast'); pg.wait_for_timeout(300); f=pg.evaluate("()=>document.querySelector('.toast').classList.contains('full')")
+    check('Μακρύ μήνυμα: «Πάτα για ολόκληρο» και ανοίγει όλο με πάτημα (1.14.13)', r[0]=='auto' and r[1] and f, [r,f])
+    n=pg.evaluate("()=>{ let k=0; const v=AK.refreshView; AK.refreshView=function(){ k++; }; window.dispatchEvent(new Event('alkyon-push')); return new Promise(res=>setTimeout(()=>{ AK.refreshView=v; res(k); },800)); }")
+    check('Ειδοποίηση ενώ είσαι στον χάρτη: ανανεώνεται αμέσως (1.14.13)', n>=1, n); c.close()
+
     print('# 1.14.12 ελάχιστο μήκος: πράσινο / κόκκινο')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3000)
     pg.evaluate("()=>AK.biteForm()"); pg.wait_for_timeout(1200); pg.fill('.bf2 .spwrap input','Ροφός'); pg.wait_for_timeout(150)

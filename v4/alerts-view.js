@@ -193,8 +193,9 @@ B.inboxUnread=function(){ var s=seenAt(); return (hist?Promise.resolve(hist):new
 var quiet=false; function loadHistQuiet(){ if(quiet) return; quiet=true; var r0=root; root=null; try{ loadHist(); }catch(e){} root=r0; setTimeout(function(){ quiet=false; },3000); }
 var ib={root:null,open:{},focus:null};
 /* 1.9.57: άνοιγμα από ειδοποίηση του κινητού: πήγαινε στη σωστή σελίδα και, στις Ειδοποιήσεις, άνοιξε αυτήν */
-function fromNotif(hash,id){ if(!/^#[a-z]+$/.test(hash||'')) hash='#inbox'; ib.focus=id&&hash==='#inbox'?String(id):null; if(location.hash!==hash) location.hash=hash; else if(hash==='#inbox'&&ib.root){ hist=null; ibDraw(); } }
-if(navigator.serviceWorker) navigator.serviceWorker.addEventListener('message',function(e){ var d=e.data||{}; if(d.open||d.inbox) fromNotif(d.open||'#inbox',d.inbox||null); });
+function fromNotif(hash,id,place){ if(!/^#[a-z]+$/.test(hash||'')) hash='#inbox'; ib.focus=id&&hash==='#inbox'?String(id):null; if(location.hash!==hash) location.hash=hash; else if(hash==='#inbox'&&ib.root){ hist=null; ibDraw(); } else { try{ B.refreshView&&B.refreshView(); window.dispatchEvent(new Event('alkyon-push')); }catch(e){} }
+  if(place&&place.lat!=null&&hash==='#map') setTimeout(function(){ try{ B.goTo&&B.goTo(+place.lat,+place.lon,String(place.name||'')); }catch(e){} },600); }
+if(navigator.serviceWorker) navigator.serviceWorker.addEventListener('message',function(e){ var d=e.data||{}; if(d.inboxNew){ hist=null; try{ window.dispatchEvent(new Event('alkyon-push')); }catch(x){} } if(d.open||d.inbox) fromNotif(d.open||'#inbox',d.inbox||null,d.place||null); });
 (function(){ try{ var n=new URLSearchParams(location.search).get('n'); if(n){ ib.focus=n; history.replaceState(null,'',location.pathname+location.hash); } }catch(e){} })();
 B.fromNotif=fromNotif;
 var KI={good:'<path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/>',press:'<circle cx="12" cy="13" r="8"/><path d="M12 13l4-4M8 5.5L6 3M16 5.5L18 3"/>',wind:'<path d="M3 8h11a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 16h8"/>',

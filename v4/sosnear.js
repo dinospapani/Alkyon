@@ -51,13 +51,17 @@ function poll(){ var s=sess(); if(!s) return Promise.resolve([]);
   var since=new Date(Date.now()-6*3600000).toISOString();
   return C().rest('sos_alerts?select=user_id,id,name,lat,lon,at,created_at&status=eq.active&at=gt.'+encodeURIComponent(since)+'&user_id=neq.'+encodeURIComponent(s.uid)).then(function(r){ return r.ok?r.json():[]; }).then(function(a){ LIST=Array.isArray(a)?a:[]; notifyNear(); try{ window.dispatchEvent(new Event('alkyon-sos')); }catch(e){} return LIST; }).catch(function(){ return LIST; }); }
 /* 1.14.1: δείχνει το SOS και χωρίς πρόσφατη θέση (π.χ. ήρθε ειδοποίηση και άνοιξες το app στη στεριά): τότε χωρίς απόσταση, και ο χάρτης πάει στο SOS */
-function notifyNear(){ var f=fix()||B.lastPos(), seen=ls.get(SEEN,{})||{};
-  LIST.forEach(function(x){ var km=f?hav(f.lat,f.lon,x.lat,x.lon):null; if((km!=null&&km>NEAR_KM*3)||seen[x.id]) return; seen[x.id]=Date.now(); ls.set(SEEN,seen);
+/* 1.14.13: SOS φίλου: φαίνεται όπου κι αν είσαι (όχι μόνο κοντά) */
+var FR=null, frAt=0;
+function friends(){ if(FR&&Date.now()-frAt<10*60000) return; frAt=Date.now(); var s=C().session&&C().session(); if(!s) return;
+  C().rest('friends?select=owner,owner_name&viewer=eq.'+encodeURIComponent(s.uid)).then(function(r){ return r.ok?r.json():[]; }).then(function(a){ FR={}; a.forEach(function(x){ FR[x.owner]=x.owner_name||''; }); notifyNear(); }).catch(function(){}); }
+function notifyNear(){ var f=fix()||B.lastPos(), seen=ls.get(SEEN,{})||{}; friends();
+  LIST.forEach(function(x){ var km=f?hav(f.lat,f.lon,x.lat,x.lon):null, isF=!!(FR&&x.user_id in FR); if((!isF&&km!=null&&km>NEAR_KM*3)||seen[x.id]) return; seen[x.id]=Date.now(); ls.set(SEEN,seen);
     try{ navigator.vibrate&&navigator.vibrate([400,200,400,200,800]); }catch(e){}
     var k=f?Math.round(brg(f.lat,f.lon,x.lat,x.lon)/45)%8:0; if(document.body.classList.contains('mapon')) setTimeout(function(){ try{ var m=window.AlkyonCore&&AlkyonCore.map&&AlkyonCore.map(); if(m) m.setView([x.lat,x.lon],Math.max(m.getZoom(),12)); }catch(e){} },300);
-    var sh=B.sheet({title:'🆘 '+T('SOS κοντά σου','SOS near you'),body:h('div',{class:'bform sosh'},
+    var sh=B.sheet({title:'🆘 '+(isF?T('SOS από φίλο σου','SOS from your friend'):T('SOS κοντά σου','SOS near you')),body:h('div',{class:'bform sosh'},
       h('p',{class:'sosbig',text:(x.name||T('Ένας ψαράς','An angler'))+T(' χρειάζεται βοήθεια',' needs help')+(km!=null?', '+nm(km)+' '+CMP[k]:'')+'.'}),
-      h('p',{class:'sub',text:T('Αν μπορείς με ασφάλεια, πήγαινε. Ειδοποίησε και το 112 / VHF 16 με τη θέση του.','If you can do so safely, go. Also tell 112 / VHF 16 his position.')}),
+      h('p',{class:'sub',text:isF?T('Τηλεφώνησέ του. Αν δεν απαντά, κάλεσε το 112 και δώσε τη θέση του (πάτα «Πήγαινε εκεί» για τον χάρτη).','Call them. If there is no answer, call 112 and give the position (tap “Go there” for the map).'):T('Αν μπορείς με ασφάλεια, πήγαινε. Ειδοποίησε και το 112 / VHF 16 με τη θέση του.','If you can do so safely, go. Also tell 112 / VHF 16 his position.')}),
       h('button',{class:'btn pri full',type:'button',text:'➜ '+T('Πήγαινε εκεί','Go there'),onclick:function(){ sh.close(); go(x); }}),
       h('a',{class:'btn full',href:'tel:112',text:'📞 112'}))}); }); }
 function go(x){ try{ if(location.hash!=='#map') location.hash='#map'; setTimeout(function(){ B.goTo&&B.goTo(x.lat,x.lon,'SOS · '+(x.name||'')); },400); }catch(e){} }

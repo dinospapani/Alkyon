@@ -87,6 +87,9 @@ document.addEventListener('click',function(ev){ var a=ev.target&&ev.target.close
   if(location.hash!==href) location.hash=href; else if(VIEWS[nm]&&nm===cur){ try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){} } });
 document.addEventListener('click',function(ev){ var a=ev.target&&ev.target.closest&&ev.target.closest('.top a.iconbtn[href^="#"]'); if(!a||!/^(Πίσω|Back)/.test(a.getAttribute('aria-label')||'')) return;
   if(ev.button||ev.ctrlKey||ev.metaKey||ev.shiftKey) return; ev.preventDefault(); B.goBack(a.getAttribute('href')); },true);
+/* 1.14.13: ειδοποίηση ενώ είσαι ήδη στη σελίδα (π.χ. χάρτης): ανανέωση χωρίς να χρειάζεται να πας αλλού και να γυρίσεις */
+B.refreshView=function(){ if(cur&&VIEWS[cur]&&VIEWS[cur].resume) try{ VIEWS[cur].resume(); }catch(e){} };
+var pushT=0; window.addEventListener('alkyon-push',function(){ clearTimeout(pushT); pushT=setTimeout(function(){ B.refreshView(); try{ B.sosNear&&B.sosNear.poll&&B.sosNear.poll(); }catch(e){} try{ B.inboxBadge&&B.inboxBadge(); }catch(e){} },400); });
 B.remount=function(){ if(!cur||!main) return; if(VIEWS[cur].unmount) VIEWS[cur].unmount(); cur=null; route(); };
 function start(){
   main=h('main',{class:'app',id:'main'});

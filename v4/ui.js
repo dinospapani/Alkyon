@@ -36,6 +36,7 @@ function toast(msg,ms,act){
     /* 1.6.1: μακριά μηνύματα σε 2 γραμμές· πάτημα = ολόκληρο το κείμενο (και μένει λίγο ακόμα) */
     tEl.addEventListener('click',function(e){ if(e.target.closest('.tact')) return; if(!tEl.classList.contains('full')&&tEl.classList.contains('long')){ tEl.classList.add('full'); clearTimeout(tT); tT=setTimeout(function(){ tEl.classList.remove('on'); },9000); } else tEl.classList.remove('on'); }); }
   tEl.replaceChildren(h('span',{text:msg})); tEl.classList.toggle('act',!!act); tEl.classList.remove('full'); tEl.classList.toggle('long',String(msg||'').length>90);
+  if(String(msg||'').length>90&&!act) tEl.append(h('small',{class:'tmore',text:T('▾ Πάτα για ολόκληρο','▾ Tap to read all')})); /* 1.14.13 */
   if(act) tEl.append(h('button',{type:'button',class:'tact',text:act.label,onclick:function(){ clearTimeout(tT); tEl.classList.remove('on'); act.fn(); }}));
   clearTimeout(tT); requestAnimationFrame(function(){ tEl.classList.add('on'); });
   tT=setTimeout(function(){ tEl.classList.remove('on'); },ms||Math.min(9000,Math.max(act?5000:2600,String(msg||'').length*60)));

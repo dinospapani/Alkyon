@@ -127,12 +127,12 @@ if(Push){
   Push.addListener('registrationError',function(e){ var w=tokW; tokW=[]; tokBusy=false; w.forEach(function(x){ x[1](new Error((e&&e.error)||'fcm')); }); });
   /* ειδοποίηση ενώ η εφαρμογή είναι ανοιχτή: το Android δεν τη δείχνει μόνο του, άρα τοπική + στο Ιστορικό */
   Push.addListener('pushNotificationReceived',function(n){ var d=(n&&n.data)||{}; if(!IOS) show(n.title||d.title,n.body||d.body,d);   /* στο iOS τη δείχνει το ίδιο το σύστημα (presentationOptions) */
-    try{ var a=JSON.parse(localStorage.getItem('alkyon-v4-inbox')||'[]'); a.unshift({at:new Date().toISOString(),title:String(n.title||d.title||''),body:String(n.body||d.body||''),kind:d.kind||'info',local:1}); localStorage.setItem('alkyon-v4-inbox',JSON.stringify(a.slice(0,150))); }catch(e){} });
+    try{ var a=JSON.parse(localStorage.getItem('alkyon-v4-inbox')||'[]'); a.unshift({at:new Date().toISOString(),title:String(n.title||d.title||''),body:String(n.body||d.body||''),kind:d.kind||'info',local:1}); localStorage.setItem('alkyon-v4-inbox',JSON.stringify(a.slice(0,150))); }catch(e){} try{ window.dispatchEvent(new Event('alkyon-push')); }catch(e){} });
   Push.addListener('pushNotificationActionPerformed',function(a){ openFrom(a&&a.notification&&a.notification.data); });
 }
 if(LN) LN.addListener('localNotificationActionPerformed',function(a){ openFrom(a&&a.notification&&a.notification.extra); });
 function openFrom(d){ var u=d&&(d.hash||d.url)||''; var m=/#[a-z]+(=[^&\s]*)?$/i.exec(String(u)); var h=m?m[0]:'#inbox';
-  if(/\/v4\/index\.html$/.test(location.pathname)) location.hash=h; else location.replace(ROOT+'v4/index.html'+h); }
+  if(/\/v4\/index\.html$/.test(location.pathname)){ if(location.hash===h){ try{ window.dispatchEvent(new Event('alkyon-push')); }catch(e){} } else location.hash=h; } else location.replace(ROOT+'v4/index.html'+h); }
 function token(){ if(!Push) return Promise.reject(new Error('no push'));
   return new Promise(function(res,rej){ tokW.push([res,rej]); if(tokBusy) return; tokBusy=true;
     channel().then(function(){ return Push.register(); }).catch(function(e){ var w=tokW; tokW=[]; tokBusy=false; w.forEach(function(x){ x[1](e); }); });

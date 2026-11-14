@@ -75,11 +75,13 @@ function pick(){ var fa=h('input',{type:'number',inputmode:'numeric',min:'0',max
     h('div',{class:'sfrow'},h('label',{},T('Από','From'),fa,'m'),h('label',{},T('Έως','To'),fb,'m'),h('button',{type:'button',class:'btn',text:T('Εφαρμογή','Apply'),onclick:function(){ setBand(fa.value,fb.value,''); sh2.close(); }})),
     h('h4',{text:T('Ψάρια','Fish')}),list)}); }
 /* ---------- υπόμνημα ---------- */
+var lgShown=0, lgGone=0;
 function legend(note){
   var show=bnd&&document.body.classList.contains('mapon');
-  if(!show){ if(legEl) legEl.hidden=true; return; }
+  if(!show){ if(legEl){ legEl.hidden=true; lgShown=0; } return; }
   if(!legEl){ legEl=h('div',{class:'sbleg sfleg mini',role:'note'}); document.body.append(legEl); var lt=0; /* 1.14.11: μαζεμένο· πάτα τον τίτλο */
     legEl.addEventListener('click',function(e){ if(e.target.closest('button,a,input,select')) return; var o=legEl.classList.toggle('mini'); clearTimeout(lt); if(!o) lt=setTimeout(function(){ legEl.classList.add('mini'); },10000); }); }
+  if(legEl&&(legEl.hidden||!lgShown)){ lgShown=1; legEl.classList.remove('gone'); clearTimeout(lgGone); lgGone=setTimeout(function(){ if(legEl&&legEl.classList.contains('mini')) legEl.classList.add('gone'); },6000); } /* 1.14.13: φαίνεται ~6″ και κρύβεται */
   legEl.hidden=false; placeSoon(); legEl.replaceChildren(h('b',{text:T('Ζώνη βάθους','Depth band')}),
     h('span',{class:'sbk'},h('i',{style:'background:#E4572E'}),(BR.sp?BR.sp+' ':'')+BR.a+'–'+BR.b+' m'),
     h('button',{type:'button',class:'sfed',text:T('Αλλαγή','Change'),onclick:pick}),

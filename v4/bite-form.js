@@ -189,7 +189,7 @@ B.biteForm=function(edit,opt){
   /* φωτογραφίες */
   var phBox=h('div',{class:'phs'}), file=h('input',{type:'file',accept:'image/*',multiple:true,class:'vh'});
   var addPh=h('button',{type:'button',class:'phadd','aria-label':T('Προσθήκη φωτογραφίας','Add photo'),html:B.iconSvg('plus'),onclick:function(){ file.click(); }});
-  function drawPh(){ phBox.replaceChildren(); photos.forEach(function(b,i){ var u=URL.createObjectURL(b); phBox.append(h('div',{class:'ph'},h('img',{src:u,alt:''}),h('button',{type:'button',class:'phx','aria-label':T('Αφαίρεση φωτογραφίας','Remove photo'),text:'✕',onclick:function(){ photos.splice(i,1); phDirty=true; drawPh(); }}))); }); phBox.append(addPh); }
+  function drawPh(){ if(measBtn) measBtn.hidden=!photos.length; phBox.replaceChildren(); photos.forEach(function(b,i){ var u=URL.createObjectURL(b); phBox.append(h('div',{class:'ph'},h('img',{src:u,alt:''}),h('button',{type:'button',class:'phx','aria-label':T('Αφαίρεση φωτογραφίας','Remove photo'),text:'✕',onclick:function(){ photos.splice(i,1); phDirty=true; drawPh(); }}))); }); phBox.append(addPh); }
   file.addEventListener('change',function(){ var fs=[].slice.call(file.files||[]); file.value=''; Promise.all(fs.map(function(f){ return S.resize(f).catch(function(){ return null; }); })).then(function(bl){ bl.filter(Boolean).forEach(function(b){ photos.push(b); }); phDirty=true; drawPh(); if(aiBox&&aiBox.run&&!sp.value.trim()&&photos.length) setTimeout(function(){ aiBox.run(); },150); }); });
   drawPh();
   /* επεξεργασία: γέμισμα */
@@ -208,6 +208,23 @@ B.biteForm=function(edit,opt){
     tsel.value=e.trip||''; tripSel=field(T('Έξοδος','Trip'),tsel); }
   /* ελάχιστο νόμιμο μέγεθος και προειδοποιήσεις (ίδιοι κανόνες με την κλασική: rules.js, Τμήμα Αλιείας) */
   var lawNote=h('p',{class:'lawnote',hidden:true,role:'status'});
+  /* 1.14.13: μήκος από φωτογραφία: πατάς τις δύο άκρες ενός γνωστού αντικειμένου (κάρτα, κουτάκι, χάρακας) και μετά μύτη–ουρά του ψαριού */
+  var measBtn=h('button',{type:'button',class:'linkbtn measbtn',hidden:true,text:'📏 '+T('Μέτρηση μήκους από τη φωτογραφία','Measure length from the photo'),onclick:function(){ measure(photos[0]); }});
+  function measure(blob){ if(!blob) return; var REFS=[[8.56,T('Κάρτα (τράπεζας / ταυτότητα), μακριά πλευρά','Card (bank / ID), long side')],[12.2,T('Κουτάκι αναψυκτικού 330 ml, ύψος','Soft-drink can 330 ml, height')],[30,T('Χάρακας 30 cm','30 cm ruler')],[0,T('Άλλο (γράψε cm)','Other (enter cm)')]];
+    var ref=REFS[0][0], pts=[], img=new Image(), cv=h('canvas',{class:'meascv'}), info=h('p',{class:'sub meas-i'}), res=h('p',{class:'lawnote ok',hidden:true}), oth=h('input',{type:'number',class:'input',min:'1',step:'0.1',placeholder:'cm',hidden:true,style:'max-width:120px'});
+    var sel=h('select',{class:'select'}); REFS.forEach(function(r,i){ sel.append(h('option',{value:String(i),text:r[1]})); });
+    sel.addEventListener('change',function(){ var r=REFS[+sel.value]; ref=r[0]; oth.hidden=!!ref; pts=[]; paint(); }); oth.addEventListener('input',function(){ ref=+oth.value||0; paint(); });
+    var use=h('button',{class:'btn pri full',type:'button',hidden:true,text:''}), again=h('button',{class:'btn',type:'button',text:T('Από την αρχή','Start over'),onclick:function(){ pts=[]; paint(); }});
+    function d(a,b){ return Math.hypot(a[0]-b[0],a[1]-b[1]); }
+    function paint(){ var c=cv.getContext('2d'); c.drawImage(img,0,0,cv.width,cv.height); var col=['#ffd23f','#ffd23f','#3ad17a','#3ad17a'];
+      pts.forEach(function(p,i){ c.fillStyle=col[i]; c.strokeStyle='#000'; c.lineWidth=2; c.beginPath(); c.arc(p[0],p[1],Math.max(6,cv.width/90),0,6.283); c.fill(); c.stroke(); });
+      [[0,1,'#ffd23f'],[2,3,'#3ad17a']].forEach(function(l){ if(pts[l[1]]){ c.strokeStyle=l[2]; c.lineWidth=Math.max(3,cv.width/250); c.beginPath(); c.moveTo(pts[l[0]][0],pts[l[0]][1]); c.lineTo(pts[l[1]][0],pts[l[1]][1]); c.stroke(); } });
+      info.textContent=pts.length<2?T('1) Πάτα τις δύο άκρες του αντικειμένου αναφοράς (κίτρινο).','1) Tap both ends of the reference object (yellow).'):pts.length<4?T('2) Πάτα τη μύτη και την άκρη της ουράς του ψαριού (πράσινο).','2) Tap the nose and the tail tip of the fish (green).'):T('Έτοιμο. Για πιο σωστό αποτέλεσμα, το αντικείμενο να είναι δίπλα στο ψάρι και η φωτογραφία από πάνω.','Done. For best results the object should lie next to the fish, photo taken from above.');
+      if(pts.length===4&&ref>0){ var L=Math.round(d(pts[2],pts[3])/d(pts[0],pts[1])*ref*10)/10; res.hidden=false; res.textContent='≈ '+B.num(L,1)+' cm'; use.hidden=false; use.textContent=T('Χρήση: ','Use: ')+B.num(L,1)+' cm'; use.onclick=function(){ len.value=String(Math.round(L)); try{ len.dispatchEvent(new Event('input')); }catch(e){} sh.close(); }; }
+      else { res.hidden=true; use.hidden=true; } }
+    cv.addEventListener('click',function(e){ if(pts.length>=4) return; var r=cv.getBoundingClientRect(); pts.push([(e.clientX-r.left)*cv.width/r.width,(e.clientY-r.top)*cv.height/r.height]); paint(); });
+    var u=URL.createObjectURL(blob); img.onload=function(){ var W=Math.min(1200,img.naturalWidth), k=W/img.naturalWidth; cv.width=W; cv.height=Math.round(img.naturalHeight*k); paint(); URL.revokeObjectURL(u); }; img.src=u;
+    var sh=B.sheet({title:T('Μήκος από φωτογραφία','Length from a photo'),body:h('div',{class:'bform'},h('label',{class:'fld'},h('span',{text:T('Αντικείμενο αναφοράς στη φωτογραφία','Reference object in the photo')}),sel),oth,info,cv,res,use,again)}); }
   function latinOf(name){ var n=String(name||'').trim().toLowerCase(); if(!n) return ''; var kb=(window.SPKB||[]).filter(function(k){ return k.n.toLowerCase()===n||(k.en||'').toLowerCase()===n; })[0]; if(kb) return kb.l;
     var r=(window.SPECIES_DB||[]).filter(function(x){ return (x[0]&&String(x[0]).toLowerCase().split(/\s*\/\s*/).indexOf(n)>=0)||(x[1]&&x[1].toLowerCase()===n); })[0]; return r?r[2]:''; }
   function minOf(la){ var M=window.MIN_SIZES||{}; if(!la) return 0; if(M[la]) return M[la]; var g=la.split(' ')[0]; if(g==='Chelon'||g==='Liza'||g==='Oedalechilus') return M['Mugil spp.']||0; return M[g+' spp.']||M[g+' sp.']||0; }
@@ -318,7 +335,7 @@ B.biteForm=function(edit,opt){
     h('section',{class:'bfcard'},
     h('div',{class:'fld spfld'},spLbl,h('div',{class:'spwrap'},sp,spSug),spChips,h('small',{class:'spopt',text:T('Για χαμένο ψάρι είναι προαιρετικό.','Optional for a lost fish.')})),
     (sizeRow=h('div',{class:'g3',hidden:miss.checked},field(T('Βάρος (kg)','Weight (kg)'),kg),field(T('Μήκος (cm)','Length (cm)'),len),field(T('Βάθος','Depth')+' ('+(window.AlkyonUnits&&AlkyonUnits.depthUnit?AlkyonUnits.depthUnit():'m')+')',dep))),
-    lawNote,kgEst,depNote, /* 1.14.12: το ελάχιστο μήκος κάτω από βάρος/μήκος */
+    lawNote,measBtn,kgEst,depNote, /* 1.14.12: το ελάχιστο μήκος κάτω από βάρος/μήκος */
     /* 1.12.7: «Πολλά ψάρια μαζί» αμέσως κάτω από βάρος/μήκος */
     (manyRow=h('div',{class:'bfmany',hidden:miss.checked},h('label',{class:'tg'},many,h('span',{text:T('Πολλά ψάρια μαζί (μία εγγραφή)','Several fish together (one entry)')})),cntRow)),
     prof==='spear'?h('label',{class:'fld'},h('span',{text:T('Ορατότητα νερού (m)','Water visibility (m)')}),vis,h('small',{text:T('Πόσα μέτρα έβλεπες. Έτσι η Πρόγνωση μαθαίνει τα νερά σου.','How many metres you could see. This teaches the Forecast your waters.')})):null),

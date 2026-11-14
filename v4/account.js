@@ -58,7 +58,9 @@ B.authForm=function(o){ o=o||{}; var mode=o.mode==='up'?'up':'in', codeType='sig
   gbtn.hidden=true;
   var gbox=h('div',{class:'gbox',hidden:true},abtn,gbtn,h('div',{class:'orline'},h('span',{text:T('ή με email','or with email')})));
   if(C().providers) C().providers().then(function(p){ p=p||{}; abtn.hidden=!p.apple; gbtn.hidden=!p.google; if(p.google||p.apple) gbox.hidden=false; });
-  var main=h('div',{class:'authmain'},ttl,sub,gbox,h('label',{class:'fld'},h('span',{text:'Email'}),em),h('label',{class:'fld'},h('span',{text:T('Κωδικός','Password')}),P.el));
+  /* 1.14.13: όνομα στον νέο λογαριασμό με email (με Google έρχεται από τη Google) */
+  var nmIn=h('input',{type:'text',maxlength:'40',autocomplete:'name',placeholder:T('π.χ. Νίκος','e.g. Nick')}), nmFld=h('label',{class:'fld',hidden:true},h('span',{text:T('Όνομα (το βλέπουν οι φίλοι σου)','Name (your friends see it)')}),nmIn);
+  var main=h('div',{class:'authmain'},ttl,sub,gbox,nmFld,h('label',{class:'fld'},h('span',{text:'Email'}),em),h('label',{class:'fld'},h('span',{text:T('Κωδικός','Password')}),P.el));
   /* βήμα κωδικού: δουλεύει και μέσα στην εγκατεστημένη εφαρμογή, χωρίς να ανοίξει ο σύνδεσμος στον browser */
   var ci=h('input',{type:'text',inputmode:'numeric',autocomplete:'one-time-code',maxlength:'10',class:'codein',placeholder:'••••••','aria-label':T('Κωδικός από το email','Code from the email')});
   var cttl=h('h2'), cinfo=h('p',{class:'sub'});
@@ -71,7 +73,7 @@ B.authForm=function(o){ o=o||{}; var mode=o.mode==='up'?'up':'in', codeType='sig
   function paint(){ ttl.textContent=mode==='in'?T('Σύνδεση','Sign in'):T('Νέος λογαριασμός','New account');
     go.textContent=mode==='in'?T('Σύνδεση','Sign in'):T('Δημιουργία λογαριασμού','Create account');
     sw.textContent=mode==='in'?T('Δεν έχεις λογαριασμό; Δημιούργησε έναν','No account? Create one'):T('Έχεις ήδη λογαριασμό; Σύνδεση','Already have an account? Sign in');
-    pw.autocomplete=mode==='in'?'current-password':'new-password'; fg.hidden=mode!=='in'; }
+    pw.autocomplete=mode==='in'?'current-password':'new-password'; fg.hidden=mode!=='in'; nmFld.hidden=mode!=='up'; }
   function step(code){ main.hidden=code; go.hidden=code; sw.hidden=code; fg.hidden=code||mode!=='in'; cbox.hidden=!code; if(!code) paint(); }
   function ok(t){ setPend(null); B.toast(t||T('Συνδέθηκες.','Signed in.')); if(o.close) o.close(); if(o.done) o.done(); else remount(); }
   function showCode(type,email,text,keepT){ codeType=type; codeEmail=email; if(!keepT) setPend({type:type,email:email,t:Date.now()});
@@ -94,7 +96,7 @@ B.authForm=function(o){ o=o||{}; var mode=o.mode==='up'?'up':'in', codeType='sig
     (codeType==='recovery'?C().recover(codeEmail):C().resend(codeEmail)).then(function(){ setPend({type:codeType,email:codeEmail,t:Date.now()}); say(T('Στάλθηκε νέος κωδικός. Δες και τα ανεπιθύμητα.','A new code was sent. Check spam too.'),true); }).catch(function(e){ say(err(e)); }); });
   var f=h('form',{class:'bform authf',novalidate:true},main,cbox,msg,go,sw,fg);
   f.addEventListener('submit',function(e){ e.preventDefault(); if(!cbox.hidden){ verify(); return; } say(''); var a=em.value.trim(), b=pw.value; if(!a||!b){ say(T('Συμπλήρωσε email και κωδικό.','Fill in email and password.')); return; }
-    go.disabled=true; (mode==='in'?C().signIn(a,b):C().signUp(a,b)).then(function(r){ go.disabled=false;
+    go.disabled=true; (mode==='in'?C().signIn(a,b):C().signUp(a,b,nmIn.value.trim())).then(function(r){ go.disabled=false;
       if(r==='confirm'){ showCode('signup',a); return; }
       if(r==='exists'){ mode='in'; paint(); say(T('Υπάρχει ήδη λογαριασμός με αυτό το email, οπότε δεν στάλθηκε κωδικός. Σύνδεσου με τον κωδικό σου, ή πάτα «Ξέχασα τον κωδικό» για νέο.','There is already an account with this email, so no code was sent. Sign in with your password, or tap “Forgot password” for a new one.')); return; }
       ok(); })

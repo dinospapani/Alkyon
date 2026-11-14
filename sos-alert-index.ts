@@ -103,6 +103,9 @@ Deno.serve(async (req) => {
           const km = dist(p.la, p.lo, row.lat, row.lon); if (km > 18.52) continue;
           const o = near.get(p.u); if (!o || km < o.km) near.set(p.u, { km, b: brg(p.la, p.lo, row.lat, row.lon) });
         }
+        // 1.14.13: και οι φίλοι στην εφαρμογή, όπου κι αν βρίσκονται (όχι μόνο στα 10 ν.μ.)
+        const fr = new Set((await g('friends?owner=eq.' + encodeURIComponent(uid) + '&select=viewer')).map(x => x.viewer).filter(v => v && v !== uid));
+        for (const f of fr) if (!near.has(f)) near.set(f, { km: -1, b: 0, friend: true }); else near.get(f).friend = true;
         const hasV = !!(E('VAPID_PUBLIC') && E('VAPID_PRIVATE'));
         if (hasV && !vapidSet) { webpush.setVapidDetails('https://dinospapani.github.io/Alkyon/', V('VAPID_PUBLIC'), V('VAPID_PRIVATE')); vapidSet = true; }
         const px = pushx(hasV ? webpush : null);
@@ -113,7 +116,9 @@ Deno.serve(async (req) => {
           const subs = await g('push_subs?user_id=eq.' + encodeURIComponent(ru) + '&select=id,sub');
           if (!subs.length) continue; people++;
           const nmi = (o.km / 1.852).toFixed(1), k = Math.round(o.b / 45) % 8;
-          const msg = body.phase === 'start'
+          const msg = body.phase === 'start' && o.km < 0
+            ? { id: 'sos:' + row.id, kind: 'sos', tag: 'sos-' + row.id, url: '#map', title: '🆘 SOS από φίλο σου · SOS from your friend', body: nm + ' στέλνει SOS και χρειάζεται βοήθεια. Πάτα για τη θέση του. Κάλεσέ τον· αν δεν απαντά, 112. · Sent an SOS and needs help. Tap for the position; call them, and 112 if no answer.', place: { name: 'SOS ' + nm, lat: row.lat, lon: row.lon } }
+            : body.phase === 'start'
             ? { id: 'sos:' + row.id, kind: 'sos', tag: 'sos-' + row.id, url: '#map', title: '🆘 SOS κοντά σου · SOS near you', body: nm + ' χρειάζεται βοήθεια, ' + nmi.replace('.', ',') + ' ν.μ. ' + CMP[k] + '. Αν μπορείς, πήγαινε· ειδοποίησε 112 / VHF 16. · Needs help, ' + nmi + ' nm ' + CEN[k] + '.', place: { name: 'SOS', lat: row.lat, lon: row.lon } }
             : { id: 'sosok:' + row.id, kind: 'sos', tag: 'sos-' + row.id, url: '#map', title: '✓ SOS έληξε · SOS cancelled', body: nm + ': είναι καλά, δεν χρειάζεται πια βοήθεια. · Is OK now, no help needed.' };
           for (const r of subs) {
@@ -122,7 +127,7 @@ Deno.serve(async (req) => {
           }
         }
         if (body.phase === 'start') await fetch(env.SUPABASE_URL + '/rest/v1/sos_alerts?user_id=eq.' + encodeURIComponent(uid), { method: 'PATCH', headers: { ...H, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify({ notified: Math.max(1, people) }) });
-        return J({ ok: true, near: near.size, people, sent });
+        return J({ ok: true, near: near.size, friends: fr.size, people, sent });
       } catch (e) { return J({ ok: false, error: e.message }, 500); }
     }
   // 1.14.1: νέο μήνυμα «Πες μας τη γνώμη σου» → push στους διαχειριστές. Ο καθένας μπορεί να το καλέσει, αλλά στέλνει μόνο για μηνύματα
@@ -154,6 +159,35 @@ Deno.serve(async (req) => {
         }
       }
       return J({ ok: true, sent, n: fresh.length });
+    } catch (e) { return J({ ok: false, error: e.message }, 500); }
+  }
+  // 1.14.13: μηνύματα χρήστη ↔ Alkyon (πίνακας user_messages, messages.sql). Ο αποστολέας γράφει τη γραμμή (RLS) και καλεί {action:'msg', id}.
+  // Εδώ ελέγχουμε ότι τη γραμμή την έγραψε ο ίδιος και στέλνουμε push: απάντηση Alkyon → στον χρήστη· μήνυμα χρήστη → στους διαχειριστές. Μία φορά ανά μήνυμα.
+  if (body && body.action === 'msg' && body.id) {
+    try {
+      const u = await fetch(env.SUPABASE_URL + '/auth/v1/user', { headers: { apikey: env.SUPABASE_SERVICE_KEY, Authorization: auth } });
+      if (!u.ok) return J({ ok: false, error: 'unauthorized' }, 401);
+      const uid = (await u.json()).id;
+      const H = { apikey: env.SUPABASE_SERVICE_KEY, Authorization: 'Bearer ' + env.SUPABASE_SERVICE_KEY };
+      const g = async (p) => { const r = await fetch(env.SUPABASE_URL + '/rest/v1/' + p, { headers: H }); return r.ok ? await r.json() : []; };
+      const m = (await g('user_messages?id=eq.' + encodeURIComponent(String(body.id)) + '&select=*'))[0];
+      if (!m || m.author !== uid || Date.now() - Date.parse(m.created_at) > 15 * 60000) return J({ ok: false, error: 'forbidden' }, 403);
+      const nid = 'msg:' + m.id;
+      if ((await g('notif_log?id=eq.' + encodeURIComponent(nid) + '&select=id')).length) return J({ ok: true, sent: 0, why: 'already' });
+      const to = m.from_admin ? [m.user_id] : (await g('app_admins?select=user_id')).map(x => x.user_id).filter(Boolean);
+      const hasV = !!(E('VAPID_PUBLIC') && E('VAPID_PRIVATE'));
+      if (hasV && !vapidSet) { webpush.setVapidDetails('https://dinospapani.github.io/Alkyon/', V('VAPID_PUBLIC'), V('VAPID_PRIVATE')); vapidSet = true; }
+      const px = pushx(hasV ? webpush : null);
+      const msg = m.from_admin
+        ? { id: nid, kind: 'msg', tag: 'msg-' + m.user_id, url: '#profile', title: '💬 Απάντηση από την Alkyon · Reply from Alkyon', body: String(m.body).slice(0, 180) }
+        : { id: nid, kind: 'fb', tag: 'msg-' + m.user_id, url: '#profile', title: '💬 ' + (String(m.name || '').slice(0, 40) || 'Χρήστης') + ' απάντησε', body: String(m.body).slice(0, 180) };
+      let sent = 0;
+      for (const ru of to) {
+        const subs = await g('push_subs?user_id=eq.' + encodeURIComponent(ru) + '&select=id,sub');
+        for (const r of subs) { try { await px.sendNotification(r.sub, JSON.stringify(msg), { TTL: 86400 }); sent++; } catch (e) { if (e.statusCode === 404 || e.statusCode === 410) await fetch(env.SUPABASE_URL + '/rest/v1/push_subs?id=eq.' + encodeURIComponent(r.id), { method: 'DELETE', headers: H }).catch(() => {}); } }
+      }
+      await fetch(env.SUPABASE_URL + '/rest/v1/notif_log', { method: 'POST', headers: { ...H, 'Content-Type': 'application/json', Prefer: 'resolution=ignore-duplicates,return=minimal' }, body: JSON.stringify({ id: nid, user_id: to[0] || m.user_id, kind: 'msg', title: msg.title, body: msg.body }) }).catch(() => {});
+      return J({ ok: true, sent, to: to.length });
     } catch (e) { return J({ ok: false, error: e.message }, 500); }
   }
   return J({ ok: false, error: 'bad request' }, 400);

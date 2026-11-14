@@ -1051,3 +1051,17 @@ html.night body.mapon #lmap canvas.wxdash{filter:none!important;opacity:.7}
 /* 1.14.4: αδιάβαστα μηνύματα: αριθμός πάνω στο εικονίδιο (όπως στις εφαρμογές μηνυμάτων) */
 .hasbadge{position:relative;overflow:visible!important}
 .icbadge{position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:#ff3b30;color:#fff;font:800 12px/20px var(--font,system-ui);font-style:normal;text-align:center;box-shadow:0 0 0 2px var(--surface,#14242e)}
+/* 1.14.13: συζήτηση με την Alkyon */
+.mthread{display:flex;flex-direction:column;gap:8px;max-height:48vh;overflow:auto;padding:2px}
+.mthread .mb{max-width:86%;align-self:flex-start;background:var(--surface-2,#1d3443);border-radius:14px 14px 14px 4px;padding:8px 12px}
+.mthread .mb.me{align-self:flex-end;background:var(--accent,#ef7f5a);color:#14110f;border-radius:14px 14px 4px 14px}
+.mthread .mb small{display:block;font-size:11px;opacity:.75;margin-bottom:2px}
+.mthread .mb p{margin:0;white-space:pre-wrap;line-height:1.35}
+.mconvs .mconv{display:block;width:100%;text-align:left;border:0;color:inherit;font:inherit;cursor:pointer}
+.nmwarn{margin:6px 0;padding:8px 12px;border-radius:12px;background:#b26a00;color:#fff;font-weight:600;font-size:13.5px}
+.frname{background:none;border:0;padding:0;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.frname .frpen{opacity:.55;font-size:.85em}
+/* 1.14.13: τα μακριά μηνύματα (π.χ. πίεση στην έναρξη εξόδου) πατιούνται για να φανούν ολόκληρα — πριν το pointer-events:none το εμπόδιζε */
+.toast.long{pointer-events:auto}
+.toast .tmore{display:block;margin-top:4px;font-size:12.5px;font-weight:700;opacity:.7}
+.toast.long.full .tmore{display:none}

@@ -1215,3 +1215,5 @@ html.night body.mapon .snm span{color:#c9d6de}
 .sbleg.sfleg.mini>*:not(b){display:none!important}
 .sbleg.sfleg.mini{padding:5px 11px;gap:0}
 .sbleg.sfleg>b::after{content:" ⓘ";font-weight:600;opacity:.7}
+/* 1.14.13: σε έξοδο τα υπομνήματα «Ρηχά & ξέρες» / «Ζώνη βάθους» δεν φαίνονται καθόλου (καθαρή οθόνη)· εκτός εξόδου φαίνονται λίγο όταν ανοίγει το επίπεδο και μετά κρύβονται */
+body.ontrip .sbleg.shleg,body.ontrip .sbleg.sfleg,body.maptrip .sbleg.shleg,body.maptrip .sbleg.sfleg,.sbleg.shleg.gone,.sbleg.sfleg.gone{display:none!important}
