@@ -170,6 +170,8 @@ function msgThread(o){ /* o: {uid, admin, title, ref, onclose} */
     .catch(function(){ list.replaceChildren(h('p',{class:'sub',text:T('Δεν φορτώθηκαν τα μηνύματα.','Could not load the messages.')})); }); }
   load(); B.sheet({title:o.title||T('Μηνύματα με την Alkyon','Messages with Alkyon'),body:h('div',{class:'bform'},list,ta,err,send),onclose:o.onclose}); }
 B.msgThread=msgThread;
+/* 1.14.14: από ειδοποίηση: «msg» = απάντηση της Alkyon στον χρήστη → η συζήτησή του· «fb» = μήνυμα χρήστη → «Μηνύματα χρηστών» (διαχειριστής) */
+B.openMessages=function(kind){ var s=C()&&C().session&&C().session(); if(!s){ location.hash='#profile'; return; } if(kind==='msg') msgThread({uid:s.uid,admin:false}); else inboxSheet(); };
 function inboxSheet(){ var body=h('div',{class:'bform fbin'},h('p',{class:'sub',text:T('Φόρτωση…','Loading…')})), TOP={idea:T('Ιδέα','Idea'),bug:T('Πρόβλημα','Problem'),like:T('Μου αρέσει','I like it')};
   B.sheet({title:T('Μηνύματα χρηστών','User messages'),body:body});
   inboxConvs(body);

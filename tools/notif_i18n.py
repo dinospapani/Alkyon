@@ -50,9 +50,9 @@ def add(a, b):
     if len(re.sub(r'[\W\d_]', '', a2)) < 2: return
     pairs.setdefault(a, b)
 
-for f in ['forecast.js', 'quick-processor-index.ts', 'safety-job.mjs']:
+for f in ['forecast.js', 'quick-processor-index.ts', 'safety-job.mjs', 'v4/trip-extra.js']:  # 1.14.14: και οι ειδοποιήσεις έναρξης εξόδου
     s = open(os.path.join(ROOT, f), encoding='utf8').read()
-    for m in re.finditer(r'(?<![\w.])(?:t|tx)\(', s):
+    for m in re.finditer(r'(?<![\w.])(?:t|tx|T)\(', s):
         i = m.end()
         a, i = lit_parts(s, i)
         if i >= len(s) or s[i] != ',': continue

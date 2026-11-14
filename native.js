@@ -131,7 +131,7 @@ if(Push){
   Push.addListener('pushNotificationActionPerformed',function(a){ openFrom(a&&a.notification&&a.notification.data); });
 }
 if(LN) LN.addListener('localNotificationActionPerformed',function(a){ openFrom(a&&a.notification&&a.notification.extra); });
-function openFrom(d){ var u=d&&(d.hash||d.url)||''; var m=/#[a-z]+(=[^&\s]*)?$/i.exec(String(u)); var h=m?m[0]:'#inbox';
+function openFrom(d){ if(d&&/^(msg|fb)$/.test(d.kind||'')){ var k=d.kind; if(/\/v4\/index\.html$/.test(location.pathname)){ location.hash='#profile'; setTimeout(function(){ try{ window.AK&&AK.openMessages&&AK.openMessages(k); }catch(e){} },600); } else location.replace(ROOT+'v4/index.html?m='+k+'#profile'); return; } var u=d&&(d.hash||d.url)||''; var m=/#[a-z]+(=[^&\s]*)?$/i.exec(String(u)); var h=m?m[0]:'#inbox';
   if(/\/v4\/index\.html$/.test(location.pathname)){ if(location.hash===h){ try{ window.dispatchEvent(new Event('alkyon-push')); }catch(e){} } else location.hash=h; } else location.replace(ROOT+'v4/index.html'+h); }
 function token(){ if(!Push) return Promise.reject(new Error('no push'));
   return new Promise(function(res,rej){ tokW.push([res,rej]); if(tokBusy) return; tokBusy=true;

@@ -70,6 +70,9 @@ var HELP=[
 ];
 /* έκδοση → αλλαγές (νεότερες πρώτες). Προσθέτεις γραμμή εδώ σε κάθε νέα λειτουργία. */
 var NEWS=[
+ ['1.14.15',[T('Μέτρηση μήκους: ανοίγει κατευθείαν την κάμερα· μετά το «Χρήση» γυρίζεις στη φόρμα του ψαριού και αποθηκεύεις κανονικά (πριν έκλεινε η φόρμα).','Length measuring: opens the camera directly; after «Use» you are back on the catch form and can save (before, the form closed).'),
+  T('Ειδοποιήσεις: πατάς ένα μήνυμα (απάντηση από την Alkyon ή μήνυμα χρήστη) και ανοίγουν κατευθείαν τα μηνύματα· το ίδιο όταν πατάς την ειδοποίηση του κινητού.','Notifications: tap a message (a reply from Alkyon or a user message) and the messages open straight away; same when you tap the phone notification.'),
+  T('Οι ειδοποιήσεις έναρξης εξόδου (πίεση) φαίνονται πια ολόκληρες στη γλώσσα της εφαρμογής.','Trip-start notifications (pressure) now show fully in the app language.')]],
  ['1.14.14',[T('Νέο ψάρι: το «📏 Μέτρηση μήκους με φωτογραφία» φαίνεται πάντα κάτω από το μήκος· αν δεν έχεις φωτογραφία, ανοίγει πρώτα την κάμερα.','New catch: «📏 Measure length with a photo» is always under the length; with no photo it opens the camera first.')]],
  ['1.14.13',[T('Ειδοποίηση ενώ είσαι στον χάρτη: εμφανίζεται αμέσως (SOS, σημεία), χωρίς να πας σε άλλη σελίδα και να γυρίσεις.','A notification while you are on the map now shows at once (SOS, places), no need to leave and come back.'),
   T('Μακριά μηνύματα (π.χ. η πίεση στην έναρξη εξόδου): πάτα «▾ Πάτα για ολόκληρο» για να το διαβάσεις όλο.','Long messages (e.g. pressure at trip start): tap «▾ Tap to read all» to read the whole text.'),

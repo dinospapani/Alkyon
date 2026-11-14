@@ -111,11 +111,13 @@ with sync_playwright() as p:
         from PIL import Image as _I; _f=os.path.join(tempfile.gettempdir(),'ak_meas.png'); _I.new('RGB',(800,400),(30,90,140)).save(_f)
         c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3000)
         pg.evaluate("()=>AK.biteForm()"); pg.wait_for_timeout(1200); h0=pg.evaluate("()=>!document.querySelector('.bf2 .measbtn').hidden")
-        pg.set_input_files('.bf2 input[type=file]',_f); pg.wait_for_timeout(1500); pg.click('.bf2 .measbtn'); pg.wait_for_timeout(1200)
+        pg.set_input_files('.bf2 input[type=file]:not([capture])',_f); pg.wait_for_timeout(1500); pg.click('.bf2 .measbtn'); pg.wait_for_timeout(1200)
         bx=pg.evaluate("()=>{ const r=document.querySelector('.meascv').getBoundingClientRect(); return [r.left,r.top,r.width,r.height]; }")
         for fx,fy in ((.1,.5),(.2,.5),(.1,.6),(.6,.6)): pg.mouse.click(bx[0]+bx[2]*fx,bx[1]+bx[3]*fy); pg.wait_for_timeout(100)
         rs=pg.evaluate("()=>document.querySelector('.meascv').parentNode.querySelector('.btn.pri').textContent")
         pg.click('.meascv ~ .btn.pri'); pg.wait_for_timeout(500); v=pg.evaluate("()=>document.querySelector('.bf2 .g3 .fld:nth-child(2) input').value")
+        fo=pg.evaluate("()=>{ const f=document.querySelector('.bf2'); return !!f && !!f.closest('.sheet.on'); }")
+        check('Μήκος από φωτογραφία: η φόρμα του ψαριού μένει ανοιχτή για αποθήκευση (1.14.15)', fo, fo)
         check('Μήκος από φωτογραφία: κάρτα 8,56 cm × 5 = ~43 cm στο πεδίο μήκους (1.14.13)', h0 and any(x in rs for x in ('42,','43,')) and v in ('42','43'), [h0,rs,v]); c.close()
     except ImportError: print('  (χωρίς PIL)')
 
@@ -132,6 +134,12 @@ with sync_playwright() as p:
     check('Μακρύ μήνυμα: «Πάτα για ολόκληρο» και ανοίγει όλο με πάτημα (1.14.13)', r[0]=='auto' and r[1] and f, [r,f])
     n=pg.evaluate("()=>{ let k=0; const v=AK.refreshView; AK.refreshView=function(){ k++; }; window.dispatchEvent(new Event('alkyon-push')); return new Promise(res=>setTimeout(()=>{ AK.refreshView=v; res(k); },800)); }")
     check('Ειδοποίηση ενώ είσαι στον χάρτη: ανανεώνεται αμέσως (1.14.13)', n>=1, n); c.close()
+
+    print('# 1.14.15 μήνυμα στις ειδοποιήσεις ανοίγει τα μηνύματα')
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(2500)
+    pg.evaluate("()=>{ localStorage.setItem('alkyon-v4-inbox',JSON.stringify([{at:new Date().toISOString(),title:'💬 Ιδέα · Νέο μήνυμα χρήστη',body:'Hit',kind:'fb',local:1}])); window.__om=null; AK.openMessages=function(k){ window.__om=k; }; location.hash='#inbox'; }"); pg.wait_for_timeout(2500)
+    pg.click('.ibrow'); pg.wait_for_timeout(300); r=pg.evaluate("()=>window.__om")
+    check('Ειδοποιήσεις: πάτημα σε «Νέο μήνυμα χρήστη» ανοίγει τα μηνύματα (1.14.15)', r=='fb', r); c.close()
 
     print('# 1.14.12 ελάχιστο μήκος: πράσινο / κόκκινο')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3000)

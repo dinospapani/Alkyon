@@ -2,7 +2,7 @@
 // Weather APIs and fonts are cross-origin and always go straight to the network.
 importScripts('forecast.js');
 try{ importScripts('v4/notif-i18n.js'); }catch(e){}   /* 1.10.6: ειδοποίηση στη γλώσσα της εφαρμογής */
-const V = 'alkyon-1.14.13';
+const V = 'alkyon-1.14.15';
 const CFG = 'alkyon-cfg';
 /* 1.4.2: η κλασική αποσύρθηκε, οπότε εδώ μένουν μόνο οι σελίδες της ρίζας (ανακατεύθυνση στο v4/) και τα εικονίδια.
    Τα αρχεία της εφαρμογής τα κρατά για offline το v4/sw.js. Πριν κατέβαιναν εδώ ~6 MB σε κάθε ενημέρωση. */
@@ -68,7 +68,7 @@ async function showMsg(m, src) {
   await inboxAdd(it);
   /* 1.9.61: πού ανοίγει όταν την πατάς: Κοινότητα (url), καλαμάρια → Πρόγνωση, έξοδος (καιρός, επιστροφή, δύση) → Χάρτης, αλλιώς Ειδοποιήσεις με αυτήν ανοιχτή */
   const hash = m.url && /^#[a-z]+$/.test(m.url) ? m.url : /^sq:/.test(id) ? '#forecast' : (/^trip-wx:/.test(id) || (m.place && /^(Έξοδος|Trip)$/.test(m.place.name || ''))) ? '#map' : '#inbox';
-  await self.registration.showNotification(it.title, { body: it.body, tag: m.tag || ('alk-' + id), renotify: true, icon: 'icon-192.png', badge: 'badge-96.png', data: { hash, id, url: self.registration.scope + 'v4/' + hash } });
+  await self.registration.showNotification(it.title, { body: it.body, tag: m.tag || ('alk-' + id), renotify: true, icon: 'icon-192.png', badge: 'badge-96.png', data: { hash, id, kind: m.kind || null, place: m.place || null, url: self.registration.scope + 'v4/' + hash } });
 }
 async function runCheck() {
   const cfg = await readCfg();
@@ -154,11 +154,11 @@ self.addEventListener('notificationclick', e => {
   e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async cs => {
     const c = cs.find(x => /\/v4\//.test(x.url)) || cs[0];
     if (c) {
-      try { c.postMessage({ open: hash, inbox: id, place: d.place || null }); } catch (x) {}
+      try { c.postMessage({ open: hash, inbox: id, place: d.place || null, kind: d.kind || null }); } catch (x) {}
       try { await c.focus(); } catch (x) {}
       if (!/\/v4\//.test(c.url) && 'navigate' in c) { try { await c.navigate(base + hash); } catch (x) {} }
       return;
     }
-    return self.clients.openWindow(base + (id ? '?n=' + encodeURIComponent(id) : '') + hash);
+    return self.clients.openWindow(base + (/^(msg|fb)$/.test(d.kind || '') ? '?m=' + d.kind : id ? '?n=' + encodeURIComponent(id) : '') + hash);
   }));
 });
