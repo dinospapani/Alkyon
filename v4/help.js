@@ -70,6 +70,7 @@ var HELP=[
 ];
 /* έκδοση → αλλαγές (νεότερες πρώτες). Προσθέτεις γραμμή εδώ σε κάθε νέα λειτουργία. */
 var NEWS=[
+ ['1.14.16',[T('Νέο ψάρι: το 📷 πάνω ανοίγει κατευθείαν την κάμερα· το «+» στις Φωτογραφίες ανοίγει τη συλλογή. Το «📏 Μέτρηση μήκους» υπάρχει και κάτω από τις φωτογραφίες.','New catch: the 📷 at the top opens the camera directly; the «+» under Photos opens your gallery. «📏 Measure length» is also under the photos.')]],
  ['1.14.15',[T('Μέτρηση μήκους: ανοίγει κατευθείαν την κάμερα· μετά το «Χρήση» γυρίζεις στη φόρμα του ψαριού και αποθηκεύεις κανονικά (πριν έκλεινε η φόρμα).','Length measuring: opens the camera directly; after «Use» you are back on the catch form and can save (before, the form closed).'),
   T('Ειδοποιήσεις: πατάς ένα μήνυμα (απάντηση από την Alkyon ή μήνυμα χρήστη) και ανοίγουν κατευθείαν τα μηνύματα· το ίδιο όταν πατάς την ειδοποίηση του κινητού.','Notifications: tap a message (a reply from Alkyon or a user message) and the messages open straight away; same when you tap the phone notification.'),
   T('Οι ειδοποιήσεις έναρξης εξόδου (πίεση) φαίνονται πια ολόκληρες στη γλώσσα της εφαρμογής.','Trip-start notifications (pressure) now show fully in the app language.')]],
