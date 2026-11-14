@@ -1171,6 +1171,8 @@ with sync_playwright() as p:
     check('Παράθυρο τσιμπήματος: περνά τα μεσάνυχτα (23:00–01:30 = 2,5 ώρες) (1.11.6)', r==2.5, r)
     r=pg.evaluate("()=>{ const b=AK.store.bites().filter(x=>x.win)[0]; AK.biteDetail(b); const c=document.querySelector('.bwin'); return c?[c.querySelector('h2').textContent, !!c.querySelector('button')]:null }")
     check('Σελίδα ψαριού: «Τσιμπούσαν 19:00–21:00» με κουμπί «Τι άλλαξε…» (1.11.6)', r and r[0].startswith('Τσιμπούσαν 19:00–21:00') and r[1], r)
+    r=pg.evaluate("()=>{ try{ AK.biteDetail({id:'wx1',date:'2026-11-10',time:'07:00',species:'Λαβράκι',lat:34.7,lon:33.0,wind:12,wave:0.5,press:1015,sst:22,pb:{hpa:1014.2}}); return 'ok'; }catch(e){ return e.message; } }")
+    check('Σελίδα ψαριού με καιρό και βαρόμετρο ανοίγει (1.14.9: ψάρια στον χάρτη δεν άνοιγαν)', r=='ok', r)
     pg.evaluate("()=>{ document.querySelectorAll('.sheet .x, .sheet button[aria-label]').forEach(()=>0); AK.biteForm(); }"); pg.wait_for_timeout(800)
     pg.evaluate("()=>{ const f=[...document.querySelectorAll('.bform')].pop(); f.querySelector('.bfwin').open=true; }")
     pg.evaluate("()=>{ const f=[...document.querySelectorAll('.bform')].pop(); const a=f.querySelector('.bfwin input[aria-label=\"Τσιμπούσαν από\"]'); a.value='19:00'; a.dispatchEvent(new Event('input')); }"); pg.wait_for_timeout(200)

@@ -60,7 +60,7 @@ function shoalMk(lat,lon,dep,src,nm){ var lbl=dep!=null?((dep<1?'<1':Math.round(
     .on('click',function(){ B.toast(src==='osm'?(T('Από το OpenStreetMap: ','From OpenStreetMap: ')+(nm||T('ξέρα / βράχος','shoal / rock'))+(dep!=null?T(' · βάθος ~',' · depth ~')+dep+' m':'')+T(' (σήμα χάρτη, ενδεικτικό).',' (chart mark, indicative).')):(T('Ξέρα μακριά από την ακτή: ελάχιστο βάθος ~','Offshore shoal: minimum depth ~')+(dep<1?'<1':Math.round(dep))+T(' m (EMODnet, ενδεικτικό· μπορεί να είναι πιο ρηχή).',' m (EMODnet, indicative; it may be shallower).')),8000); }); }
 /* 1.14.8: ισοβαθείς 10 / 5 / 2 m (όπως οι γραμμές στους ναυτικούς χάρτες), από το ίδιο πλέγμα, σε ενιαίο πλέγμα όλου του χάρτη
    ώστε οι γραμμές να συνεχίζουν από πλακίδιο σε πλακίδιο. Στεριά = 0 m, άρα η γραμμή των 10 m κλείνει μέσα της τα ρηχά και τις ξέρες. */
-function dAt(gx,gy){ var lon=(gx+0.5)*RES, lat=(gy+0.5)*RES, t=TILES[tkey(Math.floor(lon/TS),Math.floor(lat/TS))]; if(!t) return NaN; var g=t.g, x=Math.floor((lon-g.x0)/g.dx), y=Math.floor((lat-g.y0)/g.dy); if(x<0||y<0||x>=g.w||y>=g.h) return NaN; var v=g.data[y*g.w+x]; return v>0?v:0; }
+function dAt(gx,gy){ var lon=(gx+0.5)*RES, lat=(gy+0.5)*RES, t=TILES[tkey(Math.floor(lon/TS),Math.floor(lat/TS))]; if(!t) return NaN; var g=t.g, x=Math.floor((lon-g.x0)/g.dx), y=Math.floor((lat-g.y0)/g.dy); /* 1.14.9: στα όρια των κομματιών το πλέγμα μπορεί να πέφτει μισό κελί έξω· κρατάμε το πιο κοντινό κελί, αλλιώς η γραμμή κοβόταν */ if(x<-1||y<-1||x>g.w||y>g.h) return NaN; x=Math.max(0,Math.min(g.w-1,x)); y=Math.max(0,Math.min(g.h-1,y)); var v=g.data[y*g.w+x]; return v>0?v:0; }
 var MS={1:[[3,0]],2:[[0,1]],3:[[3,1]],4:[[1,2]],5:[[3,0],[1,2]],6:[[0,2]],7:[[3,2]],8:[[2,3]],9:[[0,2]],10:[[0,1],[2,3]],11:[[1,2]],12:[[3,1]],13:[[0,1]],14:[[3,0]]};
 function contours(c,P,U,N,W,S){ var sw=U(0,N), ne=U(N,0), gx0=Math.floor(sw.lng/RES)-1, gx1=Math.ceil(ne.lng/RES)+1, gy0=Math.floor(sw.lat/RES)-1, gy1=Math.ceil(ne.lat/RES)+1, w=gx1-gx0+1, hh=gy1-gy0+1;
   if(w*hh>120000) return; var V=new Float32Array(w*hh), X=new Float64Array(w), Y=new Float64Array(hh), any=false;
@@ -69,7 +69,7 @@ function contours(c,P,U,N,W,S){ var sw=U(0,N), ne=U(N,0), gx0=Math.floor(sw.lng/
   for(i=0;i<w;i++) X[i]=P(la0,(gx0+i+0.5)*RES)[0]; for(j=0;j<hh;j++) Y[j]=P((gy0+j+0.5)*RES,lo0)[1];
   var col=W?'10,40,80':S?'255,255,255':'15,60,130';
   [[10,1.7,.95,null],[5,1.15,.8,null],[2,1,.7,[3,3]]].forEach(function(LV){ var L0=LV[0]; c.beginPath();
-    for(var j2=0;j2<hh-1;j2++) for(var i2=0;i2<w-1;i2++){ var a=V[j2*w+i2], b=V[j2*w+i2+1], cc=V[(j2+1)*w+i2+1], d=V[(j2+1)*w+i2]; if(a!==a||b!==b||cc!==cc||d!==d||!a||!b||!cc||!d) continue; /* όχι πάνω στην ακτή: εκεί θα έπεφταν και οι τρεις γραμμές μαζί */
+    for(var j2=0;j2<hh-1;j2++) for(var i2=0;i2<w-1;i2++){ var a=V[j2*w+i2], b=V[j2*w+i2+1], cc=V[(j2+1)*w+i2+1], d=V[(j2+1)*w+i2]; if(a!==a||b!==b||cc!==cc||d!==d) continue; if(L0<10&&(!a||!b||!cc||!d)) continue; /* 1.14.9: η γραμμή των 10 m κάνει και το περίγραμμα γύρω από στεριά και νησάκια (απότομες ακτές)· οι 5 / 2 m όχι πάνω στην ακτή, για να μην πέφτουν και οι τρεις μαζί */
       var k=(a<L0?1:0)|(b<L0?2:0)|(cc<L0?4:0)|(d<L0?8:0), sg=MS[k]; if(!sg) continue;
       for(var q=0;q<sg.length;q++){ var e=sg[q];
         for(var r=0;r<2;r++){ var ed=e[r], px, py, t;
@@ -131,6 +131,37 @@ function refresh(){
   busy++; legend({n:1});
   Promise.all(miss.map(function(x){ return tile(x[0],x[1]).then(draw).catch(function(){ fails++; }); })).then(function(){ busy--; draw();
     if(fails&&!Object.keys(TILES).length) msg(T('Τα βάθη δεν φορτώθηκαν. Χρειάζεται σύνδεση την πρώτη φορά.','Depths did not load. A connection is needed the first time.')); fails=0; }); }
+/* 1.14.9: προειδοποίηση πορείας σε έξοδο: κοιτάζει μπροστά στην πορεία (~90 δευτ. ή 200–900 m) για στεριά, ρηχά ≤ 3 m και ξέρες/βράχους·
+   αν βρει, ζουμάρει τον χάρτη ώστε να φαίνονται βάρκα και κίνδυνος, δείχνει κόκκινη μπάρα, δονεί και το λέει φωνητικά.
+   Τα κομμάτια βάθους φορτώνονται γύρω από τη βάρκα ακόμα κι αν το επίπεδο «Ρηχά» είναι κλειστό (και μένουν στο κινητό για χωρίς σήμα). */
+var HZ={last:{},prev:null,bar:null,hide:0};
+function rawDepth(lat,lon){ var t=TILES[tkey(Math.floor(lon/TS),Math.floor(lat/TS))]; if(!t) return NaN; var g=t.g, x=Math.floor((lon-g.x0)/g.dx), y=Math.floor((lat-g.y0)/g.dy); if(x<-1||y<-1||x>g.w||y>g.h) return NaN; x=Math.max(0,Math.min(g.w-1,x)); y=Math.max(0,Math.min(g.h-1,y)); return g.data[y*g.w+x]; }
+function hzDist(a,b){ var R=6371000, r=Math.PI/180, dLa=(b.lat-a.lat)*r, dLo=(b.lon-a.lon)*r, x=Math.sin(dLa/2)*Math.sin(dLa/2)+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dLo/2)*Math.sin(dLo/2); return 2*R*Math.asin(Math.min(1,Math.sqrt(x))); }
+function hzBrg(a,b){ var r=Math.PI/180, dLo=(b.lon-a.lon)*r, y=Math.sin(dLo)*Math.cos(b.lat*r), x=Math.cos(a.lat*r)*Math.sin(b.lat*r)-Math.sin(a.lat*r)*Math.cos(b.lat*r)*Math.cos(dLo); return (Math.atan2(y,x)/r+360)%360; }
+function hzDest(a,h,d){ var r=Math.PI/180; return {lat:a.lat+d*Math.cos(h*r)/111320,lon:a.lon+d*Math.sin(h*r)/(111320*Math.cos(a.lat*r))}; }
+function hzLoad(lat,lon){ var i0=Math.floor(lon/TS), j0=Math.floor(lat/TS); for(var di=-1;di<=1;di++) for(var dj=-1;dj<=1;dj++){ var k=tkey(i0+di,j0+dj); if(!TILES[k]&&!PEND[k]) tile(i0+di,j0+dj).catch(function(){}); } loadShoals(); }
+function hzMsg(f){ var m=Math.round(f.d/10)*10;
+  return f.k==='land'?T('Προσοχή! Στεριά μπροστά, σε '+m+' μέτρα.','Caution! Land ahead, '+m+' metres.'):f.k==='shoal'?T('Προσοχή! Ξέρα μπροστά, σε '+m+' μέτρα.','Caution! Shoal ahead, '+m+' metres.'):T('Προσοχή! Ρηχά μπροστά, '+(f.dep<1?'κάτω από ένα μέτρο':Math.round(f.dep)+' μέτρα βάθος')+', σε '+m+' μέτρα.','Caution! Shallow water ahead, '+(f.dep<1?'under one metre':Math.round(f.dep)+' metres deep')+', '+m+' metres.'); }
+function hzShow(f,pos){ var txt=hzMsg(f);
+  if(!HZ.bar){ HZ.bar=h('div',{class:'hzbar',role:'alert'}); HZ.bar.addEventListener('click',function(){ HZ.bar.hidden=true; }); document.body.append(HZ.bar); }
+  HZ.bar.replaceChildren(h('b',{text:'⚠'}),h('span',{text:txt}),h('small',{text:T('πάτα για κλείσιμο','tap to close')})); HZ.bar.hidden=false; clearTimeout(HZ.hide); HZ.hide=setTimeout(function(){ if(HZ.bar) HZ.bar.hidden=true; },15000);
+  try{ if(navigator.vibrate) navigator.vibrate([350,150,350,150,350]); }catch(e){}
+  try{ if(B.say) B.say(txt,'hz','hz-'+f.k,0); }catch(e){}
+  var m=M(); if(m&&document.body.classList.contains('mapon')){ try{ var bb=L.latLngBounds([[pos.lat,pos.lon],[f.q.lat,f.q.lon]]); if(m.getZoom()<15||!m.getBounds().pad(-0.15).contains(bb)) m.fitBounds(bb.pad(1.2),{maxZoom:16,animate:true}); }catch(e){} }
+  try{ B.emit&&B.emit('hazard',f); }catch(e){} }
+B.hazardCheck=function(p){ if(!p||ls.get('alkyon-hz',true)===false) return null; var now=Date.now(), prev=HZ.prev, pos={lat:p.lat,lon:p.lon};
+  HZ.prev={lat:p.lat,lon:p.lon,t:now}; hzLoad(p.lat,p.lon);
+  var spd=p.spd, hd=p.hd;
+  if((!(spd>=0)||hd==null||hd!==hd)&&prev&&now>prev.t){ var dd=hzDist(prev,pos); if(dd>6){ spd=dd/((now-prev.t)/1000); hd=hzBrg(prev,pos); } }
+  if(!(spd>1)||hd==null||hd!==hd) return null;   /* κάτω από ~2 κόμβους (άγκυρα, ψάρεμα στο σημείο) δεν ενοχλεί */
+  var LIMD=+ls.get('alkyon-hz-dep',3)||3, here=rawDepth(p.lat,p.lon); if(here<0||(here>0&&here<=LIMD)) return null;   /* ήδη μέσα σε λιμάνι/ρηχά (π.χ. φεύγεις από τη μαρίνα): όχι συνέχεια ειδοποιήσεις */
+  var Lm=Math.max(200,Math.min(900,spd*90)), near=(SH||[]).filter(function(s2){ return Math.abs(s2[0]-p.lat)<0.012&&Math.abs(s2[1]-p.lon)<0.015; }), found=null;
+  for(var d=20;d<=Lm&&!found;d+=20){ var q=hzDest(pos,hd,d), v=rawDepth(q.lat,q.lon);
+    if(v<0) found={k:'land',d:d,q:q}; else if(v>0&&v<=LIMD) found={k:'shallow',d:d,q:q,dep:v};
+    else for(var i=0;i<near.length;i++){ var s3=near[i]; if((s3[2]==null||s3[2]<=LIMD+2)&&hzDist(q,{lat:s3[0],lon:s3[1]})<50){ found={k:'shoal',d:d,q:{lat:s3[0],lon:s3[1]}}; break; } } }
+  if(!found) return null;
+  var l=HZ.last[found.k]; if(l&&now-l.t<60000&&found.d>l.d*0.5) return found; HZ.last[found.k]={t:now,d:found.d};
+  hzShow(found,pos); return found; };
 B.shallows={on:function(){ return on; },set:function(v){ on=!!v; ls.set(KEY,on); if(on) refresh(); else draw(); try{ window.dispatchEvent(new Event('alkyon-wxchange')); }catch(e){} },
   analyze:analyze,_tiles:TILES,pack:pack,unpack:unpack,
   /* 1.13.8: για το seafloor.js (ανάγλυφο, ζώνη βάθους): ίδια κομμάτια και ίδια μνήμη */

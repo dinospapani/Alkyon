@@ -1198,3 +1198,10 @@ html:not(.night) body.mapclean .mcpanel .mpto.mpnav .mpstop{background:var(--sur
 .snm.ks span{font-style:italic;color:#bff3ff}
 .snm.big span{font-size:13.5px;font-weight:700}
 html.night body.mapon .snm span{color:#c9d6de}
+/* 1.14.9: προειδοποίηση πορείας (στεριά / ρηχά / ξέρα μπροστά) */
+.hzbar{position:fixed;left:12px;right:12px;top:calc(env(safe-area-inset-top,0px) + 70px);z-index:4000;display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:16px;background:#d62828;color:#fff;box-shadow:0 8px 28px rgba(0,0,0,.45);animation:hzp 1s ease-in-out 3}
+.hzbar b{font-size:24px;line-height:1}
+.hzbar span{flex:1;font:700 15px/1.3 var(--font)}
+.hzbar small{font:500 11px var(--font);opacity:.8;white-space:nowrap}
+.hzbar[hidden]{display:none}
+@keyframes hzp{50%{transform:scale(1.03);background:#ff3b30}}

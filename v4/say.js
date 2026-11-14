@@ -4,7 +4,7 @@
    στο πρώτο άγγιγμα της οθόνης «ξεκλειδώνεται» με μια σιωπηλή φράση. */
 (function(){
 'use strict';
-var B=window.AK, ls=B.ls, T=B.T, K='alkyon-say', DEF={on:true,vol:1,rate:1,k:{troll:true,speed:true,anchor:true,nav:true}};
+var B=window.AK, ls=B.ls, T=B.T, K='alkyon-say', DEF={on:true,vol:1,rate:1,k:{troll:true,speed:true,anchor:true,nav:true,hz:true}};
 var SS=window.speechSynthesis, last={}, unlocked=false, voice=null;
 function cfg(){ var c=ls.get(K,null)||{}; var o=Object.assign({},DEF,c); o.k=Object.assign({},DEF.k,c.k||{}); return o; }
 function put(c){ ls.set(K,c); }
@@ -28,6 +28,7 @@ function sheet(){ var c=cfg(), sh;
     sw(T('Συρτή βυθού','Bottom trolling'),T('«Σταμάτα στα 30», «Στον βυθό», «Βαράει βυθό, μάζεψε 2»','“Stop at 30”, “On the bottom”, “Hitting bottom, bring in 2”'),function(){ return c.k.troll; },function(v){ c.k.troll=v; put(c); }),
     sw(T('Ταχύτητα συρτής','Trolling speed'),T('«Ταχύτητα δυόμισι, ανέβασε»','“Speed two and a half, speed up”'),function(){ return c.k.speed; },function(v){ c.k.speed=v; put(c); }),
     sw(T('Άγκυρα','Anchor'),T('«Η άγκυρα σέρνει, 52 μέτρα»','“Anchor dragging, 52 metres”'),function(){ return c.k.anchor; },function(v){ c.k.anchor=v; put(c); }),
+    sw(T('Στεριά / ρηχά μπροστά','Land / shallows ahead'),T('«Προσοχή! Ρηχά μπροστά, 2 μέτρα βάθος, σε 150 μέτρα»','“Caution! Shallow water ahead, 2 metres deep, 150 metres”'),function(){ return c.k.hz; },function(v){ c.k.hz=v; put(c); }),
     sw(T('Πλοήγηση','Navigation'),T('«Φτάνεις σε δύο λεπτά», «Έφτασες»','“Arriving in two minutes”, “Arrived”'),function(){ return c.k.nav; },function(v){ c.k.nav=v; put(c); }),
     h('label',{class:'fld'},h('span',{text:T('Ένταση','Volume')}),(function(){ var r=h('input',{type:'range',min:'0.2',max:'1',step:'0.1',value:String(c.vol)}); r.addEventListener('change',function(){ c.vol=+r.value; put(c); }); return r; })()),
     h('button',{class:'btn full',type:'button',text:T('▶ Δοκιμή','▶ Test'),onclick:function(){ unlock(); last={}; say(T('Σταμάτα στα τριάντα μολύβια','Stop at thirty leads'),null,'test',0); }}),
