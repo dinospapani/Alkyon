@@ -34,7 +34,7 @@ function draw(){
   visNow=!!(on&&document.body.classList.contains('mapon')&&map.getZoom()>=12);
   /* 1.12.7: χωρίς βάθη στην οθόνη δεν δείχνει άδεια κλίμακα 0–50 m */
   if(!visNow){ cv.show(false); legend(false); return; }
-  if(cv.shown()) cv.repaint(); else cv.show(true); legend(cells.length?null:false); }
+  if(cv.shown()) cv.repaint(cells); else { cv.show(true); cv.repaint(cells); } legend(cells.length?null:false); }
 function legend(msg){
   if(msg===false||!on||!document.body.classList.contains('mapon')){ if(legEl) legEl.hidden=true; return; }
   if(!legEl){ legEl=h('div',{class:'sbleg mdleg',role:'note'}); document.body.append(legEl); }

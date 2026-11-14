@@ -164,15 +164,16 @@ var satW=null;
    paint(ctx, P(lat,lon)→[x,y], U(x,y)→latlng, 256, coords) */
 B.ovTiles=function(map,paneName,paint){
   var GL=L.GridLayer.extend({createTile:function(c){ var t=document.createElement('canvas'); pt(t,c); return t; }});
-  var lay=new GL({pane:paneName,tileSize:256,updateWhenIdle:false,updateWhenZooming:false,updateInterval:120,keepBuffer:3,noWrap:false});
+  var lastSig, lay=new GL({pane:paneName,tileSize:256,updateWhenIdle:false,updateWhenZooming:false,updateInterval:120,keepBuffer:3,noWrap:false});
   function pt(t,c){ var dpr=Math.min(window.devicePixelRatio||1,1.5), N=256; if(t.width!==Math.round(N*dpr)){ t.width=t.height=Math.round(N*dpr); }
     var x=t.getContext('2d'); x.setTransform(dpr,0,0,dpr,0,0); x.clearRect(0,0,N,N); var ox=c.x*N, oy=c.y*N, z=c.z;
     function P(la,lo){ var q=map.project([la,lo],z); return [q.x-ox,q.y-oy]; }
     function U(px,py){ return map.unproject([px+ox,py+oy],z); }
     try{ paint(x,P,U,N,c); }catch(e){ if(window.console) console.warn('ovTiles',e); } }
   return {layer:lay,
-    repaint:function(){ var ts=lay._tiles||{}; for(var k in ts){ var q=ts[k]; if(q&&q.el&&q.coords) pt(q.el,q.coords); } },
-    show:function(v){ if(v){ if(!map.hasLayer(lay)) lay.addTo(map); } else if(map.hasLayer(lay)) map.removeLayer(lay); },
+    /* 1.14.11: ξαναζωγραφίζει μόνο όταν άλλαξαν τα δεδομένα (sig)· πριν ξαναζωγραφίζονταν όλα σε κάθε μετακίνηση και ο χάρτης κολλούσε */
+    repaint:function(sig){ if(sig!==undefined&&sig===lastSig) return; lastSig=sig; var ts=lay._tiles||{}; for(var k in ts){ var q=ts[k]; if(q&&q.el&&q.coords) pt(q.el,q.coords); } },
+    show:function(v){ if(v){ if(!map.hasLayer(lay)) lay.addTo(map); } else { lastSig=undefined; if(map.hasLayer(lay)) map.removeLayer(lay); } },
     shown:function(){ return map.hasLayer(lay); }}; };
 /* 1.14.7: καμβάς επιπέδου (χρώμα κύματος/ανέμου, θερμοκρασία, κύμα ακτής) που στο ζουμ (δύο δάχτυλα ή διπλό άγγιγμα) μεγαλώνει/μικραίνει
    μαζί με τον χάρτη, όπως τα πλακίδια, αντί να σβήνει μέχρι να ξαναζωγραφιστεί. ovMark: πού ζωγραφίστηκε (πάνω-αριστερή γωνία, ζουμ). */

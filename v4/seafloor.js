@@ -53,7 +53,7 @@ function draw(){
   if(!ensure()) return;
   var sh=S(), vis=any()&&sh&&document.body.classList.contains('mapon')&&map.getZoom()>=10; visNow=!!vis;
   if(!vis){ cv.show(false); legend(); return; }
-  if(cv.shown()) cv.repaint(); else cv.show(true); legend(); }
+  var sig=Object.keys(sh._tiles||{}).length+'|'+rel+'|'+bnd+'|'+BR.a+'-'+BR.b+'|'+sat(); if(cv.shown()) cv.repaint(sig); else { cv.show(true); cv.repaint(sig); } legend(); }
 function refresh(){
   if(!any()||!ensure()){ draw(); return; } if(!document.body.classList.contains('mapon')) return;
   var sh=S(); if(!sh) return; if(map.getZoom()<10){ draw(); legend(T('Κάνε ζουμ (10+) για να φανεί.','Zoom in (10+) to see it.')); return; }
@@ -78,7 +78,8 @@ function pick(){ var fa=h('input',{type:'number',inputmode:'numeric',min:'0',max
 function legend(note){
   var show=bnd&&document.body.classList.contains('mapon');
   if(!show){ if(legEl) legEl.hidden=true; return; }
-  if(!legEl){ legEl=h('div',{class:'sbleg sfleg',role:'note'}); document.body.append(legEl); }
+  if(!legEl){ legEl=h('div',{class:'sbleg sfleg mini',role:'note'}); document.body.append(legEl); var lt=0; /* 1.14.11: μαζεμένο· πάτα τον τίτλο */
+    legEl.addEventListener('click',function(e){ if(e.target.closest('button,a,input,select')) return; var o=legEl.classList.toggle('mini'); clearTimeout(lt); if(!o) lt=setTimeout(function(){ legEl.classList.add('mini'); },10000); }); }
   legEl.hidden=false; placeSoon(); legEl.replaceChildren(h('b',{text:T('Ζώνη βάθους','Depth band')}),
     h('span',{class:'sbk'},h('i',{style:'background:#E4572E'}),(BR.sp?BR.sp+' ':'')+BR.a+'–'+BR.b+' m'),
     h('button',{type:'button',class:'sfed',text:T('Αλλαγή','Change'),onclick:pick}),

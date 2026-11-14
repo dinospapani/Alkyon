@@ -43,7 +43,7 @@ function draw(){
   A.peaks.forEach(function(p){ var q=ll(g,p.x,p.y); L.marker(q,{interactive:true,keyboard:false,icon:L.divIcon({className:'mk peak',iconSize:null,html:'<i>▲</i><b>'+Math.round(p.d)+' m</b>'})})
     .on('click',function(){ B.toast(T('Ύψωμα στον βυθό: κορυφή ~','Seabed rise: top ~')+Math.round(p.d)+T(' m, ~',' m, ~')+Math.round(p.p)+T(' m ρηχότερα από τον γύρω βυθό.',' m shallower than the seabed around it.'),7000); }).addTo(grp); });
   if(!map.hasLayer(grp)) grp.addTo(map);
-  if(cv.shown()) cv.repaint(); else cv.show(true); legend({n:n,peaks:A.peaks.length}); }
+  if(cv.shown()) cv.repaint(G); else { cv.show(true); cv.repaint(G); } legend({n:n,peaks:A.peaks.length}); }
 function legend(info){
   if(!info){ if(legEl) legEl.hidden=true; return; }
   if(!legEl){ legEl=h('div',{class:'sbleg',role:'note'}); document.body.append(legEl); }

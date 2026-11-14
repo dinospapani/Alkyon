@@ -135,7 +135,7 @@ nb.addEventListener('click',function(){ if(man==null) return; lm.style.transitio
 box.appendChild(nb);
 function updN(){ var on=isOn&&man!=null&&autoT()==null; nb.hidden=!on; if(!on) return; nb.style.setProperty('--nr',shown.toFixed(1)+'deg');
   /* θέση: κάτω από το κουμπί NU/CU/HU αν φαίνεται, αλλιώς κάτω από την αριστερή στήλη (άγκυρα κ.λπ.) */
-  var y=0; [btn,document.querySelector('.seabar')].forEach(function(el){ if(!el) return; var r=el.getBoundingClientRect(); if(r.height>0&&getComputedStyle(el).display!=='none'&&r.bottom>y) y=r.bottom; });
+  var y=0; [btn,document.querySelector('.seabar'),document.querySelector('.mcbar'),document.querySelector('.dtbar'),document.querySelector('.mcpanel')].forEach(function(el){ /* 1.14.11: και κάτω από τη μπάρα καιρού (mcbar), αλλιώς στο κινητό κρυβόταν μισό από κάτω της */ if(!el) return; var r=el.getBoundingClientRect(); if(r.height>0&&getComputedStyle(el).display!=='none'&&r.bottom>y) y=r.bottom; });
   nb.style.top=Math.round((y||60)+10)+'px'; }
 window.addEventListener('resize',function(){ if(isOn) layout(true); });
 window.addEventListener('orientationchange',function(){ setTimeout(function(){ if(isOn) layout(true); },300); });

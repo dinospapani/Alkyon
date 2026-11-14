@@ -1205,3 +1205,13 @@ html.night body.mapon .snm span{color:#c9d6de}
 .hzbar small{font:500 11px var(--font);opacity:.8;white-space:nowrap}
 .hzbar[hidden]{display:none}
 @keyframes hzp{50%{transform:scale(1.03);background:#ff3b30}}
+/* 1.14.11: μαζεμένο υπόμνημα «Ρηχά & ξέρες»: μόνο τίτλος + ⓘ· πάτα για τα υπόλοιπα */
+.sbleg.shleg{cursor:pointer;pointer-events:auto}
+.sbleg.shleg b::after{content:" ⓘ";font-weight:600;opacity:.7}
+.sbleg.shleg.mini{padding:5px 11px;gap:0}
+.sbleg.shleg.mini .sbk,.sbleg.shleg.mini small{display:none}
+/* 1.14.11: και το «Ζώνη βάθους» μαζεμένο */
+.sbleg.sfleg{cursor:pointer;pointer-events:auto}
+.sbleg.sfleg.mini>*:not(b){display:none!important}
+.sbleg.sfleg.mini{padding:5px 11px;gap:0}
+.sbleg.sfleg>b::after{content:" ⓘ";font-weight:600;opacity:.7}

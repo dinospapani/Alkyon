@@ -60,7 +60,8 @@ function shoalMk(lat,lon,dep,src,nm){ var lbl=dep!=null?((dep<1?'<1':Math.round(
     .on('click',function(){ B.toast(src==='osm'?(T('Από το OpenStreetMap: ','From OpenStreetMap: ')+(nm||T('ξέρα / βράχος','shoal / rock'))+(dep!=null?T(' · βάθος ~',' · depth ~')+dep+' m':'')+T(' (σήμα χάρτη, ενδεικτικό).',' (chart mark, indicative).')):(T('Ξέρα μακριά από την ακτή: ελάχιστο βάθος ~','Offshore shoal: minimum depth ~')+(dep<1?'<1':Math.round(dep))+T(' m (EMODnet, ενδεικτικό· μπορεί να είναι πιο ρηχή).',' m (EMODnet, indicative; it may be shallower).')),8000); }); }
 /* 1.14.8: ισοβαθείς 10 / 5 / 2 m (όπως οι γραμμές στους ναυτικούς χάρτες), από το ίδιο πλέγμα, σε ενιαίο πλέγμα όλου του χάρτη
    ώστε οι γραμμές να συνεχίζουν από πλακίδιο σε πλακίδιο. Στεριά = 0 m, άρα η γραμμή των 10 m κλείνει μέσα της τα ρηχά και τις ξέρες. */
-function dAt(gx,gy){ var lon=(gx+0.5)*RES, lat=(gy+0.5)*RES, t=TILES[tkey(Math.floor(lon/TS),Math.floor(lat/TS))]; if(!t) return NaN; var g=t.g, x=Math.floor((lon-g.x0)/g.dx), y=Math.floor((lat-g.y0)/g.dy); /* 1.14.9: στα όρια των κομματιών το πλέγμα μπορεί να πέφτει μισό κελί έξω· κρατάμε το πιο κοντινό κελί, αλλιώς η γραμμή κοβόταν */ if(x<-1||y<-1||x>g.w||y>g.h) return NaN; x=Math.max(0,Math.min(g.w-1,x)); y=Math.max(0,Math.min(g.h-1,y)); var v=g.data[y*g.w+x]; return v>0?v:0; }
+var dI=1e9, dJ=1e9, dT=null; /* 1.14.11: το τελευταίο κομμάτι, για να μη φτιάχνει κλειδί σε κάθε κελί */
+function dAt(gx,gy){ var lon=(gx+0.5)*RES, lat=(gy+0.5)*RES, ti=Math.floor(lon/TS), tj=Math.floor(lat/TS), t; if(ti===dI&&tj===dJ) t=dT; else { t=TILES[tkey(ti,tj)]; dI=ti; dJ=tj; dT=t; } if(!t) return NaN; var g=t.g, x=Math.floor((lon-g.x0)/g.dx), y=Math.floor((lat-g.y0)/g.dy); /* 1.14.9: στα όρια των κομματιών το πλέγμα μπορεί να πέφτει μισό κελί έξω· κρατάμε το πιο κοντινό κελί, αλλιώς η γραμμή κοβόταν */ if(x<-1||y<-1||x>g.w||y>g.h) return NaN; x=Math.max(0,Math.min(g.w-1,x)); y=Math.max(0,Math.min(g.h-1,y)); var v=g.data[y*g.w+x]; return v>0?v:0; }
 var MS={1:[[3,0]],2:[[0,1]],3:[[3,1]],4:[[1,2]],5:[[3,0],[1,2]],6:[[0,2]],7:[[3,2]],8:[[2,3]],9:[[0,2]],10:[[0,1],[2,3]],11:[[1,2]],12:[[3,1]],13:[[0,1]],14:[[3,0]]};
 function contours(c,P,U,N,W,S){ var sw=U(0,N), ne=U(N,0), gx0=Math.floor(sw.lng/RES)-1, gx1=Math.ceil(ne.lng/RES)+1, gy0=Math.floor(sw.lat/RES)-1, gy1=Math.ceil(ne.lat/RES)+1, w=gx1-gx0+1, hh=gy1-gy0+1;
   if(w*hh>120000) return; var V=new Float32Array(w*hh), X=new Float64Array(w), Y=new Float64Array(hh), any=false;
@@ -68,7 +69,7 @@ function contours(c,P,U,N,W,S){ var sw=U(0,N), ne=U(N,0), gx0=Math.floor(sw.lng/
   if(!any) return; var la0=(gy0+0.5)*RES, lo0=(gx0+0.5)*RES;
   for(i=0;i<w;i++) X[i]=P(la0,(gx0+i+0.5)*RES)[0]; for(j=0;j<hh;j++) Y[j]=P((gy0+j+0.5)*RES,lo0)[1];
   var col=W?'10,40,80':S?'255,255,255':'15,60,130';
-  [[10,1.7,.95,null],[5,1.15,.8,null],[2,1,.7,[3,3]]].forEach(function(LV){ var L0=LV[0]; c.beginPath();
+  var z0=map.getZoom(); [[10,1.7,.95,null],[5,1.15,.8,null],[2,1,.7,[3,3]]].filter(function(LV){ return z0>=13||LV[0]===10||(z0>=12&&LV[0]===5); }).forEach(function(LV){ /* 1.14.11: σε μακρινό ζουμ μόνο 10 m (και 5 m από 12), πιο γρήγορο και πιο καθαρό */ var L0=LV[0]; c.beginPath();
     for(var j2=0;j2<hh-1;j2++) for(var i2=0;i2<w-1;i2++){ var a=V[j2*w+i2], b=V[j2*w+i2+1], cc=V[(j2+1)*w+i2+1], d=V[(j2+1)*w+i2]; if(a!==a||b!==b||cc!==cc||d!==d) continue; if(L0<10&&(!a||!b||!cc||!d)) continue; /* 1.14.9: η γραμμή των 10 m κάνει και το περίγραμμα γύρω από στεριά και νησάκια (απότομες ακτές)· οι 5 / 2 m όχι πάνω στην ακτή, για να μην πέφτουν και οι τρεις μαζί */
       var k=(a<L0?1:0)|(b<L0?2:0)|(cc<L0?4:0)|(d<L0?8:0), sg=MS[k]; if(!sg) continue;
       for(var q=0;q<sg.length;q++){ var e=sg[q];
@@ -102,7 +103,7 @@ function draw(){
   var bd=map.getBounds().pad(.05); (SH||[]).forEach(function(s){ if(!bd.contains([s[0],s[1]])) return; if(placed.some(function(q){ return Math.abs(q[0]-s[0])<0.0015&&Math.abs(q[1]-s[1])<0.002; })) return; shoalMk(s[0],s[1],s[2],'osm',s[4]||kind(s[3])).addTo(grp); });
   names(bd);
   if(!map.hasLayer(grp)) grp.addTo(map);
-  if(cv.shown()) cv.repaint(); else cv.show(true); legend({n:n}); }
+  var sig=Object.keys(TILES).length+'|'+sat()+'|'+wxOn(); if(cv.shown()) cv.repaint(sig); else { cv.show(true); cv.repaint(sig); } legend({n:n}); }
 /* 1.14.8: ονόματα της θάλασσας (νησάκια, βράχοι, ξέρες, κάβοι, κόλποι) από το OpenStreetMap (../sea-names.js) */
 var SN=null, snP=null;
 function loadNames(){ if(SN) return Promise.resolve(SN); if(snP) return snP; snP=(window.ALKYON_SEA_NAMES?Promise.resolve():new Promise(function(res){ var s2=document.createElement('script'); s2.src='../sea-names.js'; s2.onload=res; s2.onerror=res; document.head.appendChild(s2); })).then(function(){ SN=window.ALKYON_SEA_NAMES||[]; return SN; }); return snP; }
@@ -115,12 +116,17 @@ function names(bd){ if(!SN){ loadNames().then(function(){ if(SN&&SN.length) draw
     L.marker([r[2],r[3]],{interactive:false,keyboard:false,icon:L.divIcon({className:'snm k'+r[4]+(big?' big':''),iconSize:null,html:'<span>'+nm.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</span>'})}).addTo(grp); } }
 function legend(a){
   if(!a){ if(legEl) legEl.hidden=true; return; }
-  if(!legEl){ legEl=h('div',{class:'sbleg shleg',role:'note'}); document.body.append(legEl); }
+  mkLeg();
   var S=sat(), W=wxOn(); legEl.hidden=false; legEl.replaceChildren(h('b',{text:T('Ρηχά & ξέρες','Shallows & shoals')}),
     h('span',{class:'sbk'},h('i',{style:'background:'+(W?'#fff;outline:1px solid #0a2850':S?'#78dcff':'#1e6ec8')}),'0–2 m'),h('span',{class:'sbk'},h('i',{style:'background:'+(S?'#5abef0':'#3c8cd7')+';opacity:.75'}),'2–5 m'),h('span',{class:'sbk'},h('i',{style:'background:'+(S?'#46a0e6':'#6eafe6')+';opacity:.5'}),'5–10 m'),
     h('span',{class:'sbk'},h('em',{text:'⚠'}),T('ξέρα','shoal')),
     h('small',{text:busy?T('Φόρτωση βαθών… (μένουν στο κινητό)','Loading depths… (kept on your phone)'):a.n?T('Γραμμές: 10 m (έντονη), 5 m, 2 m (διακεκομμένη). Ενδεικτικά (EMODnet ~115 m, OpenStreetMap)· μικρές ξέρες μπορεί να λείπουν.','Lines: 10 m (bold), 5 m, 2 m (dashed). Indicative (EMODnet ~115 m, OpenStreetMap); small shoals may be missing.'):T('Δεν υπάρχουν ρηχά κάτω από 10 m εδώ.','No water shallower than 10 m here.')})); }
-function msg(t){ if(!legEl){ legEl=h('div',{class:'sbleg shleg',role:'note'}); document.body.append(legEl); } legEl.hidden=false; legEl.replaceChildren(h('b',{text:T('Ρηχά & ξέρες','Shallows & shoals')}),h('small',{text:t})); }
+/* 1.14.11: το υπόμνημα είναι μαζεμένο (μόνο ο τίτλος και ⓘ), για να μην πιάνει την οθόνη· πάτα για ανάπτυξη, ξαναμαζεύεται σε 10″ */
+var legT=0;
+function mkLeg(){ if(legEl) return; legEl=h('div',{class:'sbleg shleg mini',role:'button',tabindex:'0','aria-label':T('Υπόμνημα ρηχών','Shallows legend')});
+  legEl.addEventListener('click',function(){ var o=legEl.classList.toggle('mini'); clearTimeout(legT); if(!o) legT=setTimeout(function(){ legEl.classList.add('mini'); },10000); });
+  document.body.append(legEl); }
+function msg(t){ mkLeg(); legEl.hidden=false; legEl.replaceChildren(h('b',{text:T('Ρηχά & ξέρες','Shallows & shoals')}),h('small',{text:t})); }
 var fails=0;
 function refresh(){
   if(!on||!ensure()){ draw(); return; } if(!document.body.classList.contains('mapon')) return;
