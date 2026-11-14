@@ -130,16 +130,24 @@ export async function sync({ file, fetchFn = fetch, sleep = ms => new Promise(r 
 
   /* 4. upsert */
   const next = new Map(byId);
-  let upd = 0, add = 0, skip = 0, noGeo = 0;
+  let upd = 0, add = 0, skip = 0, noGeo = 0, light = 0;
   const cy = [];   /* 1.11.4: αλλαγές σε περιοχές της Κύπρου → ειδοποίηση για έλεγχο του zones.js (Τμήμα Αλιείας) */
   const noteCy = (f, what) => { if (f && f.c === 'Cyprus') cy.push(what + ': ' + f.n + ' (' + f.i + ')'); };
   for (const { s } of active.values()) {
     const had = byId.get(s.ps_id);
     if (s.country && !wanted(s)) { if (had) { next.delete(s.ps_id); upd++; noteCy(had, 'αφαιρέθηκε'); } skip++; continue; }  /* δεν μας αφορά (πια) */
-    const d = await get('/api/detail/?ps_id=' + encodeURIComponent(s.ps_id) + '&lang=en_EN&export_boundaries=true');
+    /* Ανά μέρος ημερομηνίες (Alex, 14/11/2026): όριο ξανά μόνο αν last_boundary_update ≥ from, Site Details μόνο αν last_details_update ≥ from.
+       Αν δεν ισχύει κανένα, η εγγραφή του sites_updated αρκεί (κρατάμε όριο και κείμενα που δεν έχει). Νέα περιοχή ή χωρίς τα πεδία: όλα όπως πριν. */
+    const dB = s.last_boundary_update, dD = s.last_details_update;
+    const known = !!had && typeof dB === 'string' && typeof dD === 'string';
+    const needB = !known || dB.slice(0, 10) >= from, needD = !known || dD.slice(0, 10) >= from;
+    let d = null;
+    if (needB || needD) d = await get('/api/detail/?ps_id=' + encodeURIComponent(s.ps_id) + '&lang=en_EN' + (needB ? '&export_boundaries=true' : ''));
+    else light++;
     const p = Object.assign({}, s, d && typeof d === 'object' ? d : {});
+    if (!needD && had) { for (const [k, hk] of [['purpose', 'pu'], ['restrictions', 're'], ['regulation_name', 'rn'], ['regulation_source', 'rs'], ['managing_authority', 'ma'], ['season', 'se'], ['designation', 'd'], ['site_name', 'n']]) if (p[k] == null && had[hk]) p[k] = had[hk]; }
     if (!wanted(p)) { if (had) { next.delete(s.ps_id); upd++; noteCy(had, 'αφαιρέθηκε'); } skip++; continue; }
-    let G = toRings(p.site_boundary || (d && d.boundary) || null, p.country);
+    let G = needB ? toRings(p.site_boundary || (d && d.boundary) || null, p.country) : null;
     if (!G) { if (had) G = had.g; else { noGeo++; continue; } }   /* χωρίς όρια δεν σχεδιάζεται */
     if (!plausible(G)) { log('Εκτός περιοχής ή ύποπτες συντεταγμένες, παραλείπεται: ' + s.ps_id); if (had) next.delete(s.ps_id); skip++; continue; }   /* π.χ. τουρκικές περιοχές στη Μαύρη Θάλασσα */
     const nf = compact(p, G); next.set(s.ps_id, nf);
@@ -152,10 +160,10 @@ export async function sync({ file, fetchFn = fetch, sleep = ms => new Promise(r 
   if (next.size < local.length * (1 - MAX_SHRINK_FRAC)) throw new Error('Το αρχείο θα μίκραινε από ' + local.length + ' σε ' + next.size + '. Σταματώ.');
   const out = [...next.values()].sort((a, b) => (a.c !== 'Cyprus') - (b.c !== 'Cyprus') || a.c.localeCompare(b.c) || a.n.localeCompare(b.n));
   const changed = add + upd + toRemove.length > 0;
-  log('Προσθήκες ' + add + ', ενημερώσεις ' + upd + ', διαγραφές ' + toRemove.length + ', παραλείφθηκαν ' + skip + ', χωρίς όρια ' + noGeo + '. Σύνολο ' + out.length);
+  log('Προσθήκες ' + add + ', ενημερώσεις ' + upd + ' (' + light + ' μόνο από την εγγραφή συγχρονισμού), διαγραφές ' + toRemove.length + ', παραλείφθηκαν ' + skip + ', χωρίς όρια ' + noGeo + '. Σύνολο ' + out.length);
   if (changed) fs.writeFileSync(file, JSON.stringify({ v: startDate, f: out }));
   else if (doc.v !== startDate) fs.writeFileSync(file, JSON.stringify({ v: startDate, f: local }));
-  return { changed, add, upd, removed: toRemove.length, total: out.length, from, v: startDate, cy };
+  return { changed, add, upd, light, removed: toRemove.length, total: out.length, from, v: startDate, cy };
 }
 
 if (process.argv[1] && process.argv[1].endsWith('navigator-sync.mjs')) {
