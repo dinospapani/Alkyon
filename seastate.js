@@ -65,6 +65,7 @@ function adiff(a,b){ var d=Math.abs(a-b)%360; return d>180?360-d:d; }
 var IDXJ=null, IDXP=null, TL={};
 function pad(n,w){ var s=String(Math.abs(n)); while(s.length<w) s='0'+s; return s; }
 function tkey(la,lo){ return 'N'+pad(la,2)+'E'+pad(lo,3); }
+function tileInView(k,b){ var la=parseInt(k.substr(1,2),10), lo=parseInt(k.substr(4),10); return la+1>b.getSouth()&&la<b.getNorth()&&lo+1>b.getWest()&&lo<b.getEast(); }
 function loadIndex(){
   if(IDXP) return IDXP;
   IDXP=fetch((window.ALKYON_BASE||'')+'cx_index.json').then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
@@ -376,8 +377,10 @@ function contour(GH,GA,gw,gh,G,lv){
   return segs;
 }
 /* πλακίδια που χρειάζεται η τρέχουσα θέα· null αν χρειάζεται zoom */
+var SPAD=0.5; /* 1.14.6: ζωγραφίζεται μισή οθόνη πιο έξω γύρω-γύρω, ώστε στο σύρσιμο να μη φαίνεται κενό/ραφή */
 function viewTiles(){
   var b=map.getBounds(); if(b.getNorth()-b.getSouth()>3.2||b.getEast()-b.getWest()>4.2) return null;
+  b=b.pad(SPAD); /* 1.14.6: και τα πλακίδια του περιθωρίου γύρω από την οθόνη */
   var o=[]; for(var la=Math.floor(b.getSouth());la<=Math.floor(b.getNorth());la++) for(var lo=Math.floor(b.getWest());lo<=Math.floor(b.getEast());lo++){ var k=tkey(la,lo); if(hasTile(k)) o.push(k); }
   return o;
 }
@@ -388,9 +391,9 @@ function draw(){
      αλλιώς το χρώμα σταματούσε στο όριο της προηγούμενης περιοχής */
   var bd0=map.getBounds(); if(bd0.getNorth()-bd0.getSouth()<=24&&bd0.getEast()-bd0.getWest()<=32&&(!covers(REG,bd0)||(REG&&Date.now()-REG.at>3600000)))
     loadRegion(bd0).then(function(){ PREP=null; later(); try{ window.dispatchEvent(new Event('alkyon-seareg')); }catch(e){} });
-  var tgt=cvs[1-cur], sz=map.getSize(), dpr=Math.min(window.devicePixelRatio||1,2);
-  tgt.width=Math.round(sz.x*dpr); tgt.height=Math.round(sz.y*dpr); tgt.style.width=sz.x+'px'; tgt.style.height=sz.y+'px'; pin(tgt);
-  var ctx=tgt.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,sz.x,sz.y);
+  var tgt=cvs[1-cur], sz=map.getSize(), dpr=Math.min(window.devicePixelRatio||1,1.5), ox=Math.round(sz.x*SPAD), oy=Math.round(sz.y*SPAD), SW=sz.x+2*ox, SH=sz.y+2*oy;
+  tgt.width=Math.round(SW*dpr); tgt.height=Math.round(SH*dpr); tgt.style.width=SW+'px'; tgt.style.height=SH+'px'; try{ Lf.DomUtil.setPosition(tgt,map.containerPointToLayerPoint([-ox,-oy])); }catch(e){}
+  var ctx=tgt.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,ox*dpr,oy*dpr); ctx.clearRect(-ox,-oy,SW,SH);
   if(!IDXJ){ status(IDXP?T('Φόρτωση…','Loading…'):T('Τα δεδομένα ακτής δεν φορτώθηκαν.','Coast data did not load.')); if(!IDXP) loadIndex().then(later); return; }
   var vt=viewTiles();
   if(vt===null){ swap(); status(T('Κάνε zoom για να δεις την κατάσταση θάλασσας.','Zoom in to see the sea state.')); return; }
@@ -402,8 +405,8 @@ function draw(){
   /* v31z389: μέχρι να έρθουν τα μοντέλα κύματος (έως ~20″) δεν ζωγραφίζεται προσωρινή εικόνα, για να μην «πηδάει» ο χάρτης από τη μία στην άλλη */
   if(REG&&!REG.done&&!REG.waves.length&&Date.now()-REG.t0<20000){ status(T('Φόρτωση μοντέλων κύματος…','Loading wave models…')); setTimeout(later,1500); return; }
   var P=prepNow(), X=window.AlkyonExposure, land=(X&&X.isLand)?X.isLand:null;
-  var s=bd.getSouth(), n=bd.getNorth(), w=bd.getWest(), e=bd.getEast(), M=4;
-  var r0=Math.floor((LAT_TOP-n)/STEP)-M, r1=Math.floor((LAT_TOP-s)/STEP)+M, c0=Math.floor((w-LON_LEFT)/STEP)-M, c1=Math.floor((e-LON_LEFT)/STEP)+M;
+  var s=bd.getSouth(), n=bd.getNorth(), w=bd.getWest(), e=bd.getEast(), M=4, bdP=bd.pad(SPAD);
+  var r0=Math.floor((LAT_TOP-bdP.getNorth())/STEP)-M, r1=Math.floor((LAT_TOP-bdP.getSouth())/STEP)+M, c0=Math.floor((bdP.getWest()-LON_LEFT)/STEP)-M, c1=Math.floor((bdP.getEast()-LON_LEFT)/STEP)+M;
   var cw=c1-c0+1, ch=r1-r0+1, N=cw*ch, H=new Float32Array(N), A=new Float32Array(N), U=new Float32Array(N);
   var cnt=[0,0,0,0], nowind=0, drawn=0, unc=0;
   for(var r=r0;r<=r1;r++){
@@ -439,10 +442,11 @@ function draw(){
     out[0]=H[q0]*w0+H[q1]*w1+H[q2]*w2+H[q3]*w3; out[1]=A[q0]*w0+A[q1]*w1+A[q2]*w2+A[q3]*w3; out[2]=U[q0]*w0+U[q1]*w1+U[q2]*w2+U[q3]*w3; return true;
   }
   /* ακριβής ακτή (OSM, από τα πλακίδια) αν υπάρχει για όλη τη θέα, αλλιώς raster ~250 m */
-  var vecOK=vt.every(function(k){ return TL[k]&&TL[k].st==='ok'&&TL[k].t.hasLand; });
-  var bs=(sz.x*sz.y>600000)?2:1, bw=Math.ceil(sz.x/bs), bh=Math.ceil(sz.y/bs), LAT=new Float64Array(bh), LON=new Float64Array(bw);
-  for(var y2=0;y2<bh;y2++) LAT[y2]=map.containerPointToLatLng([0,y2*bs+bs/2]).lat;
-  for(var x2=0;x2<bw;x2++) LON[x2]=map.containerPointToLatLng([x2*bs+bs/2,0]).lng;
+  /* 1.14.6: όπως πριν, κρίνεται από τα πλακίδια της οθόνης· τα πλακίδια του περιθωρίου πρέπει απλώς να έχουν φορτώσει */
+  var vecOK=vt.every(function(k){ return TL[k]&&TL[k].st==='ok'; })&&vt.filter(function(k){ return tileInView(k,bd); }).every(function(k){ return TL[k].t.hasLand; });
+  var bs=(SW*SH>1200000)?2:1, bw=Math.ceil(SW/bs), bh=Math.ceil(SH/bs), LAT=new Float64Array(bh), LON=new Float64Array(bw);
+  for(var y2=0;y2<bh;y2++) LAT[y2]=map.containerPointToLatLng([0,y2*bs+bs/2-oy]).lat;
+  for(var x2=0;x2<bw;x2++) LON[x2]=map.containerPointToLatLng([x2*bs+bs/2-ox,0]).lng;
   var pc=document.createElement('canvas'); pc.width=bw; pc.height=bh;
   var px=pc.getContext('2d'), im=px.createImageData(bw,bh), d=im.data, mk=vecOK?null:new Uint8Array(bw*bh), ALPHA=0.74*255, fv=[0,0,0];
   for(var y3=0;y3<bh;y3++){
@@ -456,11 +460,11 @@ function draw(){
   }
   px.putImageData(im,0,0);
   ctx.imageSmoothingEnabled=true; try{ ctx.imageSmoothingQuality='high'; }catch(x4){}
-  ctx.drawImage(pc,0,0,bw,bh,0,0,bw*bs,bh*bs);
+  ctx.drawImage(pc,0,0,bw,bh,-ox,-oy,bw*bs,bh*bs);
   /* ισοϋψείς */
-  var G=4, gw=Math.ceil(sz.x/G)+1, gh=Math.ceil(sz.y/G)+1, GH=new Float32Array(gw*gh), GA=new Float32Array(gw*gh), gLat=new Float64Array(gh), gLon=new Float64Array(gw);
-  for(var a1=0;a1<gh;a1++) gLat[a1]=map.containerPointToLatLng([0,a1*G]).lat;
-  for(var a2=0;a2<gw;a2++) gLon[a2]=map.containerPointToLatLng([a2*G,0]).lng;
+  var G=4, gw=Math.ceil(SW/G)+1, gh=Math.ceil(SH/G)+1, GH=new Float32Array(gw*gh), GA=new Float32Array(gw*gh), gLat=new Float64Array(gh), gLon=new Float64Array(gw);
+  for(var a1=0;a1<gh;a1++) gLat[a1]=map.containerPointToLatLng([0,a1*G-oy]).lat;
+  for(var a2=0;a2<gw;a2++) gLon[a2]=map.containerPointToLatLng([a2*G-ox,0]).lng;
   for(var gy=0;gy<gh;gy++) for(var gx=0;gx<gw;gx++){ if(field(gLat[gy],gLon[gx],fv)){ GH[gy*gw+gx]=fv[0]; GA[gy*gw+gx]=fv[1]; } }
   var labels=[];
   /* 1.6.8: οι ετικέτες κύματος δεν μπαίνουν πάνω στα βέλη των ρευμάτων ή στα σημάδια */
@@ -468,12 +472,12 @@ function draw(){
   ctx.lineCap='round'; ctx.lineJoin='round';
   BOUNDS.forEach(function(lvB){
     var segs=contour(GH,GA,gw,gh,G,lvB); if(!segs.length) return;
-    ctx.beginPath(); segs.forEach(function(sg2){ ctx.moveTo(sg2[0][0],sg2[0][1]); ctx.lineTo(sg2[1][0],sg2[1][1]); });
+    ctx.beginPath(); segs.forEach(function(sg2){ ctx.moveTo(sg2[0][0]-ox,sg2[0][1]-oy); ctx.lineTo(sg2[1][0]-ox,sg2[1][1]-oy); });
     ctx.strokeStyle='rgba(19,33,46,.20)'; ctx.lineWidth=3.2; ctx.stroke();
     ctx.strokeStyle='rgba(255,255,255,.95)'; ctx.lineWidth=1.3; ctx.stroke();
     var nl=0;
     for(var z=Math.floor(segs.length/7);z<segs.length&&nl<3;z+=Math.max(7,Math.floor(segs.length/12))){
-      var sgz=segs[z], cx=(sgz[0][0]+sgz[1][0])/2, cy=(sgz[0][1]+sgz[1][1])/2;
+      var sgz=segs[z], cx=(sgz[0][0]+sgz[1][0])/2-ox, cy=(sgz[0][1]+sgz[1][1])/2-oy;
       if(cx<36||cy<70||cx>sz.x-36||cy>sz.y-70) continue;
       if(land){ var bad=false; [[0,0],[-26,-9],[26,-9],[-26,9],[26,9]].forEach(function(o3){ if(bad) return; var ll=map.containerPointToLatLng([cx+o3[0],cy+o3[1]]); if(land(ll.lat,ll.lng)!==0) bad=true; }); if(bad) continue; }
       if(labels.some(function(l){ return (l.x-cx)*(l.x-cx)+(l.y-cy)*(l.y-cy)<110*110; })) continue;
@@ -484,7 +488,7 @@ function draw(){
   /* κόψιμο στην ακτή */
   ctx.save(); ctx.globalCompositeOperation='destination-out';
   if(vecOK){
-    var path=new Path2D(), pb=bd.pad(0.05), bw2=pb.getWest(), be=pb.getEast(), bsth=pb.getSouth(), bn=pb.getNorth(), seen={};
+    var path=new Path2D(), pb=bd.pad(SPAD+0.05), bw2=pb.getWest(), be=pb.getEast(), bsth=pb.getSouth(), bn=pb.getNorth(), seen={};
     vt.forEach(function(k){ if(seen[k]) return; seen[k]=1; TL[k].t.rings.forEach(function(rg2){
       var bb=rg2.b; if(bb[2]<bw2||bb[0]>be||bb[3]<bsth||bb[1]>bn) return;
       var xy=rg2.xy, m2=xy.length>>1, lx=-1e9, ly=-1e9, first=true;
@@ -497,7 +501,7 @@ function draw(){
   } else if(mk){
     var mc=document.createElement('canvas'); mc.width=bw; mc.height=bh; var mx=mc.getContext('2d'), mi=mx.createImageData(bw,bh);
     for(var q4=0;q4<mk.length;q4++) if(mk[q4]) mi.data[q4*4+3]=255;
-    mx.putImageData(mi,0,0); ctx.imageSmoothingEnabled=false; ctx.drawImage(mc,0,0,bw,bh,0,0,bw*bs,bh*bs);
+    mx.putImageData(mi,0,0); ctx.imageSmoothingEnabled=false; ctx.drawImage(mc,0,0,bw,bh,-ox,-oy,bw*bs,bh*bs);
   }
   ctx.restore();
   ctx.font='600 11px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
