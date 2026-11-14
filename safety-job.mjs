@@ -678,7 +678,7 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
       const o = { t, wind: a.wind, gust: a.gust, wdeg: a.wdeg, press: a.press, cloud: a.cloud, rain: a.rain, temp: a.temp, wave: a.wave, per: a.per, sst: a.sst, cur: a.cur };
       if (a.press != null && b && b.press != null) o.pt = Math.round((a.press - b.press) * 10) / 10;
       if (p1 && n1 && p1.sl != null && n1.sl != null) o.tide = Math.round((n1.sl - p1.sl) * 100) / 100;
-      for (const k of Object.keys(o)) if (o[k] == null) delete o[k]; else if (k !== 't') o[k] = Math.round(o[k] * 10) / 10;
+      for (const k of Object.keys(o)) if (o[k] == null) delete o[k]; else if (k !== 't' && k !== 'tide' && k !== 'pt') o[k] = Math.round(o[k] * 10) / 10;
       return o; };
     try {
       const todo = (await sb(`catch_obs?select=id,kind,day,ms,ms2,lat,lon,cond&cond->>enr=is.null&ms=lt.${Date.now() - 2 * HR}&lat=not.is.null&order=id.asc&limit=60`)) || [];
@@ -690,7 +690,7 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
         const H = await wxFor(+r.lat, +r.lon, isoD(t0), isoD(t1));
         const cond = Object.assign({}, r.cond || {});
         if (!H) cond.enr = -1;
-        else if (r.kind === 'trip') { const hs = []; for (let t = Math.ceil(+r.ms / HR) * HR; t <= +r.ms2 && hs.length < 24; t += HR) { const f = feat(H, t); if (f) hs.push(f); } cond.e = hs; cond.enr = hs.length ? 1 : -1; }
+        else if (r.kind === 'trip') { const hs = []; for (let t = Math.ceil(+r.ms / HR) * HR; t <= +r.ms2 && hs.length < 24; t += HR) { const f = feat(H, t); if (f) hs.push(f); } if (!hs.length) { const f = feat(H, (+r.ms + +r.ms2) / 2); if (f) hs.push(f); } /* σύντομη έξοδος χωρίς ολόκληρη ώρα μέσα */ cond.e = hs; cond.enr = hs.length ? 1 : -1; }
         else { const f = feat(H, +r.ms); if (f) cond.e = f; cond.enr = f ? 1 : -1; }
         await sb(`catch_obs?id=eq.${r.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify({ cond }) });
         done++;
