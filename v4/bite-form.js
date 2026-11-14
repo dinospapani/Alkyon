@@ -233,10 +233,15 @@ B.biteForm=function(edit,opt){
       if(pts.length===4&&ref>0){ var L=Math.round(d(pts[2],pts[3])/d(pts[0],pts[1])*ref*10)/10; res.hidden=false; res.textContent='≈ '+B.num(L,1)+' cm'; use.hidden=false; use.textContent=T('Χρήση: ','Use: ')+B.num(L,1)+' cm'; use.onclick=function(){ len.value=String(Math.round(L)); try{ len.dispatchEvent(new Event('input')); }catch(e){} sh.close(); }; }
       else { res.hidden=true; use.hidden=true; } }
     cv.addEventListener('click',function(e){ if(pts.length>=4) return; var r=cv.getBoundingClientRect(); pts.push([(e.clientX-r.left)*cv.width/r.width,(e.clientY-r.top)*cv.height/r.height]); paint(); });
-    var u=URL.createObjectURL(blob); img.onload=function(){ var W=Math.min(1200,img.naturalWidth), k=W/img.naturalWidth; cv.width=W; cv.height=Math.round(img.naturalHeight*k); paint(); URL.revokeObjectURL(u); }; img.src=u;
+    function load(b){ pts=[]; var u=URL.createObjectURL(b); img.onload=function(){ var W=Math.min(1200,img.naturalWidth), k=W/img.naturalWidth; cv.width=W; cv.height=Math.round(img.naturalHeight*k); paint(); URL.revokeObjectURL(u); }; img.src=u;
+      [].forEach.call(strip.children,function(e){ e.classList.toggle('on',e._b===b); }); }
+    /* 1.14.20: με πολλές φωτογραφίες διαλέγεις ποια θα μετρήσεις */
+    var strip=h('div',{class:'measstrip',hidden:photos.length<2});
+    photos.forEach(function(b){ var u2=URL.createObjectURL(b), t=h('button',{type:'button',class:'measth','aria-label':T('Μέτρηση σε αυτή τη φωτογραφία','Measure on this photo')},h('img',{src:u2,alt:''})); t._b=b; t.addEventListener('click',function(){ load(b); }); strip.append(t); });
+    load(blob);
     var cam=h('button',{class:'btn',type:'button',text:'📷 '+T('Νέα φωτογραφία','New photo'),onclick:function(){ measCam(); }});
     /* 1.14.15: stack: η φόρμα του ψαριού μένει από κάτω· πριν το κλείσιμο της μέτρησης έκλεινε και τη φόρμα και δεν αποθηκευόταν τίποτα */
-    var sh=measSh=B.sheet({stack:true,title:T('Μήκος από φωτογραφία','Length from a photo'),onclose:function(){ if(measSh===sh) measSh=null; },body:h('div',{class:'bform'},h('label',{class:'fld'},h('span',{text:T('Αντικείμενο αναφοράς στη φωτογραφία','Reference object in the photo')}),sel),oth,info,cv,res,use,h('div',{class:'row2'},again,cam))}); }
+    var sh=measSh=B.sheet({stack:true,title:T('Μήκος από φωτογραφία','Length from a photo'),onclose:function(){ if(measSh===sh) measSh=null; },body:h('div',{class:'bform'},strip,h('label',{class:'fld'},h('span',{text:T('Αντικείμενο αναφοράς στη φωτογραφία','Reference object in the photo')}),sel),oth,info,cv,res,use,h('div',{class:'row2'},again,cam))}); }
   function latinOf(name){ var n=String(name||'').trim().toLowerCase(); if(!n) return ''; var kb=(window.SPKB||[]).filter(function(k){ return k.n.toLowerCase()===n||(k.en||'').toLowerCase()===n; })[0]; if(kb) return kb.l;
     var r=(window.SPECIES_DB||[]).filter(function(x){ return (x[0]&&String(x[0]).toLowerCase().split(/\s*\/\s*/).indexOf(n)>=0)||(x[1]&&x[1].toLowerCase()===n); })[0]; return r?r[2]:''; }
   function minOf(la){ var M=window.MIN_SIZES||{}; if(!la) return 0; if(M[la]) return M[la]; var g=la.split(' ')[0]; if(g==='Chelon'||g==='Liza'||g==='Oedalechilus') return M['Mugil spp.']||0; return M[g+' spp.']||M[g+' sp.']||0; }

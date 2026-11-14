@@ -128,6 +128,19 @@ with sync_playwright() as p:
     pg.click('.camshut'); pg.wait_for_timeout(2000); m=pg.evaluate("()=>[!document.querySelector('.camov'),!!document.querySelector('.meascv'),document.querySelectorAll('.bf2 .ph').length]")
     check('Κάμερα της εφαρμογής: λήψη, συλλογή κάτω αριστερά, μετά η μέτρηση με τη φωτογραφία (1.14.17)', bool(r) and r[0] and r[1] and r[2]>0 and m[0] and m[1] and m[2]==1, [r,m]); c.close()
 
+    print('# 1.14.20 μέτρηση: επιλογή φωτογραφίας')
+    try:
+        from PIL import Image as _I; _fs=[]
+        for _k,_col in enumerate(((200,0,0),(0,200,0),(0,0,200))):
+            _p=os.path.join(tempfile.gettempdir(),'ak_m%d.png'%_k); _I.new('RGB',(600,300),_col).save(_p); _fs.append(_p)
+        c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3000)
+        pg.evaluate("()=>AK.biteForm()"); pg.wait_for_timeout(1200)
+        pg.set_input_files('.bf2 input[type=file]:not([capture])',_fs); pg.wait_for_timeout(2000); pg.click('.bf2 .measbtn'); pg.wait_for_timeout(1200)
+        n=pg.evaluate("()=>[document.querySelectorAll('.measth').length,[...document.querySelectorAll('.measth')].findIndex(e=>e.classList.contains('on'))]")
+        pg.click('.measth >> nth=0'); pg.wait_for_timeout(500); n2=pg.evaluate("()=>[...document.querySelectorAll('.measth')].findIndex(e=>e.classList.contains('on'))")
+        check('Μέτρηση: με 3 φωτογραφίες διαλέγεις ποια θα μετρήσεις (1.14.20)', n==[3,2] and n2==0, [n,n2]); c.close()
+    except ImportError: pass
+
     print('# 1.14.13 υπομνήματα κρυμμένα σε έξοδο')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(3000)
     r=pg.evaluate("()=>{ const e=document.createElement('div'); e.className='sbleg shleg mini'; document.body.append(e); document.body.classList.add('ontrip'); const a=getComputedStyle(e).display; document.body.classList.remove('ontrip'); e.classList.add('gone'); const g=getComputedStyle(e).display; e.classList.remove('gone'); const n=getComputedStyle(e).display; return [a,g,n]; }")

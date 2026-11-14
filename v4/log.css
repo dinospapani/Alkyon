@@ -650,3 +650,8 @@ html.nightred .kpis .kpi{outline:1px solid #fff;outline-offset:-1px;background:#
 /* 1.14.13: μήκος από φωτογραφία */
 .measbtn{margin:2px 0 0;font-size:14px}
 .meascv{width:100%;height:auto;border-radius:12px;touch-action:manipulation;cursor:crosshair;background:#000}
+/* 1.14.20: επιλογή φωτογραφίας για μέτρηση */
+.measstrip{display:flex;gap:8px;overflow-x:auto;padding:2px 0 4px}
+.measth{flex:0 0 auto;width:64px;height:64px;padding:0;border-radius:10px;overflow:hidden;border:3px solid transparent;background:none}
+.measth.on{border-color:var(--accent)}
+.measth img{width:100%;height:100%;object-fit:cover;display:block}
