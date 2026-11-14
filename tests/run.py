@@ -172,6 +172,13 @@ with sync_playwright() as p:
     card=pg.evaluate("()=>{ const c=AK.biteStatsCard(); document.body.append(c); return new Promise(r=>setTimeout(()=>r(c.textContent),1500)); }")
     check('Βοήθησε την πρόγνωση στις Ρυθμίσεις και κάρτα «Πότε τσιμπάνε · από όλους» (1.14.21)', s1 and 'από όλους' in card and 'Μαζεύονται' in card, [s1,card[:120]]); c.close()
 
+    print('# 1.14.22 πότε τσιμπάνε: ψάρια ανά ώρα ανά συνθήκη')
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3000)
+    card=pg.evaluate('''()=>{ const st=[{key:'all',n:72,users:3,data:{v:2,hrs:195,ins:[{f:'pt',b:0,lift:1.95,n:45,h:75},{f:'pl',b:2,lift:0.41,n:15,h:120}],f:{sun:{c:[0,30,20,10,12,0],e:[0,30,60,60,45,0],r:[null,1,0.33,0.17,0.27,null]},pt:{c:[54,18,0],e:[75,75,45],r:[0.6,0.2,0]},wind:{c:[60,12,0,0],e:[100,95,0,0],r:[0.6,0.13,null,null]},tide:{c:[30,30,12],e:[80,80,35],r:[0.37,0.37,0.34]}}}},{key:'sp:dicentrarchus labrax',n:54,users:3,data:{v:2,hrs:195,ins:[],f:{pt:{c:[54,0,0],e:[75,75,45],r:[0.6,0,0]}}}}];
+      AK.cloud.pub=()=>Promise.resolve(new Response(JSON.stringify(st),{status:200})); const c=AK.biteStatsCard(); document.body.append(c);
+      return new Promise(r=>setTimeout(()=>{ const t0=c.textContent, n=c.querySelectorAll('.bschips .chip').length; c.querySelectorAll('.bschips .chip')[1].click(); r([t0,n,c.textContent,c.querySelectorAll('.bsmore .bsg').length]); },1500)); }''')
+    check('Πότε τσιμπάνε: «▲ Πίεση πέφτει ×1,9», ψάρια ανά ώρα, είδη, «Όλες οι συνθήκες» (1.14.22)', '▲ Πίεση (3 ώρες): πέφτει' in card[0] and '×1,9' in card[0] and 'ψάρια ανά ώρα' in card[0] and '195 ώρες' in card[0] and card[1]==2 and card[3]>=0 and '54 ψάρια' in card[2], [card[0][:300],card[1],card[2][:120]]); c.close()
+
     print('# 1.14.12 ελάχιστο μήκος: πράσινο / κόκκινο')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3000)
     pg.evaluate("()=>AK.biteForm()"); pg.wait_for_timeout(1200); pg.fill('.bf2 .spwrap input','Ροφός'); pg.wait_for_timeout(150)
