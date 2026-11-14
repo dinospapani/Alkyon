@@ -1190,3 +1190,11 @@ html:not(.night) body.mapclean .mcpanel .mpto.mpnav .mpstop{background:var(--sur
 /* 1.14.0: SOS άλλων χρηστών στον χάρτη */
 .mk.sosmk i{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;background:#ff3b30;color:#fff;font:800 13px/1 system-ui,sans-serif;font-style:normal;border:3px solid #fff;box-shadow:0 0 0 0 rgba(255,59,48,.7);animation:sospulse 1.4s infinite;transform:translate(-50%,-50%)}
 @keyframes sospulse{0%{box-shadow:0 0 0 0 rgba(255,59,48,.7)}70%{box-shadow:0 0 0 22px rgba(255,59,48,0)}100%{box-shadow:0 0 0 0 rgba(255,59,48,0)}}
+/* 1.14.8: ονόματα της θάλασσας (shallows.js · OpenStreetMap) — όπως στους ναυτικούς χάρτες: λευκά γράμματα με σκούρο περίγραμμα */
+.snm{pointer-events:none!important;white-space:nowrap}
+.snm span{display:block;transform:translate(10px,-50%);font:600 12px var(--font);color:#fff;letter-spacing:.2px;text-shadow:0 0 2px #06233f,0 0 3px #06233f,0 1px 4px rgba(0,0,0,.6)}
+.snm.ki span,.snm.kb span,.snm.kt span,.snm.kp span{transform:translate(-50%,-50%)}
+.snm.kb span,.snm.kt span{font-style:italic;color:#d8f1ff}
+.snm.ks span{font-style:italic;color:#bff3ff}
+.snm.big span{font-size:13.5px;font-weight:700}
+html.night body.mapon .snm span{color:#c9d6de}
