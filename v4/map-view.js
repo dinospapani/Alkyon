@@ -174,6 +174,12 @@ B.ovTiles=function(map,paneName,paint){
     repaint:function(){ var ts=lay._tiles||{}; for(var k in ts){ var q=ts[k]; if(q&&q.el&&q.coords) pt(q.el,q.coords); } },
     show:function(v){ if(v){ if(!map.hasLayer(lay)) lay.addTo(map); } else if(map.hasLayer(lay)) map.removeLayer(lay); },
     shown:function(){ return map.hasLayer(lay); }}; };
+/* 1.14.7: καμβάς επιπέδου (χρώμα κύματος/ανέμου, θερμοκρασία, κύμα ακτής) που στο ζουμ (δύο δάχτυλα ή διπλό άγγιγμα) μεγαλώνει/μικραίνει
+   μαζί με τον χάρτη, όπως τα πλακίδια, αντί να σβήνει μέχρι να ξαναζωγραφιστεί. ovMark: πού ζωγραφίστηκε (πάνω-αριστερή γωνία, ζουμ). */
+B.ovMark=function(map,c,ox,oy){ try{ c._ovS={z:map.getZoom(),tl:map.containerPointToLatLng([-(ox||0),-(oy||0)])}; }catch(e){} };
+B.ovZoom=function(map,c){ if(!c||c._ovz) return; c._ovz=1; c.classList.add('leaflet-zoom-animated');
+  function upd(z,ctr){ var s=c._ovS; if(!s) return; try{ var sc=map.getZoomScale(z,s.z), p=ctr?map._latLngToNewLayerPoint(s.tl,z,ctr):map.latLngToLayerPoint(s.tl); L.DomUtil.setTransform(c,p,sc); }catch(e){} }
+  map.on('zoomanim',function(e){ upd(e.zoom,e.center); }); map.on('zoom',function(){ upd(map.getZoom()); }); };
 var SatGL=null; function satGL(){ if(SatGL) return SatGL; SatGL=L.GridLayer.extend({ createTile:function(c,done){ var t=document.createElement('canvas'); t.width=t.height=256; var u=this.options.url.replace('{z}',c.z).replace('{x}',c.x).replace('{y}',c.y), img=new Image(), tried=false;
   function mask(){ var x=t.getContext('2d'); x.drawImage(img,0,0,256,256); var LA=B.landAt; if(!LA) return; try{ var id=x.getImageData(0,0,256,256), d=id.data, n=256*Math.pow(2,c.z);
       for(var py=0;py<256;py+=2){ var Y=c.y*256+py+1, la=Math.atan(Math.sinh(Math.PI*(1-2*Y/n)))*180/Math.PI;
@@ -656,13 +662,19 @@ function tapZoom(m,el){
     if(!st||t.length!==1) return;
     if(st.first){ if(Math.hypot(t[0].clientX-st.x,t[0].clientY-st.y)>12) st=null; return; }
     var dy=t[0].clientY-st.y; if(!st.drag&&Math.abs(dy)<8) return; st.drag=true; e.preventDefault();
-    m.options.zoomSnap=0; var z=Math.max(m.getMinZoom(),Math.min(m.getMaxZoom(),st.z+dy/90)); m.setZoomAround(st.p,z,{animate:false}); },{passive:false});
+    /* 1.14.7: όπως το τσίμπημα με δύο δάχτυλα του Leaflet (_move με pinch): ο χάρτης και τα επίπεδα απλώς μεγαλώνουν όσο σέρνεις,
+       χωρίς να ξαναφορτώνονται/ξαναζωγραφίζονται σε κάθε βήμα· στο τέλος ένα κανονικό ζουμ */
+    if(!st.mv){ st.mv=1; st.ll=m.containerPointToLatLng(st.p); try{ m._stop(); m._moveStart(true,false); }catch(x3){} }
+    var z=Math.max(m.getMinZoom(),Math.min(m.getMaxZoom(),st.z+dy/90)); st.zz=z;
+    try{ m._move(ctrFor(st.ll,st.p,z),z,{pinch:true,round:false}); }catch(x4){ m.options.zoomSnap=0; m.setZoomAround(st.p,z,{animate:false}); } },{passive:false});
+  function ctrFor(ll,p,z){ var h=m.getSize().divideBy(2); return m.unproject(m.project(ll,z).subtract(p.subtract(h)),z); }
   el.addEventListener('touchend',function(e){ var now=Date.now();
     if(two){ var tw=two; if(e.touches.length===0){ two=null; if(!tw.mv&&now-tw.t<300){ done=now; m.setZoom(Math.round(m.getZoom())-1); } } return; }
     if(!st) return; var s0=st; st=null;
     if(s0.first){ if(now-s0.t<300){ last=now; lx=s0.x; ly=s0.y; } return; }
     last=0; try{ m.dragging.enable(); }catch(x){} m.options.zoomSnap=s0.snap==null?1:s0.snap; done=now; e.preventDefault();
-    if(s0.drag) m.setZoomAround(s0.p,Math.round(m.getZoom()),{animate:true}); else m.setZoomAround(s0.p,Math.min(m.getMaxZoom(),Math.round(m.getZoom())+1)); },{passive:false});
+    if(s0.drag&&s0.mv&&m._animateZoom){ var zr=m._limitZoom(Math.round(s0.zz==null?m.getZoom():s0.zz)); try{ m._animateZoom(ctrFor(s0.ll,s0.p,zr),zr,true); }catch(x5){ m.setZoomAround(s0.p,zr,{animate:true}); } }
+    else if(s0.drag) m.setZoomAround(s0.p,Math.round(m.getZoom()),{animate:true}); else m.setZoomAround(s0.p,Math.min(m.getMaxZoom(),Math.round(m.getZoom())+1)); },{passive:false});
   m.on('dblclick',function(e){ if(Date.now()-done<900) return; var oe=e.originalEvent; if(oe&&oe.sourceCapabilities&&oe.sourceCapabilities.firesTouchEvents) return; m.setZoomAround(e.containerPoint,m.getZoom()+(oe&&oe.shiftKey?-1:1)); });
 }
 var LIC={relief:'<svg viewBox="0 0 24 24"><path d="M2 18l5-7 4 4 3-5 8 8z"/><path d="M7 11l2 5M14 10l-1 6"/></svg>',band:'<svg viewBox="0 0 24 24"><path d="M3 6c3 2 6 2 9 0s6-2 9 0"/><path d="M3 11c3 2 6 2 9 0s6-2 9 0"/><path d="M3 16c3 2 6 2 9 0s6-2 9 0"/><path d="M3 8.5h18v5H3z" fill="currentColor" opacity=".25" stroke="none"/></svg>',shoal:'<svg viewBox="0 0 24 24"><path d="M2 8c2-1.3 4-1.3 6 0s4 1.3 6 0 4-1.3 6 0"/><path d="M5 19l4-6 3 3 2-3 5 6z"/><path d="M12 2v3"/></svg>',mydepth:'<svg viewBox="0 0 24 24"><path d="M3 5h18"/><path d="M4 9l3 3 3-2 4 4 3-3 3 2"/><path d="M5 16h2M10 18h2M15 17h2M19 19h1"/></svg>',srep:'<svg viewBox="0 0 24 24"><path d="M2 10c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2M2 16c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2"/><circle cx="19" cy="4.5" r="2.2"/></svg>',rain:'<svg viewBox="0 0 24 24"><path d="M7 15a5 5 0 1 1 1.6-9.7A6 6 0 0 1 20 9a4 4 0 0 1-2 7.5"/><path d="M8 18l-1 3M12 18l-1 3M16 18l-1 3"/></svg>',best:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1" fill="currentColor"/><path d="M12 1v3M12 20v3M1 12h3M20 12h3"/></svg>',chl:'<svg viewBox="0 0 24 24"><circle cx="7" cy="8" r="2.2"/><circle cx="15" cy="6" r="1.6"/><circle cx="12" cy="13" r="2.6"/><circle cx="18" cy="14" r="1.8"/><circle cx="8" cy="17" r="1.6"/></svg>',sats:'<svg viewBox="0 0 24 24"><path d="M4 18l4-4M10 8l6 6M7 11l6-6 6 6-6 6z"/><path d="M3 21c2 0 3-1 3-3"/></svg>',sst:'<svg viewBox="0 0 24 24"><path d="M10 13.5V5a2 2 0 0 1 4 0v8.5a4 4 0 1 1-4 0z"/><path d="M17 7h3M17 11h3"/></svg>',heat:'<svg viewBox="0 0 24 24"><path d="M12 3c2 3.5 6 6.2 6 11a6 6 0 0 1-12 0c0-3 1.6-4.9 3-6.5.3 2 1.4 3.2 2.7 3.6C11.3 8.6 11 5.7 12 3z"/></svg>',gear:'<svg viewBox="0 0 24 24"><path d="M3 7h18M3 12h18M3 17h18M7 4v16M12 4v16M17 4v16"/></svg>',

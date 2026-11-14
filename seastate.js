@@ -392,7 +392,7 @@ function draw(){
   var bd0=map.getBounds(); if(bd0.getNorth()-bd0.getSouth()<=24&&bd0.getEast()-bd0.getWest()<=32&&(!covers(REG,bd0)||(REG&&Date.now()-REG.at>3600000)))
     loadRegion(bd0).then(function(){ PREP=null; later(); try{ window.dispatchEvent(new Event('alkyon-seareg')); }catch(e){} });
   var tgt=cvs[1-cur], sz=map.getSize(), dpr=Math.min(window.devicePixelRatio||1,1.5), ox=Math.round(sz.x*SPAD), oy=Math.round(sz.y*SPAD), SW=sz.x+2*ox, SH=sz.y+2*oy;
-  tgt.width=Math.round(SW*dpr); tgt.height=Math.round(SH*dpr); tgt.style.width=SW+'px'; tgt.style.height=SH+'px'; try{ Lf.DomUtil.setPosition(tgt,map.containerPointToLayerPoint([-ox,-oy])); }catch(e){}
+  tgt.width=Math.round(SW*dpr); tgt.height=Math.round(SH*dpr); tgt.style.width=SW+'px'; tgt.style.height=SH+'px'; try{ Lf.DomUtil.setPosition(tgt,map.containerPointToLayerPoint([-ox,-oy])); }catch(e){} var AKB=window.AK; if(AKB&&AKB.ovMark){ AKB.ovZoom(map,tgt); AKB.ovMark(map,tgt,ox,oy); }
   var ctx=tgt.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,ox*dpr,oy*dpr); ctx.clearRect(-ox,-oy,SW,SH);
   if(!IDXJ){ status(IDXP?T('Φόρτωση…','Loading…'):T('Τα δεδομένα ακτής δεν φορτώθηκαν.','Coast data did not load.')); if(!IDXP) loadIndex().then(later); return; }
   var vt=viewTiles();
@@ -532,7 +532,7 @@ function depthSync(){
 function swap(){ var a=cvs[cur], b=cvs[1-cur]; a.classList.remove('nt'); b.classList.remove('nt'); b.style.opacity='1'; a.style.opacity='0'; cur=1-cur; }
 window.addEventListener('alkyon-curs',function(){ later(); });
 function later(ev){ if(ev&&ev.detail&&ev.detail.t) curT=ev.detail.t; clearTimeout(drawT); drawT=setTimeout(draw,60); }
-function hide(){ clearTimeout(drawT); cvs.forEach(function(c){ c.classList.add('nt'); c.style.opacity='0'; }); }
+function hide(){ clearTimeout(drawT); if(window.AK&&window.AK.ovMark) return; /* 1.14.7: στη v4 μεγαλώνει μαζί με τον χάρτη στο ζουμ αντί να σβήνει */ cvs.forEach(function(c){ c.classList.add('nt'); c.style.opacity='0'; }); }
 function onWindStop(){ if(on){ ownWind=false; stop(); } }
 function start(){
   if(on) return; on=true; ensure(); leg.hidden=false; document.body.classList.add('ndsea');

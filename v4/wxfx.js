@@ -61,15 +61,14 @@ function ensure(){
   var m=window.AlkyonCore&&window.AlkyonCore.map&&window.AlkyonCore.map(); if(!m) return false;
   if(m!==map){ map=m; fillCv=null; dashCv=null;
     /* 1.2.2: στο σύρσιμο το χρώμα του κύματος/ανέμου μένει και κινείται μαζί με τον χάρτη (πριν έσβηνε και φαινόταν μόνο η σκίαση των βαθών)· σβήνει μόνο στο ζουμ */
-    map.on('zoomstart',function(){ zooming=true; if(fillCv) fillCv.style.opacity='0'; });
+    map.on('zoomstart',function(){ zooming=true; }); /* 1.14.7: δεν σβήνει στο ζουμ· μεγαλώνει μαζί με τον χάρτη (B.ovZoom) */
     map.on('movestart zoomstart',function(){ parts=[]; if(dctx){ var s=map.getSize(); dctx.clearRect(0,0,s.x,s.y); } });
     map.on('movestart',function(){ roMoving=true; }); map.on('moveend',function(){ roMoving=false; roXY=null; roLater(); });
-    map.on('move',function(){ if(zooming&&fillCv) pinFill(); if(dashCv) pin(dashCv); roLater(); farCheck(); });
+    map.on('move',function(){ if(dashCv) pin(dashCv); roLater(); farCheck(); });
     map.on('zoomend',function(){ zooming=false; });
     map.on('moveend zoomend resize',function(){ later(250); if(sstOn) setTimeout(function(){ sstLoad(false); },260); });
-    map.on('zoomstart',function(){ if(sstCv) sstCv.style.opacity='0'; });
-    map.on('move',function(){ if(zooming&&sstCv) pinSst(); }); }
-  if(!fillCv){ fillCv=document.createElement('canvas'); fillCv.className='wxfill'; fillCv.setAttribute('aria-hidden','true'); fillCv.style.cssText='position:absolute;left:0;top:0;pointer-events:none;transition:opacity .35s'; pane('wxFillPane',336).appendChild(fillCv); }
+  }
+  if(!fillCv){ fillCv=document.createElement('canvas'); fillCv.className='wxfill'; fillCv.setAttribute('aria-hidden','true'); fillCv.style.cssText='position:absolute;left:0;top:0;pointer-events:none;transition:opacity .35s'; pane('wxFillPane',336).appendChild(fillCv); B.ovZoom(map,fillCv); }
   if(!dashCv){ dashCv=document.createElement('canvas'); dashCv.className='wxdash'; dashCv.setAttribute('aria-hidden','true'); dashCv.style.cssText='position:absolute;left:0;top:0;pointer-events:none'; pane('wxDashPane',350).appendChild(dashCv); dctx=dashCv.getContext('2d'); }
   return true;
 }
@@ -86,7 +85,7 @@ function render(){
   var mode=!mapOn()?'':seaOn()?'sea':windOn()?'wind':'';
   dashCv.width=Math.round(sz.x*dpr); dashCv.height=Math.round(sz.y*dpr); dashCv.style.width=sz.x+'px'; dashCv.style.height=sz.y+'px'; pin(dashCv);
   var ox=Math.round(sz.x*PADF), oy=Math.round(sz.y*PADF), FW=sz.x+2*ox, FH=sz.y+2*oy, fd=Math.min(dpr,1.25); FO=[ox,oy]; RP=map.containerPointToLayerPoint([0,0]);
-  fillCv.width=Math.round(FW*fd); fillCv.height=Math.round(FH*fd); fillCv.style.width=FW+'px'; fillCv.style.height=FH+'px'; pinFill();
+  fillCv.width=Math.round(FW*fd); fillCv.height=Math.round(FH*fd); fillCv.style.width=FW+'px'; fillCv.style.height=FH+'px'; pinFill(); B.ovMark(map,fillCv,ox,oy);
   dctx.setTransform(dpr,0,0,dpr,0,0);
   var fx=fillCv.getContext('2d'); fx.setTransform(1,0,0,1,0,0); fx.clearRect(0,0,fillCv.width,fillCv.height);
   parts=[]; stopAnim();
@@ -285,9 +284,9 @@ function sstAt(lat,lon){ if(!sstG) return null; var g=sstG, ti=sstIdx(); if(ti<0
   if(sw<0.15) return null; return acc/sw; }
 B.sstAt=function(lat,lon){ return sstOn?sstAt(lat,lon):null; };
 function sstDraw(){
-  if(!ensure()) return; if(!sstCv){ sstCv=document.createElement('canvas'); sstCv.className='wxsst'; sstCv.setAttribute('aria-hidden','true'); sstCv.style.cssText='position:absolute;left:0;top:0;pointer-events:none;transition:opacity .35s'; sstPane().appendChild(sstCv); }
+  if(!ensure()) return; if(!sstCv){ sstCv=document.createElement('canvas'); sstCv.className='wxsst'; sstCv.setAttribute('aria-hidden','true'); sstCv.style.cssText='position:absolute;left:0;top:0;pointer-events:none;transition:opacity .35s'; sstPane().appendChild(sstCv); B.ovZoom(map,sstCv); }
   var sz=map.getSize(), dpr=Math.min(window.devicePixelRatio||1,1.5), sox=Math.round(sz.x*PADF), soy=Math.round(sz.y*PADF), SW=sz.x+2*sox, SH=sz.y+2*soy; SO=[sox,soy];
-  sstCv.width=Math.round(SW*dpr); sstCv.height=Math.round(SH*dpr); sstCv.style.width=SW+'px'; sstCv.style.height=SH+'px'; pinSst();
+  sstCv.width=Math.round(SW*dpr); sstCv.height=Math.round(SH*dpr); sstCv.style.width=SW+'px'; sstCv.style.height=SH+'px'; pinSst(); B.ovMark(map,sstCv,sox,soy);
   var cx=sstCv.getContext('2d'); cx.setTransform(dpr,0,0,dpr,sox*dpr,soy*dpr); cx.clearRect(-sox,-soy,SW,SH);
   var SRC=B.ls.get('alkyon-v4-sstsrc','model')==='sat'?'sat':'model'; if(B.satWater) B.satWater(sstOn&&mapOn()&&SRC==='sat');
   if(sstOn&&mapOn()&&SRC==='sat'){ sstCv.style.opacity='0'; var si=B.satWaterInfo?B.satWaterInfo():null; B.sstLegend&&B.sstLegend({sat:true,lo:si&&si.range?si.range[0]:15,hi:si&&si.range?si.range[1]:30,day:si&&si.day}); return; }
