@@ -45,8 +45,17 @@ def collect(paths):
             cnt['n'] += 1
             els.append((n.location.lat, n.location.lon, 0.0, tg(n.tags)))
 
-        def relation(self, r):
-            if keep(r.tags): cnt['r'] += 1
+        def area(self, a):
+            # πολύγωνα από σχέσεις (multipolygon): μεγάλα νησιά, κόλποι, πολλά νησάκια· οι κλειστοί δρόμοι έρχονται ήδη από way()
+            if a.from_way() or not keep(a.tags): return
+            pts = []
+            for ring in a.outer_rings():
+                pts.extend((n.lat, n.lon) for n in ring if n.location.valid())
+            if len(pts) < 3: return
+            cnt['r'] += 1
+            la = [p[0] for p in pts]; lo = [p[1] for p in pts]
+            ext = max(max(la) - min(la), max(lo) - min(lo))
+            els.append((sum(la) / len(la), sum(lo) / len(lo), ext, tg(a.tags)))
 
         def way(self, w):
             cnt['w'] += 1
@@ -88,7 +97,7 @@ def main():
         if key in out and out[key][5] >= ext: continue
         out[key] = [name, en if en != name else '', round(lat, 5), round(lon, 5), k, round(ext, 3)]
     rows = sorted(out.values(), key=lambda r: (-r[5], r[0]))
-    if len(rows) < 2000: raise SystemExit('too few names: %d' % len(rows))
+    if len(rows) < 1500: raise SystemExit('too few names: %d' % len(rows))
     head = ('/* Ονόματα της θάλασσας (Ελλάδα, Κύπρος): [όνομα, αγγλικά, lat, lon, είδος i/l/r/s/c/b/p/t, μέγεθος σε μοίρες].\n'
             '   Πηγή: OpenStreetMap (Geofabrik), (c) OpenStreetMap contributors, ODbL 1.0. Φτιάχνεται από το seanames-sync.yml (%s). */\n' % time.strftime('%Y-%m-%d'))
     open(OUT, 'w', encoding='utf-8').write(head + 'window.ALKYON_SEA_NAMES=' + json.dumps(rows, ensure_ascii=False, separators=(',', ':')) + ';\n')
