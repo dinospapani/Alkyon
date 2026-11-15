@@ -1496,7 +1496,7 @@ with sync_playwright() as p:
     pg.evaluate("()=>[...document.querySelectorAll('main .seg button')].find(x=>/Ρυθμίσεις/.test(x.textContent)).click()"); pg.wait_for_timeout(600); g2=grp()
     pg.evaluate("()=>[...document.querySelectorAll('main .seg button')].find(x=>/Λογαριασμός/.test(x.textContent)).click()"); pg.wait_for_timeout(600); g3=grp()
     hg=[x for x in g2 if x[0]=='Βοήθεια']; dg=[x for x in g3 if x[0]=='Δεδομένα']
-    check('Προφίλ: Οδηγός πρώτος, Βοήθεια με «Πες μας τη γνώμη σου» και «Σχετικά» (1.12.14)', g1 and g1[0][1][:1]==['Οδηγός'] and hg and 'Σχετικά' in hg[0][1] and 'Πες μας τη γνώμη σου' in hg[0][1], g1)
+    check('Προφίλ: Οδηγός πρώτος στη Βοήθεια (1.14.35), Βοήθεια με «Πες μας τη γνώμη σου» και «Σχετικά» (1.12.14)', g1 and hg and hg[0][1][:1]==['Οδηγός'] and 'Σχετικά' in hg[0][1] and 'Πες μας τη γνώμη σου' in hg[0][1], g1)
     check('Προφίλ: Ρυθμίσεις σε ομάδες Ψάρεμα/Ασφάλεια/Ειδοποιήσεις/Εμφάνιση και γλώσσα/Βοηθοί (1.14.32)', [x[0] for x in g2]==['Ψάρεμα','Ασφάλεια','Ειδοποιήσεις','Εμφάνιση και γλώσσα','Βοηθοί','Βοήθεια'], [x[0] for x in g2])
     check('Προφίλ: Λογαριασμός › Δεδομένα με εισαγωγή, αντίγραφο και εξαγωγή (1.12.14)', dg and any('Εισαγωγή' in t for t in dg[0][1]) and 'Αντίγραφο ασφαλείας' in dg[0][1], g3)
     pg.evaluate("()=>[...document.querySelectorAll('main .seg button')].find(x=>/Ρυθμίσεις/.test(x.textContent)).click()"); pg.wait_for_timeout(500)
@@ -1596,9 +1596,23 @@ with sync_playwright() as p:
         return pg.evaluate("()=>[...document.querySelectorAll('main .pgrp')].map(g=>((g.querySelector('.listh')||{}).textContent||'')+':'+[...g.querySelectorAll('.li b')].map(b=>b.firstChild?b.firstChild.textContent:b.textContent).join('|'))")
     m=ptab('Τα δικά μου'); st=ptab('Ρυθμίσεις'); ac=ptab('Λογαριασμός')
     check('Προφίλ: Οδηγός πάνω, βυθόμετρο στις συσκευές, Βοήθεια μόνο στις Ρυθμίσεις (1.14.34), Βοήθησε την πρόγνωση στον Λογαριασμό (1.14.32)',
-      m[0]==':Οδηγός' and 'Βυθόμετρο' in m[1] and 'Ρολόι Garmin' in m[1] and st[-1].startswith('Βοήθεια:') and not any(x.startswith('Βοήθεια:') for x in m+ac)
+      not any('Οδηγός' in x for x in m) and 'Βυθόμετρο' in m[0] and 'Ρολόι Garmin' in m[0] and st[-1].startswith('Βοήθεια:Οδηγός|') and st[-1].startswith('Βοήθεια:') and not any(x.startswith('Βοήθεια:') for x in m+ac)
       and any(x.startswith('Εμφάνιση και γλώσσα:Θέμα') for x in st) and not any('Βοήθησε την πρόγνωση' in x for x in st) and any('Βοήθησε την πρόγνωση' in x for x in ac) and not any('Εισαγωγή από βυθόμετρο' in x for x in ac), [m,st,ac])
     check('1.14.32: χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
+
+    print('# 1.14.35 Οδηγός από το Ημερολόγιο / ψάρι / χάρτη, εικονίδια')
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(2500)
+    gi=pg.evaluate("()=>!!document.querySelector('main .top a.iconbtn[href=\"#guide\"]')")
+    pg.evaluate("()=>AK.guideGo('species','Σαργός')"); pg.wait_for_timeout(4000)
+    gq=pg.evaluate("()=>[location.hash,(document.getElementById('spQ')||{}).value,document.querySelectorAll('#spList details.sp').length]")
+    pg.evaluate("()=>AK.guideGo('law')"); pg.wait_for_timeout(1500)
+    gl=pg.evaluate("()=>{ const b=document.querySelector('.gseg button[data-g=law]'); return b&&b.getAttribute('aria-pressed'); }")
+    check('Οδηγός: 📖 στο Ημερολόγιο, άνοιγμα σε είδος (Σαργός) και στους Νόμους (1.14.35)', gi and gq[0]=='#guide' and gq[1]=='Σαργός' and 0<gq[2]<15 and gl=='true', [gi,gq,gl])
+    pg.goto(BASE+'/v4/#profile'); pg.wait_for_timeout(2000)
+    pg.evaluate("()=>[...document.querySelectorAll('main .seg button')].find(x=>/Ρυθμίσεις/.test(x.textContent)).click()"); pg.wait_for_timeout(600)
+    ic=pg.evaluate("()=>{ const f=t=>{ const r=[...document.querySelectorAll('main .li')].find(x=>x.querySelector('b')&&x.querySelector('b').textContent.trim().startsWith(t)); return r?r.querySelector('.ic').innerHTML:null; }; return [f('Επαφή ασφαλείας')!==f('Όρια ασφαλείας'), !document.querySelector('main p.foot') || !/Alkyon ·/.test(document.querySelector('main p.foot').textContent)]; }")
+    check('Προφίλ: διαφορετικά εικονίδια, χωρίς διπλή έκδοση κάτω (1.14.35)', ic==[True,True], ic)
+    check('1.14.35: χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
 
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)

@@ -193,7 +193,8 @@ function tapSheet(lat,lon){
   var box=window.AlkyonNavInfo(lat,lon); if(!box) return false;
   var top=hits(lat,lon).sort(function(a,c){ return (c.l||0)-(a.l||0); })[0]; pinAt(lat,lon,top?lfpCol(top.l):null);
   var A=window.AK; box.appendChild(el('p','note',LEGEND));
-  if(A&&A.sheet) A.sheet({title:T('Προστατευμένη περιοχή','Protected area'),body:box,onclose:function(){ pinAt(); }});
+  /* 1.14.35: κανόνες ψαρέματος στον Οδηγό */ if(A&&A.guideGo){ var gl=el('button','linkbtn','📖 '+T('Κανόνες ψαρέματος στον Οδηγό ›','Fishing rules in the Guide ›')); gl.type='button'; gl.addEventListener('click',function(){ if(shN&&shN.close) shN.close(true); A.guideGo('law'); }); box.appendChild(gl); }
+  var shN=null; if(A&&A.sheet) shN=A.sheet({title:T('Προστατευμένη περιοχή','Protected area'),body:box,onclose:function(){ pinAt(); }});
   else L.popup({maxWidth:300}).setLatLng([lat,lon]).setContent(box).openOn(map);
   return true;
 }

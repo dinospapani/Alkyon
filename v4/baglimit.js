@@ -22,4 +22,6 @@ function text(r){ if(!r) return ''; var s=T('Κρατημένα σε αυτή τ
   if(r.near) return '⚠ '+T('Κοντά στο όριο. ','Close to the limit. ')+s;
   return s; }
 B.bag={of:of,text:text};
+/* 1.14.35: άνοιγμα του Οδηγού σε ενότητα / είδος από οπουδήποτε (ο Οδηγός φορτώνεται όταν ανοίξει) */
+B.guideGo=function(tab,q){ try{ B.ls.set('alkyon-v4-guidego',{tab:tab||'species',q:q||'',t:Date.now()}); }catch(e){} if(location.hash==='#guide'&&B.guideApply) B.guideApply(); else location.hash='#guide'; };
 })();

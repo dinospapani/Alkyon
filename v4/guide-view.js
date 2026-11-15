@@ -18,7 +18,7 @@ var HTML='<div class="seg gseg" role="group" aria-label="Ενότητα οδηγ
   '<div class="card" style="margin-top:16px"><h3>Έκτακτη ανάγκη στη θάλασσα</h3><p><b>Κύπρος:</b> 112 · VHF κανάλι 16</p><p><b>Ελλάδα:</b> 112 · 108 (Λιμενικό Σώμα) · VHF κανάλι 16</p></div></div>';
 function build(){
   page=h('div',{class:'page guide'});
-  page.append(h('div',{class:'top'},h('div',{style:{display:'flex',alignItems:'center',gap:'12px'}},h('a',{class:'iconbtn',href:'#profile','aria-label':T('Πίσω','Back'),html:B.iconSvg('back')}),h('h1',{class:'lt',text:T('Οδηγός','Guide')}))));
+  page.append(h('div',{class:'top'},h('div',{style:{display:'flex',alignItems:'center',gap:'12px'}},h('a',{class:'iconbtn',href:'#forecast','aria-label':T('Πίσω','Back'),html:B.iconSvg('back'),onclick:function(ev){ if(history.length>1){ ev.preventDefault(); history.back(); } }}),h('h1',{class:'lt',text:T('Οδηγός','Guide')}))));
   var sec=h('section',{id:'tab-guide',class:'gbody'}); sec.innerHTML=HTML; page.append(sec);
   return sec;
 }
@@ -34,8 +34,12 @@ B.guideReady=function(){ if(ready) return ready;
   return ready; };
 /* για τη φόρμα ψαριού: ελάχιστο μέγεθος από τους κανονισμούς (ίδιο με την κλασική) */
 B.minSize=function(name){ if(!window.MIN_SIZES) return null; var c=core; if(!c) return null; var sp=c.matchSp(name); if(!sp) return null; return {la:sp.la,min:c.minOf(sp.la)}; };
+/* 1.14.35: B.guideGo('law') / B.guideGo('species','Σαργός'): ενότητα και αναζήτηση μόλις είναι έτοιμος */
+B.guideApply=function(){ var o=B.ls.get('alkyon-v4-guidego',null); if(!o||Date.now()-o.t>60000) return; B.ls.set('alkyon-v4-guidego',null);
+  B.guideReady().then(function(){ setTimeout(function(){ var sec=page&&page.querySelector('#tab-guide'); if(!sec) return; var b=sec.querySelector('.gseg button[data-g="'+o.tab+'"]'); if(b) b.click();
+    if(o.q){ var i=sec.querySelector('#spQ'); if(i){ i.value=o.q; i.dispatchEvent(new Event('input',{bubbles:true})); } } },60); }); };
 B.view('guide',{title:T('Οδηγός','Guide'),mount:function(el){
-  if(!page) build(); el.replaceChildren(page);
+  if(!page) build(); el.replaceChildren(page); B.guideApply();
   if(!core){ var w=h('div',{class:'sk',style:{height:'120px',marginTop:'12px'}}); page.querySelector('#g-species').append(w); B.guideReady().then(function(){ w.remove(); }); }
 },unmount:function(){}});
 })();

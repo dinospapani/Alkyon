@@ -1090,3 +1090,7 @@ html.night body.mapon #lmap canvas.wxdash{filter:none!important;opacity:.7}
 .myspots b{flex-basis:100%}
 .myspots small{flex-basis:100%;opacity:.8}
 .hplan{margin:8px 0 0;font-size:13.5px;font-weight:700}
+.top .topacts{display:flex;gap:8px;align-items:center}
+/* 1.14.35: μικρότερη κάρτα αποσύνδεσης */
+.card.accx{padding:12px 14px}
+.accx .linkbtn.danger{margin:2px 0 0}

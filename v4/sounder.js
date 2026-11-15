@@ -155,7 +155,7 @@ function stTxt(){ var c=cfg(); if(c.src==='off') return T('Ανενεργό','Of
   if(st.state==='live'&&live()!=null) return '● '+T('Συνδεδεμένο','Connected')+' · '+fmtD(live())+(st.wt!=null?' · '+st.wt.toFixed(1)+' °C':'')+(c.demo?T(' (δοκιμή)',' (demo)'):'');
   if(st.state==='live'||st.state==='open') return '● '+T('Συνδεδεμένο, περιμένει βάθος…','Connected, waiting for depth…');
   if(st.state==='connecting') return T('Σύνδεση…','Connecting…'); if(st.state==='err') return '⚠ '+(st.err||T('Σφάλμα','Error')); return T('Αποσυνδεδεμένο','Disconnected'); }
-function summary(){ var c=cfg(); if(c.src==='net') return T('Δίκτυο σκάφους (WiFi)','Boat network (WiFi)'); return c.src==='sk'?T('Signal K · ','Signal K · ')+(c.demo?T('δοκιμή','demo'):(c.host||'—')):T('Ανενεργό · και από αρχείο','Off · or from a file'); }
+function summary(){ var c=cfg(); if(c.src==='net') return T('Δίκτυο σκάφους (WiFi)','Boat network (WiFi)'); return c.src==='sk'?T('Signal K · ','Signal K · ')+(c.demo?T('δοκιμή','demo'):(c.host||T('δεν έχει συνδεθεί','not connected'))):T('Ανενεργό · και από αρχείο','Off · or from a file'); }
 function sheet(){
   var c=cfg(), stEl=h('p',{class:'sndst',role:'status',text:stTxt()});
   var host=h('input',{type:'text',inputmode:'url',autocapitalize:'off',spellcheck:'false',placeholder:'venus.local',value:c.host,'aria-label':T('Διεύθυνση server Signal K','Signal K server address')});

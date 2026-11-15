@@ -32,6 +32,7 @@ var PI={sounder:'<path d="M4 5h16v10H4z"/><path d="M6 12l3-3 2 2 3-4 4 5"/><path
   units:'<path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/>',safety:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
   ai:'<path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',cloud:'<path d="M7 18h10a4 4 0 0 0 .5-8 6 6 0 0 0-11.5 2A3 3 0 0 0 7 18z"/>',
   voice:'<path d="M4 10v4h4l5 4V6L8 10z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/>',map:'<path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>',backup:'<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v3h16v-3"/>',hist:'<path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4h4"/><path d="M12 8v4l3 2"/>',stats:'<path d="M5 20V10M12 20V4M19 20v-7"/>',night:'<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',help:'<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6"/><path d="M12 17.2v.3"/>',
+  invite:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M19 8v6M16 11h6"/>',phone:'<path d="M6.6 3.5h3l1.5 4-2 1.3a11 11 0 0 0 6.1 6.1l1.3-2 4 1.5v3a2 2 0 0 0-2 2A16.5 16.5 0 0 1 4.6 5.5a2 2 0 0 0 2-2z"/>',
   flag:'<path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/>',theme:'<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/>',info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.3"/>',chat:'<path d="M4 5h16v11H9l-5 4z"/><path d="M8 9.5h.01M12 9.5h.01M16 9.5h.01" stroke-width="2.6"/>',mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5 12 13l8.5-6.5"/>',block:'<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/>',fish:'<path d="M3 12c3-4.5 9-6 14-2l4-3v10l-4-3c-5 4-11 2.5-14-2z"/><circle cx="8" cy="11" r=".8"/>'};
 function pic(k){ return h('span',{class:'ic pic',html:k==='type'&&B.profBadge?B.profBadge(B.prof()):'<svg viewBox="0 0 24 24" aria-hidden="true">'+(PI[k]||'')+'</svg>'}); }
 function row(k,title,sub,href,fn){ var a=h(href?'a':'button',{class:'li',href:href||null,type:href?null:'button',onclick:fn||null},pic(k),h('span',{class:'tx'},h('b',{text:title}),sub?h('small',{text:sub}):null),B.icon('chev')); return a; }
@@ -62,8 +63,9 @@ function draw(){
   page.append(B.seg([['mine',T('Τα δικά μου','My stuff')],['set',T('Ρυθμίσεις','Settings')],['acc',T('Λογαριασμός','Account')]],tab,function(v){ tab=v; ls.set('alkyon-v4-ptab',v); draw(); },T('Ενότητα προφίλ','Profile section')));
   if(tab==='set'){ settingsTab(page); helpGroup(page); } else if(tab==='acc') accountTab(page,s); else mineTab(page); /* 1.14.34: η Βοήθεια μία φορά, στο τέλος των Ρυθμίσεων */
   var EL=window.AlkyonErrLog, ne=EL?EL.get().filter(function(e){ return !e.v||e.v===window.ALKYON_VERSION; }).length:0; /* 1.4.1: μόνο της τωρινής έκδοσης */
-  page.append(h('p',{class:'foot'},'Alkyon · '+(window.ALKYON_VERSION||''),
-    ne?' · ':'',ne?h('button',{type:'button',class:'linkbtn errlk',text:T('Αναφορά σφαλμάτων','Error report')+' ('+ne+')',onclick:function(){ location.hash='#check'; }}):''));
+  /* 1.14.35: η έκδοση φαίνεται ήδη στο «Σχετικά»· εδώ μόνο η αναφορά σφαλμάτων, αν υπάρχει */
+  if(ne) page.append(h('p',{class:'foot'},'',
+    '',ne?h('button',{type:'button',class:'linkbtn errlk',text:T('Αναφορά σφαλμάτων','Error report')+' ('+ne+')',onclick:function(){ location.hash='#check'; }}):''));
   root.replaceChildren(page); if(y) try{ window.scrollTo(0,y); }catch(e){}
 }
 /* αναφορά σφαλμάτων: τι κόλλησε στο κινητό, για να σταλεί και να διορθωθεί */
@@ -79,8 +81,7 @@ function mineTab(page){
   var n=B.store.raw('tackle').filter(function(x){ return !x.deleted; }).length;
   var bt=ls.get('alkyon-boat',null), bn=bt&&bt.boat&&bt.boat.name;
   /* 1.12.14: ο Οδηγός πρώτος (είναι από τα μεγάλα κομμάτια της εφαρμογής)· η εισαγωγή δεδομένων πήγε στον Λογαριασμό › Δεδομένα */
-  /* 1.14.32: Οδηγός μόνος του πάνω· μετά εξοπλισμός και συσκευές (και το βυθόμετρο, που ήταν στις Ρυθμίσεις) */
-  page.append(group(null,[row('guide',T('Οδηγός','Guide'),T('Είδη, μεγέθη, νόμοι, τεχνικές','Species, sizes, laws, techniques'),'#guide')]));
+  /* 1.14.35: ο Οδηγός πήγε στο Ημερολόγιο (📖), στη λεπτομέρεια ψαριού, στον χάρτη και στη Βοήθεια */
   page.append(group(T('Εξοπλισμός και συσκευές','Gear and devices'),[
     row('tackle',T('Εξοπλισμός','Tackle'),n?n+' '+(n===1?T('κομμάτι','item'):T('κομμάτια','items')):T('Καλάμια, μουλινέ, τεχνητά, ψαροντούφεκα','Rods, reels, lures, spearguns'),'#tackle'),
     row('boat',T('Σκάφος','Boat'),bn||T('Κινητήρας, συντήρηση, λήξεις, μπαταρίες','Engine, maintenance, expiries, batteries'),'#boat'),
@@ -90,7 +91,7 @@ function mineTab(page){
     (function(){ var r=row('community',T('Κοινότητα','Community'),T('Ψάρια άλλων ψαράδων, χωρίς θέση','Other anglers’ catches, no locations'),'#community'); /* 1.9.65: «Νέα» */
       if(B.commNewCount) B.commNewCount(function(n){ if(n){ var tx=r.querySelector('.tx b'); if(tx) tx.append(h('span',{class:'cmnew',text:n>=20?'20+':String(n)})); } }); return r; })(),
     row('people',T('Φίλοι','Friends'),T('Κοινά ψάρια και σημεία με φίλους','Share catches and spots with friends'),'#friends'),
-    B.commInvite?row('community',T('Πρόσκληση φίλου','Invite a friend'),T('Στείλε τον σύνδεσμο του Alkyon','Send the Alkyon link'),null,function(){ B.commInvite(); }):null]));
+    B.commInvite?row('invite',T('Πρόσκληση φίλου','Invite a friend'),T('Στείλε τον σύνδεσμο του Alkyon','Send the Alkyon link'),null,function(){ B.commInvite(); }):null]));
   /* 1.9.19: διαχειριστής: σημειώσεις λιμανιών για έγκριση */
   /* 1.14.33: εργαλεία διαχειριστή σε δική τους ομάδα (κρυφή για τους άλλους), όχι μέσα στους «Φίλους» */
   if(B.cloud&&B.cloud.session&&B.cloud.session()){ var adm=group(T('Διαχείριση','Admin'),[]); adm.hidden=true; page.append(adm); var cg=adm.querySelector('.list'); new MutationObserver(function(){ adm.hidden=!cg.children.length; }).observe(cg,{childList:true}); B.loadScripts(['portnotes.js']).then(function(){ B.portNotes.adminRow(cg,function(n){ return row('community',T('Σημειώσεις λιμανιών για έγκριση','Port notes to review'),n==null?T('Διαχειριστής','Admin'):n?n+T(' σε αναμονή',' waiting'):T('Τίποτα σε αναμονή','Nothing waiting'),null,function(){ B.portNotes.review(); }); }); B.portNotes.isAdmin().then(function(y){ if(!y) return; var rw=row('chat',T('Μηνύματα χρηστών','User messages'),T('Ό,τι στέλνουν από «Πες μας τη γνώμη σου»','What people send from “Share feedback”'),null,inboxSheet); cg.append(rw); fbUnread().then(function(n){ if(!n) return; var ic=rw.firstElementChild; if(!ic) return; ic.classList.add('hasbadge'); ic.append(h('i',{class:'icbadge','aria-label':n+T(' αδιάβαστα',' unread'),text:n>99?'99+':String(n)})); }); }); }).catch(function(){}); }
@@ -98,9 +99,10 @@ function mineTab(page){
 /* 1.14.32: η Βοήθεια φαίνεται κάτω από όλες τις καρτέλες */
 function helpGroup(page){
   page.append(group(T('Βοήθεια','Help'),[
+    row('guide',T('Οδηγός','Guide'),T('Είδη, μεγέθη, νόμοι, τεχνικές','Species, sizes, laws, techniques'),'#guide'),
     row('help',T('Πώς δουλεύει','How it works'),T('Όλες οι λειτουργίες με λίγα λόγια','Every feature in a few words'),'#help'),
     row('chat',T('Πες μας τη γνώμη σου','Share feedback'),T('Πρόταση, πρόβλημα ή κάτι που σου άρεσε','An idea, a problem, or something you liked'),null,feedbackSheet),
-    /* 1.14.13 */ (C()&&C().session&&C().session())?(function(){ var rw=row('mail',T('Μηνύματα με την Alkyon','Messages with Alkyon'),T('Οι απαντήσεις μας στα μηνύματά σου','Our replies to your messages'),null,function(){ msgThread({uid:C().session().uid,admin:false,onclose:function(){ draw(); }}); });
+    /* 1.14.13 */ (C()&&C().session&&C().session())?(function(){ var rw=row('chat',T('Μηνύματα με την Alkyon','Messages with Alkyon'),T('Οι απαντήσεις μας στα μηνύματά σου','Our replies to your messages'),null,function(){ msgThread({uid:C().session().uid,admin:false,onclose:function(){ draw(); }}); });
       msgUnread().then(function(n){ if(!n) return; var ic=rw.firstElementChild; if(!ic) return; ic.classList.add('hasbadge'); ic.append(h('i',{class:'icbadge','aria-label':n+T(' νέα',' new'),text:String(n)})); }); return rw; })():null,
     row('mail',T('Επικοινωνία','Contact'),'alkyonfishingapp@gmail.com','mailto:alkyonfishingapp@gmail.com?subject='+encodeURIComponent('Alkyon '+(window.ALKYON_VERSION||''))), /* 1.9.24 */
     row('safety',T('Έλεγχος συστήματος','System check'),T('Δουλεύουν όλα; Καιρός, δορυφόρος, ειδοποιήσεις, αντίγραφο','Is everything working? Weather, satellite, alerts, backup'),'#check'),
@@ -200,7 +202,7 @@ function settingsTab(page){
       sheetOf(T('Τύπος ψαρέματος','Fishing type'),body); }),
     ]));
   page.append(group(T('Ασφάλεια','Safety'),[
-    row('safety',T('Επαφή ασφαλείας','Safety contact'),sf.name||sf.phone||sf.email||(sf.tgLinked?'Telegram':T('Δεν έχει οριστεί','Not set')),null,function(){ if(B.safetyCard) sheetOf(T('Επαφή ασφαλείας','Safety contact'),B.safetyCard()); }),
+    row('phone',T('Επαφή ασφαλείας','Safety contact'),sf.name||sf.phone||sf.email||(sf.tgLinked?'Telegram':T('Δεν έχει οριστεί','Not set')),null,function(){ if(B.safetyCard) sheetOf(T('Επαφή ασφαλείας','Safety contact'),B.safetyCard()); }),
     /* 1.9.40: όρια ασφαλείας για όλους (ακτή, ψαροντούφεκο, σκάφος), όχι μόνο μέσα στο Σκάφος */
     B.limitsCard?row('lim',T('Όρια ασφαλείας','Safety limits'),(function(){ var L=B.limits?B.limits():{}, U=window.AlkyonUnits; return T('άνεμος ','wind ')+(U&&U.wind?U.wind(L.wind):Math.round(L.wind)+' kn')+' · '+T('κύμα ','waves ')+B.num(L.wave,1)+' m · '+T('ριπές ','gusts ')+(U&&U.wind?U.wind(L.gust):Math.round(L.gust)+' kn'); })(),null,function(){ var on=function(){ ch=true; }, ch=false; window.addEventListener('alkyon-limits',on); B.sheet({title:T('Όρια ασφαλείας','Safety limits'),body:h('div',null,B.limitsCard()),onclose:function(){ window.removeEventListener('alkyon-limits',on); if(ch) draw(); }}); }):null,
     ]));
@@ -261,7 +263,7 @@ function accountTab(page,s){
 }
 /* 1.14.32: «Προφίλ και απόρρητο»: φωτογραφία προφίλ, Βοήθησε την πρόγνωση, αποκλεισμένοι (ήταν σκόρπια σε άλλες καρτέλες) */
 function privGroup(page,s){ var nbl=(ls.get('alkyon-comm-block',[])||[]).length;
-  page.append(group(T('Προφίλ και απόρρητο','Profile and privacy'),[
+  page.append(group(T('Απόρρητο και κοινοποίηση','Privacy and sharing'),[
     (s&&B.commAvatarPick)?row('people',T('Φωτογραφία προφίλ','Profile photo'),T('Φαίνεται στις αναρτήσεις και στα σχόλιά σου','Shown on your posts and comments'),null,function(){ B.commAvatarPick(); }):null,
     B.contrib?row('stats',T('Βοήθησε την πρόγνωση','Help the forecast'),B.contrib.on()?T('Συμμετέχεις ανώνυμα · ευχαριστούμε','Taking part anonymously · thank you'):T('Ανώνυμα στοιχεία τσιμπημάτων','Anonymous bite data'),null,function(){ B.contrib.sheet(); }):null,
     nbl?row('block',T('Αποκλεισμένοι χρήστες','Blocked users'),String(nbl),null,blockedSheet):null])); }

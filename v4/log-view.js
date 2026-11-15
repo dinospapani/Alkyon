@@ -28,7 +28,7 @@ function sizeTxt(b){ var n=bc(b), a=[]; if(+b.kg) a.push(B.num(b.kg,+b.kg<10?2:1
 function draw(){
   if(!root) return;
   var page=h('div',{class:'page'});
-  page.append(h('div',{class:'top'},h('h1',{class:'lt',text:T('Ημερολόγιο','Logbook')}),syncBtn()));
+  page.append(h('div',{class:'top'},h('h1',{class:'lt',text:T('Ημερολόγιο','Logbook')}),h('div',{class:'topacts'},h('a',{class:'iconbtn',href:'#guide','aria-label':T('Οδηγός: είδη, μεγέθη, νόμοι','Guide: species, sizes, laws'),title:T('Οδηγός','Guide'),html:B.iconSvg('book')}),syncBtn()))); /* 1.14.35: ο Οδηγός εδώ, όπου γράφεις ψάρια */
   page.append(B.seg([['trips',T('Έξοδοι','Trips')],['spots',T('Σημεία','Spots')],['fish',T('Ψάρια','Catches')],['gear',T('Εργαλεία','Gear')],['stats',T('Στατιστικά','Stats')]],st.tab,function(v){ st.tab=v; ls.set('alkyon-v4-logtab',v); draw(); },T('Όψη ημερολογίου','Logbook view'))); page.lastChild.classList.add('lseg'); /* 1.9.15: χωράνε και οι 5 */
   var chips=h('div',{class:'chips rng',role:'group','aria-label':T('Διάστημα','Period')});
   RANGES.forEach(function(r){ chips.append(h('button',{type:'button',class:'chip','aria-pressed':String(st.range===r[0]),text:r[1],onclick:function(){ st.range=r[0]; ls.set('alkyon-v4-logrange',r[0]); draw(); }})); });
@@ -98,6 +98,7 @@ function detail(b){
       var msg=B.troll&&B.troll.calibrate?B.troll.calibrate(cur,la,lo):null; S().save('bites',Object.assign({},cur,{lat:+la.toFixed(5),lon:+lo.toFixed(5)},cur.troll&&typeof cur.boatLat==='number'?{troll:Object.assign({},cur.troll,{fixed:1})}:{})); B.emit('store','alkyon-bites');
       B.toast(msg||T('Το σημείο διορθώθηκε.','Position fixed.')); }}); }}));
   if(typeof b.lat==='number'&&B.goTo) acts.append(h('button',{class:'btn',type:'button',text:T('Πήγαινε εκεί','Go there'),onclick:function(){ sh.close(true); B.goTo(b.lat,b.lon,b.species||b.place||''); }}));
+  /* 1.14.35: το είδος στον Οδηγό (μέγεθος, νόμοι, πού και πώς) */ if(!b.miss&&b.species&&B.guideGo) acts.append(h('button',{class:'btn',type:'button',text:'📖 '+T('Στον Οδηγό','In the Guide'),onclick:function(){ sh.close(true); B.guideGo('species',DN(b.species)||b.species); }}));
   if(!b.miss&&B.cards) acts.append(h('button',{class:'btn',type:'button',text:T('Κάρτα','Card'),onclick:function(){ B.cards.fish(b); }}));
   if(!b.miss&&B.commShare) acts.append(h('button',{class:'btn',type:'button',disabled:B.commShared(b.id),text:B.commShared(b.id)?T('✓ Στην κοινότητα','✓ Shared'):T('Κοινότητα','Community'),onclick:function(){ sh.close(true); B.commShare(b); }}));
   /* 1.9.68: φωνητική σημείωση από τη θάλασσα (χωρίς σήμα) */
