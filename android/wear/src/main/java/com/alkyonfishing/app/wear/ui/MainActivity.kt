@@ -116,7 +116,7 @@ fun Main(open: (String) -> Unit) {
     Engine.ver
     val ps = rememberPagerState(initialPage = Engine.page) { 6 }
     val scope = rememberCoroutineScope()
-    LaunchedEffect(ps.currentPage) { Engine.setPage(ps.currentPage) }
+    LaunchedEffect(ps.currentPage) { Engine.goPage(ps.currentPage) }
     val req = Engine.pageReq
     LaunchedEffect(req) { if (req >= 0) { ps.animateScrollToPage(req); Engine.pageReq = -1 } }
     val fr = remember { FocusRequester() }

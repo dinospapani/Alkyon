@@ -625,7 +625,7 @@ object Engine {
         if (trip.active) GpsService.refreshNote(ctx)
         bump()
     }
-    fun setPage(p: Int) { if (p == page) return; page = p; pageAt = System.currentTimeMillis(); gpsUpdate(); bump() }
+    fun goPage(p: Int) { if (p == page) return; page = p; pageAt = System.currentTimeMillis(); gpsUpdate(); bump() }
 
     /* ---------- δίχτυ / παραγάδι / κλουβί (AlkGear.mc) ---------- */
     fun gear(): JSONArray = P.arr("gear")

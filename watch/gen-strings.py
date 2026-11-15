@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Alkyon: κείμενα των ρολογιών Apple Watch και Wear OS από τα κείμενα της εφαρμογής Garmin (strings-garmin.json),
 με τις αλλαγές που χρειάζονται για ρολόγια με οθόνη αφής (OVR) και τα νέα κείμενα (EXTRA).
-Βγάζει: android/wear/.../S.kt και watch/AlkyonWatch/Strings.swift. Τρέξε: python3 watch/gen-strings.py
+Βγάζει: android/wear/.../S.kt και ios/App/AlkyonShared/Strings.swift. Τρέξε: python3 watch/gen-strings.py
 Στα κείμενα: $1$, $2$ = τιμές, | = αλλαγή γραμμής."""
 import json, os
 R = os.path.dirname(os.path.abspath(__file__))
@@ -87,7 +87,7 @@ for nm, tb in (('en', EN), ('el', EL)):
     sw += ['        %s: %s,' % (sq(k), sq(v)) for k, v in sorted(tb.items())]
     sw.append('    ]')
 sw.append('}')
-p = os.path.join(R, 'AlkyonWatch', 'Strings.swift')
+p = os.path.join(R, '..', 'ios', 'App', 'AlkyonShared', 'Strings.swift')
 os.makedirs(os.path.dirname(p), exist_ok=True)
 open(p, 'w', encoding='utf-8').write('\n'.join(sw) + '\n')
 print('strings:', len(EN), len(EL))

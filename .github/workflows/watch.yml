@@ -39,3 +39,35 @@ jobs:
           name: alkyon-wear-debug
           path: android/wear/build/outputs/apk/debug/*.apk
           retention-days: 14
+
+  watchos:
+    runs-on: macos-15
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Xcode
+        run: |
+          X=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1); echo "Xcode: $X"; [ -n "$X" ] && sudo xcode-select -s "$X"
+          xcodebuild -version
+          xcodebuild -showsdks | grep -i watch || { echo "Κατεβάζω το watchOS SDK"; xcodebuild -downloadPlatform watchOS; xcodebuild -showsdks | grep -i watch; }
+      - run: npm ci --no-audit --no-fund
+      - name: Αρχεία εφαρμογής → www → ios
+        run: |
+          node tools/build-web.mjs www --native
+          npx cap sync ios
+      - name: Χτίσιμο ρολογιού (watchOS, προσομοιωτής)
+        working-directory: ios/App
+        run: |
+          set -o pipefail
+          xcodebuild -project App.xcodeproj -target AlkyonWatch -configuration Release -sdk watchsimulator CODE_SIGNING_ALLOWED=NO build > /tmp/watch.log 2>&1 || { grep -E "error:|error\b" -A3 /tmp/watch.log | head -150; tail -40 /tmp/watch.log; exit 1; }
+          grep -c "warning:" /tmp/watch.log || true; tail -5 /tmp/watch.log
+      - name: Χτίσιμο iPhone με το ρολόι μέσα (iOS, προσομοιωτής)
+        working-directory: ios/App
+        run: |
+          set -o pipefail
+          xcodebuild -project App.xcodeproj -scheme App -configuration Release -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build > /tmp/ios.log 2>&1 || { grep -E "error:" -A3 /tmp/ios.log | head -150; tail -40 /tmp/ios.log; exit 1; }
+          tail -5 /tmp/ios.log

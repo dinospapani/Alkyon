@@ -17,6 +17,22 @@
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
 		9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9582B6822FE993A50072D4E8 /* SceneDelegate.swift */; };
 		A1C0FFEE00000000000000A2 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000000A1 /* InfoPlist.strings */; };
+		A1C0FFEE0000000000001013 /* AlkyonWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000001001 /* AlkyonWatchApp.swift */; };
+		A1C0FFEE0000000000001014 /* Core.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000001002 /* Core.swift */; };
+		A1C0FFEE0000000000001015 /* Engine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000001003 /* Engine.swift */; };
+		A1C0FFEE0000000000001016 /* Services.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000001004 /* Services.swift */; };
+		A1C0FFEE0000000000001017 /* Views.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000001005 /* Views.swift */; };
+		A1C0FFEE0000000000001018 /* Menus.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000001006 /* Menus.swift */; };
+		A1C0FFEE0000000000001019 /* Shared.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE000000000000100A /* Shared.swift */; };
+		A1C0FFEE000000000000101A /* Strings.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE000000000000100B /* Strings.swift */; };
+		A1C0FFEE000000000000101B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000001007 /* Assets.xcassets */; };
+		A1C0FFEE000000000000101C /* AlkyonWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE000000000000100C /* AlkyonWidgets.swift */; };
+		A1C0FFEE000000000000101D /* Shared.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE000000000000100A /* Shared.swift */; };
+		A1C0FFEE000000000000101E /* Strings.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE000000000000100B /* Strings.swift */; };
+		A1C0FFEE000000000000101F /* AlkWatchPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE000000000000100F /* AlkWatchPlugin.swift */; };
+		A1C0FFEE0000000000001020 /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000001010 /* MainViewController.swift */; };
+		A1C0FFEE0000000000001021 /* AlkyonWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000001011 /* AlkyonWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		A1C0FFEE0000000000001022 /* AlkyonWatchWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000001012 /* AlkyonWatchWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -34,7 +50,67 @@
 		A1C0FFEE00000000000000A3 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		A1C0FFEE00000000000000A4 /* el */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = el; path = el.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		A1C0FFEE00000000000000A5 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
+		A1C0FFEE0000000000001001 /* AlkyonWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlkyonWatchApp.swift; sourceTree = "<group>"; };
+		A1C0FFEE0000000000001002 /* Core.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core.swift; sourceTree = "<group>"; };
+		A1C0FFEE0000000000001003 /* Engine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Engine.swift; sourceTree = "<group>"; };
+		A1C0FFEE0000000000001004 /* Services.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services.swift; sourceTree = "<group>"; };
+		A1C0FFEE0000000000001005 /* Views.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views.swift; sourceTree = "<group>"; };
+		A1C0FFEE0000000000001006 /* Menus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Menus.swift; sourceTree = "<group>"; };
+		A1C0FFEE0000000000001007 /* WAssets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A1C0FFEE0000000000001008 /* WInfo */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A1C0FFEE0000000000001009 /* WEnt */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AlkyonWatch.entitlements; sourceTree = "<group>"; };
+		A1C0FFEE000000000000100A /* Shared.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Shared.swift; sourceTree = "<group>"; };
+		A1C0FFEE000000000000100B /* Strings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Strings.swift; sourceTree = "<group>"; };
+		A1C0FFEE000000000000100C /* AlkyonWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlkyonWidgets.swift; sourceTree = "<group>"; };
+		A1C0FFEE000000000000100D /* XInfo */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A1C0FFEE000000000000100E /* XEnt */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AlkyonWatchWidgets.entitlements; sourceTree = "<group>"; };
+		A1C0FFEE000000000000100F /* AlkWatchPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlkWatchPlugin.swift; sourceTree = "<group>"; };
+		A1C0FFEE0000000000001010 /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
+		A1C0FFEE0000000000001011 /* AlkyonWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AlkyonWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1C0FFEE0000000000001012 /* AlkyonWatchWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = AlkyonWatchWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXContainerItemProxy section */
+		A1C0FFEE0000000000001036 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A1C0FFEE0000000000001023;
+			remoteInfo = AlkyonWatch;
+		};
+		A1C0FFEE0000000000001038 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A1C0FFEE0000000000001024;
+			remoteInfo = AlkyonWatchWidgets;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		A1C0FFEE000000000000102C /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				A1C0FFEE0000000000001021,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1C0FFEE0000000000001028 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A1C0FFEE0000000000001022,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		504EC3011FED79650016851F /* Frameworks */ = {
@@ -42,6 +118,20 @@
 			buildActionMask = 2147483647;
 			files = (
 				4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1C0FFEE0000000000001026 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1C0FFEE000000000000102A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -53,6 +143,9 @@
 			children = (
 				958DCC722DB07C7200EA8C5F /* debug.xcconfig */,
 				504EC3061FED79650016851F /* App */,
+				A1C0FFEE000000000000102D /* AlkyonWatch */,
+				A1C0FFEE000000000000102F /* AlkyonWatchWidgets */,
+				A1C0FFEE000000000000102E /* AlkyonShared */,
 				504EC3051FED79650016851F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -61,6 +154,8 @@
 			isa = PBXGroup;
 			children = (
 				504EC3041FED79650016851F /* App.app */,
+				A1C0FFEE0000000000001011 /* AlkyonWatch.app */,
+				A1C0FFEE0000000000001012 /* AlkyonWatchWidgets.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -69,6 +164,8 @@
 			isa = PBXGroup;
 			children = (
 				9582B6822FE993A50072D4E8 /* SceneDelegate.swift */,
+				A1C0FFEE000000000000100F /* AlkWatchPlugin.swift */,
+				A1C0FFEE0000000000001010 /* MainViewController.swift */,
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
@@ -83,6 +180,41 @@
 			path = App;
 			sourceTree = "<group>";
 		};
+		A1C0FFEE000000000000102D /* AlkyonWatch */ = {
+			isa = PBXGroup;
+			children = (
+				A1C0FFEE0000000000001001 /* AlkyonWatchApp.swift */,
+				A1C0FFEE0000000000001002 /* Core.swift */,
+				A1C0FFEE0000000000001003 /* Engine.swift */,
+				A1C0FFEE0000000000001004 /* Services.swift */,
+				A1C0FFEE0000000000001005 /* Views.swift */,
+				A1C0FFEE0000000000001006 /* Menus.swift */,
+				A1C0FFEE0000000000001007 /* Assets.xcassets */,
+				A1C0FFEE0000000000001008 /* Info.plist */,
+				A1C0FFEE0000000000001009 /* AlkyonWatch.entitlements */,
+			);
+			path = AlkyonWatch;
+			sourceTree = "<group>";
+		};
+		A1C0FFEE000000000000102E /* AlkyonShared */ = {
+			isa = PBXGroup;
+			children = (
+				A1C0FFEE000000000000100A /* Shared.swift */,
+				A1C0FFEE000000000000100B /* Strings.swift */,
+			);
+			path = AlkyonShared;
+			sourceTree = "<group>";
+		};
+		A1C0FFEE000000000000102F /* AlkyonWatchWidgets */ = {
+			isa = PBXGroup;
+			children = (
+				A1C0FFEE000000000000100C /* AlkyonWidgets.swift */,
+				A1C0FFEE000000000000100D /* Info.plist */,
+				A1C0FFEE000000000000100E /* AlkyonWatchWidgets.entitlements */,
+			);
+			path = AlkyonWatchWidgets;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -93,10 +225,12 @@
 				504EC3001FED79650016851F /* Sources */,
 				504EC3011FED79650016851F /* Frameworks */,
 				504EC3021FED79650016851F /* Resources */,
+				A1C0FFEE000000000000102C /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				A1C0FFEE0000000000001037 /* PBXTargetDependency */,
 			);
 			name = App;
 			packageProductDependencies = (
@@ -105,6 +239,42 @@
 			productName = App;
 			productReference = 504EC3041FED79650016851F /* App.app */;
 			productType = "com.apple.product-type.application";
+		};
+		A1C0FFEE0000000000001023 /* AlkyonWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1C0FFEE0000000000001030 /* Build configuration list for PBXNativeTarget "AlkyonWatch" */;
+			buildPhases = (
+				A1C0FFEE0000000000001025 /* Sources */,
+				A1C0FFEE0000000000001026 /* Frameworks */,
+				A1C0FFEE0000000000001027 /* Resources */,
+				A1C0FFEE0000000000001028 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A1C0FFEE0000000000001039 /* PBXTargetDependency */,
+			);
+			name = AlkyonWatch;
+			productName = AlkyonWatch;
+			productReference = A1C0FFEE0000000000001011 /* AlkyonWatch.app */;
+			productType = "com.apple.product-type.application";
+		};
+		A1C0FFEE0000000000001024 /* AlkyonWatchWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1C0FFEE0000000000001033 /* Build configuration list for PBXNativeTarget "AlkyonWatchWidgets" */;
+			buildPhases = (
+				A1C0FFEE0000000000001029 /* Sources */,
+				A1C0FFEE000000000000102A /* Frameworks */,
+				A1C0FFEE000000000000102B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = AlkyonWatchWidgets;
+			productName = AlkyonWatchWidgets;
+			productReference = A1C0FFEE0000000000001012 /* AlkyonWatchWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -118,6 +288,14 @@
 					504EC3031FED79650016851F = {
 						CreatedOnToolsVersion = 9.2;
 						LastSwiftMigration = 1100;
+						ProvisioningStyle = Automatic;
+					};
+					A1C0FFEE0000000000001023 = {
+						CreatedOnToolsVersion = 26.0;
+						ProvisioningStyle = Automatic;
+					};
+					A1C0FFEE0000000000001024 = {
+						CreatedOnToolsVersion = 26.0;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -140,6 +318,8 @@
 			projectRoot = "";
 			targets = (
 				504EC3031FED79650016851F /* App */,
+				A1C0FFEE0000000000001023 /* AlkyonWatch */,
+				A1C0FFEE0000000000001024 /* AlkyonWatchWidgets */,
 			);
 		};
 /* End PBXProject section */
@@ -159,6 +339,21 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A1C0FFEE0000000000001027 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1C0FFEE000000000000101B,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1C0FFEE000000000000102B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -168,10 +363,50 @@
 			files = (
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
+				A1C0FFEE000000000000101F,
+				A1C0FFEE0000000000001020,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1C0FFEE0000000000001025 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1C0FFEE0000000000001013,
+				A1C0FFEE0000000000001014,
+				A1C0FFEE0000000000001015,
+				A1C0FFEE0000000000001016,
+				A1C0FFEE0000000000001017,
+				A1C0FFEE0000000000001018,
+				A1C0FFEE0000000000001019,
+				A1C0FFEE000000000000101A,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1C0FFEE0000000000001029 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1C0FFEE000000000000101C,
+				A1C0FFEE000000000000101D,
+				A1C0FFEE000000000000101E,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A1C0FFEE0000000000001037 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A1C0FFEE0000000000001023 /* AlkyonWatch */;
+			targetProxy = A1C0FFEE0000000000001036 /* PBXContainerItemProxy */;
+		};
+		A1C0FFEE0000000000001039 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A1C0FFEE0000000000001024 /* AlkyonWatchWidgets */;
+			targetProxy = A1C0FFEE0000000000001038 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		504EC30B1FED79650016851F /* Main.storyboard */ = {
@@ -357,6 +592,102 @@
 			};
 			name = Release;
 		};
+		A1C0FFEE0000000000001031 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = AlkyonWatch/AlkyonWatch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = AlkyonWatch/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", );
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.alkyonfishing.app.watchkitapp;
+				PRODUCT_NAME = AlkyonWatch;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_VERSION = 5.0;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		A1C0FFEE0000000000001032 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = AlkyonWatch/AlkyonWatch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = AlkyonWatch/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", );
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.alkyonfishing.app.watchkitapp;
+				PRODUCT_NAME = AlkyonWatch;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_VERSION = 5.0;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
+		A1C0FFEE0000000000001034 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = AlkyonWatchWidgets/AlkyonWatchWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = AlkyonWatchWidgets/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@executable_path/../../Frameworks", );
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.alkyonfishing.app.watchkitapp.widgets;
+				PRODUCT_NAME = AlkyonWatchWidgets;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_VERSION = 5.0;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		A1C0FFEE0000000000001035 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = AlkyonWatchWidgets/AlkyonWatchWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = AlkyonWatchWidgets/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@executable_path/../../Frameworks", );
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.alkyonfishing.app.watchkitapp.widgets;
+				PRODUCT_NAME = AlkyonWatchWidgets;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_VERSION = 5.0;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -374,6 +705,24 @@
 			buildConfigurations = (
 				504EC3171FED79650016851F /* Debug */,
 				504EC3181FED79650016851F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1C0FFEE0000000000001030 /* Build configuration list for PBXNativeTarget "AlkyonWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1C0FFEE0000000000001031 /* Debug */,
+				A1C0FFEE0000000000001032 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1C0FFEE0000000000001033 /* Build configuration list for PBXNativeTarget "AlkyonWatchWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1C0FFEE0000000000001034 /* Debug */,
+				A1C0FFEE0000000000001035 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
