@@ -255,6 +255,7 @@ function accountTab(page,s){
   page.append(group(T('Δεδομένα','Data'),[
     /* 1.12.14: εδώ και η εισαγωγή (πριν ήταν στα «Τα δικά μου») */
     row('imp',T('Εισαγωγή από plotter, GPS ή ρολόι','Import from a plotter, GPS or watch'),'GPX · KML · CSV · FIT · UDDF',function(){ if(B.importSheet) B.importSheet(); }),
+    /* 1.14.37: «Ψάρια φίλου» (CSV) εδώ, όχι στην Πρόγνωση */ window.AlkyonExt?row('imp',T('Ψάρια φίλου (CSV)','A friend’s catches (CSV)'),T('Ως εποχιακή ένδειξη στις προτάσεις ειδών','As a seasonal hint in species suggestions'),function(){ var xc=null; try{ xc=AlkyonExt.card(function(){ B.emit('store','alkyon-fprof'); }); }catch(e){} if(xc){ xc.classList.remove('card'); sheetOf(T('Ψάρια φίλου','A friend’s catches'),h('div',null,xc)); } }):null,
     row('bk',T('Αντίγραφο ασφαλείας','Backup'),lb?T('Τελευταίο: ','Last: ')+new Date(lb).toLocaleDateString(EN?'en-GB':'el-GR'):T('Δεν έχει γίνει ακόμα','Not done yet'),function(){ sheetOf(T('Αντίγραφο ασφαλείας','Backup'),h('div',null,backupCard())); }),
     B.geoSheet?row('gx',T('Εξαγωγή σε GPX / KML','Export to GPX / KML'),T('Σημεία, ψάρια και διαδρομές για plotter ή Google Earth','Spots, catches and tracks for a plotter or Google Earth'),function(){ B.geoSheet(); }):null,
     dcs&&dcs[0]?row('xl',T('Εξαγωγή σε Excel (CSV)','Export to Excel (CSV)'),T('Ψάρια ή έξοδοι σε αρχείο','Catches or trips in a file'),function(){ var d=B.dataCards(); sheetOf(T('Εξαγωγή σε Excel (CSV)','Export to Excel (CSV)'),h('div',null,d[0])); }):null,

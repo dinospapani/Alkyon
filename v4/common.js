@@ -65,6 +65,8 @@ function traits(G){
   /* ώρα */
   var ar=G.map(function(d){ return d.afterRise; }).filter(function(x){ return x!=null; });
   if(ar.length>=2){ var early=ar.filter(function(x){ return x<=1.5; }).length, mid=ar.filter(function(x){ return x>3&&x<=7; }).length, t0=G.map(function(d){ return d.t0; }).filter(function(x){ return x!=null; });
+    /* 1.14.37: το εύρος ωρών μόνο από τα ψάρια που ταιριάζουν στην περιγραφή (όχι από όλα) */
+    var isE=early/ar.length>=0.6, isM=!isE&&mid/ar.length>=0.6; t0=G.filter(function(d){ return d.afterRise!=null&&d.t0!=null&&(isE?d.afterRise<=1.5:isM?(d.afterRise>3&&d.afterRise<=7):true); }).map(function(d){ return d.t0; });
     var tx=early/ar.length>=0.6?T('πολύ νωρίς, μέσα στην πρώτη ώρα από την ανατολή','very early, within the first hour after sunrise'):mid/ar.length>=0.6?T('αργά το πρωί, 3–7 ώρες μετά την ανατολή','late morning, 3–7 hours after sunrise'):T('διάφορες ώρες','various times');
     out.push([T('Ώρα','Time'),tx+' ('+(Math.min.apply(null,t0)===Math.max.apply(null,t0)?hm(t0[0]):hm(Math.min.apply(null,t0))+'–'+hm(Math.max.apply(null,t0)))+')',early/ar.length>=0.6?early:mid/ar.length>=0.6?mid:ar.length,ar.length]); }
   /* σελήνη */
@@ -96,16 +98,19 @@ B.commonCard=function(){
   var D=days(); if(D.length<2) return null;
   var big=D.filter(function(d){ return d.kgMax!=null&&d.kgMax>=2.5; }), small=D.filter(function(d){ return !(d.kgMax!=null&&d.kgMax>=2.5); });
   var c=h('section',{class:'card lycard cmcard'},h('h2',{text:T('Τι κοινό είχαν τα ψαρέματά σου','What your fishing days had in common')}),
-    h('p',{class:'sub',text:T('Από τις συνθήκες που κράτησε η εφαρμογή σε κάθε ψάρι. Ο αριθμός δεξιά λέει σε πόσες μέρες ισχύει.','From the conditions the app saved with each catch. The number on the right says on how many days it holds.')}));
+    null);
   if(big.length>=2&&small.length>=2){ c.append(group(T('Μεγάλα ψάρια (από 2,5 kg)','Big fish (2.5 kg and up)'),big)); c.append(group(T('Μικρότερα ψάρια','Smaller fish'),small)); }
   else c.append(group(T('Μέρες με ψάρια','Days with catches'),D));
   /* σύγκριση με εξόδους χωρίς ψάρι */
   var E=emptyTrips();
   if(E.length>=2){ var pt=mode(E.map(function(t){ return t.cond0&&t.cond0.ptrend; })), ws=E.map(function(t){ return t.cond0&&num(t.cond0.wind); }).filter(function(x){ return x!=null; });
     c.append(h('div',{class:'cmgrp'},h('h3',{class:'listh',text:T('Έξοδοι χωρίς ψάρι · ','Trips with no catch · ')+E.length}),
-      pt?h('div',{class:'lyrow'},h('b',{text:T('Πίεση','Pressure')}),h('span',{class:'cmv',text:PT[pt.v]||pt.v}),h('small',{class:'cmn',text:pt.n+'/'+E.length})):null,
-      ws.length?h('div',{class:'lyrow'},h('b',{text:T('Άνεμος','Wind')}),h('span',{class:'cmv',text:Math.round(Math.min.apply(null,ws))+'–'+Math.round(Math.max.apply(null,ws))+' kn'}),h('small',{class:'cmn',text:ws.length+'/'+E.length})):null)); }
-  c.append(h('p',{class:'foot',text:T('Λέει τι είχαν κοινό οι μέρες που έπιασες, όχι γιατί τσίμπησαν. Για το «γιατί» χρειάζονται και οι έξοδοι χωρίς ψάρι','It says what your catch days had in common, not why fish bit. For the “why”, trips with no catch are needed too')+(E.length<2?T(' (καταγράφεις μία με «Ξεκινώ» και «Τέλος», ακόμα κι όταν δεν πιάσεις τίποτα).',' (log one with Start and End even when you catch nothing).'):'.')+' '+T('Με ','Based on ')+D.length+T(' μέρες: όσο περισσότερες, τόσο πιο σίγουρο.',' days: the more, the surer.')}));
+      /* 1.14.37: μόνο γραμμές που ισχύουν σε αρκετές εξόδους (≥ 2 και ≥ 40%)· αλλιώς μία πρόταση */
+      (function(){ var okN=function(n){ return n>=2&&n/E.length>=0.4; }, rows=[], w0=ws.length?Math.round(Math.min.apply(null,ws)):null, w1=ws.length?Math.round(Math.max.apply(null,ws)):null;
+        if(pt&&okN(pt.n)) rows.push(h('div',{class:'lyrow'},h('b',{text:T('Πίεση','Pressure')}),h('span',{class:'cmv',text:PT[pt.v]||pt.v}),h('small',{class:'cmn',text:pt.n+'/'+E.length})));
+        if(okN(ws.length)) rows.push(h('div',{class:'lyrow'},h('b',{text:T('Άνεμος','Wind')}),h('span',{class:'cmv',text:(w0===w1?w0:w0+'–'+w1)+' kn'}),h('small',{class:'cmn',text:ws.length+'/'+E.length})));
+        return rows.length?rows:[h('p',{class:'sub',text:T('Δεν υπάρχουν ακόμα αρκετά στοιχεία καιρού στις εξόδους χωρίς ψάρι για σύγκριση.','Not enough weather data on trips with no catch yet to compare.')})]; })())); }
+  /* 1.14.37: εξήγηση στο (i) */ (function(){ var t0=c.querySelector('h2'); if(B.infoAdd&&t0) B.infoAdd(t0,T('Από τις συνθήκες που κράτησε η εφαρμογή σε κάθε ψάρι. Ο αριθμός δεξιά λέει σε πόσες μέρες ισχύει.','From the conditions the app saved with each catch. The number on the right says on how many days it holds.')+' '+T('Λέει τι είχαν κοινό οι μέρες που έπιασες, όχι γιατί τσίμπησαν. Για το «γιατί» χρειάζονται και οι έξοδοι χωρίς ψάρι','It says what your catch days had in common, not why fish bit. For the “why”, trips with no catch are needed too')+(E.length<2?T(' (καταγράφεις μία με «Ξεκινώ» και «Τέλος», ακόμα κι όταν δεν πιάσεις τίποτα).',' (log one with Start and End even when you catch nothing).'):'.')+' '+T('Με ','Based on ')+D.length+T(' μέρες: όσο περισσότερες, τόσο πιο σίγουρο.',' days: the more, the surer.')); else c.append(h('p',{class:'foot',text:T('Λέει τι είχαν κοινό οι μέρες που έπιασες, όχι γιατί τσίμπησαν. Για το «γιατί» χρειάζονται και οι έξοδοι χωρίς ψάρι','It says what your catch days had in common, not why fish bit. For the “why”, trips with no catch are needed too')+(E.length<2?T(' (καταγράφεις μία με «Ξεκινώ» και «Τέλος», ακόμα κι όταν δεν πιάσεις τίποτα).',' (log one with Start and End even when you catch nothing).'):'.')+' '+T('Με ','Based on ')+D.length+T(' μέρες: όσο περισσότερες, τόσο πιο σίγουρο.',' days: the more, the surer.')})); })();
   return c;
 };
 })();

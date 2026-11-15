@@ -61,7 +61,7 @@ var CL='p.sub,p.foot,p.note,.card>small,.fold small.hint';
 function clampIn(root){
   var els=[]; if(root.matches&&root.matches(CL)) els.push(root); if(root.querySelectorAll) els=els.concat([].slice.call(root.querySelectorAll(CL)));
   els.forEach(function(p){
-    if(p.dataset.cl||p.closest('.hero,.sheet,.bsheet,.modal,dialog,.noclamp,.toast,form,.tfill,.calml')) return;
+    if(p.dataset.cl||p.classList.contains('infot')||p.closest('.hero,.sheet,.bsheet,.modal,dialog,.noclamp,.toast,form,.tfill,.calml')) return;
     var t=(p.textContent||'').trim(); if(t.length<190) return; p.dataset.cl='1';
     p.classList.add('clmp');
     var b=document.createElement('button'); b.type='button'; b.className='clmpb'; b.textContent=T('Περισσότερα','More');

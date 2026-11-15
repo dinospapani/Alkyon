@@ -1094,3 +1094,13 @@ html.night body.mapon #lmap canvas.wxdash{filter:none!important;opacity:.7}
 /* 1.14.35: μικρότερη κάρτα αποσύνδεσης */
 .card.accx{padding:12px 14px}
 .accx .linkbtn.danger{margin:2px 0 0}
+/* 1.14.37: (i) εξηγήσεις */
+.infob{display:inline-grid;place-items:center;width:24px;height:24px;margin:0 0 0 8px;padding:0;vertical-align:middle;border-radius:50%;border:1.5px solid var(--ink-3,#8a99a3);background:transparent;color:var(--ink-2,#55636b);font:italic 700 13px/1 Georgia,serif;cursor:pointer;flex:none}
+.infob[aria-expanded="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.infot{margin:4px 0 10px!important;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--accent) 7%,transparent);font-size:14px}
+.opmore{display:block;opacity:.8}
+.cmp.trial>:nth-child(3n){opacity:.55}
+.sph .splv{font-size:12.5px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--bg-2,#eef2f3)}
+.sph .splv.lv2{background:color-mix(in srgb,#1f8f4e 18%,transparent);color:#1f7a45}
+.sph .splv.lv1{background:color-mix(in srgb,#2b6f8f 14%,transparent)}
+.card h2 .infob,.card h3 .infob{font-size:13px}
