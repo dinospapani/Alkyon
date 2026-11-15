@@ -673,7 +673,7 @@ function workedCard(d){
   /* 1.12.15: ανοίγει/κλείνει όπως οι άλλες κάρτες */
   var spTop=cnt(function(b){ return b.species; }).slice(0,2).map(function(x){ return x.replace(/ \(\d+\)$/,''); }).join(', ');
   return fold('worked',T('Τι δούλεψε σε παρόμοιες μέρες','What worked on similar days'),sim.length+T(' ψαριές σε ',' catches on ')+Object.keys(days).length+T(' μέρες',' days')+(spTop?' · '+spTop:''),[h('div',{class:'worked'},
-    h('p',{class:'sub',text:sim.length+T(' ψαριές σου σε ',' of your catches on ')+Object.keys(days).length+T(' μέρες με παρόμοιο άνεμο, κύμα, νερό, πίεση και εποχή. Δεν είναι πρόγνωση: είναι τα δικά σου ψάρια.',' days with similar wind, waves, water, pressure and season. Not a forecast: these are your own catches.')}),
+    h('p',{class:'foot',style:{margin:'0 0 8px'},text:T('Τα δικά σου ψάρια σε μέρες με παρόμοιο άνεμο, κύμα, νερό, πίεση και εποχή.','Your own catches on days with similar wind, waves, water, pressure and season.')}),
     h('div',{class:'rows one'},rows.map(function(r){ return h('div',{class:'row'},h('span',{text:r[0]}),h('b',{text:r[1].join(', ')})); })))]); }
 function reasons(d,hs0){
   var hs=hs0&&hs0.length?hs0:focusHours(d); if(!hs.length) return [];
@@ -812,7 +812,10 @@ function pwFill(body,v,p,fc,rk){
   out.push(h('div',{class:'pwl'},h('span',{class:'k1',text:T('Πίεση','Pressure')}),h('span',{class:'k2',text:T('Άνεμος, ριπές','Wind, gusts')}),hasM?h('span',{class:'k3',text:T('Σελήνη: σκούρο κύρια, ανοιχτό δευτερεύουσα','Moon: dark major, light minor')}):null,hasM?h('span',{class:'k4',text:T('Καλή: καλός και ο άνεμος και η πίεση','Good: wind, pressure too')}):null,C.hasTide?h('span',{class:'k5',text:T('Παλίρροια: ● ψηλή, ○ χαμηλή (cm από τη μέση στάθμη)','Tide: ● high, ○ low (cm from mean level)')}):null,hasM&&per.some(function(x){ return x.good&&!x.vOk; })?h('span',{class:'k5',text:T('Καλή, αλλά ψηλό κύμα','Good, but high waves')}):null),
     h('p',{class:'foot',style:{margin:'8px 0 0'},text:T('Συνεχής γραμμή: τελευταίες 24 ώρες. Διακεκομμένη: πρόγνωση. Τα βέλη δείχνουν προς πού φυσά ο άνεμος. Σύρε το δάχτυλο πάνω στο γράφημα για κάθε ώρα.','Solid line: last 24 hours. Dashed: forecast. Arrows show where the wind blows to. Drag across the chart to see each hour.')}),
     hasM?moonResearch():null);
-  body.replaceChildren.apply(body,out);
+  /* 1.14.38: υπόμνημα, σημειώσεις και «τι λέει η έρευνα» σε ένα πτυσσόμενο, για να μένει καθαρό το γράφημα */
+  var keep=[], more=[]; out.forEach(function(el){ if(el&&el.classList&&(el.classList.contains('foot')||el.classList.contains('pwl')||el.classList.contains('mres'))) more.push(el); else keep.push(el); });
+  if(more.length) keep.push(h('details',{class:'pwmore'},h('summary',null,h('span',{class:'infoi2',text:'i'}),h('span',{text:T('Υπόμνημα και τι λέει η έρευνα για τη σελήνη','Legend and what research says about the moon')})),more));
+  body.replaceChildren.apply(body,keep);
 }
 /* σύντομος λόγος για μη ασφαλή μέρα: το πιο σοβαρό */
 /* 1.9.9: η τιμή που χαλάει τη μέρα, για το πλακίδιο (π.χ. «0,8 m», «5 Bft») */

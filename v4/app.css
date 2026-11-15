@@ -1104,3 +1104,11 @@ html.night body.mapon #lmap canvas.wxdash{filter:none!important;opacity:.7}
 .sph .splv.lv2{background:color-mix(in srgb,#1f8f4e 18%,transparent);color:#1f7a45}
 .sph .splv.lv1{background:color-mix(in srgb,#2b6f8f 14%,transparent)}
 .card h2 .infob,.card h3 .infob{font-size:13px}
+/* 1.14.38 */
+.h3.subh{font-size:18px;margin:14px 0 6px;display:flex;align-items:center}
+details.pwmore{margin:12px 0 0;border-top:1px solid var(--line,rgba(127,127,127,.2));padding-top:10px}
+details.pwmore>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;color:var(--ink-2,#55636b)}
+details.pwmore>summary::-webkit-details-marker{display:none}
+details.pwmore .infoi2{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;border:1.5px solid currentColor;font:italic 700 12px/1 Georgia,serif;flex:none}
+details.pwmore[open] .infoi2{background:var(--accent);border-color:var(--accent);color:#fff}
+details.pwmore>*:not(summary){margin-top:8px}
