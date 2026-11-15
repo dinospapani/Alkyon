@@ -560,3 +560,26 @@ html.nightred .calmr .exwc{background:#000!important;outline:1px solid currentCo
 .hero2 .hsec{margin:10px 0 0}
 .hero2 .hsun1{margin:10px 0 0;padding-top:10px}
 .hero2 .nwa{margin:12px 0 0}
+/* 1.14.42: «Ανά ώρα»: οι τιμές της ώρας σε κουτάκια, όπως στο «Τώρα» */
+.hcard .rows{grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}
+.hcard .rows .row{flex-direction:column-reverse;align-items:center;justify-content:flex-end;gap:2px;padding:9px 4px;border:0!important;border-radius:12px;background:var(--surface-2);text-align:center}
+.hcard .rows .row span{font:600 11.5px var(--font);color:var(--ink-2)}
+.hcard .rows .row b{font:800 15px/1.2 var(--font);text-align:center}
+.hcard .rows .row b small{font-weight:600;font-size:11px}
+.hcard .rows .row b small.wsub{font-size:10.5px;margin:0}
+@media (max-width:340px){.hcard .rows{grid-template-columns:repeat(2,1fr)}}
+/* πιο μαζεμένα «Τσίμπημα / Θάλασσα» και λόγοι στην πρώτη κάρτα */
+.hero2 .hsplit{margin:12px 0 0}
+.hero2 .hsb{flex-direction:row;flex-wrap:wrap;align-items:center;gap:2px 8px;padding:8px 11px}
+.hero2 .hsb b{font-size:16px}
+.hero2 .hsb span{display:none}
+.hero2 .hsb.lv-good span,.hero2 .hsb.lv-fair span,.hero2 .hsb.lv-poor span{display:inline;font-size:12px}
+.hero2 .hsb.sea-bad span,.hero2 .hsb.sea-mid span{display:block;flex-basis:100%}
+.hero2 .hwhy2{margin:10px 0 0;gap:5px}
+.hero2 .hwhy2 .hz{font-size:12px;padding:4px 9px;border-radius:999px}
+.foldin{padding:0!important;margin:0!important;background:none!important;box-shadow:none!important}
+.foldinfo{margin:8px 0 10px!important}
+details.spmore{margin-top:6px}
+details.spmore>summary{cursor:pointer;font:700 14px var(--font);color:var(--accent);padding:8px 0;list-style:none}
+details.spmore>summary::-webkit-details-marker{display:none}
+.spl .spd{font-size:13px}

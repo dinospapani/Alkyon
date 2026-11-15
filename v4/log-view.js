@@ -1,5 +1,6 @@
 /* Alkyon 4 · Ημερολόγιο: ψάρια, έξοδοι, στατιστικά */
 (function(){
+var shortsOpen=false; /* 1.14.42 */
 'use strict';
 var B=window.AK, h=B.h, T=B.T, EN=B.EN, ls=B.ls, U=window.AlkyonUnits;
 var st={grid:!!ls.get('alkyon-v4-loggrid',false),tab:ls.get('alkyon-v4-logtab','fish'),range:ls.get('alkyon-v4-logrange','year'),q:''}, root=null;
@@ -210,8 +211,11 @@ function trips(page){
     var row=h('button',{class:'li triprow tcard',type:'button',onclick:function(){ tripDetail(t); }},miniMap(t,bs,96,104),h('span',{class:'tx'},h('b',null,h('i',{class:'tpi',html:B.profBadge?B.profBadge(t.prof||'boat'):''}),document.createTextNode((t.spot||B.PROF[t.prof||'boat']||'')+(t.priv?' 🔒':''))),h('small',{text:[when(t),d!=null?B.num(d,1)+' h':'',+t.km?B.num(t.km,1)+' km':'',+t.kg?B.num(t.kg,1)+' kg':''].filter(Boolean).join(' · ')}),chips.length?h('span',{class:'tchips'},chips):null),h('span',{class:'tc'+(c?'':' z'),text:String(c)})); l.append(B.swipeDel(row,function(){ S().delUndo('trips',t,T('Η έξοδος διαγράφηκε. Τα ψάρια της μένουν.','Trip deleted. Its catches stay.')); })); l.append(B.swipeDel(row,function(){ S().delUndo('trips',t,T('Η έξοδος διαγράφηκε. Τα ψάρια της μένουν.','Trip deleted. Its catches stay.')); }));
   });
   page.append(l);
-  if(shorts.length){ var sl=h('div',{class:'list',hidden:true}); shorts.forEach(function(t){ var r=h('button',{class:'li triprow',type:'button',onclick:function(){ tripDetail(t); }},h('span',{class:'tx'},h('b',{text:DN(t.spot)||B.PROF[t.prof||'boat']||''}),h('small',{text:when(t)+' · '+B.num((dur(t)||0)*60,0)+' min'})),B.icon('chev')); sl.append(B.swipeDel(r,function(){ S().delUndo('trips',t,T('Η έξοδος διαγράφηκε.','Trip deleted.')); })); });
-    var sb=h('button',{class:'btn full shortbtn',type:'button',text:T('Μικρές έξοδοι (','Short trips (')+shorts.length+T(') · κάτω από 5 λεπτά, χωρίς ψάρια',') · under 5 min, no catches'),onclick:function(){ sl.hidden=!sl.hidden; }}); page.append(sb,sl); }
+  /* 1.14.42: η λίστα μένει ανοιχτή μετά από κάθε διαγραφή (πριν έκλεινε και έπρεπε να την ξανανοίγεις)· και «Διαγραφή όλων» με αναίρεση */
+  if(shorts.length){ var sl=h('div',{class:'list',hidden:!shortsOpen});
+    sl.append(h('button',{class:'linkbtn danger shortall',type:'button',text:T('Διαγραφή όλων (','Delete all (')+shorts.length+')',onclick:function(){ var all=shorts.slice(); all.forEach(function(t){ S().remove('trips',t.id); }); shortsOpen=false; B.emit('store','alkyon-trips');
+      B.toast(all.length+T(' μικρές έξοδοι διαγράφηκαν.',' short trips deleted.'),8000,{label:T('Αναίρεση','Undo'),fn:function(){ all.forEach(function(t){ var r=Object.assign({},t); delete r.deleted; S().save('trips',r); }); shortsOpen=true; B.emit('store','alkyon-trips'); B.toast(T('Επαναφέρθηκαν.','Restored.')); }}); }})); shorts.forEach(function(t){ var r=h('button',{class:'li triprow',type:'button',onclick:function(){ tripDetail(t); }},h('span',{class:'tx'},h('b',{text:DN(t.spot)||B.PROF[t.prof||'boat']||''}),h('small',{text:when(t)+' · '+B.num((dur(t)||0)*60,0)+' min'})),B.icon('chev')); sl.append(B.swipeDel(r,function(){ S().delUndo('trips',t,T('Η έξοδος διαγράφηκε.','Trip deleted.')); })); });
+    var sb=h('button',{class:'btn full shortbtn',type:'button',text:T('Μικρές έξοδοι (','Short trips (')+shorts.length+T(') · κάτω από 5 λεπτά, χωρίς ψάρια',') · under 5 min, no catches'),onclick:function(){ sl.hidden=!sl.hidden; shortsOpen=!sl.hidden; }}); page.append(sb,sl); }
   page.append(h('div',{class:'inrow pastrow'},pastBtn()));
 }
 

@@ -124,6 +124,9 @@ function fold(key,title,hint,kids){ var O=ls.get('alkyon-v4-fcopen',{})||{}; var
   d.append(h('summary',null,h('span',{class:'fdt'},h('b',{text:title}),hint?h('small',{text:hint}):null),h('i',{class:'fdo','aria-hidden':'true'})));
   (kids||[]).forEach(function(k){ if(k) d.append(k); });
   d.addEventListener('toggle',function(){ var o=ls.get('alkyon-v4-fcopen',{})||{}; if(d.open) o[key]=1; else delete o[key]; ls.set('alkyon-v4-fcopen',o); }); return d; }
+/* 1.14.42: μια έτοιμη κάρτα (με h2) γίνεται πτυσσόμενη: ο τίτλος στη γραμμή, η επεξήγησή της μέσα */
+B.fcFoldCard=function(key,card,hint){ if(!card) return null; var t=card.querySelector('h2'), title=t?(t.firstChild&&t.firstChild.nodeType===3?t.firstChild.textContent:t.textContent):''; var info=card.querySelector('.infot'); if(t) t.remove();
+  if(info){ info.hidden=false; info.classList.add('foldinfo'); } card.classList.remove('card'); card.classList.add('foldin'); return fold(key,title,hint||'',[card]); };
 function moonIco(f){ return ['🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘'][Math.floor(f*8+0.5)%8]; }
 /* 1.9.10: «Χαλάει μετά τις 13:00 · κύμα…» όταν μετά το καλύτερο παράθυρο η θάλασσα βγαίνει πάνω από τα όριά σου μέσα στη μέρα */
 function worsens(d){ if(!d||!d.safe||!d.win) return null; var hs=(d.hours||[]).filter(function(x){ return x.hr>d.win.e&&x.hr*60<=d.set+60; }), q=null; for(var i=0;i<hs.length;i++){ if(!hs[i].safe&&(i===hs.length-1||!hs[i+1].safe)){ q=hs[i]; break; } } if(!q) return null; /* δύο συνεχόμενες ώρες εκτός ορίων, όχι μία μεμονωμένη */

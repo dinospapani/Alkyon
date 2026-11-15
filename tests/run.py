@@ -918,7 +918,7 @@ with sync_playwright() as p:
     cb=[{'id':'cm%d'%i,'date':r[0],'time':r[1],'species':r[2],'kg':r[3],'ptrend':r[4],'wind':r[5],'wave':r[6],'sst':r[7],'tech':'Βυθού','lat':34.75,'lon':32.38,'_u':1} for i,r in enumerate(R)]
     c=ctx(b); c.add_init_script("localStorage.setItem('alkyon-bites',JSON.stringify(%s))"%json.dumps(cb)); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(3000)
     pg.evaluate("()=>{const b=[...document.querySelectorAll('.seg button')].find(x=>/Δικά μου/.test(x.textContent)); b&&b.click()}"); pg.wait_for_timeout(1500)
-    r=pg.evaluate("()=>{const c=document.querySelector('.cmcard'); return c?c.innerText:''}")
+    r=pg.evaluate("()=>{const c=document.querySelector('.cmcard'); if(!c) return ''; const d=c.closest('details'); if(d) d.open=true; return c.innerText}")
     check('«Τι κοινό είχαν τα ψαρέματά σου» (1.9.59)', 'Μεγάλα ψάρια (από 2,5 kg) · 3 μέρες' in r and 'Ιανουάριος–Μάρτιος' in r and 'κοντά στη νέα σελήνη' in r and 'Μικρότερα ψάρια · 2 μέρες' in r and not pg._errs, [r[:500],pg._errs]); c.close()
     c=ctx(b); c.add_init_script("localStorage.setItem('alkyon-bites',JSON.stringify([{id:'tb1',date:'2026-10-01',time:'10:00',species:'Sargo',tech:'Βυθού',bait:'Live squid',_u:1}]))"); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(2500)
     pg.evaluate("()=>AK.biteForm()"); pg.wait_for_timeout(1200)
@@ -1638,6 +1638,16 @@ with sync_playwright() as p:
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(5000)
     r=pg.evaluate("()=>{ const h=document.querySelector('main .hero'); return [!!h.querySelector('.hring b'), /^\\d\\d:00–\\d\\d:00$/.test((h.querySelector('.hpw')||{}).textContent||'')||!h.querySelector('.hpw'), !!h.querySelector('.nowcard .nwg'), !!h.querySelector('.nwa .btn'), document.querySelectorAll('main .card.nowcard').length===0]; }")
     check('Πρόγνωση: κύκλος βαθμού με ένα παράθυρο, ο καιρός τώρα και τα κουμπιά μέσα στην πρώτη κάρτα (1.14.40)', all(r) and not pg._errs, [r,pg._errs]); c.close()
+
+    print('# 1.14.42 μικρές έξοδοι: η λίστα μένει ανοιχτή')
+    c=ctx(b); c.add_init_script("if(!sessionStorage.st){sessionStorage.st=1;localStorage.setItem('alkyon-trips',JSON.stringify([1,2,3].map(i=>({id:'s'+i,date:'2026-11-1'+i,startMs:Date.parse('2026-11-1'+i+'T08:00:00Z'),endMs:Date.parse('2026-11-1'+i+'T08:02:00Z'),count:0,prof:'boat',_u:1}))));localStorage.setItem('alkyon-v4-logtab',JSON.stringify('trips'));}")
+    pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3000)
+    pg.click('main .shortbtn'); pg.wait_for_timeout(400)
+    pg.evaluate("()=>{ const t=AK.store.raw('trips').find(x=>x.id==='s1'); AK.store.delUndo('trips',t,'x'); AK.emit('store','alkyon-trips'); }"); pg.wait_for_timeout(1200)
+    r=pg.evaluate("()=>{ const sl=document.querySelector('main .shortbtn + .list'); return [!!sl&&!sl.hidden, sl?sl.querySelectorAll('.triprow').length:0, /\\(2\\)/.test(document.querySelector('main .shortbtn').textContent)]; }")
+    pg.click('main .shortall'); pg.wait_for_timeout(1200)
+    r.append(pg.evaluate("()=>!document.querySelector('main .shortbtn')"))
+    check('Μικρές έξοδοι: μετά τη διαγραφή η λίστα μένει ανοιχτή (2 από 3), «Διαγραφή όλων» τις σβήνει (1.14.42)', r==[True,2,True,True] and not pg._errs, [r,pg._errs]); c.close()
 
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)

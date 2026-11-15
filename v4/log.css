@@ -693,3 +693,5 @@ html.nightred .kpis .kpi{outline:1px solid #fff;outline-offset:-1px;background:#
 .bscard .bsm span{font-size:10px;opacity:.75}
 .bscard .bsm.now span{font-weight:800;opacity:1;color:var(--accent)}
 .lawnote{white-space:pre-line}
+.shortall{margin:8px 12px 4px auto!important;display:block}
+.shortbtn+.list{margin-top:6px}
