@@ -181,7 +181,7 @@ function learnBins(sm,h){ const o={}, t=h.hr*60+30;
   if(h.t){ const mo=+String(h.t).slice(5,7)-1; if(mo>=0) o.season=mo===11||mo<=1?0:mo<=4?1:mo<=7?2:3; }
   /* 1.14.27: σκοτάδι, όπως στον server: μέρα → 0· αλλιώς φάση σελήνης × ύψος σελήνης × σύννεφα */
   if(sm&&sm.rise!=null&&typeof h.mal==='number'){ const m=h.hr*60+30; if(m>=sm.rise+90&&m<=sm.set-90) o.dark=0; else { const cl=typeof h.clp==='number'?h.clp:(h.cloud==='clear'?10:h.cloud==='over'?85:45); const L=(sm.illum||0)*Math.max(0,Math.sin(h.mal*Math.PI/180))*(1-0.8*Math.min(100,Math.max(0,cl))/100); o.dark=L<0.05?1:L<0.25?2:3; } }
-  if(typeof h.chl==='number') o.chl=h.chl<0.06?0:h.chl<0.12?1:h.chl<0.25?2:3; /* 1.14.29: χλωροφύλλη (δορυφόρος), όπως στον server */
+  if(typeof h.chl==='number') o.chl=h.chl<0.04?0:h.chl<0.07?1:h.chl<0.12?2:3; /* 1.14.29: χλωροφύλλη (δορυφόρος), όπως στον server */
   if(typeof h.sst==='number') o.sstb=h.sst<16?0:h.sst<19?1:h.sst<22?2:h.sst<25?3:4;
   return o; }
 /* 1.14.24: {by:{sea,spear,lake}} → η ομάδα του προφίλ (σκάφος/ακτή = θάλασσα με καλάμι) */

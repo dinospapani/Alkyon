@@ -87,7 +87,7 @@ var FL={
   aft:[T('Ώρες μετά τη δύση','Hours after sunset'),[T('μέρα','day'),'0–1 h','1–3 h','3–6 h',T('αργά','late'),T('πριν την αυγή','pre-dawn')]],
   season:[T('Εποχή','Season'),[T('χειμώνας','winter'),T('άνοιξη','spring'),T('καλοκαίρι','summer'),T('φθινόπωρο','autumn')]],
   sstb:[T('Θερμοκρασία νερού','Water temperature'),['<16°','16–19°','19–22°','22–25°','>25°']],
-  chl:[T('Χλωροφύλλη νερού (δορυφόρος)','Water chlorophyll (satellite)'),[T('πολύ καθαρό','very clear'),T('καθαρό','clear'),T('μέτριο','moderate'),T('θολό/πλούσιο','murky/rich')]]};
+  chl:[T('Χλωροφύλλη νερού (δορυφόρος)','Water chlorophyll (satellite)'),['<0,04','0,04–0,07','0,07–0,12','>0,12 mg/m³']]};
 var MAIN=['sun','pt','sol','wind'];
 function mainF(g){ return g==='ceph'?['dark','aft','moon','wv48']:g==='spear'?['sun','wv48','wave','cur']:g==='lake'?['sun','pt','wind','cloud']:MAIN; }
 /* 1.14.24: είδος ψαρέματος → ομάδα στατιστικών: θάλασσα με καλάμι (σκάφος/ακτή), ψαροντούφεκο, λίμνη/φράγμα */
