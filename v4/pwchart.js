@@ -103,7 +103,8 @@ B.pwChart=function(pts,cfg){
     var mq=moonAt(q.t+1800000); if(mq) bits.push(mLbl(mq));
     if(lmean!=null&&typeof q.l==='number'){ var nx=pts[Math.min(n-1,ri+1)].l, pv=pts[Math.max(0,ri-1)].l, tr=typeof nx==='number'&&typeof pv==='number'?nx-pv:0, cmv=Math.round((q.l-lmean)*100);
       bits.push(T('στάθμη ','sea level ')+(cmv>0?'+':'')+cmv+' cm'+(Math.abs(tr)<0.006?T(' (νεκρό νερό)',' (slack)'):tr>0?' ↑':' ↓')); }
-    rd.textContent=bits.join(' · ');
+    /* 1.14.39: η ώρα ως τίτλος και οι τιμές σε ετικέτες, αντί για μία πυκνή γραμμή */
+    rd.replaceChildren(h('b',{class:'hlt',text:bits[0]}),h('span',{class:'hlc'},bits.slice(1).map(function(x){ return h('span',{class:'hlchip',text:x}); })));
   }
   scrub(svg,function(fx){ var x=fx*W; setSel(Math.round((x-Lm)/((W-Lm-R)/(n-1))),true); });
   if(cfg.sel!=null&&cfg.sel<n) setSel(cfg.sel,true); else setSel(Math.max(0,nowI),false);

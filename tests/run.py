@@ -1627,6 +1627,13 @@ with sync_playwright() as p:
     check('Πρόγνωση: (i) ανοίγει εξήγηση, χωρίς διπλές «Ευκαιρίες» στις Μέρες· Είδη με «Καλές/Μέτριες» όχι %· μία κάρτα «Έλεγχος της πρόγνωσης» (1.14.37)', r[0] and r[1] and r[3]==0 and sp[0]>0 and not sp[1] and sp[2] and mn==[True,True,True], [r,sp,mn])
     check('1.14.37: χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
 
+    print('# 1.14.39 Πρόγνωση: μικρή μπάρα ημερών στο κύλισμα, ετικέτες στο γράφημα')
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(5000)
+    pg.evaluate("()=>{document.querySelectorAll('main details').forEach(d=>d.open=true); window.scrollTo(0,900)}"); pg.wait_for_timeout(1200)
+    r=pg.evaluate("()=>[document.querySelector('.dstrip').classList.contains('stuck'), document.querySelector('.dstrip').offsetHeight<70, document.querySelectorAll('.hline .hlchip').length>=2, document.querySelectorAll('.hb.s-good,.hb.s-fair,.hb.s-poor,.hb.best,.hb.bad').length===24]")
+    pg.evaluate("()=>window.scrollTo(0,0)"); pg.wait_for_timeout(800); r.append(pg.evaluate("()=>!document.querySelector('.dstrip').classList.contains('stuck')"))
+    check('Πρόγνωση: η μπάρα ημερών μικραίνει στο κύλισμα και επανέρχεται, τιμές γραφήματος σε ετικέτες, μπάρες ωρών με χρώμα βαθμού (1.14.39)', all(r) and not pg._errs, [r,pg._errs]); c.close()
+
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)
     check('Οδηγός χωρίς καρτέλα Κόμποι (αφαιρέθηκε προσωρινά)', not pg.query_selector('#tab-guide .seg button[data-g=knots]') and not pg._errs, pg._errs); c.close()

@@ -501,3 +501,28 @@ html.nightred .calmr .exwc{background:#000!important;outline:1px solid currentCo
 .pwc .pmkl.stop{fill:#d6453a}
 .pwl .k5::before{background:#2f8fb8}
 .bwpw{margin:8px 0 2px}.bwpw .pwc{width:100%;height:auto;display:block}.bwpw .pwl{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--ink-2);margin-top:6px}
+/* 1.14.39: πιο καθαρή Πρόγνωση */
+.hb.s-good{background:color-mix(in srgb,var(--good) 62%,transparent)}
+.hb.s-fair{background:color-mix(in srgb,var(--fair) 60%,transparent)}
+.hb.s-poor{background:color-mix(in srgb,var(--ink-3) 40%,transparent)}
+.dstrip{transition:padding .15s}
+.dstrip.stuck{padding:6px 16px 7px;box-shadow:0 6px 14px -8px rgba(0,0,0,.35)}
+.dstrip.stuck .dtile{flex-direction:row;gap:6px;padding:6px 9px;border-radius:12px;flex:0 0 auto;max-width:none}
+.dstrip.stuck .dtile .dd,.dstrip.stuck .dtile .dw,.dstrip.stuck .dtile .dwx{display:none}
+.dstrip.stuck .dtile .dsc{margin:0;min-width:32px;padding:3px 0;font-size:14px}
+.dstrip.stuck .dpast{display:none}
+.hline{display:block;margin:8px 0 0}
+.hline .hlt{display:block;font:800 16px var(--font);margin:0 0 6px}
+.hline .hlc{display:flex;flex-wrap:wrap;gap:6px}
+.hline .hlchip{padding:4px 10px;border-radius:999px;background:var(--surface-2);font:600 13px var(--font);color:var(--ink)}
+.simcard .simhead.hi b{color:var(--good)}.simcard .simhead.mid b{color:var(--fair)}
+.simrow{padding:10px 0;border-top:1px solid var(--line,rgba(127,127,127,.2))}
+.simrow .simtop{display:flex;align-items:center;gap:10px}
+.simrow .simtop>b:first-child{font:700 15px var(--font);min-width:92px}
+.simrow .simbar{flex:1;height:8px;border-radius:999px;background:var(--surface-2);overflow:hidden}
+.simrow .simbar i{display:block;height:100%;border-radius:999px;background:var(--poor)}
+.simrow .simbar i.mid{background:var(--fair)}.simrow .simbar i.hi{background:var(--good)}
+.simrow .simp{font:800 15px var(--font);min-width:42px;text-align:right}
+.simrow small{display:block;margin-top:4px;color:var(--ink-2);font-size:13px}
+.h3.subh{margin-top:22px}
+.measp{font-size:12px;opacity:.75}

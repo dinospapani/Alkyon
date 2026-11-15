@@ -95,6 +95,12 @@ function unsafeWhy(d){
 /* οι ώρες που μετράνε για την περιγραφή της μέρας: το καλύτερο παράθυρο, αλλιώς οι ώρες φωτός που απομένουν */
 /* 1.14.37: επεξήγηση κάρτας στο (i) δίπλα στον τίτλο */
 function capP(c,tx){ var t0=c.querySelector('h2,h3'); if(B.infoAdd&&t0){ B.infoAdd(t0,tx); return null; } return h('p',{class:'hcap',text:tx}); }
+/* 1.14.39: όταν κυλάς, η μπάρα των ημερών μικραίνει (μέρα + βαθμός σε μία γραμμή) για να μένει χώρος στο περιεχόμενο */
+var stripOn=false;
+function stripWatch(){ if(stripOn) return; stripOn=true; var tick=false;
+  window.addEventListener('scroll',function(){ if(tick) return; tick=true; requestAnimationFrame(function(){ tick=false; var b=document.querySelector('main .dstrip'); if(!b) return;
+    var pv=b.previousElementSibling, top=pv?pv.getBoundingClientRect().bottom+window.scrollY:0; /* η φυσική θέση της μπάρας = κάτω άκρο του προηγούμενου στοιχείου */
+    var y=window.scrollY, on=b.classList.contains('stuck'); if(!on&&y>top+90) b.classList.add('stuck'); else if(on&&y<top-10) b.classList.remove('stuck'); }); },{passive:true}); }
 function focusHours(d){
   var hs=d.hours||[], td=today(), nh=nowHr();
   if(d.win) return hs.filter(function(q){ return q.hr>=d.win.s&&q.hr<=d.win.e; });
@@ -281,7 +287,7 @@ function placeLabel(p){ if(!p||p.lat==null) return p&&p.name||''; var gen=p.gps|
   var me=B.lastPos&&B.lastPos(); if(me&&me.lat!=null){ var dm=kmTo([me.lat,me.lon],[p.lat,p.lon]); nm+=' · '+(dm<1?T('εδώ','here'):(dm<10?B.num(dm,1):Math.round(dm))+' km '+T('από σένα','from you')); }
   return nm; }
 function dayStrip(fc){
-  var td=today(), sel=st.day||td, bar=h('div',{class:'dstrip',role:'tablist','aria-label':T('Ημέρες','Days')}), selEl=null;
+  var td=today(), sel=st.day||td, bar=h('div',{class:'dstrip',role:'tablist','aria-label':T('Ημέρες','Days')}), selEl=null; stripWatch();
   /* 1.1.2: πρώτα οι προηγούμενες μέρες (έως 7), από το ιστορικό ή από την πρόγνωση */
   var hs=hist(st.place||current()), past=[];
   for(var k=7;k>=1;k--){ var ds=addDays(td,-k), fd=allDays(fc).filter(function(x){ return x.date===ds; })[0], hr=hs[ds];
@@ -596,7 +602,7 @@ function hourCard(fc,d,selH,nh){
   var bars=hs.map(function(q){
     var t0=Date.parse(d.date+'T'+B.pad(q.hr)+':00:00Z')-tz*60000, moon=per.some(function(x){ return x.s<t0+3600000&&x.e>t0; });
     var k=!q.safe?'bad':(d.win&&q.hr>=d.win.s&&q.hr<=d.win.e)?'best':''; /* 1.9.17: η σελήνη φαίνεται στη δική της λωρίδα από κάτω */
-    var b=h('i',{role:'option',class:'hb'+(k?' '+k:'')+(nh!=null&&q.hr<nh?' past':''),'aria-label':B.pad(q.hr)+':00, '+T('δείκτης ','index ')+q.score,style:{height:Math.round(10+100*Math.max(0,(q.score-lo)/Math.max(1,hi-lo)))+'px'}});
+    var b=h('i',{role:'option',class:'hb'+(k?' '+k:' s-'+lvl(q.score))+(nh!=null&&q.hr<nh?' past':''),'aria-label':B.pad(q.hr)+':00, '+T('δείκτης ','index ')+q.score,style:{height:Math.round(10+100*Math.max(0,(q.score-lo)/Math.max(1,hi-lo)))+'px'}});
     box.append(b); return b;
   });
   var head=h('div',{class:'hsel'}), huLine=h('p',{class:'hover',hidden:true}), rows=h('div',{class:'rows'}), cur=-1;
