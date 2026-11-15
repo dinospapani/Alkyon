@@ -13,6 +13,7 @@ on:
   push:
     branches: [main]
     paths: ['version.js', 'android/**', 'native.js', 'capacitor.config.json', 'package.json', '.github/workflows/android.yml']
+# Χτίζει και το ρολόι Wear OS (android/wear): AAB/APK στα Artifacts ως alkyon-wear-<έκδοση>.
   workflow_dispatch:
     inputs:
       track:
@@ -94,6 +95,10 @@ jobs:
           [ -f android/app/build/outputs/bundle/release/app-release.aab ] && cp android/app/build/outputs/bundle/release/app-release.aab "out/alkyon-$V.aab"
           [ -f android/app/build/outputs/apk/release/app-release.apk ] && cp android/app/build/outputs/apk/release/app-release.apk "out/alkyon-$V.apk"
           [ -f android/app/build/outputs/apk/debug/app-debug.apk ] && cp android/app/build/outputs/apk/debug/app-debug.apk "out/alkyon-$V-debug.apk"
+          # ρολόι Wear OS (:wear): χτίζεται μαζί (ίδιο πακέτο, ίδιο κλειδί)
+          [ -f android/wear/build/outputs/bundle/release/wear-release.aab ] && cp android/wear/build/outputs/bundle/release/wear-release.aab "out/alkyon-wear-$V.aab"
+          [ -f android/wear/build/outputs/apk/release/wear-release.apk ] && cp android/wear/build/outputs/apk/release/wear-release.apk "out/alkyon-wear-$V.apk"
+          [ -f android/wear/build/outputs/apk/debug/wear-debug.apk ] && cp android/wear/build/outputs/apk/debug/wear-debug.apk "out/alkyon-wear-$V-debug.apk"
           ls -la out
       - uses: actions/upload-artifact@v4
         with:
@@ -110,6 +115,19 @@ jobs:
           releaseFiles: out/alkyon-${{ steps.ver.outputs.name }}.aab
           releaseName: ${{ steps.ver.outputs.name }}
           track: ${{ inputs.track || 'internal' }}
+          status: ${{ vars.PLAY_RELEASE_STATUS || 'completed' }}
+
+      # Ρολόι Wear OS: δικό του track στο Play («wear:internal» κ.λπ.). Μόνο όταν υπάρχει η variable WEAR_ON = 1,
+      # δηλαδή αφού προστεθεί το Wear OS στο Play Console (Setup › Advanced settings › Form factors).
+      - name: Ανέβασμα ρολογιού (Wear OS) στο Google Play
+        if: steps.ks.outputs.signed == '1' && env.PLAY_JSON != '' && github.event_name == 'workflow_dispatch' && inputs.track != 'none' && vars.WEAR_ON == '1'
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.alkyonfishing.app
+          releaseFiles: out/alkyon-wear-${{ steps.ver.outputs.name }}.aab
+          releaseName: ${{ steps.ver.outputs.name }} (Wear OS)
+          track: wear:${{ inputs.track || 'internal' }}
           status: ${{ vars.PLAY_RELEASE_STATUS || 'completed' }}
 
       # APK για δοκιμή στο κινητό με έναν σύνδεσμο (χωρίς zip, χωρίς λογαριασμό GitHub):
