@@ -545,3 +545,18 @@ html.nightred .calmr .exwc{background:#000!important;outline:1px solid currentCo
 .hero2 .hsun1{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;margin:12px 0 0;padding-top:12px;border-top:1px solid var(--line,rgba(127,127,127,.2))}
 .dstrip:not(.stuck) .dtile{padding:8px 4px 8px}
 .dstrip .dtile .dd,.dstrip .dtile .dwx{display:none}
+/* 1.14.41: τελειώματα της πρώτης κάρτας */
+.fcpage .ftop{align-items:center;margin-bottom:12px}
+.fcpage .ftop h1.lt{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.fcpage .ftop .place{margin:0;min-width:0;flex:1;font-size:18px;font-weight:700;color:var(--ink)}
+.fcpage .ftop .place b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.hring{background:none;position:relative}
+.hring svg{position:absolute;inset:0;width:100%;height:100%}
+.hring circle{fill:none;stroke-width:10}
+.hring .rt{stroke:color-mix(in srgb,var(--ink-3) 28%,transparent)}
+.hring .rv{stroke:var(--c);stroke-linecap:round}
+.hring>div{background:none;width:auto;height:auto;position:relative}
+.hero2 .nowin{padding:0;margin:12px 0 0;background:none;box-shadow:none}
+.hero2 .hsec{margin:10px 0 0}
+.hero2 .hsun1{margin:10px 0 0;padding-top:10px}
+.hero2 .nwa{margin:12px 0 0}

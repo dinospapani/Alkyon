@@ -230,9 +230,9 @@ function draw(){
   else top.append(h('h1',{class:'lt',text:title}));
   var rf=h('button',{class:'iconbtn'+(st.loading&&fc?' spin':''),type:'button','aria-label':T('Ανανέωση πρόγνωσης','Refresh forecast'),html:B.iconSvg('refresh'),onclick:function(){ if(p.gps) B.locate(6000).then(function(){ load(true); }); else load(true); }});
   var bell=h('a',{class:'iconbtn bellb',href:'#inbox','aria-label':T('Ειδοποιήσεις','Notifications'),html:B.iconSvg('bell')}); if(B.inboxUnread) B.inboxUnread().then(function(n){ if(n>0) bell.append(h('i',{class:'bdg',text:n>9?'9+':String(n)})); });
-  top.append(h('div',{style:{display:'flex',gap:'8px'}},bell,rf)); page.append(top);
+  /* 1.14.41: η τοποθεσία στη θέση του τίτλου (ο τίτλος «Πρόγνωση» φαίνεται ήδη στην κάτω μπάρα): κερδίζει μία γραμμή ύψος */
   var pl=h('button',{class:'place',type:'button','aria-label':T('Αλλαγή τοποθεσίας','Change location'),onclick:placeSheet},B.icon(p.gps?'gps':'pin'),h('b',{text:placeLabel(p)}),h('i',{text:'▾'}));
-  page.append(pl);
+  top.classList.add('ftop'); top.append(pl,h('div',{style:{display:'flex',gap:'8px',flex:'none'}},bell,rf)); page.append(top);
   /* 1.11.0: Μάιος στην Ελλάδα: ψαροντούφεκο και παραγάδι απαγορεύονται (ΠΔ 373/1985) */
   if(new Date().getMonth()===4&&p&&B.region&&B.region(p.lat,p.lon)==='gr') page.append(h('div',{class:'offline lawnote',role:'note',text:T('Μάιος: στην Ελλάδα απαγορεύονται το ψαροντούφεκο και το παραγάδι (ΠΔ 373/1985). Οδηγός › Νόμοι.','May: in Greece spearfishing and longlines are not allowed (PD 373/1985). Guide › Laws.')}));
   if(navigator.onLine===false) page.append(h('div',{class:'offline',text:T('Χωρίς σύνδεση. Βλέπεις την τελευταία πρόγνωση που αποθηκεύτηκε.','Offline. Showing the last saved forecast.')}));
@@ -360,7 +360,7 @@ function sqBest(fc){ try{ var sc=spCfg(), mi=sc&&PF.moonInfo?PF.moonInfo(sc):nul
   return h('p',{class:'sqb'},h('b',{text:T('Καλύτερο βράδυ για καλαμάρι: ','Best evening for squid: ')}),
     sl(b)+'–'+B.pad((b.hr+1)%24)+':00 · '+T('βαθμός ','score ')+b.score+(near?T(' · κοντά στη νέα σελήνη',' · near the new moon'):'')+(b.dark&&PF.darkTxt?' · '+PF.darkTxt(b.dark,EN):'')+(a.length>1?' · '+T('επίσης ','also ')+a.slice(1,3).map(sl).join(', '):''));
   }catch(e){ return null; } }
-function nmSpan(){ if(!PF.nextMoon) return null; var r=PF.nextMoon(Date.now()); if(!r||!r.nw) return null; return h('span',{class:'nmx',text:T('νέα σελήνη ','new moon ')+nmTxt(r.nw)}); }
+function nmSpan(){ if(!PF.nextMoon) return null; var r=PF.nextMoon(Date.now()); if(!r||!r.nw) return null; return h('span',{class:'nmx',title:T('νέα σελήνη ','new moon ')+nmTxt(r.nw),text:'🌑 '+nmTxt(r.nw).replace(/\s*\(.*\)$/,'')}); }
 function planBtn(d){
   var pl=B.plans.get(d.date), p=st.place||current();
   var b=h('button',{type:'button',class:'planbtn'+(pl?' on':''),onclick:function(){
@@ -475,7 +475,7 @@ function dayView(page,fc,d){
   var part=function(sh){ return sh<5?T('τα ξημερώματα','before dawn'):sh<12?T('το πρωί','morning'):sh<17?T('το απόγευμα','afternoon'):T('το βράδυ','evening'); };
   var ptitle=pday?(B.dayName(pday.date,td)+' '+part(pday.win.s)):(nbt?T('Απόψε','Tonight'):''), plv=psc!=null?lvl(psc):'poor';
   hero.classList.add('hero2'); if(nxt) hero.className='hero hero2 lv-'+plv; /* το χρώμα ακολουθεί το παράθυρο που δείχνει */
-  hero.append(h('div',{class:'htop'},h('div',{class:'hring lv-'+plv,style:'--p:'+(psc!=null?psc:0),title:T('Δείκτης ψαρέματος: τσίμπημα και θάλασσα μαζί','Fishing index: bite and sea together')},h('div',null,h('b',{text:psc!=null?String(psc):'—'}),h('small',{text:'/100'}))),
+  hero.append(h('div',{class:'htop'},h('div',{class:'hring lv-'+plv,title:T('Δείκτης ψαρέματος: τσίμπημα και θάλασσα μαζί','Fishing index: bite and sea together'),html:'<svg viewBox="0 0 104 104" aria-hidden="true"><circle class="rt" cx="52" cy="52" r="45"/><circle class="rv" cx="52" cy="52" r="45" stroke-dasharray="'+(Math.max(0,Math.min(100,psc||0))*2.8274).toFixed(1)+' 283" transform="rotate(-90 52 52)"/></svg><div><b>'+(psc!=null?psc:'—')+'</b><small>/100</small></div>'}),
     h('div',{class:'htx'},h('div',{class:'hv'},h('h2',{text:nxt?T('Επόμενη καλή ώρα','Next good time'):(tn?tn[1]:verdict(d))})),ptitle?h('div',{class:'hpt',text:ptitle}):null,pwin?h('b',{class:'hpw',text:pwin}):null)));
   var sec=nxt&&tn?(tn[1]+(tn[2]?' · '+tn[2]:'')):(nxt&&wpast?T('Σήμερα ήταν ','Today was ')+win(d)+' ('+T('δείκτης ','index ')+d.best+')':(tn&&tn[2]?tn[2]:''));
   if(sec) hero.append(h('p',{class:'hwhy hsec',text:sec.charAt(0).toUpperCase()+sec.slice(1).toLowerCase().replace(/bft/g,'Bft')}));

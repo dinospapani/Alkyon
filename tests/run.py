@@ -779,7 +779,7 @@ with sync_playwright() as p:
     r=pg.evaluate("()=>({v:[...document.querySelectorAll('select')].map(x=>x.value).find(v=>v==='coord')||'', sum:document.querySelector('.wps').innerText})")
     check('νέο ψάρι: «Πού» με κουμπιά και μεγάλο χάρτη (1.9.43)', n==3 and ov and r['v']=='coord' and '°' in r['sum'] and not pg._errs, [n,ov,r,pg._errs]); c.close()
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_selector('.dstrip .dtile:not(.past)'); pg.wait_for_timeout(1500)
-    nm=pg.evaluate("()=>{const x=document.querySelector('.hero .nmx'); const r=PF.nextMoon(Date.now()); return [x?x.textContent:'', r&&r.nw>Date.now()&&r.nw-Date.now()<30*864e5, r&&r.full>Date.now()]}")
+    nm=pg.evaluate("()=>{const x=document.querySelector('.hero .nmx'); const r=PF.nextMoon(Date.now()); return [x?(x.title||'')+x.textContent:'', r&&r.nw>Date.now()&&r.nw-Date.now()<30*864e5, r&&r.full>Date.now()]}")
     check('Πρόγνωση: επόμενη νέα σελήνη (1.9.44)', 'νέα σελήνη' in nm[0] and nm[1] and nm[2] and not pg._errs, [nm,pg._errs]); c.close()
     c=ctx(b); c.add_init_script("if(!sessionStorage.cs){sessionStorage.cs=1;localStorage.setItem('alkyon-sess',JSON.stringify({access_token:'AT',refresh_token:'RT',exp:Date.now()+9e6,uid:'u1',email:'d+test@x.com'}));}")
     c.route('**/*supabase.co/**',lambda r: r.fulfill(json=[])); pg=page(c); pg.goto(BASE+'/v4/#alerts'); pg.wait_for_timeout(2500)
