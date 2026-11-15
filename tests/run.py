@@ -1495,7 +1495,7 @@ with sync_playwright() as p:
     pg.evaluate("()=>[...document.querySelectorAll('main .seg button')].find(x=>/Λογαριασμός/.test(x.textContent)).click()"); pg.wait_for_timeout(600); g3=grp()
     hg=[x for x in g1 if x[0]=='Βοήθεια']; dg=[x for x in g3 if x[0]=='Δεδομένα']
     check('Προφίλ: Οδηγός πρώτος, Βοήθεια με «Πες μας τη γνώμη σου» και «Σχετικά» (1.12.14)', g1 and g1[0][1][:1]==['Οδηγός'] and hg and 'Σχετικά' in hg[0][1] and 'Πες μας τη γνώμη σου' in hg[0][1], g1)
-    check('Προφίλ: Ρυθμίσεις σε ομάδες Ψάρεμα/Ασφάλεια/Ειδοποιήσεις/Εμφάνιση και γλώσσα/Βοηθοί (1.14.32)', [x[0] for x in g2]==['Ψάρεμα','Ασφάλεια','Ειδοποιήσεις','Εμφάνιση και γλώσσα','Βοηθοί','Βοήθεια'], [x[0] for x in g2])
+    check('Προφίλ: Ρυθμίσεις σε ομάδες Ψάρεμα/Ασφάλεια/Ειδοποιήσεις/Εμφάνιση και γλώσσα/Βοηθοί (1.14.32)', [x[0] for x in g2]==['Ψάρεμα','Ασφάλεια','Ειδοποιήσεις','Εμφάνιση και γλώσσα','Βοηθοί'], [x[0] for x in g2])
     check('Προφίλ: Λογαριασμός › Δεδομένα με εισαγωγή, αντίγραφο και εξαγωγή (1.12.14)', dg and any('Εισαγωγή' in t for t in dg[0][1]) and 'Αντίγραφο ασφαλείας' in dg[0][1], g3)
     pg.evaluate("()=>[...document.querySelectorAll('main .seg button')].find(x=>/Τα δικά μου/.test(x.textContent)).click()"); pg.wait_for_timeout(500)
     pg.evaluate("()=>[...document.querySelectorAll('main .li')].find(x=>/Σχετικά/.test(x.textContent)).click()"); pg.wait_for_timeout(800)
@@ -1593,8 +1593,8 @@ with sync_playwright() as p:
         pg.evaluate("n=>[...document.querySelectorAll('main .seg button')].find(x=>x.textContent.trim()===n).click()",name); pg.wait_for_timeout(600)
         return pg.evaluate("()=>[...document.querySelectorAll('main .pgrp')].map(g=>((g.querySelector('.listh')||{}).textContent||'')+':'+[...g.querySelectorAll('.li b')].map(b=>b.firstChild?b.firstChild.textContent:b.textContent).join('|'))")
     m=ptab('Τα δικά μου'); st=ptab('Ρυθμίσεις'); ac=ptab('Λογαριασμός')
-    check('Προφίλ: Οδηγός πάνω, βυθόμετρο στις συσκευές, Βοήθεια σε κάθε καρτέλα, Βοήθησε την πρόγνωση στον Λογαριασμό (1.14.32)',
-      m[0]==':Οδηγός' and 'Βυθόμετρο' in m[1] and 'Ρολόι Garmin' in m[1] and m[-1].startswith('Βοήθεια:') and st[-1].startswith('Βοήθεια:') and ac[-1].startswith('Βοήθεια:')
+    check('Προφίλ: Οδηγός πάνω, βυθόμετρο στις συσκευές, Βοήθεια μόνο στα «Τα δικά μου» (1.14.33), Βοήθησε την πρόγνωση στον Λογαριασμό (1.14.32)',
+      m[0]==':Οδηγός' and 'Βυθόμετρο' in m[1] and 'Ρολόι Garmin' in m[1] and m[-1].startswith('Βοήθεια:') and not any(x.startswith('Βοήθεια:') for x in st+ac)
       and any(x.startswith('Εμφάνιση και γλώσσα:Θέμα') for x in st) and not any('Βοήθησε την πρόγνωση' in x for x in st) and any('Βοήθησε την πρόγνωση' in x for x in ac) and not any('Εισαγωγή από βυθόμετρο' in x for x in ac), [m,st,ac])
     check('1.14.32: χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
 

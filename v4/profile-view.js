@@ -60,8 +60,7 @@ function draw(){
       h('div',{class:'inrow'},B.accountBtn?B.accountBtn(null,T('Δημιουργία λογαριασμού','Create account')):null,h('button',{class:'btn',type:'button',text:T('Όχι, ευχαριστώ','No thanks'),onclick:function(){ ls.set('alkyon-v4-acctip',Date.now()); tip.remove(); }})));
       page.append(tip); } }
   page.append(B.seg([['mine',T('Τα δικά μου','My stuff')],['set',T('Ρυθμίσεις','Settings')],['acc',T('Λογαριασμός','Account')]],tab,function(v){ tab=v; ls.set('alkyon-v4-ptab',v); draw(); },T('Ενότητα προφίλ','Profile section')));
-  if(tab==='set') settingsTab(page); else if(tab==='acc') accountTab(page,s); else mineTab(page);
-  helpGroup(page);
+  if(tab==='set') settingsTab(page); else if(tab==='acc') accountTab(page,s); else { mineTab(page); helpGroup(page); } /* 1.14.33: η Βοήθεια μόνο στα «Τα δικά μου» (ήταν σε όλες τις καρτέλες, επαναλαμβανόταν) */
   var EL=window.AlkyonErrLog, ne=EL?EL.get().filter(function(e){ return !e.v||e.v===window.ALKYON_VERSION; }).length:0; /* 1.4.1: μόνο της τωρινής έκδοσης */
   page.append(h('p',{class:'foot'},'Alkyon · '+(window.ALKYON_VERSION||''),
     ne?' · ':'',ne?h('button',{type:'button',class:'linkbtn errlk',text:T('Αναφορά σφαλμάτων','Error report')+' ('+ne+')',onclick:function(){ location.hash='#check'; }}):''));
@@ -93,7 +92,8 @@ function mineTab(page){
     row('people',T('Φίλοι','Friends'),T('Κοινά ψάρια και σημεία με φίλους','Share catches and spots with friends'),'#friends'),
     B.commInvite?row('community',T('Πρόσκληση φίλου','Invite a friend'),T('Στείλε τον σύνδεσμο του Alkyon','Send the Alkyon link'),null,function(){ B.commInvite(); }):null]));
   /* 1.9.19: διαχειριστής: σημειώσεις λιμανιών για έγκριση */
-  if(B.cloud&&B.cloud.session&&B.cloud.session()){ var cg=page.lastChild.querySelector('.list'); B.loadScripts(['portnotes.js']).then(function(){ B.portNotes.adminRow(cg,function(n){ return row('community',T('Σημειώσεις λιμανιών για έγκριση','Port notes to review'),n==null?T('Διαχειριστής','Admin'):n?n+T(' σε αναμονή',' waiting'):T('Τίποτα σε αναμονή','Nothing waiting'),null,function(){ B.portNotes.review(); }); }); B.portNotes.isAdmin().then(function(y){ if(!y) return; var rw=row('chat',T('Μηνύματα χρηστών','User messages'),T('Ό,τι στέλνουν από «Πες μας τη γνώμη σου»','What people send from “Share feedback”'),null,inboxSheet); cg.append(rw); fbUnread().then(function(n){ if(!n) return; var ic=rw.firstElementChild; if(!ic) return; ic.classList.add('hasbadge'); ic.append(h('i',{class:'icbadge','aria-label':n+T(' αδιάβαστα',' unread'),text:n>99?'99+':String(n)})); }); }); }).catch(function(){}); }
+  /* 1.14.33: εργαλεία διαχειριστή σε δική τους ομάδα (κρυφή για τους άλλους), όχι μέσα στους «Φίλους» */
+  if(B.cloud&&B.cloud.session&&B.cloud.session()){ var adm=group(T('Διαχείριση','Admin'),[]); adm.hidden=true; page.append(adm); var cg=adm.querySelector('.list'); new MutationObserver(function(){ adm.hidden=!cg.children.length; }).observe(cg,{childList:true}); B.loadScripts(['portnotes.js']).then(function(){ B.portNotes.adminRow(cg,function(n){ return row('community',T('Σημειώσεις λιμανιών για έγκριση','Port notes to review'),n==null?T('Διαχειριστής','Admin'):n?n+T(' σε αναμονή',' waiting'):T('Τίποτα σε αναμονή','Nothing waiting'),null,function(){ B.portNotes.review(); }); }); B.portNotes.isAdmin().then(function(y){ if(!y) return; var rw=row('chat',T('Μηνύματα χρηστών','User messages'),T('Ό,τι στέλνουν από «Πες μας τη γνώμη σου»','What people send from “Share feedback”'),null,inboxSheet); cg.append(rw); fbUnread().then(function(n){ if(!n) return; var ic=rw.firstElementChild; if(!ic) return; ic.classList.add('hasbadge'); ic.append(h('i',{class:'icbadge','aria-label':n+T(' αδιάβαστα',' unread'),text:n>99?'99+':String(n)})); }); }); }).catch(function(){}); }
 }
 /* 1.14.32: η Βοήθεια φαίνεται κάτω από όλες τις καρτέλες */
 function helpGroup(page){
