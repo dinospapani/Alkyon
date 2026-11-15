@@ -730,7 +730,7 @@ with sync_playwright() as p:
     r2=pg.evaluate("()=>({trips:AK.store.raw('trips').filter(t=>t.fromCatches).length, miss:AK.tripFill.missing().length, ses:AK.adv.model().progress.sessions})")
     check('έξοδοι από τα ψάρια της ημέρας (1.9.34)', r['card'] and r['miss']>=1 and n>=1 and r2['trips']>=1 and r2['miss']==0 and r2['ses']>=1 and not pg._errs, [r,n,r2,pg._errs]); c.close()
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(4000)
-    pg.evaluate("()=>{const b=[...document.querySelectorAll('.nowcard .btn')].find(x=>/Πού να πάω/.test(x.textContent)); b&&b.click()}"); pg.wait_for_timeout(800)
+    pg.evaluate("()=>{const b=[...document.querySelectorAll('.hero .btn')].find(x=>/Πού να πάω/.test(x.textContent)); b&&b.click()}"); pg.wait_for_timeout(800)
     pg.evaluate("()=>{const b=[...document.querySelectorAll('.btn')].find(x=>/Πού είναι ήρεμα/.test(x.textContent)); b&&b.click()}"); pg.wait_for_timeout(5000)
     r=pg.evaluate("()=>({rows:document.querySelectorAll('.calmr').length, txt:(document.querySelector('.calml')||{}).innerText||''})")
     check('Πού είναι ήρεμα τώρα (1.9.34)', (r['rows']>=1 or 'δεδομένα' in r['txt']) and not pg._errs, [r,pg._errs]); c.close()
@@ -1633,6 +1633,11 @@ with sync_playwright() as p:
     r=pg.evaluate("()=>[document.querySelector('.dstrip').classList.contains('stuck'), document.querySelector('.dstrip').offsetHeight<70, document.querySelectorAll('.hline .hlchip').length>=2, document.querySelectorAll('.hb.s-good,.hb.s-fair,.hb.s-poor,.hb.best,.hb.bad').length===24]")
     pg.evaluate("()=>window.scrollTo(0,0)"); pg.wait_for_timeout(800); r.append(pg.evaluate("()=>!document.querySelector('.dstrip').classList.contains('stuck')"))
     check('Πρόγνωση: η μπάρα ημερών μικραίνει στο κύλισμα και επανέρχεται, τιμές γραφήματος σε ετικέτες, μπάρες ωρών με χρώμα βαθμού (1.14.39)', all(r) and not pg._errs, [r,pg._errs]); c.close()
+
+    print('# 1.14.40 Πρόγνωση: κύκλος βαθμού')
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(5000)
+    r=pg.evaluate("()=>{ const h=document.querySelector('main .hero'); return [!!h.querySelector('.hring b'), /^\\d\\d:00–\\d\\d:00$/.test((h.querySelector('.hpw')||{}).textContent||'')||!h.querySelector('.hpw'), !!h.querySelector('.nowcard .nwg'), !!h.querySelector('.nwa .btn'), document.querySelectorAll('main .card.nowcard').length===0]; }")
+    check('Πρόγνωση: κύκλος βαθμού με ένα παράθυρο, ο καιρός τώρα και τα κουμπιά μέσα στην πρώτη κάρτα (1.14.40)', all(r) and not pg._errs, [r,pg._errs]); c.close()
 
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)
