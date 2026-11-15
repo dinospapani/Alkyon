@@ -644,33 +644,39 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
       }
     }
   } catch (e) { log('Καιρός εξόδου: ' + e.message); }
-  // 8β) 1.14.21/1.14.22: «Πότε τσιμπάνε · από όλους» από τον catch_obs (ανώνυμα, με συγκατάθεση).
-  //  (α) Συμπλήρωση καιρού (κάθε εκτέλεση, λίγα κελιά): για κάθε ψάρι την ώρα που πιάστηκε, για κάθε έξοδο ΚΑΘΕ ώρα της,
-  //      από το ιστορικό του Open-Meteo (άνεμος, ριπές, πίεση και τάση 3 ωρών, νέφωση, βροχή, θερμοκρασία, κύμα, περίοδος, νερό, στάθμη/παλίρροια, ρεύμα).
-  //      Ίδια πηγή για όλους, ώστε να συγκρίνονται σωστά. Γράφεται στο cond.e (cond.enr=1).
-  //  (β) Συγκεντρωτικά (μία φορά τη μέρα μετά τις 03:00 Κύπρου): ψάρια ανά ώρα ψαρέματος σε κάθε συνθήκη = ψάρια μέσα σε εξόδους / ώρες εξόδων με αυτή τη συνθήκη.
-  //      Έτσι μετράνε και οι ώρες που ΔΕΝ τσίμπησαν. Γράφει bite_stats 'all' και 'sp:<είδος>' (≥ 10 ψάρια). Κανένα στοιχείο χρήστη δεν βγαίνει έξω.
+  // 8β) 1.14.21–1.14.23: «Πότε τσιμπάνε» από τον catch_obs (ανώνυμα, με συγκατάθεση).
+  //  (α) Συμπλήρωση καιρού (κάθε εκτέλεση, λίγα κελιά) από το ιστορικό του Open-Meteo, ίδια πηγή για όλους:
+  //      ψάρι/χαμένο → cond.e (η ώρα του) + cond.d (όλες οι ώρες φωτός της ίδιας μέρας, για σύγκριση)· έξοδος → cond.e (κάθε ώρα της). cond.enr=2.
+  //  (β) Συγκεντρωτικά (μία φορά τη μέρα μετά τις 03:00 Κύπρου), δύο μέθοδοι:
+  //      1. ΟΛΑ τα ψάρια, σύγκριση με τις ώρες της ίδιας μέρας (cc): πόσο πιο συχνή είναι μια συνθήκη στα ψάρια απ' ό,τι στις ώρες που υπήρχαν.
+  //         Αφού ο ψαράς ήταν έξω εκείνη τη μέρα, η επιλογή «βγαίνω με καλό καιρό» δεν αλλοιώνει το αποτέλεσμα. Σελήνη: σύγκριση με ομοιόμορφη κατανομή.
+  //      2. Έξοδοι (r): ψάρια ανά ώρα ψαρέματος, μετράνε και οι ώρες χωρίς ψάρι. Για είδος: οι έξοδοι με αυτόν τον στόχο (αν ≥ 10 ώρες).
+  //      Ευρήματα (ins) με «both» όταν συμφωνούν και οι δύο, και «τι δούλεψε» (τεχνική, δόλωμα, βάθος) στις καλές συνθήκες.
+  //      Κλειδιά bite_stats: 'all', 'sp:<είδος>', 'r:<κελί 2°>'· προσωπικά στον user_bite_stats (μόνο ο ίδιος τα διαβάζει).
+  //  (γ) 1.14.23: κάθε απόγευμα (17–19 Κύπρου) ειδοποίηση «🎯 Αύριο … μοιάζει με τις καλύτερες ώρες σου» όταν η πρόγνωση ταιριάζει με τα προσωπικά ευρήματα.
   if (PF) {
-    const HR = 3600000, isoD = ms => new Date(ms).toISOString().slice(0, 10), nz = v => (typeof v === 'number' && isFinite(v)) ? v : null;
+    const HR = 3600000, DAY = 86400000, isoD = ms => new Date(ms).toISOString().slice(0, 10), nz = v => (typeof v === 'number' && isFinite(v)) ? v : null;
+    const tzOf = lon => Math.round((+lon || 0) / 15) * 60, SMC = {}, SOL = {};
+    const sunOf = (ms, la, lo) => { const tz = tzOf(lo), d = isoD(ms + tz * 60000), ck = d + ',' + la + ',' + lo; return { sm: SMC[ck] || (SMC[ck] = PF.sunMoon(d, +la, +lo, tz)), tz, d }; };
     const wxCache = {};
     const wxFor = async (la, lo, d1, d2) => {
-      const ck = la + ',' + lo + ',' + d1 + ',' + d2; if (wxCache[ck]) return wxCache[ck];
-      const pos = 'latitude=' + la + '&longitude=' + lo + '&timezone=GMT', recent = Date.now() - Date.parse(d1 + 'T00:00:00Z') < 85 * 86400000;
-      const past = Math.min(92, Math.ceil((Date.now() - Date.parse(d1 + 'T00:00:00Z')) / 86400000) + 1);
+      const ck = la + ',' + lo + ',' + d1 + ',' + d2; if (ck in wxCache) return wxCache[ck];
+      const t1 = Date.parse(d1 + 'T00:00:00Z'), fut = Date.parse(d2 + 'T00:00:00Z') > Date.now() - DAY, recent = Date.now() - t1 < 85 * DAY;
+      const past = Math.max(1, Math.min(92, Math.ceil((Date.now() - t1) / DAY) + 1)), pos = 'latitude=' + la + '&longitude=' + lo + '&timezone=GMT';
       const wv = 'temperature_2m,pressure_msl,wind_speed_10m,wind_gusts_10m,wind_direction_10m,cloud_cover,precipitation';
       const mv = 'wave_height,wave_period,sea_surface_temperature,sea_level_height_msl,ocean_current_velocity';
-      const wu = recent ? `https://api.open-meteo.com/v1/forecast?${pos}&hourly=${wv}&past_days=${past}&forecast_days=1&wind_speed_unit=kn`
+      const fd = fut ? 3 : 1;
+      const wu = recent ? `https://api.open-meteo.com/v1/forecast?${pos}&hourly=${wv}&past_days=${past}&forecast_days=${fd}&wind_speed_unit=kn`
         : `https://archive-api.open-meteo.com/v1/archive?${pos}&hourly=${wv}&start_date=${d1}&end_date=${d2}&wind_speed_unit=kn`;
-      const mu = `https://marine-api.open-meteo.com/v1/marine?${pos}&hourly=${mv}` + (recent ? `&past_days=${past}&forecast_days=1` : `&start_date=${d1}&end_date=${d2}`) + '&cell_selection=sea';
+      const mu = `https://marine-api.open-meteo.com/v1/marine?${pos}&hourly=${mv}` + (recent ? `&past_days=${past}&forecast_days=${fd}` : `&start_date=${d1}&end_date=${d2}`) + '&cell_selection=sea';
       const get = u => F(u).then(r => r.ok ? r.json() : null).catch(() => null);
       const [w, m] = await Promise.all([get(wu), get(mu)]);
       if (!w || !w.hourly || !w.hourly.time) return (wxCache[ck] = null);
       const H = {}, wh = w.hourly, mh = (m && m.hourly) || {}, mi = {};
       (mh.time || []).forEach((t, i) => { mi[t] = i; });
-      wh.time.forEach((t, i) => { const k = mi[t];
+      wh.time.forEach((t, i) => { const k = mi[t], g = (a) => k == null ? null : nz(mh[a] && mh[a][k]);
         H[t] = { wind: nz(wh.wind_speed_10m[i]), gust: nz(wh.wind_gusts_10m && wh.wind_gusts_10m[i]), wdeg: nz(wh.wind_direction_10m && wh.wind_direction_10m[i]), press: nz(wh.pressure_msl[i]), cloud: nz(wh.cloud_cover[i]), rain: nz(wh.precipitation && wh.precipitation[i]), temp: nz(wh.temperature_2m[i]),
-          wave: k == null ? null : nz(mh.wave_height && mh.wave_height[k]), per: k == null ? null : nz(mh.wave_period && mh.wave_period[k]), sst: k == null ? null : nz(mh.sea_surface_temperature && mh.sea_surface_temperature[k]),
-          sl: k == null ? null : nz(mh.sea_level_height_msl && mh.sea_level_height_msl[k]), cur: k == null ? null : nz(mh.ocean_current_velocity && mh.ocean_current_velocity[k]) }; });
+          wave: g('wave_height'), per: g('wave_period'), sst: g('sea_surface_temperature'), sl: g('sea_level_height_msl'), cur: g('ocean_current_velocity') }; });
       return (wxCache[ck] = H);
     };
     const key = ms => new Date(Math.round(ms / HR) * HR).toISOString().slice(0, 13) + ':00';
@@ -680,86 +686,145 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
       if (p1 && n1 && p1.sl != null && n1.sl != null) o.tide = Math.round((n1.sl - p1.sl) * 100) / 100;
       for (const k of Object.keys(o)) if (o[k] == null) delete o[k]; else if (k !== 't' && k !== 'tide' && k !== 'pt') o[k] = Math.round(o[k] * 10) / 10;
       return o; };
+    // ώρες φωτός (ανατολή −1 h … δύση +1 h) της τοπικής μέρας μιας στιγμής
+    const dayHours = (ms, la, lo) => { const { sm, tz, d } = sunOf(ms, la, lo); if (!sm || sm.rise == null) return []; const d0 = Date.parse(d + 'T00:00:00Z') - tz * 60000, out = [];
+      for (let m = Math.ceil((sm.rise - 60) / 60) * 60; m <= sm.set + 60; m += 60) out.push(d0 + m * 60000); return out; };
     try {
       const todo = (await sb(`catch_obs?select=id,kind,day,ms,ms2,lat,lon,cond&cond->>enr=is.null&ms=lt.${Date.now() - 2 * HR}&lat=not.is.null&order=id.asc&limit=60`)) || [];
       let cells = 0, done = 0;
       for (const r of todo) {
         if (r.kind === 'trip' && !(r.ms2 && r.ms2 < Date.now() - HR)) continue;
-        const t0 = +r.ms - 4 * HR, t1 = (r.kind === 'trip' ? +r.ms2 : +r.ms) + 2 * HR;
-        const ck = r.lat + ',' + r.lon + ',' + isoD(t0) + ',' + isoD(t1); if (!wxCache[ck]) { if (cells >= 10) continue; cells++; }
+        const t0 = +r.ms - 30 * HR, t1 = (r.kind === 'trip' ? +r.ms2 : +r.ms) + 30 * HR;
+        const ck = r.lat + ',' + r.lon + ',' + isoD(t0) + ',' + isoD(t1); if (!(ck in wxCache)) { if (cells >= 10) continue; cells++; }
         const H = await wxFor(+r.lat, +r.lon, isoD(t0), isoD(t1));
-        const cond = Object.assign({}, r.cond || {});
+        const cond = Object.assign({}, r.cond || {}); delete cond.e; delete cond.d;
         if (!H) cond.enr = -1;
-        else if (r.kind === 'trip') { const hs = []; for (let t = Math.ceil(+r.ms / HR) * HR; t <= +r.ms2 && hs.length < 24; t += HR) { const f = feat(H, t); if (f) hs.push(f); } if (!hs.length) { const f = feat(H, (+r.ms + +r.ms2) / 2); if (f) hs.push(f); } /* σύντομη έξοδος χωρίς ολόκληρη ώρα μέσα */ cond.e = hs; cond.enr = hs.length ? 1 : -1; }
-        else { const f = feat(H, +r.ms); if (f) cond.e = f; cond.enr = f ? 1 : -1; }
+        else if (r.kind === 'trip') { const hs = []; for (let t = Math.ceil(+r.ms / HR) * HR; t <= +r.ms2 && hs.length < 24; t += HR) { const f = feat(H, t); if (f) hs.push(f); }
+          if (!hs.length) { const f = feat(H, (+r.ms + +r.ms2) / 2); if (f) hs.push(f); } cond.e = hs; cond.enr = hs.length ? 2 : -1; }
+        else { const f = feat(H, +r.ms); if (f) { cond.e = f; cond.d = dayHours(+r.ms, r.lat, r.lon).map(t => feat(H, t)).filter(Boolean); } cond.enr = f ? 2 : -1; }
         await sb(`catch_obs?id=eq.${r.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify({ cond }) });
         done++;
       }
       if (done) stats.benr = done;
     } catch (e) { log('bite stats: enrich ' + e.message); }
+
+    // συνθήκες → κουτάκια (ίδια σειρά με τις ετικέτες στο v4/contrib.js)
+    const sunBin = (ms, la, lo) => { const { sm, tz } = sunOf(ms, la, lo); const m = (ms + tz * 60000) % DAY / 60000;
+      if (!sm || sm.rise == null) return null; if (m < sm.rise - 60 || m > sm.set + 60) return 0; if (m < sm.rise + 90) return 1; if (m > sm.set - 90) return 5; const mid = (sm.rise + sm.set) / 2; return m < mid - 120 ? 2 : m <= mid + 120 ? 3 : 4; };
+    const solBin = (ms, la, lo) => { const d = isoD(ms), ck = d + ',' + la + ',' + lo; const ps = SOL[ck] || (SOL[ck] = PF.solunarPeriods(Date.parse(d + 'T00:00:00Z') - 6 * HR, Date.parse(d + 'T00:00:00Z') + 30 * HR, +la, +lo));
+      const p = ps.find(x => ms >= x.s && ms <= x.e && x.kind === 'major') || ps.find(x => ms >= x.s && ms <= x.e); return p ? (p.kind === 'major' ? 0 : 1) : 2; };
+    const FX = {
+      sun: (f, ms, la, lo) => sunBin(ms, la, lo), moon: (f, ms) => Math.round(PF.moonPhase(ms).f * 8) % 8, sol: (f, ms, la, lo) => solBin(ms, la, lo),
+      pt: f => f.pt == null ? null : f.pt <= -0.7 ? 0 : f.pt >= 0.7 ? 2 : 1,
+      pl: f => f.press == null ? null : f.press < 1010 ? 0 : f.press < 1015 ? 1 : f.press < 1020 ? 2 : 3,
+      wind: f => f.wind == null ? null : f.wind < 5 ? 0 : f.wind < 10 ? 1 : f.wind < 15 ? 2 : 3,
+      wave: f => f.wave == null ? null : f.wave < 0.3 ? 0 : f.wave < 0.6 ? 1 : f.wave < 1 ? 2 : 3,
+      tide: f => f.tide == null ? null : f.tide >= 0.02 ? 0 : f.tide <= -0.02 ? 1 : 2,
+      cloud: f => f.cloud == null ? null : f.cloud < 25 ? 0 : f.cloud < 75 ? 1 : 2,
+      rain: f => f.rain == null ? null : f.rain >= 0.2 ? 1 : 0,
+      cur: f => f.cur == null ? null : f.cur < 0.4 ? 0 : f.cur < 1 ? 1 : 2,
+    };
+    const NB = { sun: 6, moon: 8, sol: 3, pt: 3, pl: 4, wind: 4, wave: 4, tide: 3, cloud: 3, rain: 2, cur: 3 };
+    const bins = (f, ms, la, lo) => { const o = {}; for (const k of Object.keys(FX)) { const b = FX[k](f || {}, ms, la, lo); if (b != null) o[k] = b; } return o; };
+    const depB = v => v == null ? null : v < 10 ? '0–10 m' : v < 30 ? '10–30 m' : v < 60 ? '30–60 m' : v < 100 ? '60–100 m' : '100+ m';
+    const arr = n => Array(n).fill(0);
+    // ένα «σύνολο» ψαριών (όλοι / είδος / περιοχή / ένας χρήστης) → data
+    const analyse = (catches, trips, minCase) => {
+      const c = {}, ctl = {}, fish = {}, eff = {}, worked = {};
+      for (const k of Object.keys(NB)) { c[k] = arr(NB[k]); ctl[k] = arr(NB[k]); fish[k] = arr(NB[k]); eff[k] = arr(NB[k]); }
+      const tripsBy = {}; for (const t of trips) (tripsBy[t.user_id] = tripsBy[t.user_id] || []).push(t);
+      for (const t of trips) for (const f of t.cond.e) { const bb = bins(f, f.t, t.lat, t.lon); for (const k in bb) eff[k][bb[k]] += 1; }
+      let n = 0; const users = new Set();
+      for (const r of catches) {
+        const w = Math.max(1, Math.min(20, r.cnt || 1)), e = r.cond && r.cond.e && !Array.isArray(r.cond.e) ? r.cond.e : null, bb = bins(e, +r.ms, r.lat, r.lon);
+        n += w; users.add(r.user_id);
+        const inTrip = (tripsBy[r.user_id] || []).some(t => +r.ms >= +t.ms - 15 * 60000 && +r.ms <= +t.ms2 + 15 * 60000);
+        for (const f in bb) { c[f][bb[f]] += w; if (inTrip) fish[f][bb[f]] += w;
+          const wk = (worked[f + ':' + bb[f]] = worked[f + ':' + bb[f]] || { tech: {}, bait: {}, dep: {} });
+          if (r.tech) wk.tech[r.tech] = (wk.tech[r.tech] || 0) + w; const bt = r.cond && r.cond.bait; if (bt) wk.bait[bt] = (wk.bait[bt] || 0) + w; const db = depB(r.cond && r.cond.depth); if (db) wk.dep[db] = (wk.dep[db] || 0) + w; }
+        // σύγκριση ίδιας μέρας: οι ώρες φωτός εκείνης της μέρας, με βάρος ώστε κάθε ψάρι να μετράει όσο ένα
+        const dd = (r.cond && Array.isArray(r.cond.d)) ? r.cond.d : [];
+        if (dd.length >= 3) { const cb = {}; for (const f of dd) { const b2 = bins(f, f.t, r.lat, r.lon); for (const k in b2) if (k !== 'moon') (cb[k] = cb[k] || arr(NB[k]))[b2[k]] += 1; }
+          for (const k in cb) { const s = cb[k].reduce((a, b) => a + b, 0); if (s) cb[k].forEach((v, i) => { ctl[k][i] += w * v / s; }); } }
+      }
+      ctl.moon = arr(8).map(() => n / 8);   // η σελήνη: κάθε φάση διαρκεί περίπου το ίδιο
+      const data = { v: 3, f: {}, ins: [] }, cand = {};
+      for (const f of Object.keys(NB)) {
+        const C = c[f].reduce((a, b) => a + b, 0), CT = ctl[f].reduce((a, b) => a + b, 0), E = eff[f].reduce((a, b) => a + b, 0), FS = fish[f].reduce((a, b) => a + b, 0), base = E > 0 ? FS / E : 0;
+        const cc = CT >= 5 ? c[f].map((v, i) => { const sh = ctl[f][i] / CT; return sh >= 0.03 && C ? Math.round((v / C) / sh * 100) / 100 : null; }) : null;
+        const r = E >= 10 && FS >= 3 ? eff[f].map((e, i) => e >= 4 ? Math.round(fish[f][i] / e * 100) / 100 : null) : null;
+        if (!C && !E) continue;
+        data.f[f] = { c: c[f], e: eff[f].map(x => Math.round(x)), r, cc };
+        if (cc) cc.forEach((l, i) => { if (l != null && c[f][i] >= minCase && (l >= 1.3 || l <= 0.7)) cand[f + ':' + i] = { f, b: i, lift: l, n: c[f][i], src: 'cc' }; });
+        if (r && FS >= 5 && base > 0) eff[f].forEach((e, i) => { if (e >= 8 && fish[f] && fish[f][i] >= 5) { const l = fish[f][i] / e / base; if (l >= 1.25 || l <= 0.75) { const k = f + ':' + i, o = cand[k];
+          if (o && (o.lift >= 1) === (l >= 1)) { o.lift = Math.sqrt(o.lift * l); o.src = 'both'; o.h = Math.round(e); } else if (!o) cand[k] = { f, b: i, lift: l, n: fish[f][i], h: Math.round(e), src: 'trip' }; } } });
+      }
+      const top = o => Object.entries(o).filter(x => x[1] >= 3).sort((a, b) => b[1] - a[1]).slice(0, 2).map(x => x[0]);
+      data.ins = Object.values(cand).map(x => { x.lift = Math.round(x.lift * 100) / 100; if (x.lift > 1) { const wk = worked[x.f + ':' + x.b]; if (wk) { const w2 = { tech: top(wk.tech), bait: top(wk.bait), dep: top(wk.dep) }; if (w2.tech.length || w2.bait.length || w2.dep.length) x.w = w2; } } return x; })
+        .sort((a, b) => (b.src === 'both') - (a.src === 'both') || Math.abs(Math.log(b.lift)) - Math.abs(Math.log(a.lift))).slice(0, 6);
+      data.hrs = Math.round(eff.sun.reduce((a, b) => a + b, 0));
+      data.sun = c.sun; data.moon = c.moon; data.pt = c.pt; data.wind = c.wind;   // συμβατότητα με την 1.14.21
+      return { n, users: users.size, data };
+    };
     try {
       const cyH = +new Date().toLocaleString('en-GB', { timeZone: 'Asia/Nicosia', hour: '2-digit', hour12: false }).slice(0, 2);
       const cur = ((await sb('bite_stats?key=eq.all&select=updated_at')) || [])[0];
       if (cyH >= 3 && (!cur || Date.now() - Date.parse(cur.updated_at) > 20 * HR)) {
         const rows = [];
-        for (let off = 0; off < 50000; off += 1000) { const a = (await sb(`catch_obs?select=user_id,kind,sp,day,ms,ms2,lat,lon,cnt,cond&order=id.asc&limit=1000&offset=${off}`)) || []; rows.push(...a); if (a.length < 1000) break; }
-        const SMC = {}, SOL = {}, tzOf = lon => Math.round((+lon || 0) / 15) * 60;
-        const sunBin = (ms, la, lo) => { const tz = tzOf(lo), d = isoD(ms + tz * 60000), ck = d + ',' + la + ',' + lo; const sm = SMC[ck] || (SMC[ck] = PF.sunMoon(d, +la, +lo, tz)); const m = (ms + tz * 60000) % 86400000 / 60000;
-          if (!sm || sm.rise == null) return null; if (m < sm.rise - 60 || m > sm.set + 60) return 0; if (m < sm.rise + 90) return 1; if (m > sm.set - 90) return 5; const mid = (sm.rise + sm.set) / 2; return m < mid - 120 ? 2 : m <= mid + 120 ? 3 : 4; };
-        const solBin = (ms, la, lo) => { const d = isoD(ms), ck = d + ',' + la + ',' + lo; const ps = SOL[ck] || (SOL[ck] = PF.solunarPeriods(Date.parse(d + 'T00:00:00Z'), Date.parse(d + 'T00:00:00Z') + 86400000, +la, +lo));
-          const p = ps.find(x => ms >= x.s && ms <= x.e && x.kind === 'major') || ps.find(x => ms >= x.s && ms <= x.e); return p ? (p.kind === 'major' ? 0 : 1) : 2; };
-        // συνθήκες → κουτάκια (ίδια σειρά με τις ετικέτες στο v4/contrib.js)
-        const FX = {
-          sun: (f, ms, la, lo) => sunBin(ms, la, lo),
-          moon: (f, ms) => Math.round(PF.moonPhase(ms).f * 8) % 8,
-          sol: (f, ms, la, lo) => solBin(ms, la, lo),
-          pt: f => f.pt == null ? null : f.pt <= -0.7 ? 0 : f.pt >= 0.7 ? 2 : 1,
-          pl: f => f.press == null ? null : f.press < 1010 ? 0 : f.press < 1015 ? 1 : f.press < 1020 ? 2 : 3,
-          wind: f => f.wind == null ? null : f.wind < 5 ? 0 : f.wind < 10 ? 1 : f.wind < 15 ? 2 : 3,
-          wave: f => f.wave == null ? null : f.wave < 0.3 ? 0 : f.wave < 0.6 ? 1 : f.wave < 1 ? 2 : 3,
-          tide: f => f.tide == null ? null : f.tide >= 0.02 ? 0 : f.tide <= -0.02 ? 1 : 2,
-          cloud: f => f.cloud == null ? null : f.cloud < 25 ? 0 : f.cloud < 75 ? 1 : 2,
-          rain: f => f.rain == null ? null : f.rain >= 0.2 ? 1 : 0,
-          cur: f => f.cur == null ? null : f.cur < 0.4 ? 0 : f.cur < 1 ? 1 : 2,
-        };
-        const NB = { sun: 6, moon: 8, sol: 3, pt: 3, pl: 4, wind: 4, wave: 4, tide: 3, cloud: 3, rain: 2, cur: 3 };
-        const mk = () => { const g = { n: 0, u: new Set(), c: {}, fish: {}, eff: {} }; for (const k of Object.keys(NB)) { g.c[k] = Array(NB[k]).fill(0); g.fish[k] = Array(NB[k]).fill(0); g.eff[k] = Array(NB[k]).fill(0); } return g; };
-        const bins = (f, ms, la, lo) => { const o = {}; for (const k of Object.keys(FX)) { const b = FX[k](f || {}, ms, la, lo); if (b != null) o[k] = b; } return o; };
+        for (let off = 0; off < 50000; off += 1000) { const a = (await sb(`catch_obs?select=user_id,kind,sp,day,ms,ms2,lat,lon,cnt,tech,cond&order=id.asc&limit=1000&offset=${off}`)) || []; rows.push(...a); if (a.length < 1000) break; }
+        const catches = rows.filter(r => r.kind === 'catch' && r.ms != null && r.lat != null);
         const trips = rows.filter(r => r.kind === 'trip' && r.cond && Array.isArray(r.cond.e) && r.cond.e.length);
-        const tripsBy = {}; for (const t of trips) (tripsBy[t.user_id] = tripsBy[t.user_id] || []).push(t);
-        const G = { all: mk() }, effG = mk();
-        // προσπάθεια: κάθε ώρα κάθε εξόδου
-        for (const t of trips) for (const f of t.cond.e) { const bb = bins(f, f.t, t.lat, t.lon); for (const k in bb) effG.eff[k][bb[k]] += 1; }
-        for (const r of rows) {
-          if (r.kind !== 'catch' || r.ms == null || r.lat == null) continue;
-          const w = Math.max(1, Math.min(20, r.cnt || 1)), keys = ['all']; if (r.sp) keys.push('sp:' + r.sp);
-          const e = r.cond && r.cond.e && !Array.isArray(r.cond.e) ? r.cond.e : null, bb = bins(e, +r.ms, r.lat, r.lon);
-          const inTrip = (tripsBy[r.user_id] || []).some(t => +r.ms >= +t.ms - 15 * 60000 && +r.ms <= +t.ms2 + 15 * 60000);
-          for (const k of keys) { const g = G[k] = G[k] || mk(); g.n += w; g.u.add(r.user_id); for (const f in bb) { g.c[f][bb[f]] += w; if (inTrip) g.fish[f][bb[f]] += w; } }
-        }
-        const LAB = { sun: 'sun', moon: 'moon', sol: 'sol', pt: 'pt', pl: 'pl', wind: 'wind', wave: 'wave', tide: 'tide', cloud: 'cloud', rain: 'rain', cur: 'cur' };
-        const out = [];
-        for (const [k, g] of Object.entries(G)) {
-          if (k !== 'all' && g.n < 10) continue;
-          const data = { v: 2, f: {} }, ins = [];
-          for (const f of Object.keys(NB)) {
-            const c = g.c[f], eff = effG.eff[f], fish = g.fish[f];
-            const E = eff.reduce((a, b) => a + b, 0), FS = fish.reduce((a, b) => a + b, 0), base = E > 0 ? FS / E : 0;
-            const r = eff.map((e, i) => e >= 4 ? Math.round(fish[i] / e * 100) / 100 : null);
-            if (!c.some(Boolean) && !E) continue;
-            data.f[LAB[f]] = { c, e: eff.map(x => Math.round(x)), r: E >= 10 && FS >= 3 ? r : null };
-            if (E >= 10 && FS >= 5 && base > 0) eff.forEach((e, i) => { if (e >= 8 && fish[i] >= 5) { const lift = fish[i] / e / base; if (lift >= 1.25 || lift <= 0.75) ins.push({ f, b: i, lift: Math.round(lift * 100) / 100, n: fish[i], h: e }); } });
-          }
-          data.ins = ins.sort((a, b) => Math.abs(Math.log(b.lift)) - Math.abs(Math.log(a.lift))).slice(0, 5);
-          data.hrs = Math.round(effG.eff.sun.reduce((a, b) => a + b, 0));
-          // συμβατότητα με την 1.14.21
-          data.sun = g.c.sun; data.moon = g.c.moon; data.pt = g.c.pt; data.wind = g.c.wind;
-          out.push({ key: k, n: g.n, users: g.u.size, data, updated_at: new Date().toISOString() });
-        }
+        const cell = r => (Math.floor(+r.lat / 2) * 2) + '_' + (Math.floor(+r.lon / 2) * 2);
+        const now = new Date().toISOString(), out = [];
+        const put = (k, a) => out.push({ key: k, n: a.n, users: a.users, data: a.data, updated_at: now });
+        put('all', analyse(catches, trips, 8));
+        const bySp = {}; for (const r of catches) if (r.sp) (bySp[r.sp] = bySp[r.sp] || []).push(r);
+        for (const [sp, cs] of Object.entries(bySp)) { if (cs.length < 10) continue; const tg = trips.filter(t => t.sp === sp), hrs = tg.reduce((a, t) => a + t.cond.e.length, 0);
+          const a = analyse(cs, hrs >= 10 ? tg : trips, 5); a.data.tgt = hrs >= 10; put('sp:' + sp, a); }
+        const byR = {}; for (const r of catches) (byR[cell(r)] = byR[cell(r)] || []).push(r);
+        if (Object.keys(byR).length > 1) for (const [rc, cs] of Object.entries(byR)) { if (cs.length < 30) continue; put('r:' + rc, analyse(cs, trips.filter(t => cell(t) === rc), 8)); }
         if (out.length) await sb('bite_stats?on_conflict=key', { method: 'POST', headers: { 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(out) });
-        stats.bstats = out.length; stats.bobs = rows.length;
+        // προσωπικά (μόνο ο ίδιος τα διαβάζει)
+        const byU = {}; for (const r of catches) (byU[r.user_id] = byU[r.user_id] || []).push(r);
+        const pers = [];
+        for (const [u, cs] of Object.entries(byU)) { const n = cs.reduce((a, r) => a + Math.max(1, Math.min(20, r.cnt || 1)), 0); if (n < 10) continue;
+          const a = analyse(cs, trips.filter(t => t.user_id === u), 4); const sp = {}; cs.forEach(r => { if (r.sp) sp[r.sp] = (sp[r.sp] || 0) + 1; });
+          a.data.top = Object.entries(sp).sort((x, y) => y[1] - x[1]).slice(0, 3).map(x => x[0]);
+          pers.push({ user_id: u, n: a.n, data: a.data, updated_at: now }); }
+        if (pers.length) await sb('user_bite_stats?on_conflict=user_id', { method: 'POST', headers: { 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(pers) }).catch(e => log('bite stats: user ' + e.message));
+        stats.bstats = out.length; stats.bobs = rows.length; stats.bpers = pers.length;
       }
     } catch (e) { log('bite stats: ' + e.message); }
+
+    // (γ) «🎯 Αύριο … μοιάζει με τις καλύτερες ώρες σου»
+    try {
+      const cyH = +new Date().toLocaleString('en-GB', { timeZone: 'Asia/Nicosia', hour: '2-digit', hour12: false }).slice(0, 2);
+      if (webpush && cyH >= 17 && cyH < 19) {
+        const tom = isoD(Date.now() + DAY), us = (await sb('user_bite_stats?select=user_id,n,data').catch(() => [])) || [];
+        const LBL = { sun: ['νύχτα', 'αυγή', 'πρωί', 'μεσημέρι', 'απόγευμα', 'σούρουπο'], pt: ['πίεση πέφτει', 'πίεση σταθερή', 'πίεση ανεβαίνει'], sol: ['κύρια σεληνιακή περίοδος', 'δευτερεύουσα περίοδος', 'εκτός περιόδων'],
+          pl: ['πίεση <1010', 'πίεση 1010–15', 'πίεση 1015–20', 'πίεση >1020'], wind: ['άνεμος 0–4 kn', 'άνεμος 5–9 kn', 'άνεμος 10–14 kn', 'άνεμος 15+ kn'], wave: ['κύμα <0,3 m', 'κύμα 0,3–0,6 m', 'κύμα 0,6–1 m', 'κύμα >1 m'],
+          tide: ['στάθμη ανεβαίνει', 'στάθμη κατεβαίνει', 'στάθμη στάσιμη'], cloud: ['καθαρός ουρανός', 'λίγα σύννεφα', 'συννεφιά'], rain: ['χωρίς βροχή', 'βροχή'], cur: ['ρεύμα ασθενές', 'ρεύμα μέτριο', 'ρεύμα δυνατό'] };
+        for (const u of us) {
+          const good = ((u.data && u.data.ins) || []).filter(x => x.lift >= 1.3 && x.f !== 'moon'); if (good.length < 2) continue;
+          const nid = 'best:' + u.user_id + ':' + tom; if (((await sb(`notif_log?id=eq.${encodeURIComponent(nid)}&select=id`)) || []).length) continue;
+          const subs = (await sb(`push_subs?user_id=eq.${encodeURIComponent(u.user_id)}&select=id,sub,places`)) || []; if (!subs.length) continue;
+          const pl = (subs.map(s => (s.places || []).find(p => p && typeof p.lat === 'number' && typeof p.lon === 'number')).find(Boolean)); if (!pl) continue;
+          const la = Math.round(pl.lat * 10) / 10, lo = Math.round(pl.lon * 10) / 10, H = await wxFor(la, lo, isoD(Date.now() - DAY), isoD(Date.now() + 2 * DAY)); if (!H) continue;
+          const hrs = dayHours(Date.parse(tom + 'T12:00:00Z') - tzOf(lo) * 60000, la, lo).filter(t => t > Date.now());
+          const sc = hrs.map(t => { const f = feat(H, t); if (!f) return { t, s: 0, m: [] }; const bb = bins(f, t, la, lo), m = good.filter(x => bb[x.f] === x.b); return { t, s: m.reduce((a, x) => a + Math.log(x.lift), 0), m }; });
+          let best = null; for (let i = 0; i < sc.length; i++) { if (sc[i].m.length < 2) continue; let j = i; while (j + 1 < sc.length && sc[j + 1].m.length >= 2 && j - i < 3) j++; const s = sc.slice(i, j + 1).reduce((a, x) => a + x.s, 0); if (!best || s > best.s) best = { i, j, s }; }
+          if (!best) continue;
+          const tz = new Date(sc[best.i].t).toLocaleString('en-GB', { timeZone: 'Asia/Nicosia', hour: '2-digit', minute: '2-digit', hour12: false });
+          const tz2 = new Date(sc[best.j].t + HR).toLocaleString('en-GB', { timeZone: 'Asia/Nicosia', hour: '2-digit', minute: '2-digit', hour12: false });
+          const why = [...new Set(sc[best.i].m.map(x => LBL[x.f] && LBL[x.f][x.b]).filter(Boolean))].slice(0, 3).join(' · ');
+          const msg = { id: nid, kind: 'best', tag: 'best-' + tom, url: '#forecast', title: '🎯 Αύριο ' + tz + '–' + tz2 + ': οι καλύτερες ώρες σου · Your best hours tomorrow',
+            body: 'Μοιάζει με τις ώρες που πιάνεις τα περισσότερα ψάρια: ' + why + (pl.name ? ' (' + String(pl.name).slice(0, 30) + ')' : '') + '. · Matches the conditions you catch most in.' };
+          for (const r of subs) { try { await webpush.sendNotification(r.sub, JSON.stringify(msg), { TTL: 12 * 3600 }); } catch (e) { if (e.statusCode === 404 || e.statusCode === 410) await sb(`push_subs?id=eq.${encodeURIComponent(r.id)}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } }).catch(() => {}); } }
+          await sb('notif_log', { method: 'POST', headers: { 'Content-Type': 'application/json', Prefer: 'resolution=ignore-duplicates,return=minimal' }, body: JSON.stringify({ id: nid, user_id: u.user_id, kind: 'best', title: msg.title, body: msg.body, at: new Date().toISOString() }) }).catch(() => {});
+          stats.best = (stats.best || 0) + 1;
+        }
+      }
+    } catch (e) { log('bite stats: best ' + e.message); }
   }
   log('Safety job: ' + JSON.stringify(stats));
   // 9) 1.9.50: υγεία του server. Σε κάθε εκτέλεση γράφεται «heartbeat» (backups/_system/heartbeat.json, το διαβάζει το watchdog του GitHub).

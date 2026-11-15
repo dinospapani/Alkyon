@@ -670,3 +670,9 @@ html.nightred .kpis .kpi{outline:1px solid #fff;outline-offset:-1px;background:#
 .bscard .bsins li.down{background:color-mix(in srgb,#c62828 16%,transparent)}
 .bscard .bsmore{margin-top:10px}
 .bscard .bsmore summary{cursor:pointer;color:var(--accent);font-weight:700;font-size:14px}
+/* 1.14.23 */
+.bscard .bswho{margin:6px 0 4px}
+.bscard .bsins li.strong{outline:1.5px solid color-mix(in srgb,#1f8f4e 55%,transparent)}
+.bscard .bsins small{display:block;font-size:12px;color:var(--ink-2);margin-top:2px}
+.bscard .bsins .bswk{color:var(--ink);font-weight:600}
+.tgchips .chip[aria-pressed="true"]{background:var(--accent);color:#fff;border-color:var(--accent)}

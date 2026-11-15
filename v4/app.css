@@ -1076,3 +1076,5 @@ html.night body.mapon #lmap canvas.wxdash{filter:none!important;opacity:.7}
 .camshut:active{transform:scale(.93)}
 .camgal,.camflip{width:56px;height:56px;border-radius:50%;border:0;background:rgba(255,255,255,.18);color:#fff;display:grid;place-items:center}
 .camgal svg,.camflip svg{width:28px;height:28px}
+/* 1.14.23: εξήγηση «από όσα μετρήθηκαν» */
+.hlearn{margin:6px 0 0;font-size:13px;line-height:1.35;opacity:.92}

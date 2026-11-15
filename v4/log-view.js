@@ -127,6 +127,7 @@ function pastTrip(){ var sh, td=new Date(), today=td.getFullYear()+'-'+B.pad(td.
   function save(){ msg.textContent=''; var d=dt.value; if(!/^\d{4}-\d\d-\d\d$/.test(d)){ msg.textContent=T('Διάλεξε ημερομηνία.','Pick a date.'); return; } if(d>today){ msg.textContent=T('Η ημερομηνία είναι στο μέλλον.','The date is in the future.'); return; }
     var rec={date:d,spot:sp.value.trim(),prof:prof,tech:tc.value.trim(),species:sps.value.trim(),count:Math.max(0,Math.round(+cn.value||0)),kg:Math.max(0,+kg.value||0),notes:nt.value.trim(),manual:true};
     if(t0.value&&t1.value){ var a=new Date(d+'T'+t0.value).getTime(), b=new Date(d+'T'+t1.value).getTime(); if(b<=a) b+=86400000; rec.startMs=a; rec.endMs=b; }
+    /* 1.14.23: αν το σημείο είναι αποθηκευμένο, κρατάμε και τη θέση του (για τα στοιχεία «πότε τσιμπάνε») */ var pl=(ls.get('alkyon-places',[])||[]).filter(function(x){ return x&&x.name&&x.name===rec.spot&&isFinite(+x.lat); })[0]; if(pl){ rec.lat=+pl.lat; rec.lon=+pl.lon; }
     S().save('trips',rec); sh.close(); B.toast(T('Η έξοδος αποθηκεύτηκε.','Trip saved.')); }
   sh=B.sheet({title:T('Παλιά έξοδος','Past trip'),body:h('div',{class:'bform pasttrip'},
     h('p',{class:'sub',text:T('Για έξοδο που έκανες χωρίς να την καταγράψεις στην εφαρμογή. Τα ψάρια μπορείς να τα προσθέσεις και ξεχωριστά με «Νέο ψάρι» και την ίδια ημερομηνία.','For a trip you made without logging it in the app. You can also add catches separately with “New catch” on the same date.')}),
@@ -134,6 +135,21 @@ function pastTrip(){ var sh, td=new Date(), today=td.getFullYear()+'-'+B.pad(td.
     h('div',{class:'inrow'},f(T('Ψάρια (τεμάχια)','Fish (count)'),cn),f(T('Βάρος (kg)','Weight (kg)'),kg)),f(T('Σημειώσεις','Notes'),nt),msg,
     h('button',{class:'btn pri full',type:'button',text:T('Αποθήκευση εξόδου','Save trip'),onclick:save}))}); }
 B.pastTrip=pastTrip;
+/* 1.14.23: «Ψάρεψα, τίποτα»: γρήγορη καταγραφή χωρίς ψάρι (οι ώρες χωρίς τσίμπημα είναι τα πιο πολύτιμα στοιχεία) */
+function nothingTrip(){ var sh, now=new Date(), prof=B.prof?B.prof():'boat', todayStr=function(){ return now.getFullYear()+'-'+B.pad(now.getMonth()+1)+'-'+B.pad(now.getDate()); }, p=B.lastPos&&B.lastPos(), pls=(ls.get('alkyon-places',[])||[]).filter(function(x){ return x&&isFinite(+x.lat)&&isFinite(+x.lon); });
+  var dt=h('input',{type:'date',value:todayStr(),max:todayStr()}), t1=h('input',{type:'time',value:B.pad(now.getHours())+':'+B.pad(now.getMinutes())}), t0=h('input',{type:'time',value:B.pad((now.getHours()+22)%24)+':'+B.pad(now.getMinutes())});
+  var wh=h('select',{class:'select'}); if(p) wh.append(h('option',{value:'gps',text:T('Εδώ (GPS)','Here (GPS)')})); pls.forEach(function(x,i){ wh.append(h('option',{value:String(i),text:x.name||T('Σημείο','Spot')})); });
+  var msg=h('p',{class:'err',role:'alert'});
+  function f(l,el){ return h('label',{class:'fld'},h('span',{text:l}),el); }
+  if(!p&&!pls.length){ B.toast(T('Χρειάζεται θέση (GPS) ή αποθηκευμένο σημείο.','Needs a position (GPS) or a saved spot.')); return; }
+  function save(){ var d=dt.value; if(!/^\d{4}-\d\d-\d\d$/.test(d)||!t0.value||!t1.value){ msg.textContent=T('Βάλε μέρα και ώρες.','Set the day and times.'); return; }
+    var a=new Date(d+'T'+t0.value).getTime(), b=new Date(d+'T'+t1.value).getTime(); if(b<=a) a-=86400000; if(b>Date.now()+60000){ msg.textContent=T('Η ώρα είναι στο μέλλον.','The time is in the future.'); return; }
+    var q=wh.value==='gps'?p:pls[+wh.value]; var nm=wh.value==='gps'?'':(q.name||'');
+    S().save('trips',{date:d,spot:nm,prof:prof,tech:'',species:'',count:0,kg:0,notes:T('Χωρίς ψάρι','No fish'),manual:true,nothing:true,startMs:a,endMs:b,lat:+q.lat,lon:+q.lon});
+    sh.close(); B.toast(T('Καταγράφηκε · ευχαριστούμε, βοηθά την πρόγνωση','Saved · thanks, it helps the forecast')); }
+  sh=B.sheet({title:T('Ψάρεψα, τίποτα','Fished, caught nothing'),body:h('div',{class:'bform'},h('p',{class:'sub',text:T('Οι ώρες που δεν τσίμπησε τίποτα δείχνουν πότε δεν αξίζει να βγεις· μετράνε στα στατιστικά σου και (αν συμμετέχεις) στο «Πότε τσιμπάνε».','Hours with no bites show when it is not worth going out; they count in your stats and (if you take part) in «When they bite».')}),
+    f(T('Μέρα','Day'),dt),h('div',{class:'inrow'},f(T('Από','From'),t0),f(T('Έως','To'),t1)),f(T('Πού','Where'),wh),msg,h('button',{class:'btn pri full',type:'button',text:T('Αποθήκευση','Save'),onclick:save}))}); }
+B.nothingTrip=nothingTrip;
 function pastBtn(){ return h('button',{class:'btn',type:'button',text:'+ '+T('Παλιά έξοδος','Past trip'),onclick:pastTrip}); }
 /* 1.9.2: μικρός χάρτης εξόδου (διαδρομή + ψάρια), χωρίς πλακίδια: δουλεύει και χωρίς σήμα */
 function tripBites(t){ return S().bites().filter(function(b){ return (t.sid&&b.trip===t.sid)||(t.startMs&&ms(b)>=t.startMs-600000&&ms(b)<=t.endMs+600000); }); }
@@ -172,6 +188,7 @@ function trips(page){
       B.tripStart?h('button',{type:'button',class:'li',onclick:function(){ sh.close(); location.hash='#map'; setTimeout(function(){ B.tripStart(); },400); }},h('span',{class:'ic',html:B.iconSvg('plus')}),h('span',{class:'tx'},h('b',{text:T('Ξεκινώ τώρα','Start now')}),h('small',{text:T('Καταγραφή διαδρομής, ψαριών και ώρας','Records route, catches and time')}))):null,
       B.gearPanel?h('button',{type:'button',class:'li',onclick:function(){ sh.close(); setTimeout(B.gearPanel,200); }},h('span',{class:'ic',html:B.iconSvg('fish')}),h('span',{class:'tx'},h('b',{text:T('Δίχτυ, παραγάδι, κλουβί','Net, longline, pot')}),h('small',{text:T('Ρίψη και ανέβασμα με διαδρομή, και τα αλιεύματα','Set and haul with route, and the catch')}))):null, /* 1.10.2 */
       B.gearPast?h('button',{type:'button',class:'li',onclick:function(){ sh.close(); setTimeout(B.gearPast,200); }},h('span',{class:'ic',html:B.iconSvg('log')}),h('span',{class:'tx'},h('b',{text:T('Παλιά ρίψη εργαλείου','Past gear set')}),h('small',{text:T('Δίχτυ ή παραγάδι που έριξες χωρίς την εφαρμογή','A net or longline you set without the app')}))):null,
+      h('button',{type:'button',class:'li nothingli',onclick:function(){ sh.close(); setTimeout(nothingTrip,200); }},h('span',{class:'ic',html:B.iconSvg('fish')}),h('span',{class:'tx'},h('b',{text:T('Ψάρεψα, τίποτα','Fished, caught nothing')}),h('small',{text:T('Γρήγορη καταγραφή ωρών χωρίς ψάρι','Quick log of hours with no fish')}))),
       h('button',{type:'button',class:'li',onclick:function(){ sh.close(); setTimeout(pastTrip,200); }},h('span',{class:'ic',html:B.iconSvg('log')}),h('span',{class:'tx'},h('b',{text:T('Παλιά έξοδος','Past trip')}),h('small',{text:T('Για έξοδο που έκανες χωρίς την εφαρμογή','For a trip you made without the app')}))))}); }},h('i',{class:'ik',html:'<svg viewBox="0 0 24 24">'+'<path d="M12 5v14M5 12h14"/>'+'</svg>'}),T('Νέα έξοδος','New trip'))));
   var a=S().raw('trips').filter(function(t){ return inRange(t.date||''); }).sort(function(x,y){ return (y.startMs||Date.parse(y.date))-(x.startMs||Date.parse(x.date)); });
   if(!a.length){ page.append(h('div',{class:'card empty'},h('h3',{text:T('Καμία έξοδος σε αυτό το διάστημα','No trips in this period')}),h('p',{text:T('Οι έξοδοι ξεκινούν από τον χάρτη με «Έναρξη εξόδου».','Trips start from the map with “Start a trip”.')}),seeAll(),h('div',{class:'inrow'},h('a',{class:'btn pri',href:'#trip',text:T('Έναρξη εξόδου','Start a trip')}),pastBtn()))); return; }

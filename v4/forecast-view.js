@@ -462,6 +462,11 @@ function dayView(page,fc,d){
     hero.append(h('div',{class:'hsplit'},
       h('div',{class:'hsb lv-'+lvl(d.bite)},h('small',null,ik('fish'),T('Τσίμπημα','Bite')),h('b',{text:String(d.bite)}),h('span',{text:bw?B.pad(bw.s)+':00–'+B.pad((bw.e+1)%24)+':00':''})),
       h('div',{class:'hsb sea-'+sx[0]},h('small',null,ik('wave'),T('Θάλασσα','Sea')),h('b',{text:sx[1]}),h('span',{text:sx[2]})))); }
+  /* 1.14.23: ο δείκτης μαθαίνει από το «Πότε τσιμπάνε»: τι ταίριαξε στις καλύτερες ώρες */
+  try{ var lm={}, lk=[]; focusHours(d).forEach(function(q){ if(q.learn){ lk.push(q.learn.k); q.learn.m.forEach(function(x){ lm[x.f+':'+x.b]=x; }); } });
+    var lv=Object.keys(lm).map(function(k){ return lm[k]; }).sort(function(a,b){ return Math.abs(Math.log(b.lift))-Math.abs(Math.log(a.lift)); }).slice(0,3);
+    if(lv.length&&B.learnLabel){ var kk=lk.reduce(function(a,b){ return a+b; },0)/lk.length, pc=Math.round((kk-1)*100);
+      hero.append(h('p',{class:'hlearn',text:'📊 '+T('Από όσα μετρήθηκαν: ','From what was measured: ')+lv.map(function(x){ return (x.lift>=1?'▲ ':'▼ ')+B.learnLabel(x.f,x.b)+' ×'+B.num(x.lift,1); }).join(' · ')+(pc?' ('+T('δείκτης ','score ')+(pc>0?'+':'')+pc+'%)':'')})); } }catch(e){}
   var wz=worsens(d); if(wz) hero.append(h('p',{class:'hworse',text:wz}));
   else if(!d.safe&&!tn){ var why=unsafeWhy(d); if(why) hero.append(h('p',{class:'hwhy',text:why.charAt(0).toUpperCase()+why.slice(1)+'.'})); }
   /* σήμερα δεν βγαίνει: δείξε την επόμενη καλή μέρα */

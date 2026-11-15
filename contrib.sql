@@ -45,3 +45,15 @@ create policy bs_sel on public.bite_stats for select using (true);
 grant select on public.bite_stats to anon, authenticated;
 grant select, insert, update, delete on public.catch_obs to authenticated;
 grant usage, select on sequence public.catch_obs_id_seq to authenticated;
+
+-- 1.14.23: προσωπικά ευρήματα «Για σένα» (μόνο ο ίδιος τα διαβάζει· τα γράφει ο server)
+create table if not exists public.user_bite_stats (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  n int not null default 0,
+  data jsonb not null,
+  updated_at timestamptz not null default now()
+);
+alter table public.user_bite_stats enable row level security;
+drop policy if exists ubs_sel on public.user_bite_stats;
+create policy ubs_sel on public.user_bite_stats for select using (user_id = auth.uid());
+grant select on public.user_bite_stats to authenticated;
