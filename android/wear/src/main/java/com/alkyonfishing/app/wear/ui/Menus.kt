@@ -62,6 +62,7 @@ private val TILE = Color(0xFF141922)
 @Composable
 fun MenuList(title: String, col: Color, content: ScalingLazyListScope.() -> Unit) {
     E.ver
+    E.ver
     val st = rememberScalingLazyListState()
     ScalingLazyColumn(state = st, modifier = Modifier.fillMaxSize().background(Color.Black), horizontalAlignment = Alignment.CenterHorizontally) {
         item { ListHeader { T(L.up(title), 13.sp, col, bold = true) } }
@@ -71,6 +72,7 @@ fun MenuList(title: String, col: Color, content: ScalingLazyListScope.() -> Unit
 
 @Composable
 fun Item(label: String, sub: String?, ic: String?, col: Color, on: () -> Unit) {
+    E.ver
     val icon: @Composable () -> Unit = { Box(Modifier.size(26.dp).background(col.copy(alpha = 0.18f), CircleShape), contentAlignment = Alignment.Center) { T(glyph(ic).ifEmpty { "•" }, 14.sp, col, bold = true) } }
     if (sub == null) Chip(onClick = on, label = { Text(label, maxLines = 2, fontSize = 14.sp) }, icon = { icon() },
         colors = ChipDefaults.chipColors(backgroundColor = TILE, contentColor = pc(5)), modifier = Modifier.fillMaxWidth())
@@ -83,6 +85,7 @@ private fun NavHostController.go(r: String) { popBackStack(); navigate(r) }
 /* ---------- μενού καταγραφής (START / πάτημα στο Garmin) ---------- */
 @Composable
 fun LogMenu(nav: NavHostController) {
+    E.ver
     E.afterStop()
     MenuList(L.t("Log"), hx(0x3DDC97)) {
         item { Item(L.t("Fish"), L.t("SubFish"), "fish", hx(0x3DDC97)) { nav.popBackStack(); E.logCatch("fish") } }
@@ -103,6 +106,7 @@ fun LogMenu(nav: NavHostController) {
 /* ---------- μενού συρτής ---------- */
 @Composable
 fun TrollMenu(nav: NavHostController) {
+    E.ver
     MenuList(L.t("Troll"), hx(0x2EC8C0)) {
         if (E.troll == "b") {
             if (E.drop != null) {
@@ -142,6 +146,7 @@ fun TrollMenu(nav: NavHostController) {
 @Composable
 fun KeysToggle(label: String) {
     E.ver
+    E.ver
     val on = P.b("keysL")
     ToggleChip(checked = on, onCheckedChange = { P.setB("keysL", it); E.bump() }, label = { Text(label, fontSize = 13.sp) },
         secondaryLabel = { Text(L.t("KeysSub"), fontSize = 11.sp) }, toggleControl = { Switch(checked = on) }, modifier = Modifier.fillMaxWidth())
@@ -150,6 +155,7 @@ fun KeysToggle(label: String) {
 /* ---------- δίχτυ / παραγάδι / κλουβί ---------- */
 @Composable
 fun GearMenu(nav: NavHostController) {
+    E.ver
     MenuList(L.t("GearT"), hx(0x2EC8C0)) {
         val now = nowS()
         val s = E.gearSetting()
@@ -165,6 +171,7 @@ fun GearMenu(nav: NavHostController) {
 /* ---------- στόχος (σελίδα «Σημείο») ---------- */
 @Composable
 fun NavMenu(nav: NavHostController) {
+    E.ver
     MenuList(L.t("Target"), hx(0xF6B744)) {
         item { Item(L.t("Fish"), null, "fish", hx(0x3DDC97)) { nav.popBackStack(); E.logCatch("fish") } }
         val c = E.cur
@@ -176,6 +183,7 @@ fun NavMenu(nav: NavHostController) {
 
 @Composable
 fun SpeciesMenu(nav: NavHostController) {
+    E.ver
     MenuList(L.t("SpQ"), hx(0xF6B744)) {
         E.speciesList().forEachIndexed { i, sp -> item { Item(sp.second, null, "fish", hx(0x3DDC97)) { nav.popBackStack(); E.setSpecies(i) } } }
     }
@@ -184,6 +192,7 @@ fun SpeciesMenu(nav: NavHostController) {
 /* ---------- τροχός αριθμού (βάθος για «Ρίχνω», ψάρια στο ανέβασμα): κορώνα, −/+, ✓ ---------- */
 @Composable
 fun Picker(title: String, col: Color, start: Int, minV: Int, maxV: Int, unit: String, sub: (Int) -> String?, bigStep: Int, ok: (Int) -> Unit) {
+    E.ver
     var v by remember { mutableIntStateOf(start.coerceIn(minV, maxV)) }
     var acc by remember { mutableFloatStateOf(0f) }
     val fr = remember { FocusRequester() }
@@ -217,6 +226,7 @@ fun Picker(title: String, col: Color, start: Int, minV: Int, maxV: Int, unit: St
 
 @Composable
 fun DepthPicker(only: Boolean, nav: NavHostController) {
+    E.ver
     val ch = E.chartHere()
     val last = ch?.let { (it + 0.5).toInt() } ?: P.i("dropD") ?: 20
     Picker(L.t("DepthQ"), hx(0x4FB3FF), last, 3, 120, L.t("FmL"), { d -> if (ch != null && d == (ch + 0.5).toInt()) L.t("ChartSub") else null }, 5) { d ->
@@ -227,6 +237,7 @@ fun DepthPicker(only: Boolean, nav: NavHostController) {
 
 @Composable
 fun CountPicker(gid: String, nav: NavHostController) {
+    E.ver
     val it = E.gearItem(gid)
     val t0 = it?.let { o -> if (o.has("s1") && !o.isNull("s1")) o.optLong("s1") else o.optLong("s0") }
     androidx.compose.runtime.DisposableEffect(Unit) { onDispose { if (E.gearHaul) E.gearHaulCancel() } }
@@ -238,6 +249,7 @@ fun CountPicker(gid: String, nav: NavHostController) {
 /* ---------- «Τέλος εξόδου;» ---------- */
 @Composable
 fun ConfirmEnd(nav: NavHostController) {
+    E.ver
     E.ver
     Box(Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
         Ring { arc(0f, 360f, pc(13), size.minDimension * 0.04f) }
@@ -263,6 +275,7 @@ fun ConfirmEnd(nav: NavHostController) {
 @Composable
 fun NumRow(label: String, key: String, step: Double, minV: Double, maxV: Double, dec: Int, after: () -> Unit = {}) {
     E.ver
+    E.ver
     val v = P.d(key)
     fun set(x: Double) { P.setD(key, (Math.round(x.coerceIn(minV, maxV) / step) * step)); E.bump(); after() }
     Row(Modifier.fillMaxWidth().background(TILE, RoundedCornerShape(24.dp)).padding(horizontal = 6.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -278,6 +291,7 @@ fun NumRow(label: String, key: String, step: Double, minV: Double, maxV: Double,
 @Composable
 fun Toggle(label: String, key: String, after: () -> Unit = {}) {
     E.ver
+    E.ver
     val on = P.b(key)
     ToggleChip(checked = on, onCheckedChange = { P.setB(key, it); E.bump(); after() }, label = { Text(label, fontSize = 13.sp, maxLines = 3) },
         toggleControl = { Switch(checked = on) }, modifier = Modifier.fillMaxWidth())
@@ -285,6 +299,7 @@ fun Toggle(label: String, key: String, after: () -> Unit = {}) {
 
 @Composable
 fun SettingsScreen(nav: NavHostController) {
+    E.ver
     val ctx = LocalContext.current
     val input = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
         val d = r.data ?: return@rememberLauncherForActivityResult

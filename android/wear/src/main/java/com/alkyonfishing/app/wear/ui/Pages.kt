@@ -55,6 +55,7 @@ private val E = Engine
 
 @Composable
 fun Page(i: Int, open: (String) -> Unit) {
+    E.ver
     val f = E.fc
     if (f == null && i != 1 && i != 2) { NoData(); return }
     when (i) {
@@ -69,6 +70,7 @@ fun Page(i: Int, open: (String) -> Unit) {
 
 @Composable
 fun NoData() = Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    E.ver
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         T("ALKYON", 13.sp, pc(0), bold = true)
         Spacer(Modifier.height(8.dp))
@@ -78,11 +80,12 @@ fun NoData() = Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) 
 
 /** μικρή ένδειξη εξόδου πάνω, όταν η έξοδος τρέχει και βλέπεις άλλη σελίδα */
 @Composable
-fun TripBadge() { if (E.trip.active) T("● " + Geo.hms(E.trip.secs()) + " · " + E.trip.n, 12.sp, pc(1), bold = true) }
+fun TripBadge() { E.ver; if (E.trip.active) T("● " + Geo.hms(E.trip.secs()) + " · " + E.trip.n, 12.sp, pc(1), bold = true) }
 
 /* ---------- 0 · Σήμερα: δαχτυλίδι 24 ωρών ---------- */
 @Composable
 fun Today(f: JSONObject) {
+    E.ver
     val days = f.optJSONArray("days") ?: return
     if (days.length() == 0) { NoData(); return }
     var d = days.getJSONObject(0); var isToday = true
@@ -148,6 +151,7 @@ fun Today(f: JSONObject) {
 /* ---------- 1 · Έξοδος / συρτή ---------- */
 @Composable
 fun TripPage(open: (String) -> Unit) {
+    E.ver
     when {
         !E.trip.active -> TripIdle()
         E.troll == "b" && E.drop != null -> DropPage()
@@ -159,6 +163,7 @@ fun TripPage(open: (String) -> Unit) {
 
 @Composable
 fun TripIdle() {
+    E.ver
     val f = E.fc
     var qD: JSONObject? = null; var tmr = false
     f?.optJSONArray("days")?.let { a -> if (a.length() > 0) { qD = a.getJSONObject(0); if (qD!!.isNull("s") && a.length() > 1) { qD = a.getJSONObject(1); tmr = true } } }
@@ -192,6 +197,7 @@ fun TripIdle() {
 
 @Composable
 private fun TargetRing(col: Color) {
+    E.ver
     val tg = E.tripTarget()
     Ring {
         val w = size.minDimension * 0.045f
@@ -205,6 +211,7 @@ private fun TargetRing(col: Color) {
 
 @Composable
 private fun TimeLine() {
+    E.ver
     val tg = E.tripTarget(); val a = E.anchor
     if (a != null) { val bad = E.anchorD > E.anchorR(); Chip2(L.t("AnchorLine", E.anchorD.toInt(), E.anchorR()), if (bad) pc(1) else pc(6), bad) }
     else if (tg != null) { val left = tg.first - nowS(); if (left > 0) Chip2(L.t(if (tg.second) "BackIn" else "SunsetIn", Geo.hms(left)), pc(0)) else Chip2(L.t("Late"), pc(1), true) }
@@ -213,11 +220,13 @@ private fun TimeLine() {
 
 @Composable
 fun FishBtn(d: androidx.compose.ui.unit.Dp = 46.dp) = Box(Modifier.size(d).background(pc(2), CircleShape).clickable { E.quickFish() }, contentAlignment = Alignment.Center) {
+    E.ver
     T("🐟", (d.value * 0.45f).sp, Color.Black)
 }
 
 @Composable
 fun TripLive() {
+    E.ver
     Box(Modifier.fillMaxSize()) {
         TargetRing(pc(13))
         Column(Modifier.fillMaxSize().padding(22.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
@@ -239,6 +248,7 @@ fun TripLive() {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SideBtn(t: String, col: Color, onLong: (() -> Unit)? = null, on: () -> Unit) {
+    E.ver
     Box(Modifier.size(40.dp).background(col.copy(alpha = 0.18f), CircleShape).combinedClickable(onClick = on, onLongClick = onLong), contentAlignment = Alignment.Center) {
         T(t, 15.sp, col, bold = true)
     }
@@ -246,6 +256,7 @@ fun SideBtn(t: String, col: Color, onLong: (() -> Unit)? = null, on: () -> Unit)
 
 @Composable
 fun DropPage() {
+    E.ver
     val rem = (E.dropAt + (E.dropN * E.secPerLead()).toLong() - nowS())
     Box(Modifier.fillMaxSize()) {
         Ring { val w = size.minDimension * 0.045f; arc(0f, 360f, pc(8), w)
@@ -266,6 +277,7 @@ fun DropPage() {
 
 @Composable
 fun TrollB(open: (String) -> Unit) {
+    E.ver
     val sp = E.trip.spd
     val col = if (sp == null) pc(6) else if (sp < E.trMin() || sp > E.trMax()) pc(4) else pc(2)
     val cnow = E.clrNow()
@@ -297,6 +309,7 @@ fun TrollB(open: (String) -> Unit) {
 
 @Composable
 fun TrollS() {
+    E.ver
     val sp = E.trip.spd
     val col = if (sp == null) pc(6) else if (sp < E.trMin() || sp > E.trMax()) pc(4) else pc(2)
     val st = E.lineStep()
@@ -328,6 +341,7 @@ fun TrollS() {
 /* ---------- 2 · Σημείο: βέλος, απόσταση, χρόνος ---------- */
 @Composable
 fun SpotPage(open: (String) -> Unit) {
+    E.ver
     val ctx = LocalContext.current
     DisposableEffect(Unit) {
         val sm = ctx.getSystemService(Context.SENSOR_SERVICE) as SensorManager
@@ -384,6 +398,7 @@ fun SpotPage(open: (String) -> Unit) {
 /* ---------- 3 · Επόμενες μέρες ---------- */
 @Composable
 fun Days(f: JSONObject) {
+    E.ver
     val days = f.optJSONArray("days") ?: return
     Column(Modifier.fillMaxSize().padding(horizontal = 22.dp, vertical = 26.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
         Title(L.up(L.t("DaysU")), pc(2))
@@ -408,6 +423,7 @@ fun Days(f: JSONObject) {
 /* ---------- 4 · Πίεση: βαρόμετρο του ρολογιού και πρόγνωση 12 ωρών ---------- */
 @Composable
 fun Press(f: JSONObject) {
+    E.ver
     val ctx = LocalContext.current
     val d3 = Baro.d3()
     val hrs = f.optJSONArray("hrs")
@@ -440,6 +456,7 @@ fun Press(f: JSONObject) {
 /* ---------- 5 · Καλαμάρι ---------- */
 @Composable
 fun Squid(f: JSONObject) {
+    E.ver
     val sq = f.optJSONObject("sq")
     if (sq == null) { Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) { T(L.t("SquidOld"), 13.sp, pc(6), lines = 3) }; return }
     val il = E.nint(sq, "il"); val nd = E.ndbl(sq, "nd"); val dk = sq.optJSONArray("dk"); val wax = sq.optInt("wx", 0) == 1
@@ -487,6 +504,7 @@ fun Squid(f: JSONObject) {
 /* ---------- οθόνες πάνω από τις σελίδες ---------- */
 @Composable
 fun MsgOverlay() {
+    E.ver
     val m = E.msg ?: return
     val col = pc(m.ci.coerceIn(0, 15))
     Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.92f)).clickable { E.msgEnd() }, contentAlignment = Alignment.Center) {
@@ -500,6 +518,7 @@ fun MsgOverlay() {
 
 @Composable
 fun SavedOverlay() {
+    E.ver
     val k = E.lastKind ?: return
     val col = when (k) { "miss" -> pc(1); "pest" -> pc(3); else -> pc(2) }
     Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.94f)).clickable { E.msgEnd() }, contentAlignment = Alignment.Center) {
@@ -517,6 +536,7 @@ fun SavedOverlay() {
 /** 6″ μετά το ψάρι: αναίρεση / χάθηκε / είδος (BACK / UP / DOWN του Garmin) */
 @Composable
 fun AfterOverlay(open: (String) -> Unit) {
+    E.ver
     if (!E.afterOn) return
     val left = (6000 - (System.currentTimeMillis() - E.afterAt)).coerceAtLeast(0)
     Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.95f)), contentAlignment = Alignment.Center) {
@@ -538,11 +558,13 @@ fun AfterOverlay(open: (String) -> Unit) {
 
 @Composable
 fun Act(t: String, col: Color, on: () -> Unit) = Box(Modifier.background(col.copy(alpha = 0.18f), RoundedCornerShape(50)).clickable(onClick = on).padding(horizontal = 8.dp, vertical = 6.dp)) {
+    E.ver
     T(t, 11.sp, col, bold = true)
 }
 
 @Composable
 fun AnchorAlarm() {
+    E.ver
     if (!E.anchorAlarm) return
     Box(Modifier.fillMaxSize().background(Color(0xFF2A0B08)).clickable { E.anchorOff() }, contentAlignment = Alignment.Center) {
         Ring { arc(0f, 360f, pc(1), size.minDimension * 0.06f) }
@@ -557,6 +579,7 @@ fun AnchorAlarm() {
 
 @Composable
 fun Welcome() {
+    E.ver
     if (!E.welcome) return
     Box(Modifier.fillMaxSize().background(Color.Black).clickable { E.welcomeOk() }, contentAlignment = Alignment.Center) {
         Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -572,5 +595,6 @@ fun Welcome() {
 /** τελείες σελίδων δεξιά (κάθετες, όπως οι σελίδες) */
 @Composable
 fun PageDots(cur: Int) = Column(Modifier.fillMaxSize().padding(end = 5.dp), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.Center) {
+    E.ver
     for (k in 0 until 6) Box(Modifier.padding(vertical = 2.dp).size(if (k == cur) 6.dp else 4.dp).background(if (k == cur) pc(5) else pc(15), CircleShape))
 }

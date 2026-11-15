@@ -10,8 +10,10 @@ adb shell pm grant $P android.permission.POST_NOTIFICATIONS
 adb shell wm size
 S=$(adb shell wm size | grep -oE '[0-9]+x[0-9]+' | tail -1); W=${S%x*}; H=${S#*x}; CX=$((W/2)); CY=$((H/2))
 shot(){ sleep "${2:-3}"; adb exec-out screencap -p > "shots/$1.png"; }
-adb shell am start -n $P/com.alkyonfishing.app.wear.ui.MainActivity
-shot 00-welcome 15
+adb shell input keyevent KEYCODE_WAKEUP; sleep 3
+for t in 1 2 3 4 5 6; do adb shell am start -W -n $P/com.alkyonfishing.app.wear.ui.MainActivity; sleep 8
+  adb shell dumpsys window | grep -E "mCurrentFocus|mFocusedApp" | grep -q alkyonfishing && break; done
+shot 00-welcome 8
 adb shell input tap $CX $CY
 shot 01-today 10
 for i in 2 3 4 5 6; do adb shell input swipe $CX $((H*3/4)) $CX $((H/4)) 250; shot 0$i-page 4; done
