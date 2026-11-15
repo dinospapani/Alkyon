@@ -9,6 +9,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(AlkBaroPlugin.class); /* 1.13.8: βαρόμετρο του κινητού */
         registerPlugin(AlkNetPlugin.class); /* 1.13.1: «Δίκτυο σκάφους» (NMEA μέσω WiFi) */
+        registerPlugin(AlkWatchPlugin.class); /* ρολόι Wear OS: κωδικός σύνδεσης */
         super.onCreate(savedInstanceState);
     }
 }

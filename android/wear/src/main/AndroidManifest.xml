@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Alkyon για Wear OS: πρόγνωση, έξοδος με GPS, καταγραφή ψαριού, συρτή, σημεία, άγκυρα, δίχτυα, καλαμάρι,
+     ειδοποιήσεις πίεσης στο παρασκήνιο, tile και complication. Ίδιες λειτουργίες με την εφαρμογή Garmin. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-feature android:name="android.hardware.type.watch" />
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <application
+        android:name=".AlkApp"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:label="@string/AppName"
+        android:supportsRtl="true"
+        android:theme="@android:style/Theme.DeviceDefault">
+
+        <!-- εφαρμογή μόνη της (δουλεύει και χωρίς το κινητό, με WiFi/LTE) -->
+        <meta-data android:name="com.google.android.wearable.standalone" android:value="true" />
+
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:theme="@android:style/Theme.DeviceDefault">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- GPS της εξόδου (και σελίδα «Σημείο», άγκυρα, ρίψη εργαλείου) με την οθόνη σβηστή -->
+        <service
+            android:name=".GpsService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
+
+        <!-- κωδικός σύνδεσης από την εφαρμογή του κινητού (Προφίλ › Ρολόι) -->
+        <service
+            android:name=".LinkListener"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.DATA_CHANGED" />
+                <data android:scheme="wear" android:host="*" android:pathPrefix="/alkyon" />
+            </intent-filter>
+        </service>
+
+        <!-- tile: βαθμός της ημέρας, καλύτερη ώρα, άνεμος, κύμα -->
+        <service
+            android:name=".AlkTileService"
+            android:exported="true"
+            android:label="@string/AppName"
+            android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER">
+            <intent-filter>
+                <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
+            </intent-filter>
+            <meta-data android:name="androidx.wear.tiles.PREVIEW" android:resource="@mipmap/ic_launcher" />
+        </service>
+
+        <!-- complication στο watch face: ο βαθμός της ημέρας -->
+        <service
+            android:name=".AlkComplication"
+            android:exported="true"
+            android:icon="@drawable/ic_stat_alkyon"
+            android:label="@string/CxLong"
+            android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
+            <intent-filter>
+                <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
+            </intent-filter>
+            <meta-data android:name="android.support.wearable.complications.SUPPORTED_TYPES" android:value="SHORT_TEXT,RANGED_VALUE,LONG_TEXT" />
+            <meta-data android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS" android:value="1800" />
+        </service>
+    </application>
+</manifest>

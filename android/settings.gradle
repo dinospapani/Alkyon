@@ -1,4 +1,5 @@
 include ':app'
+include ':wear'   // Alkyon: εφαρμογή ρολογιού Wear OS (ίδιο πακέτο com.alkyonfishing.app)
 include ':capacitor-cordova-android-plugins'
 project(':capacitor-cordova-android-plugins').projectDir = new File('./capacitor-cordova-android-plugins/')
 

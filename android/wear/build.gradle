@@ -1,0 +1,69 @@
+// Alkyon για Wear OS (Samsung Galaxy Watch, Pixel Watch κ.ά.): ίδιο πακέτο με την εφαρμογή του κινητού (com.alkyonfishing.app),
+// ώστε να μπαίνει στην ίδια σελίδα του Play και να μιλά με το κινητό (Wearable Data Layer: κωδικός σύνδεσης).
+// Η έκδοση έρχεται από το version.js όπως και στο :app (-PalkVersionName / -PalkVersionCode). Το versionCode του ρολογιού
+// είναι +1 από του κινητού: το Play θέλει διαφορετικό versionCode για κάθε AAB της ίδιας εφαρμογής.
+apply plugin: 'com.android.application'
+apply plugin: 'org.jetbrains.kotlin.android'
+apply plugin: 'org.jetbrains.kotlin.plugin.compose'
+
+def alkVersionName = project.findProperty('alkVersionName') ?: '0.0.0'
+def alkVersionCode = (project.findProperty('alkVersionCode') ?: '1') as Integer
+
+android {
+    namespace = "com.alkyonfishing.app.wear"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "com.alkyonfishing.app"
+        minSdkVersion 30
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode alkVersionCode * 10 + 1
+        versionName alkVersionName
+    }
+    signingConfigs {
+        release {
+            def ks = System.getenv('ALKYON_KEYSTORE_PATH')
+            if (ks && file(ks).exists()) {
+                storeFile file(ks)
+                storePassword System.getenv('ALKYON_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('ALKYON_KEY_ALIAS') ?: 'alkyon-upload'
+                keyPassword System.getenv('ALKYON_KEY_PASSWORD') ?: System.getenv('ALKYON_KEYSTORE_PASSWORD')
+            }
+        }
+    }
+    buildTypes {
+        release {
+            if (System.getenv('ALKYON_KEYSTORE_PATH')) signingConfig signingConfigs.release
+            minifyEnabled false
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+    buildFeatures {
+        compose true
+    }
+}
+
+dependencies {
+    implementation "androidx.core:core-ktx:$androidxCoreVersion"
+    implementation "androidx.activity:activity-compose:1.10.1"
+    implementation "androidx.wear.compose:compose-material:1.4.1"
+    implementation "androidx.wear.compose:compose-foundation:1.4.1"
+    implementation "androidx.wear.compose:compose-navigation:1.4.1"
+    implementation "androidx.wear:wear-input:1.2.0"
+    implementation "androidx.wear:wear-ongoing:1.0.0"
+    implementation "androidx.work:work-runtime-ktx:2.10.0"
+    implementation "androidx.wear.tiles:tiles:1.4.1"
+    implementation "androidx.wear.protolayout:protolayout:1.2.1"
+    implementation "androidx.wear.protolayout:protolayout-expression:1.2.1"
+    implementation "androidx.concurrent:concurrent-futures:1.2.0"
+    implementation "com.google.guava:guava:33.3.1-android"
+    implementation "androidx.wear.watchface:watchface-complications-data-source-ktx:1.2.1"
+    implementation "com.google.android.gms:play-services-wearable:19.0.0"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0"
+}

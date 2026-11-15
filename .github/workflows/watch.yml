@@ -1,0 +1,41 @@
+# Alkyon · έλεγχος χτισίματος των ρολογιών (Wear OS και Apple Watch) και του κινητού με τη σύνδεση ρολογιού.
+# Δεν ανεβάζει τίποτα σε Play / TestFlight: μόνο χτίζει και κρατά τα αρχεία στα Artifacts (APK ρολογιού για δοκιμή).
+name: Alkyon watches
+on:
+  push:
+    branches: [watch-apps]
+    paths: ['android/**', 'ios/**', 'watch/**', '.github/workflows/watch.yml', 'v4/garmin.js', 'native.js']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: watch-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  wear:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - run: npm ci --no-audit --no-fund
+      - name: Αρχεία εφαρμογής → www → android
+        run: |
+          node tools/build-web.mjs www --native
+          npx cap sync android
+      - name: Χτίσιμο ρολογιού (Wear OS) και κινητού
+        working-directory: android
+        run: ./gradlew --no-daemon :wear:assembleDebug :app:assembleDebug -PalkVersionName=0.0.1 -PalkVersionCode=1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: alkyon-wear-debug
+          path: android/wear/build/outputs/apk/debug/*.apk
+          retention-days: 14
