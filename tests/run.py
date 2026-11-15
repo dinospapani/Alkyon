@@ -167,10 +167,10 @@ with sync_playwright() as p:
     a0=r[0] or {}
     check('Ανώνυμα στοιχεία: περιοχή 0,1°, ώρα UTC, χωρίς σημειώσεις/φωτογραφίες, χαμένο και έξοδος, όχι χωρίς θέση (1.14.21)', a0.get('lat')==34.7 and a0.get('lon')==32.5 and a0.get('sp')=='dicentrarchus labrax' and a0.get('ms')==1794285000000 and 'notes' not in a0 and 'photo' not in a0 and a0.get('cond',{}).get('wind')==6 and r[1]=='miss' and r[2]==2 and r[3] is None, r)
     pg.evaluate("()=>{ localStorage.setItem('alkyon-v4-logtab',JSON.stringify('stats')); }"); pg.goto(BASE+'/v4/#profile'); pg.wait_for_timeout(1500)
-    pg.evaluate("()=>{ const b=[...document.querySelectorAll('.seg button')].find(x=>/Ρυθμίσεις/.test(x.textContent)); b&&b.click(); }"); pg.wait_for_timeout(800)
+    pg.evaluate("()=>{ const b=[...document.querySelectorAll('.seg button')].find(x=>/Λογαριασμός/.test(x.textContent)); b&&b.click(); }"); pg.wait_for_timeout(800)
     s1=pg.evaluate("()=>[...document.querySelectorAll('.li b')].some(x=>/Βοήθησε την πρόγνωση/.test(x.textContent))")
     card=pg.evaluate("()=>{ const c=AK.biteStatsCard(); document.body.append(c); return new Promise(r=>setTimeout(()=>r(c.textContent),1500)); }")
-    check('Βοήθησε την πρόγνωση στις Ρυθμίσεις και κάρτα «Πότε τσιμπάνε · Όλοι» (1.14.21)', s1 and 'Όλοι' in card and 'Μαζεύονται' in card, [s1,card[:120]]); c.close()
+    check('Βοήθησε την πρόγνωση στον Λογαριασμό (από 1.14.32) και κάρτα «Πότε τσιμπάνε · Όλοι» (1.14.21)', s1 and 'Όλοι' in card and 'Μαζεύονται' in card, [s1,card[:120]]); c.close()
 
     print('# 1.14.22 πότε τσιμπάνε: ψάρια ανά ώρα ανά συνθήκη')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3000)
@@ -612,10 +612,8 @@ with sync_playwright() as p:
     check('στατιστικά: ρεκόρ 5 + πατιούνται, χωρίς άδειο «ανά ώρα», Κάρτα χρονιάς πάνω, κιλά ανά είδος (1.9.16)', all(r) and not pg._errs, [r,pg._errs])
     check('Χαμένα vs πιασμένα: ανοίγει, μόνο γραμμές με 2+ τσιμπήματα (1.9.15)', all(r) and not pg._errs, [r,pg._errs])
     pg.goto(BASE+'/v4/#profile'); pg.wait_for_timeout(2000)
-    r=pg.evaluate("()=>{const a=[...document.querySelectorAll('.pstats .pst')]; return [a.filter(x=>x.tagName=='BUTTON').length, new Set(a.map(x=>x.offsetHeight)).size]}")
-    pg.locator('.pstats .pst').nth(1).click(); pg.wait_for_timeout(1500)
-    r2=pg.evaluate("()=>[location.hash, (document.querySelector('.lseg button[aria-pressed=true]')||{}).textContent]")
-    check('προφίλ: τα κουτάκια (6 από την 1.12.16) πατιούνται και έχουν ίδιο ύψος (1.9.15)', r[0]==6 and r[1]==1 and r2==['#log','Ψάρια'] and not pg._errs, [r,r2,pg._errs])
+    r=pg.evaluate("()=>{const sg=document.querySelector('main .seg'); return [document.querySelectorAll('.pstats').length, !!sg, sg?Math.round(sg.getBoundingClientRect().top):9999]}")
+    check('προφίλ: χωρίς κουτάκια στατιστικών, οι καρτέλες αμέσως ορατές (1.14.32)', r[0]==0 and r[1] and r[2]<420 and not pg._errs, [r,pg._errs])
     pg.evaluate("()=>AK.biteForm()"); pg.wait_for_timeout(1200)
     r=pg.evaluate("()=>{const f=document.querySelector('.sheet.on form.bf2'); if(!f) return null; return [f.querySelectorAll('.bfseg button').length, !!f.querySelector('details.bfmore'), !!f.querySelector('.bfsave')]}")
     check('νέο ψάρι: νέα φόρμα (Ψάρι/Χάθηκε, Λεπτομέρειες, Αποθήκευση) (1.9.15)', r and r[0]==2 and r[1] and r[2] and not pg._errs, [r,pg._errs]); c.close()
@@ -1106,6 +1104,7 @@ with sync_playwright() as p:
     pg.evaluate("()=>{location.hash='#profile'}"); pg.wait_for_timeout(2500)
     t=pg.evaluate("()=>document.getElementById('main').innerText")
     nb=pg.evaluate("()=>{const e=document.querySelector('.cmnew'); return e?e.textContent:''}")
+    pg.evaluate("()=>[...document.querySelectorAll('main .seg button')].find(x=>/Λογαριασμός/.test(x.textContent)).click()"); pg.wait_for_timeout(600); t=t+pg.evaluate("()=>document.getElementById('main').innerText")
     check('Προφίλ: «Νέα» στην Κοινότητα, «Φωτογραφία προφίλ», «Πρόσκληση φίλου» (1.9.65)', nb=='2' and 'Φωτογραφία προφίλ' in t and 'Πρόσκληση φίλου' in t and not pg._errs, [nb,pg._errs]); c.close()
     # 1.9.67: ποιος έκανε like, κάρτα προφίλ
     c=ctx(b); c.add_init_script("if(!sessionStorage.cs){sessionStorage.cs=1;localStorage.setItem('alkyon-sess',JSON.stringify({access_token:'AT',refresh_token:'RT',exp:Date.now()+9e6,uid:'u1',email:'d+test@x.com',name:'Ντίνος'}));}")
@@ -1417,8 +1416,8 @@ with sync_playwright() as p:
     gx=pg.evaluate("()=>[AK.geoText('gpx',{spots:1,fish:1,tracks:1}),AK.geoText('kml',{spots:1,fish:1,tracks:1})]")
     check('Εξαγωγή GPX/KML: έγκυρα XML (1.12.16)', gx[0].startswith('<?xml') and '<gpx' in gx[0] and '</gpx>' in gx[0] and '<kml' in gx[1] and '</kml>' in gx[1] and pg.evaluate("(t)=>!new DOMParser().parseFromString(t,'application/xml').querySelector('parsererror')",gx[0]) and pg.evaluate("(t)=>!new DOMParser().parseFromString(t,'application/xml').querySelector('parsererror')",gx[1]), [x[:120] for x in gx])
     pg.evaluate("()=>{location.hash='#profile'}"); pg.wait_for_timeout(1500)
-    ps=pg.evaluate("()=>[...document.querySelectorAll('.pstats .pst small')].map(e=>e.textContent)")
-    check('Προφίλ: 6 κουτάκια με «Είδη» (1.12.16)', len(ps)==6 and any(x.startswith('Είδη') for x in ps), ps)
+    ps=pg.evaluate("()=>[...document.querySelectorAll('main .listh')].map(e=>e.textContent)")
+    check('Προφίλ › Τα δικά μου: «Εξοπλισμός και συσκευές», «Φίλοι και κοινότητα», «Βοήθεια» (1.14.32)', ps[:3]==['Εξοπλισμός και συσκευές','Φίλοι και κοινότητα','Βοήθεια'], ps)
     check('1.12.16 χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
     _fc={'id':'gps','t':int(_tt.time()*1000),'fc':{'days':[{'date':_d0,'best':72,'safe':True,'win':{'s':23,'e':23},'avgWind':4,'avgWave':0.4}]}}
     c=ctx(b); c.add_init_script("if(!sessionStorage.sp){sessionStorage.sp=1;localStorage.setItem('alkyon-askfp','1');localStorage.setItem('alkyon-fc7',%s);}"%_jj.dumps(_jj.dumps(_fc)))
@@ -1496,7 +1495,7 @@ with sync_playwright() as p:
     pg.evaluate("()=>[...document.querySelectorAll('main .seg button')].find(x=>/Λογαριασμός/.test(x.textContent)).click()"); pg.wait_for_timeout(600); g3=grp()
     hg=[x for x in g1 if x[0]=='Βοήθεια']; dg=[x for x in g3 if x[0]=='Δεδομένα']
     check('Προφίλ: Οδηγός πρώτος, Βοήθεια με «Πες μας τη γνώμη σου» και «Σχετικά» (1.12.14)', g1 and g1[0][1][:1]==['Οδηγός'] and hg and 'Σχετικά' in hg[0][1] and 'Πες μας τη γνώμη σου' in hg[0][1], g1)
-    check('Προφίλ: Ρυθμίσεις σε ομάδες Ψάρεμα/Ασφάλεια/Ειδοποιήσεις/Εφαρμογή/Εμφάνιση/Εργαλεία (1.12.14)', [x[0] for x in g2]==['Ψάρεμα','Ασφάλεια','Ειδοποιήσεις','Εφαρμογή','Εμφάνιση','Εργαλεία'], [x[0] for x in g2])
+    check('Προφίλ: Ρυθμίσεις σε ομάδες Ψάρεμα/Ασφάλεια/Ειδοποιήσεις/Εμφάνιση και γλώσσα/Βοηθοί (1.14.32)', [x[0] for x in g2]==['Ψάρεμα','Ασφάλεια','Ειδοποιήσεις','Εμφάνιση και γλώσσα','Βοηθοί','Βοήθεια'], [x[0] for x in g2])
     check('Προφίλ: Λογαριασμός › Δεδομένα με εισαγωγή, αντίγραφο και εξαγωγή (1.12.14)', dg and any('Εισαγωγή' in t for t in dg[0][1]) and 'Αντίγραφο ασφαλείας' in dg[0][1], g3)
     pg.evaluate("()=>[...document.querySelectorAll('main .seg button')].find(x=>/Τα δικά μου/.test(x.textContent)).click()"); pg.wait_for_timeout(500)
     pg.evaluate("()=>[...document.querySelectorAll('main .li')].find(x=>/Σχετικά/.test(x.textContent)).click()"); pg.wait_for_timeout(800)
@@ -1530,7 +1529,7 @@ with sync_playwright() as p:
     pg.click(".sheet.on button:has-text('Αποκλεισμός χρήστη')"); pg.wait_for_timeout(800); pg.click(".sheet.on button:has-text('Αποκλεισμός')"); pg.wait_for_timeout(1200)
     cm=pg.evaluate("()=>[...document.querySelectorAll('.cmc .noik b')].map(e=>e.textContent.trim())")
     check('Κοινότητα: αποκλεισμός χρήστη κρύβει αναρτήσεις ΚΑΙ σχόλιά του (1.12.14)', au()==['Καλός'] and cm==['Άλλος'], [au(),cm])
-    pg.evaluate("()=>{location.hash='#profile'}"); pg.wait_for_timeout(1500); pg.evaluate("()=>[...document.querySelectorAll('main .seg button')].find(x=>/Τα δικά μου/.test(x.textContent)).click()"); pg.wait_for_timeout(500)
+    pg.evaluate("()=>{location.hash='#profile'}"); pg.wait_for_timeout(1500); pg.evaluate("()=>[...document.querySelectorAll('main .seg button')].find(x=>/Λογαριασμός/.test(x.textContent)).click()"); pg.wait_for_timeout(500)
     pg.evaluate("()=>[...document.querySelectorAll('main .li')].find(x=>/Αποκλεισμένοι/.test(x.textContent)).click()"); pg.wait_for_timeout(700)
     pg.click(".sheet.on button:has-text('Άρση')"); pg.wait_for_timeout(500)
     check('Προφίλ › Αποκλεισμένοι χρήστες: άρση αποκλεισμού (1.12.14)', pg.evaluate("()=>localStorage.getItem('alkyon-comm-block')")=='[]', pg.evaluate("()=>localStorage.getItem('alkyon-comm-block')"))
@@ -1587,6 +1586,17 @@ with sync_playwright() as p:
     r2=pg.evaluate("()=>{ const rel=[...document.querySelectorAll('.bf2 label.tg')].find(l=>/άφησα ελεύθερο/.test(l.textContent)).querySelector('input'); return [document.querySelector('.bf2 .lawnote').textContent,rel.checked]; }")
     check('Κάτω από το ελάχιστο → «Το άφησα ελεύθερο» αυτόματα, πάνω → ξεστσεκάρεται· κρατημένα της εξόδου στη φόρμα (1.14.31)', r[1] is True and 'Σημειώθηκε' in r[0] and r2[1] is False and 'Κρατημένα σε αυτή την έξοδο: 7' in r2[0], [r,r2])
     check('1.14.31: χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
+
+    print('# 1.14.32 προφίλ: νέα κατανομή')
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#profile'); pg.wait_for_timeout(2500)
+    def ptab(name):
+        pg.evaluate("n=>[...document.querySelectorAll('main .seg button')].find(x=>x.textContent.trim()===n).click()",name); pg.wait_for_timeout(600)
+        return pg.evaluate("()=>[...document.querySelectorAll('main .pgrp')].map(g=>((g.querySelector('.listh')||{}).textContent||'')+':'+[...g.querySelectorAll('.li b')].map(b=>b.firstChild?b.firstChild.textContent:b.textContent).join('|'))")
+    m=ptab('Τα δικά μου'); st=ptab('Ρυθμίσεις'); ac=ptab('Λογαριασμός')
+    check('Προφίλ: Οδηγός πάνω, βυθόμετρο στις συσκευές, Βοήθεια σε κάθε καρτέλα, Βοήθησε την πρόγνωση στον Λογαριασμό (1.14.32)',
+      m[0]==':Οδηγός' and 'Βυθόμετρο' in m[1] and 'Ρολόι Garmin' in m[1] and m[-1].startswith('Βοήθεια:') and st[-1].startswith('Βοήθεια:') and ac[-1].startswith('Βοήθεια:')
+      and any(x.startswith('Εμφάνιση και γλώσσα:Θέμα') for x in st) and not any('Βοήθησε την πρόγνωση' in x for x in st) and any('Βοήθησε την πρόγνωση' in x for x in ac) and not any('Εισαγωγή από βυθόμετρο' in x for x in ac), [m,st,ac])
+    check('1.14.32: χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
 
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)
