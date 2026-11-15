@@ -5,6 +5,7 @@
 //   GET  /functions/v1/watch?grid=1&lat=..&lon=..[&code=..]  → 1.9.72: χάρτης βυθού γύρω από το σημείο (συρτή βυθού στο ρολόι)
 //   POST /functions/v1/watch  {code, kind:'undo'|'upd', cid[, miss, sp]}  → 1.9.75: αναίρεση/αλλαγή ψαριού από το ρολόι
 //   POST /functions/v1/watch  {code, kind:'trip', ts, te, tz, tid, n, pts:[[lat,lon,ts],…]}  → 1.1.0: έξοδος από το ρολόι
+// Τα ρολόγια Apple Watch και Wear OS χρησιμοποιούν την ίδια function και στέλνουν επιπλέον dev = 'applewatch' | 'wearos'.
 // Το «code» είναι ο κωδικός σύνδεσης ρολογιού (Προφίλ › Ρολόι Garmin στην εφαρμογή, πίνακας watch_links, βλ. watch-link.sql).
 // Χρειάζεται: Verify JWT = off. Τα SUPABASE_URL και SUPABASE_SERVICE_ROLE_KEY υπάρχουν ήδη σε κάθε Edge Function.
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS' };
@@ -100,6 +101,8 @@ export function turns(PF, fc) {
   }
   return out.slice(0, 4);
 }
+/* Apple Watch / Wear OS (dev): ίδια function με το Garmin· αλλάζει μόνο το κείμενο της σημείωσης */
+function recNote(en, dev) { const n = dev === 'applewatch' ? 'Apple Watch' : dev === 'wearos' ? 'Wear OS' : 'Garmin'; return en ? 'Recorded on the ' + n + ' watch' : 'Καταγράφηκε στο ρολόι ' + n; }
 function rid() { return 'w' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 function localParts(ms, tzMin) { const d = new Date(ms + tzMin * 60000); const iso = d.toISOString(); return { date: iso.slice(0, 10), time: iso.slice(11, 16) }; }
 /* ώρα Κύπρου (ή της ζώνης που στέλνει το ρολόι) */
@@ -235,7 +238,7 @@ export async function handle(req, F = fetch, now = Date.now()) {
         const lp = localParts(s0, tz != null ? tz : tzOf(s0)), en = us.lang === 'en', tid = tripId(b.tid) || rid(), mid = pts.length ? pts[Math.floor(pts.length / 2)] : null;
         const n = Math.max(0, Math.min(999, Math.floor(+b.n) || 0));
         const data = { id: tid, sid: tid, date: lp.date, spot: '', tech: '', species: '', count: n, kg: 0, startMs: s0, endMs: e0, km: Math.round(km * 10) / 10, track: pts, lat: mid ? mid[0] : null, lon: mid ? mid[1] : null,
-          notes: en ? 'Recorded on the Garmin watch' : 'Καταγράφηκε στο ρολόι Garmin', src: 'watch', _u: now };
+          notes: recNote(en, b.dev), src: 'watch', _u: now };
         const r = await sb(F, 'records', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify([{ user_id: us.user_id, kind: 'trips', id: tid, data, deleted: false, updated_at: new Date(now).toISOString() }]) });
         if (!r.ok && r.status !== 409) return J({ ok: 0, err: 'db ' + r.status, detail: (await r.text()).slice(0, 200) }, 502);
         return J({ ok: 1, id: tid });   // 409 = υπάρχει ήδη (το ρολόι το ξανάστειλε)
@@ -260,7 +263,7 @@ export async function handle(req, F = fetch, now = Date.now()) {
           if (n > 0) rows.push({ user_id: us.user_id, kind: 'bites', id: 'b' + gid, data: { id: 'b' + gid, date: hp.date, time: hp.time, species: '', latin: '', bait: '', tech: TN[type], depth: null, kg: null, len: null, cnt: n, notes: '', place: '',
             lat: pos ? pos[0] : null, lon: pos ? pos[1] : null, photo: false, src: 'watch', prof: 'boat', gear: gid, gearName: name, trip: sid, _u: now }, deleted: false, updated_at: new Date(now).toISOString() });
           rows.push({ user_id: us.user_id, kind: 'trips', id: sid, data: { id: sid, sid, date: sp0.date, spot: name, prof: 'boat', tech: TN[type], species: '', count: n, kg: 0, startMs: s0 != null ? s0 : h0, endMs: h1,
-            lat: pos ? pos[0] : null, lon: pos ? pos[1] : null, notes: en ? 'Recorded on the Garmin watch' : 'Καταγράφηκε στο ρολόι Garmin', src: 'watch', manual: true, gear: [it], _u: now }, deleted: false, updated_at: new Date(now).toISOString() });
+            lat: pos ? pos[0] : null, lon: pos ? pos[1] : null, notes: recNote(en, b.dev), src: 'watch', manual: true, gear: [it], _u: now }, deleted: false, updated_at: new Date(now).toISOString() });
         }
         const r = await sb(F, 'records', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(rows) });
         if (!r.ok) return J({ ok: 0, err: 'db ' + r.status, detail: (await r.text()).slice(0, 200) }, 502);

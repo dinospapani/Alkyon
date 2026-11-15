@@ -32,7 +32,9 @@ window.AKN={
   /* 1.13.1: «Δίκτυο σκάφους» (UDP/TCP προς plotter ή πύλη NMEA). Προς το παρόν μόνο Android. */
   net:IOS?null:reg('AlkNet'),
   /* 1.13.8: βαρόμετρο του κινητού (Android SensorManager, iPhone CMAltimeter) */
-  baro:reg('AlkBaro')
+  baro:reg('AlkBaro'),
+  /* ρολόι Apple Watch / Wear OS: στέλνει τον κωδικό σύνδεσης στο ρολόι (v4/garmin.js) */
+  watch:reg('AlkWatch')
 };
 try{ document.documentElement.classList.add('native','native-'+window.AKN.platform); }catch(e){}
 

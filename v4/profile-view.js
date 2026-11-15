@@ -93,7 +93,7 @@ function mineTab(page){
     row('guide',T('Οδηγός','Guide'),T('Είδη, μεγέθη, νόμοι, τεχνικές','Species, sizes, laws, techniques'),'#guide'),
     row('tackle',T('Εξοπλισμός','Tackle'),n?n+' '+(n===1?T('κομμάτι','item'):T('κομμάτια','items')):T('Καλάμια, μουλινέ, τεχνητά, ψαροντούφεκα','Rods, reels, lures, spearguns'),'#tackle'),
     row('boat',T('Σκάφος','Boat'),bn||T('Κινητήρας, συντήρηση, λήξεις, μπαταρίες','Engine, maintenance, expiries, batteries'),'#boat'),
-    /* v31z552 */ B.garmin?row('watch',T('Ρολόι Garmin','Garmin watch'),B.garmin.code()?T('Συνδεδεμένο ✓','Linked ✓'):T('Πρόγνωση, πίεση και καταγραφή ψαριού στο ρολόι','Forecast, pressure and catch logging on the watch'),null,function(){ B.garmin.sheet(); }):null].filter(Boolean)));
+    /* v31z552 */ B.garmin?row('watch',T('Ρολόι (Garmin, Apple Watch, Wear OS)','Watch (Garmin, Apple Watch, Wear OS)'),B.garmin.code()?T('Συνδεδεμένο ✓','Linked ✓'):T('Πρόγνωση, πίεση και καταγραφή ψαριού στο ρολόι','Forecast, pressure and catch logging on the watch'),null,function(){ B.garmin.sheet(); }):null].filter(Boolean)));
   var nbl=(ls.get('alkyon-comm-block',[])||[]).length;
   page.append(group(T('Φίλοι και κοινότητα','Friends and community'),[
     (function(){ var r=row('community',T('Κοινότητα','Community'),T('Ψάρια άλλων ψαράδων, χωρίς θέση','Other anglers’ catches, no locations'),'#community'); /* 1.9.65: «Νέα» */

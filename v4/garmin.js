@@ -1,4 +1,6 @@
-/* Alkyon 4 · Ρολόι Garmin (v31z552).
+/* Alkyon 4 · Ρολόι: Garmin (v31z552), Apple Watch και Wear OS (Samsung Galaxy Watch, Pixel Watch).
+   - Apple Watch / Wear OS: ίδιος κωδικός· μέσα στην εφαρμογή του κινητού στέλνεται μόνος του στο ρολόι (AKN.watch, native.js),
+     αλλιώς γράφεται στο ρολόι (Μενού › Ρυθμίσεις › Γράψε τον κωδικό).
    - Προφίλ › Ρολόι Garmin: φτιάχνει κωδικό σύνδεσης (πίνακας watch_links, βλ. watch-link.sql). Τον γράφεις στο Garmin Connect ›
      Alkyon › Ρυθμίσεις, και από εκεί το ρολόι στέλνει τα ψάρια στο Ημερολόγιό σου (συνάρτηση «watch»).
    - Τα ψάρια από το ρολόι (src:'watch') έρχονται με τον συγχρονισμό· εδώ μπαίνουν στην έξοδο που έτρεχε εκείνη την ώρα
@@ -12,23 +14,36 @@ function mk(){ var a='ABCDEFGHJKLMNPQRSTUVWXYZ23456789', s=''; var r=new Uint8Ar
 function create(){ var cl=C(); if(!cl) return Promise.reject(new Error('nosess')); var code=mk(), s=cl.session();
   return cl.rest('watch_links',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({code:code,user_id:s.uid,lang:B.LANG,name:'Garmin'})}).then(function(r){
     if(r&&r.ok===false) return r.text().then(function(t){ throw new Error(/PGRST205|42P01|not find|relation/i.test(t)||r.status===404?'notable':'http '+r.status); });
-    ls.set(K,{code:code,at:Date.now()}); return code; },function(e){ var m=String(e&&e.message||e); throw new Error(/404|PGRST205|42P01|relation/.test(m)?'notable':m); }); }
+    ls.set(K,{code:code,at:Date.now()}); push(code); return code; },function(e){ var m=String(e&&e.message||e); throw new Error(/404|PGRST205|42P01|relation/.test(m)?'notable':m); }); }
+/* Apple Watch / Wear OS: ο κωδικός πηγαίνει στο ρολόι μέσω της εφαρμογής του κινητού (WatchConnectivity / Wearable Data Layer) */
+function W(){ return window.AKN&&window.AKN.watch; }
+function push(code){ var w=W(); if(!w||!code) return Promise.resolve(null); return w.link({code:code,lang:B.LANG}).then(function(r){ return r&&r.ok; },function(){ return null; }); }
+function wstat(){ var w=W(); if(!w) return Promise.resolve(null); return w.status().catch(function(){ return null; }); }
 function drop(code){ var cl=C(); if(!cl||!code) return Promise.resolve(); return cl.rest('watch_links?code=eq.'+code,{method:'DELETE'}).catch(function(){}); }
-function sheet(){ var body=h('div',{class:'bform gmn'}), sh=B.sheet({title:T('Ρολόι Garmin','Garmin watch'),body:body});
+function sheet(){ var body=h('div',{class:'bform gmn'}), sh=B.sheet({title:T('Ρολόι','Watch'),body:body});
   function paint(err){ var st=ls.get(K,null); body.replaceChildren();
     body.append(h('p',{class:'sub',text:T('Με την εφαρμογή Alkyon στο ρολόι: πρόγνωση και βαθμός της ημέρας, ειδοποίηση όταν αλλάζει η πίεση, καταγραφή ψαριού (Ψάρι / Χάθηκε / Λαγοκέφαλος) με ώρα και θέση, και έξοδος με καταγραφή δραστηριότητας «Ψάρεμα» και διαδρομή GPS. Όλα έρχονται εδώ στο Ημερολόγιο.','With the Alkyon app on your watch: the day’s forecast and score, an alert when the pressure changes, catch logging (Fish / Lost / Toadfish) with time and position, and trips recorded as a «Fishing» activity with a GPS track. Everything arrives here in your Logbook.')}));
     if(!C()){ body.append(h('p',{class:'wn',text:T('Το ρολόι παίρνει την πρόγνωση και στέλνει τα ψάρια μέσω του λογαριασμού σου.','The watch gets the forecast and sends catches through your account.')}),B.accountBtn?B.accountBtn(T('Για το ρολόι Garmin χρειάζεται λογαριασμός.','The Garmin watch needs an account.')):null); return; }
     if(err) body.append(h('p',{class:'wn',text:err==='notable'?T('Η σύνδεση ρολογιού δεν είναι διαθέσιμη ακόμα.','Watch linking is not available yet.'):T('Δεν έγινε. Έλεγξε τη σύνδεση και ξαναδοκίμασε.','Failed. Check your connection and try again.')}));
     if(st&&st.code){
       body.append(h('div',{class:'gmcode'},h('small',{text:T('Κωδικός σύνδεσης','Link code')}),h('b',{text:st.code.slice(0,4)+' '+st.code.slice(4)})),
+        h('h3',{text:'Garmin'}),
         h('ol',{class:'gmsteps'},
           h('li',{text:T('Εγκατέστησε το Alkyon στο ρολόι από το Connect IQ Store (ή την εφαρμογή Connect IQ στο κινητό).','Install Alkyon on the watch from the Connect IQ Store (or the Connect IQ app on your phone).')}),
           h('li',{text:T('Στο κινητό: Garmin Connect › η συσκευή σου › Εφαρμογές Connect IQ › Alkyon › Ρυθμίσεις.','On the phone: Garmin Connect › your device › Connect IQ apps › Alkyon › Settings.')}),
           h('li',{text:T('Στο «Κωδικός σύνδεσης» γράψε τον κωδικό χωρίς κενό και αποθήκευσε.','In “Link code” type the code without the space and save.')})),
+        h('h3',{text:'Apple Watch · Wear OS (Samsung, Pixel)'}),
+        h('ol',{class:'gmsteps'},
+          h('li',{text:T('Εγκατέστησε το Alkyon στο ρολόι: Apple Watch από το App Store του ρολογιού (ή την εφαρμογή Watch στο iPhone), Wear OS από το Play Store του ρολογιού.','Install Alkyon on the watch: Apple Watch from the watch’s App Store (or the Watch app on the iPhone), Wear OS from the watch’s Play Store.')}),
+          h('li',{text:W()?T('Ο κωδικός πηγαίνει μόνος του στο ρολόι όταν ανοίγεις αυτή την οθόνη στην εφαρμογή Alkyon του κινητού.','The code goes to the watch by itself when you open this screen in the Alkyon phone app.'):T('Στο ρολόι: Μενού (≡) › Ρυθμίσεις › Γράψε τον κωδικό. Με την εφαρμογή Alkyon στο κινητό ο κωδικός πηγαίνει μόνος του.','On the watch: Menu (≡) › Settings › Type the code. With the Alkyon phone app the code is sent by itself.')})),
+        W()?h('p',{class:'note',id:'gmwst',text:T('Ψάχνω ρολόι…','Looking for a watch…')}):null,
         h('div',{class:'acts'},h('button',{class:'btn',type:'button',text:T('Αντιγραφή','Copy'),onclick:function(){ try{ navigator.clipboard.writeText(st.code).then(function(){ B.toast(T('Αντιγράφηκε.','Copied.')); }); }catch(e){} }}),
+          W()?h('button',{class:'btn',type:'button',text:T('Στείλε στο ρολόι','Send to watch'),onclick:function(){ push(st.code).then(function(ok){ B.toast(ok?T('Στάλθηκε στο ρολόι.','Sent to the watch.'):T('Δεν βρέθηκε ρολόι με το Alkyon.','No watch with Alkyon found.')); }); }}):null,
           h('button',{class:'btn',type:'button',text:T('Νέος κωδικός','New code'),onclick:function(){ B.ask(T('Ο παλιός κωδικός θα σταματήσει να δουλεύει. Συνέχεια;','The old code will stop working. Continue?'),T('Νέος κωδικός','New code')).then(function(y){ if(!y) return; drop(st.code).then(create).then(function(){ paint(); },function(e){ paint(String(e.message)); }); }); }})));
     } else body.append(h('button',{class:'btn pri full',type:'button',text:T('Φτιάξε κωδικό σύνδεσης','Create a link code'),onclick:function(ev){ ev.currentTarget.disabled=true; create().then(function(){ paint(); },function(e){ paint(String(e.message)); }); }}));
-    body.append(h('p',{class:'note',text:T('Τα ψάρια από το ρολόι στέλνονται μέσω του κινητού (Garmin Connect)· αν δεν υπάρχει σύνδεση, το ρολόι τα κρατά και τα στέλνει αργότερα. Είδος, βάρος και φωτογραφία τα συμπληρώνεις μετά εδώ.','Catches from the watch go through your phone (Garmin Connect); without a connection the watch keeps them and sends them later. Add species, weight and photo here afterwards.')})); }
+    if(st&&st.code&&W()){ push(st.code); wstat().then(function(r){ var el=body.querySelector('#gmwst'); if(!el||!r) return;
+      el.textContent=r.app>0?T('Βρέθηκε ρολόι με το Alkyon ✓ · ο κωδικός στάλθηκε.','Watch with Alkyon found ✓ · code sent.'):r.watches>0?T('Βρέθηκε ρολόι, αλλά χωρίς το Alkyon. Εγκατέστησέ το και άνοιξε ξανά αυτή την οθόνη.','A watch was found, but without Alkyon. Install it and open this screen again.'):T('Δεν βρέθηκε Apple Watch / Wear OS συνδεδεμένο με το κινητό.','No Apple Watch / Wear OS watch connected to this phone.'); }); }
+    body.append(h('p',{class:'note',text:T('Τα ψάρια από το ρολόι στέλνονται μέσω του κινητού (ή με WiFi/LTE στο Apple Watch και στο Wear OS)· αν δεν υπάρχει σύνδεση, το ρολόι τα κρατά και τα στέλνει αργότερα. Είδος, βάρος και φωτογραφία τα συμπληρώνεις μετά εδώ.','Catches from the watch go through your phone (or WiFi/LTE on Apple Watch and Wear OS); without a connection the watch keeps them and sends them later. Add species, weight and photo here afterwards.')})); }
   paint(); }
 B.garmin={sheet:sheet,code:function(){ var s=ls.get(K,null); return s&&s.code; }};
 /* ψάρια από το ρολόι: έξοδος και συνθήκες (μία φορά για το καθένα) */
@@ -53,4 +68,6 @@ B.on&&B.on('sync',function(s){ if(s&&!/…$/.test(s.msg||'')) setTimeout(fix,300
 /* κατά την έξοδο: συχνότερος συγχρονισμός για να φαίνονται γρήγορα τα ψάρια του ρολογιού */
 setInterval(function(){ try{ var a=ls.get('alkyon-safe',{})||{}; if(a.active&&B.garmin.code()&&!document.hidden&&C()&&C().sync) C().sync(); }catch(e){} },120000);
 setTimeout(fix,4000);
+/* Apple Watch / Wear OS: σε κάθε άνοιγμα της εφαρμογής του κινητού ο κωδικός ξαναστέλνεται (π.χ. νέο ή επανεγκατεστημένο ρολόι) */
+setTimeout(function(){ var c=B.garmin.code(); if(c) push(c); },6000);
 })();
