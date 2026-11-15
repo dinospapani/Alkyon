@@ -71,3 +71,44 @@ jobs:
           set -o pipefail
           xcodebuild -project App.xcodeproj -scheme App -configuration Release -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build > /tmp/ios.log 2>&1 || { grep -E "error:" -A3 /tmp/ios.log | head -150; tail -40 /tmp/ios.log; exit 1; }
           tail -5 /tmp/ios.log
+      - name: Στιγμιότυπα Apple Watch (προσομοιωτής)
+        run: |
+          cd ios/App && xcodebuild -project App.xcodeproj -target AlkyonWatch -configuration Debug -sdk watchsimulator CODE_SIGNING_ALLOWED=NO build > /tmp/wd.log 2>&1 || tail -30 /tmp/wd.log
+          cd ../.. && bash watch/watchos-shots.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: watchos-shots
+          path: shots/
+          retention-days: 7
+
+  wear-shots:
+    needs: wear
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: alkyon-wear-debug
+          path: apk
+      - name: KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+      - name: Στιγμιότυπα Wear OS (προσομοιωτής)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          target: android-wear
+          arch: x86_64
+          profile: wearos_large_round
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: bash watch/wear-shots.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wear-shots
+          path: shots/
+          retention-days: 7

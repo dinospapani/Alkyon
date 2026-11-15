@@ -15,6 +15,7 @@ final class Engine: ObservableObject {
     func bump() { if Thread.isMainThread { ver &+= 1 } else { DispatchQueue.main.async { self.ver &+= 1 } } }
 
     var page = 0
+    var startRoute: String? = nil
     var visible = false
     var fc: JO? = nil
     var loading = false
@@ -71,6 +72,10 @@ final class Engine: ObservableObject {
         fc = P.obj("fc")
         grid = P.obj("grid"); gridD = (grid?["d"] as? [NSNumber])?.map { $0.intValue } ?? []
         welcome = !P.linked && !P.b("wel")
+        // έλεγχος στο CI (στιγμιότυπα στον προσομοιωτή): -alkPage N ανοίγει στη σελίδα N, -alkWel 0 χωρίς «Καλώς ήρθες»
+        if let s = UserDefaults.standard.string(forKey: "alkPage"), let n = Int(s), (0..<6).contains(n) { page = n; pageSel = n }
+        if UserDefaults.standard.string(forKey: "alkWel") == "0" { welcome = false }
+        if let r = UserDefaults.standard.string(forKey: "alkRoute") { startRoute = r }
         Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in self?.onTick() }
     }
     func ms() -> Double { Date().timeIntervalSince1970 * 1000 }

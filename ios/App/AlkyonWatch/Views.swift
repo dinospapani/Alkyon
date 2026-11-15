@@ -90,6 +90,10 @@ struct ContentView: View {
             .toolbar(.hidden, for: .navigationBar)
         }
         .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in if e.trip.active || e.afterOn { e.bump() } }
+        .onAppear {
+            switch e.startRoute { case "log": path = [.log]; case "settings": path = [.settings]; case "depth": path = [.depth(false)]; default: break }
+            e.startRoute = nil
+        }
     }
 }
 
