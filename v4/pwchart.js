@@ -83,7 +83,8 @@ B.pwChart=function(pts,cfg){
       var hi=b>a&&b>=c, lo=b<a&&b<=c; if(!hi&&!lo) continue;
       var den=a-2*b+c, off=den?Math.max(-0.5,Math.min(0.5,0.5*(a-c)/den)):0, xm=X(i2+off), ym=YL(b-0.25*(a-c)*off);
       svg.appendChild(s('circle',{cx:xm.toFixed(1),cy:ym.toFixed(1),r:3,class:hi?'th':'tlo'}));
-      if(rk==='d1'||rk==='catch'){ var mm=Math.round((pts[i2].t+off*3600000)/60000)*60000; tx(xm,hi?ym-5:ym+11,loc(mm).slice(11,16),'tt','middle'); } }
+      if(rk==='d1'||rk==='catch'){ var mm=Math.round((pts[i2].t+off*3600000)/60000)*60000; var nearT=hi&&xm<Lm+56;   /* 1.14.43: η ώρα μιας ψηλής δίπλα στον τίτλο «παλίρροια» πάει κάτω από το σημείο, για να μην πέφτει πάνω του */
+        tx(xm,(hi&&!nearT)?ym-5:ym+11,loc(mm).slice(11,16),'tt',xm<Lm+14?'start':'middle'); } }
   }
   /* σημάδια (π.χ. «πιάστηκε», «σταμάτησαν») */
   (cfg.marks||[]).forEach(function(m){ if(m.t<t0||m.t>t1) return; var x=Xt(m.t); svg.appendChild(s('line',{x1:x,x2:x,y1:pT-2,y2:bot,class:'pmk '+(m.cls||'')})); if(m.lbl) tx(Math.min(W-R-2,Math.max(Lm+2,x)),pT-4,m.lbl,'pmkl '+(m.cls||''),x>W-R-40?'end':x<Lm+40?'start':'middle'); });

@@ -695,3 +695,9 @@ html.nightred .kpis .kpi{outline:1px solid #fff;outline-offset:-1px;background:#
 .lawnote{white-space:pre-line}
 .shortall{margin:8px 12px 4px auto!important;display:block}
 .shortbtn+.list{margin-top:6px}
+/* 1.14.43: οι κάρτες εξόδων είναι ξεχωριστές κάρτες με κενό ανάμεσα (η λίστα πίσω τους είχε το ίδιο χρώμα και φαίνονταν κολλημένες) */
+.list:has(.tcard){background:none;box-shadow:none;overflow:visible;border-radius:0}
+.list:has(.tcard) .swp{box-shadow:var(--shadow)}
+.list:has(.tcard) .swp:not(:last-child){border-bottom:0}
+.pastrow{margin-top:12px}
+.shortbtn{margin-top:4px}

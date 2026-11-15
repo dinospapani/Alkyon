@@ -29,6 +29,7 @@ function deps(){ var p=Promise.resolve(), L=['../cy100.js'].concat(window.SPECIE
 B.guideReady=function(){ if(ready) return ready;
   ready=deps().then(function(){ var tmp=null; if(!page.isConnected){ tmp=h('div',{hidden:true}); tmp.append(page); document.body.append(tmp); } var sec=page.querySelector('#tab-guide'); if(EN&&window.AlkyonTrWatch&&!window.ALKYON_TRBODY) AlkyonTrWatch(sec);
     try{ core=window.AlkyonGuideCore(); }catch(e){ console.error(e); }
+    if(EN){ var q=sec.querySelector('#spQ'); if(q){ q.placeholder='Search species (Greek, English, Latin)'; q.setAttribute('aria-label','Search species'); } var gs=sec.querySelector('.gseg'); if(gs) gs.setAttribute('aria-label','Guide section'); }   /* 1.14.43 */
     /* 1.12.27: οι κόμποι αφαιρέθηκαν προσωρινά ώσπου να έρθουν επαγγελματικά βίντεο (ο κώδικας μένει στο ../knots.js) */
     if(tmp){ tmp.remove(); } }).then(function(){ return core; });
   return ready; };

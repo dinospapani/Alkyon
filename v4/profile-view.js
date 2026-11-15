@@ -24,7 +24,11 @@ function delAccount(){ var word=T('ΔΙΑΓΡΑΦΗ','DELETE'), cl=B.cloud, inp=
   sh=B.sheet({title:T('Διαγραφή λογαριασμού','Delete account'),body:h('div',{class:'bform'},h('p',{class:'sub',text:T('Θα διαγραφεί ο λογαριασμός σου και ό,τι έχει συγχρονιστεί στο cloud (ψάρια, σημεία, έξοδοι, φωτογραφίες, επαφή ασφαλείας). Δεν αναιρείται. Τα δεδομένα σε αυτό το κινητό μένουν.','Your account and everything synced to the cloud (catches, spots, trips, photos, safety contact) will be deleted. This cannot be undone. Data on this phone stays.')}),
     h('label',{class:'fld'},h('span',{text:T('Γράψε ','Type ')+word+T(' για επιβεβαίωση',' to confirm')}),inp),msg,go)}); }
 /* εικονίδια γραμμής για τις λίστες του Προφίλ */
-var PI={sounder:'<path d="M4 5h16v10H4z"/><path d="M6 12l3-3 2 2 3-4 4 5"/><path d="M9 19h6M12 15v4"/>',lim:'<path d="M12 3l7.5 3v5.5c0 4.6-3.2 8.3-7.5 9.5-4.3-1.2-7.5-4.9-7.5-9.5V6z"/><path d="M8 12.5c1.3 0 1.3-1.2 2.7-1.2s1.3 1.2 2.6 1.2 1.3-1.2 2.7-1.2"/>',watch:'<rect x="7" y="6" width="10" height="12" rx="3"/><path d="M9 6l1-3h4l1 3M9 18l1 3h4l1-3M12 10v2.5l1.5 1"/>',tackle:'<path d="M4 20L18.5 5.5"/><path d="M18.5 5.5c1.2-1.2 2.5-.4 2.5 1v5"/><circle cx="7.5" cy="16.5" r="2.2"/>',boat:'<path d="M3 15h18l-2.5 4.5h-13z"/><path d="M7 15V9h7l3 6"/><path d="M10 9V5"/>',
+var PI={/* 1.14.43: δικό του εικονίδιο σε κάθε γραμμή (πριν πέντε γραμμές είχαν το ίδιο συννεφάκι) */
+  bulb:'<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.300 1 2.200h5.200c0-.900.400-1.700 1-2.200A6 6 0 0 0 12 3z"/>',
+  reply:'<path d="M3 5h12v8H8l-5 4z"/><path d="M18 9h3v8l-3-2.500h-6"/>',
+  camera:'<path d="M4 8h3.500l1.500-2.500h6L16.500 8H20v11H4z"/><circle cx="12" cy="13.300" r="3.300"/>',
+  sounder:'<path d="M4 5h16v10H4z"/><path d="M6 12l3-3 2 2 3-4 4 5"/><path d="M9 19h6M12 15v4"/>',lim:'<path d="M12 3l7.5 3v5.5c0 4.6-3.2 8.3-7.5 9.5-4.3-1.2-7.5-4.9-7.5-9.5V6z"/><path d="M8 12.5c1.3 0 1.3-1.2 2.7-1.2s1.3 1.2 2.6 1.2 1.3-1.2 2.7-1.2"/>',watch:'<rect x="7" y="6" width="10" height="12" rx="3"/><path d="M9 6l1-3h4l1 3M9 18l1 3h4l1-3M12 10v2.5l1.5 1"/>',tackle:'<path d="M4 20L18.5 5.5"/><path d="M18.5 5.5c1.2-1.2 2.5-.4 2.5 1v5"/><circle cx="7.5" cy="16.5" r="2.2"/>',boat:'<path d="M3 15h18l-2.5 4.5h-13z"/><path d="M7 15V9h7l3 6"/><path d="M10 9V5"/>',
   spots:'<path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>',gear:'<path d="M3 7h18M3 12h18M3 17h18M7 4v16M12 4v16M17 4v16"/>',
   people:'<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.2c3 .2 5.5 2.6 5.5 5.8"/>',community:'<path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/>',
   guide:'<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/>',bell:'<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/>',
@@ -101,8 +105,8 @@ function helpGroup(page){
   page.append(group(T('Βοήθεια','Help'),[
     row('guide',T('Οδηγός','Guide'),T('Είδη, μεγέθη, νόμοι, τεχνικές','Species, sizes, laws, techniques'),'#guide'),
     row('help',T('Πώς δουλεύει','How it works'),T('Όλες οι λειτουργίες με λίγα λόγια','Every feature in a few words'),'#help'),
-    row('chat',T('Πες μας τη γνώμη σου','Share feedback'),T('Πρόταση, πρόβλημα ή κάτι που σου άρεσε','An idea, a problem, or something you liked'),null,feedbackSheet),
-    /* 1.14.13 */ (C()&&C().session&&C().session())?(function(){ var rw=row('chat',T('Μηνύματα με την Alkyon','Messages with Alkyon'),T('Οι απαντήσεις μας στα μηνύματά σου','Our replies to your messages'),null,function(){ msgThread({uid:C().session().uid,admin:false,onclose:function(){ draw(); }}); });
+    row('bulb',T('Πες μας τη γνώμη σου','Share feedback'),T('Πρόταση, πρόβλημα ή κάτι που σου άρεσε','An idea, a problem, or something you liked'),null,feedbackSheet),
+    /* 1.14.13 */ (C()&&C().session&&C().session())?(function(){ var rw=row('reply',T('Μηνύματα με την Alkyon','Messages with Alkyon'),T('Οι απαντήσεις μας στα μηνύματά σου','Our replies to your messages'),null,function(){ msgThread({uid:C().session().uid,admin:false,onclose:function(){ draw(); }}); });
       msgUnread().then(function(n){ if(!n) return; var ic=rw.firstElementChild; if(!ic) return; ic.classList.add('hasbadge'); ic.append(h('i',{class:'icbadge','aria-label':n+T(' νέα',' new'),text:String(n)})); }); return rw; })():null,
     row('mail',T('Επικοινωνία','Contact'),'alkyonfishingapp@gmail.com','mailto:alkyonfishingapp@gmail.com?subject='+encodeURIComponent('Alkyon '+(window.ALKYON_VERSION||''))), /* 1.9.24 */
     row('safety',T('Έλεγχος συστήματος','System check'),T('Δουλεύουν όλα; Καιρός, δορυφόρος, ειδοποιήσεις, αντίγραφο','Is everything working? Weather, satellite, alerts, backup'),'#check'),
@@ -249,13 +253,13 @@ function accountTab(page,s){
   page.append(s?accountCard(s):signInCard());
   privGroup(page,s);
   /* 1.9.6: πιο σύντομος «Λογαριασμός»: τα εργαλεία δεδομένων σε τρεις γραμμές που ανοίγουν φύλλο (ίδια κουμπιά μέσα) */
-  var IC={imp:'<rect x="7" y="3" width="10" height="18" rx="2"/><path d="M12 7v7m-3-3 3 3 3-3"/>',snd:'<path d="M4 5h16v10H4z"/><path d="M6 12l3-3 2 2 3-4 4 5"/><path d="M9 19h6M12 15v4"/>',bk:'<path d="M12 3v12m-4-4 4 4 4-4M5 21h14"/>',gx:'<path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><path d="M12 7v5m-2-2 2 2 2-2"/>',xl:'<path d="M4 4h16v16H4zM4 10h16M10 4v16"/>',ck:'<path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/>'};
+  var IC={fcsv:'<path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4"/><path d="M9 14.500c1.500-2 4-2 6 0-2 2-4.500 2-6 0zM15 14.500l1.500-1.200v2.400z"/>',imp:'<rect x="7" y="3" width="10" height="18" rx="2"/><path d="M12 7v7m-3-3 3 3 3-3"/>',snd:'<path d="M4 5h16v10H4z"/><path d="M6 12l3-3 2 2 3-4 4 5"/><path d="M9 19h6M12 15v4"/>',bk:'<path d="M12 3v12m-4-4 4 4 4-4M5 21h14"/>',gx:'<path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><path d="M12 7v5m-2-2 2 2 2-2"/>',xl:'<path d="M4 4h16v16H4zM4 10h16M10 4v16"/>',ck:'<path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/>'};
   function row(ic,t,sub,fn){ return h('button',{class:'li',type:'button',onclick:fn},h('span',{class:'ic',html:'<svg viewBox="0 0 24 24" aria-hidden="true">'+IC[ic]+'</svg>'}),h('span',{class:'tx'},h('b',{text:t}),h('small',{text:sub})),B.icon('chev')); }
   var lb=ls.get('alkyon-lastbackup',0), dcs=B.dataCards?B.dataCards():null, dm=dataCard();
   page.append(group(T('Δεδομένα','Data'),[
     /* 1.12.14: εδώ και η εισαγωγή (πριν ήταν στα «Τα δικά μου») */
     row('imp',T('Εισαγωγή από plotter, GPS ή ρολόι','Import from a plotter, GPS or watch'),'GPX · KML · CSV · FIT · UDDF',function(){ if(B.importSheet) B.importSheet(); }),
-    /* 1.14.37: «Ψάρια φίλου» (CSV) εδώ, όχι στην Πρόγνωση */ window.AlkyonExt?row('imp',T('Ψάρια φίλου (CSV)','A friend’s catches (CSV)'),T('Ως εποχιακή ένδειξη στις προτάσεις ειδών','As a seasonal hint in species suggestions'),function(){ var xc=null; try{ xc=AlkyonExt.card(function(){ B.emit('store','alkyon-fprof'); }); }catch(e){} if(xc){ xc.classList.remove('card'); sheetOf(T('Ψάρια φίλου','A friend’s catches'),h('div',null,xc)); } }):null,
+    /* 1.14.37: «Ψάρια φίλου» (CSV) εδώ, όχι στην Πρόγνωση */ window.AlkyonExt?row('fcsv',T('Ψάρια φίλου (CSV)','A friend’s catches (CSV)'),T('Ως εποχιακή ένδειξη στις προτάσεις ειδών','As a seasonal hint in species suggestions'),function(){ var xc=null; try{ xc=AlkyonExt.card(function(){ B.emit('store','alkyon-fprof'); }); }catch(e){} if(xc){ xc.classList.remove('card'); sheetOf(T('Ψάρια φίλου','A friend’s catches'),h('div',null,xc)); } }):null,
     row('bk',T('Αντίγραφο ασφαλείας','Backup'),lb?T('Τελευταίο: ','Last: ')+new Date(lb).toLocaleDateString(EN?'en-GB':'el-GR'):T('Δεν έχει γίνει ακόμα','Not done yet'),function(){ sheetOf(T('Αντίγραφο ασφαλείας','Backup'),h('div',null,backupCard())); }),
     B.geoSheet?row('gx',T('Εξαγωγή σε GPX / KML','Export to GPX / KML'),T('Σημεία, ψάρια και διαδρομές για plotter ή Google Earth','Spots, catches and tracks for a plotter or Google Earth'),function(){ B.geoSheet(); }):null,
     dcs&&dcs[0]?row('xl',T('Εξαγωγή σε Excel (CSV)','Export to Excel (CSV)'),T('Ψάρια ή έξοδοι σε αρχείο','Catches or trips in a file'),function(){ var d=B.dataCards(); sheetOf(T('Εξαγωγή σε Excel (CSV)','Export to Excel (CSV)'),h('div',null,d[0])); }):null,
@@ -265,7 +269,7 @@ function accountTab(page,s){
 /* 1.14.32: «Προφίλ και απόρρητο»: φωτογραφία προφίλ, Βοήθησε την πρόγνωση, αποκλεισμένοι (ήταν σκόρπια σε άλλες καρτέλες) */
 function privGroup(page,s){ var nbl=(ls.get('alkyon-comm-block',[])||[]).length;
   page.append(group(T('Απόρρητο και κοινοποίηση','Privacy and sharing'),[
-    (s&&B.commAvatarPick)?row('people',T('Φωτογραφία προφίλ','Profile photo'),T('Φαίνεται στις αναρτήσεις και στα σχόλιά σου','Shown on your posts and comments'),null,function(){ B.commAvatarPick(); }):null,
+    (s&&B.commAvatarPick)?row('camera',T('Φωτογραφία προφίλ','Profile photo'),T('Φαίνεται στις αναρτήσεις και στα σχόλιά σου','Shown on your posts and comments'),null,function(){ B.commAvatarPick(); }):null,
     B.contrib?row('stats',T('Βοήθησε την πρόγνωση','Help the forecast'),B.contrib.on()?T('Συμμετέχεις ανώνυμα · ευχαριστούμε','Taking part anonymously · thank you'):T('Ανώνυμα στοιχεία τσιμπημάτων','Anonymous bite data'),null,function(){ B.contrib.sheet(); }):null,
     nbl?row('block',T('Αποκλεισμένοι χρήστες','Blocked users'),String(nbl),null,blockedSheet):null])); }
 /* ---------- λογαριασμός ---------- */

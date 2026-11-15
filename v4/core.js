@@ -14,7 +14,8 @@ if(LANG!=='el'&&LANG!=='en') LANG='el';
 window.LANG=LANG;
 document.documentElement.lang=LANG;
 var EN=LANG==='en';
-function T(el,en){ return EN?en:el; }
+/* 1.14.43: στα αγγλικά τα εισαγωγικά είναι “ ” και όχι « » */
+function T(el,en){ return EN?((typeof en==='string'&&en.indexOf('\u00ab')>=0)?en.replace(/\u00ab/g,'\u201c').replace(/\u00bb/g,'\u201d'):en):el; }
 
 /* ---------- αποθήκευση ---------- */
 var ls={

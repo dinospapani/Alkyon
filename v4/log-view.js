@@ -321,7 +321,7 @@ function stats(page){
   if(B.moonCard){ var mc=B.moonCard(bs); if(mc&&mc.querySelector('.bar')) page.append(mc); }
   var lc=lostAnalysis(null,bs); if(lc) page.append(sfold('lost',T('Χαμένα σε σχέση με όσα πιάστηκαν','Lost vs caught'),function(){ return lc; }));
   if(B.yearsCard) page.append(sfold('years',T('Σύγκριση χρονιών','Year comparison'),function(){ return B.yearsCard(); }));
-  if(goalC) page.append(sfold('goals','🎯 '+T('Στόχοι','Goals'),function(){ return goalC; }));
+  if(goalC) page.append(sfold('goals',T('Στόχοι','Goals'),function(){ return goalC; }));
   if(B.costCard){ var cc=B.costCard(); if(cc) page.append(cc); }
   if(rel) page.append(h('p',{class:'foot',text:T('Αφέθηκαν ελεύθερα: ','Released: ')+rel+T('. Τα κιλά δεν τα μετράνε.','. They are not counted in the kilos.')}));
 }

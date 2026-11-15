@@ -329,7 +329,7 @@ function seasonCard(){
   var grid=h('div',{class:'ssg'}); grid.append(h('span'),h('div',{class:'ssm'},MN.map(function(x,i){ return h('i',{class:i===mo?'cur':'',text:x}); })));
   K.slice().sort(function(a,b){ return b.m[mo]-a.m[mo]||(b.c||0)-(a.c||0); }).forEach(function(k){ var o=own(k);
     grid.append(h('span',{class:'ssn',text:nm(k)}),h('div',{class:'ssm'},k.m.map(function(v,i){ return h('i',{class:'l'+v+(i===mo?' cur':''),title:MNL[i]},o&&o[i]?h('b',{text:String(o[i])}):null); }))); });
-  c.append(grid,h('p',{class:'foot',text:T('Πιο σκούρο = καλύτερη εποχή. Οι αριθμοί είναι τα δικά σου ψάρια εκείνο τον μήνα (όλα τα χρόνια).','Darker = better season. Numbers are your own catches in that month (all years).')}));
+  c.append(grid,h('p',{class:'foot',text:T('Πιο έντονο χρώμα = καλύτερη εποχή. Οι αριθμοί είναι τα δικά σου ψάρια εκείνο τον μήνα (όλα τα χρόνια).','Stronger colour = better season. Numbers are your own catches in that month (all years).')}));
   return c; }
 /* ---------- v31z544: πλάνο εξόδου («Θα βγω») ---------- */
 var PK='alkyon-v4-plans';

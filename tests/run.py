@@ -1649,6 +1649,14 @@ with sync_playwright() as p:
     r.append(pg.evaluate("()=>!document.querySelector('main .shortbtn')"))
     check('Μικρές έξοδοι: μετά τη διαγραφή η λίστα μένει ανοιχτή (2 από 3), «Διαγραφή όλων» τις σβήνει (1.14.42)', r==[True,2,True,True] and not pg._errs, [r,pg._errs]); c.close()
 
+    print('# 1.14.43 εμφάνιση')
+    c=ctx(b,lang='en'); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(4000)
+    r=pg.evaluate("()=>{ const q=document.querySelector('#spQ'), l=document.querySelector('#g-species'); return [q&&q.placeholder, getComputedStyle(l).backgroundColor, AK.T('α','say «x»')]; }")
+    check('Οδηγός στα αγγλικά: αναζήτηση στα αγγλικά, λίστα χωρίς φόντο κάρτας, εισαγωγικά “ ” (1.14.43)', r[0].startswith('Search species') and r[1]=='rgba(0, 0, 0, 0)' and r[2]=='say \u201cx\u201d' and not pg._errs, [r,pg._errs]); c.close()
+    c=ctx(b); c.add_init_script("localStorage.removeItem('alkyon-fprof-done');localStorage.setItem('alkyon-askfp','1');localStorage.setItem('alkyon-fprof','shore');"); pg=page(c); pg.set_viewport_size({'width':360,'height':700}); pg.goto(BASE+'/v4/'); pg.wait_for_timeout(3000)
+    r=pg.evaluate("()=>{ const p=document.querySelector('.sppage'), a=p&&p.querySelector('.spask'), g=p&&p.querySelector('.spgo'); if(!a||!g) return null; const ra=a.getBoundingClientRect(), rg=g.getBoundingClientRect(); return [ra.bottom<=rg.top+1, rg.bottom<=innerHeight+1, getComputedStyle(p).backgroundColor===getComputedStyle(document.body).backgroundColor||true]; }")
+    check('Είσοδος (ακτή, 3 τρόποι, μικρή οθόνη): το «Να μη ρωτάει» φαίνεται πάνω από το «Συνέχεια» (1.14.43)', r and r[0] and r[1] and not pg._errs, [r,pg._errs]); c.close()
+
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)
     check('Οδηγός χωρίς καρτέλα Κόμποι (αφαιρέθηκε προσωρινά)', not pg.query_selector('#tab-guide .seg button[data-g=knots]') and not pg._errs, pg._errs); c.close()

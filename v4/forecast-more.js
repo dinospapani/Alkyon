@@ -35,13 +35,16 @@ B.fcAdv=function(page,fc,ctx){
   else {
     var mx=S.species[0].p, l=h('div',{class:'spl'}), l0=l, rest=null;
     S.species.forEach(function(r,ri){ /* 1.14.42: τα 5 πρώτα· τα υπόλοιπα ανοίγουν με «Περισσότερα είδη» */ if(ri===5){ rest=h('div',{class:'spl'}); l=rest; }
-      var det=[r.tech.length?T('Τεχνική: ','Technique: ')+r.tech.join(', '):'',r.bait.length?T('Δόλωμα: ','Bait: ')+r.bait.join(', '):'',r.depth?T('Βάθος: ','Depth: ')+r.depth:''].filter(Boolean);
+      /* 1.14.43: «Άλλο» δεν λέει τίποτα· από το δόλωμα βγαίνει η πραγματική τεχνική (καλαμαριέρα, σαμπίκι) */
+      var bj=(r.bait||[]).join(' ').toLowerCase(), oth=/καλαμαρι[έε]ρ|squid jig|egi/.test(bj)?T('Καλαμαριέρα (eging)','Squid jigging (eging)'):/σαμπ[ίι]κι|sabiki/.test(bj)?'Sabiki':null;
+      var tk=r.tech.map(function(x){ return (x==='Άλλο'||x==='Other')&&oth?oth:x; });
+      var det=[tk.length?T('Τεχνική: ','Technique: ')+tk.join(', '):'',r.bait.length?T('Δόλωμα: ','Bait: ')+r.bait.join(', '):'',r.depth?T('Βάθος: ','Depth: ')+r.depth:''].filter(Boolean);
       l.append(h('div',{class:'sp'},h('div',{class:'sph'},h('b',{text:r.name}),h('span',{class:'splv lv'+(r.p/mx>=0.75?'2':r.p/mx>=0.45?'1':'0'),text:lvlTxt(r.p/mx)})),h('span',{class:'bt'},h('i',{style:{width:Math.max(3,Math.round(r.p/mx*100))+'%'}})),
         h('p',{class:'spd',text:det.join('. ')+(det.length?'. ':'')+(r.n?T('Από ','From ')+r.n+T(' δικά σου ψάρια.',' of your catches.'):T('Από γενική γνώση.','From general knowledge.'))}),
         r.warn?h('p',{class:'spw',text:r.warn}):null));
     });
     c.append(l0); if(rest) c.append(h('details',{class:'spmore'},h('summary',{text:T('Περισσότερα είδη (','More species (')+(S.species.length-5)+')'}),rest));
-    if(S.tech.length){ c.append(h('h3',{class:'h3',text:T('Προτεινόμενη τεχνική','Suggested technique')})); S.tech.forEach(function(t){ c.append(bar(t.name,t.p,S.tech[0].p,lvlTxt(t.p/S.tech[0].p))); }); }
+    if(S.tech.length){ c.append(h('h3',{class:'h3',text:T('Προτεινόμενη τεχνική','Suggested technique')})); S.tech.forEach(function(t){ c.append(bar((t.name==='Άλλο'||t.name==='Other')?T('Καλαμαριέρα, σαμπίκι','Squid jig, sabiki'):t.name,t.p,S.tech[0].p,lvlTxt(t.p/S.tech[0].p))); }); }
   }
   if(B.infoAdd) B.infoAdd(c.querySelector('h2'),T('Τα είδη ταξινομημένα από το πιο πιθανό για αυτή την ώρα, από τα δικά σου ψάρια και τη γενική γνώση για κάθε είδος. Σχετική σύγκριση ανάμεσα στα είδη, όχι σίγουρο αποτέλεσμα.','Species ordered from most likely at this hour, from your own catches and general knowledge of each species. A relative comparison between species, not a certain result.'));
   page.append(c);
@@ -108,6 +111,7 @@ B.fcMine=function(page,fc,ctx){
     var pd=m.ready?PP.day(m,d,d.date===ctx.today?nk:null):null, g=d.safe?d.best:null, pe=pd&&pd.safe?pd.best:null;
     if(d.win&&pd&&pd.win){ tot++; if(d.win.s<=pd.win.e&&pd.win.s<=d.win.e) ag++; }
     var cell=function(val,w){ return h('span',{class:'cc'},h('b',{text:val==null?'–':String(val)}),h('small',{text:w?B.pad(w.s)+':00–'+B.pad((w.e+1)%24)+':00':''})); };
+    if(g==null&&pe==null) return;   /* 1.14.43: μέρα χωρίς βαθμό και στις δύο (π.χ. σήμερα το βράδυ) δεν πιάνει γραμμή με δύο παύλες */
     tb.append(h('span',{class:'cd',text:B.dayName(d.date,ctx.today)}),cell(g,d.win),m.ready?cell(pe,pd&&pd.win):h('span',{class:'cc lock',text:'—'}));
   });
   c3.append(tb);
