@@ -36,7 +36,11 @@ struct AlkyonWatchApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .onAppear { Loc.shared.ask(); Notify.ask() }
+                .onAppear {
+                    Loc.shared.ask()
+                    // στα στιγμιότυπα του CI (-alkShots 1) χωρίς την ερώτηση ειδοποιήσεων, που σκεπάζει την οθόνη
+                    if UserDefaults.standard.string(forKey: "alkShots") != "1" { Notify.ask() }
+                }
         }
     }
 }

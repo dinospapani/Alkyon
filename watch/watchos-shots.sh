@@ -14,14 +14,14 @@ xcrun simctl privacy "$UD" grant location com.alkyonfishing.app.watchkitapp || t
 xcrun simctl location "$UD" set 34.75,32.42 || true
 for pg in 0 1 2 3 4 5; do
   xcrun simctl terminate "$UD" com.alkyonfishing.app.watchkitapp 2>/dev/null
-  xcrun simctl launch "$UD" com.alkyonfishing.app.watchkitapp -alkPage $pg -alkWel 0; sleep 14
+  xcrun simctl launch "$UD" com.alkyonfishing.app.watchkitapp -alkPage $pg -alkWel 0 -alkShots 1; sleep 14
   xcrun simctl io "$UD" screenshot "shots/page-$pg.png"
 done
 for r in log settings depth; do
   xcrun simctl terminate "$UD" com.alkyonfishing.app.watchkitapp 2>/dev/null
-  xcrun simctl launch "$UD" com.alkyonfishing.app.watchkitapp -alkPage 0 -alkWel 0 -alkRoute $r; sleep 10
+  xcrun simctl launch "$UD" com.alkyonfishing.app.watchkitapp -alkPage 0 -alkWel 0 -alkShots 1 -alkRoute $r; sleep 10
   xcrun simctl io "$UD" screenshot "shots/route-$r.png"
 done
 xcrun simctl terminate "$UD" com.alkyonfishing.app.watchkitapp 2>/dev/null
-xcrun simctl launch "$UD" com.alkyonfishing.app.watchkitapp -alkPage 0; sleep 10
+xcrun simctl launch "$UD" com.alkyonfishing.app.watchkitapp -alkPage 0 -alkShots 1; sleep 10
 xcrun simctl io "$UD" screenshot "shots/welcome.png"
