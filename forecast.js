@@ -175,9 +175,16 @@ function learnBins(sm,h){ const o={}, t=h.hr*60+30;
   if(h.tide) o.tide=h.tide==='up'?0:h.tide==='down'?1:2;
   if(h.cloud) o.cloud=h.cloud==='clear'?0:h.cloud==='part'?1:2;
   if(typeof h.rain==='number') o.rain=h.rain>=0.2?1:0;
+  /* 1.14.26: και ώρες μετά τη δύση, φάση σελήνης, εποχή, θερμοκρασία νερού (κυρίως για τα κεφαλόποδα) */
+  if(sm&&sm.rise!=null){ const m=h.hr*60+30; if(m>=sm.rise&&m<sm.set) o.aft=0; else if(m<sm.rise&&m>=sm.rise-90) o.aft=5; else { const af=m>=sm.set?m-sm.set:m+1440-sm.set; o.aft=af<60?1:af<180?2:af<360?3:4; } }
+  if(sm&&typeof sm.f==='number') o.moon=Math.round(sm.f*8)%8;
+  if(h.t){ const mo=+String(h.t).slice(5,7)-1; if(mo>=0) o.season=mo===11||mo<=1?0:mo<=4?1:mo<=7?2:3; }
+  if(typeof h.sst==='number') o.sstb=h.sst<16?0:h.sst<19?1:h.sst<22?2:h.sst<25?3:4;
   return o; }
 /* 1.14.24: {by:{sea,spear,lake}} → η ομάδα του προφίλ (σκάφος/ακτή = θάλασσα με καλάμι) */
-function learnPick(L){ if(!L||!L.by) return L; let p='boat'; try{ p=(typeof window!=='undefined'&&window.AK&&window.AK.prof)?window.AK.prof():'boat'; }catch(e){} return L.by[p==='spear'?'spear':p==='lake'?'lake':'sea']||null; }
+const CEPH_L=['loligo vulgaris','loligo forbesii','alloteuthis media','alloteuthis subulata','todarodes sagittatus','illex coindetii','ommastrephes bartramii','sepia officinalis','sepia elegans','sepia orbignyana','sepioteuthis lessoniana','octopus vulgaris','eledone cirrhosa','eledone moschata'];
+/* 1.14.26: με στόχο είδος: πρώτα τα ευρήματα του είδους (με δανεισμό από την ομάδα του), μετά κεφαλόποδα αν είναι κεφαλόποδο, αλλιώς η ομάδα του προφίλ */
+function learnPick(L,sp){ if(!L||!L.by) return L; const la=String(sp&&typeof sp==='object'?(sp.l||''):(sp||'')).toLowerCase(); if(la){ if(L.sp&&L.sp[la]) return L.sp[la]; if(CEPH_L.indexOf(la)>=0) return L.by.ceph||null; } let p='boat'; try{ p=(typeof window!=='undefined'&&window.AK&&window.AK.prof)?window.AK.prof():'boat'; }catch(e){} return L.by[p==='spear'?'spear':p==='lake'?'lake':'sea']||null; }
 function learnAdj(L,sm,h){ if(!L||!L.ins||!L.ins.length) return h; const bb=learnBins(sm,h); let lg=0; const m=[];
   for(const x of L.ins){ if(!(x.src==='both'||x.n>=15)||bb[x.f]!==x.b||!(x.lift>0)) continue; const w=x.n/(x.n+60); lg+=w*Math.log(x.lift); m.push({f:x.f,b:x.b,lift:x.lift}); }
   if(!m.length) return h; const k=Math.max(0.85,Math.min(1.15,Math.exp(lg)));
@@ -228,7 +235,7 @@ async function getForecast(lat,lon,fetchFn,opt){
   const days=[], past=[], dks=Object.keys(byDay).sort();
   for(const date of dks.filter(x=>x<today).concat(dks.filter(x=>x>=today).slice(0,nd))){
     const zn=(typeof w.value.timezone==='string')?w.value.timezone:null, tzd=zn?nicOffAt(date,tz,zn):(tz===120||tz===180)?nicOffAt(date,tz):tz, sm=sunMoon(date,lat,lon,tzd), rows=byDay[date];
-    const LRN=learnPick((opt&&opt.learn)||(opt&&opt.learn===false?null:(typeof window!=='undefined'&&window.AlkyonLearn)||null));
+    const LRN=learnPick((opt&&opt.learn)||(opt&&opt.learn===false?null:(typeof window!=='undefined'&&window.AlkyonLearn)||null),opt&&opt.sp);
     const hours=rows.map(h=>learnAdj(LRN,sm,{t:h.t,hr:h.hr,p:h.p,pres:h.pres,wind:h.wind,wave:h.wave,waveOff:h.waveOff,gust:h.gust,code:h.code,ptrend:h.ptrend,tide:h.tide,dir:h.dir,temp:h.temp,rain:h.rain,cloud:h.cloud,sst:h.sst,period:h.period,score:hourScore(sm,h.hr,opt&&opt.sp?Object.assign({sp:opt.sp},h):h),bite:hourScore(sm,h.hr,Object.assign(opt&&opt.sp?{sp:opt.sp}:{},h,{bite:true})),safe:safeHour(h)}));
     const day=h=>{const t=h.hr*60+30;return t>=sm.rise-60&&t<=sm.set+60;};
     const cand=hours.filter(h=>h.safe&&day(h)&&(date!==today||h.t>=nowLocal.slice(0,13)+':00'));
