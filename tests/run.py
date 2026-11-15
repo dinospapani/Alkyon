@@ -1549,6 +1549,21 @@ with sync_playwright() as p:
     check('«Τι πιάνεται τώρα κοντά σου» με 🦑 και «200 έξοδοι (τώρα 40)» στην κάρτα (1.14.28)', 'Τι πιάνεται τώρα' in card and '🦑' in card and '(τώρα 40)' in card, card[:400])
     check('1.14.28: χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
 
+    print('# 1.14.29 ακρίβεια, τι δουλεύει, εποχή, σημεία ανά άνεμο, χλωροφύλλη')
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3000)
+    r=pg.evaluate('''()=>{ localStorage.setItem('alkyon-bites',JSON.stringify([{id:'a',date:'2026-10-01',lat:34.70,lon:32.40,wdeg:270,wind:12,species:'Λαβράκι',cnt:2},{id:'b',date:'2026-10-05',lat:34.701,lon:32.401,wdeg:290,wind:10,species:'Λαβράκι'},{id:'c',date:'2026-10-09',lat:34.70,lon:32.402,wdeg:250,wind:14,species:'Σαργός'},{id:'d',date:'2026-10-09',lat:34.9,lon:32.9,wdeg:90,wind:10,species:'Σαργός',cnt:9}]));
+      localStorage.setItem('alkyon-spots',JSON.stringify([{id:'s',name:'Λιμανάκι',lat:34.703,lon:32.40}]));
+      const f=AK.mySpots.find(270,12), g=AK.mySpots.find(90,10), m=AK.mySpots.meanWind([{dir:350,wind:10},{dir:10,wind:10}]), bx=AK.mySpots.box([{dir:270,wind:12}]);
+      return [f.length&&f[0].name,f.length&&f[0].n,f.length&&f[0].days,g.length,m&&m.dir,bx&&bx.textContent,PF.learnBins({rise:390,set:1020},{hr:9,chl:0.3}).chl]; }''')
+    check('Σημεία ανά άνεμο: «Λιμανάκι · 4 ψάρια σε 3 μέρες» με Δ, όχι με 1 μέρα· χλωροφύλλη στον δείκτη (1.14.29)', r[0]=='Λιμανάκι' and r[1]==4 and r[2]==3 and r[3]==0 and r[4]==0 and 'Με Δ 12 kn' in (r[5] or '') and r[6]==3, r)
+    card=pg.evaluate('''()=>{ const st=[{key:'all',n:72,users:3,data:{v:2,hrs:195,trips:40,fitMin:200,mon:[1,1,1,1,1,1,1,1,1,10,20,5],acc:{b:[50,60,70],n:[5,10,12,8],r:[0.2,0.4,0.6,0.9],hit:[40,60,70,88],trips:35},ins:[],f:{}}},
+        {key:'sp:loligo vulgaris',n:30,users:3,data:{v:2,mon:[0,0,0,0,0,0,0,0,0,4,12,3],ins:[],f:{}}},
+        {key:'trend:34_32',n:9,users:3,data:{day:new Date().toISOString().slice(0,10),items:[],works:{tech:[{v:'Καλαμαριέρα',n:9,u:3}],bait:[],lure:[{v:'πορτοκαλί 2.5',n:5,u:2}],users:3}}}];
+      AK.cloud.pub=()=>Promise.resolve(new Response(JSON.stringify(st),{status:200})); AK.lastPos=()=>({lat:34.7,lon:32.4}); const c=AK.biteStatsCard(); document.body.append(c);
+      return new Promise(r=>setTimeout(()=>{ const t0=c.textContent; const ch=[...c.querySelectorAll('.bschips .chip')].find(x=>/αλαμάρι|oligo/i.test(x.textContent)); ch&&ch.click(); setTimeout(()=>r([t0,c.textContent,c.querySelectorAll('.bsm').length]),300); },1500)); }''')
+    check('Κάρτα: «Πόσο έπεσε μέσα» (×4,5), «Τι δουλεύει τώρα», «Κάλεσε φίλους», εποχή είδους 12 μήνες (1.14.29)', 'Πόσο έπεσε μέσα' in card[0] and '×4,5' in card[0] and 'Τι δουλεύει τώρα' in card[0] and 'Καλαμαριέρα' in card[0] and 'Κάλεσε φίλους' in card[0] and 'Εποχή από τα στοιχεία' in card[1] and card[2]==12, [card[0][:500],card[1][-300:],card[2]])
+    check('1.14.29: χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
+
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)
     check('Οδηγός χωρίς καρτέλα Κόμποι (αφαιρέθηκε προσωρινά)', not pg.query_selector('#tab-guide .seg button[data-g=knots]') and not pg._errs, pg._errs); c.close()

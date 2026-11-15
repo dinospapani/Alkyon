@@ -1085,3 +1085,7 @@ html.night body.mapon #lmap canvas.wxdash{filter:none!important;opacity:.7}
 .hwhyc .chip.pos{background:color-mix(in srgb,#1f8f4e 22%,transparent);border-color:transparent}
 .hwhyc .chip.neg{background:color-mix(in srgb,#c62828 20%,transparent);border-color:transparent}
 .hunc{margin:6px 0 0;font-size:13px;color:#f0b429}
+/* 1.14.29: τα καλύτερα σημεία σου με αυτόν τον άνεμο */
+.myspots{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin:8px 0 0;font-size:13px}
+.myspots b{flex-basis:100%}
+.myspots small{flex-basis:100%;opacity:.8}
