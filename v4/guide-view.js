@@ -18,7 +18,7 @@ var HTML='<div class="seg gseg" role="group" aria-label="Ενότητα οδηγ
   '<div class="card" style="margin-top:16px"><h3>Έκτακτη ανάγκη στη θάλασσα</h3><p><b>Κύπρος:</b> 112 · VHF κανάλι 16</p><p><b>Ελλάδα:</b> 112 · 108 (Λιμενικό Σώμα) · VHF κανάλι 16</p></div></div>';
 function build(){
   page=h('div',{class:'page guide'});
-  page.append(h('div',{class:'top'},h('div',{style:{display:'flex',alignItems:'center',gap:'12px'}},h('a',{class:'iconbtn',href:'#forecast','aria-label':T('Πίσω','Back'),html:B.iconSvg('back'),onclick:function(ev){ if(history.length>1){ ev.preventDefault(); history.back(); } }}),h('h1',{class:'lt',text:T('Οδηγός','Guide')}))));
+  page.append(h('div',{class:'top'},h('div',{style:{display:'flex',alignItems:'center',gap:'12px'}},h('a',{class:'iconbtn',href:'#forecast','aria-label':T('Πίσω','Back'),html:B.iconSvg('back')})   /* 1.14.36: το «Πίσω» το χειρίζεται το B.goBack (shell.js)· το δικό μου history.back() έκανε διπλό πίσω */,h('h1',{class:'lt',text:T('Οδηγός','Guide')}))));
   var sec=h('section',{id:'tab-guide',class:'gbody'}); sec.innerHTML=HTML; page.append(sec);
   return sec;
 }
