@@ -1572,6 +1572,22 @@ with sync_playwright() as p:
     check('«Δοκίμασε»: τι δουλεύει τώρα στην περιοχή, αλλιώς τα δικά σου ευρήματα· θερμοκλινές στον δείκτη (1.14.30)', r==['πορτοκαλί 2.5, Καλαμαριέρα','Συρτή',0,2], r)
     check('1.14.30: χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
 
+    print('# 1.14.31 όριο ποσότητας, «το άφησα», όρια από τις εξόδους')
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3000)
+    r=pg.evaluate('''()=>{ const B=[{id:'a',trip:'T1',date:'2026-11-10',kg:4,lat:34.7,lon:32.4,latin:'Dentex dentex',species:'Συναγρίδα'},{id:'b',trip:'T1',date:'2026-11-10',kg:3,lat:34.7,lon:32.4,species:'Λαβράκι'},{id:'c',trip:'T1',date:'2026-11-10',kg:9,rel:true,lat:34.7,lon:32.4},{id:'d',trip:'T2',kg:20,lat:34.7,lon:32.4}];
+      for(let i=0;i<9;i++) B.push({id:'w'+i,date:'2026-10-0'+(i+1),wind:8+i,gust:12+i,wave:0.3+i*0.05,prof:'boat'});
+      localStorage.setItem('alkyon-bites',JSON.stringify(B)); localStorage.setItem('alkyon-fprof','boat');
+      const r1=AK.bag.of('T1',{kg:2,species:'Σαργός'}), r2=AK.bag.of('T1',{kg:4.5,latin:'Dentex dentex',species:'Συναγρίδα'}), r3=AK.bag.of('T3',{kg:12,species:'Μαγιάτικο',lat:34.7,lon:32.4}), r4=AK.bag.of('T1',{kg:7,species:'Μαγιάτικο'});
+      const L=AK.limitsLearn('boat'); return [r1.kg,r1.over,r2.oneOver.length,r2.over,r3.over,r4.over,AK.bag.text(r4).slice(0,40),L&&[L.wind,L.gust,L.wave,L.days]]; }''')
+    check('Όριο ποσότητας: 9 kg εντάξει, 2η συναγρίδα ⚠, ένα μεγάλο ψάρι επιτρέπεται (5 kg + 1), 14 kg πάνω από το όριο· όρια από 9 μέρες (1.14.31)', r[0]==9 and r[1] is False and r[2]==1 and r[3] is True and r[4] is False and r[5] is True and 'Πέρασες το όριο' in r[6] and r[7]==[16,20,0.7,9], r)
+    pg.evaluate("()=>{ localStorage.setItem('alkyon-safe',JSON.stringify({active:true,id:'T1',start:Date.now()-3600e3})); AK.biteForm(); }"); pg.wait_for_timeout(1200)
+    pg.fill('.bf2 .spwrap input','Ροφός'); pg.wait_for_timeout(150); pg.fill('.bf2 .g3 .fld:nth-child(2) input','30'); pg.wait_for_timeout(200)
+    r=pg.evaluate("()=>{ const n=document.querySelector('.bf2 .lawnote'); const rel=[...document.querySelectorAll('.bf2 label.tg')].find(l=>/άφησα ελεύθερο/.test(l.textContent)).querySelector('input'); return [n.textContent,rel.checked]; }")
+    pg.fill('.bf2 .g3 .fld:nth-child(2) input','50'); pg.wait_for_timeout(200)
+    r2=pg.evaluate("()=>{ const rel=[...document.querySelectorAll('.bf2 label.tg')].find(l=>/άφησα ελεύθερο/.test(l.textContent)).querySelector('input'); return [document.querySelector('.bf2 .lawnote').textContent,rel.checked]; }")
+    check('Κάτω από το ελάχιστο → «Το άφησα ελεύθερο» αυτόματα, πάνω → ξεστσεκάρεται· κρατημένα της εξόδου στη φόρμα (1.14.31)', r[1] is True and 'Σημειώθηκε' in r[0] and r2[1] is False and 'Κρατημένα σε αυτή την έξοδο: 7' in r2[0], [r,r2])
+    check('1.14.31: χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
+
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)
     check('Οδηγός χωρίς καρτέλα Κόμποι (αφαιρέθηκε προσωρινά)', not pg.query_selector('#tab-guide .seg button[data-g=knots]') and not pg._errs, pg._errs); c.close()

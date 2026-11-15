@@ -15,6 +15,13 @@ var PRE=[['small',T('Μικρό σκάφος (έως 6 m)','Small boat (up to 6 
 function getL(){ var o=ls.get('alkyon-limits',null); return Object.assign({},LIMD,o&&typeof o==='object'?o:{}); }
 function setL(o){ ls.set('alkyon-limits',o); if(navigator.onLine!==false){ ls.set('alkyon-fc7',null); ls.set('alkyon-v4-opps',null); } try{ window.dispatchEvent(new Event('alkyon-limits')); }catch(e){} }
 B.limits=getL;
+/* 1.14.31: όρια από τον καιρό των δικών σου καταγραφών (ψάρια και χαμένα τσιμπήματα): ανά μέρα το μέγιστο, μετά το 90ό εκατοστημόριο· ≥ 8 μέρες */
+function learnL(pf){ var by={}; try{ B.store.raw('bites').forEach(function(b){ if(!b||b.deleted||!b.date) return; if((b.prof||'boat')!==(pf||'boat')&&!(pf==='boat'&&!b.prof)) return;
+    var o=by[b.date]=by[b.date]||{wind:null,gust:null,wave:null}; ['wind','gust','wave'].forEach(function(k){ var v=+b[k]; if(b[k]!=null&&isFinite(v)&&v>=0&&(o[k]==null||v>o[k])) o[k]=v; }); }); }catch(e){ return null; }
+  var days=Object.keys(by).map(function(k){ return by[k]; }), q=function(k){ var a=days.map(function(d){ return d[k]; }).filter(function(v){ return v!=null; }).sort(function(x,y){ return x-y; }); return a.length>=8?a[Math.min(a.length-1,Math.ceil(a.length*0.9)-1)]:null; };
+  var w=q('wind'), g=q('gust'), v=q('wave'); if(w==null||v==null) return null; var cl=function(x,a,b){ return Math.max(a,Math.min(b,x)); };
+  return {wind:cl(Math.round(w),6,30),gust:cl(Math.round(g!=null?g:w*1.5),10,40),wave:cl(Math.round(v*10)/10,0.3,2.5),days:days.filter(function(d){ return d.wind!=null; }).length}; }
+B.limitsLearn=learnL;
 B.limitsCard=function(){
   var U=window.AlkyonUnits, L=getL(), card=h('section',{class:'card limc'});
   function wtxt(kn){ var p=U&&U.windP?U.windP(kn):[String(Math.round(kn)),'kn']; return p[0]+' '+p[1]+(p[1]!=='kn'?' ('+Math.round(kn)+' kn)':''); }
@@ -34,7 +41,12 @@ B.limitsCard=function(){
   if(sgP&&pre.value!==sg&&pf!=='lake'&&(pf==='shore'||pf==='spear'||bl>0))
     sug=h('div',{class:'limsug'},h('span',{text:(pf==='shore'||pf==='spear'?T('Ψαρεύεις ','You fish ')+(pf==='shore'?T('από ακτή','from shore'):T('με ψαροντούφεκο','spearfishing'))+'. ':T('Το σκάφος σου είναι ','Your boat is ')+B.num(bl,1).replace(/[.,]0$/,'')+' m. ')+T('Ταιριάζει: ','Suggested: ')+sgP[1]+' ('+sgP[2].wind+' kn, '+B.num(sgP[2].wave,1)+' m, '+T('ριπές ','gusts ')+sgP[2].gust+' kn).'}),
       h('button',{class:'btn sm pri',type:'button',text:T('Εφαρμογή','Apply'),onclick:function(){ setL(Object.assign({},sgP[2])); B.toast(T('Τα όρια άλλαξαν σε «','Limits set to “')+sgP[1]+T('».','”.')); var nc=B.limitsCard(); card.replaceWith(nc); }}));
-  card.append(h('h2',{text:T('Όρια ασφαλείας','Safety limits')}),sug,
+  /* 1.14.31: πρόταση από τις δικές σου εξόδους: σε τι καιρό βγαίνεις πραγματικά (το 90% των ημερών με ψάρι/έξοδο, ίδιο είδος ψαρέματος) */
+  var mine=learnL(pf), sug2=null;
+  if(mine&&(Math.abs(mine.wind-L.wind)>=2||Math.abs(mine.wave-L.wave)>=0.15||Math.abs(mine.gust-L.gust)>=3))
+    sug2=h('div',{class:'limsug'},h('span',{text:T('Από τις εξόδους σου (','From your trips (')+mine.days+T(' μέρες): βγαίνεις συνήθως έως ',' days): you usually go out up to ')+mine.wind+' kn, '+T('ριπές ','gusts ')+mine.gust+' kn, '+T('κύμα ','waves ')+B.num(mine.wave,1)+' m.'}),
+      h('button',{class:'btn sm pri',type:'button',text:T('Εφαρμογή','Apply'),onclick:function(){ setL({wind:mine.wind,gust:mine.gust,wave:mine.wave}); B.toast(T('Τα όρια έγιναν όπως βγαίνεις εσύ.','Limits now match how you go out.')); var nc=B.limitsCard(); card.replaceWith(nc); }}));
+  card.append(h('h2',{text:T('Όρια ασφαλείας','Safety limits')}),sug2,sug,
     h('p',{class:'sub',text:T('Πάνω από αυτά η ώρα δεν θεωρείται ασφαλής: στην Πρόγνωση, στις Ευκαιρίες και στις ειδοποιήσεις καιρού.','Above these an hour is not considered safe: in the Forecast, the Chances and the weather alerts.')}),
     pre,
     row(T('Άνεμος έως','Wind up to'),'wind',6,30,1,wtxt),

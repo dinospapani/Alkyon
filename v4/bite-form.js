@@ -250,7 +250,14 @@ B.biteForm=function(edit,opt){
     else if((B.PEST_L||[]).indexOf(la)>=0||B.pest({species:sp.value})){ t=(B.pestWarn?B.pestWarn():T('⚠ Τοξικός. Μην τον φας και μην τον δώσεις.','⚠ Toxic. Do not eat it or give it away.'))+' '+T('Δεν μετράει στα ψάρια σου. Αν έκοψε αγκίστρι ή τεχνητό, πάτα το παρακάτω.','It does not count in your catches. If it cut a hook or lure, tap it below.'); warn=true; }
     else if(mn){ t=T('Ελάχιστο νόμιμο μήκος: ','Minimum legal length: ')+mn+' cm'; if(L&&L<mn){ t='⚠ '+t+T(' · κάτω από το όριο, ελευθέρωσέ το.',' · under the limit, release it.'); warn=true; } else if(L){ t='✓ '+t+T(' · εντάξει, πάνω από το όριο.',' · OK, at or above the limit.'); ok=true; } } /* 1.14.12: πράσινο ≥ όριο, κόκκινο κάτω */
     if(/καρχαρ|γαλεο|σκυλοψαρ|σαλαχ|τρυγον|βατοσ|βατος|shark|\bray\b|skate|stingray/i.test(sp.value||'')){ t=T('⚠ Καρχαρίες και σαλάχια δεν επιτρέπονται ως ερασιτεχνικό αλίευμα: ελευθέρωσέ τα.','⚠ Sharks and rays are not allowed as a recreational catch: release them.'); warn=true; }
+    /* 1.14.31: κάτω από το όριο / δεν κρατιέται → σημειώνει «Το άφησα ελεύθερο» (αν δεν το άλλαξες εσύ)· δεν μετρά στο όριο ποσότητας */
+    if(warn&&!miss.checked&&!relTouched&&!rel.checked){ rel.checked=true; relAuto=true; } else if(!warn&&relAuto&&!relTouched){ rel.checked=false; relAuto=false; }
+    if(relAuto&&rel.checked&&warn) t+=T(' Σημειώθηκε «Το άφησα ελεύθερο».',' Marked «I released it».');
+    /* 1.14.31: όριο ποσότητας της εξόδου (Κύπρος) */
+    try{ var sf0=ls.get('alkyon-safe',{})||{}, tid=(e&&e.trip)||(sf0.active?sf0.id:null);
+      if(B.bag&&tid&&!miss.checked){ var br=B.bag.of(tid,{kg:+kg.value||0,latin:la,species:sp.value,rel:rel.checked},e&&e.id), bt=B.bag.text(br); if(bt){ t=t?t+'\n'+bt:bt; if(br.over||br.near||br.oneOver.length) warn=true; } } }catch(er){}
     lawNote.textContent=t; lawNote.hidden=!t||miss.checked; lawNote.classList.toggle('warn',warn); lawNote.classList.toggle('ok',ok&&!warn); }
+  var relTouched=!!e, relAuto=false; rel.addEventListener('change',function(){ relTouched=true; relAuto=false; law(); }); kg.addEventListener('input',law);
   sp.addEventListener('input',law); sp.addEventListener('change',sugTk); if(!window.TACKLE_GUIDE&&prof!=='spear'){ var gs=document.createElement('script'); gs.src='../tackle-guide.js'; gs.onload=sugTk; document.head.appendChild(gs); } len.addEventListener('input',law); miss.addEventListener('change',law);
   /* v31z521: αναγνώριση από φωτογραφία. Με κλειδί AI τρέχει μόνη της μόλις βάλεις φωτογραφία (αν δεν έχεις γράψει είδος)· χωρίς κλειδί, σύνδεσμος για ρύθμιση */
   var aiSlot=h('div',{class:'aislot'}), aiBox=null;
