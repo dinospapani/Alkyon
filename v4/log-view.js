@@ -136,9 +136,11 @@ function pastTrip(){ var sh, td=new Date(), today=td.getFullYear()+'-'+B.pad(td.
     h('button',{class:'btn pri full',type:'button',text:T('Αποθήκευση εξόδου','Save trip'),onclick:save}))}); }
 B.pastTrip=pastTrip;
 /* 1.14.23: «Ψάρεψα, τίποτα»: γρήγορη καταγραφή χωρίς ψάρι (οι ώρες χωρίς τσίμπημα είναι τα πιο πολύτιμα στοιχεία) */
-function nothingTrip(){ var sh, now=new Date(), prof=B.prof?B.prof():'boat', todayStr=function(){ return now.getFullYear()+'-'+B.pad(now.getMonth()+1)+'-'+B.pad(now.getDate()); }, p=B.lastPos&&B.lastPos(), pls=(ls.get('alkyon-places',[])||[]).filter(function(x){ return x&&isFinite(+x.lat)&&isFinite(+x.lon); });
+function nothingTrip(pre){ pre=pre&&typeof pre==='object'?pre:null; var sh, now=new Date(), prof=B.prof?B.prof():'boat', todayStr=function(){ return now.getFullYear()+'-'+B.pad(now.getMonth()+1)+'-'+B.pad(now.getDate()); }, p=B.lastPos&&B.lastPos(), pls=(ls.get('alkyon-places',[])||[]).filter(function(x){ return x&&isFinite(+x.lat)&&isFinite(+x.lon); });
   var dt=h('input',{type:'date',value:todayStr(),max:todayStr()}), t1=h('input',{type:'time',value:B.pad(now.getHours())+':'+B.pad(now.getMinutes())}), t0=h('input',{type:'time',value:B.pad((now.getHours()+22)%24)+':'+B.pad(now.getMinutes())});
   var wh=h('select',{class:'select'}); if(p) wh.append(h('option',{value:'gps',text:T('Εδώ (GPS)','Here (GPS)')})); pls.forEach(function(x,i){ wh.append(h('option',{value:String(i),text:x.name||T('Σημείο','Spot')})); });
+  /* 1.14.25: από την ερώτηση «Ψάρεψες σήμερα;»: μέρα, ώρες και θέση έτοιμες */
+  if(pre){ if(pre.date){ dt.value=pre.date; } if(pre.t0){ var a0=new Date(pre.t0); t0.value=B.pad(a0.getHours())+':'+B.pad(a0.getMinutes()); } if(pre.t1){ var a1=new Date(pre.t1); t1.value=B.pad(a1.getHours())+':'+B.pad(a1.getMinutes()); } if(isFinite(+pre.lat)){ p={lat:+pre.lat,lon:+pre.lon}; if(!wh.querySelector('option[value=gps]')) wh.insertBefore(h('option',{value:'gps',text:T('Εκεί που ήσουν','Where you were')}),wh.firstChild); wh.value='gps'; } }
   var msg=h('p',{class:'err',role:'alert'});
   function f(l,el){ return h('label',{class:'fld'},h('span',{text:l}),el); }
   if(!p&&!pls.length){ B.toast(T('Χρειάζεται θέση (GPS) ή αποθηκευμένο σημείο.','Needs a position (GPS) or a saved spot.')); return; }

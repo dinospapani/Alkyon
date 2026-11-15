@@ -212,6 +212,21 @@ with sync_playwright() as p:
       return new Promise(r=>setTimeout(()=>r([c.textContent,c.querySelectorAll('.bschips .chip').length]),1500)); }''')
     check('Κάρτα «Πότε τσιμπάνε» με προφίλ ψαροντούφεκο: μόνο τα δικά του (1.14.24)', 'Ψαροντούφεκο' in card[0] and 'Κύμα' in card[0] and '25 ψάρια' in card[0] and 'Πίεση (3 ώρες): πέφτει' not in card[0] and card[1]==2, card); c.close()
 
+    print('# 1.14.25 έλεγχος μάθησης, μικρά/μεγάλα, παρέα, «Ψάρεψες σήμερα;»')
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3000)
+    card=pg.evaluate('''()=>{ localStorage.setItem('alkyon-fprof','boat'); const st=[{key:'all',n:120,users:3,data:{v:3,grp:'sea',bt:{n:24,base:0.58,adj:0.66,on:true},ins:[{f:'wv48',b:0,lift:1.6,n:30,src:'cc'}],f:{}}},{key:'big',n:40,users:3,data:{v:3,grp:'sea',size:'big',ins:[],f:{}}},{key:'small',n:80,users:3,data:{v:3,grp:'sea',size:'small',ins:[],f:{}}}];
+      AK.cloud.pub=()=>Promise.resolve(new Response(JSON.stringify(st),{status:200})); const c=AK.biteStatsCard(); document.body.append(c);
+      return new Promise(r=>setTimeout(()=>{ const t0=c.textContent, ch=[...c.querySelectorAll('.bschips .chip')].map(x=>x.textContent); c.querySelectorAll('.bschips .chip')[2].click(); const t1=c.textContent; [...c.querySelectorAll('.bswho button')].find(x=>x.textContent==='Παρέα').click(); r([t0,ch,t1,c.textContent]); },1500)); }''')
+    check('Πότε τσιμπάνε: «✓ Έλεγχος σε 24 εξόδους… 66% (χωρίς 58%)», Μεγάλα/Μικρά, Παρέα (1.14.25)', 'Έλεγχος σε 24 εξόδους' in card[0] and '66%' in card[0] and '58%' in card[0] and 'Θάλασσα 2 προηγ. μέρες' in card[0] and 'Μεγάλα' in card[1] and 'Μικρά (γόπα, μαρίδα…)' in card[1] and 'μικρά' in card[2] and 'Η παρέα μου' in card[3], [card[0][:250],card[1],card[3][:120]])
+    r=pg.evaluate('''()=>{ const L={by:{sea:{ins:[{f:'pt',b:0,lift:2,n:60,src:'both'}]}}}; return 1; }''')
+    pg.evaluate('''()=>{ const d=new Date(), td=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); const y=new Date(Date.now()-864e5), yd=y.getFullYear()+'-'+String(y.getMonth()+1).padStart(2,'0')+'-'+String(y.getDate()).padStart(2,'0');
+      localStorage.setItem('alkyon-nearspot',JSON.stringify({d:yd,t0:Date.now()-864e5-3*3600e3,t1:Date.now()-864e5-3600e3,lat:34.7,lon:32.4})); AK.contrib.askNothing(); }''')
+    pg.wait_for_timeout(700); q=pg.evaluate("()=>{ const s=document.querySelector('.sheet.on'); return s?s.textContent:''; }")
+    pg.evaluate("()=>{ [...document.querySelectorAll('.sheet.on button')].find(x=>x.textContent==='Ψάρεψα, τίποτα').click(); }"); pg.wait_for_timeout(900)
+    pg.evaluate("()=>{ [...document.querySelectorAll('.sheet.on button')].find(x=>x.textContent==='Αποθήκευση').click(); }"); pg.wait_for_timeout(600)
+    nt=pg.evaluate("()=>{ const t=AK.store.raw('trips').filter(x=>x.nothing)[0]; return t?[t.lat,t.count,t.endMs-t.startMs>0]:null; }")
+    check('«Ψάρεψες χθες;» → «Ψάρεψα, τίποτα» με έτοιμη μέρα, ώρες και θέση (1.14.25)', 'Ψάρεψες χθες' in q and nt and nt[0]==34.7 and nt[1]==0 and nt[2], [q[:80],nt]); c.close()
+
     print('# 1.14.12 ελάχιστο μήκος: πράσινο / κόκκινο')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3000)
     pg.evaluate("()=>AK.biteForm()"); pg.wait_for_timeout(1200); pg.fill('.bf2 .spwrap input','Ροφός'); pg.wait_for_timeout(150)

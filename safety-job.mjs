@@ -684,7 +684,10 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
       const o = { t, wind: a.wind, gust: a.gust, wdeg: a.wdeg, press: a.press, cloud: a.cloud, rain: a.rain, temp: a.temp, wave: a.wave, per: a.per, sst: a.sst, cur: a.cur };
       if (a.press != null && b && b.press != null) o.pt = Math.round((a.press - b.press) * 10) / 10;
       if (p1 && n1 && p1.sl != null && n1.sl != null) o.tide = Math.round((n1.sl - p1.sl) * 100) / 100;
-      for (const k of Object.keys(o)) if (o[k] == null) delete o[k]; else if (k !== 't' && k !== 'tide' && k !== 'pt') o[k] = Math.round(o[k] * 10) / 10;
+      // 1.14.25: νερό που ζεσταίνει/κρυώνει (3 μέρες) και θάλασσα τις 2 προηγούμενες μέρες (θολούρα από κύμα: εκτίμηση διαύγειας)
+      const s72 = H[key(t - 72 * HR)]; if (a.sst != null && s72 && s72.sst != null) o.sstd = Math.round((a.sst - s72.sst) * 10) / 10;
+      let wmx = null; for (let q = 1; q <= 48; q++) { const x = H[key(t - q * HR)]; if (x && x.wave != null && (wmx == null || x.wave > wmx)) wmx = x.wave; } if (wmx != null) o.wv48 = wmx;
+      for (const k of Object.keys(o)) if (o[k] == null) delete o[k]; else if (k !== 't' && k !== 'tide' && k !== 'pt' && k !== 'sstd') o[k] = Math.round(o[k] * 10) / 10;
       return o; };
     // ώρες φωτός (ανατολή −1 h … δύση +1 h) της τοπικής μέρας μιας στιγμής
     const dayHours = (ms, la, lo) => { const { sm, tz, d } = sunOf(ms, la, lo); if (!sm || sm.rise == null) return []; const d0 = Date.parse(d + 'T00:00:00Z') - tz * 60000, out = [];
@@ -694,7 +697,7 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
       let cells = 0, done = 0;
       for (const r of todo) {
         if (r.kind === 'trip' && !(r.ms2 && r.ms2 < Date.now() - HR)) continue;
-        const t0 = +r.ms - 30 * HR, t1 = (r.kind === 'trip' ? +r.ms2 : +r.ms) + 30 * HR;
+        const t0 = +r.ms - 80 * HR, t1 = (r.kind === 'trip' ? +r.ms2 : +r.ms) + 30 * HR;
         const ck = r.lat + ',' + r.lon + ',' + isoD(t0) + ',' + isoD(t1); if (!(ck in wxCache)) { if (cells >= 10) continue; cells++; }
         const H = await wxFor(+r.lat, +r.lon, isoD(t0), isoD(t1));
         const cond = Object.assign({}, r.cond || {}); delete cond.e; delete cond.d;
@@ -723,8 +726,10 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
       cloud: f => f.cloud == null ? null : f.cloud < 25 ? 0 : f.cloud < 75 ? 1 : 2,
       rain: f => f.rain == null ? null : f.rain >= 0.2 ? 1 : 0,
       cur: f => f.cur == null ? null : f.cur < 0.4 ? 0 : f.cur < 1 ? 1 : 2,
+      sstd: f => f.sstd == null ? null : f.sstd <= -0.5 ? 0 : f.sstd >= 0.5 ? 2 : 1,
+      wv48: f => f.wv48 == null ? null : f.wv48 < 0.5 ? 0 : f.wv48 < 1.2 ? 1 : 2,
     };
-    const NB = { sun: 6, moon: 8, sol: 3, pt: 3, pl: 4, wind: 4, wave: 4, tide: 3, cloud: 3, rain: 2, cur: 3 };
+    const NB = { sun: 6, moon: 8, sol: 3, pt: 3, pl: 4, wind: 4, wave: 4, tide: 3, cloud: 3, rain: 2, cur: 3, sstd: 3, wv48: 3 };
     const bins = (f, ms, la, lo) => { const o = {}; for (const k of Object.keys(FX)) { const b = FX[k](f || {}, ms, la, lo); if (b != null) o[k] = b; } return o; };
     const depB = v => v == null ? null : v < 10 ? '0–10 m' : v < 30 ? '10–30 m' : v < 60 ? '30–60 m' : v < 100 ? '60–100 m' : '100+ m';
     const arr = n => Array(n).fill(0);
@@ -735,9 +740,14 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
       const tripsBy = {}; for (const t of trips) (tripsBy[t.user_id] = tripsBy[t.user_id] || []).push(t);
       for (const t of trips) for (const f of t.cond.e) { const bb = bins(f, f.t, t.lat, t.lon); for (const k in bb) eff[k][bb[k]] += 1; }
       let n = 0; const users = new Set();
+      // 1.14.25: κάθε τσίμπημα μετράει ως «γεγονός»: 30 γόπες μαζί ≈ 6, όχι 30 (1 + log2 του πλήθους)
+      const ev = r => 1 + Math.log2(Math.max(1, Math.min(64, r.cnt || 1)));
+      // δίκαιο βάρος: με ≥ 3 ψαράδες κανείς δεν ξεπερνά το 25% του συνόλου
+      const uT = {}; let tot = 0; for (const r of catches) { const v = ev(r); uT[r.user_id] = (uT[r.user_id] || 0) + v; tot += v; }
+      const nu = Object.keys(uT).length, uf = {}; for (const u in uT) uf[u] = nu >= 3 ? Math.min(1, 0.25 * tot / uT[u]) : 1;
       for (const r of catches) {
-        const w = Math.max(1, Math.min(20, r.cnt || 1)), e = r.cond && r.cond.e && !Array.isArray(r.cond.e) ? r.cond.e : null, bb = bins(e, +r.ms, r.lat, r.lon);
-        n += w; users.add(r.user_id);
+        const w = ev(r) * uf[r.user_id], e = r.cond && r.cond.e && !Array.isArray(r.cond.e) ? r.cond.e : null, bb = bins(e, +r.ms, r.lat, r.lon);
+        n += Math.max(1, Math.min(999, r.cnt || 1)); users.add(r.user_id);
         const inTrip = (tripsBy[r.user_id] || []).some(t => +r.ms >= +t.ms - 15 * 60000 && +r.ms <= +t.ms2 + 15 * 60000);
         for (const f in bb) { c[f][bb[f]] += w; if (inTrip) fish[f][bb[f]] += w;
           const wk = (worked[f + ':' + bb[f]] = worked[f + ':' + bb[f]] || { tech: {}, bait: {}, dep: {} });
@@ -747,7 +757,7 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
         if (dd.length >= 3) { const cb = {}; for (const f of dd) { const b2 = bins(f, f.t, r.lat, r.lon); for (const k in b2) if (k !== 'moon') (cb[k] = cb[k] || arr(NB[k]))[b2[k]] += 1; }
           for (const k in cb) { const s = cb[k].reduce((a, b) => a + b, 0); if (s) cb[k].forEach((v, i) => { ctl[k][i] += w * v / s; }); } }
       }
-      ctl.moon = arr(8).map(() => n / 8);   // η σελήνη: κάθε φάση διαρκεί περίπου το ίδιο
+      { const W = Object.keys(uT).reduce((a, u) => a + uT[u] * uf[u], 0); ctl.moon = arr(8).map(() => W / 8); }   // η σελήνη: κάθε φάση διαρκεί περίπου το ίδιο
       const data = { v: 3, f: {}, ins: [] }, cand = {};
       for (const f of Object.keys(NB)) { if (EX.has(f)) continue;
         const C = c[f].reduce((a, b) => a + b, 0), CT = ctl[f].reduce((a, b) => a + b, 0), E = eff[f].reduce((a, b) => a + b, 0), FS = fish[f].reduce((a, b) => a + b, 0), base = E > 0 ? FS / E : 0;
@@ -766,6 +776,31 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
       data.sun = c.sun; data.moon = c.moon; data.pt = c.pt; data.wind = c.wind;   // συμβατότητα με την 1.14.21
       return { n, users: users.size, data };
     };
+    // 1.14.25: έλεγχος ότι η μάθηση βοηθάει. Οι έξοδοι χωρίζονται σε 4 ομάδες ανά μέρα· για κάθε ομάδα τα ευρήματα βγαίνουν ΧΩΡΙΣ αυτήν
+    // και ελέγχεται αν ο δείκτης με τη διόρθωση ξεχωρίζει καλύτερα τις εξόδους με ψάρια (ψάρια ανά ώρα) από τον απλό δείκτη (AUC).
+    // Αν δεν βοηθά, η διόρθωση απενεργοποιείται (learnOff). Χρειάζονται ≥ 8 έξοδοι με διαφορετικό αποτέλεσμα.
+    const fcHour = (f, la, lo, prof) => { const tz = tzOf(lo), hr = Math.floor(((f.t + tz * 60000) % DAY) / HR);
+      return { hr, wind: f.wind, gust: f.gust, wave: f.wave, pres: f.press, rain: f.rain, temp: f.temp, sst: f.sst, prof: prof || 'boat',
+        ptrend: f.pt == null ? 'stable' : f.pt <= -3 ? 'fast' : f.pt <= -1 ? 'slow' : f.pt >= 1 ? 'rise' : 'stable',
+        tide: f.tide == null ? null : f.tide > 0.01 ? 'up' : f.tide < -0.01 ? 'down' : 'slack', cloud: f.cloud == null ? 'part' : f.cloud < 20 ? 'clear' : f.cloud < 70 ? 'part' : 'over' }; };
+    const backtest = (catches, trips, ex, g) => {
+      const T = trips.filter(t => t.ms2 > t.ms); if (T.length < 8) return null;
+      const fold = d => { let x = 0; for (const ch of String(d)) x = (x * 31 + ch.charCodeAt(0)) >>> 0; return x % 4; };
+      const prof = g === 'spear' ? 'spear' : g === 'lake' ? 'lake' : 'boat';
+      const res = [];
+      for (let k = 0; k < 4; k++) {
+        const test = T.filter(t => fold(t.day) === k); if (!test.length) continue;
+        const L = analyse(catches.filter(r => fold(r.day) !== k), T.filter(t => fold(t.day) !== k), 8, ex).data;
+        for (const t of test) { const fishN = catches.filter(r => r.user_id === t.user_id && +r.ms >= +t.ms - 15 * 60000 && +r.ms <= +t.ms2 + 15 * 60000).reduce((a, r) => a + Math.max(1, r.cnt || 1), 0);
+          let sb0 = 0, sb1 = 0, nh = 0; const { sm } = sunOf(t.ms, t.lat, t.lon);
+          for (const f of t.cond.e) { const w = fcHour(f, t.lat, t.lon, prof), b0 = PF.hourScore(sm, w.hr, Object.assign({}, w, { bite: true }));
+            const h1 = PF.learnAdj({ ins: L.ins || [] }, sm, Object.assign({}, w, { score: b0, bite: b0 })); sb0 += b0; sb1 += h1.bite; nh++; }
+          if (nh) res.push({ y: fishN / Math.max(1, (t.ms2 - t.ms) / HR), b0: sb0 / nh, b1: sb1 / nh }); }
+      }
+      const auc = key => { let s2 = 0, p = 0; for (let i = 0; i < res.length; i++) for (let j = 0; j < res.length; j++) { if (res[i].y <= res[j].y) continue; p++; s2 += res[i][key] > res[j][key] ? 1 : res[i][key] === res[j][key] ? 0.5 : 0; } return p ? { a: Math.round(s2 / p * 100) / 100, p } : null; };
+      const A = auc('b0'), B2 = auc('b1'); if (!A || A.p < 10) return null;
+      return { n: res.length, base: A.a, adj: B2.a, on: B2.a >= A.a - 0.01 };
+    };
     try {
       const cyH = +new Date().toLocaleString('en-GB', { timeZone: 'Asia/Nicosia', hour: '2-digit', hour12: false }).slice(0, 2);
       const cur = ((await sb('bite_stats?key=eq.all&select=updated_at')) || [])[0];
@@ -774,7 +809,10 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
         for (let off = 0; off < 50000; off += 1000) { const a = (await sb(`catch_obs?select=user_id,kind,sp,day,ms,ms2,lat,lon,cnt,tech,prof,cond&order=id.asc&limit=1000&offset=${off}`)) || []; rows.push(...a); if (a.length < 1000) break; }
         // 1.14.24: χωριστά ανά είδος ψαρέματος: θάλασσα με καλάμι (σκάφος/ακτή), ψαροντούφεκο, λίμνη/φράγμα
         const grpOf = r => r.prof === 'spear' ? 'spear' : r.prof === 'lake' ? 'lake' : 'sea';
-        const EXG = { sea: [], spear: [], lake: ['wave', 'tide', 'cur'] };
+        const EXG = { sea: [], spear: [], lake: ['wave', 'tide', 'cur', 'sstd', 'wv48'] };
+        // 1.14.25: μικρά ψάρια που πιάνονται κοπαδιαστά (γόπα, μαρίδα, σαρδέλα, γαύρος, σαυρίδι, κολιός…) ή < 20 cm: χωριστά από τα μεγάλα
+        const SMALL = new Set(['boops boops', 'spicara smaris', 'spicara maena', 'spicara flexuosa', 'sardina pilchardus', 'sardinella aurita', 'engraulis encrasicolus', 'trachurus trachurus', 'trachurus mediterraneus', 'trachurus picturatus', 'scomber colias', 'scomber japonicus', 'scomber scombrus', 'atherina hepsetus', 'atherina boyeri', 'diplodus annularis', 'chromis chromis', 'coris julis', 'thalassoma pavo', 'serranus scriba', 'serranus cabrilla', 'serranus hepatus', 'pagellus acarne', 'oblada melanura', 'sarpa salpa', 'mullus barbatus', 'mullus surmuletus', 'gobius niger', 'symphodus tinca']);
+        const isSmall = r => (r.sp && SMALL.has(r.sp)) || (r.cond && typeof r.cond.len === 'number' && r.cond.len > 0 && r.cond.len < 20);
         const catchesAll = rows.filter(r => r.kind === 'catch' && r.ms != null && r.lat != null);
         const tripsAll = rows.filter(r => r.kind === 'trip' && r.cond && Array.isArray(r.cond.e) && r.cond.e.length);
         const cell = r => (Math.floor(+r.lat / 2) * 2) + '_' + (Math.floor(+r.lon / 2) * 2);
@@ -784,7 +822,9 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
           const catches = catchesAll.filter(r => grpOf(r) === g), trips = tripsAll.filter(t => grpOf(t) === g), ex = EXG[g];
           if (g !== 'sea' && !catches.length) continue;
           const pre = g === 'sea' ? '' : 'g:' + g + '|';   // θάλασσα: 'all', 'sp:…', 'r:…' (όπως πριν) · αλλιώς 'g:spear', 'g:spear|sp:…'
-          put(g === 'sea' ? 'all' : 'g:' + g, analyse(catches, trips, 8, ex), g);
+          const A0 = analyse(catches, trips, 8, ex); try { const bt = backtest(catches, trips, ex, g); if (bt) { A0.data.bt = bt; if (!bt.on) A0.data.learnOff = true; } } catch (e) { log('bite stats: backtest ' + e.message); }
+          put(g === 'sea' ? 'all' : 'g:' + g, A0, g);
+          for (const [sz, cs] of [['big', catches.filter(r => !isSmall(r))], ['small', catches.filter(isSmall)]]) if (cs.length >= 10 && cs.length < catches.length) { const a = analyse(cs, trips, 6, ex); a.data.size = sz; put(pre + sz, a, g); }
           const bySp = {}; for (const r of catches) if (r.sp) (bySp[r.sp] = bySp[r.sp] || []).push(r);
           for (const [sp, cs] of Object.entries(bySp)) { if (cs.length < 10) continue; const tg = trips.filter(t => t.sp === sp), hrs = tg.reduce((a, t) => a + t.cond.e.length, 0);
             const a = analyse(cs, hrs >= 10 ? tg : trips, 5, ex); a.data.tgt = hrs >= 10; put(pre + 'sp:' + sp, a, g); }
@@ -802,6 +842,10 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
             a.data.top = Object.entries(sp).sort((x, y) => y[1] - x[1]).slice(0, 3).map(x => x[0]); a.data.grp = g; by[g] = { n: a.n, data: a.data }; if (n > mainN) { mainN = n; main = g; } }
           if (!main) continue;
           const data = Object.assign({}, by[main].data, { by });
+          // «Η παρέα μου»: εσύ + όσοι φίλοι μοιράζονται τα ψάρια τους μαζί σου (και συμμετέχουν)
+          try { const fr = new Set(((await sb(`friends?viewer=eq.${encodeURIComponent(u)}&select=owner,share`)) || []).filter(x => x.share !== false).map(x => x.owner)); fr.delete(u);
+            const crewC = catchesAll.filter(r => grpOf(r) === main && (r.user_id === u || fr.has(r.user_id))), cu = new Set(crewC.map(r => r.user_id));
+            if (cu.size >= 2 && crewC.length >= 20) { const a = analyse(crewC, tripsAll.filter(t => grpOf(t) === main && (t.user_id === u || fr.has(t.user_id))), 5, EXG[main]); data.crew = { n: a.n, users: cu.size, data: a.data }; } } catch (e) { }
           pers.push({ user_id: u, n: tot, data, updated_at: now }); }
         if (pers.length) await sb('user_bite_stats?on_conflict=user_id', { method: 'POST', headers: { 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(pers) }).catch(e => log('bite stats: user ' + e.message));
         const rows_ = rows;
