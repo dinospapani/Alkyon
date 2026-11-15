@@ -7,7 +7,7 @@ on:
     paths: ['android/**', 'ios/**', 'watch/**', '.github/workflows/watch.yml', 'v4/garmin.js', 'native.js']
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write   # μόνο για το κλαδί «watch-shots» με τα στιγμιότυπα (έλεγχος εμφάνισης)
 concurrency:
   group: watch-${{ github.ref }}
   cancel-in-progress: true
@@ -112,3 +112,20 @@ jobs:
           name: wear-shots
           path: shots/
           retention-days: 7
+
+  shots:
+    needs: [watchos, wear-shots]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: all
+      - name: Στιγμιότυπα → κλαδί «watch-shots»
+        run: |
+          mkdir -p /tmp/s && cd /tmp/s && git init -q -b watch-shots
+          cp -r "$GITHUB_WORKSPACE/all/watchos-shots" watchos 2>/dev/null || true
+          cp -r "$GITHUB_WORKSPACE/all/wear-shots" wear 2>/dev/null || true
+          echo "${{ github.sha }}" > SHA
+          git add -A && git -c user.name="github-actions" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -q -m "shots ${{ github.sha }}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" watch-shots
