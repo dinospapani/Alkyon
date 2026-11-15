@@ -71,7 +71,8 @@ struct ContentView: View {
                 }
                 .tabViewStyle(.verticalPage)
                 .onChange(of: e.pageSel) { _, n in e.setPage(n) }
-                VStack { Spacer(); Button { path.append(.log) } label: { Tx("≡", 13, pc(6), b: true).frame(width: 24, height: 24).background(Circle().fill(pc(9))) }.buttonStyle(.plain) }
+                VStack { HStack { Button { path.append(.log) } label: { Tx("≡", 14, pc(6), b: true).frame(width: 28, height: 28).background(Circle().fill(pc(9))) }.buttonStyle(.plain); Spacer() }; Spacer() }
+                    .padding(.leading, 6).ignoresSafeArea(edges: .top)
                 MsgOverlay(); SavedOverlay(); AfterOverlay(open: { path.append($0) }); AnchorAlarmV(); WelcomeV()
             }
             .navigationDestination(for: Route.self) { r in
@@ -235,7 +236,7 @@ struct TargetRing: View {
             let fr = min(1, max(0, Double(nowS() - start) / span))
             ctx.stroke(ArcS(a0: 0, a1: 360 * fr, inset: w / 2).path(in: rect), with: .color(col), style: StrokeStyle(lineWidth: w, lineCap: .round))
             for t in ts {
-                let p = pol(size, size.width / 2 - w / 2, 360 * min(1, max(0, Double(t - start) / span)))
+                let p = pol(size, min(size.width, size.height) / 2 - w / 2, 360 * min(1, max(0, Double(t - start) / span)))
                 ctx.fill(Path(ellipseIn: CGRect(x: p.x - 3.5, y: p.y - 3.5, width: 7, height: 7)), with: .color(fishC))
             }
         }
@@ -255,7 +256,7 @@ struct DayRing: View {
         Canvas { ctx, size in
             let rect = CGRect(origin: .zero, size: size), w: CGFloat = 6
             func arc(_ a0: Double, _ a1: Double, _ c: Color, _ lw: CGFloat) { ctx.stroke(ArcS(a0: a0, a1: a1, inset: w / 2).path(in: rect), with: .color(c), lineWidth: lw) }
-            func dot(_ a: Double, _ rr: CGFloat, _ c: Color, _ inset: CGFloat) { let p = pol(size, size.width / 2 - inset, a); ctx.fill(Path(ellipseIn: CGRect(x: p.x - rr, y: p.y - rr, width: rr * 2, height: rr * 2)), with: .color(c)) }
+            func dot(_ a: Double, _ rr: CGFloat, _ c: Color, _ inset: CGFloat) { let p = pol(size, min(size.width, size.height) / 2 - inset, a); ctx.fill(Path(ellipseIn: CGRect(x: p.x - rr, y: p.y - rr, width: rr * 2, height: rr * 2)), with: .color(c)) }
             arc(0, 360, track, w)
             for k in 0..<min(24, h.count) {
                 let sc = h[k]
@@ -285,7 +286,7 @@ struct NightRing: View {
         let a0 = an(dk, 0), a1 = an(dk, 1)
         Canvas { ctx, size in
             let rect = CGRect(origin: .zero, size: size), w: CGFloat = 6
-            func dot(_ a: Double, _ rr: CGFloat, _ c: Color) { let p = pol(size, size.width / 2 - w / 2, a); ctx.fill(Path(ellipseIn: CGRect(x: p.x - rr, y: p.y - rr, width: rr * 2, height: rr * 2)), with: .color(c)) }
+            func dot(_ a: Double, _ rr: CGFloat, _ c: Color) { let p = pol(size, min(size.width, size.height) / 2 - w / 2, a); ctx.fill(Path(ellipseIn: CGRect(x: p.x - rr, y: p.y - rr, width: rr * 2, height: rr * 2)), with: .color(c)) }
             ctx.stroke(ArcS(a0: 0, a1: 360, inset: w / 2).path(in: rect), with: .color(track), lineWidth: w)
             if let a0 = a0, let a1 = a1 { ctx.stroke(ArcS(a0: a0 / 4, a1: a1 < a0 ? a1 / 4 + 360 : a1 / 4, inset: w / 2).path(in: rect), with: .color(green), lineWidth: w) }
             if let st = st { dot(Double(st) / 4, 3.5, set) }
