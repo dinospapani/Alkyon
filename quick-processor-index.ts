@@ -269,8 +269,25 @@ async function getForecast(lat,lon,fetchFn,opt){
   }
   /* ωριαίο κύμα/βροχή και των 2 προηγούμενων ημερών, για την ορατότητα νερού (v31z531): [ώρα, κύμα, mm] */
   const wl=[]; for(let i=0;i<T.length;i++){ const t=T[i], mm=mar[t]||{}, r=nn(at('precipitation',i)); if(mm.wave==null&&r==null) continue; wl.push([t,mm.wave==null?null:Math.round(mm.wave*100)/100,r]); }
+  /* 1.14.28: βεβαιότητα: πόσο διαφωνούν 3 μοντέλα (ECMWF, GFS, ICON) για τον μέσο άνεμο στις ώρες φωτός */
+  if(opt&&opt.ens){ try{ const E=await ensSpread(lat,lon,fetchFn,nd); for(const d of days){ const e=E[d.date]; if(e){ d.unc=e; } } }catch(e){} }
   return {days,past,tz,nowLocal,wl};
 }
+const ENSC={};
+async function ensSpread(lat,lon,fetchFn,nd){ const ck=lat.toFixed(2)+','+lon.toFixed(2); if(ENSC[ck]&&Date.now()-ENSC[ck].t<3*3600e3) return ENSC[ck].v; const v=await ensSpread0(lat,lon,fetchFn,nd); ENSC[ck]={t:Date.now(),v}; return v; }
+async function ensSpread0(lat,lon,fetchFn,nd){
+  const j=await fetchJson('https://api.open-meteo.com/v1/forecast?latitude='+lat.toFixed(3)+'&longitude='+lon.toFixed(3)+'&hourly=wind_speed_10m&models=ecmwf_ifs025,gfs_seamless,icon_seamless&wind_speed_unit=kn&timezone=auto&forecast_days='+Math.min(14,(nd||7)+1),fetchFn);
+  const H=(j&&j.hourly)||{}, T=H.time||[], M=['ecmwf_ifs025','gfs_seamless','icon_seamless'].map(k=>H['wind_speed_10m_'+k]).filter(a=>Array.isArray(a)); if(M.length<2) return {};
+  const by={}; T.forEach((t,i)=>{ const hr=+t.slice(11,13); if(hr<6||hr>19) return; const d=t.slice(0,10); const o=by[d]=by[d]||M.map(()=>[]); M.forEach((a,k)=>{ if(typeof a[i]==='number') o[k].push(a[i]); }); });
+  const out={}; for(const d of Object.keys(by)){ const mean=by[d].map(a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null).filter(v=>v!=null); if(mean.length<2) continue; const lo=Math.min(...mean), hi=Math.max(...mean); out[d]={lo:Math.round(lo),hi:Math.round(hi),spread:Math.round(hi-lo),bad:hi-lo>=6&&hi>=10}; }
+  return out; }
+/* 1.14.28: «Γιατί 72;»: πόσο ανεβάζει/κατεβάζει τον βαθμό κάθε παράγοντας (σύγκριση με «ουδέτερη» τιμή), συν όσα μετρήθηκαν (μάθηση). */
+function explainHour(sm,h,sp){ const w=Object.assign({},h,{bite:true}); if(sp) w.sp=sp; delete w.learn; const base=hourScore(sm,h.hr,w);
+  const G={pt:{ptrend:'stable',pres:null},wind:{wind:8,gust:null},wave:{wave:0.3},sky:{cloud:'part',code:null,rain:0},water:{sst:null,temp:null}}, parts=[]; let sum=0;
+  for(const k of Object.keys(G)){ const v=hourScore(sm,h.hr,Object.assign({},w,G[k])), d=base-v; if(Math.abs(d)>=1){ parts.push({k,d}); sum+=d; } }
+  const rest=base-50-sum; if(Math.abs(rest)>=1) parts.push({k:'time',d:Math.round(rest)});
+  const lk=(h.learn&&typeof h.bite==='number')?Math.round(h.bite-base):0; if(Math.abs(lk)>=1) parts.push({k:'learn',d:lk});
+  return {base,score:base+lk,parts:parts.sort((a,b)=>Math.abs(b.d)-Math.abs(a.d))}; }
 /* Βρίσκει την πρώτη ιδανική ώρα τις επόμενες ~36 ώρες. */
 function findIdeal(fc,threshold){
   const hourNow=fc.nowLocal.slice(0,13);
@@ -467,7 +484,10 @@ async function checkPlaces(cfg,fetchFn){
     try{
       const fc=await getForecast(p.lat,p.lon,fetchFn,{days:7,sp:cfg.sp||null});
       okN++;
-      for(const g of goodDays(fc,thr)){ if(g.date===fc.nowLocal.slice(0,10)&&g.win&&g.win.e>=+fc.nowLocal.slice(11,13)&&(!todayGood||g.best>todayGood.best)) todayGood={place:p.name,date:g.date,best:g.best,win:g.win}; /* 1.14.13: καλύτερη ευκαιρία του Σαββατοκύριακου (Πέμπτη βράδυ) */ { const wdy=new Date(g.date+'T12:00:00Z').getUTCDay(); if((wdy===6||wdy===0)&&g.date>fc.nowLocal.slice(0,10)&&g.win&&(!wkGood||g.best>wkGood.best)) wkGood={place:p.name,date:g.date,best:g.best,win:g.win}; } /* 1.1.0: πρωινό μήνυμα */ { const tm=new Date(Date.parse(fc.nowLocal.slice(0,10)+'T12:00:00Z')+864e5).toISOString().slice(0,10); if(g.date===tm&&g.win&&(!tmrGood||g.best>tmrGood.best)) tmrGood={place:p.name,pid:p.id,date:g.date,best:g.best,win:g.win}; } /* 1.1.2: βραδινό μήνυμα για αύριο */ if(g.date>fc.nowLocal.slice(0,10)&&(!nextGood||g.date<nextGood.date||(g.date===nextGood.date&&g.best>nextGood.best))) nextGood={place:p.name,date:g.date,best:g.best,win:g.win}; const key=p.id+':'+g.date; if(notified[key]) continue; let why=''; try{ why=whyGood(g.d,g.win,en); }catch(e){} goods.push({type:'good',place:p,key,date:g.date,best:g.best,win:g.win,wind:g.wind,why}); }
+      /* 1.14.28: καλή μέρα σε 2+ μέρες, μόνο αν τα μοντέλα συμφωνούν για τον άνεμο (αλλιώς περιμένουμε να ξεκαθαρίσει) */
+      let gd=goodDays(fc,thr); const far=fc.nowLocal?new Date(Date.parse(fc.nowLocal.slice(0,10)+'T12:00:00Z')+2*864e5).toISOString().slice(0,10):null;
+      if(far&&gd.some(g=>g.date>=far)){ try{ const E=await ensSpread(p.lat,p.lon,fetchFn,7); gd=gd.filter(g=>!(g.date>=far&&E[g.date]&&E[g.date].bad)); }catch(e){} }
+      for(const g of gd){ if(g.date===fc.nowLocal.slice(0,10)&&g.win&&g.win.e>=+fc.nowLocal.slice(11,13)&&(!todayGood||g.best>todayGood.best)) todayGood={place:p.name,date:g.date,best:g.best,win:g.win}; /* 1.14.13: καλύτερη ευκαιρία του Σαββατοκύριακου (Πέμπτη βράδυ) */ { const wdy=new Date(g.date+'T12:00:00Z').getUTCDay(); if((wdy===6||wdy===0)&&g.date>fc.nowLocal.slice(0,10)&&g.win&&(!wkGood||g.best>wkGood.best)) wkGood={place:p.name,date:g.date,best:g.best,win:g.win}; } /* 1.1.0: πρωινό μήνυμα */ { const tm=new Date(Date.parse(fc.nowLocal.slice(0,10)+'T12:00:00Z')+864e5).toISOString().slice(0,10); if(g.date===tm&&g.win&&(!tmrGood||g.best>tmrGood.best)) tmrGood={place:p.name,pid:p.id,date:g.date,best:g.best,win:g.win}; } /* 1.1.2: βραδινό μήνυμα για αύριο */ if(g.date>fc.nowLocal.slice(0,10)&&(!nextGood||g.date<nextGood.date||(g.date===nextGood.date&&g.best>nextGood.best))) nextGood={place:p.name,date:g.date,best:g.best,win:g.win}; const key=p.id+':'+g.date; if(notified[key]) continue; let why=''; try{ why=whyGood(g.d,g.win,en); }catch(e){} goods.push({type:'good',place:p,key,date:g.date,best:g.best,win:g.win,wind:g.wind,why}); }
       /* v31z538: για μέρες που σου προτάθηκαν ήδη: (α) «άλλαξε η πρόγνωση» αν πέσει κάτω από τα όρια ασφαλείας ή αρκετά κάτω από τον στόχο,
          (β) υπενθύμιση το προηγούμενο βράδυ (19:00–23:59 τοπική ώρα) με τα τελευταία στοιχεία. Μία φορά η καθεμία ανά μέρα. */
       const nowD=fc.nowLocal.slice(0,10), nowH=+fc.nowLocal.slice(11,13), tmr=new Date(Date.parse(nowD+'T12:00:00Z')+864e5).toISOString().slice(0,10);
@@ -583,7 +603,7 @@ async function checkPlaces(cfg,fetchFn){
       msgs.push({kind:'good',key:i.key,place:P(i.pl),t:i.pl.date,title:'⏰ '+t('Ώρα να ξεκινήσεις','Time to get going'),body:tx,full:tx}); } });
   return {nextGood,todayGood,tmrGood,wkGood,items,notified,title,body:lines.concat(pl,tl,wl).join('\n'),msgs,area:area?{name:area.name,lat:area.lat,lon:area.lon}:null,errs,okN,goodsN:goods.length,pressN:press.length,turnsN:turns.length,windsN:winds.length};
 }
-g.PF={learnPick,learnBins,learnAdj,darkTxt,darkWin,squidEves,nextMoon,moonInfo,lims,moonAlt,moonEvents,moonPhase,solunarPeriods,pressureRise,sunMoon,hourScore,getForecast,findIdeal,message,check,goodDays,checkPlaces,dayLabel,bft,pressureEvent,windEvent,pressureTurns,pressureOutlook};
+g.PF={explainHour,ensSpread,learnPick,learnBins,learnAdj,darkTxt,darkWin,squidEves,nextMoon,moonInfo,lims,moonAlt,moonEvents,moonPhase,solunarPeriods,pressureRise,sunMoon,hourScore,getForecast,findIdeal,message,check,goodDays,checkPlaces,dayLabel,bft,pressureEvent,windEvent,pressureTurns,pressureOutlook};
 })(typeof self!=='undefined'?self:this);
 
 const PF = self.PF;
@@ -1399,6 +1419,20 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
       return { hr, wind: f.wind, gust: f.gust, wave: f.wave, pres: f.press, rain: f.rain, mm: f.rain, clp: f.cloud, mal: PF.moonAlt(f.t, +la, +lo), temp: f.temp, sst: f.sst, prof: prof || 'boat', t: new Date(f.t + tz * 60000).toISOString().slice(0, 16),
         ptrend: f.pt == null ? 'stable' : f.pt <= -3 ? 'fast' : f.pt <= -1 ? 'slow' : f.pt >= 1 ? 'rise' : 'stable',
         tide: f.tide == null ? null : f.tide > 0.01 ? 'up' : f.tide < -0.01 ? 'down' : 'slack', cloud: f.cloud == null ? 'part' : f.cloud < 20 ? 'clear' : f.cloud < 70 ? 'part' : 'over' }; };
+    // 1.14.28: ο δείκτης «ξαναζυγίζεται» από τα στοιχεία (Poisson με ridge): κάθε ώρα εξόδου → πόσα τσιμπήματα είχε, ανά συνθήκη.
+    // Ενεργοποιείται μόνο με ≥ 200 εξόδους ΚΑΙ αν στον έλεγχο (4 ομάδες ανά μέρα) ξεχωρίζει καλύτερα τις καλές εξόδους από τον σημερινό δείκτη.
+    const FIT_MIN = 200;
+    const fitPoisson = (catches, trips, ex) => {
+      const EXs = new Set(ex || []), feats = Object.keys(NB).filter(k => !EXs.has(k)), idx = {}; let D = 0; for (const k of feats) { idx[k] = D; D += NB[k]; }
+      const byU = {}; for (const r of catches) (byU[r.user_id] = byU[r.user_id] || []).push(r);
+      const X = [], Y = []; for (const t of trips) for (const f of t.cond.e) { const bb = bins(f, f.t, t.lat, t.lon), row = []; for (const k in bb) if (idx[k] != null) row.push(idx[k] + bb[k]);
+        const y = (byU[t.user_id] || []).filter(r => +r.ms >= f.t - HR / 2 && +r.ms < f.t + HR / 2).reduce((a, r) => a + 1 + Math.log2(Math.max(1, Math.min(64, r.cnt || 1))), 0); X.push(row); Y.push(y); }
+      if (X.length < 50) return null; const N = X.length, w = new Float64Array(D), cnt = new Float64Array(D); let b0 = Math.log(Math.max(0.01, Y.reduce((a, b) => a + b, 0) / N)); for (const row of X) for (const j of row) cnt[j]++;
+      const alpha = 2; for (let it = 0; it < 400; it++) { const g = new Float64Array(D); let gb = 0; for (let i = 0; i < N; i++) { let z = b0; for (const j of X[i]) z += w[j]; const lam = Math.exp(Math.min(5, z)), e = lam - Y[i]; gb += e; for (const j of X[i]) g[j] += e; }
+        b0 -= 0.5 * gb / N; for (let j = 0; j < D; j++) w[j] -= 0.5 * (g[j] + alpha * w[j]) / Math.max(1, cnt[j] + alpha); }
+      const ins = []; for (const k of feats) for (let b = 0; b < NB[k]; b++) { const j = idx[k] + b, l = Math.exp(w[j]); if (cnt[j] >= 20 && (l >= 1.3 || l <= 0.77)) ins.push({ f: k, b, lift: Math.round(l * 100) / 100, n: Math.round(cnt[j]), src: 'fit' }); }
+      return { ins: ins.sort((a, c) => Math.abs(Math.log(c.lift)) - Math.abs(Math.log(a.lift))).slice(0, 8), score: (f, t) => { const bb = bins(f, f.t, t.lat, t.lon); let z = b0; for (const k in bb) if (idx[k] != null) z += w[idx[k] + bb[k]]; return z; } };
+    };
     const backtest = (catches, trips, ex, g) => {
       const T = trips.filter(t => t.ms2 > t.ms); if (T.length < 8) return null;
       const fold = d => { let x = 0; for (const ch of String(d)) x = (x * 31 + ch.charCodeAt(0)) >>> 0; return x % 4; };
@@ -1411,11 +1445,20 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
           let sb0 = 0, sb1 = 0, nh = 0; const { sm } = sunOf(t.ms, t.lat, t.lon);
           for (const f of t.cond.e) { const w = fcHour(f, t.lat, t.lon, prof), b0 = PF.hourScore(sm, w.hr, Object.assign({}, w, { bite: true }));
             const h1 = PF.learnAdj({ ins: L.ins || [] }, sm, Object.assign({}, w, { score: b0, bite: b0 })); sb0 += b0; sb1 += h1.bite; nh++; }
-          if (nh) res.push({ y: fishN / Math.max(1, (t.ms2 - t.ms) / HR), b0: sb0 / nh, b1: sb1 / nh }); }
+          if (nh) res.push({ y: fishN / Math.max(1, (t.ms2 - t.ms) / HR), rt: t.cond && t.cond.rt, b0: sb0 / nh, b1: sb1 / nh }); }
       }
+      // 1.14.28: «Πώς ήταν το ψάρεμα;»: έξοδος χωρίς καταγεγραμμένα ψάρια αλλά «Καλό» (π.χ. δίχτυ) μετράει σαν τυπική έξοδος με ψάρια, «Μέτριο» λιγότερο
+      { const pos = res.filter(x => x.y > 0).map(x => x.y).sort((a, b) => a - b), med = pos.length ? pos[Math.floor(pos.length / 2)] : 0.5; for (const x of res) if (!(x.y > 0) && (x.rt === 2 || x.rt === 1)) x.y = x.rt === 2 ? med : med / 3; }
       const auc = key => { let s2 = 0, p = 0; for (let i = 0; i < res.length; i++) for (let j = 0; j < res.length; j++) { if (res[i].y <= res[j].y) continue; p++; s2 += res[i][key] > res[j][key] ? 1 : res[i][key] === res[j][key] ? 0.5 : 0; } return p ? { a: Math.round(s2 / p * 100) / 100, p } : null; };
       const A = auc('b0'), B2 = auc('b1'); if (!A || A.p < 10) return null;
-      return { n: res.length, base: A.a, adj: B2.a, on: B2.a >= A.a - 0.01 };
+      const out = { n: res.length, base: A.a, adj: B2.a, on: B2.a >= A.a - 0.01 };
+      if (T.length >= FIT_MIN) {
+        // βαθμός κάθε εξόδου από το μοντέλο που μάθαμε χωρίς αυτήν
+        const resF = []; for (let k = 0; k < 4; k++) { const test = T.filter(t => fold(t.day) === k); if (!test.length) continue; const F = fitPoisson(catches.filter(r => fold(r.day) !== k), T.filter(t => fold(t.day) !== k), ex); if (!F) continue;
+          for (const t of test) { const fishN = catches.filter(r => r.user_id === t.user_id && +r.ms >= +t.ms - 15 * 60000 && +r.ms <= +t.ms2 + 15 * 60000).reduce((a, r) => a + Math.max(1, r.cnt || 1), 0); let z = 0, nh = 0; for (const f of t.cond.e) { z += F.score(f, t); nh++; } if (nh) resF.push({ y: fishN / Math.max(1, (t.ms2 - t.ms) / HR), b2: z / nh }); } }
+        let s2 = 0, p = 0; for (let i = 0; i < resF.length; i++) for (let j = 0; j < resF.length; j++) { if (resF[i].y <= resF[j].y) continue; p++; s2 += resF[i].b2 > resF[j].b2 ? 1 : resF[i].b2 === resF[j].b2 ? 0.5 : 0; }
+        if (p) { out.fit = Math.round(s2 / p * 100) / 100; out.fitOn = out.fit >= Math.max(out.base, out.adj) + 0.02; } }
+      return out;
     };
     try {
       const cyH = +new Date().toLocaleString('en-GB', { timeZone: 'Asia/Nicosia', hour: '2-digit', hour12: false }).slice(0, 2);
@@ -1440,7 +1483,7 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
           const catches = catchesAll.filter(r => grpOf(r) === g), trips = tripsAll.filter(t => grpOf(t) === g), ex = EXG[g];
           if (g !== 'sea' && !catches.length) continue;
           const pre = g === 'sea' ? '' : 'g:' + g + '|';   // θάλασσα: 'all', 'sp:…', 'r:…' (όπως πριν) · αλλιώς 'g:spear', 'g:spear|sp:…'
-          const A0 = analyse(catches, trips, 8, ex); const A0wk = A0.data.wk; delete A0.data.wk; try { const bt = backtest(catches, trips, ex, g); if (bt) { A0.data.bt = bt; if (!bt.on) A0.data.learnOff = true; } } catch (e) { log('bite stats: backtest ' + e.message); }
+          const A0 = analyse(catches, trips, 8, ex); const A0wk = A0.data.wk; delete A0.data.wk; try { const bt = backtest(catches, trips, ex, g); A0.data.trips = trips.length; A0.data.fitMin = FIT_MIN; if (bt) { A0.data.bt = bt; if (bt.fitOn) { const F = fitPoisson(catches, trips, ex); if (F && F.ins.length) { A0.data.ins = F.ins; A0.data.fitted = true; } } else if (!bt.on) A0.data.learnOff = true; } } catch (e) { log('bite stats: backtest ' + e.message); }
           put(g === 'sea' ? 'all' : 'g:' + g, A0, g);
           if (g !== 'ceph') for (const [sz, cs] of [['big', catches.filter(r => !isSmall(r))], ['small', catches.filter(isSmall)]]) if (cs.length >= 10 && cs.length < catches.length) { const a = analyse(cs, trips, 6, ex); a.data.size = sz; delete a.data.wk; put(pre + sz, a, g); }
           const bySp = {}; for (const r of catches) if (r.sp) (bySp[r.sp] = bySp[r.sp] || []).push(r);
@@ -1449,6 +1492,18 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
           const byR = {}; for (const r of catches) (byR[cell(r)] = byR[cell(r)] || []).push(r);
           if (Object.keys(byR).length > 1) for (const [rc, cs] of Object.entries(byR)) { if (cs.length < 30) continue; put(pre + 'r:' + rc, blend(analyse(cs, trips.filter(t => cell(t) === rc), 8, ex), A0, 8), g); }
         }
+        // 1.14.28: «Τι πιάνεται τώρα»: ανά κελί 1°, τσιμπήματα της τελευταίας εβδομάδας σε σχέση με τον μέσο όρο των 4 προηγούμενων· μόνο από ≥ 3 ψαράδες
+        const trendNew = [];
+        try {
+          const todayD = isoD(Date.now()), dAgo = n => isoD(Date.now() - n * DAY), c1 = r => Math.floor(+r.lat) + '_' + Math.floor(+r.lon), TR = {};
+          for (const r of catchesAll) { if (!r.day || r.day < dAgo(35)) continue; const k = c1(r) + '|' + (r.sp || (r.cond && r.cond.nm) || '?'), o = TR[k] = TR[k] || { cell: c1(r), sp: r.sp, nm: {}, g: grpOf(r), n7: 0, p: 0, u7: new Set(), u: new Set() };
+            const v = 1 + Math.log2(Math.max(1, Math.min(64, r.cnt || 1))), nm = r.cond && r.cond.nm; if (nm) o.nm[nm] = (o.nm[nm] || 0) + 1; o.u.add(r.user_id); if (r.day >= dAgo(7)) { o.n7 += v; o.u7.add(r.user_id); } else o.p += v / 4; }
+          const byCell = {};
+          for (const o of Object.values(TR)) { if (o.u7.size < 3 || o.n7 < 5) continue; const ratio = (o.n7 + 1) / (o.p + 1), nm = Object.entries(o.nm).sort((a, b) => b[1] - a[1])[0];
+            const it = { sp: o.sp, nm: nm ? nm[0] : o.sp, g: o.g, n7: Math.round(o.n7), prev: Math.round(o.p * 10) / 10, ratio: Math.round(ratio * 10) / 10, users: o.u7.size, up: ratio >= 2, fresh: o.p < 0.5 };
+            (byCell[o.cell] = byCell[o.cell] || []).push(it); if (it.up) trendNew.push(Object.assign({ cell: o.cell }, it)); }
+          for (const [cl, items] of Object.entries(byCell)) out.push({ key: 'trend:' + cl, n: items.reduce((a, x) => a + x.n7, 0), users: Math.max(...items.map(x => x.users)), data: { items: items.sort((a, b) => b.n7 - a.n7).slice(0, 8), day: todayD }, updated_at: now });
+        } catch (e) { log('bite stats: trend ' + e.message); }
         if (out.length) await sb('bite_stats?on_conflict=key', { method: 'POST', headers: { 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(out) });
         // προσωπικά (μόνο ο ίδιος τα διαβάζει): data = το είδος ψαρέματος που κάνει πιο συχνά, data.by = όλα όσα έχουν ≥ 10 ψάρια
         const byU = {}; for (const r of catchesAll) (byU[r.user_id] = byU[r.user_id] || []).push(r);
@@ -1471,6 +1526,24 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
       }
     } catch (e) { log('bite stats: ' + e.message); }
 
+    // (δ) 1.14.28: «Ανεβαίνουν/Εμφανίστηκαν … κοντά σου» (09:00–20:00 Κύπρου, μία φορά την εβδομάδα το πολύ)
+        // ειδοποίηση «ανεβαίνουν…» σε όσους έχουν σημείο σε αυτό το κελί (μία φορά την εβδομάδα το πολύ)
+    try { const cyH2 = +new Date().toLocaleString('en-GB', { timeZone: 'Asia/Nicosia', hour: '2-digit', hour12: false }).slice(0, 2);
+      const trendNew = []; if (webpush && cyH2 >= 9 && cyH2 < 20) for (const x of ((await sb('bite_stats?key=like.trend:*&select=key,data').catch(() => [])) || [])) for (const it of ((x.data && x.data.items) || [])) if (it.up) trendNew.push(Object.assign({ cell: x.key.slice(6) }, it));
+        if (webpush && trendNew.length) try {
+          const subsT = (await sb('push_subs?select=id,user_id,sub,places').catch(() => [])) || [], wk = isoD(Date.now() - (new Date().getUTCDay() * DAY));
+          const byUser = {}; for (const r of subsT) (byUser[r.user_id] = byUser[r.user_id] || []).push(r);
+          for (const [u, subs] of Object.entries(byUser)) {
+            const cells = new Set(); subs.forEach(r => (r.places || []).forEach(p => { if (p && typeof p.lat === 'number' && typeof p.lon === 'number' && p.trend !== false) cells.add(Math.floor(p.lat) + '_' + Math.floor(p.lon)); }));
+            const hit = trendNew.filter(x => cells.has(x.cell)).sort((a, b) => b.ratio - a.ratio)[0]; if (!hit) continue;
+            const recent = (await sb(`notif_log?user_id=eq.${encodeURIComponent(u)}&kind=eq.trend&at=gt.${encodeURIComponent(new Date(Date.now() - 6 * DAY).toISOString())}&select=id`)) || []; if (recent.length) continue;
+            const nid = 'trend:' + u + ':' + hit.cell + ':' + (hit.sp || hit.nm) + ':' + wk, ceph = hit.g === 'ceph';
+            const msg = { id: nid, kind: 'trend', tag: 'trend-' + hit.cell, url: '#log', title: (ceph ? '🦑 ' : '🎣 ') + (hit.fresh ? 'Εμφανίστηκαν: ' : 'Ανεβαίνουν: ') + hit.nm + ' κοντά σου', body: hit.n7 + ' τσιμπήματα την τελευταία εβδομάδα από ' + hit.users + ' ψαράδες' + (hit.fresh ? '' : ' (×' + String(hit.ratio).replace('.', ',') + ' από πριν)') + '. · ' + (hit.fresh ? 'Showing up' : 'On the rise') + ' near you.' };
+            for (const r of subs) { try { await webpush.sendNotification(r.sub, JSON.stringify(msg), { TTL: 24 * 3600 }); } catch (e) { if (e.statusCode === 404 || e.statusCode === 410) await sb(`push_subs?id=eq.${encodeURIComponent(r.id)}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } }).catch(() => {}); } }
+            await sb('notif_log', { method: 'POST', headers: { 'Content-Type': 'application/json', Prefer: 'resolution=ignore-duplicates,return=minimal' }, body: JSON.stringify({ id: nid, user_id: u, kind: 'trend', title: msg.title, body: msg.body, at: new Date().toISOString() }) }).catch(() => {});
+            stats.trend = (stats.trend || 0) + 1; }
+        } catch (e) { log('bite stats: trend push ' + e.message); }
+    } catch (e) { log('bite stats: trend push ' + e.message); }
     // (γ) «🎯 Αύριο … μοιάζει με τις καλύτερες ώρες σου»
     try {
       const cyH = +new Date().toLocaleString('en-GB', { timeZone: 'Asia/Nicosia', hour: '2-digit', hour12: false }).slice(0, 2);

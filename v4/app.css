@@ -1078,3 +1078,10 @@ html.night body.mapon #lmap canvas.wxdash{filter:none!important;opacity:.7}
 .camgal svg,.camflip svg{width:28px;height:28px}
 /* 1.14.23: εξήγηση «από όσα μετρήθηκαν» */
 .hlearn{margin:6px 0 0;font-size:13px;line-height:1.35;opacity:.92}
+/* 1.14.28: «Γιατί 72;» και βεβαιότητα */
+.hwhy2{margin:6px 0 0;font-size:13px}
+.hwhy2 summary{cursor:pointer;font-weight:700;opacity:.9}
+.hwhyc{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0 4px}
+.hwhyc .chip.pos{background:color-mix(in srgb,#1f8f4e 22%,transparent);border-color:transparent}
+.hwhyc .chip.neg{background:color-mix(in srgb,#c62828 20%,transparent);border-color:transparent}
+.hunc{margin:6px 0 0;font-size:13px;color:#f0b429}

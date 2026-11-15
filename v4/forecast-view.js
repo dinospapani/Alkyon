@@ -49,7 +49,7 @@ function load(force){
   var f=waveFactor(p.lat,p.lon), ff=Math.abs(f-1)<0.03?null:function(url,o){ return fetch(url,o).then(function(r){
     if(!/marine-api/.test(url)||!r.ok) return r;
     return r.json().then(function(j){ try{ j.hourly.wave_height=j.hourly.wave_height.map(function(v){ return typeof v==='number'?Math.round(v*f*100)/100:v; }); }catch(e){} return {ok:true,status:200,json:function(){ return Promise.resolve(j); }}; }); }); };
-  PF.getForecast(p.lat,p.lon,ff,{days:7,sp:sp}).then(function(fc){
+  PF.getForecast(p.lat,p.lon,ff,{days:7,sp:sp,ens:true}).then(function(fc){
     if(busy!==my) return; ls.set('alkyon-fc7',{id:p.id,sp:spk,t:Date.now(),fc:fc}); saveHist(p,fc); st.fc=fc; st.t=Date.now(); st.loading=false; draw();
   }).catch(function(){
     if(busy!==my) return; st.loading=false;
@@ -462,6 +462,13 @@ function dayView(page,fc,d){
     hero.append(h('div',{class:'hsplit'},
       h('div',{class:'hsb lv-'+lvl(d.bite)},h('small',null,ik('fish'),T('Τσίμπημα','Bite')),h('b',{text:String(d.bite)}),h('span',{text:bw?B.pad(bw.s)+':00–'+B.pad((bw.e+1)%24)+':00':''})),
       h('div',{class:'hsb sea-'+sx[0]},h('small',null,ik('wave'),T('Θάλασσα','Sea')),h('b',{text:sx[1]}),h('span',{text:sx[2]})))); }
+  /* 1.14.28: «Γιατί 72;» (ανάλυση του βαθμού στην καλύτερη ώρα) και βεβαιότητα (διαφωνία μοντέλων για τον άνεμο) */
+  try{ var bw=d.biteWin||d.win, fh=bw?(d.hours||[]).filter(function(q){ return q.hr>=bw.s&&q.hr<=bw.e; }):focusHours(d), pk=fh.slice().sort(function(a,b){ return (b.bite||0)-(a.bite||0); })[0], pl0=st.place||current();
+    if(pk&&PF.explainHour&&pl0&&pl0.lat!=null){ var smx=PF.sunMoon(d.date,+pl0.lat,+pl0.lon,st.fc&&st.fc.tz!=null?st.fc.tz:-new Date().getTimezoneOffset()), ex=PF.explainHour(smx,pk,spCfg());
+      var LB={pt:T('πίεση','pressure'),wind:T('άνεμος','wind'),wave:T('κύμα','waves'),sky:T('ουρανός/βροχή','sky/rain'),water:T('νερό/θερμοκρασία','water/temp'),time:T('ώρα & σελήνη','time & moon'),learn:T('από όσα μετρήθηκαν','from what was measured')};
+      if(ex.parts.length){ var wd=h('details',{class:'hwhy2'},h('summary',{text:T('Γιατί ','Why ')+pk.bite+T(' στις ',' at ')+B.pad(pk.hr)+':00;'}),h('div',{class:'hwhyc'},ex.parts.map(function(x){ return h('span',{class:'chip sm '+(x.d>0?'pos':'neg'),text:(x.d>0?'+':'')+x.d+' '+LB[x.k]}); })),h('small',{class:'sub',text:T('Βάση 50· κάθε κομμάτι δείχνει πόσο ανεβάζει ή κατεβάζει τον βαθμό εκείνη την ώρα.','Base 50; each part shows how much it raises or lowers the score at that hour.')}));
+        hero.append(wd); } } }catch(e){}
+  try{ if(d.unc&&d.unc.bad) hero.append(h('p',{class:'hunc',text:'⚠ '+T('Αβέβαιη πρόγνωση: τα μοντέλα καιρού διαφωνούν για τον άνεμο (','Uncertain forecast: the weather models disagree about the wind (')+d.unc.lo+'–'+d.unc.hi+' kn).'})); }catch(e){}
   /* 1.14.23: ο δείκτης μαθαίνει από το «Πότε τσιμπάνε»: τι ταίριαξε στις καλύτερες ώρες */
   try{ var lm={}, lk=[]; focusHours(d).forEach(function(q){ if(q.learn){ lk.push(q.learn.k); q.learn.m.forEach(function(x){ lm[x.f+':'+x.b]=x; }); } });
     var lv=Object.keys(lm).map(function(k){ return lm[k]; }).sort(function(a,b){ return Math.abs(Math.log(b.lift))-Math.abs(Math.log(a.lift)); }).slice(0,3);

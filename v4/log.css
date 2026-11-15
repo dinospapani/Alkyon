@@ -679,3 +679,8 @@ html.nightred .kpis .kpi{outline:1px solid #fff;outline-offset:-1px;background:#
 /* 1.14.25 */
 .bscard .bsbt{margin:8px 0 0;font-size:13px;padding:6px 10px;border-radius:10px;background:color-mix(in srgb,#1f8f4e 14%,transparent)}
 .bscard .bsbt.off{background:color-mix(in srgb,var(--ink-2) 14%,transparent)}
+/* 1.14.28 */
+.bscard .bstrend{margin:8px 0 6px;padding:8px 10px;border-radius:12px;background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.bscard .bstr{list-style:none;margin:4px 0;padding:0;display:grid;gap:3px;font-size:13.5px}
+.bscard .bstr li.up b{color:var(--accent)}
+.bscard .bsfit{display:block;margin-top:6px}
