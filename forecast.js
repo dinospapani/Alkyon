@@ -176,6 +176,8 @@ function learnBins(sm,h){ const o={}, t=h.hr*60+30;
   if(h.cloud) o.cloud=h.cloud==='clear'?0:h.cloud==='part'?1:2;
   if(typeof h.rain==='number') o.rain=h.rain>=0.2?1:0;
   return o; }
+/* 1.14.24: {by:{sea,spear,lake}} → η ομάδα του προφίλ (σκάφος/ακτή = θάλασσα με καλάμι) */
+function learnPick(L){ if(!L||!L.by) return L; let p='boat'; try{ p=(typeof window!=='undefined'&&window.AK&&window.AK.prof)?window.AK.prof():'boat'; }catch(e){} return L.by[p==='spear'?'spear':p==='lake'?'lake':'sea']||null; }
 function learnAdj(L,sm,h){ if(!L||!L.ins||!L.ins.length) return h; const bb=learnBins(sm,h); let lg=0; const m=[];
   for(const x of L.ins){ if(!(x.src==='both'||x.n>=15)||bb[x.f]!==x.b||!(x.lift>0)) continue; const w=x.n/(x.n+60); lg+=w*Math.log(x.lift); m.push({f:x.f,b:x.b,lift:x.lift}); }
   if(!m.length) return h; const k=Math.max(0.85,Math.min(1.15,Math.exp(lg)));
@@ -226,7 +228,7 @@ async function getForecast(lat,lon,fetchFn,opt){
   const days=[], past=[], dks=Object.keys(byDay).sort();
   for(const date of dks.filter(x=>x<today).concat(dks.filter(x=>x>=today).slice(0,nd))){
     const zn=(typeof w.value.timezone==='string')?w.value.timezone:null, tzd=zn?nicOffAt(date,tz,zn):(tz===120||tz===180)?nicOffAt(date,tz):tz, sm=sunMoon(date,lat,lon,tzd), rows=byDay[date];
-    const LRN=(opt&&opt.learn)||(opt&&opt.learn===false?null:(typeof window!=='undefined'&&window.AlkyonLearn)||null);
+    const LRN=learnPick((opt&&opt.learn)||(opt&&opt.learn===false?null:(typeof window!=='undefined'&&window.AlkyonLearn)||null));
     const hours=rows.map(h=>learnAdj(LRN,sm,{t:h.t,hr:h.hr,p:h.p,pres:h.pres,wind:h.wind,wave:h.wave,waveOff:h.waveOff,gust:h.gust,code:h.code,ptrend:h.ptrend,tide:h.tide,dir:h.dir,temp:h.temp,rain:h.rain,cloud:h.cloud,sst:h.sst,period:h.period,score:hourScore(sm,h.hr,opt&&opt.sp?Object.assign({sp:opt.sp},h):h),bite:hourScore(sm,h.hr,Object.assign(opt&&opt.sp?{sp:opt.sp}:{},h,{bite:true})),safe:safeHour(h)}));
     const day=h=>{const t=h.hr*60+30;return t>=sm.rise-60&&t<=sm.set+60;};
     const cand=hours.filter(h=>h.safe&&day(h)&&(date!==today||h.t>=nowLocal.slice(0,13)+':00'));
@@ -566,5 +568,5 @@ async function checkPlaces(cfg,fetchFn){
       msgs.push({kind:'good',key:i.key,place:P(i.pl),t:i.pl.date,title:'⏰ '+t('Ώρα να ξεκινήσεις','Time to get going'),body:tx,full:tx}); } });
   return {nextGood,todayGood,tmrGood,wkGood,items,notified,title,body:lines.concat(pl,tl,wl).join('\n'),msgs,area:area?{name:area.name,lat:area.lat,lon:area.lon}:null,errs,okN,goodsN:goods.length,pressN:press.length,turnsN:turns.length,windsN:winds.length};
 }
-g.PF={learnBins,learnAdj,darkTxt,darkWin,squidEves,nextMoon,moonInfo,lims,moonAlt,moonEvents,moonPhase,solunarPeriods,pressureRise,sunMoon,hourScore,getForecast,findIdeal,message,check,goodDays,checkPlaces,dayLabel,bft,pressureEvent,windEvent,pressureTurns,pressureOutlook};
+g.PF={learnPick,learnBins,learnAdj,darkTxt,darkWin,squidEves,nextMoon,moonInfo,lims,moonAlt,moonEvents,moonPhase,solunarPeriods,pressureRise,sunMoon,hourScore,getForecast,findIdeal,message,check,goodDays,checkPlaces,dayLabel,bft,pressureEvent,windEvent,pressureTurns,pressureOutlook};
 })(typeof self!=='undefined'?self:this);

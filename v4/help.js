@@ -70,6 +70,7 @@ var HELP=[
 ];
 /* έκδοση → αλλαγές (νεότερες πρώτες). Προσθέτεις γραμμή εδώ σε κάθε νέα λειτουργία. */
 var NEWS=[
+ ['1.14.24',[T('«Πότε τσιμπάνε» και ο δείκτης χωριστά ανά είδος ψαρέματος: θάλασσα με καλάμι (σκάφος/ακτή), ψαροντούφεκο, λίμνη/φράγμα. Ακολουθούν αυτόματα το προφίλ σου· στη λίμνη δεν μετράνε κύμα, ρεύμα και στάθμη θάλασσας.','«When they bite» and the score are now separate per fishing type: sea with a rod (boat/shore), spearfishing, lake/reservoir. They follow your profile automatically; for lakes, waves, current and sea level are left out.')]],
  ['1.14.23',[T('Πότε τσιμπάνε: μετράνε ΟΛΑ τα ψάρια (και χωρίς έξοδο): κάθε ψάρι συγκρίνεται με τις ώρες της ίδιας μέρας. ✓✓ όταν συμφωνούν ψάρια και ώρες εξόδων.','When they bite: ALL catches count (even without a trip): each catch is compared with the hours of the same day. ✓✓ when catches and trip hours agree.'),
   T('«Για σένα»: τα ίδια ευρήματα μόνο από τα δικά σου ψάρια, και «Δούλεψε: τεχνική · δόλωμα · βάθος» στις καλές συνθήκες.','«For you»: the same findings from your own catches only, plus «Worked: technique · bait · depth» in the good conditions.'),
   T('Ο δείκτης τσιμπήματος μαθαίνει από τα ευρήματα (το πολύ ±15%, λιγότερο όσο τα στοιχεία είναι λίγα) και γράφει «📊 Από όσα μετρήθηκαν…».','The bite score learns from the findings (at most ±15%, less while data is thin) and shows «📊 From what was measured…».'),

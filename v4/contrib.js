@@ -74,10 +74,15 @@ var FL={
   rain:[T('Βροχή','Rain'),[T('όχι','no'),T('ναι','yes')]],
   cur:[T('Ρεύμα (km/h)','Current (km/h)'),['<0,4','0,4–1','>1']]};
 var MAIN=['sun','pt','sol','wind'];
+/* 1.14.24: είδος ψαρέματος → ομάδα στατιστικών: θάλασσα με καλάμι (σκάφος/ακτή), ψαροντούφεκο, λίμνη/φράγμα */
+function grp(){ var p=B.prof?B.prof():'boat'; return p==='spear'?'spear':p==='lake'?'lake':'sea'; }
+function gkey(g,rest){ return g==='sea'?(rest||'all'):'g:'+g+(rest?'|'+rest:''); }
+var GLAB={sea:T('Θάλασσα με καλάμι','Sea, rod'),spear:T('Ψαροντούφεκο','Spearfishing'),lake:T('Λίμνη / φράγμα','Lake / reservoir')};
 B.learnLabel=function(f,b){ var L=FL[f]; return L?L[0].replace(/ \(.*\)$/,'')+': '+L[1][b]:''; };
 /* 1.14.23: τα ευρήματα πάνε στον δείκτη (forecast.js learnAdj) μέσω window.AlkyonLearn· κρατιούνται και τοπικά για να ισχύουν από την αρχή */
 try{ var LR=ls.get('alkyon-learn',null); if(LR&&LR.ins) window.AlkyonLearn=LR; }catch(e){}
-function setLearn(S){ try{ var rk=cellKey(), st=(rk&&S[rk]&&S[rk].n>=MIN)?S[rk]:S.all; var L=st&&st.n>=MIN&&st.data&&st.data.ins&&st.data.ins.length?{ins:st.data.ins,n:st.n,t:Date.now()}:null; window.AlkyonLearn=L; ls.set('alkyon-learn',L); }catch(e){} }
+function setLearn(S){ try{ var by={}, any=false; ['sea','spear','lake'].forEach(function(g){ var rk=cellKey(), rkg=rk?gkey(g,rk):null, st=(rkg&&S[rkg]&&S[rkg].n>=MIN)?S[rkg]:S[gkey(g)]; if(st&&st.n>=MIN&&st.data&&st.data.ins&&st.data.ins.length){ by[g]={ins:st.data.ins,n:st.n}; any=true; } });
+  var L=any?{by:by,t:Date.now()}:null; window.AlkyonLearn=L; ls.set('alkyon-learn',L); }catch(e){} } /* 1.14.24: ανά είδος ψαρέματος· το forecast.js διαλέγει με το προφίλ */
 function spLabel(sp){ var kb=(window.SPKB||[]).filter(function(k){ return String(k.l||'').toLowerCase()===sp; })[0]; return kb?(B.EN?(kb.en||kb.n):kb.n):sp.charAt(0).toUpperCase()+sp.slice(1); }
 function fx(v,d){ return B.num?B.num(v,d):String(v); }
 var MY=null, myAt=0;
@@ -97,16 +102,18 @@ function card(sp0){ var box=h('section',{class:'card bscard'},h('h3',{text:T('Π
     function draw(){ body.replaceChildren(); chips.replaceChildren();
       if(mode==='me'){ if(!M||!M.data){ body.append(h('p',{class:'sub',text:on()?T('Θα φανεί όταν έχεις τουλάχιστον 10 ψάρια με θέση (ενημερώνεται κάθε βράδυ).','Shows once you have at least 10 catches with a position (updated every night).'):T('Τα προσωπικά ευρήματα βγαίνουν από τα στοιχεία που στέλνεις ανώνυμα.','Personal findings come from the data you share anonymously.')}));
           if(!on()) body.append(h('button',{class:'linkbtn',type:'button',text:T('Ενεργοποίηση ›','Turn on ›'),onclick:sheet})); return; }
-        render(M.data,M.n,0,true); return; }
-      var rk=cellKey(), useR=rk&&S[rk]&&S[rk].n>=MIN&&cur==='all';
-      var sps=Object.keys(S).filter(function(k){ return k.indexOf('sp:')===0&&S[k].n>=MIN; }).sort(function(a,b){ return S[b].n-S[a].n; }).slice(0,8);
-      if(sps.length){ [['all',T('Όλα','All')]].concat(sps.map(function(k){ return [k,spLabel(k.slice(3))]; })).forEach(function(x){ chips.append(h('button',{type:'button',class:'chip sm'+(x[0]===cur?' on':''),text:x[1],onclick:function(){ cur=x[0]; draw(); }})); }); }
-      var st=useR?S[rk]:(S[cur]||S.all);
+        var g2=grp(), md=(M.data.by&&M.data.by[g2])?M.data.by[g2]:(!M.data.by||M.data.grp===g2||(!M.data.grp&&g2==='sea')?{n:M.n,data:M.data}:null);
+        if(!md){ body.append(h('p',{class:'sub',text:T('Δεν έχεις ακόμα 10 ψάρια σε «','You do not have 10 catches yet in «')+GLAB[g2]+T('».','».')})); return; }
+        render(md.data,md.n,0,true); return; }
+      var g=grp(), base=gkey(g), spp=gkey(g,'sp:'), rk0=cellKey(), rk=rk0?gkey(g,rk0):null, useR=rk&&S[rk]&&S[rk].n>=MIN&&cur==='all';
+      var sps=Object.keys(S).filter(function(k){ return k.indexOf(spp)===0&&S[k].n>=MIN; }).sort(function(a,b){ return S[b].n-S[a].n; }).slice(0,8);
+      if(sps.length){ [['all',T('Όλα','All')]].concat(sps.map(function(k){ return [k,spLabel(k.slice(spp.length))]; })).forEach(function(x){ chips.append(h('button',{type:'button',class:'chip sm'+(x[0]===cur?' on':''),text:x[1],onclick:function(){ cur=x[0]; draw(); }})); }); }
+      var st=useR?S[rk]:(cur!=='all'&&S[cur])||S[base];
       if(!st||st.n<MIN){ body.append(h('p',{class:'sub',text:T('Μαζεύονται ακόμα στοιχεία','Still collecting data')+(st&&st.n?' · '+st.n+T(' ψάρια μέχρι τώρα',' fish so far'):'')+T('. Θα φανεί όταν υπάρχουν τουλάχιστον ','. It will show once there are at least ')+MIN+T(' ψάρια.',' fish.')}));
         if(!on()) body.append(h('button',{class:'linkbtn',type:'button',text:T('Βοήθησε με τα δικά σου ψάρια ›','Help with your own catches ›'),onclick:sheet})); return; }
       render(st.data||{},st.n,st.users,false,useR); }
     function render(d,n,users,me,reg){
-      body.append(h('p',{class:'sub',text:n+T(' ψάρια',' fish')+(users>=3?T(' από ',' from ')+users+T(' ψαράδες',' anglers'):'')+(d.hrs?' · '+d.hrs+T(' ώρες εξόδων',' trip hours'):'')+(reg?T(' · στην περιοχή σου',' · in your area'):'')+(d.tgt?T(' · έξοδοι με αυτόν τον στόχο',' · trips targeting it'):'')}));
+      body.append(h('p',{class:'sub',text:n+T(' ψάρια',' fish')+(users>=3?T(' από ',' from ')+users+T(' ψαράδες',' anglers'):'')+(d.hrs?' · '+d.hrs+T(' ώρες εξόδων',' trip hours'):'')+' · '+GLAB[grp()]+(reg?T(' · στην περιοχή σου',' · in your area'):'')+(d.tgt?T(' · έξοδοι με αυτόν τον στόχο',' · trips targeting it'):'')}));
       if(d.ins&&d.ins.length) body.append(insList(d.ins)); else body.append(h('p',{class:'sub',text:T('Κανένα δυνατό εύρημα ακόμα.','No strong findings yet.')}));
       if(d.f){ MAIN.forEach(function(k){ var g=factor(k,d.f[k]); if(g) body.append(g); });
         var rest=Object.keys(FL).filter(function(k){ return MAIN.indexOf(k)<0&&d.f[k]; }); if(rest.length){ var det=h('details',{class:'bsmore'},h('summary',{text:T('Όλες οι συνθήκες','All conditions')})); rest.forEach(function(k){ var g=factor(k,d.f[k]); if(g) det.append(g); }); body.append(det); } }
@@ -119,6 +126,6 @@ function factor(k,o){ var L=FL[k]; if(!L||!o) return null; var useR=!!(o.r&&o.r.
 B.biteStatsCard=card;
 
 setTimeout(function(){ if(on()) sync(); else ask(); stats(); },8000);
-B.on&&B.on('store',function(){ clearTimeout(sync._t); sync._t=setTimeout(sync,4000); });
+B.on&&B.on('store',function(k){ if(k==='alkyon-fprof') return; clearTimeout(sync._t); sync._t=setTimeout(sync,4000); });
 document.addEventListener('visibilitychange',function(){ if(!document.hidden&&on()) sync(); });
 })();

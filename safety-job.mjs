@@ -729,7 +729,7 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
     const depB = v => v == null ? null : v < 10 ? '0–10 m' : v < 30 ? '10–30 m' : v < 60 ? '30–60 m' : v < 100 ? '60–100 m' : '100+ m';
     const arr = n => Array(n).fill(0);
     // ένα «σύνολο» ψαριών (όλοι / είδος / περιοχή / ένας χρήστης) → data
-    const analyse = (catches, trips, minCase) => {
+    const analyse = (catches, trips, minCase, excl) => { const EX = new Set(excl || []);
       const c = {}, ctl = {}, fish = {}, eff = {}, worked = {};
       for (const k of Object.keys(NB)) { c[k] = arr(NB[k]); ctl[k] = arr(NB[k]); fish[k] = arr(NB[k]); eff[k] = arr(NB[k]); }
       const tripsBy = {}; for (const t of trips) (tripsBy[t.user_id] = tripsBy[t.user_id] || []).push(t);
@@ -749,7 +749,7 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
       }
       ctl.moon = arr(8).map(() => n / 8);   // η σελήνη: κάθε φάση διαρκεί περίπου το ίδιο
       const data = { v: 3, f: {}, ins: [] }, cand = {};
-      for (const f of Object.keys(NB)) {
+      for (const f of Object.keys(NB)) { if (EX.has(f)) continue;
         const C = c[f].reduce((a, b) => a + b, 0), CT = ctl[f].reduce((a, b) => a + b, 0), E = eff[f].reduce((a, b) => a + b, 0), FS = fish[f].reduce((a, b) => a + b, 0), base = E > 0 ? FS / E : 0;
         const cc = CT >= 5 ? c[f].map((v, i) => { const sh = ctl[f][i] / CT; return sh >= 0.03 && C ? Math.round((v / C) / sh * 100) / 100 : null; }) : null;
         const r = E >= 10 && FS >= 3 ? eff[f].map((e, i) => e >= 4 ? Math.round(fish[f][i] / e * 100) / 100 : null) : null;
@@ -771,28 +771,41 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
       const cur = ((await sb('bite_stats?key=eq.all&select=updated_at')) || [])[0];
       if (cyH >= 3 && (!cur || Date.now() - Date.parse(cur.updated_at) > 20 * HR)) {
         const rows = [];
-        for (let off = 0; off < 50000; off += 1000) { const a = (await sb(`catch_obs?select=user_id,kind,sp,day,ms,ms2,lat,lon,cnt,tech,cond&order=id.asc&limit=1000&offset=${off}`)) || []; rows.push(...a); if (a.length < 1000) break; }
-        const catches = rows.filter(r => r.kind === 'catch' && r.ms != null && r.lat != null);
-        const trips = rows.filter(r => r.kind === 'trip' && r.cond && Array.isArray(r.cond.e) && r.cond.e.length);
+        for (let off = 0; off < 50000; off += 1000) { const a = (await sb(`catch_obs?select=user_id,kind,sp,day,ms,ms2,lat,lon,cnt,tech,prof,cond&order=id.asc&limit=1000&offset=${off}`)) || []; rows.push(...a); if (a.length < 1000) break; }
+        // 1.14.24: χωριστά ανά είδος ψαρέματος: θάλασσα με καλάμι (σκάφος/ακτή), ψαροντούφεκο, λίμνη/φράγμα
+        const grpOf = r => r.prof === 'spear' ? 'spear' : r.prof === 'lake' ? 'lake' : 'sea';
+        const EXG = { sea: [], spear: [], lake: ['wave', 'tide', 'cur'] };
+        const catchesAll = rows.filter(r => r.kind === 'catch' && r.ms != null && r.lat != null);
+        const tripsAll = rows.filter(r => r.kind === 'trip' && r.cond && Array.isArray(r.cond.e) && r.cond.e.length);
         const cell = r => (Math.floor(+r.lat / 2) * 2) + '_' + (Math.floor(+r.lon / 2) * 2);
         const now = new Date().toISOString(), out = [];
-        const put = (k, a) => out.push({ key: k, n: a.n, users: a.users, data: a.data, updated_at: now });
-        put('all', analyse(catches, trips, 8));
-        const bySp = {}; for (const r of catches) if (r.sp) (bySp[r.sp] = bySp[r.sp] || []).push(r);
-        for (const [sp, cs] of Object.entries(bySp)) { if (cs.length < 10) continue; const tg = trips.filter(t => t.sp === sp), hrs = tg.reduce((a, t) => a + t.cond.e.length, 0);
-          const a = analyse(cs, hrs >= 10 ? tg : trips, 5); a.data.tgt = hrs >= 10; put('sp:' + sp, a); }
-        const byR = {}; for (const r of catches) (byR[cell(r)] = byR[cell(r)] || []).push(r);
-        if (Object.keys(byR).length > 1) for (const [rc, cs] of Object.entries(byR)) { if (cs.length < 30) continue; put('r:' + rc, analyse(cs, trips.filter(t => cell(t) === rc), 8)); }
+        const put = (k, a, g) => { a.data.grp = g; out.push({ key: k, n: a.n, users: a.users, data: a.data, updated_at: now }); };
+        for (const g of ['sea', 'spear', 'lake']) {
+          const catches = catchesAll.filter(r => grpOf(r) === g), trips = tripsAll.filter(t => grpOf(t) === g), ex = EXG[g];
+          if (g !== 'sea' && !catches.length) continue;
+          const pre = g === 'sea' ? '' : 'g:' + g + '|';   // θάλασσα: 'all', 'sp:…', 'r:…' (όπως πριν) · αλλιώς 'g:spear', 'g:spear|sp:…'
+          put(g === 'sea' ? 'all' : 'g:' + g, analyse(catches, trips, 8, ex), g);
+          const bySp = {}; for (const r of catches) if (r.sp) (bySp[r.sp] = bySp[r.sp] || []).push(r);
+          for (const [sp, cs] of Object.entries(bySp)) { if (cs.length < 10) continue; const tg = trips.filter(t => t.sp === sp), hrs = tg.reduce((a, t) => a + t.cond.e.length, 0);
+            const a = analyse(cs, hrs >= 10 ? tg : trips, 5, ex); a.data.tgt = hrs >= 10; put(pre + 'sp:' + sp, a, g); }
+          const byR = {}; for (const r of catches) (byR[cell(r)] = byR[cell(r)] || []).push(r);
+          if (Object.keys(byR).length > 1) for (const [rc, cs] of Object.entries(byR)) { if (cs.length < 30) continue; put(pre + 'r:' + rc, analyse(cs, trips.filter(t => cell(t) === rc), 8, ex), g); }
+        }
         if (out.length) await sb('bite_stats?on_conflict=key', { method: 'POST', headers: { 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(out) });
-        // προσωπικά (μόνο ο ίδιος τα διαβάζει)
-        const byU = {}; for (const r of catches) (byU[r.user_id] = byU[r.user_id] || []).push(r);
+        // προσωπικά (μόνο ο ίδιος τα διαβάζει): data = το είδος ψαρέματος που κάνει πιο συχνά, data.by = όλα όσα έχουν ≥ 10 ψάρια
+        const byU = {}; for (const r of catchesAll) (byU[r.user_id] = byU[r.user_id] || []).push(r);
         const pers = [];
-        for (const [u, cs] of Object.entries(byU)) { const n = cs.reduce((a, r) => a + Math.max(1, Math.min(20, r.cnt || 1)), 0); if (n < 10) continue;
-          const a = analyse(cs, trips.filter(t => t.user_id === u), 4); const sp = {}; cs.forEach(r => { if (r.sp) sp[r.sp] = (sp[r.sp] || 0) + 1; });
-          a.data.top = Object.entries(sp).sort((x, y) => y[1] - x[1]).slice(0, 3).map(x => x[0]);
-          pers.push({ user_id: u, n: a.n, data: a.data, updated_at: now }); }
+        for (const [u, cs0] of Object.entries(byU)) {
+          const by = {}; let main = null, mainN = 0, tot = 0;
+          for (const g of ['sea', 'spear', 'lake']) { const cs = cs0.filter(r => grpOf(r) === g), n = cs.reduce((a, r) => a + Math.max(1, Math.min(20, r.cnt || 1)), 0); tot += n; if (n < 10) continue;
+            const a = analyse(cs, tripsAll.filter(t => t.user_id === u && grpOf(t) === g), 4, EXG[g]); const sp = {}; cs.forEach(r => { if (r.sp) sp[r.sp] = (sp[r.sp] || 0) + 1; });
+            a.data.top = Object.entries(sp).sort((x, y) => y[1] - x[1]).slice(0, 3).map(x => x[0]); a.data.grp = g; by[g] = { n: a.n, data: a.data }; if (n > mainN) { mainN = n; main = g; } }
+          if (!main) continue;
+          const data = Object.assign({}, by[main].data, { by });
+          pers.push({ user_id: u, n: tot, data, updated_at: now }); }
         if (pers.length) await sb('user_bite_stats?on_conflict=user_id', { method: 'POST', headers: { 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(pers) }).catch(e => log('bite stats: user ' + e.message));
-        stats.bstats = out.length; stats.bobs = rows.length; stats.bpers = pers.length;
+        const rows_ = rows;
+        stats.bstats = out.length; stats.bobs = rows_.length; stats.bpers = pers.length;
       }
     } catch (e) { log('bite stats: ' + e.message); }
 

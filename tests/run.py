@@ -200,6 +200,18 @@ with sync_playwright() as p:
     my=pg.evaluate("()=>{ const c=AK.biteStatsCard(); document.body.append(c); return new Promise(r=>setTimeout(()=>{ const b=[...c.querySelectorAll('.bswho button')].find(x=>/Για σένα/.test(x.textContent)); b&&b.click(); r([!!b,c.textContent]); },1500)); }")
     check('«Ψάρεψα, τίποτα» αποθηκεύει έξοδο χωρίς ψάρι με θέση· κάρτα «Όλοι / Για σένα» (1.14.23)', nt and nt[0]==0 and nt[1]==34.71 and nt[2] and my[0] and 'Τα προσωπικά ευρήματα' in my[1], [nt,my]); c.close()
 
+    print('# 1.14.24 χωριστά ανά είδος ψαρέματος')
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3000)
+    r=pg.evaluate('''()=>{ const L={by:{sea:{ins:[{f:'pt',b:0,lift:2,n:60,src:'both'}]},spear:{ins:[{f:'wave',b:0,lift:2,n:60,src:'both'}]}}}; const sm={rise:390,set:1020};
+      localStorage.setItem('alkyon-fprof','spear'); const a=PF.learnAdj(PF.learnPick?PF.learnPick(L):L,sm,{hr:7,ptrend:'slow',wave:0.1,score:60}).score;
+      localStorage.setItem('alkyon-fprof','lake'); const b=(PF.learnPick(L)===null);
+      localStorage.setItem('alkyon-fprof','shore'); const c=PF.learnAdj(PF.learnPick(L),sm,{hr:7,ptrend:'slow',wave:0.9,score:60}).score; return [a,b,c]; }''')
+    check('Δείκτης: ψαροντούφεκο/λίμνη/ακτή παίρνουν τα δικά τους ευρήματα (1.14.24)', r==[69,True,69], r)
+    card=pg.evaluate('''()=>{ localStorage.setItem('alkyon-fprof','spear'); const st=[{key:'all',n:70,users:3,data:{v:3,ins:[{f:'pt',b:0,lift:2,n:30,src:'both'}],f:{}}},{key:'g:spear',n:25,users:3,data:{v:3,grp:'spear',ins:[{f:'wave',b:0,lift:1.8,n:20,src:'cc'}],f:{}}},{key:'g:spear|sp:epinephelus marginatus',n:21,users:3,data:{v:3,ins:[],f:{}}}];
+      AK.cloud.pub=()=>Promise.resolve(new Response(JSON.stringify(st),{status:200})); const c=AK.biteStatsCard(); document.body.append(c);
+      return new Promise(r=>setTimeout(()=>r([c.textContent,c.querySelectorAll('.bschips .chip').length]),1500)); }''')
+    check('Κάρτα «Πότε τσιμπάνε» με προφίλ ψαροντούφεκο: μόνο τα δικά του (1.14.24)', 'Ψαροντούφεκο' in card[0] and 'Κύμα' in card[0] and '25 ψάρια' in card[0] and 'Πίεση (3 ώρες): πέφτει' not in card[0] and card[1]==2, card); c.close()
+
     print('# 1.14.12 ελάχιστο μήκος: πράσινο / κόκκινο')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3000)
     pg.evaluate("()=>AK.biteForm()"); pg.wait_for_timeout(1200); pg.fill('.bf2 .spwrap input','Ροφός'); pg.wait_for_timeout(150)

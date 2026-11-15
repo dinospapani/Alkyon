@@ -155,7 +155,7 @@ function back(){
   s.active=false; save(s); pushTrip(); clearInterval(timer); timer=null; watch();
   if(d>=20*60000||sm.n>0||sm.miss>0){
     var pos=s.last||(s.cond0&&s.cond0.lat!=null?{lat:s.cond0.lat,lon:s.cond0.lon}:null);
-    var rec={target:s.target||null,sid:s.id,date:s.startDate||todayStr(),spot:s.route||'',tech:'',species:sm.species,count:sm.n,miss:sm.miss,kg:sm.kg,pn:sm.pn||0,pkg:sm.pkg||0,startMs:s.start,endMs:Date.now(),cond0:s.cond0||null,lat:pos?pos.lat:null,lon:pos?pos.lon:null,notes:T('Καταγράφηκε από Έναρξη/Τέλος εξόδου','Recorded from Start/End trip')};
+    var rec={prof:B.prof?B.prof():'boat',target:s.target||null,sid:s.id,date:s.startDate||todayStr(),spot:s.route||'',tech:'',species:sm.species,count:sm.n,miss:sm.miss,kg:sm.kg,pn:sm.pn||0,pkg:sm.pkg||0,startMs:s.start,endMs:Date.now(),cond0:s.cond0||null,lat:pos?pos.lat:null,lon:pos?pos.lon:null,notes:T('Καταγράφηκε από Έναρξη/Τέλος εξόδου','Recorded from Start/End trip')};
     if(tk){ rec.km=tk.km; rec.track=tk.track; if(tk.moving&&tk.moving.length) rec.moving=tk.moving; }
     var id=B.store.save('trips',rec), gc=gearCompact(id); if(gc){ var t=B.store.get('trips',id); B.store.save('trips',Object.assign({},t,{gear:gc})); }
     B.toast(T('Η έξοδος καταχωρήθηκε: ','Trip saved: ')+dur(d)+', '+(sm.n?sm.n+' '+T('ψάρια','catches'):T('χωρίς ψάρια (κρατήθηκε: βοηθά την προσωπική πρόγνωση)','no catches (kept: it helps your personal forecast)')));
