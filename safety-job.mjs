@@ -806,7 +806,7 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
     // και ελέγχεται αν ο δείκτης με τη διόρθωση ξεχωρίζει καλύτερα τις εξόδους με ψάρια (ψάρια ανά ώρα) από τον απλό δείκτη (AUC).
     // Αν δεν βοηθά, η διόρθωση απενεργοποιείται (learnOff). Χρειάζονται ≥ 8 έξοδοι με διαφορετικό αποτέλεσμα.
     const fcHour = (f, la, lo, prof) => { const tz = tzOf(lo), hr = Math.floor(((f.t + tz * 60000) % DAY) / HR);
-      return { hr, wind: f.wind, gust: f.gust, wave: f.wave, pres: f.press, rain: f.rain, temp: f.temp, sst: f.sst, prof: prof || 'boat',
+      return { hr, wind: f.wind, gust: f.gust, wave: f.wave, pres: f.press, rain: f.rain, mm: f.rain, clp: f.cloud, mal: PF.moonAlt(f.t, +la, +lo), temp: f.temp, sst: f.sst, prof: prof || 'boat', t: new Date(f.t + tz * 60000).toISOString().slice(0, 16),
         ptrend: f.pt == null ? 'stable' : f.pt <= -3 ? 'fast' : f.pt <= -1 ? 'slow' : f.pt >= 1 ? 'rise' : 'stable',
         tide: f.tide == null ? null : f.tide > 0.01 ? 'up' : f.tide < -0.01 ? 'down' : 'slack', cloud: f.cloud == null ? 'part' : f.cloud < 20 ? 'clear' : f.cloud < 70 ? 'part' : 'over' }; };
     const backtest = (catches, trips, ex, g) => {

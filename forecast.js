@@ -174,11 +174,13 @@ function learnBins(sm,h){ const o={}, t=h.hr*60+30;
   if(typeof h.wave==='number') o.wave=h.wave<0.3?0:h.wave<0.6?1:h.wave<1?2:3;
   if(h.tide) o.tide=h.tide==='up'?0:h.tide==='down'?1:2;
   if(h.cloud) o.cloud=h.cloud==='clear'?0:h.cloud==='part'?1:2;
-  if(typeof h.rain==='number') o.rain=h.rain>=0.2?1:0;
+  if(typeof h.mm==='number') o.rain=h.mm>=0.2?1:0; /* 1.14.27: βροχή σε mm (όχι πιθανότητα), όπως στον server */
   /* 1.14.26: και ώρες μετά τη δύση, φάση σελήνης, εποχή, θερμοκρασία νερού (κυρίως για τα κεφαλόποδα) */
   if(sm&&sm.rise!=null){ const m=h.hr*60+30; if(m>=sm.rise&&m<sm.set) o.aft=0; else if(m<sm.rise&&m>=sm.rise-90) o.aft=5; else { const af=m>=sm.set?m-sm.set:m+1440-sm.set; o.aft=af<60?1:af<180?2:af<360?3:4; } }
   if(sm&&typeof sm.f==='number') o.moon=Math.round(sm.f*8)%8;
   if(h.t){ const mo=+String(h.t).slice(5,7)-1; if(mo>=0) o.season=mo===11||mo<=1?0:mo<=4?1:mo<=7?2:3; }
+  /* 1.14.27: σκοτάδι, όπως στον server: μέρα → 0· αλλιώς φάση σελήνης × ύψος σελήνης × σύννεφα */
+  if(sm&&sm.rise!=null&&typeof h.mal==='number'){ const m=h.hr*60+30; if(m>=sm.rise+90&&m<=sm.set-90) o.dark=0; else { const cl=typeof h.clp==='number'?h.clp:(h.cloud==='clear'?10:h.cloud==='over'?85:45); const L=(sm.illum||0)*Math.max(0,Math.sin(h.mal*Math.PI/180))*(1-0.8*Math.min(100,Math.max(0,cl))/100); o.dark=L<0.05?1:L<0.25?2:3; } }
   if(typeof h.sst==='number') o.sstb=h.sst<16?0:h.sst<19?1:h.sst<22?2:h.sst<25?3:4;
   return o; }
 /* 1.14.24: {by:{sea,spear,lake}} → η ομάδα του προφίλ (σκάφος/ακτή = θάλασσα με καλάμι) */
@@ -229,14 +231,14 @@ async function getForecast(lat,lon,fetchFn,opt){
     if(ws==null) continue;
     const mm=mar[t]||{};
     (byDay[date]=byDay[date]||[]).push({t,hr:+t.slice(11,13),pres:p,wind:ws,gust:nn(at('wind_gusts_10m',i)),dir:nn(at('wind_direction_10m',i)),temp:nn(at('temperature_2m',i)),rain:nn(at('precipitation_probability',i)),mm:nn(at('precipitation',i)),code:nn(at('weather_code',i)),p:nn(p),cc:nn(c),
-      wave:(()=>{ const lw=localWave(mm,ws,nn(at('wind_direction_10m',i))); return lw!=null?lw:nn(mm.wave); })(),waveOff:localWave(mm,ws,nn(at('wind_direction_10m',i)))!=null?nn(mm.wave):null,period:nn(mm.period),sst:nn(mm.sst),tide:tideAt(t),ptrend:(p!=null&&p0!=null)?ptrendOf(p-p0):'stable',cloud:c==null?'part':c<20?'clear':c<70?'part':'over'});
+      wave:(()=>{ const lw=localWave(mm,ws,nn(at('wind_direction_10m',i))); return lw!=null?lw:nn(mm.wave); })(),waveOff:localWave(mm,ws,nn(at('wind_direction_10m',i)))!=null?nn(mm.wave):null,period:nn(mm.period),sst:nn(mm.sst),tide:tideAt(t),ptrend:(p!=null&&p0!=null)?ptrendOf(p-p0):'stable',clp:c,cloud:c==null?'part':c<20?'clear':c<70?'part':'over'});
   }
   const num=a=>a.filter(v=>typeof v==='number'), av=a=>{a=num(a);return a.length?a.reduce((x,y)=>x+y,0)/a.length:null;}, mx=a=>{a=num(a);return a.length?Math.max(...a):null;}, mn=a=>{a=num(a);return a.length?Math.min(...a):null;};
   const days=[], past=[], dks=Object.keys(byDay).sort();
   for(const date of dks.filter(x=>x<today).concat(dks.filter(x=>x>=today).slice(0,nd))){
     const zn=(typeof w.value.timezone==='string')?w.value.timezone:null, tzd=zn?nicOffAt(date,tz,zn):(tz===120||tz===180)?nicOffAt(date,tz):tz, sm=sunMoon(date,lat,lon,tzd), rows=byDay[date];
     const LRN=learnPick((opt&&opt.learn)||(opt&&opt.learn===false?null:(typeof window!=='undefined'&&window.AlkyonLearn)||null),opt&&opt.sp);
-    const hours=rows.map(h=>learnAdj(LRN,sm,{t:h.t,hr:h.hr,p:h.p,pres:h.pres,wind:h.wind,wave:h.wave,waveOff:h.waveOff,gust:h.gust,code:h.code,ptrend:h.ptrend,tide:h.tide,dir:h.dir,temp:h.temp,rain:h.rain,cloud:h.cloud,sst:h.sst,period:h.period,score:hourScore(sm,h.hr,opt&&opt.sp?Object.assign({sp:opt.sp},h):h),bite:hourScore(sm,h.hr,Object.assign(opt&&opt.sp?{sp:opt.sp}:{},h,{bite:true})),safe:safeHour(h)}));
+    const hours=rows.map(h=>learnAdj(LRN,sm,{mal:LRN?moonAlt(Date.parse(h.t+':00Z')-tzd*60000,lat,lon):null,clp:h.clp,mm:h.mm,t:h.t,hr:h.hr,p:h.p,pres:h.pres,wind:h.wind,wave:h.wave,waveOff:h.waveOff,gust:h.gust,code:h.code,ptrend:h.ptrend,tide:h.tide,dir:h.dir,temp:h.temp,rain:h.rain,cloud:h.cloud,sst:h.sst,period:h.period,score:hourScore(sm,h.hr,opt&&opt.sp?Object.assign({sp:opt.sp},h):h),bite:hourScore(sm,h.hr,Object.assign(opt&&opt.sp?{sp:opt.sp}:{},h,{bite:true})),safe:safeHour(h)}));
     const day=h=>{const t=h.hr*60+30;return t>=sm.rise-60&&t<=sm.set+60;};
     const cand=hours.filter(h=>h.safe&&day(h)&&(date!==today||h.t>=nowLocal.slice(0,13)+':00'));
     let best=0,win=null;

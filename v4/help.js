@@ -70,6 +70,7 @@ var HELP=[
 ];
 /* έκδοση → αλλαγές (νεότερες πρώτες). Προσθέτεις γραμμή εδώ σε κάθε νέα λειτουργία. */
 var NEWS=[
+ ['1.14.27',[T('Ο δείκτης της πρόγνωσης χρησιμοποιεί πλέον και το σκοτάδι ώρα-ώρα (φάση σελήνης × πόσο ψηλά είναι × σύννεφα), όπως τα στατιστικά: π.χ. για το καλαμάρι οι ώρες που η σελήνη είναι κάτω από τον ορίζοντα. Διορθώθηκε και η βροχή (μετράει τα mm, όχι την πιθανότητα).','The forecast score now also uses hour-by-hour darkness (moon phase × how high it is × cloud), like the stats: e.g. for squid, the hours when the moon is below the horizon. Rain was also fixed (it uses mm, not probability).')]],
  ['1.14.26',[T('🦑 Κεφαλόποδα (καλαμάρι, θράψαλο, σουπιά, σουπιοκαλάμαρο, χταπόδι) χωριστά από τα ψάρια, με σωστή σύγκριση: όσα πιάνονται βράδυ/νύχτα συγκρίνονται με τις ώρες από 2 ώρες πριν τη δύση ως την ανατολή.','🦑 Cephalopods (squid, flying squid, cuttlefish, bigfin reef squid, octopus) kept apart from fish, with a proper comparison: evening/night catches are compared with the hours from 2 h before sunset to sunrise.'),
   T('Νέοι παράγοντες: σκοτάδι (φάση σελήνης × πόσο ψηλά είναι × σύννεφα), ώρες μετά τη δύση, εποχή, θερμοκρασία νερού.','New factors: darkness (moon phase × how high it is × cloud), hours after sunset, season, water temperature.'),
   T('Κάθε είδος με δικά του ευρήματα· με λίγα ψάρια «δανείζεται» από την ομάδα του (π.χ. καλαμάρι ← κεφαλόποδα) και όσο μαζεύονται μετράει το ίδιο.','Each species has its own findings; with few catches it borrows from its group (e.g. squid ← cephalopods) and relies on itself as data grows.'),

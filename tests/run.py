@@ -241,6 +241,16 @@ with sync_playwright() as p:
       return new Promise(r=>setTimeout(()=>{ const ch=[...c.querySelectorAll('.bschips .chip')]; const ce=ch.find(x=>/Κεφαλόποδα/.test(x.textContent)); ce&&ce.click(); const t1=c.textContent; const sq=[...c.querySelectorAll('.bschips .chip')].find(x=>/Καλαμάρι|Loligo/.test(x.textContent)); sq&&sq.click(); r([ch.map(x=>x.textContent),t1,c.textContent]); },1500)); }''')
     check('Κάρτα: «🦑 Κεφαλόποδα» με σκοτάδι και «Δούλεψε: πορτοκαλί 2.5», καλαμάρι με δανεισμό (1.14.26)', any('Κεφαλόποδα' in x for x in card[0]) and 'πολύ σκοτεινά' in card[1] and 'πορτοκαλί 2.5' in card[1] and 'ευρήματα της ομάδας' in card[2], [card[0],card[1][:200],card[2][:200]]); c.close()
 
+    print('# 1.14.27 σκοτάδι στον δείκτη')
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(2500)
+    r=pg.evaluate('''()=>{ const L={ins:[{f:'dark',b:1,lift:2,n:60,src:'both'}]}, sm={rise:390,set:1020,f:0.5,illum:1};
+      const a=PF.learnAdj(L,sm,{hr:21,mal:-20,clp:0,score:60,bite:60}).score, b=PF.learnAdj(L,sm,{hr:21,mal:60,clp:0,score:60,bite:60}).score, c2=PF.learnAdj(L,sm,{hr:21,mal:60,clp:100,score:60,bite:60}).score, d=PF.learnAdj(L,sm,{hr:12,mal:-20,clp:0,score:60,bite:60}).score,
+        r1=PF.learnBins(sm,{hr:12,mm:0,rain:80}).rain;
+      return [a,b,c2,d,r1]; }''')
+    check('Δείκτης: «πολύ σκοτεινά» (σελήνη κάτω από τον ορίζοντα ή πίσω από σύννεφα) ναι, πανσέληνος ψηλά όχι, μέρα όχι· βροχή σε mm (1.14.27)', r==[69,60,60,60,0], r)
+    fc=pg.evaluate('''async()=>{ window.AlkyonLearn={ins:[{f:'dark',b:1,lift:2,n:60,src:'both'}]}; const t=Date.now(); return 1; }''')
+    c.close()
+
     print('# 1.14.12 ελάχιστο μήκος: πράσινο / κόκκινο')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3000)
     pg.evaluate("()=>AK.biteForm()"); pg.wait_for_timeout(1200); pg.fill('.bf2 .spwrap input','Ροφός'); pg.wait_for_timeout(150)
