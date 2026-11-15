@@ -500,7 +500,7 @@ struct SquidV: View {
         if let sq = jo(e.fc, "sq") {
             let il = ji(sq, "il"), nd = jd(sq, "nd"), dk = ja(sq, "dk"), wax = ji(sq, "wx") == 1
             let st = ji(e.td(), "st"), r = ji(e.td(), "r"), nm = Geo.nowMin()
-            let verdict: (String, Color) = (dk != nil && (an(dk, 2) ?? 0) == 1 && (il ?? 100) < 40) ? (L.t("VIdeal"), pc(2)) : dk != nil ? (L.t("VGoodTill", Geo.minHm(Int(an(dk, 1) ?? 0))), pc(3)) : (L.t("VBright"), pc(7))
+            let verdict: (String, Color) = dk == nil ? (L.t("VBright"), pc(4)) : (an(dk, 2) ?? 0) == 1 ? (L.t("VIdeal"), pc(2)) : (L.t("VGoodTill", Geo.minHm(Int(an(dk, 1) ?? 0))), pc(3))   // ίδιο με το Garmin
             ZStack {
                 NightRing(dk: dk, st: st, r: r, nm: nm)
                 VStack(spacing: 2) {

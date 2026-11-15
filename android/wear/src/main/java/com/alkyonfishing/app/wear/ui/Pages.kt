@@ -461,10 +461,10 @@ fun Squid(f: JSONObject) {
     if (sq == null) { Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) { T(L.t("SquidOld"), 13.sp, pc(6), lines = 3) }; return }
     val il = E.nint(sq, "il"); val nd = E.ndbl(sq, "nd"); val dk = sq.optJSONArray("dk"); val wax = sq.optInt("wx", 0) == 1
     val nm = Geo.nowMin(); val td = f.optJSONObject("td"); val st = E.nint(td, "st"); val r = E.nint(td, "r")
-    val verdict: Pair<String, Color> = when {
-        dk != null && dk.optInt(2) == 1 && (il ?: 100) < 40 -> L.t("VIdeal") to pc(2)
-        dk != null -> L.t("VGoodTill", Geo.minHm(dk.optInt(1))) to pc(3)
-        else -> L.t("VBright") to pc(7)
+    val verdict: Pair<String, Color> = when {   // ίδιο με το Garmin: σκοτάδι ως το πρωί = ιδανικό
+        dk == null -> L.t("VBright") to pc(4)
+        dk.optInt(2) == 1 -> L.t("VIdeal") to pc(2)
+        else -> L.t("VGoodTill", Geo.minHm(dk.optInt(1))) to pc(3)
     }
     Box(Modifier.fillMaxSize()) {
         Ring {
