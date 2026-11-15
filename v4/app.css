@@ -1089,3 +1089,4 @@ html.night body.mapon #lmap canvas.wxdash{filter:none!important;opacity:.7}
 .myspots{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin:8px 0 0;font-size:13px}
 .myspots b{flex-basis:100%}
 .myspots small{flex-basis:100%;opacity:.8}
+.hplan{margin:8px 0 0;font-size:13.5px;font-weight:700}

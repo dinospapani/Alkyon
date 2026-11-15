@@ -52,7 +52,7 @@ B.clarityCard=function(fc,d,p,isToday,hr){ var est=estimate(fc,d.date,p&&p.lat,p
   return box; };
 /* για καταγραφή: η εκτίμηση εκείνης της στιγμής (για να μαθαίνει από ό,τι γράφεις) */
 B.clarityEst=function(lat,lon,date,time){ var c=ls.get('alkyon-fc7',null), fc=c&&c.fc; if(!fc) return null; var r=estimate(fc,date,lat,lon,parseInt((time||'10').slice(0,2),10)); return r?r.m:null; };
-B.clarity={estimate:estimate,sat:sat,fromSat:fromSat,level:level};
+B.clarity={estimate:estimate,sat:sat,fromSat:fromSat,level:level,prof:prof,thermo:thermo};
 /* v31z545: θερμοκρασία σε βάθος / θερμοκλινές (ίδια συνάρτηση Supabase, mode=profile, μοντέλο Copernicus Μεσογείου). Αν η συνάρτηση δεν απαντά, η κάρτα δεν εμφανίζεται. */
 function prof(lat,lon){ var key='p'+lat.toFixed(2)+','+lon.toFixed(2), c=ls.get(CK,{})||{}, hit=c[key];
   if(hit&&Date.now()-hit.at<6*3600000) return Promise.resolve(hit.v);

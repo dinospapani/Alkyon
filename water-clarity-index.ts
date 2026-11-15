@@ -1,5 +1,5 @@
 // @ts-nocheck
-// Supabase Edge Function «water-clarity» (v31z531, v31z548, v31z551, 1.1.0 ρεύματα + στρώσεις χάρτη): διαφάνεια νερού από δορυφόρο για το ψαροντούφεκο.
+// Supabase Edge Function «water-clarity» (v31z531, v31z548, v31z551, 1.1.0 ρεύματα + στρώσεις χάρτη, 1.14.30 προφίλ παλιάς μέρας): διαφάνεια νερού από δορυφόρο για το ψαροντούφεκο.
 // Πηγή: Copernicus Marine, Μεσόγειος, ημερήσιες παρατηρήσεις L3 (μόνο όπου δεν είχε σύννεφα).
 // Δίνει ZSD (βάθος Secchi, m) αν υπάρχει, αλλιώς KD490 (1/m). Αν όλα είναι κενά (σύννεφα/ακτή) → {err:'cloud'} και η εφαρμογή δείχνει την εκτίμηση από τις συνθήκες.
 // Κλήση: GET /functions/v1/water-clarity?lat=34.75&lon=32.40  (προσθέστε &debug=1 για να δείτε τι απάντησε ο Copernicus)
@@ -36,7 +36,7 @@ export async function phyLayer(F, now = Date.now()) {
   return c[0];
 }
 async function profile(F, lat, lon, now, dbg) {
-  const L = await phyLayer(F, now), day = new Date(now).toISOString().slice(0, 10);
+  const L = await phyLayer(F, Date.now()), day = new Date(now).toISOString().slice(0, 10);
   const pick = WANT_DEPTHS.map(d => L.elev.reduce((b, e) => Math.abs(Math.abs(e) - d) < Math.abs(Math.abs(b) - d) ? e : b, L.elev[0])).filter((e, i, a) => a.indexOf(e) === i);
   const one = async (la, lo, e, ts) => { const t = tileOf(la, lo);
     const url = BASE + '/?service=WMTS&version=1.0.0&request=GetFeatureInfo&layer=' + encodeURIComponent(L.id) + '&tilematrixset=EPSG:3857&tilematrix=' + Z + '&tilerow=' + t.row + '&tilecol=' + t.col + '&i=' + t.i + '&j=' + t.j + '&INFOFORMAT=application/json&elevation=' + e + '&time=' + day + ts;
@@ -308,10 +308,12 @@ export async function handle(req, F = fetch, now = Date.now()) {
     catch (e) { return J({ err: 'current', error: String(e), ...(debug ? { debug: dbg } : {}) }, 502); }
   }
   if (q.get('mode') === 'profile') {
-    const pk = 'p' + lat.toFixed(2) + ',' + lon.toFixed(2), ph = mem.prof.get(pk);
+    /* 1.14.30: &day=YYYY-MM-DD για παλιότερη μέρα (θερμοκλινές τη μέρα ενός ψαριού, για τα στατιστικά) */
+    const dq = String(q.get('day') || ''), pday = /^\d{4}-\d{2}-\d{2}$/.test(dq) && Date.parse(dq + 'T12:00:00Z') < now ? Date.parse(dq + 'T12:00:00Z') : null;
+    const pk = 'p' + lat.toFixed(2) + ',' + lon.toFixed(2) + (pday ? ',' + dq : ''), ph = mem.prof.get(pk);
     if (!debug && ph && now - ph.at < 6 * 3600e3) return J({ ...ph.v, cached: true });
     const dbg = debug ? [] : null;
-    try { const v = await profile(F, lat, lon, now, dbg); if (!v.prof.length) return J({ err: 'nodata', layer: v.layer, ...(debug ? { debug: dbg } : {}) }); mem.prof.set(pk, { at: now, v }); return J(debug ? { ...v, debug: dbg } : v); }
+    try { const v = await profile(F, lat, lon, pday || now, dbg); if (!v.prof.length) return J({ err: 'nodata', layer: v.layer, ...(debug ? { debug: dbg } : {}) }); mem.prof.set(pk, { at: now, v }); return J(debug ? { ...v, debug: dbg } : v); }
     catch (e) { return J({ err: 'profile', error: String(e), ...(debug ? { debug: dbg } : {}) }, 502); }
   }
   const key = lat.toFixed(2) + ',' + lon.toFixed(2), hit = mem.hits.get(key);

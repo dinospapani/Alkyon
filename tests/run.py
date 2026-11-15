@@ -1564,6 +1564,14 @@ with sync_playwright() as p:
     check('Κάρτα: «Πόσο έπεσε μέσα» (×4,5), «Τι δουλεύει τώρα», «Κάλεσε φίλους», εποχή είδους 12 μήνες (1.14.29)', 'Πόσο έπεσε μέσα' in card[0] and '×4,5' in card[0] and 'Τι δουλεύει τώρα' in card[0] and 'Καλαμαριέρα' in card[0] and 'Κάλεσε φίλους' in card[0] and 'Εποχή από τα στοιχεία' in card[1] and card[2]==12, [card[0][:500],card[1][-300:],card[2]])
     check('1.14.29: χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
 
+    print('# 1.14.30 σχέδιο, θερμοκλινές')
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3000)
+    r=pg.evaluate('''()=>{ localStorage.setItem('alkyon-works',JSON.stringify({day:new Date().toISOString().slice(0,10),w:{lure:[{v:'πορτοκαλί 2.5'}],tech:[{v:'Καλαμαριέρα'}],bait:[]}}));
+      const a=AK.contrib.tryNow(); localStorage.setItem('alkyon-works',JSON.stringify({day:'2020-01-01',w:{lure:[{v:'x'}]}})); window.AlkyonLearn={ins:[{f:'sun',b:1,lift:2,w:{tech:['Συρτή']}}]}; const b2=AK.contrib.tryNow();
+      const sm={rise:390,set:1020}; return [a,b2,PF.learnBins(sm,{hr:9,thd:0}).thc,PF.learnBins(sm,{hr:9,thd:30}).thc]; }''')
+    check('«Δοκίμασε»: τι δουλεύει τώρα στην περιοχή, αλλιώς τα δικά σου ευρήματα· θερμοκλινές στον δείκτη (1.14.30)', r==['πορτοκαλί 2.5, Καλαμαριέρα','Συρτή',0,2], r)
+    check('1.14.30: χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
+
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)
     check('Οδηγός χωρίς καρτέλα Κόμποι (αφαιρέθηκε προσωρινά)', not pg.query_selector('#tab-guide .seg button[data-g=knots]') and not pg._errs, pg._errs); c.close()
