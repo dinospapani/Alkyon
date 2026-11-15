@@ -227,6 +227,30 @@ with sync_playwright() as p:
     nt=pg.evaluate("()=>{ const t=AK.store.raw('trips').filter(x=>x.nothing)[0]; return t?[t.lat,t.count,t.endMs-t.startMs>0]:null; }")
     check('«Ψάρεψες χθες;» → «Ψάρεψα, τίποτα» με έτοιμη μέρα, ώρες και θέση (1.14.25)', 'Ψάρεψες χθες' in q and nt and nt[0]==34.7 and nt[1]==0 and nt[2], [q[:80],nt]); c.close()
 
+    print('# 1.14.26 κεφαλόποδα, δανεισμός είδους, καλαμαριέρα')
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3000)
+    r=pg.evaluate('''()=>{ AK.store.save('tackle',{id:'egi1',type:'lure',kind:'egi',name:'Yamashita',color:'Πορτοκαλί',w:[2.5,3]}); const f=AK.contrib._rowOf;
+      const a=f('b',{id:'s1',date:'2026-11-10',time:'20:00',species:'Καλαμάρι',latin:'Loligo vulgaris',lat:34.7,lon:32.4,tk:['egi1'],tkw:{egi1:2.5}});
+      const L={by:{sea:{ins:[{f:'pt',b:0,lift:2,n:60,src:'both'}]},ceph:{ins:[{f:'aft',b:2,lift:2,n:60,src:'both'}]}},sp:{'sepia officinalis':{ins:[{f:'aft',b:2,lift:0.5,n:60,src:'blend'}]}}};
+      const sm={rise:390,set:1020,f:0.5}; const h={hr:19,ptrend:'stable',score:60,bite:60};
+      const sq=PF.learnAdj(PF.learnPick(L,{l:'Todarodes sagittatus'}),sm,Object.assign({},h)).score, cu=PF.learnAdj(PF.learnPick(L,'sepia officinalis'),sm,Object.assign({},h)).score, no=PF.learnAdj(PF.learnPick(L,null),sm,Object.assign({},h)).score;
+      return [a.cond.lc,a.cond.lw,a.cond.lk,sq,cu,no]; }''')
+    check('Καλαμαριέρα στο «Δούλεψε»· δείκτης: θράψαλο→κεφαλόποδα, σουπιά→το είδος της, αλλιώς προφίλ (1.14.26)', r[:3]==['πορτοκαλί',2.5,'egi'] and r[3]==69 and r[4]==51 and r[5]==60, r)
+    card=pg.evaluate('''()=>{ localStorage.setItem('alkyon-fprof','boat'); const st=[{key:'all',n:120,users:3,data:{v:3,grp:'sea',ins:[],f:{}}},{key:'g:ceph',n:30,users:3,data:{v:3,grp:'ceph',ins:[{f:'dark',b:1,lift:2.1,n:20,src:'cc',w:{lure:['πορτοκαλί 2.5'],tech:[],bait:[],dep:[]}}],f:{}}},{key:'g:ceph|sp:loligo vulgaris',n:22,users:3,data:{v:3,grp:'ceph',blend:true,ins:[{f:'aft',b:2,lift:1.7,n:8,src:'blend'}],f:{}}}];
+      AK.cloud.pub=()=>Promise.resolve(new Response(JSON.stringify(st),{status:200})); const c=AK.biteStatsCard(); document.body.append(c);
+      return new Promise(r=>setTimeout(()=>{ const ch=[...c.querySelectorAll('.bschips .chip')]; const ce=ch.find(x=>/Κεφαλόποδα/.test(x.textContent)); ce&&ce.click(); const t1=c.textContent; const sq=[...c.querySelectorAll('.bschips .chip')].find(x=>/Καλαμάρι|Loligo/.test(x.textContent)); sq&&sq.click(); r([ch.map(x=>x.textContent),t1,c.textContent]); },1500)); }''')
+    check('Κάρτα: «🦑 Κεφαλόποδα» με σκοτάδι και «Δούλεψε: πορτοκαλί 2.5», καλαμάρι με δανεισμό (1.14.26)', any('Κεφαλόποδα' in x for x in card[0]) and 'πολύ σκοτεινά' in card[1] and 'πορτοκαλί 2.5' in card[1] and 'ευρήματα της ομάδας' in card[2], [card[0],card[1][:200],card[2][:200]]); c.close()
+
+    print('# 1.14.27 σκοτάδι στον δείκτη')
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(2500)
+    r=pg.evaluate('''()=>{ const L={ins:[{f:'dark',b:1,lift:2,n:60,src:'both'}]}, sm={rise:390,set:1020,f:0.5,illum:1};
+      const a=PF.learnAdj(L,sm,{hr:21,mal:-20,clp:0,score:60,bite:60}).score, b=PF.learnAdj(L,sm,{hr:21,mal:60,clp:0,score:60,bite:60}).score, c2=PF.learnAdj(L,sm,{hr:21,mal:60,clp:100,score:60,bite:60}).score, d=PF.learnAdj(L,sm,{hr:12,mal:-20,clp:0,score:60,bite:60}).score,
+        r1=PF.learnBins(sm,{hr:12,mm:0,rain:80}).rain;
+      return [a,b,c2,d,r1]; }''')
+    check('Δείκτης: «πολύ σκοτεινά» (σελήνη κάτω από τον ορίζοντα ή πίσω από σύννεφα) ναι, πανσέληνος ψηλά όχι, μέρα όχι· βροχή σε mm (1.14.27)', r==[69,60,60,60,0], r)
+    fc=pg.evaluate('''async()=>{ window.AlkyonLearn={ins:[{f:'dark',b:1,lift:2,n:60,src:'both'}]}; const t=Date.now(); return 1; }''')
+    c.close()
+
     print('# 1.14.12 ελάχιστο μήκος: πράσινο / κόκκινο')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3000)
     pg.evaluate("()=>AK.biteForm()"); pg.wait_for_timeout(1200); pg.fill('.bf2 .spwrap input','Ροφός'); pg.wait_for_timeout(150)
@@ -1511,6 +1535,34 @@ with sync_playwright() as p:
     pg.click(".sheet.on button:has-text('Άρση')"); pg.wait_for_timeout(500)
     check('Προφίλ › Αποκλεισμένοι χρήστες: άρση αποκλεισμού (1.12.14)', pg.evaluate("()=>localStorage.getItem('alkyon-comm-block')")=='[]', pg.evaluate("()=>localStorage.getItem('alkyon-comm-block')"))
     check('1.12.14: αποκλεισμός χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
+
+    print('# 1.14.28 τι πιάνεται τώρα, γιατί 72, βεβαιότητα, βαθμολογία')
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3000)
+    r=pg.evaluate('''async()=>{ const f=AK.contrib._rowOf; const a=f('b',{id:'x1',date:'2026-11-10',time:'06:30',tz:120,latin:'Loligo vulgaris',species:'Καλαμάρι',lat:34.7,lon:32.4}); const tr=f('trip',{id:'t1',date:'2026-11-10',startMs:1,endMs:3600001,lat:34.7,lon:32.4,count:0,rate:1});
+      const sm={rise:390,set:1020,f:0.5,illum:0.5}, ex=PF.explainHour(sm,{hr:7,wind:6,wave:0.3,cloud:'over',rain:50,ptrend:'fast',pres:1012,sst:21,temp:19,bite:70,learn:{k:1.1}},null);
+      const ff=async()=>new Response(JSON.stringify({hourly:{time:['2026-11-20T09:00','2026-11-21T09:00'],wind_speed_10m_ecmwf_ifs025:[5,6],wind_speed_10m_gfs_seamless:[16,7],wind_speed_10m_icon_seamless:[8,6]}}),{status:200});
+      const E=await PF.ensSpread(10,10,ff,7); return [a.cond.nm,tr.cond&&tr.cond.rt,ex.parts.map(x=>x.k),E['2026-11-20'].bad,E['2026-11-21'].bad]; }''')
+    check('Βαθμολογία εξόδου και όνομα είδους στα ανώνυμα· «Γιατί;» με πίεση/ουρανό/μάθηση· αβέβαιη μέρα όταν διαφωνούν τα μοντέλα (1.14.28)', r[0]=='Καλαμάρι' and r[1]==1 and 'pt' in r[2] and 'learn' in r[2] and r[3] is True and r[4] is False, r)
+    card=pg.evaluate('''()=>{ localStorage.setItem('alkyon-lastpos',JSON.stringify({lat:34.7,lon:32.4,t:Date.now()})); const st=[{key:'all',n:72,users:3,data:{v:2,hrs:195,trips:40,fitMin:200,ins:[],f:{}}},{key:'trend:34_32',n:9,users:3,data:{items:[{sp:'loligo vulgaris',nm:'Καλαμάρι',g:'ceph',n7:9,prev:0,ratio:10,users:3,up:true,fresh:true}]}}];
+      AK.cloud.pub=()=>Promise.resolve(new Response(JSON.stringify(st),{status:200})); const pos=AK.lastPos; AK.lastPos=()=>({lat:34.7,lon:32.4}); const c=AK.biteStatsCard(); document.body.append(c);
+      return new Promise(r=>setTimeout(()=>r(c.textContent),1500)); }''')
+    check('«Τι πιάνεται τώρα κοντά σου» με 🦑 και «200 έξοδοι (τώρα 40)» στην κάρτα (1.14.28)', 'Τι πιάνεται τώρα' in card and '🦑' in card and '(τώρα 40)' in card, card[:400])
+    check('1.14.28: χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
+
+    print('# 1.14.29 ακρίβεια, τι δουλεύει, εποχή, σημεία ανά άνεμο, χλωροφύλλη')
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3000)
+    r=pg.evaluate('''()=>{ localStorage.setItem('alkyon-bites',JSON.stringify([{id:'a',date:'2026-10-01',lat:34.70,lon:32.40,wdeg:270,wind:12,species:'Λαβράκι',cnt:2},{id:'b',date:'2026-10-05',lat:34.701,lon:32.401,wdeg:290,wind:10,species:'Λαβράκι'},{id:'c',date:'2026-10-09',lat:34.70,lon:32.402,wdeg:250,wind:14,species:'Σαργός'},{id:'d',date:'2026-10-09',lat:34.9,lon:32.9,wdeg:90,wind:10,species:'Σαργός',cnt:9}]));
+      localStorage.setItem('alkyon-spots',JSON.stringify([{id:'s',name:'Λιμανάκι',lat:34.703,lon:32.40}]));
+      const f=AK.mySpots.find(270,12), g=AK.mySpots.find(90,10), m=AK.mySpots.meanWind([{dir:350,wind:10},{dir:10,wind:10}]), bx=AK.mySpots.box([{dir:270,wind:12}]);
+      return [f.length&&f[0].name,f.length&&f[0].n,f.length&&f[0].days,g.length,m&&m.dir,bx&&bx.textContent,PF.learnBins({rise:390,set:1020},{hr:9,chl:0.3}).chl]; }''')
+    check('Σημεία ανά άνεμο: «Λιμανάκι · 4 ψάρια σε 3 μέρες» με Δ, όχι με 1 μέρα· χλωροφύλλη στον δείκτη (1.14.29)', r[0]=='Λιμανάκι' and r[1]==4 and r[2]==3 and r[3]==0 and r[4]==0 and 'Με Δ 12 kn' in (r[5] or '') and r[6]==3, r)
+    card=pg.evaluate('''()=>{ const st=[{key:'all',n:72,users:3,data:{v:2,hrs:195,trips:40,fitMin:200,mon:[1,1,1,1,1,1,1,1,1,10,20,5],acc:{b:[50,60,70],n:[5,10,12,8],r:[0.2,0.4,0.6,0.9],hit:[40,60,70,88],trips:35},ins:[],f:{}}},
+        {key:'sp:loligo vulgaris',n:30,users:3,data:{v:2,mon:[0,0,0,0,0,0,0,0,0,4,12,3],ins:[],f:{}}},
+        {key:'trend:34_32',n:9,users:3,data:{day:new Date().toISOString().slice(0,10),items:[],works:{tech:[{v:'Καλαμαριέρα',n:9,u:3}],bait:[],lure:[{v:'πορτοκαλί 2.5',n:5,u:2}],users:3}}}];
+      AK.cloud.pub=()=>Promise.resolve(new Response(JSON.stringify(st),{status:200})); AK.lastPos=()=>({lat:34.7,lon:32.4}); const c=AK.biteStatsCard(); document.body.append(c);
+      return new Promise(r=>setTimeout(()=>{ const t0=c.textContent; const ch=[...c.querySelectorAll('.bschips .chip')].find(x=>/αλαμάρι|oligo/i.test(x.textContent)); ch&&ch.click(); setTimeout(()=>r([t0,c.textContent,c.querySelectorAll('.bsm').length]),300); },1500)); }''')
+    check('Κάρτα: «Πόσο έπεσε μέσα» (×4,5), «Τι δουλεύει τώρα», «Κάλεσε φίλους», εποχή είδους 12 μήνες (1.14.29)', 'Πόσο έπεσε μέσα' in card[0] and '×4,5' in card[0] and 'Τι δουλεύει τώρα' in card[0] and 'Καλαμαριέρα' in card[0] and 'Κάλεσε φίλους' in card[0] and 'Εποχή από τα στοιχεία' in card[1] and card[2]==12, [card[0][:500],card[1][-300:],card[2]])
+    check('1.14.29: χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
 
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)

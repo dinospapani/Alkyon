@@ -679,3 +679,16 @@ html.nightred .kpis .kpi{outline:1px solid #fff;outline-offset:-1px;background:#
 /* 1.14.25 */
 .bscard .bsbt{margin:8px 0 0;font-size:13px;padding:6px 10px;border-radius:10px;background:color-mix(in srgb,#1f8f4e 14%,transparent)}
 .bscard .bsbt.off{background:color-mix(in srgb,var(--ink-2) 14%,transparent)}
+/* 1.14.28 */
+.bscard .bstrend{margin:8px 0 6px;padding:8px 10px;border-radius:12px;background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.bscard .bstr{list-style:none;margin:4px 0;padding:0;display:grid;gap:3px;font-size:13.5px}
+.bscard .bstr li.up b{color:var(--accent)}
+.bscard .bsfit{display:block;margin-top:6px}
+/* 1.14.29 */
+.bscard .bsinv{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px;padding-top:8px;border-top:1px solid var(--line,rgba(127,127,127,.25))}
+.bscard .bsinv small{flex-basis:100%}
+.bscard .bsmon{display:grid;grid-template-columns:repeat(12,1fr);gap:3px;align-items:end;height:52px;margin:6px 0 2px}
+.bscard .bsm{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;height:100%}
+.bscard .bsm i{display:block;width:100%;max-width:16px;border-radius:3px 3px 0 0;background:var(--accent)}
+.bscard .bsm span{font-size:10px;opacity:.75}
+.bscard .bsm.now span{font-weight:800;opacity:1;color:var(--accent)}

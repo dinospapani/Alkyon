@@ -174,10 +174,20 @@ function learnBins(sm,h){ const o={}, t=h.hr*60+30;
   if(typeof h.wave==='number') o.wave=h.wave<0.3?0:h.wave<0.6?1:h.wave<1?2:3;
   if(h.tide) o.tide=h.tide==='up'?0:h.tide==='down'?1:2;
   if(h.cloud) o.cloud=h.cloud==='clear'?0:h.cloud==='part'?1:2;
-  if(typeof h.rain==='number') o.rain=h.rain>=0.2?1:0;
+  if(typeof h.mm==='number') o.rain=h.mm>=0.2?1:0; /* 1.14.27: βροχή σε mm (όχι πιθανότητα), όπως στον server */
+  /* 1.14.26: και ώρες μετά τη δύση, φάση σελήνης, εποχή, θερμοκρασία νερού (κυρίως για τα κεφαλόποδα) */
+  if(sm&&sm.rise!=null){ const m=h.hr*60+30; if(m>=sm.rise&&m<sm.set) o.aft=0; else if(m<sm.rise&&m>=sm.rise-90) o.aft=5; else { const af=m>=sm.set?m-sm.set:m+1440-sm.set; o.aft=af<60?1:af<180?2:af<360?3:4; } }
+  if(sm&&typeof sm.f==='number') o.moon=Math.round(sm.f*8)%8;
+  if(h.t){ const mo=+String(h.t).slice(5,7)-1; if(mo>=0) o.season=mo===11||mo<=1?0:mo<=4?1:mo<=7?2:3; }
+  /* 1.14.27: σκοτάδι, όπως στον server: μέρα → 0· αλλιώς φάση σελήνης × ύψος σελήνης × σύννεφα */
+  if(sm&&sm.rise!=null&&typeof h.mal==='number'){ const m=h.hr*60+30; if(m>=sm.rise+90&&m<=sm.set-90) o.dark=0; else { const cl=typeof h.clp==='number'?h.clp:(h.cloud==='clear'?10:h.cloud==='over'?85:45); const L=(sm.illum||0)*Math.max(0,Math.sin(h.mal*Math.PI/180))*(1-0.8*Math.min(100,Math.max(0,cl))/100); o.dark=L<0.05?1:L<0.25?2:3; } }
+  if(typeof h.chl==='number') o.chl=h.chl<0.04?0:h.chl<0.07?1:h.chl<0.12?2:3; /* 1.14.29: χλωροφύλλη (δορυφόρος), όπως στον server */
+  if(typeof h.sst==='number') o.sstb=h.sst<16?0:h.sst<19?1:h.sst<22?2:h.sst<25?3:4;
   return o; }
 /* 1.14.24: {by:{sea,spear,lake}} → η ομάδα του προφίλ (σκάφος/ακτή = θάλασσα με καλάμι) */
-function learnPick(L){ if(!L||!L.by) return L; let p='boat'; try{ p=(typeof window!=='undefined'&&window.AK&&window.AK.prof)?window.AK.prof():'boat'; }catch(e){} return L.by[p==='spear'?'spear':p==='lake'?'lake':'sea']||null; }
+const CEPH_L=['loligo vulgaris','loligo forbesii','alloteuthis media','alloteuthis subulata','todarodes sagittatus','illex coindetii','ommastrephes bartramii','sepia officinalis','sepia elegans','sepia orbignyana','sepioteuthis lessoniana','octopus vulgaris','eledone cirrhosa','eledone moschata'];
+/* 1.14.26: με στόχο είδος: πρώτα τα ευρήματα του είδους (με δανεισμό από την ομάδα του), μετά κεφαλόποδα αν είναι κεφαλόποδο, αλλιώς η ομάδα του προφίλ */
+function learnPick(L,sp){ if(!L||!L.by) return L; const la=String(sp&&typeof sp==='object'?(sp.l||''):(sp||'')).toLowerCase(); if(la){ if(L.sp&&L.sp[la]) return L.sp[la]; if(CEPH_L.indexOf(la)>=0) return L.by.ceph||null; } let p='boat'; try{ p=(typeof window!=='undefined'&&window.AK&&window.AK.prof)?window.AK.prof():'boat'; }catch(e){} return L.by[p==='spear'?'spear':p==='lake'?'lake':'sea']||null; }
 function learnAdj(L,sm,h){ if(!L||!L.ins||!L.ins.length) return h; const bb=learnBins(sm,h); let lg=0; const m=[];
   for(const x of L.ins){ if(!(x.src==='both'||x.n>=15)||bb[x.f]!==x.b||!(x.lift>0)) continue; const w=x.n/(x.n+60); lg+=w*Math.log(x.lift); m.push({f:x.f,b:x.b,lift:x.lift}); }
   if(!m.length) return h; const k=Math.max(0.85,Math.min(1.15,Math.exp(lg)));
@@ -222,14 +232,15 @@ async function getForecast(lat,lon,fetchFn,opt){
     if(ws==null) continue;
     const mm=mar[t]||{};
     (byDay[date]=byDay[date]||[]).push({t,hr:+t.slice(11,13),pres:p,wind:ws,gust:nn(at('wind_gusts_10m',i)),dir:nn(at('wind_direction_10m',i)),temp:nn(at('temperature_2m',i)),rain:nn(at('precipitation_probability',i)),mm:nn(at('precipitation',i)),code:nn(at('weather_code',i)),p:nn(p),cc:nn(c),
-      wave:(()=>{ const lw=localWave(mm,ws,nn(at('wind_direction_10m',i))); return lw!=null?lw:nn(mm.wave); })(),waveOff:localWave(mm,ws,nn(at('wind_direction_10m',i)))!=null?nn(mm.wave):null,period:nn(mm.period),sst:nn(mm.sst),tide:tideAt(t),ptrend:(p!=null&&p0!=null)?ptrendOf(p-p0):'stable',cloud:c==null?'part':c<20?'clear':c<70?'part':'over'});
+      wave:(()=>{ const lw=localWave(mm,ws,nn(at('wind_direction_10m',i))); return lw!=null?lw:nn(mm.wave); })(),waveOff:localWave(mm,ws,nn(at('wind_direction_10m',i)))!=null?nn(mm.wave):null,period:nn(mm.period),sst:nn(mm.sst),tide:tideAt(t),ptrend:(p!=null&&p0!=null)?ptrendOf(p-p0):'stable',clp:c,cloud:c==null?'part':c<20?'clear':c<70?'part':'over'});
   }
   const num=a=>a.filter(v=>typeof v==='number'), av=a=>{a=num(a);return a.length?a.reduce((x,y)=>x+y,0)/a.length:null;}, mx=a=>{a=num(a);return a.length?Math.max(...a):null;}, mn=a=>{a=num(a);return a.length?Math.min(...a):null;};
   const days=[], past=[], dks=Object.keys(byDay).sort();
   for(const date of dks.filter(x=>x<today).concat(dks.filter(x=>x>=today).slice(0,nd))){
     const zn=(typeof w.value.timezone==='string')?w.value.timezone:null, tzd=zn?nicOffAt(date,tz,zn):(tz===120||tz===180)?nicOffAt(date,tz):tz, sm=sunMoon(date,lat,lon,tzd), rows=byDay[date];
-    const LRN=learnPick((opt&&opt.learn)||(opt&&opt.learn===false?null:(typeof window!=='undefined'&&window.AlkyonLearn)||null));
-    const hours=rows.map(h=>learnAdj(LRN,sm,{t:h.t,hr:h.hr,p:h.p,pres:h.pres,wind:h.wind,wave:h.wave,waveOff:h.waveOff,gust:h.gust,code:h.code,ptrend:h.ptrend,tide:h.tide,dir:h.dir,temp:h.temp,rain:h.rain,cloud:h.cloud,sst:h.sst,period:h.period,score:hourScore(sm,h.hr,opt&&opt.sp?Object.assign({sp:opt.sp},h):h),bite:hourScore(sm,h.hr,Object.assign(opt&&opt.sp?{sp:opt.sp}:{},h,{bite:true})),safe:safeHour(h)}));
+    const LRN=learnPick((opt&&opt.learn)||(opt&&opt.learn===false?null:(typeof window!=='undefined'&&window.AlkyonLearn)||null),opt&&opt.sp);
+    const chl=(opt&&typeof opt.chl==='number'&&(Date.parse(date)-Date.parse(today))/864e5<=2)?opt.chl:null;
+    const hours=rows.map(h=>learnAdj(LRN,sm,{chl,mal:LRN?moonAlt(Date.parse(h.t+':00Z')-tzd*60000,lat,lon):null,clp:h.clp,mm:h.mm,t:h.t,hr:h.hr,p:h.p,pres:h.pres,wind:h.wind,wave:h.wave,waveOff:h.waveOff,gust:h.gust,code:h.code,ptrend:h.ptrend,tide:h.tide,dir:h.dir,temp:h.temp,rain:h.rain,cloud:h.cloud,sst:h.sst,period:h.period,score:hourScore(sm,h.hr,opt&&opt.sp?Object.assign({sp:opt.sp},h):h),bite:hourScore(sm,h.hr,Object.assign(opt&&opt.sp?{sp:opt.sp}:{},h,{bite:true})),safe:safeHour(h)}));
     const day=h=>{const t=h.hr*60+30;return t>=sm.rise-60&&t<=sm.set+60;};
     const cand=hours.filter(h=>h.safe&&day(h)&&(date!==today||h.t>=nowLocal.slice(0,13)+':00'));
     let best=0,win=null;
@@ -254,8 +265,25 @@ async function getForecast(lat,lon,fetchFn,opt){
   }
   /* ωριαίο κύμα/βροχή και των 2 προηγούμενων ημερών, για την ορατότητα νερού (v31z531): [ώρα, κύμα, mm] */
   const wl=[]; for(let i=0;i<T.length;i++){ const t=T[i], mm=mar[t]||{}, r=nn(at('precipitation',i)); if(mm.wave==null&&r==null) continue; wl.push([t,mm.wave==null?null:Math.round(mm.wave*100)/100,r]); }
+  /* 1.14.28: βεβαιότητα: πόσο διαφωνούν 3 μοντέλα (ECMWF, GFS, ICON) για τον μέσο άνεμο στις ώρες φωτός */
+  if(opt&&opt.ens){ try{ const E=await ensSpread(lat,lon,fetchFn,nd); for(const d of days){ const e=E[d.date]; if(e){ d.unc=e; } } }catch(e){} }
   return {days,past,tz,nowLocal,wl};
 }
+const ENSC={};
+async function ensSpread(lat,lon,fetchFn,nd){ const ck=lat.toFixed(2)+','+lon.toFixed(2); if(ENSC[ck]&&Date.now()-ENSC[ck].t<3*3600e3) return ENSC[ck].v; const v=await ensSpread0(lat,lon,fetchFn,nd); ENSC[ck]={t:Date.now(),v}; return v; }
+async function ensSpread0(lat,lon,fetchFn,nd){
+  const j=await fetchJson('https://api.open-meteo.com/v1/forecast?latitude='+lat.toFixed(3)+'&longitude='+lon.toFixed(3)+'&hourly=wind_speed_10m&models=ecmwf_ifs025,gfs_seamless,icon_seamless&wind_speed_unit=kn&timezone=auto&forecast_days='+Math.min(14,(nd||7)+1),fetchFn);
+  const H=(j&&j.hourly)||{}, T=H.time||[], M=['ecmwf_ifs025','gfs_seamless','icon_seamless'].map(k=>H['wind_speed_10m_'+k]).filter(a=>Array.isArray(a)); if(M.length<2) return {};
+  const by={}; T.forEach((t,i)=>{ const hr=+t.slice(11,13); if(hr<6||hr>19) return; const d=t.slice(0,10); const o=by[d]=by[d]||M.map(()=>[]); M.forEach((a,k)=>{ if(typeof a[i]==='number') o[k].push(a[i]); }); });
+  const out={}; for(const d of Object.keys(by)){ const mean=by[d].map(a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null).filter(v=>v!=null); if(mean.length<2) continue; const lo=Math.min(...mean), hi=Math.max(...mean); out[d]={lo:Math.round(lo),hi:Math.round(hi),spread:Math.round(hi-lo),bad:hi-lo>=6&&hi>=10}; }
+  return out; }
+/* 1.14.28: «Γιατί 72;»: πόσο ανεβάζει/κατεβάζει τον βαθμό κάθε παράγοντας (σύγκριση με «ουδέτερη» τιμή), συν όσα μετρήθηκαν (μάθηση). */
+function explainHour(sm,h,sp){ const w=Object.assign({},h,{bite:true}); if(sp) w.sp=sp; delete w.learn; const base=hourScore(sm,h.hr,w);
+  const G={pt:{ptrend:'stable',pres:null},wind:{wind:8,gust:null},wave:{wave:0.3},sky:{cloud:'part',code:null,rain:0},water:{sst:null,temp:null}}, parts=[]; let sum=0;
+  for(const k of Object.keys(G)){ const v=hourScore(sm,h.hr,Object.assign({},w,G[k])), d=base-v; if(Math.abs(d)>=1){ parts.push({k,d}); sum+=d; } }
+  const rest=base-50-sum; if(Math.abs(rest)>=1) parts.push({k:'time',d:Math.round(rest)});
+  const lk=(h.learn&&typeof h.bite==='number')?Math.round(h.bite-base):0; if(Math.abs(lk)>=1) parts.push({k:'learn',d:lk});
+  return {base,score:base+lk,parts:parts.sort((a,b)=>Math.abs(b.d)-Math.abs(a.d))}; }
 /* Βρίσκει την πρώτη ιδανική ώρα τις επόμενες ~36 ώρες. */
 function findIdeal(fc,threshold){
   const hourNow=fc.nowLocal.slice(0,13);
@@ -452,7 +480,10 @@ async function checkPlaces(cfg,fetchFn){
     try{
       const fc=await getForecast(p.lat,p.lon,fetchFn,{days:7,sp:cfg.sp||null});
       okN++;
-      for(const g of goodDays(fc,thr)){ if(g.date===fc.nowLocal.slice(0,10)&&g.win&&g.win.e>=+fc.nowLocal.slice(11,13)&&(!todayGood||g.best>todayGood.best)) todayGood={place:p.name,date:g.date,best:g.best,win:g.win}; /* 1.14.13: καλύτερη ευκαιρία του Σαββατοκύριακου (Πέμπτη βράδυ) */ { const wdy=new Date(g.date+'T12:00:00Z').getUTCDay(); if((wdy===6||wdy===0)&&g.date>fc.nowLocal.slice(0,10)&&g.win&&(!wkGood||g.best>wkGood.best)) wkGood={place:p.name,date:g.date,best:g.best,win:g.win}; } /* 1.1.0: πρωινό μήνυμα */ { const tm=new Date(Date.parse(fc.nowLocal.slice(0,10)+'T12:00:00Z')+864e5).toISOString().slice(0,10); if(g.date===tm&&g.win&&(!tmrGood||g.best>tmrGood.best)) tmrGood={place:p.name,pid:p.id,date:g.date,best:g.best,win:g.win}; } /* 1.1.2: βραδινό μήνυμα για αύριο */ if(g.date>fc.nowLocal.slice(0,10)&&(!nextGood||g.date<nextGood.date||(g.date===nextGood.date&&g.best>nextGood.best))) nextGood={place:p.name,date:g.date,best:g.best,win:g.win}; const key=p.id+':'+g.date; if(notified[key]) continue; let why=''; try{ why=whyGood(g.d,g.win,en); }catch(e){} goods.push({type:'good',place:p,key,date:g.date,best:g.best,win:g.win,wind:g.wind,why}); }
+      /* 1.14.28: καλή μέρα σε 2+ μέρες, μόνο αν τα μοντέλα συμφωνούν για τον άνεμο (αλλιώς περιμένουμε να ξεκαθαρίσει) */
+      let gd=goodDays(fc,thr); const far=fc.nowLocal?new Date(Date.parse(fc.nowLocal.slice(0,10)+'T12:00:00Z')+2*864e5).toISOString().slice(0,10):null;
+      if(far&&gd.some(g=>g.date>=far)){ try{ const E=await ensSpread(p.lat,p.lon,fetchFn,7); gd=gd.filter(g=>!(g.date>=far&&E[g.date]&&E[g.date].bad)); }catch(e){} }
+      for(const g of gd){ if(g.date===fc.nowLocal.slice(0,10)&&g.win&&g.win.e>=+fc.nowLocal.slice(11,13)&&(!todayGood||g.best>todayGood.best)) todayGood={place:p.name,date:g.date,best:g.best,win:g.win}; /* 1.14.13: καλύτερη ευκαιρία του Σαββατοκύριακου (Πέμπτη βράδυ) */ { const wdy=new Date(g.date+'T12:00:00Z').getUTCDay(); if((wdy===6||wdy===0)&&g.date>fc.nowLocal.slice(0,10)&&g.win&&(!wkGood||g.best>wkGood.best)) wkGood={place:p.name,date:g.date,best:g.best,win:g.win}; } /* 1.1.0: πρωινό μήνυμα */ { const tm=new Date(Date.parse(fc.nowLocal.slice(0,10)+'T12:00:00Z')+864e5).toISOString().slice(0,10); if(g.date===tm&&g.win&&(!tmrGood||g.best>tmrGood.best)) tmrGood={place:p.name,pid:p.id,date:g.date,best:g.best,win:g.win}; } /* 1.1.2: βραδινό μήνυμα για αύριο */ if(g.date>fc.nowLocal.slice(0,10)&&(!nextGood||g.date<nextGood.date||(g.date===nextGood.date&&g.best>nextGood.best))) nextGood={place:p.name,date:g.date,best:g.best,win:g.win}; const key=p.id+':'+g.date; if(notified[key]) continue; let why=''; try{ why=whyGood(g.d,g.win,en); }catch(e){} goods.push({type:'good',place:p,key,date:g.date,best:g.best,win:g.win,wind:g.wind,why}); }
       /* v31z538: για μέρες που σου προτάθηκαν ήδη: (α) «άλλαξε η πρόγνωση» αν πέσει κάτω από τα όρια ασφαλείας ή αρκετά κάτω από τον στόχο,
          (β) υπενθύμιση το προηγούμενο βράδυ (19:00–23:59 τοπική ώρα) με τα τελευταία στοιχεία. Μία φορά η καθεμία ανά μέρα. */
       const nowD=fc.nowLocal.slice(0,10), nowH=+fc.nowLocal.slice(11,13), tmr=new Date(Date.parse(nowD+'T12:00:00Z')+864e5).toISOString().slice(0,10);
@@ -568,5 +599,5 @@ async function checkPlaces(cfg,fetchFn){
       msgs.push({kind:'good',key:i.key,place:P(i.pl),t:i.pl.date,title:'⏰ '+t('Ώρα να ξεκινήσεις','Time to get going'),body:tx,full:tx}); } });
   return {nextGood,todayGood,tmrGood,wkGood,items,notified,title,body:lines.concat(pl,tl,wl).join('\n'),msgs,area:area?{name:area.name,lat:area.lat,lon:area.lon}:null,errs,okN,goodsN:goods.length,pressN:press.length,turnsN:turns.length,windsN:winds.length};
 }
-g.PF={learnPick,learnBins,learnAdj,darkTxt,darkWin,squidEves,nextMoon,moonInfo,lims,moonAlt,moonEvents,moonPhase,solunarPeriods,pressureRise,sunMoon,hourScore,getForecast,findIdeal,message,check,goodDays,checkPlaces,dayLabel,bft,pressureEvent,windEvent,pressureTurns,pressureOutlook};
+g.PF={explainHour,ensSpread,learnPick,learnBins,learnAdj,darkTxt,darkWin,squidEves,nextMoon,moonInfo,lims,moonAlt,moonEvents,moonPhase,solunarPeriods,pressureRise,sunMoon,hourScore,getForecast,findIdeal,message,check,goodDays,checkPlaces,dayLabel,bft,pressureEvent,windEvent,pressureTurns,pressureOutlook};
 })(typeof self!=='undefined'?self:this);
