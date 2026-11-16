@@ -1693,6 +1693,13 @@ with sync_playwright() as p:
     r=pg.evaluate("()=>{ const t0=Date.UTC(2026,10,15,21), pts=[]; for(let i=0;i<48;i++){ pts.push({t:t0+i*3600000,p:1018,w:6,g:10,d:300,l:0.06*Math.sin(i/12.4*2*Math.PI+1)+(i>=14&&i<=20?0.006*Math.sin(i*2.2):0)}); } const C=AK.pwChart(pts,{lat:34.7,lon:32.4,tz:120,rk:'d1',nowI:20}); document.body.append(C.svg); const bb=[...C.svg.querySelectorAll('text.tt')].map(t=>t.getBBox()); let ov=0; for(let i=0;i<bb.length;i++) for(let j=i+1;j<bb.length;j++){ const a=bb[i], b2=bb[j]; if(Math.min(a.x+a.width,b2.x+b2.width)-Math.max(a.x,b2.x)>0&&Math.min(a.y+a.height,b2.y+b2.height)-Math.max(a.y,b2.y)>0) ov++; } const n=C.svg.querySelectorAll('circle.th,circle.tlo').length; C.svg.remove(); const h2=[...document.querySelectorAll('main h2')].filter(x=>x.querySelector('.infob')&&x.offsetParent); h2.forEach(x=>x.querySelector('.infob').click()); return [bb.length>=5, ov, n<=8, h2.length>0&&h2.every(x=>x.getBoundingClientRect().height<60)]; }")
     check('Παλίρροια: ώρες χωρίς επικάλυψη, μικρά δοντάκια δεν σημειώνονται· (i) δεν σπάει τον τίτλο στα 360 px (1.14.53)', r==[True,0,True,True] and not pg._errs, [r,pg._errs]); c.close()
 
+    print('# 1.14.55 ενότητες')
+    c=ctx(b,lang='en'); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(4500)
+    r=[pg.evaluate("()=>[...document.querySelectorAll('.pgsec')].map(e=>e.textContent+'>'+((e.nextElementSibling.querySelector('h2,summary b')||{}).textContent||'').slice(0,14)).join('|')")]
+    pg.evaluate("()=>{[...document.querySelectorAll('main .seg button')].find(x=>/Mine/.test(x.textContent)).click()}"); pg.wait_for_timeout(2500)
+    r.append(pg.evaluate("()=>[[...document.querySelectorAll('.pgsec')].map(e=>e.textContent).join('|'), [...document.querySelectorAll('.pgsec')].every(e=>e.nextElementSibling&&/card|sfold/.test(e.nextElementSibling.className))]"))
+    check('Ενότητες: «Conditions» πριν από την Έκθεση ακτής· στα «Δικά μου» κάθε επικεφαλίδα πριν από κάρτα (1.14.55)', r[0].startswith('Conditions>') and 'Checks and history' in r[1][0] and 'Conditions' not in r[1][0] and r[1][1] and not pg._errs, [r,pg._errs]); c.close()
+
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)
     check('Οδηγός χωρίς καρτέλα Κόμποι (αφαιρέθηκε προσωρινά)', not pg.query_selector('#tab-guide .seg button[data-g=knots]') and not pg._errs, pg._errs); c.close()

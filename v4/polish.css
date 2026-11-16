@@ -254,3 +254,13 @@ form.bf2 .depnote[hidden]{display:none}
 .cmcard .cmbox .lyrow b{flex:0 0 84px}
 .cmcard .cmnone .sub{margin:4px 0 0;font-size:13.5px}
 .cmcard .foldinfo,.cmcard .infot{font-size:13.5px;line-height:1.45}
+
+/* ===== 1.14.55: οργανωμένες σελίδες ===== */
+.pgsec{margin:22px 6px 8px;font:800 11.5px var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);display:flex;align-items:center;gap:10px}
+.pgsec::after{content:'';flex:1;height:1px;background:var(--line)}
+.pgsec+.card,.pgsec+details.card,.pgsec+details.sfold{margin-top:0!important}
+/* ίδιο κενό ανάμεσα σε όλες τις κάρτες μιας σελίδας */
+.page>.card,.page>details.card,.page>details.sfold{margin-top:12px;margin-bottom:0}
+.page>.card+.foot,.page>details+.foot{margin-top:16px}
+.dwrap>.card,.dwrap>details.card{margin-top:12px;margin-bottom:0}
+.bscard>h3{font-size:17.5px;font-weight:740;letter-spacing:-.012em;margin:0 0 10px}
