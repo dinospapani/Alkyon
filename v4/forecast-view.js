@@ -631,7 +631,7 @@ function hourCard(fc,d,selH,nh){
   var ms0=Date.parse(d.date+'T00:00:00Z')-tz*60000, mstrip=h('div',{class:'hmoon','aria-hidden':'true'});
   per.forEach(function(x){ var a=pc((x.s-ms0)/60000), b=pc((x.e-ms0)/60000); if(b<=a) return; mstrip.append(h('i',{class:x.kind==='major'?'mj':'mn',style:{left:a+'%',width:(b-a)+'%'}})); });
   var hasMoon=mstrip.children.length>0, hasPast=nh!=null&&nh>0, hasBad=hs.some(function(q){ return !q.safe; });
-  c.append(capP(c,T('Κάθε μπάρα είναι μία ώρα. Όσο πιο ψηλή, τόσο καλύτερη η ώρα για ψάρεμα. Πάτα ή σύρε για λεπτομέρειες.','Each bar is one hour. The taller, the better for fishing. Tap or drag for details.')),
+  c.append(capP(c,T('Μία μπάρα ανά ώρα· πιο ψηλή = καλύτερη. Πάτα ή σύρε.','One bar per hour; taller = better. Tap or drag.')),
     h('div',{class:'hbw'},box,hasMoon?mstrip:null,h('div',{class:'axis'},['00','06','12','18','23'].map(function(t){ return h('span',{text:t}); }))),
     h('div',{class:'hleg'},d.win?h('span',{class:'k best',text:T('καλύτερες','best')}):null,hasBad?h('span',{class:'k bad',text:T('εκτός ορίων','over limits')}):null,h('span',{class:'k night',text:T('νύχτα','night')}),
       hasMoon?h('span',{class:'k mj',text:T('σελήνη κύρια','moon major')}):null,hasMoon&&per.some(function(x){ return x.kind!=='major'; })?h('span',{class:'k mn',text:T('δευτερεύουσα','minor')}):null,
@@ -685,8 +685,9 @@ function workedCard(d){
   /* 1.12.15: ανοίγει/κλείνει όπως οι άλλες κάρτες */
   var spTop=cnt(function(b){ return b.species; }).slice(0,2).map(function(x){ return x.replace(/ \(\d+\)$/,''); }).join(', ');
   return fold('worked',T('Τι δούλεψε σε παρόμοιες μέρες','What worked on similar days'),sim.length+T(' ψαριές σε ',' catches on ')+Object.keys(days).length+T(' μέρες',' days')+(spTop?' · '+spTop:''),[h('div',{class:'worked'},
-    h('p',{class:'foot',style:{margin:'0 0 8px'},text:T('Τα δικά σου ψάρια σε μέρες με παρόμοιο άνεμο, κύμα, νερό, πίεση και εποχή.','Your own catches on days with similar wind, waves, water, pressure and season.')}),
-    h('div',{class:'rows one'},rows.map(function(r){ return h('div',{class:'row'},h('span',{text:r[0]}),h('b',{text:r[1].join(', ')})); })))]); }
+    h('p',{class:'foot',style:{margin:'0 0 8px'},text:T('Τα ψάρια σου σε μέρες με παρόμοιο καιρό και εποχή.','Your catches on days with similar weather and season.')}),
+    /* 1.14.56: ίδιο πλέγμα με το «Τι κοινό είχαν τα ψαρέματά σου» */
+    h('div',{class:'cmfacts wkfacts'},rows.map(function(r){ return h('div',{class:'cmfact'+(r[1].join(', ').length>26?' wide':'')},h('i',{text:r[0]}),h('b',{text:r[1].map(function(x){ var m=x.match(/^(.*) \((\d+)\)$/); return m?(window.dataName?window.dataName(m[1]):m[1])+' ×'+m[2]:(window.dataName?window.dataName(x):x); }).join(', ')})); })))]); }
 function reasons(d,hs0){
   var hs=hs0&&hs0.length?hs0:focusHours(d); if(!hs.length) return [];
   var av=function(k){ var a=hs.map(function(q){ return q[k]; }).filter(function(v){ return typeof v==='number'; }); return a.length?a.reduce(function(x,y){ return x+y; },0)/a.length:null; };
@@ -732,7 +733,10 @@ function pwSeries(p,rk){
 }
 /* η κάρτα «Έκθεση της ακτής» (κοινός κώδικας με την κλασική): κρατά ορατά τίτλο, «Τώρα» και μπάρες, τα υπόλοιπα κείμενα σε «Λεπτομέρειες» */
 function tidyExpo(ex){ var busy=false;
-  function fix(){ var c=ex.querySelector('#fcExposure'); if(!c||busy||c.dataset.v==='2') return; /* 1.9.30: η νέα κάρτα έχει δική της σειρά */ var dd=c.querySelector(':scope>details.exmore'); if(dd){ var n=dd.nextElementSibling; if(n){ busy=true; while(n){ var nx=n.nextElementSibling; dd.append(n); n=nx; } busy=false; } return; } busy=true;
+  /* 1.14.56: νέα κάρτα: πρώτα το συμπέρασμα και το διάγραμμα· η εξήγηση του διαγράμματος πάει στα «Αριθμοί ανά κατεύθυνση», και οι οδηγίες της ερώτησης για τη θάλασσα πίσω από «Τι είναι αυτό» */
+  function fix2(c){ busy=true; try{ var det=c.querySelector(':scope>details.exdet'), how=c.querySelector(':scope>.exhow'); if(det&&how){ var nb=how.nextElementSibling; det.append(how); if(nb&&nb.classList.contains('clmpb')) det.append(nb); }
+      var sl=c.querySelector(':scope>.sealog'); if(sl&&!sl.querySelector(':scope>details.sealmore')){ var notes=[].filter.call(sl.children,function(k){ return k.tagName==='P'; }); if(notes.length){ var dm=h('details',{class:'sealmore'},h('summary',{text:T('Τι είναι αυτό','What is this')})); notes.forEach(function(k){ dm.append(k); }); sl.append(dm); } } }catch(e){} busy=false; }
+  function fix(){ var c=ex.querySelector('#fcExposure'); if(!c||busy) return; if(c.dataset.v==='2'){ fix2(c); return; } /* 1.9.30: η νέα κάρτα έχει δική της σειρά */ var dd=c.querySelector(':scope>details.exmore'); if(dd){ var n=dd.nextElementSibling; if(n){ busy=true; while(n){ var nx=n.nextElementSibling; dd.append(n); n=nx; } busy=false; } return; } busy=true;
     try{ var kids=[].slice.call(c.children), h3=kids[0], bars=null; kids.forEach(function(k){ if(!bars&&k.tagName==='DIV'&&k.children.length>=8) bars=k; }); if(!h3||!bars){ busy=false; return; }
       var d=h('details',{class:'exmore'},h('summary',{text:T('Λεπτομέρειες · Πώς είναι η θάλασσα εδώ;','Details · How is the sea here?')})), now=null;
       kids.forEach(function(k){ if(k===h3||k===bars) return; if(!now&&k.tagName==='P'&&!k.classList.contains('note')){ now=k; k.classList.add('exnow'); return; } d.append(k); });

@@ -264,3 +264,21 @@ form.bf2 .depnote[hidden]{display:none}
 .page>.card+.foot,.page>details+.foot{margin-top:16px}
 .dwrap>.card,.dwrap>details.card{margin-top:12px;margin-bottom:0}
 .bscard>h3{font-size:17.5px;font-weight:740;letter-spacing:-.012em;margin:0 0 10px}
+
+/* ===== 1.14.56: ίδιο στυλ στις κάρτες «Δικά μου» και πιο σύντομη «Έκθεση ακτής» ===== */
+.cmfact.wide{grid-column:1/-1}
+.wkfacts{margin-top:4px}
+.patchips{display:grid;grid-template-columns:1fr 1fr;gap:1px;border-radius:12px;overflow:hidden;background:var(--line);margin:6px 0 4px}
+.patchip{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:10px 12px;border-radius:0;background:var(--surface-2);font-size:14.5px;max-width:none}
+.patchip:last-child:nth-child(odd){grid-column:1/-1}
+.patchip i{font-size:14px;font-weight:800}
+.patl{margin:12px 0 0;font:800 11.5px var(--font);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.expo .sealog{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.expo .sealog>b{flex:1 0 100%;font-size:15px}
+.expo details.sealmore{flex:1 0 100%}
+.expo details.sealmore>summary,.expo details.exdet>summary{list-style:none;color:var(--ink-2);font-weight:650;font-size:13.5px;padding:6px 0;cursor:pointer}
+.expo details.sealmore>summary::-webkit-details-marker{display:none}
+.expo details.sealmore>summary::after{content:' ›'}.expo details.sealmore[open]>summary::after{content:' ‹'}
+.expo details.sealmore .note{margin:4px 0 0}
+.expo details.exdet>summary::-webkit-details-marker{display:none}
+.expo details.exdet>summary::after{content:' ›'}.expo details.exdet[open]>summary::after{content:' ‹'}

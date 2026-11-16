@@ -93,9 +93,9 @@ B.fcMine=function(page,fc,ctx){
   var c=card(T('Η προσωπική σου πρόγνωση','Your personal forecast'),T('Μαθαίνει από τις εξόδους σου (πόσες ώρες ψάρευες) και από όσα έπιασες.','It learns from your trips (how long you fished) and what you caught.'));
   /* 1.14.37: «52 ✓» όταν έχει συμπληρωθεί, αλλιώς «3 από 15» */
   var need=function(v,n,dec){ var x=B.num(Math.min(v,999),dec||0); return v>=n?x+' ✓':x+T(' από ',' of ')+n; };
-  c.append(h('p',{class:'sub',style:{margin:'0 0 6px'},text:T('Χρειάζονται τουλάχιστον: ','Needed at least: ')+N.hours+T(' ώρες, ',' hours, ')+N.sessions+T(' έξοδοι, ',' trips, ')+N.catches+T(' ψάρια.',' catches.')}));
+  /* 1.14.56: η γραμμή «Χρειάζονται τουλάχιστον…» έφυγε· οι μπάρες δείχνουν ήδη «5 από 10» */
   c.append(bar(T('Ώρες','Hours'),Math.min(p.hours,N.hours),N.hours,need(p.hours,N.hours,p.hours<10?1:0),p.hours>=N.hours?'up':''),bar(T('Έξοδοι','Trips'),Math.min(p.sessions,N.sessions),N.sessions,need(p.sessions,N.sessions),p.sessions>=N.sessions?'up':''),bar(T('Ψάρια','Catches'),Math.min(p.catches,N.catches),N.catches,need(p.catches,N.catches),p.catches>=N.catches?'up':''));
-  var v=m.valid, msg=!m.ready?T('Μόλις συμπληρωθούν όλα, ανοίγει η προσωπική πρόγνωση.','Once all three are complete, your personal forecast unlocks.')
+  var v=m.valid, msg=!m.ready?T('Ανοίγει όταν γεμίσουν και οι τρεις.','Unlocks when all three are full.')
     :!v?T('Έτοιμη. Για να ελεγχθεί αν προβλέπει καλύτερα από τον μέσο όρο σου χρειάζονται 10 έξοδοι.','Ready. To check whether it predicts better than your average, 10 trips are needed.')
     :v.gain>0?T('Ελέγχθηκε σε ','Checked on ')+v.n+T(' εξόδους που δεν είδε: προβλέπει ',' trips it had not seen: it predicts ')+Math.round(v.gain*100)+T('% καλύτερα από τον μέσο όρο σου.','% better than your average.')
     :T('Ελέγχθηκε σε ','Checked on ')+v.n+T(' εξόδους: δεν προβλέπει ακόμα καλύτερα από τον μέσο όρο σου. Συνέχισε να καταγράφεις.',' trips: it does not yet predict better than your average. Keep logging.');
@@ -116,7 +116,8 @@ B.fcMine=function(page,fc,ctx){
   });
   c3.append(tb);
   if(m.ready&&tot) c3.append(h('p',{class:'sub',style:{margin:'10px 0 0'},text:T('Συμφωνούν στην ώρα ','They agree on the time ')+ag+T(' από ',' of ')+tot+T(' μέρες.',' days.')+(pTrial?T(' Η προσωπική είναι ακόμα σε δοκιμή: εμπιστέψου τη γενική.',' The personal one is still in trial: trust the general one.'):'')}));
-  page.append(F('mgp',c3,m.ready?T('βαθμός και ώρα ανά μέρα','score and time per day'):T('ανοίγει με αρκετά δεδομένα','unlocks with enough data')));
+  /* 1.14.56: όσο η προσωπική δεν έχει ανοίξει, ο πίνακας είχε μια στήλη με παύλες και επαναλάμβανε τους βαθμούς της λωρίδας ημερών· δεν εμφανίζεται */
+  if(m.ready) page.append(F('mgp',c3,m.ready?T('βαθμός και ώρα ανά μέρα','score and time per day'):T('ανοίγει με αρκετά δεδομένα','unlocks with enough data')));
   if(ccLater) page.append(F('mcommon',ccLater,T('συνθήκες, δόλωμα, τεχνική, βάθος','conditions, bait, technique, depth')));
 
   /* μοτίβα */
@@ -174,7 +175,7 @@ B.fcMine=function(page,fc,ctx){
   if(pend.length){ var cp=card(T('Έλεγχος της πρόγνωσης','Checking the forecast'),T('Όταν μαζευτούν αρκετές έξοδοι, εδώ θα φαίνεται πόσο έπεσε μέσα η πρόγνωση στα δικά σου νερά: ψάρια ανά ώρα ανάλογα με τον βαθμό, Alkyon ή μόνο σελήνη, και πρόγνωση σε σχέση με το «Πώς ήταν».','Once there are enough trips, this shows how right the forecast was in your waters: fish per hour by score, Alkyon vs moon only, and forecast vs «How was it».'));
     cp.append(h('p',{class:'patl',text:T('Έξοδοι που μετράνε ως τώρα:','Trips that count so far:')}));
     pend.forEach(function(x){ cp.append(bar(x[0],Math.min(x[1],x[2]),x[2],x[1]+T(' από ',' of ')+x[2])); });
-    cp.append(h('p',{class:'sub',style:{margin:'8px 0 0'},text:T('Ξεκίνα και τελείωνε κάθε έξοδο από την εφαρμογή και απάντα στο «Πώς ήταν;» στο τέλος.','Start and end each trip in the app and answer «How was it?» at the end.')})); page.append(cp); }
+    cp.append(h('p',{class:'sub',style:{margin:'8px 0 0'},text:T('Πάτα Έναρξη και Τέλος σε κάθε έξοδο και απάντα στο «Πώς ήταν;».','Tap Start and End on each trip and answer «How was it?».')})); page.append(cp); }
 
   /* πρόσφατες έξοδοι */
   var S=PP.sessionsOf(A().trips()).sort(function(a,b){ return b.startMs-a.startMs; }).slice(0,6);
