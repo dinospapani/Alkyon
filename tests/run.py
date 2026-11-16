@@ -1161,7 +1161,7 @@ with sync_playwright() as p:
         c=b.new_context(viewport={'width':360,'height':780}, service_workers='block'); c.grant_permissions(['geolocation']); c.set_geolocation({'latitude':35.0,'longitude':33.3})
         c.add_init_script(init(lang=lang)); c.route('**/*open-meteo.com/**',respond); c.route(lambda u: not u.startswith(BASE) and 'open-meteo' not in u, lambda r: r.abort())
         pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(2500); pg.evaluate("()=>AK.logTab('gear')"); pg.wait_for_timeout(1200)
-        ov=pg.evaluate("""()=>{const r=[]; document.querySelectorAll('#main .chips.rng .chip, #main .seg button, #main .btn').forEach(e=>{ const b=e.getBoundingClientRect(); if(e.offsetParent&&(e.scrollWidth>e.clientWidth+1||b.right>innerWidth+1)) r.push(e.textContent.trim()); });
+        ov=pg.evaluate("""()=>{const r=[]; document.querySelectorAll('#main .seg button, #main .btn').forEach(e=>{ const b=e.getBoundingClientRect(); if(e.offsetParent&&(e.scrollWidth>e.clientWidth+1||b.right>innerWidth+1)) r.push(e.textContent.trim()); });
           document.querySelectorAll('#main input[placeholder]').forEach(i=>{ if(!i.offsetParent) return; const st=getComputedStyle(i), cv=document.createElement('canvas').getContext('2d'); cv.font=st.fontWeight+' '+st.fontSize+' '+st.fontFamily; if(cv.measureText(i.placeholder).width>i.clientWidth-parseFloat(st.paddingLeft)-parseFloat(st.paddingRight)+1) r.push('ph:'+i.placeholder); }); return r;}""")
         check('%s: Ημερολόγιο › Εργαλεία στα 360 px: τίποτα έξω από το κουτί (1.10.5)'%lang, not ov, ov)
         bt=pg.evaluate("()=>[...document.querySelectorAll('#main .gearadd .btn')].map(x=>x.textContent)")
@@ -1663,6 +1663,14 @@ with sync_playwright() as p:
     pg.evaluate("()=>{location.hash='#map'}"); pg.wait_for_timeout(2500)
     r.append(pg.evaluate("()=>getComputedStyle(document.querySelector('.nav'),'::before').display"))
     check('Κάτω μπάρα: σβήσιμο περιεχομένου (όχι στον χάρτη)· emoji γίνονται γραμμικά εικονίδια (1.14.45)', r==[True,'forecast',3,False,'none'] and not pg._errs, [r,pg._errs]); c.close()
+
+    print('# 1.14.47 συναγρίδα')
+    R=[]
+    for lg in ('en','el'):
+        c=ctx(b,lang=lg); c.add_init_script("localStorage.setItem('alkyon-bites',JSON.stringify([{id:'a',date:'2026-03-11',time:'10:00',species:'Common dentex',kg:5,_u:1},{id:'b',date:'2026-04-02',time:'10:00',species:'Dentex',kg:3,len:55,_u:1},{id:'c',date:'2026-05-02',time:'10:00',species:'Συναγρίδα',kg:2,_u:1}]));localStorage.setItem('alkyon-v4-logtab','\"stats\"');")
+        pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3500)
+        R.append(pg.evaluate("()=>[...document.querySelectorAll('.recs .rec b')].map(x=>x.textContent).join('|')")); R.append(pg._errs); c.close()
+    check('Dentex / Common dentex / Συναγρίδα: ένα ρεκόρ, «Common dentex» στα αγγλικά και «Συναγρίδα» στα ελληνικά (1.14.47)', R==['Common dentex',[],'Συναγρίδα',[]], R)
 
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)
