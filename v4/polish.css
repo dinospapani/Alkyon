@@ -183,3 +183,20 @@ html[data-theme=dark],html.dark{--wind:#D9C7A3}
 .simcard .simhead.hi b{color:var(--good)}.simcard .simhead.mid b{color:var(--fair)}
 details.spmore>summary{color:var(--ink-2)}
 .card .gh h2{font-size:16.5px;flex:1 1 auto;min-width:0}
+
+/* ===== 1.14.46: Ημερολόγιο ===== */
+/* τα φίλτρα διαστήματος σε μία γραμμή που σύρεται (το «Από–Έως» έπεφτε μόνο του από κάτω) */
+.chips.rng{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;margin-right:-16px;padding-right:34px;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 34px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 34px),transparent)}
+.chips.rng::-webkit-scrollbar{display:none}
+.chips.rng .chip{flex:none;white-space:nowrap}
+.addrow.withsum{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.addrow.withsum .sum{margin:0;flex:1;min-width:0;font-size:13.5px;line-height:1.35;color:var(--ink-2)}
+.addrow.withsum .addbtn{flex:none}
+/* κάρτα εξόδου: ο αριθμός έχει ετικέτα, ο τίτλος δεν σπάει */
+.li.tcard .tc{display:flex;flex-direction:column;align-items:center;gap:0;min-width:44px;margin:12px 12px 0 4px}
+.li.tcard .tc b{font:800 22px/1 var(--font)}
+.li.tcard .tc small{font:600 11px/1.3 var(--font);color:var(--ink-3)}
+.li.tcard .tx b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:8px}
+.li.tcard .tx small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* λίστα ψαριών: το όνομα σε μία γραμμή, η ώρα μικρότερη */
+.li.fishrow .tx b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:16px;line-height:1.25}

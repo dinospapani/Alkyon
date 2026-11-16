@@ -57,7 +57,7 @@ B.recordsCards=function(page){
   var c=h('section',{class:'card recs'},h('h2',{text:'🏆 '+T('Ρεκόρ ανά είδος','Records by species')})), y=String(new Date().getFullYear());
   /* 1.9.16: τα 5 πρώτα· τα υπόλοιπα με «Όλα τα ρεκόρ»· κάθε γραμμή ανοίγει το ψάρι */
   keys.slice(0,12).forEach(function(k,i){ var r=R[k], rb=(r.kg||r.len).b;
-    c.append(h('div',{class:'rec'+(i>=5?' rx':''),role:B.biteDetail?'button':null,tabindex:B.biteDetail?'0':null,onclick:B.biteDetail?function(){ B.biteDetail(rb); }:null},h('b',{text:r.sp}),h('span',{text:[r.kg?B.num(r.kg.v,2)+' kg':'',r.len?Math.round(r.len.v)+' cm':''].filter(Boolean).join(' · ')}),h('small',{text:(r.kg||r.len).b.date?B.dateShort((r.kg||r.len).b.date)+((r.kg||r.len).b.place?' · '+(r.kg||r.len).b.place:''):''}))); });
+    c.append(h('div',{class:'rec'+(i>=5?' rx':''),role:B.biteDetail?'button':null,tabindex:B.biteDetail?'0':null,onclick:B.biteDetail?function(){ B.biteDetail(rb); }:null},h('b',{text:r.sp}),h('span',{text:[r.kg?B.num(r.kg.v,Math.round(r.kg.v)===r.kg.v?0:(Math.round(r.kg.v*10)===Math.round(r.kg.v*100)/10?1:2))+' kg':'',r.len?Math.round(r.len.v)+' cm':''].filter(Boolean).join(' · ')}),h('small',{text:(r.kg||r.len).b.date?B.dateShort((r.kg||r.len).b.date)+((r.kg||r.len).b.place?' · '+(r.kg||r.len).b.place:''):''}))); });
   var nk=Math.min(12,keys.length); if(nk>5){ var mb=h('button',{class:'btn sm recmore',type:'button',text:T('Όλα τα ρεκόρ (','All records (')+nk+') ›',onclick:function(){ c.classList.add('all'); mb.remove(); }}); c.append(mb); }
   var fy=Object.keys(R).filter(function(k){ return R[k].first[y]; }).length; if(fy) c.append(h('p',{class:'foot',text:T('Φέτος: ','This year: ')+fy+T(' διαφορετικά είδη.',' different species.')}));
   page.append(c); };
