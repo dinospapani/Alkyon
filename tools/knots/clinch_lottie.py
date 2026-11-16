@@ -19,7 +19,7 @@ def smooth(t): t = max(0.0, min(1.0, t)); return t * t * (3 - 2 * t)
 def P(s):
     """παράμετροι γεωμετρίας για σφίξιμο s"""
     r = lerp(15.0, 8.6, s)          # απόσταση στροφών από τον άξονα της κύριας
-    p = lerp(30.0, 10.0, s)         # βήμα στροφής
+    p = lerp(30.0, 8.3, s)         # βήμα στροφής
     x1 = lerp(R + 62, R + 17, s)    # αρχή στροφών
     return dict(r=r, p=p, x1=x1, x2=x1 + 5 * p)
 
@@ -29,8 +29,8 @@ def main_line(u, s):                       # από δεξιά ως λίγο π�
 def hairpin(u, s):                         # μέσα από τον κρίκο: πάνω από το σύρμα, μέσα στην τρύπα, κάτω από το σύρμα
     q = P(s); r = q['r']
     a = math.pi * u
-    cx = lerp(R + 10, R + 7, s); half = r / 2 + 5; ym = r / 2
-    depth = 31.0
+    cx = lerp(R + 10, R + 7, s); half = r / 2 + lerp(5, 2.5, s); ym = r / 2
+    depth = lerp(31.0, 19.0, s)
     x = cx - depth * math.sin(a); y = ym - half * math.cos(a)
     z = 8.0 * math.cos(a)
     return (x, y, z)
@@ -39,7 +39,7 @@ def tag_run(u, s):                         # η άκρη πίσω προς τι�
 def helix(u, s):
     q = P(s); th = 10 * math.pi * u
     return (q['x1'] + q['p'] * th / (2 * math.pi), q['r'] * math.cos(th), q['r'] * math.sin(th) * 1.15)
-def arc(u, s):                             # η μεγάλη θηλιά, και μέσα από τη μικρή
+def arc_loose(u, s):                             # η μεγάλη θηλιά, και μέσα από τη μικρή
     q = P(s); r = q['r']; k = lerp(1, 0.06, s); e = lerp(6, 3, s)
     p0 = (q['x2'], r); p1 = (q['x2'] + 26 * k + 4, r + 52 * k + e); p2 = (R + 2, r + 52 * k + e); p3 = (R + 15, r)
     if u < 0.88:
@@ -48,7 +48,7 @@ def arc(u, s):                             # η μεγάλη θηλιά, και 
         return (x, y, z)
     v = (u - 0.88) / 0.12                  # μπαίνει στη μικρή θηλιά (ανάμεσα σε κύρια και άκρη) και πάει πίσω
     return (R + 15 + 1.5 * v, lerp(r, r * 0.42, v), lerp(11.0, -11.0, smooth(v)))
-def back(u, s):                            # πίσω από την άκρη, μέσα στη μεγάλη θηλιά, βγαίνει μπροστά
+def back_loose(u, s):                            # πίσω από την άκρη, μέσα στη μεγάλη θηλιά, βγαίνει μπροστά
     q = P(s); r = q['r']; k = lerp(1, 0.25, s)
     p0 = (R + 16.5, r * 0.42, -11); p1 = (R + 20, r + 16 * k, -11); p2 = (R + 26 + 8 * k, r + 26 * k + 3, -10); p3 = (R + 40 + 14 * k, r + 20 * k + 4, 0)
     if u < 0.6:
@@ -56,6 +56,25 @@ def back(u, s):                            # πίσω από την άκρη, μ
     v = (u - 0.6) / 0.4                    # η κομμένη άκρη, μπροστά
     x0, y0, _ = p3
     return (x0 + lerp(0, 34 * k + 8, v), y0 - lerp(0, 5 * k, v), lerp(0, 10, smooth(v * 3)))
+
+def mix(a, b, w): return tuple(lerp(a[k], b[k], w) for k in range(3))
+def W(s): return smooth((s - 0.25) / 0.75)
+def arc_tight(u, s):
+    q = P(s); r = q['r']; yb = r + 9.0
+    if u < 0.88:
+        v = u / 0.88; x = lerp(q['x2'] + 2, R + 15, v)
+        y = yb - (yb - r) * max(0.0, 1 - v / 0.12) ** 2 - (yb - r) * max(0.0, (v - 0.86) / 0.14) ** 2
+        return (x, y, 11.0 * smooth(v * 6))
+    v = (u - 0.88) / 0.12
+    return (R + 15 + 1.5 * v, lerp(r, r * 0.42, v), lerp(11.0, -11.0, smooth(v)))
+def back_tight(u, s):
+    q = P(s); r = q['r']
+    p0 = (R + 16.5, r * 0.42, -11); p1 = (R + 19, r + 8, -11); p2 = (R + 21, r + 15, -10); p3 = (R + 24, r + 19, 0)
+    if u < 0.6: return bez(p0, p1, p2, p3, u / 0.6)
+    v = (u - 0.6) / 0.4
+    return (R + 24 + 5 * v, r + 19 + 1.5 * v, lerp(0, 10, smooth(v * 3)))
+def arc(u, s): return mix(arc_loose(u, s), arc_tight(u, s), W(s))
+def back(u, s): return mix(back_loose(u, s), back_tight(u, s), W(s))
 
 CURVES = [  # name, color, step (0-based), fn, samples
     ('main', GREY, 0, main_line, 70),
@@ -72,14 +91,18 @@ def ring_pt(u, s):
 # ---------- κομμάτια ----------
 SEG = 3  # γραμμές ανά κομμάτι
 S_KEYS = [0.0, 0.35, 0.7, 1.0]       # ενδιάμεσα σχήματα για ομαλό σφίξιμο
+def zc(z): return 1 if z > 1.0 else (-1 if z < -1.0 else 0)
 def pieces(fn, n):
+    """κομμάτια = συνεχόμενα δείγματα με την ίδια θέση βάθους (μπροστά / στο ίδιο επίπεδο / πίσω)"""
     us = [i / n for i in range(n + 1)]
-    out = []
-    for i in range(0, n, SEG):
-        sub = us[i:min(i + SEG, n) + 1]
-        out.append(sub)
+    cls = [zc(fn(u, 0.0)[2]) for u in us]
+    out = []; cur = [us[0]]
+    for i in range(1, n + 1):
+        cur.append(us[i])
+        if i < n and cls[i] != cls[i + 1] and len(cur) > 2:
+            out.append(cur); cur = [us[i]]
+    if len(cur) > 1: out.append(cur)
     return out
-
 def shape(pts):
     return {'i': [[0, 0]] * len(pts), 'o': [[0, 0]] * len(pts), 'v': [[round(x, 2), round(y, 2)] for x, y in pts], 'c': False}
 
@@ -131,10 +154,11 @@ for st, lst in by_step.items():
 for name, col, st, fn, n in CURVES:
     t_begin, dur = start[name]
     pcs = pieces(fn, n)
+    tot_n = sum(len(x) - 1 for x in pcs); acc_n = 0
     for k, sub in enumerate(pcs):
         pts_by_s = [[fn(u, s)[:2] for u in sub] for s in S_KEYS]
         z = sum(fn(u, 0.0)[2] for u in sub) / len(sub)
-        a = t_begin + dur * k / len(pcs); b = t_begin + dur * (k + 1) / len(pcs)
+        a = t_begin + dur * acc_n / tot_n; acc_n += len(sub) - 1; b = t_begin + dur * acc_n / tot_n
         add_group(pts_by_s, shade(col, z), LW, z, (round(a, 2), round(max(b, a + 0.5), 2)))
 # κρίκος: ένα κλειστό σχήμα σε βάθος 0 (η πετονιά μπαίνει από πάνω και βγαίνει από κάτω)
 ring_g = {'ty': 'gr', 'nm': 'ring', 'it': [{'ty': 'gr', 'nm': 'g', 'it': [{'ty': 'el', 'p': {'a': 0, 'k': [0, 0]}, 's': {'a': 0, 'k': [2 * R, 2 * R]}, 'nm': 'e'}, stroke(METAL, 11.0, 2), stroke(DARK, 11.0 + OUT, 2), TR]}, TR]}
@@ -153,10 +177,10 @@ body = {'ddd': 0, 'ind': 2, 'ty': 4, 'nm': 'body', 'sr': 1, 'parent': 200, 'ao':
 def cam_kf(v0, v1):
     return {'a': 1, 'k': [{'t': 0, 's': v0, 'h': 1}, {'t': T_TIGHT0, 's': v0, 'i': {'x': [0.42] * len(v0), 'y': [1] * len(v0)}, 'o': {'x': [0.58] * len(v0), 'y': [0] * len(v0)}}, {'t': T_TIGHT1 + 6, 's': v1}]}
 q0, q1 = P(0), P(1)
-c0 = ((-R - 60) + (q0['x2'] + 40)) / 2; c1 = ((-R - 6) + (q1['x2'] + 22)) / 2
+c0 = ((-R - 60) + (q0['x2'] + 40)) / 2; c1 = ((R - 12) + (q1['x2'] + 26)) / 2
 cam = {'ddd': 0, 'ind': 200, 'ty': 3, 'nm': 'cam', 'sr': 1, 'ao': 0, 'ip': 0, 'op': OP, 'st': 0, 'bm': 0,
        'ks': {'o': {'a': 0, 'k': 0}, 'r': {'a': 0, 'k': 0}, 'p': {'a': 0, 'k': [300, 290, 0]},
-              'a': cam_kf([c0, 18, 0], [c1, 8, 0]), 's': cam_kf([150, 150, 100], [215, 215, 100])}}
+              'a': cam_kf([c0, 18, 0], [c1, 10, 0]), 's': cam_kf([150, 150, 100], [265, 265, 100])}}
 anim = {'v': '5.7.0', 'fr': FR, 'ip': 0, 'op': OP, 'w': 600, 'h': 600, 'nm': 'clinch', 'ddd': 0, 'assets': [],
         'markers': [{'tm': k * STEP, 'dr': STEP, 'cm': 'step%d' % (k + 1)} for k in range(N_STEPS)],
         'layers': [layer, body, cam]}
