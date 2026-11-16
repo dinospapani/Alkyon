@@ -202,7 +202,10 @@ details.spmore>summary{color:var(--ink-2)}
 .li.fishrow .tx b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:16px;line-height:1.25}
 
 /* ===== 1.14.48: φόρμα ψαριού για χρήση πάνω στη βάρκα: μεγαλύτεροι στόχοι αφής ===== */
-form.bf2 .chips .chip{min-height:44px;padding:0 16px;font-size:15px}
+/* 1.14.49: οι γρήγορες επιλογές σε ΜΙΑ γραμμή που σύρεται (με τα μεγάλα κουμπιά έπεφταν μία ανά γραμμή και η φόρμα μάκραινε) */
+form.bf2 .qchips{display:flex;flex-wrap:nowrap!important;overflow-x:auto;gap:8px;margin:8px -4px 0 0;padding:2px 28px 2px 0;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent)}
+form.bf2 .qchips::-webkit-scrollbar{display:none}
+form.bf2 .qchips .chip,form.bf2 .qchips .chip.sm{flex:none;min-height:42px;padding:0 14px;font-size:14.5px;white-space:nowrap;margin:0}
 form.bf2 input[type=text],form.bf2 input[type=number],form.bf2 input:not([type]),form.bf2 select{min-height:52px;font-size:17px}
 form.bf2 .bfsave{min-height:56px;font-size:17px;border-radius:16px}
 form.bf2 .seg button{min-height:48px}

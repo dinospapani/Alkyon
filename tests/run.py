@@ -1682,6 +1682,12 @@ with sync_playwright() as p:
     r=pg.evaluate("()=>{ const s=document.querySelector('.sheet'); if(!s) return ['no sheet',localStorage.getItem('alkyon-safe')]; const b=[...s.querySelectorAll('button')].find(x=>/^Ended at/.test(x.textContent)); const t=s.textContent; b&&b.click(); return new Promise(res=>setTimeout(()=>{ const tr=JSON.parse(localStorage.getItem('alkyon-trips')||'[]')[0]; res([/Has the trip ended/.test(t), /open for 32 hours/.test(t), tr?Math.round((tr.endMs-tr.startMs)/3600000):null, AK.trip.active()]); },800)); }")
     check('Έξοδος ανοιχτή 32 ώρες: ρωτά «Τελείωσε;» και κλείνει στην ώρα επιστροφής (6 ώρες), όχι στις 32 (1.14.48)', r==[True,True,6,False] and not pg._errs, [r,pg._errs]); c.close()
 
+    print('# 1.14.49 φόρμα ψαριού')
+    c=ctx(b,lang='en'); c.add_init_script("localStorage.setItem('alkyon-bites',JSON.stringify([{id:'a',date:'2026-03-11',time:'10:00',species:'Πέρκα',latin:'Perca fluviatilis',tech:'Δίχτυ',kg:0.2,_u:1},{id:'b',date:'2026-04-02',time:'10:00',species:'Συναγρίδα',tech:'Βυθού',kg:3,_u:1},{id:'c',date:'2026-04-03',time:'10:00',species:'Dentex',tech:'Net',kg:3,_u:1},{id:'d',date:'2026-04-04',time:'10:00',species:'Ροφός',tech:'Παραγάδι',kg:3,_u:1}]));")
+    pg=page(c); pg.set_viewport_size({'width':360,'height':740}); pg.goto(BASE+'/v4/#new'); pg.wait_for_timeout(3500)
+    r=pg.evaluate("()=>{ const q=[...document.querySelectorAll('form.bf2 .qchips')]; return [q.map(x=>[...x.children].map(c=>c.textContent).join(',')).join(' | '), q.every(x=>x.getBoundingClientRect().height<56)]; }")
+    check('Νέο ψάρι: επιλογές σε μία γραμμή· «Painted comber», μία συναγρίδα, χωρίς δίχτυ/παραγάδι στις τεχνικές (1.14.49)', 'Painted comber' in r[0] and 'European perch' not in r[0] and r[0].count('Common dentex')==1 and 'Net' not in r[0] and 'Longline' not in r[0] and 'Bottom fishing' in r[0] and r[1] and not pg._errs, [r,pg._errs]); c.close()
+
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)
     check('Οδηγός χωρίς καρτέλα Κόμποι (αφαιρέθηκε προσωρινά)', not pg.query_selector('#tab-guide .seg button[data-g=knots]') and not pg._errs, pg._errs); c.close()
