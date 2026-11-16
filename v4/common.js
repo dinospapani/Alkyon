@@ -94,7 +94,7 @@ function group(title,G){
   /* 1.14.45: πρώτα ό,τι ισχύει στις περισσότερες μέρες (σε ετικέτες), ο πλήρης πίνακας στις «Λεπτομέρειες» */
   var TR=traits(G), KEY=[T('Πίεση','Pressure'),T('Άνεμος','Wind'),T('Ώρα','Time'),T('Δόλωμα','Bait'),T('Τεχνική','Technique'),T('Βάθος','Depth')];
   var top=TR.filter(function(r){ return KEY.indexOf(r[0])>=0&&r[3]&&r[2]/r[3]>=0.6&&!/διάφορες|various/.test(r[1]); });
-  if(top.length) box.append(h('div',{class:'cmchips'},top.map(function(r){ return h('span',{class:'cmchip'},h('i',{text:r[0]}),h('b',{text:String(r[1]).replace(/ \(.*$/,'').replace(/^.*?, (\d)/,'$1')})); })));
+  if(top.length) box.append(h('div',{class:'cmchips'},top.map(function(r){ return h('span',{class:'cmchip'},h('i',{text:r[0]}),h('b',{text:String(r[1]).replace(/ \(.*$/,'').replace(/^[^,]*, (?=\d|μέσα|within|την |the )/,'').replace(/^(within the|μέσα στην) /,'')})); })));
   var det=h('details',{class:'spmore cmmore'},h('summary',{text:T('Λεπτομέρειες','Details')}));
   TR.forEach(function(r){ det.append(h('div',{class:'lyrow'},h('b',{text:r[0]}),h('span',{class:'cmv',text:r[1]}),h('small',{class:'cmn',text:r[2]+'/'+r[3]}))); });
   if(TR.length) box.append(det);

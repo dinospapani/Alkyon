@@ -219,3 +219,10 @@ form.bf2 .qchips{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 10p
 /* 1.14.51 */
 form.bf2 .depnote{display:block;text-align:right;margin:-4px 0 6px;font-size:12.5px;line-height:1.3;color:var(--ink-3)}
 form.bf2 .depnote[hidden]{display:none}
+
+/* 1.14.52: οι τίτλοι των πτυσσόμενων καρτών στην ίδια ευθεία με τους άλλους τίτλους (είχαν διπλό περιθώριο)· το (i) στις «Ευκαιρίες» ανοίγει κάτω από τον τίτλο, όχι δίπλα του */
+.card.fold>summary{padding-left:0;padding-right:0;padding-top:2px;padding-bottom:2px;min-height:44px}
+.opps .oph{flex-wrap:wrap}
+.opps .oph .infot{flex:1 0 100%;order:9;margin-top:8px!important}
+.cmchip{align-items:baseline}.cmchip b{white-space:normal}
+.card.fold[open]>summary{margin-bottom:10px}

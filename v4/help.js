@@ -70,6 +70,7 @@ var HELP=[
 ];
 /* έκδοση → αλλαγές (νεότερες πρώτες). Προσθέτεις γραμμή εδώ σε κάθε νέα λειτουργία. */
 var NEWS=[
+ ['1.14.52',[T('Πρόγνωση › Δικά μου: το (i) στις «Ευκαιρίες στα σημεία σου» ανοίγει κάτω από τον τίτλο (πριν έσπαγε τον τίτλο σε στήλη). Οι τίτλοι των πτυσσόμενων καρτών είναι στην ίδια ευθεία με τους υπόλοιπους.','Forecast › Mine: the (i) on “Chances at your spots” opens below the title (it used to squeeze the title into a column). Titles of folding cards line up with the other titles.')]],
  ['1.14.51',[T('Νέο ψάρι: η σημείωση «βάθος από τον χάρτη» είναι ακριβώς κάτω από το πεδίο του βάθους, σε μία σύντομη γραμμή.','New catch: the “depth from the chart” note sits right under the depth field, on one short line.')]],
  ['1.14.50',[T('Νέο ψάρι: το Δόλωμα και η Τεχνική είναι το ένα κάτω από το άλλο, ώστε οι γρήγορες επιλογές τους να φαίνονται σε όλο το πλάτος.','New catch: Bait and Technique are stacked, so their quick picks show across the full width.')]],
  ['1.14.49',[T('Νέο ψάρι: οι γρήγορες επιλογές (είδη, δολώματα, τεχνικές) είναι σε μία γραμμή που σύρεται, αντί για μία ανά γραμμή· η φόρμα είναι πολύ πιο κοντή. Στις τεχνικές δεν εμφανίζονται διπλές επιλογές ούτε δίχτυ και παραγάδι. Στα αγγλικά η «Πέρκα» γράφεται «Painted comber» και στις προτάσεις ειδών.','New catch: the quick picks (species, baits, techniques) sit on one scrolling line instead of one per line; the form is much shorter. Techniques no longer show duplicates or net and longline. In English “Πέρκα” reads “Painted comber” in the species suggestions too.')]],
