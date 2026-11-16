@@ -226,3 +226,12 @@ form.bf2 .depnote[hidden]{display:none}
 .opps .oph .infot{flex:1 0 100%;order:9;margin-top:8px!important}
 .cmchip{align-items:baseline}.cmchip b{white-space:normal}
 .card.fold[open]>summary{margin-bottom:10px}
+/* 1.14.53: το περιεχόμενο μιας πτυσσόμενης κάρτας στην ίδια ευθεία με τον τίτλο της */
+.card.fold>:not(summary){margin-left:0;margin-right:0}
+/* 1.14.53: από το πλήρες πέρασμα (όλες οι οθόνες, όλα ανοιχτά, 360 px, δύο γλώσσες, δύο θέματα) */
+.sph .splv{background:var(--surface-2);color:var(--ink-2)}
+.sph .splv.lv2{background:color-mix(in srgb,var(--good) 20%,transparent);color:var(--good-ink)}
+.sph .splv.lv1{background:color-mix(in srgb,var(--fair) 22%,transparent);color:var(--ink)}
+.infot{background:var(--surface-2)!important}
+.empty .btn{margin-top:14px}
+.card.fold>summary b,.fold>summary b{font-size:16.5px}

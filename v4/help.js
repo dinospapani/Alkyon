@@ -70,6 +70,9 @@ var HELP=[
 ];
 /* έκδοση → αλλαγές (νεότερες πρώτες). Προσθέτεις γραμμή εδώ σε κάθε νέα λειτουργία. */
 var NEWS=[
+ ['1.14.53',[T('Γράφημα πίεσης: οι ώρες της παλίρροιας δεν πέφτουν πια η μία πάνω στην άλλη, και τα μικρά «δοντάκια» της καμπύλης δεν σημειώνονται ως ψηλή ή χαμηλή.','Pressure chart: tide times no longer sit on top of each other, and small wiggles in the curve are not marked as high or low.'),
+   T('Κάθε (i) ανοίγει κάτω από τον τίτλο του σε όλο το πλάτος (στο «Ανά ώρα» έσπαγε τον τίτλο). Το περιεχόμενο κάθε πτυσσόμενης κάρτας είναι στην ίδια ευθεία με τον τίτλο της.','Every (i) opens below its title at full width (on “By hour” it squeezed the title). The content of each folding card lines up with its title.'),
+   T('Μικρά: η ετικέτα «Λιγότερες» στα είδη δεν είναι πια άσπρη στο σκούρο θέμα· «διάφορη πίεση» δεν εμφανίζεται ως κοινό στοιχείο· το κείμενο της πίεσης δεν έχει διπλές παρενθέσεις.','Small things: the “Lower” label on species is no longer white in the dark theme; “varied pressure” is not shown as something in common; the pressure text no longer has double brackets.')]],
  ['1.14.52',[T('Πρόγνωση › Δικά μου: το (i) στις «Ευκαιρίες στα σημεία σου» ανοίγει κάτω από τον τίτλο (πριν έσπαγε τον τίτλο σε στήλη). Οι τίτλοι των πτυσσόμενων καρτών είναι στην ίδια ευθεία με τους υπόλοιπους.','Forecast › Mine: the (i) on “Chances at your spots” opens below the title (it used to squeeze the title into a column). Titles of folding cards line up with the other titles.')]],
  ['1.14.51',[T('Νέο ψάρι: η σημείωση «βάθος από τον χάρτη» είναι ακριβώς κάτω από το πεδίο του βάθους, σε μία σύντομη γραμμή.','New catch: the “depth from the chart” note sits right under the depth field, on one short line.')]],
  ['1.14.50',[T('Νέο ψάρι: το Δόλωμα και η Τεχνική είναι το ένα κάτω από το άλλο, ώστε οι γρήγορες επιλογές τους να φαίνονται σε όλο το πλάτος.','New catch: Bait and Technique are stacked, so their quick picks show across the full width.')]],

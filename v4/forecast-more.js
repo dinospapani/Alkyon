@@ -142,7 +142,7 @@ B.fcMine=function(page,fc,ctx){
     :cb.ratio===Infinity||cb.ratio>=1.3?T('Ο βαθμός βοηθά: στις ώρες με υψηλό βαθμό πιάνεις περισσότερα.','The score helps: you catch more at well-scored hours.')
     :T('Δεν φαίνεται ακόμα διαφορά ανάμεσα σε υψηλό και χαμηλό βαθμό στα δικά σου νερά.','No clear difference between high and low scores in your waters yet.')}));
   /* 1.14.37: κάρτες ελέγχου μόνο όταν έχουν στοιχεία· αλλιώς μία κάρτα προόδου στο τέλος */ var pend=[];
-  if(cb.ok) page.append(c5); else pend.push([T('Έξοδοι με βαθμό ανά ώρα','Trips with an hourly score'),cb.n,6]);
+  if(cb.ok) page.append(c5); else pend.push([T('Με βαθμό ανά ώρα','With hourly score'),cb.n,6]);
 
   /* 1.9.33: Alkyon ή «μόνο σελήνη»; με τα δικά σου ψάρια */
   var vm=A().vsMoon?A().vsMoon():null;
@@ -158,7 +158,7 @@ B.fcMine=function(page,fc,ctx){
       :T('Μέχρι τώρα προβλέπουν περίπου το ίδιο.','So far they predict about the same.');
     c7.append(h('p',{class:'p',style:{margin:'6px 0 0',fontWeight:'600'},text:verdict}));
     c7.append(h('p',{class:'foot',text:T('×1 = καμία διαφορά. Όσο μεγαλύτερο, τόσο καλύτερα ξεχωρίζει η μέθοδος τις ώρες που πιάνεις. Μετρούν μόνο οι έξοδοι όπου η εφαρμογή κράτησε τον βαθμό κάθε ώρας.','×1 = no difference. The bigger, the better the method picks the hours you catch. Only trips where the app kept the hourly score count.')}));
-    if(vm.ok) page.append(c7); else pend.push([T('Έξοδοι με «Ξεκινώ» και «Τέλος»','Trips with Start and End'),vm.n,6]); }
+    if(vm.ok) page.append(c7); else pend.push([T('Με Έναρξη και Τέλος','With Start and End'),vm.n,6]); }
 
   /* 1.9.50: πρόγνωση και «Πώς ήταν»: μέσος βαθμός της πρόγνωσης στις εξόδους που σημείωσες καλές / μέτριες / τίποτα */
   (function(){ if(!B.RATE) return; var tr=B.store.raw('trips').filter(function(t){ return !t.deleted&&t.rate!=null&&Array.isArray(t.scoreH)&&t.scoreH.length; });
@@ -170,8 +170,9 @@ B.fcMine=function(page,fc,ctx){
     c8.append(h('p',{class:'p',style:{margin:'6px 0 0',fontWeight:'600'},text:tr.length<5?T('Χρειάζονται τουλάχιστον 5 έξοδοι με «Πώς ήταν» (τώρα ','Needs at least 5 trips with “How was it” (now ')+tr.length+T('). Η ερώτηση βγαίνει στο τέλος κάθε εξόδου.','). The question appears at the end of each trip.')
       :vG!=null&&vN!=null?(vG-vN>=5?T('Η πρόγνωση συμφωνεί: οι καλές σου έξοδοι είχαν υψηλότερο βαθμό.','The forecast agrees: your good trips had a higher score.'):vN-vG>=5?T('Η πρόγνωση δεν συμφωνεί ακόμα: οι έξοδοι χωρίς ψάρι είχαν υψηλότερο βαθμό.','The forecast does not agree yet: trips with nothing had a higher score.'):T('Μέχρι τώρα δεν φαίνεται διαφορά.','No clear difference so far.'))
       :T('Χρειάζονται έξοδοι και «Καλό» και «Τίποτα» για σύγκριση.','Needs both “Good” and “Nothing” trips to compare.')}));
-    if(tr.length>=5) page.append(c8); else pend.push([T('Έξοδοι με «Πώς ήταν το ψάρεμα;»','Trips with «How was the fishing?»'),tr.length,5]); })();
+    if(tr.length>=5) page.append(c8); else pend.push([T('Με «Πώς ήταν;»','With «How was it?»'),tr.length,5]); })();
   if(pend.length){ var cp=card(T('Έλεγχος της πρόγνωσης','Checking the forecast'),T('Όταν μαζευτούν αρκετές έξοδοι, εδώ θα φαίνεται πόσο έπεσε μέσα η πρόγνωση στα δικά σου νερά: ψάρια ανά ώρα ανάλογα με τον βαθμό, Alkyon ή μόνο σελήνη, και πρόγνωση σε σχέση με το «Πώς ήταν».','Once there are enough trips, this shows how right the forecast was in your waters: fish per hour by score, Alkyon vs moon only, and forecast vs «How was it».'));
+    cp.append(h('p',{class:'patl',text:T('Έξοδοι που μετράνε ως τώρα:','Trips that count so far:')}));
     pend.forEach(function(x){ cp.append(bar(x[0],Math.min(x[1],x[2]),x[2],x[1]+T(' από ',' of ')+x[2])); });
     cp.append(h('p',{class:'sub',style:{margin:'8px 0 0'},text:T('Ξεκίνα και τελείωνε κάθε έξοδο από την εφαρμογή και απάντα στο «Πώς ήταν;» στο τέλος.','Start and end each trip in the app and answer «How was it?» at the end.')})); page.append(cp); }
 

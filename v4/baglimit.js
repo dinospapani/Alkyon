@@ -25,7 +25,7 @@ B.bag={of:of,text:text};
 /* 1.14.35: άνοιγμα του Οδηγού σε ενότητα / είδος από οπουδήποτε (ο Οδηγός φορτώνεται όταν ανοίξει) */
 /* 1.14.37: (i) εξήγηση που ανοίγει με πάτημα, για να μένουν οι κάρτες καθαρές */
 B.infoAdd=function(head,text){ if(!head||!text) return null; var panel=typeof text==='string'?B.h('p',{class:'sub infot',hidden:true,text:text}):text; panel.hidden=true; if(panel.classList) panel.classList.add('infot');
-  var btn=B.h('button',{class:'infob',type:'button','aria-expanded':'false','aria-label':T('Τι δείχνει αυτό','What this shows'),title:T('Τι δείχνει αυτό','What this shows'),onclick:function(ev){ ev.stopPropagation(); ev.preventDefault(); panel.hidden=!panel.hidden; btn.setAttribute('aria-expanded',String(!panel.hidden)); }},B.h('span',{text:'i'}));
+  var btn=B.h('button',{class:'infob',type:'button','aria-expanded':'false','aria-label':T('Τι δείχνει αυτό','What this shows'),title:T('Τι δείχνει αυτό','What this shows'),onclick:function(ev){ ev.stopPropagation(); ev.preventDefault(); /* 1.14.53: αν ο τίτλος είναι σε οριζόντια σειρά (τίτλος + κουμπί δεξιά), η επεξήγηση βγαίνει κάτω από τη σειρά, όχι δίπλα στον τίτλο */ try{ var par=panel.parentElement, cs=par&&getComputedStyle(par); if(cs&&/flex/.test(cs.display)&&!/column/.test(cs.flexDirection)&&!par.matches('summary')) par.after(panel); }catch(x){} panel.hidden=!panel.hidden; btn.setAttribute('aria-expanded',String(!panel.hidden)); }},B.h('span',{text:'i'}));
   head.append(btn); head.after(panel); return panel; };
 B.guideGo=function(tab,q){ try{ B.ls.set('alkyon-v4-guidego',{tab:tab||'species',q:q||'',t:Date.now()}); }catch(e){} if(location.hash==='#guide'&&B.guideApply) B.guideApply(); else location.hash='#guide'; };
 })();
