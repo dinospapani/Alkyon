@@ -161,12 +161,17 @@ function miniMap(t,bs,W,H){ var tr=(t.track||[]).filter(function(p){ return p&&i
   bs.forEach(function(b){ if(isFinite(+b.lat)&&isFinite(+b.lon)&&b.lat) pts.push([+b.lat,+b.lon]); });
   var cv=h('canvas',{class:'tmap','aria-hidden':'true'}), dpr=Math.min(2,window.devicePixelRatio||1); cv.width=W*dpr; cv.height=H*dpr; cv.style.width=W+'px'; cv.style.height=H+'px';
   var g=cv.getContext('2d'); if(!g) return cv; g.scale(dpr,dpr);
-  var dark=document.documentElement.classList.contains('night')||matchMedia('(prefers-color-scheme: dark)').matches&&document.documentElement.getAttribute('data-theme')!=='light';
+  var dth=document.documentElement.getAttribute('data-theme'), dark=document.documentElement.classList.contains('night')||dth==='dark'||matchMedia('(prefers-color-scheme: dark)').matches&&dth!=='light';
   var bg=g.createLinearGradient(0,0,W,H); bg.addColorStop(0,dark?'#0c3346':'#1d6a88'); bg.addColorStop(1,dark?'#06202d':'#0b3a52'); g.fillStyle=bg; g.fillRect(0,0,W,H);
   g.strokeStyle='rgba(255,255,255,.07)'; g.lineWidth=1; for(var k=1;k<5;k++){ g.beginPath(); g.moveTo(0,H*k/5+Math.sin(k)*6); g.bezierCurveTo(W*.3,H*k/5-8,W*.6,H*k/5+8,W,H*k/5-4); g.stroke(); }
   if(!pts.length){ g.fillStyle='rgba(255,255,255,.55)'; g.font='600 11px '+getComputedStyle(document.body).fontFamily; g.textAlign='center'; g.fillText(T('χωρίς','no'),W/2,H/2-3); g.fillText(T('διαδρομή','route'),W/2,H/2+11); return cv; }
   var la=pts.map(function(p){ return p[0]; }), lo=pts.map(function(p){ return p[1]; }), a0=Math.min.apply(null,la), a1=Math.max.apply(null,la), o0=Math.min.apply(null,lo), o1=Math.max.apply(null,lo);
-  var mn=0.012; if(a1-a0<mn){ var mc=(a0+a1)/2; a0=mc-mn/2; a1=mc+mn/2; } if(o1-o0<mn){ var oc=(o0+o1)/2; o0=oc-mn/2; o1=oc+mn/2; }
+  var mn=0.012, mc=(a0+a1)/2, oc=(o0+o1)/2, sa=a1-a0, so=o1-o0, widen=function(m){ a0=mc-Math.max(sa,m)/2; a1=mc+Math.max(sa,m)/2; o0=oc-Math.max(so,m*1.1)/2; o1=oc+Math.max(so,m*1.1)/2; };
+  widen(mn);
+  /* 1.14.48: χωρίς διαδρομή η μικρογραφία έδειχνε μια τελεία σε άδεια θάλασσα· ανοίγει το πλάνο μέχρι να φανεί η κοντινότερη ακτή (έως ~25 km) */
+  if(tr.length<2&&window.AlkyonExposure&&window.AlkyonExposure.isLand){ var XE=window.AlkyonExposure, tries=[0.012,0.03,0.06,0.12,0.22], hit=false;
+    for(var ti=0;ti<tries.length&&!hit;ti++){ widen(tries[ti]); var cnt=0; for(var gy=0;gy<9;gy++) for(var gx=0;gx<9;gx++){ try{ if(XE.isLand(a0+(a1-a0)*(gy+.5)/9,o0+(o1-o0)*(gx+.5)/9)===1) cnt++; }catch(e){} } if(cnt>=3) hit=true; }
+    if(!hit) widen(mn); }
   var kx=Math.cos((a0+a1)/2*Math.PI/180), sw=Math.max((o1-o0)*kx,1e-3), shh=Math.max(a1-a0,1e-3), pad=12, sc=Math.min((W-2*pad)/sw,(H-2*pad)/shh);
   var X=function(p){ return W/2+((p[1]-(o0+o1)/2)*kx)*sc; }, Y=function(p){ return H/2-(p[0]-(a0+a1)/2)*sc; };
   /* 1.9.3: η στεριά από την ακτογραμμή που έχει ήδη η εφαρμογή (OSM, ~250 m) */
@@ -306,7 +311,7 @@ function stats(page){
   var recC=rtmp.querySelector('.recs'), goalC=rtmp.querySelector('.goals'); if(recC) page.append(recC);
   whenCard(page,bs);
   if(B.biteStatsCard) page.append(B.biteStatsCard()); /* 1.14.21: «Πότε τσιμπάνε · από όλους» */
-  var NOSP=T('Χωρίς είδος','No species'); var sp={}, spk={}; bs.forEach(function(b){ var k=b.species?DN(b.species):NOSP; /* 1.14.44: δύο γραφές του ίδιου είδους μετρούν μαζί */ sp[k]=(sp[k]||0)+bc(b); if(!b.rel&&+b.kg) spk[k]=(spk[k]||0)+(+b.kg); });
+  var NOSP=T('Χωρίς είδος','No species'); var sp={}, spk={}, KN={}; bs.forEach(function(b){ var kk=b.species?(window.spKey?window.spKey(b.species):b.species):'', k=b.species?(KN[kk]||(KN[kk]=DN(b.species))):NOSP; /* 1.14.44: δύο γραφές του ίδιου είδους μετρούν μαζί */ sp[k]=(sp[k]||0)+bc(b); if(!b.rel&&+b.kg) spk[k]=(spk[k]||0)+(+b.kg); });
   var top=Object.keys(sp).map(function(k){ return [k,sp[k]]; }).sort(function(a,b){ return b[1]-a[1]; }).slice(0,8);
   if(top.length){ var c=h('section',{class:'card'},h('h2',{text:T('Είδη','Species')})); bars(c,top,top[0][1],function(v,x){ return spk[x[0]]?v+' · '+B.num(spk[x[0]],1)+' kg':String(v); }); c.classList.add('spkg'); [].forEach.call(c.querySelectorAll('.bl'),function(l){ l.textContent=DN(l.textContent); }); page.append(c); /* 1.9.16: και τα κιλά ανά είδος */
     /* 1.9.7: «Χωρίς είδος» πατιέται: πάει στα Ψάρια με τα ψάρια χωρίς είδος πρώτα */

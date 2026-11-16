@@ -1672,6 +1672,16 @@ with sync_playwright() as p:
         R.append(pg.evaluate("()=>[...document.querySelectorAll('.recs .rec b')].map(x=>x.textContent).join('|')")); R.append(pg._errs); c.close()
     check('Dentex / Common dentex / Συναγρίδα: ένα ρεκόρ, «Common dentex» στα αγγλικά και «Συναγρίδα» στα ελληνικά (1.14.47)', R==['Common dentex',[],'Συναγρίδα',[]], R)
 
+    print('# 1.14.48 ένα είδος ένα όνομα, ανοιχτή έξοδος')
+    c=ctx(b,lang='en'); c.add_init_script("localStorage.setItem('alkyon-bites',JSON.stringify([{id:'a',date:'2026-03-11',time:'10:00',species:'Πέρκα',kg:0.2,_u:1},{id:'b',date:'2026-04-02',time:'10:00',species:'Painted comber',kg:0.3,_u:1},{id:'c',date:'2026-05-02',time:'10:00',species:'Μινέρι',kg:6,_u:1},{id:'d',date:'2026-05-03',time:'10:00',species:'Greater amberjack',kg:8,_u:1},{id:'e',date:'2026-05-04',time:'10:00',species:'Μαγιάτικο',kg:4,_u:1}]));localStorage.setItem('alkyon-v4-logtab','\"stats\"');")
+    pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3500)
+    r=pg.evaluate("()=>[[...document.querySelectorAll('.recs .rec b')].map(x=>x.textContent).join('|'), [...document.querySelectorAll('.spkg .bl')].map(x=>x.textContent).join('|'), spKey('Dentex')===spKey('Συναγρίδα'), spName('Πέρκα'), spKey('Κάτι άγνωστο')]")
+    check('Ένα είδος, ένα όνομα: Πέρκα = Painted comber (θάλασσα), Μινέρι = Μαγιάτικο = Greater amberjack σε ρεκόρ και στατιστικά (1.14.48)', r==['Greater amberjack|Painted comber','Greater amberjack|Painted comber',True,'Painted comber','κάτι άγνωστο'] and not pg._errs, [r,pg._errs]); c.close()
+    c=ctx(b,lang='en'); c.add_init_script("if(!sessionStorage.__s){sessionStorage.__s=1;localStorage.setItem('alkyon-safe',JSON.stringify({active:true,id:'trip-x1',start:Date.now()-32*3600000,due:Date.now()-26*3600000,route:'Test'}));}")
+    pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(6500)
+    r=pg.evaluate("()=>{ const s=document.querySelector('.sheet'); if(!s) return ['no sheet',localStorage.getItem('alkyon-safe')]; const b=[...s.querySelectorAll('button')].find(x=>/^Ended at/.test(x.textContent)); const t=s.textContent; b&&b.click(); return new Promise(res=>setTimeout(()=>{ const tr=JSON.parse(localStorage.getItem('alkyon-trips')||'[]')[0]; res([/Has the trip ended/.test(t), /open for 32 hours/.test(t), tr?Math.round((tr.endMs-tr.startMs)/3600000):null, AK.trip.active()]); },800)); }")
+    check('Έξοδος ανοιχτή 32 ώρες: ρωτά «Τελείωσε;» και κλείνει στην ώρα επιστροφής (6 ώρες), όχι στις 32 (1.14.48)', r==[True,True,6,False] and not pg._errs, [r,pg._errs]); c.close()
+
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)
     check('Οδηγός χωρίς καρτέλα Κόμποι (αφαιρέθηκε προσωρινά)', not pg.query_selector('#tab-guide .seg button[data-g=knots]') and not pg._errs, pg._errs); c.close()

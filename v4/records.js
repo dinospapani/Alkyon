@@ -8,7 +8,7 @@ var B=window.AK, h=B.h, T=B.T, ls=B.ls, GK='alkyon-v4-goals', seen=null;
 function bc(b){ return +b.cnt>1?+b.cnt:1; }
 function kgOf(b){ return +b.kg>0?(+b.kg)/bc(b):0; }
 function bites(){ try{ return B.store.bites().filter(function(b){ return !b.deleted&&!b.gear&&b.species; }); }catch(e){ return []; } }
-function norm(s){ s=String(s||'').trim(); try{ if(s&&window.spName) s=String(window.spName(s)); }catch(e){} return s.toLowerCase(); }   /* 1.14.47: δύο γραφές του ίδιου είδους (Dentex / Common dentex / Συναγρίδα) είναι ένα ρεκόρ */
+function norm(s){ s=String(s||'').trim(); try{ if(s&&window.spKey) return window.spKey(s); }catch(e){} return s.toLowerCase(); }   /* 1.14.47: δύο γραφές του ίδιου είδους (Dentex / Common dentex / Συναγρίδα) είναι ένα ρεκόρ */
 function records(){ var R={}; bites().forEach(function(b){ var k=norm(b.species), r=R[k]||(R[k]={sp:b.species,n:0,kg:null,len:null,first:{}});
     r.n+=bc(b); var kg=kgOf(b); if(kg&&(!r.kg||kg>r.kg.v)) r.kg={v:kg,b:b}; if(+b.len>0&&(!r.len||+b.len>r.len.v)) r.len={v:+b.len,b:b};
     var y=(b.date||'').slice(0,4); if(y&&(!r.first[y]||b.date<r.first[y].date)) r.first[y]=b; });
