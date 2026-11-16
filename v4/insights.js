@@ -63,7 +63,7 @@ function top(m,n){ return Object.keys(m).sort(function(a,b){ return m[b]-m[a]; }
 B.spotSummary=function(sp){
   var arr=bites().filter(function(b){ return !b.miss&&(b.place===sp.name||(typeof b.lat==='number'&&typeof sp.lat==='number'&&distM(b.lat,b.lon,sp.lat,sp.lon)<=250)); }); if(!arr.length) return null;
   var o={kg:0,sp:{},bait:{},tech:{},dmin:null,dmax:null,hr:{},mo:{}}, MON=EN?['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']:['Ιαν','Φεβ','Μάρ','Απρ','Μάι','Ιούν','Ιούλ','Αύγ','Σεπ','Οκτ','Νοέ','Δεκ'];
-  arr.forEach(function(b){ o.kg+=b.rel?0:(+b.kg||0); if(b.species) o.sp[b.species]=(o.sp[b.species]||0)+1; if(b.bait) o.bait[b.bait]=(o.bait[b.bait]||0)+1; if(b.tech) o.tech[b.tech]=(o.tech[b.tech]||0)+1;
+  arr.forEach(function(b){ o.kg+=b.rel?0:(+b.kg||0); var DNm=function(x){ return window.dataName?window.dataName(x):x; }; /* 1.14.57: ονόματα στη γλώσσα της εφαρμογής, ίδιο είδος μαζί */ if(b.species){ var sn=DNm(b.species); o.sp[sn]=(o.sp[sn]||0)+1; } if(b.bait){ var bn=DNm(b.bait); o.bait[bn]=(o.bait[bn]||0)+1; } if(b.tech){ var tn=DNm(b.tech); o.tech[tn]=(o.tech[tn]||0)+1; }
     if(b.depth!=null&&b.depth!==''&&!isNaN(+b.depth)){ var d=+b.depth; o.dmin=o.dmin==null?d:Math.min(o.dmin,d); o.dmax=o.dmax==null?d:Math.max(o.dmax,d); }
     if(b.time){ var x=+b.time.slice(0,2), k=x<10?T('πρωί','morning'):x<15?T('μεσημέρι','midday'):x<20?T('απόγευμα','evening'):T('νύχτα','night'); o.hr[k]=(o.hr[k]||0)+1; } if(b.date){ var mm=MON[+b.date.slice(5,7)-1]; o.mo[mm]=(o.mo[mm]||0)+1; } });
   var rows=[[T('Ψάρια εδώ','Catches here'),arr.length+(o.kg?' · '+B.num(o.kg,1)+' kg':'')]], f=function(m){ return top(m,3).map(function(k){ return k+' ×'+m[k]; }).join(', '); };

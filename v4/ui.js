@@ -109,6 +109,8 @@ function sheet(o){
   var x=h('button',{class:'iconbtn',type:'button','aria-label':T('Κλείσιμο','Close'),html:iconSvg('close')});
   var bk=back?h('button',{class:'iconbtn shback',type:'button','aria-label':T('Πίσω','Back'),html:iconSvg('back')}):null;
   box.append(h('div',{class:'grab'}),h('header',null,bk?h('div',{class:'shtl'},bk,h('h2',{text:o.title})):h('h2',{text:o.title}),x),h('div',{class:'body'},o.body));
+  /* 1.14.57: όταν η πρώτη επικεφαλίδα μέσα στο φύλλο επαναλαμβάνει τον τίτλο του (π.χ. «Όρια ασφαλείας» δύο φορές), κρύβεται */
+  try{ var fh=o.body&&o.body.querySelector&&o.body.querySelector('h2,h3'); if(fh&&String(fh.textContent||'').trim().toLowerCase()===String(o.title||'').trim().toLowerCase()&&!fh.querySelector('button,a,input')) fh.hidden=true; }catch(e){}
   document.body.append(scrim,box);
   var prevFocus=document.activeElement, cbDone=false;
   function cb(){ if(cbDone) return; cbDone=true; if(o.onclose) try{ o.onclose(); }catch(e){} }

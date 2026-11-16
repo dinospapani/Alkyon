@@ -282,3 +282,11 @@ form.bf2 .depnote[hidden]{display:none}
 .expo details.sealmore .note{margin:4px 0 0}
 .expo details.exdet>summary::-webkit-details-marker{display:none}
 .expo details.exdet>summary::after{content:' ›'}.expo details.exdet[open]>summary::after{content:' ‹'}
+
+/* ===== 1.14.57: φύλλα ===== */
+.ctrysel{width:100%;min-height:48px;padding:0 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);font:550 16px var(--font);-webkit-appearance:none;appearance:none}
+.ctrysel option{color:#111;background:#fff}
+.sheet .rows.one .row b{white-space:normal;overflow-wrap:anywhere;text-align:right;min-width:0}
+.sheet .rows.one .row>span{flex:none}
+.sheet .bform>h3.h3{font:800 11.5px var(--font);letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);margin:16px 4px 6px}
+.sheet .bform>h3.h3:first-child{margin-top:4px}

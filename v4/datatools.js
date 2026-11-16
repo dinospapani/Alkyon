@@ -177,7 +177,7 @@ B.plotterScan=function(){
   var file=h('input',{type:'file',accept:'image/*',capture:'environment',hidden:true}); document.body.append(file);
   file.addEventListener('change',function(){ var f=file.files&&file.files[0]; file.remove(); if(!f) return; var P=window.AlkyonCoord, thumb=URL.createObjectURL(f);
     var wait=B.sheet({title:T('Διαβάζω τις συντεταγμένες…','Reading the coordinates…'),body:h('div',null,h('img',{class:'cdimg',src:thumb,alt:''}),h('div',{class:'sk',style:{height:'60px'}}))});
-    (B.store.resize?B.store.resize(f):Promise.resolve(f)).catch(function(){ return f; }).then(scanRead).then(function(list){
+    (B.store.resize?B.store.resize(f,{keep:true}):Promise.resolve(f)).catch(function(){ return f; }).then(scanRead).then(function(list){
       var body=h('div',{class:'bform'}), rows=[], d=new Date(), base=B.pad(d.getHours())+':'+B.pad(d.getMinutes());
       if(!list.length){ body.append(h('p',{class:'sub',text:T('Δεν διαβάστηκαν συντεταγμένες. Δοκίμασε πιο κοντινή, καθαρή φωτογραφία χωρίς αντανάκλαση.','No coordinates could be read. Try a closer, sharper photo without glare.')}),h('button',{class:'btn full',type:'button',text:T('Νέα φωτογραφία','New photo'),onclick:function(){ sh.close(true); B.plotterScan(); }})); }
       else { body.append(h('p',{class:'sub',text:T('Έλεγξε ότι οι αριθμοί είναι ίδιοι με την οθόνη. Μπορείς να τους διορθώσεις πριν την αποθήκευση.','Check the numbers match the screen. You can fix them before saving.')}));

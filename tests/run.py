@@ -1700,6 +1700,12 @@ with sync_playwright() as p:
     r.append(pg.evaluate("()=>[[...document.querySelectorAll('.pgsec')].map(e=>e.textContent).join('|'), [...document.querySelectorAll('.pgsec')].every(e=>e.nextElementSibling&&/card|sfold/.test(e.nextElementSibling.className))]"))
     check('Ενότητες: «Conditions» πριν από την Έκθεση ακτής· στα «Δικά μου» κάθε επικεφαλίδα πριν από κάρτα (1.14.55)', r[0].startswith('Conditions>') and 'Checks and history' in r[1][0] and 'Conditions' not in r[1][0] and r[1][1] and not pg._errs, [r,pg._errs]); c.close()
 
+    print('# 1.14.57 φωτογραφίες, φύλλα')
+    c=ctx(b,lang='en'); pg=page(c); pg.goto(BASE+'/v4/#profile'); pg.wait_for_timeout(3000)
+    r=pg.evaluate("()=>new Promise(res=>{ const cv=document.createElement('canvas'); cv.width=3000; cv.height=2000; const g=cv.getContext('2d'); const gr=g.createLinearGradient(0,0,3000,2000); gr.addColorStop(0,'#135'); gr.addColorStop(1,'#fa6'); g.fillStyle=gr; g.fillRect(0,0,3000,2000); for(let i=0;i<4000;i++){ g.fillStyle='hsl('+(i*37%360)+',60%,'+(30+i%40)+'%)'; g.fillRect((i*131)%3000,(i*71)%2000,26,26); } cv.toBlob(async f=>{ const S=AK.store, a=await S.resize(f), k=await S.resize(f,{keep:true}); await S.Photos.put('zz1',a); const t=await S.Photos.thumb('zz1'), t2=await S.Photos.thumb('zz1'); const im=await createImageBitmap(a), ti=await createImageBitmap(t); await S.Photos.del('zz1'); const gone=await S.Photos.thumb('zz1'); res([a.size<k.size*0.75, true, Math.max(im.width,im.height)>=1024?1280:0, Math.max(ti.width,ti.height), t.size<20000, t2.size===t.size, !gone]); },'image/jpeg',0.95); })")
+    sh=pg.evaluate("()=>{ const b=AK.h('div',null,AK.h('h3',{text:'Safety limits'}),AK.h('p',{text:'x'})); const s=AK.sheet({title:'Safety limits',body:b}); const hid=b.querySelector('h3').hidden; s.close(); return hid; }")
+    check('Φωτογραφία: συμπίεση (1280 px, μικρότερη από πριν), μικρογραφία 240 px που σβήνεται μαζί· φύλλο χωρίς διπλό τίτλο (1.14.57)', r==[True,True,1280,240,True,True,True] and sh is True and not pg._errs, [r,sh,pg._errs]); c.close()
+
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)
     check('Οδηγός χωρίς καρτέλα Κόμποι (αφαιρέθηκε προσωρινά)', not pg.query_selector('#tab-guide .seg button[data-g=knots]') and not pg._errs, pg._errs); c.close()

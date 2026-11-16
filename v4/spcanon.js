@@ -28,5 +28,5 @@
     if(c){ if(EN){ if(c.en) return c.en; } else if(/[A-Za-z]{3}/.test(s)&&c.el) return c.el; }   /* στα ελληνικά μένει όπως το έγραψες (Μινέρι μένει Μινέρι) */
     return prev?prev(n):n; }
   window.spName=function(n){ return name(n,base); };
-  if(!EN||baseD) window.dataName=function(n){ return name(n,baseD); }; else window.dataName=function(n){ return name(n,null); };
+  if(!EN||baseD) window.dataName=function(n){ return name(n,baseD); }; else window.dataName=function(n){ return name(n,function(x){ /* 1.14.57: στα αγγλικά και τα δολώματα/τεχνικές που γράφτηκαν ελληνικά (π.χ. «Ζωντανή σουπιά») */ try{ return window.AlkyonTr?window.AlkyonTr(x):x; }catch(e){ return x; } }); };
 })();

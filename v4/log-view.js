@@ -20,7 +20,7 @@ var TH={};
 function thumb(b){ var w=h('span',{class:'th'}), k=b.id+':'+(b._u||0);
   if(!b.photo){ w.append(B.icon('fish')); return w; }
   var c=TH[b.id]; if(c&&c.k===k){ if(c.u) w.append(h('img',{src:c.u,alt:'',decoding:'sync'})); else w.append(B.icon('fish')); return w; }
-  S().Photos.get(b.id).then(function(bl){ if(TH[b.id]&&TH[b.id].u) try{ URL.revokeObjectURL(TH[b.id].u); }catch(e){} var u=bl?URL.createObjectURL(bl):null; TH[b.id]={k:k,u:u}; w.replaceChildren(u?h('img',{src:u,alt:''}):B.icon('fish')); }).catch(function(){ w.replaceChildren(B.icon('fish')); });
+  (S().Photos.thumb||S().Photos.get)(b.id).then(function(bl){ if(TH[b.id]&&TH[b.id].u) try{ URL.revokeObjectURL(TH[b.id].u); }catch(e){} var u=bl?URL.createObjectURL(bl):null; TH[b.id]={k:k,u:u}; w.replaceChildren(u?h('img',{src:u,alt:''}):B.icon('fish')); }).catch(function(){ w.replaceChildren(B.icon('fish')); });
   return w; }
 /* πολλές αλλαγές μαζί (διαγραφή + ενημέρωση εξόδου + συγχρονισμός) → μία ζωγραφική, χωρίς να χάνεται η θέση της λίστας */
 var rdF=0; function redraw(){ if(rdF) return; rdF=requestAnimationFrame(function(){ rdF=0; var y=window.scrollY; draw(); if(Math.abs(window.scrollY-y)>2) window.scrollTo(0,y); }); }
