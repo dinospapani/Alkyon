@@ -303,7 +303,7 @@ B.biteForm=function(edit,opt){
     setW('none'); oldHint.hidden=false; wwBox.hidden=false; wwLine.classList.add('open'); }
   when.addEventListener('change',oldCheck); when.addEventListener('input',oldCheck); locP.then(function(){ wwPaint(); depFollow(); }); wwPaint();
   /* βάθος από τον χάρτη βυθού όταν δεν το έγραψες (εκτίμηση, σημειώνεται) */
-  var depNote=h('small',{class:'wn',hidden:true}), depAuto=false;
+  var depNote=h('small',{class:'wn depnote',hidden:true}), depAuto=false;
   /* 1.13.7: το βάθος ακολουθεί τη θέση που διάλεξες (GPS, χάρτης, συντεταγμένες, σημείο), όχι μόνο το GPS */
   function effPos(){ var v=where.value, g; if(v==='gps') return pos; if(v==='coord'){ g=cbx&&cbx.get(); return g&&isFinite(g.lat)&&isFinite(g.lon)?g:null; }
     if(v.slice(0,2)==='s:'){ g=S.get('spots',v.slice(2)); return g&&typeof g.lat==='number'?g:null; } if(v==='at') return opt&&opt.at||null; if(v==='keep') return e&&typeof e.lat==='number'?{lat:e.lat,lon:e.lon}:null; return null; }
@@ -312,7 +312,7 @@ B.biteForm=function(edit,opt){
     if(depAuto||(!first&&!dep.value)){ dep.value=''; depAuto=false; depNote.hidden=true; } if(p) autoDepth(); }
   function autoDepth(){ var p=effPos(); if((e&&where.value==='keep')||dep.value||!p||!B.depthAt||prof==='lake'||prof==='shore') return; var k=depKey; B.depthAt(p.lat,p.lon).then(function(v){ if(v==null||v<1||dep.value||k!==depKey) return; var U=window.AlkyonUnits, o=U&&U.depthOut?U.depthOut(v):Math.round(v);
       dep.value=String(Math.round(o)); depAuto=true; depNote.hidden=false; var src=B.lastDepthSrc; /* 1.10.12: από το βυθόμετρο ή τον «Βυθό μου» όταν υπάρχουν */
-      depNote.textContent=src==='sounder'?T('βάθος από το βυθόμετρο','depth from the sounder'):src==='mine'?T('βάθος από τον «Βυθό μου» (το βυθόμετρό σου)','depth from “My depths” (your sounder)'):'≈ '+T('βάθος από τον χάρτη βυθού· γράψε το πραγματικό αν το ξέρεις','depth from the seabed chart; enter the real one if you know it'); }).catch(function(){}); }
+      depNote.textContent=src==='sounder'?T('βάθος από το βυθόμετρο','depth from the sounder'):src==='mine'?T('βάθος από τον «Βυθό μου» (το βυθόμετρό σου)','depth from “My depths” (your sounder)'):'≈ '+T('βάθος από τον χάρτη· άλλαξέ το αν ξέρεις το πραγματικό','depth from the chart; change it if you know the real one'); }).catch(function(){}); }
   dep.addEventListener('input',function(){ depAuto=false; depNote.hidden=true; });
   /* εξοπλισμός σε μία γραμμή (τα επιλεγμένα· πάτα για αλλαγή) */
   var tkWrap=h('div',{class:'bftk',hidden:true},tkBox,tkDet,tkLostBox,tkSug), tkTx=h('span',{class:'bflt'});
@@ -359,7 +359,7 @@ B.biteForm=function(edit,opt){
     h('section',{class:'bfcard'},
     h('div',{class:'fld spfld'},spLbl,h('div',{class:'spwrap'},sp,spSug),spChips,h('small',{class:'spopt',text:T('Για χαμένο ψάρι είναι προαιρετικό.','Optional for a lost fish.')})),
     (sizeRow=h('div',{class:'g3',hidden:miss.checked},field(T('Βάρος (kg)','Weight (kg)'),kg),field(T('Μήκος (cm)','Length (cm)'),len),field(T('Βάθος','Depth')+' ('+(window.AlkyonUnits&&AlkyonUnits.depthUnit?AlkyonUnits.depthUnit():'m')+')',dep))),
-    lawNote,measBtn,camIn,kgEst,depNote, /* 1.14.12: το ελάχιστο μήκος κάτω από βάρος/μήκος */
+    lawNote,depNote,measBtn,camIn,kgEst, /* 1.14.51: η σημείωση του βάθους ακριβώς κάτω από το βάθος, σύντομη και δεξιά */ /* 1.14.12: το ελάχιστο μήκος κάτω από βάρος/μήκος */
     /* 1.12.7: «Πολλά ψάρια μαζί» αμέσως κάτω από βάρος/μήκος */
     (manyRow=h('div',{class:'bfmany',hidden:miss.checked},h('label',{class:'tg'},many,h('span',{text:T('Πολλά ψάρια μαζί (μία εγγραφή)','Several fish together (one entry)')})),cntRow)),
     prof==='spear'?h('label',{class:'fld'},h('span',{text:T('Ορατότητα νερού (m)','Water visibility (m)')}),vis,h('small',{text:T('Πόσα μέτρα έβλεπες. Έτσι η Πρόγνωση μαθαίνει τα νερά σου.','How many metres you could see. This teaches the Forecast your waters.')})):null),
