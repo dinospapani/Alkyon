@@ -39,12 +39,12 @@ B.fcAdv=function(page,fc,ctx){
       var bj=(r.bait||[]).join(' ').toLowerCase(), oth=/καλαμαρι[έε]ρ|squid jig|egi/.test(bj)?T('Καλαμαριέρα (eging)','Squid jigging (eging)'):/σαμπ[ίι]κι|sabiki/.test(bj)?'Sabiki':null;
       var tk=r.tech.map(function(x){ return (x==='Άλλο'||x==='Other')&&oth?oth:x; });
       var det=[tk.length?T('Τεχνική: ','Technique: ')+tk.join(', '):'',r.bait.length?T('Δόλωμα: ','Bait: ')+r.bait.join(', '):'',r.depth?T('Βάθος: ','Depth: ')+r.depth:''].filter(Boolean);
-      l.append(h('div',{class:'sp'},h('div',{class:'sph'},h('b',{text:r.name}),h('span',{class:'splv lv'+(r.p/mx>=0.75?'2':r.p/mx>=0.45?'1':'0'),text:lvlTxt(r.p/mx)})),h('span',{class:'bt'},h('i',{style:{width:Math.max(3,Math.round(r.p/mx*100))+'%'}})),
+      l.append(h('div',{class:'sp'},h('div',{class:'sph'},h('b',{text:r.name}),h('span',{class:'splv lv'+(r.p/mx>=0.75?'2':r.p/mx>=0.45?'1':'0'),text:lvlTxt(r.p/mx)})),h('span',{class:'bt lv'+(r.p/mx>=0.75?'2':r.p/mx>=0.45?'1':'0')},h('i',{style:{width:Math.max(3,Math.round(r.p/mx*100))+'%'}})),
         h('p',{class:'spd',text:det.join('. ')+(det.length?'. ':'')+(r.n?T('Από ','From ')+r.n+T(' δικά σου ψάρια.',' of your catches.'):T('Από γενική γνώση.','From general knowledge.'))}),
         r.warn?h('p',{class:'spw',text:r.warn}):null));
     });
     c.append(l0); if(rest) c.append(h('details',{class:'spmore'},h('summary',{text:T('Περισσότερα είδη (','More species (')+(S.species.length-5)+')'}),rest));
-    if(S.tech.length){ c.append(h('h3',{class:'h3',text:T('Προτεινόμενη τεχνική','Suggested technique')})); S.tech.forEach(function(t){ c.append(bar((t.name==='Άλλο'||t.name==='Other')?T('Καλαμαριέρα, σαμπίκι','Squid jig, sabiki'):t.name,t.p,S.tech[0].p,lvlTxt(t.p/S.tech[0].p))); }); }
+    if(S.tech.length){ c.append(h('h3',{class:'h3',text:T('Προτεινόμενη τεχνική','Suggested technique')})); S.tech.forEach(function(t){ c.append(bar((t.name==='Άλλο'||t.name==='Other')?T('Καλαμαριέρα, σαμπίκι','Squid jig, sabiki'):t.name,t.p,S.tech[0].p,lvlTxt(t.p/S.tech[0].p),t.p/S.tech[0].p>=0.75?'up':t.p/S.tech[0].p>=0.45?'mid':'low')); }); }
   }
   if(B.infoAdd) B.infoAdd(c.querySelector('h2'),T('Τα είδη ταξινομημένα από το πιο πιθανό για αυτή την ώρα, από τα δικά σου ψάρια και τη γενική γνώση για κάθε είδος. Σχετική σύγκριση ανάμεσα στα είδη, όχι σίγουρο αποτέλεσμα.','Species ordered from most likely at this hour, from your own catches and general knowledge of each species. A relative comparison between species, not a certain result.'));
   page.append(c);
@@ -121,9 +121,17 @@ B.fcMine=function(page,fc,ctx){
 
   /* μοτίβα */
   if(m.ready){ var c4=card(T('Τα μοτίβα σου','Your patterns'),T('Πόσο πάνω ή κάτω από τον μέσο όρο σου πιάνεις σε κάθε συνθήκη.','How far above or below your average you catch in each condition.'));
+    var patD=h('div'), patUp=[], patDn=[];
     Object.keys(TITLE).forEach(function(k){ var F=m.factors[k], mx=Math.max.apply(null,F.map(function(x){ return x.m; }));
-      c4.append(h('h3',{class:'h3',text:TITLE[k]}));
-      F.forEach(function(x,i){ if(!x.h) return; c4.append(bar(LAB[k](i),x.m,mx,'×'+B.num(x.m,1),x.m>=1.15?'up':x.m<=0.85?'down':'')); }); });
+      patD.append(h('h3',{class:'h3',text:TITLE[k]}));
+      F.forEach(function(x,i){ if(!x.h) return; if(x.m>=1.15) patUp.push([x.m,LAB[k](i)]); else if(x.m<=0.85) patDn.push([x.m,LAB[k](i)]); patD.append(bar(LAB[k](i),x.m,mx,'×'+B.num(x.m,1),x.m>=1.15?'up':x.m<=0.85?'down':'')); }); });
+    /* 1.14.45: πρώτα το συμπέρασμα, οι μπάρες στις «Λεπτομέρειες» */
+    patUp.sort(function(a,b){ return b[0]-a[0]; }); patDn.sort(function(a,b){ return a[0]-b[0]; });
+    var chips=function(a,cls){ return h('div',{class:'patchips'},a.slice(0,4).map(function(x){ return h('span',{class:'patchip '+cls},h('b',{text:x[1]}),h('i',{text:'×'+B.num(x[0],1)})); })); };
+    if(patUp.length) c4.append(h('p',{class:'patl',text:T('Πιάνεις περισσότερο με:','You catch more with:')}),chips(patUp,'up'));
+    if(patDn.length) c4.append(h('p',{class:'patl',text:T('Πιάνεις λιγότερο με:','You catch less with:')}),chips(patDn,'down'));
+    if(!patUp.length&&!patDn.length) c4.append(h('p',{class:'sub',text:T('Καμία συνθήκη δεν ξεχωρίζει ακόμα.','No condition stands out yet.')}));
+    c4.append(h('details',{class:'spmore patmore'},h('summary',{text:T('Λεπτομέρειες','Details')}),patD));
     page.append(F('mpat',c4,T('φως, σελήνη, πίεση, άνεμος','light, moon, pressure, wind'))); }
 
   /* ο βαθμός στην πράξη */

@@ -91,13 +91,19 @@ function group(title,G){
   var sp=Object.keys(spc).sort(function(a,b){ return spc[b]-spc[a]; }).slice(0,4);
   var box=h('div',{class:'cmgrp'},h('h3',{class:'listh',text:title+' · '+G.length+(G.length===1?T(' μέρα',' day'):T(' μέρες',' days'))}),
     sp.length?h('p',{class:'sub',style:{margin:'-2px 0 6px'},text:sp.join(', ')}):null);
-  traits(G).forEach(function(r){ box.append(h('div',{class:'lyrow'},h('b',{text:r[0]}),h('span',{class:'cmv',text:r[1]}),h('small',{class:'cmn',text:r[2]+'/'+r[3]}))); });
+  /* 1.14.45: πρώτα ό,τι ισχύει στις περισσότερες μέρες (σε ετικέτες), ο πλήρης πίνακας στις «Λεπτομέρειες» */
+  var TR=traits(G), KEY=[T('Πίεση','Pressure'),T('Άνεμος','Wind'),T('Ώρα','Time'),T('Δόλωμα','Bait'),T('Τεχνική','Technique'),T('Βάθος','Depth')];
+  var top=TR.filter(function(r){ return KEY.indexOf(r[0])>=0&&r[3]&&r[2]/r[3]>=0.6&&!/διάφορες|various/.test(r[1]); });
+  if(top.length) box.append(h('div',{class:'cmchips'},top.map(function(r){ return h('span',{class:'cmchip'},h('i',{text:r[0]}),h('b',{text:String(r[1]).replace(/ \(.*$/,'').replace(/^.*?, (\d)/,'$1')})); })));
+  var det=h('details',{class:'spmore cmmore'},h('summary',{text:T('Λεπτομέρειες','Details')}));
+  TR.forEach(function(r){ det.append(h('div',{class:'lyrow'},h('b',{text:r[0]}),h('span',{class:'cmv',text:r[1]}),h('small',{class:'cmn',text:r[2]+'/'+r[3]}))); });
+  if(TR.length) box.append(det);
   return box;
 }
 B.commonCard=function(){
   var D=days(); if(D.length<2) return null;
   var big=D.filter(function(d){ return d.kgMax!=null&&d.kgMax>=2.5; }), small=D.filter(function(d){ return !(d.kgMax!=null&&d.kgMax>=2.5); });
-  var c=h('section',{class:'card lycard cmcard'},h('h2',{text:T('Τι κοινό είχαν τα ψαρέματά σου','What your fishing days had in common')}),
+  var c=h('section',{class:'card lycard cmcard'},h('h2',{text:T('Τι κοινό είχαν τα ψαρέματά σου','Your catches in common')}),
     null);
   if(big.length>=2&&small.length>=2){ c.append(group(T('Μεγάλα ψάρια (από 2,5 kg)','Big fish (2.5 kg and up)'),big)); c.append(group(T('Μικρότερα ψάρια','Smaller fish'),small)); }
   else c.append(group(T('Μέρες με ψάρια','Days with catches'),D));

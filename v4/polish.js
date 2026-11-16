@@ -35,10 +35,16 @@ var P={
   wind:'<path d="M3 8h11a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 16h8"/>',
   heart:'<path d="M12 20.5s-7.5-4.4-7.5-10A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.9c0 5.6-7.5 10-7.5 10z"/>',
   chat:'<path d="M4 5.5h16v10.5H10l-4.5 4v-4H4z"/>',
-  star:'<path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/>'
+  star:'<path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/>',
+  /* 1.14.45: ένα σετ εικονιδίων παντού */
+  squid:'<path d="M12 3c3 2.500 4.500 5 4.500 7.500 0 2-1.500 3.500-4.500 3.500s-4.500-1.500-4.500-3.500C7.500 8 9 5.500 12 3z"/><path d="M9 14v4.500M12 14v6.500M15 14v4.500M6.500 13.500c-.500 2-1 3.500-2.500 5M17.500 13.500c.500 2 1 3.500 2.500 5"/>',
+  people:'<circle cx="9" cy="8.500" r="3"/><path d="M3.500 19.500c0-3 2.500-5 5.500-5s5.500 2 5.500 5"/><circle cx="17" cy="9.500" r="2.300"/><path d="M16 14.700c2.600 0 4.500 1.700 4.500 4.300"/>',
+  ruler:'<path d="M3.500 15.500l12-12 5 5-12 12z"/><path d="M7.500 11.500l2 2M10.500 8.500l2 2M13.500 5.500l2 2"/>',
+  dotg:'<circle cx="12" cy="12" r="6" style="fill:var(--good);stroke:none"/>',doty:'<circle cx="12" cy="12" r="6" style="fill:var(--fair);stroke:none"/>',dotr:'<circle cx="12" cy="12" r="6" style="fill:var(--poor);stroke:none"/>',
+  moon0:'<circle cx="12" cy="12" r="8"/>',moon1:'<circle cx="12" cy="12" r="8"/><path d="M12 4A8 8 0 0 1 12 20A4.5 8 0 0 0 12 4z" fill="currentColor" stroke="none"/>',moon2:'<circle cx="12" cy="12" r="8"/><path d="M12 4A8 8 0 0 1 12 20A0.01 8 0 0 1 12 4z" fill="currentColor" stroke="none"/>',moon3:'<circle cx="12" cy="12" r="8"/><path d="M12 4A8 8 0 0 1 12 20A4.5 8 0 0 1 12 4z" fill="currentColor" stroke="none"/>',moon4:'<circle cx="12" cy="12" r="8" fill="currentColor"/>',moon5:'<circle cx="12" cy="12" r="8"/><path d="M12 4A8 8 0 0 0 12 20A4.5 8 0 0 0 12 4z" fill="currentColor" stroke="none"/>',moon6:'<circle cx="12" cy="12" r="8"/><path d="M12 4A8 8 0 0 0 12 20A0.01 8 0 0 0 12 4z" fill="currentColor" stroke="none"/>',moon7:'<circle cx="12" cy="12" r="8"/><path d="M12 4A8 8 0 0 0 12 20A4.5 8 0 0 1 12 4z" fill="currentColor" stroke="none"/>'
 };
 var MAP={'🐟':'fish','🐠':'fish','🎣':'fish','🐡':'puffer','🎤':'mic','📈':'up','📉':'down','📊':'chart','📍':'pin','📥':'inbox','🗺':'map','📷':'camera','📸':'camera','⚓':'anchor','🌙':'moon','📋':'clip',
-  '🎯':'target','🔍':'search','🔎':'search','📝':'note','❌':'x','✅':'ok','👍':'ok','☀':'sun','🏝':'island','🔔':'bell','🌊':'wave','🏠':'home','⛽':'fuel','📖':'book','⭐':'star','🏆':'trophy','🥇':'trophy','🌬':'wind','💨':'wind','❤':'heart','💬':'chat'};
+  '🎯':'target','🔍':'search','🔎':'search','📝':'note','❌':'x','✅':'ok','👍':'ok','☀':'sun','🏝':'island','🔔':'bell','🌊':'wave','🏠':'home','⛽':'fuel','📖':'book','⭐':'star','🏆':'trophy','🥇':'trophy','🌬':'wind','💨':'wind','❤':'heart','💬':'chat','🦑':'squid','👥':'people','📏':'ruler','★':'star','🌑':'moon0','🌒':'moon1','🌓':'moon2','🌔':'moon3','🌕':'moon4','🌖':'moon5','🌗':'moon6','🌘':'moon7','🟢':'dotg','🟡':'doty','🔴':'dotr'};
 var KEYS=Object.keys(MAP).sort(function(a,b){ return b.length-a.length; });
 var RE=new RegExp('('+KEYS.map(function(k){ return k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }).join('|')+')\\uFE0F?\\s?','g');
 var SKIP={SCRIPT:1,STYLE:1,TEXTAREA:1,INPUT:1,SELECT:1,OPTION:1,CANVAS:1,svg:1,SVG:1,TITLE:1,NOSCRIPT:1};

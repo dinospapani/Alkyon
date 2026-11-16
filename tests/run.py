@@ -918,7 +918,7 @@ with sync_playwright() as p:
     cb=[{'id':'cm%d'%i,'date':r[0],'time':r[1],'species':r[2],'kg':r[3],'ptrend':r[4],'wind':r[5],'wave':r[6],'sst':r[7],'tech':'Βυθού','lat':34.75,'lon':32.38,'_u':1} for i,r in enumerate(R)]
     c=ctx(b); c.add_init_script("localStorage.setItem('alkyon-bites',JSON.stringify(%s))"%json.dumps(cb)); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(3000)
     pg.evaluate("()=>{const b=[...document.querySelectorAll('.seg button')].find(x=>/Δικά μου/.test(x.textContent)); b&&b.click()}"); pg.wait_for_timeout(1500)
-    r=pg.evaluate("()=>{const c=document.querySelector('.cmcard'); if(!c) return ''; const d=c.closest('details'); if(d) d.open=true; return c.innerText}")
+    r=pg.evaluate("()=>{const c=document.querySelector('.cmcard'); if(!c) return ''; const d=c.closest('details'); if(d) d.open=true; c.querySelectorAll('details').forEach(x=>x.open=true); return c.innerText}")
     check('«Τι κοινό είχαν τα ψαρέματά σου» (1.9.59)', 'Μεγάλα ψάρια (από 2,5 kg) · 3 μέρες' in r and 'Ιανουάριος–Μάρτιος' in r and 'κοντά στη νέα σελήνη' in r and 'Μικρότερα ψάρια · 2 μέρες' in r and not pg._errs, [r[:500],pg._errs]); c.close()
     c=ctx(b); c.add_init_script("localStorage.setItem('alkyon-bites',JSON.stringify([{id:'tb1',date:'2026-10-01',time:'10:00',species:'Sargo',tech:'Βυθού',bait:'Live squid',_u:1}]))"); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(2500)
     pg.evaluate("()=>AK.biteForm()"); pg.wait_for_timeout(1200)
@@ -1547,7 +1547,7 @@ with sync_playwright() as p:
     card=pg.evaluate('''()=>{ localStorage.setItem('alkyon-lastpos',JSON.stringify({lat:34.7,lon:32.4,t:Date.now()})); const st=[{key:'all',n:72,users:3,data:{v:2,hrs:195,trips:40,fitMin:200,ins:[],f:{}}},{key:'trend:34_32',n:9,users:3,data:{items:[{sp:'loligo vulgaris',nm:'Καλαμάρι',g:'ceph',n7:9,prev:0,ratio:10,users:3,up:true,fresh:true}]}}];
       AK.cloud.pub=()=>Promise.resolve(new Response(JSON.stringify(st),{status:200})); const pos=AK.lastPos; AK.lastPos=()=>({lat:34.7,lon:32.4}); const c=AK.biteStatsCard(); document.body.append(c);
       return new Promise(r=>setTimeout(()=>r(c.textContent),1500)); }''')
-    check('«Τι πιάνεται τώρα κοντά σου» με 🦑 και «200 έξοδοι (τώρα 40)» στην κάρτα (1.14.28)', 'Τι πιάνεται τώρα' in card and '🦑' in card and '(τώρα 40)' in card, card[:400])
+    check('«Τι πιάνεται τώρα κοντά σου» με 🦑 και «200 έξοδοι (τώρα 40)» στην κάρτα (1.14.28)', 'Τι πιάνεται τώρα' in card and 'Καλαμάρι' in card and '(τώρα 40)' in card, card[:400])
     check('1.14.28: χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
 
     print('# 1.14.29 ακρίβεια, τι δουλεύει, εποχή, σημεία ανά άνεμο, χλωροφύλλη')
@@ -1656,6 +1656,13 @@ with sync_playwright() as p:
     c=ctx(b); c.add_init_script("localStorage.removeItem('alkyon-fprof-done');localStorage.setItem('alkyon-askfp','1');localStorage.setItem('alkyon-fprof','shore');"); pg=page(c); pg.set_viewport_size({'width':360,'height':700}); pg.goto(BASE+'/v4/'); pg.wait_for_timeout(3000)
     r=pg.evaluate("()=>{ const p=document.querySelector('.sppage'), a=p&&p.querySelector('.spask'), g=p&&p.querySelector('.spgo'); if(!a||!g) return null; const ra=a.getBoundingClientRect(), rg=g.getBoundingClientRect(); return [ra.bottom<=rg.top+1, rg.bottom<=innerHeight+1, getComputedStyle(p).backgroundColor===getComputedStyle(document.body).backgroundColor||true]; }")
     check('Είσοδος (ακτή, 3 τρόποι, μικρή οθόνη): το «Να μη ρωτάει» φαίνεται πάνω από το «Συνέχεια» (1.14.43)', r and r[0] and r[1] and not pg._errs, [r,pg._errs]); c.close()
+
+    print('# 1.14.45 όψη')
+    c=ctx(b,lang='en'); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(3500)
+    r=pg.evaluate("()=>{ const n=document.querySelector('.nav'), cs=getComputedStyle(n,'::before'); const t=document.createElement('p'); t.textContent='\U0001F313 x \u2605 y \U0001F991'; document.querySelector('main').append(t); return new Promise(res=>setTimeout(()=>res([cs.content!=='none'&&cs.display!=='none', document.documentElement.getAttribute('data-view'), t.querySelectorAll('i.pik').length, [...t.textContent].some(ch=>ch.codePointAt(0)>0x1F000||ch.codePointAt(0)===0x2605)]),600)); }")
+    pg.evaluate("()=>{location.hash='#map'}"); pg.wait_for_timeout(2500)
+    r.append(pg.evaluate("()=>getComputedStyle(document.querySelector('.nav'),'::before').display"))
+    check('Κάτω μπάρα: σβήσιμο περιεχομένου (όχι στον χάρτη)· emoji γίνονται γραμμικά εικονίδια (1.14.45)', r==[True,'forecast',3,False,'none'] and not pg._errs, [r,pg._errs]); c.close()
 
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)

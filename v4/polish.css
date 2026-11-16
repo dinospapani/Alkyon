@@ -141,3 +141,45 @@ html.nightred .wpk .oldhint{background:#000;border:1px solid #fff}
 .mpkbar .mplrow{display:flex;align-items:center;gap:8px;margin:6px 0}.mpkbar .mplrow .btn{flex:0 0 auto;width:auto;padding:0 14px}.mpkbar .mplrow .mplcnt{flex:1;min-width:0;text-align:right;color:var(--ink-2)}
 /* 1.10.6: σελίδες με ‹ και τίτλο χωρίς κουμπί δεξιά (Φίλοι, Ειδοποιήσεις): ο τίτλος αριστερά, όχι δεξιά */
 .top>:first-child:last-child{margin-left:0;margin-right:auto;min-width:0}
+
+/* ===== 1.14.45: επαγγελματική όψη ===== */
+/* 1) το περιεχόμενο σβήνει ομαλά πριν την κάτω μπάρα */
+.nav::before{content:'';position:absolute;left:0;right:0;bottom:0;height:calc(var(--nav-h) + var(--safe-b) + 46px);background:linear-gradient(180deg,transparent 0,color-mix(in srgb,var(--bg) 86%,transparent) 44%,var(--bg) 78%);pointer-events:none;z-index:-1}
+html[data-view=map] .nav::before,html.nightred .nav::before,body.ontrip .nav::before{display:none}
+.nav>div{background:var(--surface);box-shadow:0 0 0 1px var(--line),0 10px 26px -12px rgba(0,0,0,.45)}
+/* 2) τρία μεγέθη τίτλων παντού: κάρτα 17.5, υπότιτλος 15, βοηθητικό 13.5 */
+.card>h2,.fcpage .card h2,.pwh h2,.hch h2,.fold>summary b,details.sfold>summary,.card .gh h2{font-size:17.5px;line-height:1.25;font-weight:740;letter-spacing:-.012em}
+.card .h3,.h3.subh,.card h3.listh,.cmgrp .listh{font-size:15px;line-height:1.3;font-weight:700;color:var(--ink);margin:16px 0 6px}
+.sub,.card>p.sub{font-size:14.5px;line-height:1.45}
+.fold>summary small,.card small.hint,.foot{font-size:13.5px;line-height:1.4}
+.fold>summary{padding:14px 16px;min-height:54px}
+.card{padding:16px}
+.bar .bl{font-size:14.5px}.bar .bv{font-size:13.5px}
+/* 3) εικονίδια στο ίδιο πάχος γραμμής */
+.pik svg{stroke-width:1.8}
+.pik-star svg{fill:currentColor;stroke:none}
+.pik-dotg svg,.pik-doty svg,.pik-dotr svg{width:.8em;height:.8em}
+/* 4) ετικέτες-συμπέρασμα και «Λεπτομέρειες» */
+.cmchips,.patchips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px}
+.cmchip,.patchip{display:inline-flex;align-items:baseline;gap:6px;padding:6px 10px;border-radius:10px;background:var(--surface-2);font-size:13.5px;line-height:1.25;max-width:100%}
+.cmchip i,.patchip i{font-style:normal;color:var(--ink-2);font-size:12.5px;font-weight:600}
+.cmchip b,.patchip b{font-weight:700}
+.patchip.up i{color:var(--good-ink)}.patchip.down i{color:var(--poor)}
+.patl{margin:10px 0 0;font-size:13.5px;font-weight:650;color:var(--ink-2)}
+details.cmmore>summary,details.patmore>summary{color:var(--ink-2);font-weight:650;font-size:13.5px;padding:8px 0 4px}
+details.cmmore>summary::after,details.patmore>summary::after,details.spmore>summary::after{content:' ›'}
+details.cmmore[open]>summary::after,details.patmore[open]>summary::after,details.spmore[open]>summary::after{content:' ‹'}
+/* 5) χρώματα με ένα νόημα: πράσινο καλό, κίτρινο μέτριο, κόκκινο κακό, γαλάζιο ουδέτερο· το πορτοκαλί μόνο για ενέργειες */
+:root{--wind:#8A6D3B}
+html[data-theme=dark],html.dark{--wind:#D9C7A3}
+@media (prefers-color-scheme:dark){html:not([data-theme=light]){--wind:#D9C7A3}}
+.pwc .wl,.pwc .gl2,.pwc .dot.w{stroke:var(--wind)}.pwc .wa,.pwc .arr,.pwc .axh.wk{fill:var(--wind)}
+.pwl .k2::before{background:var(--wind)!important}
+.sp .bt.lv2 i,.bar.up .bt i{background:var(--good)}
+.sp .bt.lv1 i,.bar.mid .bt i{background:var(--fair)}
+.sp .bt.lv0 i,.bar.low .bt i{background:var(--ink-3)}
+.simcard .simhead.lo b{color:var(--poor)}
+.simcard .simhead b{color:var(--ink)}
+.simcard .simhead.hi b{color:var(--good)}.simcard .simhead.mid b{color:var(--fair)}
+details.spmore>summary{color:var(--ink-2)}
+.card .gh h2{font-size:16.5px;flex:1 1 auto;min-width:0}
