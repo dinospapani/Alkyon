@@ -246,7 +246,7 @@ function drawOverlays(){
   if(cfg.zones){ zwKey=''; drawWorldZones(); }
   if(cfg.zones&&window.GR_LOCAL&&B.grLocal) drawGrLocal(); /* 1.13.3: τοπικές απαγορεύσεις Λιμενικών Αρχών */
   if(cfg.dams){ ov.dams=L.layerGroup().addTo(map); var put=function(){ if(!ov.dams) return; ov.dams.clearLayers(); DAMS.forEach(function(d){ var lv=null; if(LV&&LV.dams) for(var n in LV.dams){ if(nrm(n)===nrm(d[0])) lv=LV.dams[n]; }
-      L.marker([d[2],d[3]],{icon:icon('dam '+(DST[d[4]]||DST.check)[1],'<b>'+(lv?Math.round(lv.pct)+'%':'')+'</b><i>'+esc(EN?d[1]:d[0])+'</i>')}).on('click',function(){ damSheet(d,lv); }).addTo(ov.dams); }); };
+      L.marker([d[2],d[3]],{icon:icon('dam '+(DST[d[4]]||DST.check)[1],'<b>'+(lv?Math.round(lv.pct)+'%':'\u2013')+'</b><i>'+esc(EN?d[1]:d[0])+'</i>')}).on('click',function(){ damSheet(d,lv); }).addTo(ov.dams); }); };
     put(); if(!LV) fetch('../dams_levels.json').then(function(r){ return r.json(); }).then(function(j){ LV=j; put(); }).catch(function(){}); }
 }
 /* 1.13.3: Λιμενικές Αρχές (σήμα ⚓, πατάς για τους κανόνες) και οι περιοχές τους με συντεταγμένες */

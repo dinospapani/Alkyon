@@ -109,10 +109,11 @@ var SN=null, snP=null;
 function loadNames(){ if(SN) return Promise.resolve(SN); if(snP) return snP; snP=(window.ALKYON_SEA_NAMES?Promise.resolve():new Promise(function(res){ var s2=document.createElement('script'); s2.src='../sea-names.js'; s2.onload=res; s2.onerror=res; document.head.appendChild(s2); })).then(function(){ SN=window.ALKYON_SEA_NAMES||[]; return SN; }); return snP; }
 function nmZoom(k,e){ return k==='i'?(e>0.3?8:e>0.06?10:11):k==='l'?(e>0.01?11:12):k==='r'||k==='s'?13:k==='b'?(e>0.05?10:12):k==='t'?10:11; }
 function names(bd){ if(!SN){ loadNames().then(function(){ if(SN&&SN.length) draw(); }); return; }
-  var z=map.getZoom(), used={}, n=0;
+  var z=map.getZoom(), used={}, n=0, seenN=[];   /* 1.14.44: το ίδιο όνομα δύο φορές δίπλα δίπλα (π.χ. Moulia rocks) γράφεται μία φορά */
   for(var i=0;i<SN.length&&n<70;i++){ var r=SN[i]; if(z<nmZoom(r[4],r[5])||!bd.contains([r[2],r[3]])) continue;
-    var cp=map.latLngToContainerPoint([r[2],r[3]]), key=Math.floor(cp.x/110)+'_'+Math.floor(cp.y/26); if(used[key]) continue; used[key]=1; n++;
+    var cp=map.latLngToContainerPoint([r[2],r[3]]), key=Math.floor(cp.x/110)+'_'+Math.floor(cp.y/26); if(used[key]) continue;
     var nm=EN&&r[1]?r[1]:r[0], big=r[4]==='i'&&r[5]>0.05;
+    if(seenN.some(function(q){ return q[0]===nm&&Math.abs(q[1]-cp.x)<220&&Math.abs(q[2]-cp.y)<120; })) continue; seenN.push([nm,cp.x,cp.y]); used[key]=1; n++;
     L.marker([r[2],r[3]],{interactive:false,keyboard:false,icon:L.divIcon({className:'snm k'+r[4]+(big?' big':''),iconSize:null,html:'<span>'+nm.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</span>'})}).addTo(grp); } }
 function legend(a){
   if(!a){ if(legEl){ legEl.hidden=true; legShown=0; } return; }

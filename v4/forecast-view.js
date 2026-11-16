@@ -802,7 +802,7 @@ function pwFill(body,v,p,fc,rk){
   var svg=C.svg, rd=C.rd, per=C.per, moonAt=C.moonAt, mLbl=C.mLbl, hasM=!!(PF.moonAlt&&PF.solunarPeriods);
   var out=[svg,rd];
   /* πώς αλλάζει η πίεση στις επόμενες 24 ώρες */
-  if(nowI>=0&&nowI+24<n){ var dp=pts[nowI+24].p-pts[nowI].p, tt=Math.abs(dp)<1?T('Σταθερή πίεση τις επόμενες 24 ώρες','Steady pressure over the next 24 hours'):(dp>0?T('Ανεβαίνει ','Rising ')+Math.round(dp)+T(' hPa τις επόμενες 24 ώρες',' hPa over the next 24 hours'):T('Πέφτει ','Falling ')+Math.round(-dp)+T(' hPa τις επόμενες 24 ώρες',' hPa over the next 24 hours'));
+  if(nowI>=0&&nowI+24<n){ var dp=pts[nowI+24].p-pts[nowI].p, tt=Math.abs(dp)<2.5?T('Σταθερή πίεση τις επόμενες 24 ώρες','Steady pressure over the next 24 hours')+(Math.abs(dp)>=1?' ('+(dp>0?'+':'\u2212')+Math.round(Math.abs(dp))+' hPa)':''):(dp>0?T('Ανεβαίνει ','Rising ')+Math.round(dp)+T(' hPa τις επόμενες 24 ώρες',' hPa over the next 24 hours'):T('Πέφτει ','Falling ')+Math.round(-dp)+T(' hPa τις επόμενες 24 ώρες',' hPa over the next 24 hours'));
     var past=nowI>=24?pts[nowI].p-pts[nowI-24].p:null;
     out.push(h('p',{class:'sub',style:{margin:'6px 0 0'},text:tt+(past!=null&&Math.abs(past)>=1?T(' (τις τελευταίες 24 ώρες ',' (last 24 hours ')+(past>0?'+':'')+Math.round(past)+' hPa)':'')+(dp<=-4?T('. Συνήθως έρχεται αλλαγή καιρού.','. A change in the weather usually follows.'):'.')})); }
   if(hasM&&per.length){

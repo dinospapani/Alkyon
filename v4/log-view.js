@@ -305,7 +305,7 @@ function stats(page){
   var recC=rtmp.querySelector('.recs'), goalC=rtmp.querySelector('.goals'); if(recC) page.append(recC);
   whenCard(page,bs);
   if(B.biteStatsCard) page.append(B.biteStatsCard()); /* 1.14.21: «Πότε τσιμπάνε · από όλους» */
-  var NOSP=T('Χωρίς είδος','No species'); var sp={}, spk={}; bs.forEach(function(b){ var k=b.species||NOSP; sp[k]=(sp[k]||0)+bc(b); if(!b.rel&&+b.kg) spk[k]=(spk[k]||0)+(+b.kg); });
+  var NOSP=T('Χωρίς είδος','No species'); var sp={}, spk={}; bs.forEach(function(b){ var k=b.species?DN(b.species):NOSP; /* 1.14.44: δύο γραφές του ίδιου είδους μετρούν μαζί */ sp[k]=(sp[k]||0)+bc(b); if(!b.rel&&+b.kg) spk[k]=(spk[k]||0)+(+b.kg); });
   var top=Object.keys(sp).map(function(k){ return [k,sp[k]]; }).sort(function(a,b){ return b[1]-a[1]; }).slice(0,8);
   if(top.length){ var c=h('section',{class:'card'},h('h2',{text:T('Είδη','Species')})); bars(c,top,top[0][1],function(v,x){ return spk[x[0]]?v+' · '+B.num(spk[x[0]],1)+' kg':String(v); }); c.classList.add('spkg'); [].forEach.call(c.querySelectorAll('.bl'),function(l){ l.textContent=DN(l.textContent); }); page.append(c); /* 1.9.16: και τα κιλά ανά είδος */
     /* 1.9.7: «Χωρίς είδος» πατιέται: πάει στα Ψάρια με τα ψάρια χωρίς είδος πρώτα */
