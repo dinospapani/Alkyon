@@ -355,3 +355,8 @@ body.mapon:has(.rfcbar) .sstleg.sstleg{bottom:calc(var(--nav-h,64px) + var(--saf
 .rfcbar.sync .rbp,.rfcbar.sync input[type=range]{display:none}
 .rfcleg i.cl{color:#17242d;text-shadow:none;border:1px solid rgba(0,0,0,.12);border-left-width:0}
 .rfcleg i.cl:first-of-type{border-left-width:1px}
+
+/* ===== 1.14.67: σύννεφα από δορυφόρο ===== */
+.csatbar .rbt{min-width:118px}
+.csatbar .rbt small{white-space:nowrap}
+.csattile{image-rendering:auto}

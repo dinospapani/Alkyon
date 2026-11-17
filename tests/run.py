@@ -1776,6 +1776,22 @@ with sync_playwright() as p:
       ml[0]['ill']==100 and 80<ml[0]['alt']<83 and 85<ml[0]['light']<92 and 11<ml[1]['light']<15 and ml[1]['cov']==100 and 45<ml[2]['ill']<60 and 3<ml[2]['light']<9 and ml[3]['alt']<0 and ml[3]['clear']==0
       and 'cloud_cover_low,cloud_cover_mid,cloud_cover_high' in bw and 'pt.moonLight=' in bw and not pg._errs, [ml,pg._errs]); c.close()
 
+    print('# 1.14.67 σύννεφα από δορυφόρο')
+    c=ctx(b,lang='en'); c.add_init_script("if(!sessionStorage.__cs){sessionStorage.__cs=1;localStorage.setItem('alkyon-v4-map',JSON.stringify({cloudsat:true,rain:true,fish:false,spots:false}));}")
+    pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(4500)
+    sc=pg.evaluate("""async()=>{ const of=window.fetch; let asked='';
+      window.fetch=function(u,o){ if(typeof u==='string'&&u.indexOf('view.eumetsat.int')>0&&u.indexOf('msg_fes:clm')>0){ asked=u; const c=document.createElement('canvas'); c.width=41; c.height=41; const x=c.getContext('2d'); x.fillStyle='#0000ff'; x.fillRect(0,0,41,41); x.fillStyle='#ffffff'; x.fillRect(0,0,21,41);
+          return new Promise(res=>c.toBlob(b=>res(new Response(b,{status:200,headers:{'Content-Type':'image/png'}})),'image/png')); } return of.apply(this,arguments); };
+      const f=AlkyonBiteWx.satCloud, T0=Date.UTC(2026,10,10,10,0);
+      const west=await f(34.75,32.4,T0,{alt:30,az:270}), east=await f(34.75,32.4,T0,{alt:30,az:90}), far=await f(40.7,-74,T0,null), fresh=await f(34.75,32.4,Date.now()-10*60000,null);
+      const wx={s:{ray:100},m:{alt:40,clear:50},c:{lo:100,mi:0,hi:0}}; AlkyonBiteWx.applySat(wx); window.fetch=of;
+      const im=document.querySelector('.csattile img'), bar=document.querySelector('.csatbar');
+      return {west,east,far:far===null,fresh:fresh===undefined,light:wx.m.light,src:wx.m.src,asked:/time=2026-11-10T10:00:00Z/.test(asked)&&/srs=EPSG:4326/.test(asked),
+        tile:im?decodeURIComponent(im.src):'',bar:bar?bar.querySelector('.rbt i').textContent:'',radarBar:document.querySelectorAll('.rainbar:not(.csatbar)').length,cfg:JSON.parse(localStorage.getItem('alkyon-v4-map'))}; }""")
+    check('Δορυφόρος: μάσκα νεφών στο σημείο και προς το φεγγάρι (δυτικά καλυμμένο, ανατολικά ανοιχτό), εκτός κάλυψης/φρέσκο ψάρι, φως φεγγαριού με παρατήρηση· στρώμα «Σύννεφα (δορυφόρος)» με ώρα (1.14.67)',
+      sc['west']['pt']==1 and 40<=sc['west']['f']<=60 and sc['west']['ray']>=90 and sc['east']['ray']<=25 and sc['far'] and sc['fresh'] and sc['light']==7.5 and sc['src']=='sat' and sc['asked']
+      and 'mtg_fd:rgb_geocolour' in sc['tile'] and 'time=20' in sc['tile'] and sc['bar']=='Clouds · satellite' and not pg._errs, [sc,pg._errs]); c.close()
+
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)
     check('Οδηγός χωρίς καρτέλα Κόμποι (αφαιρέθηκε προσωρινά)', not pg.query_selector('#tab-guide .seg button[data-g=knots]') and not pg._errs, pg._errs); c.close()
