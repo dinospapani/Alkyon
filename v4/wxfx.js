@@ -15,6 +15,7 @@ var RC={bb:null,r:null,pb:null}; /* 1.6.1: ακτογραμμή για την τ
 /* 1.7.4: ακτογραμμή σε κάθε ζουμ από 7 (όχι μόνο ≥ 10), ώστε άνεμος/κύμα/νερό να κόβονται στην ακτή χωρίς «σκαλοπάτια».
    Αέρας πάνω στη στεριά (alkyon-v4-landwx): 'mid' (προεπιλογή, ~40%) · 'faint' (~15%) · 'full' (όπως το Windy). */
 function landWx(){ var v=B.ls.get('alkyon-v4-landwx','mid'); return v==='faint'||v==='full'?v:'mid'; }
+B.wxRedraw=function(){ later(40); };
 B.landWx=function(v){ if(v==null) return landWx(); B.ls.set('alkyon-v4-landwx',v); later(20); try{ window.dispatchEvent(new CustomEvent('alkyon-wxchange')); }catch(e){} };
 window.AlkyonLandWx=landWx;
 /* 1.8.4: η ακτογραμμή κρατιέται για μια μεγαλύτερη περιοχή (±0,5°) και ξαναχρησιμοποιείται όσο η θέα είναι μέσα της. Πριν, κάθε μικρή κίνηση
@@ -82,7 +83,8 @@ function farCheck(){ if(!RP||zooming||!fillCv||fillCv.style.opacity==='0') retur
 function later(ms){ clearTimeout(rt); rt=setTimeout(render,ms||120); }
 function render(){
   if(!ensure()) return; var sz=map.getSize(), dpr=Math.min(window.devicePixelRatio||1,2);
-  var mode=!mapOn()?'':seaOn()?'sea':windOn()?'wind':'';
+  /* 1.14.64: με ανοιχτή την πρόγνωση βροχής/νέφωσης ο άνεμος δείχνει μόνο τις λευκές γραμμές (το χρώμα είναι της βροχής), όπως με το κύμα */
+  var mode=!mapOn()?'':seaOn()?'sea':(windOn()&&!(B.fcLayerOn&&B.fcLayerOn()))?'wind':'';
   dashCv.width=Math.round(sz.x*dpr); dashCv.height=Math.round(sz.y*dpr); dashCv.style.width=sz.x+'px'; dashCv.style.height=sz.y+'px'; pin(dashCv);
   var ox=Math.round(sz.x*PADF), oy=Math.round(sz.y*PADF), FW=sz.x+2*ox, FH=sz.y+2*oy, fd=Math.min(dpr,1.25); FO=[ox,oy]; RP=map.containerPointToLayerPoint([0,0]);
   fillCv.width=Math.round(FW*fd); fillCv.height=Math.round(FH*fd); fillCv.style.width=FW+'px'; fillCv.style.height=FH+'px'; pinFill(); B.ovMark(map,fillCv,ox,oy);

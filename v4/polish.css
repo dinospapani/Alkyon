@@ -350,3 +350,8 @@ body.mapon:has(.rfcbar) .sstleg.sstleg{bottom:calc(var(--nav-h,64px) + var(--saf
 .rfcbar .rbt{flex:1 1 120px;min-width:0}
 .rfcbar .rbt small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .rfcbar input[type=range]{flex:0 1 104px;min-width:64px}
+
+/* ===== 1.14.64: σύννεφα (πρόγνωση), βροχή μαζί με άνεμο ===== */
+.rfcbar.sync .rbp,.rfcbar.sync input[type=range]{display:none}
+.rfcleg i.cl{color:#17242d;text-shadow:none;border:1px solid rgba(0,0,0,.12);border-left-width:0}
+.rfcleg i.cl:first-of-type{border-left-width:1px}
