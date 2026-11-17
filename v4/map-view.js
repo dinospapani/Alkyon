@@ -265,7 +265,7 @@ function rfcAt(h,lat,lon){ var D=rfc.data; if(!D) return null; var fy=(lat-D.s)/
 function rfcImg(h){ var ck=rfc.kind+h; if(rfc.url[ck]) return rfc.url[ck]; var D=rfc.data, W=176, c=document.createElement('canvas'); c.width=W; c.height=W; var x=c.getContext('2d'), im=x.createImageData(W,W), d=im.data, CF=rfc.kind==='cloud'?cldCol:rfcCol;
   var my=function(la){ return Math.log(Math.tan(Math.PI/4+la*Math.PI/360)); }, y1=my(D.n), y0=my(D.s);
   for(var py=0;py<W;py++){ var la=(2*Math.atan(Math.exp(y1+(y0-y1)*(py+.5)/W))-Math.PI/2)*180/Math.PI; /* γραμμές ίσες σε Mercator, ώστε η εικόνα να κάθεται σωστά στον χάρτη */
-    for(var px=0;px<W;px++){ var v=rfcAt(h,la,D.w+(D.e-D.w)*(px+.5)/W), col=CF(v); if(!col) continue; var o=(py*W+px)*4; d[o]=col[0]; d[o+1]=col[1]; d[o+2]=col[2]; d[o+3]=Math.round(col[3]*255); } }
+    for(var px=0;px<W;px++){ var v=rfcAt(h,la,D.w+(D.e-D.w)*(px+.5)/W), col=CF(v); if(!col) continue; var o=(py*W+px)*4; d[o]=col[0]; d[o+1]=col[1]; d[o+2]=col[2]; d[o+3]=Math.round(col[3]*255*Math.min(1,(Math.min(px,py,W-1-px,W-1-py)+1)/9)); } } /* 1.14.68: μαλακά άκρα, όχι κοφτό ορθογώνιο */
   x.putImageData(im,0,0); return (rfc.url[ck]=c.toDataURL('image/png')); }
 function rfcShow(i){ var D=rfc.data; if(!D||!map) return; rfc.i=i=Math.max(0,Math.min(D.t.length-1,i));
   var bb=[[D.s,D.w],[D.n,D.e]], u=rfcImg(i); if(!rfc.ov) rfc.ov=L.imageOverlay(u,bb,{opacity:.9,interactive:false,className:'rfcimg',attribution:'Open-Meteo'}).addTo(map); else { rfc.ov.setBounds(bb); rfc.ov.setUrl(u); }
@@ -274,7 +274,7 @@ function rfcShow(i){ var D=rfc.data; if(!D||!map) return; rfc.i=i=Math.max(0,Mat
   if(rfc.bar){ var d=new Date(D.t[i]), dn=EN?['Sun','Mon','Tue','Wed','Thu','Fri','Sat']:['Κυρ','Δευ','Τρί','Τετ','Πέμ','Παρ','Σάβ'], c=map.getCenter(), v=rfcAt(i,c.lat,c.lng), cq=Math.round((c.lat-D.s)/(D.n-D.s)*(RFN-1))*RFN+Math.round((c.lng-D.w)/(D.e-D.w)*(RFN-1));
     rfc.bar.classList.toggle('sync',rfcWind()); /* 1.14.64: με τον άνεμο ανοιχτό η ώρα ακολουθεί τη μπάρα του ανέμου */
     rfc.bar.querySelector('b').textContent=dn[d.getDay()]+' '+B.pad(d.getHours())+':00';
-    rfc.bar.querySelector('small').textContent=v==null?'':T('στο κέντρο: ','at the centre: ')+(rfc.kind==='cloud'?Math.round(v)+'%':(v<0.05?T('χωρίς βροχή','no rain'):B.num(v,1)+' mm/'+T('3ώρο','3 h'))+(th[cq]>=95?T(' · καταιγίδα',' · thunder'):''));
+    rfc.bar.querySelector('small').textContent=(v==null?'':T('στο κέντρο: ','at the centre: ')+(rfc.kind==='cloud'?Math.round(v)+'%':(v<0.05?T('χωρίς βροχή','no rain'):B.num(v,1)+' mm/'+T('3ώρο','3 h'))+(th[cq]>=95?T(' · καταιγίδα',' · thunder'):'')))+(rfc.busy?(v==null?'':' · ')+T('φόρτωση…','loading…'):'');
     var r=rfc.bar.querySelector('input'); if(r) r.value=String(i); } }
 function rfcIdxOf(ms){ var D=rfc.data, k=0; if(!D) return 0; D.t.forEach(function(t,j){ if(t<=ms) k=j; }); return k; }
 function rfcBarMake(){ var D=rfc.data, W0=window.AlkyonWindMap, wh=rfcWind()&&W0.hour&&W0.hour(), i0=rfcIdxOf(wh?Date.parse(wh+(/Z$/.test(wh)?'':':00Z')):Date.now()), cl=rfc.kind==='cloud';
@@ -291,11 +291,12 @@ function rfcBarMake(){ var D=rfc.data, W0=window.AlkyonWindMap, wh=rfcWind()&&W0
 function rfcLoad(){ if(!rfc.kind||!map) return; var q=rfcBounds(), key=[q.s,q.n,q.w,q.e].join(',');
   /* 1.14.63: νέο αίτημα μόνο όταν η θέα βγει από το πλέγμα, όταν ζουμάρεις πολύ μέσα του (για περισσότερη λεπτομέρεια) ή μετά από 45′· και όχι πιο συχνά από κάθε 20″ (όριο αιτημάτων του Open-Meteo) */
   if(rfc.data&&Date.now()-rfc.data.at<45*60e3){ var D0=rfc.data, vb=map.getBounds(), inside=vb.getSouth()>=D0.s&&vb.getNorth()<=D0.n&&vb.getWest()>=D0.w&&vb.getEast()<=D0.e, fine=(vb.getNorth()-vb.getSouth())>=0.4*(D0.n-D0.s)||(D0.n-D0.s)<=4.2; if(D0.key===key||(inside&&fine)){ if(!rfc.bar) rfcBarMake(); return; } }
-  if(rfc.last&&Date.now()-rfc.last<20000){ clearTimeout(rfc.T); rfc.T=setTimeout(rfcLoad,20000-(Date.now()-rfc.last)+200); return; } rfc.last=Date.now();
+  /* 1.14.68: έως 2 φορτώσεις το λεπτό (όριο Open-Meteo: 600 σημεία το λεπτό, μία φόρτωση = 289). Πριν περίμενε πάντα 20″, ακόμα και μετά την προφόρτωση, και έδειχνε για λίγο ένα μικρό ορθογώνιο */
+  var now=Date.now(); rfc.hist=(rfc.hist||[]).filter(function(t){ return now-t<61000; }); if(rfc.hist.length>=2){ clearTimeout(rfc.T); rfc.T=setTimeout(rfcLoad,61000-(now-rfc.hist[0])+200); return; } rfc.hist.push(now); rfc.last=now;
   var la=[], lo=[]; for(var j=0;j<RFN;j++) for(var i=0;i<RFN;i++){ la.push((q.s+(q.n-q.s)*j/(RFN-1)).toFixed(3)); lo.push((q.w+(q.e-q.w)*i/(RFN-1)).toFixed(3)); }
-  var id=++rfc.req, keepT=rfc.data?rfc.data.t[rfc.i]:null;
+  var id=++rfc.req, keepT=rfc.data?rfc.data.t[rfc.i]:null; rfc.busy=true; if(rfc.bar&&rfc.data) rfcShow(rfc.i);
   fetch('https://api.open-meteo.com/v1/forecast?latitude='+la.join(',')+'&longitude='+lo.join(',')+'&hourly=precipitation,weather_code,cloud_cover&past_hours=1&forecast_hours=74&timezone=UTC').then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }).then(function(arr){
-    if(id!==rfc.req||!rfc.kind||!map) return; arr=Array.isArray(arr)?arr:[arr]; if(arr.length<RFN*RFN||!arr[0].hourly) throw new Error('short');
+    if(id!==rfc.req||!rfc.kind||!map) return; rfc.busy=false; arr=Array.isArray(arr)?arr:[arr]; if(arr.length<RFN*RFN||!arr[0].hourly) throw new Error('short');
     var tt=arr[0].hourly.time.map(function(t){ return Date.parse(t+':00Z'); }), P=[], C=[], K=[];
     /* 1.14.63: άθροισμα 3 ωρών (η ώρα που δείχνει και οι δύο επόμενες), όπως το «Rain (3h)» του Windy· καταιγίδα αν υπάρχει σε κάποια από τις τρεις */
     var nh=tt.length-2; if(nh<1) throw new Error('short'); tt=tt.slice(0,nh);
@@ -303,7 +304,7 @@ function rfcLoad(){ if(!rfc.kind||!map) return; var q=rfcBounds(), key=[q.s,q.n,
     var had=!!rfc.bar; rfc.url={}; rfc.data={key:key,at:Date.now(),s:q.s,n:q.n,w:q.w,e:q.e,t:tt,p:P,c:C,k:K};
     if(rfc.pre){ rfc.pre=false; rfc.kind=null; return; } /* προφόρτωση: μόνο στη μνήμη, χωρίς να ανοίξει το στρώμα */
     if(!had) rfcBarMake(); else { var ki=keepT?tt.indexOf(keepT):-1; rfcShow(ki>=0?ki:rfc.i); }
-  }).catch(function(e){ if(id!==rfc.req) return; if(rfc.pre){ rfc.pre=false; rfc.kind=null; return; } if(rfc.data&&/429/.test(String(e&&e.message))) B.toast(T('Πολλά αιτήματα πρόγνωσης· δείχνω την προηγούμενη περιοχή. Δοκίμασε σε ένα λεπτό.','Too many forecast requests; showing the previous area. Try again in a minute.')); if(!rfc.data) { B.toast(T('Η πρόγνωση βροχής/νέφωσης δεν είναι διαθέσιμη τώρα (χρειάζεται σύνδεση).','The rain/cloud forecast isn’t available right now (needs a connection).')); cfg.rainfc=false; cfg.cloudfc=false; saveCfg(); rfc.kind=null; rfcStop(); } }); }
+  }).catch(function(e){ if(id!==rfc.req) return; rfc.busy=false; if(rfc.bar&&rfc.data) rfcShow(rfc.i); if(rfc.pre){ rfc.pre=false; rfc.kind=null; return; } if(rfc.data&&/429/.test(String(e&&e.message))) B.toast(T('Πολλά αιτήματα πρόγνωσης· δείχνω την προηγούμενη περιοχή. Δοκίμασε σε ένα λεπτό.','Too many forecast requests; showing the previous area. Try again in a minute.')); if(!rfc.data) { B.toast(T('Η πρόγνωση βροχής/νέφωσης δεν είναι διαθέσιμη τώρα (χρειάζεται σύνδεση).','The rain/cloud forecast isn’t available right now (needs a connection).')); cfg.rainfc=false; cfg.cloudfc=false; saveCfg(); rfc.kind=null; rfcStop(); } }); }
 function rfcMoved(){ if(!rfc.kind||!map) return; clearTimeout(rfc.T); rfc.T=setTimeout(function(){ rfcLoad(); if(rfc.data&&rfc.bar) rfcShow(rfc.i); },700); }
 /* 1.14.64: με τον άνεμο ανοιχτό, η βροχή/νέφωση δείχνει την ίδια ώρα με τη μπάρα του ανέμου (όπως στο Windy: χρώμα = βροχή, λευκές γραμμές = άνεμος) */
 window.addEventListener('alkyon-windhour',function(e){ if(!rfc.data||!rfc.bar) return; var t=e.detail&&e.detail.t; if(!t) return; var ms=Date.parse(t+(/Z$/.test(t)?'':':00Z')); if(isNaN(ms)) return; rfcShow(rfcIdxOf(ms)); });
@@ -329,7 +330,7 @@ function csatShow(i){ csat.i=i=Math.max(0,Math.min(csat.fr.length-1,i)); var ms=
   if(csat.bar){ var d=new Date(ms), ago=Math.round((Date.now()-ms)/60000); csat.bar.querySelector('b').textContent=B.pad(d.getHours())+':'+B.pad(d.getMinutes());
     csat.bar.querySelector('small').textContent=(ago>=120?T('πριν ','')+Math.round(ago/60)+T(' ώρες',' h ago'):T('πριν ','')+ago+T('′','′ ago'))+(csat.reg==='world'?T(' · υπέρυθρο, ανά 3 ώρες',' · infrared, every 3 h'):''); var r=csat.bar.querySelector('input'); if(r) r.value=String(i); } }
 function csatMake(){ csatStop(); if(!cfg.cloudsat||!map) return; var reg=csatReg(); csat.reg=reg; csat.fr=csatFrames(reg);
-  csat.l=L.tileLayer.wms('https://view.eumetsat.int/geoserver/ows',{layers:reg==='eu'?'mtg_fd:rgb_geocolour':'mumi:worldcloudmap_ir108',format:'image/png',transparent:true,version:'1.3.0',time:csatIso(csat.fr[csat.fr.length-1]),opacity:reg==='eu'?.92:.7,zIndex:255,maxZoom:19,className:'csattile',attribution:'© EUMETSAT'}).addTo(map);
+  csat.l=L.tileLayer.wms('https://view.eumetsat.int/geoserver/ows',{layers:reg==='eu'?'mtg_fd:rgb_geocolour':'mumi:worldcloudmap_ir108',format:'image/png',transparent:true,version:'1.3.0',time:csatIso(csat.fr[csat.fr.length-1]),opacity:reg==='eu'?.92:.7,zIndex:255,maxZoom:19,className:'csattile',attribution:'Contains modified EUMETSAT Meteosat data '+new Date().getFullYear()}).addTo(map);
   csat.bar=h('div',{class:'rainbar csatbar',role:'group','aria-label':T('Σύννεφα από δορυφόρο','Satellite clouds')},
     h('span',{class:'rbt'},h('i',{text:T('Σύννεφα · δορυφόρος','Clouds · satellite')}),h('b',{text:''}),h('small',{text:''})),
     h('input',{type:'range',min:'0',max:String(csat.fr.length-1),value:String(csat.fr.length-1),'aria-label':T('Ώρα εικόνας','Image time'),onchange:function(){ csatShow(+this.value); },oninput:function(){ var ms=csat.fr[+this.value], d=new Date(ms); csat.bar.querySelector('b').textContent=B.pad(d.getHours())+':'+B.pad(d.getMinutes()); }}),
