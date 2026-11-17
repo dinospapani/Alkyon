@@ -1792,6 +1792,18 @@ with sync_playwright() as p:
       sc['west']['pt']==1 and 40<=sc['west']['f']<=60 and sc['west']['ray']>=90 and sc['east']['ray']<=25 and sc['far'] and sc['fresh'] and sc['light']==7.5 and sc['src']=='sat' and sc['asked']
       and 'mtg_fd:rgb_geocolour' in sc['tile'] and 'time=20' in sc['tile'] and sc['bar']=='Clouds · satellite' and not pg._errs, [sc,pg._errs]); c.close()
 
+    print('# 1.14.69 νέα είδη στον Οδηγό')
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(2500)
+    pg.evaluate("()=>AK.guideGo('species','ghobban')"); pg.wait_for_timeout(4000)
+    g1=pg.evaluate("()=>{ const d=[...document.querySelectorAll('#spList details.sp')]; d.forEach(x=>x.open=true); return d.map(x=>x.innerText.replace(/\\s+/g,' ')).join(' || '); }")
+    pg.evaluate("()=>AK.guideGo('species','Plotosus')"); pg.wait_for_timeout(2500)
+    g2=pg.evaluate("()=>{ const d=[...document.querySelectorAll('#spList details.sp')]; d.forEach(x=>x.open=true); return d.map(x=>x.innerText.replace(/\\s+/g,' ')).join(' || '); }")
+    check('Οδηγός: Scarus ghobban (παπαγαλόψαρο) και θαλάσσιο γατόψαρο με κάρτα και προειδοποίηση (1.14.69)', 'Παπαγαλόψαρο' in g1 and '2010' in g1 and 'Θαλάσσιο γατόψαρο' in g2 and 'Αγκάθια' in g2 and not pg._errs, [g1[:300],g2[:300],pg._errs]); c.close()
+    c=ctx(b,lang='en'); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(2500)
+    pg.evaluate("()=>AK.guideGo('species','ghobban')"); pg.wait_for_timeout(4500)
+    g3=pg.evaluate("()=>{ const d=[...document.querySelectorAll('#spList details.sp')]; d.forEach(x=>x.open=true); return d.map(x=>x.innerText.replace(/\\s+/g,' ')).join(' || '); }")
+    check('Οδηγός στα αγγλικά: Blue-barred parrotfish χωρίς ελληνικά (1.14.69)', 'Blue-barred parrotfish' in g3 and 'Red Sea species' in g3 and 'Παπαγαλόψαρο' not in g3 and not pg._errs, [g3[:400],pg._errs]); c.close()
+
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)
     check('Οδηγός χωρίς καρτέλα Κόμποι (αφαιρέθηκε προσωρινά)', not pg.query_selector('#tab-guide .seg button[data-g=knots]') and not pg._errs, pg._errs); c.close()
