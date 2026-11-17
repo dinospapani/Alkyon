@@ -245,6 +245,54 @@ function rainDom(force){
     rainFr=fr.map(function(f){ return {time:tm(f.t)}; });
     rainL=fr.map(function(f){ return L.imageOverlay(DOMR+f.img,j.bounds,{opacity:0,interactive:false,className:'raintile domradar',attribution:T('Ραντάρ: Τμήμα Μετεωρολογίας Κύπρου','Radar: Cyprus Department of Meteorology')}).addTo(map); });
     rainBarMake(); return true; }); }
+/* ===== 1.14.62: Βροχή και καταιγίδες, πρόγνωση (όπως το «Rain, thunder» του Windy) =====
+   Ξεχωριστό από το ραντάρ: το ραντάρ δείχνει τι έπεσε τις τελευταίες 2 ώρες, αυτό τι προβλέπεται τις επόμενες 72.
+   Πλέγμα 11×11 από το Open-Meteo (βροχή mm/ώρα και κωδικός καιρού), χρώμα με παρεμβολή, ⚡ όπου ο κωδικός είναι καταιγίδα (95–99).
+   Ραντάρ και πρόγνωση δεν δείχνονται μαζί (ίδια θέση μπάρας): όποιο ανάψει, σβήνει το άλλο. */
+var rfc={bar:null,ov:null,mk:null,data:null,i:0,t:null,play:false,url:{},req:0,T:0}, RFN=11;
+var RFSTOPS=[[0.1,[120,170,235],0],[0.3,[105,160,235],.42],[1.5,[62,120,220],.62],[2,[52,150,205],.68],[3,[52,170,150],.72],[7,[110,190,70],.76],[10,[222,196,58],.8],[20,[226,110,50],.84],[30,[190,60,160],.88]];
+function rfcCol(mm){ if(!(mm>=0.1)) return null; var S=RFSTOPS, k=S.length-1; if(mm>=S[k][0]) return [S[k][1][0],S[k][1][1],S[k][1][2],S[k][2]];
+  for(var i=1;i<S.length;i++){ if(mm<S[i][0]){ var a=S[i-1], b=S[i], t=(mm-a[0])/(b[0]-a[0]); return [a[1][0]+(b[1][0]-a[1][0])*t,a[1][1]+(b[1][1]-a[1][1])*t,a[1][2]+(b[1][2]-a[1][2])*t,a[2]+(b[2]-a[2])*t]; } } return null; }
+function rfcStop(){ clearInterval(rfc.t); rfc.t=null; clearTimeout(rfc.T); if(rfc.ov){ try{ map.removeLayer(rfc.ov); }catch(e){} rfc.ov=null; } if(rfc.mk){ try{ map.removeLayer(rfc.mk); }catch(e){} rfc.mk=null; } if(rfc.bar){ rfc.bar.remove(); rfc.bar=null; } rfc.url={}; }
+function rfcBounds(){ var b=map.getBounds().pad(0.35), s=b.getSouth(), n=b.getNorth(), w=b.getWest(), e=b.getEast(), qd=Math.max(0.25,Math.pow(2,Math.ceil(Math.log(Math.max(n-s,e-w)/4)/Math.LN2)));
+  return {s:Math.max(-80,Math.floor(s/qd)*qd),n:Math.min(80,Math.ceil(n/qd)*qd),w:Math.floor(w/qd)*qd,e:Math.ceil(e/qd)*qd}; }
+function rfcAt(h,lat,lon){ var D=rfc.data; if(!D) return null; var fy=(lat-D.s)/(D.n-D.s)*(RFN-1), fx=(lon-D.w)/(D.e-D.w)*(RFN-1); if(fy<0||fx<0||fy>RFN-1||fx>RFN-1) return null;
+  var j=Math.min(RFN-2,Math.floor(fy)), i=Math.min(RFN-2,Math.floor(fx)), ty=fy-j, tx=fx-i, P=D.p[h], q=j*RFN+i; return P[q]*(1-tx)*(1-ty)+P[q+1]*tx*(1-ty)+P[q+RFN]*(1-tx)*ty+P[q+RFN+1]*tx*ty; }
+function rfcImg(h){ if(rfc.url[h]) return rfc.url[h]; var D=rfc.data, W=176, c=document.createElement('canvas'); c.width=W; c.height=W; var x=c.getContext('2d'), im=x.createImageData(W,W), d=im.data;
+  var my=function(la){ return Math.log(Math.tan(Math.PI/4+la*Math.PI/360)); }, y1=my(D.n), y0=my(D.s);
+  for(var py=0;py<W;py++){ var la=(2*Math.atan(Math.exp(y1+(y0-y1)*(py+.5)/W))-Math.PI/2)*180/Math.PI; /* γραμμές ίσες σε Mercator, ώστε η εικόνα να κάθεται σωστά στον χάρτη */
+    for(var px=0;px<W;px++){ var v=rfcAt(h,la,D.w+(D.e-D.w)*(px+.5)/W), col=rfcCol(v); if(!col) continue; var o=(py*W+px)*4; d[o]=col[0]; d[o+1]=col[1]; d[o+2]=col[2]; d[o+3]=Math.round(col[3]*255); } }
+  x.putImageData(im,0,0); return (rfc.url[h]=c.toDataURL('image/png')); }
+function rfcShow(i){ var D=rfc.data; if(!D||!map) return; rfc.i=i=Math.max(0,Math.min(D.t.length-1,i));
+  var bb=[[D.s,D.w],[D.n,D.e]], u=rfcImg(i); if(!rfc.ov) rfc.ov=L.imageOverlay(u,bb,{opacity:.9,interactive:false,className:'rfcimg',attribution:'Open-Meteo'}).addTo(map); else { rfc.ov.setBounds(bb); rfc.ov.setUrl(u); }
+  if(rfc.mk) rfc.mk.clearLayers(); else rfc.mk=L.layerGroup().addTo(map);
+  var th=D.c[i], n=0; for(var q=0;q<RFN*RFN&&n<40;q++) if(th[q]>=95){ n++; L.marker([D.s+(D.n-D.s)*Math.floor(q/RFN)/(RFN-1),D.w+(D.e-D.w)*(q%RFN)/(RFN-1)],{interactive:false,keyboard:false,icon:L.divIcon({className:'rfcth',html:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h6l-1 8 9-12h-6z"/></svg>',iconSize:[22,22],iconAnchor:[11,11]})}).addTo(rfc.mk); }
+  if(rfc.bar){ var d=new Date(D.t[i]), dn=EN?['Sun','Mon','Tue','Wed','Thu','Fri','Sat']:['Κυρ','Δευ','Τρί','Τετ','Πέμ','Παρ','Σάβ'], c=map.getCenter(), v=rfcAt(i,c.lat,c.lng), cq=Math.round((c.lat-D.s)/(D.n-D.s)*(RFN-1))*RFN+Math.round((c.lng-D.w)/(D.e-D.w)*(RFN-1));
+    rfc.bar.querySelector('b').textContent=dn[d.getDay()]+' '+B.pad(d.getHours())+':00';
+    rfc.bar.querySelector('small').textContent=v==null?'':T('στο κέντρο: ','at the centre: ')+(v<0.05?T('χωρίς βροχή','no rain'):B.num(v,1)+' mm/'+T('ώρα','h'))+(th[cq]>=95?T(' · καταιγίδα',' · thunder'):'');
+    var r=rfc.bar.querySelector('input'); if(r) r.value=String(i); } }
+function rfcBarMake(){ var D=rfc.data, now=Date.now(), i0=0; D.t.forEach(function(t,k){ if(t<=now) i0=k; });
+  rfc.play=false;
+  rfc.bar=h('div',{class:'rainbar rfcbar',role:'group','aria-label':T('Πρόγνωση βροχής','Rain forecast')},
+    h('button',{type:'button',class:'rbp','aria-label':T('Αναπαραγωγή/παύση','Play/pause'),text:'▶',onclick:function(){ rfc.play=!rfc.play; this.textContent=rfc.play?'❚❚':'▶'; }}),
+    h('span',{class:'rbt'},h('i',{text:T('Βροχή · πρόγνωση','Rain · forecast')}),h('b',{text:''}),h('small',{text:''})),
+    h('input',{type:'range',min:'0',max:String(D.t.length-1),value:String(i0),'aria-label':T('Ώρα πρόγνωσης','Forecast time'),oninput:function(){ rfc.play=false; rfc.bar.querySelector('.rbp').textContent='▶'; rfcShow(+this.value); }}),
+    h('button',{type:'button',class:'rbx','aria-label':T('Κλείσιμο','Close'),text:'✕',onclick:function(){ cfg.rainfc=false; saveCfg(); rfcStop(); }}),
+    h('div',{class:'rfcleg','aria-hidden':'true',html:'<span>mm/'+T('ώρα','h')+'</span>'+[0.3,1.5,3,7,10,20,30].map(function(m){ var c=rfcCol(m); return '<i style="background:rgb('+c.slice(0,3).map(Math.round).join(',')+')">'+m+'</i>'; }).join('')+'<em><svg viewBox="0 0 24 24"><path d="M13 2L4 14h6l-1 8 9-12h-6z"/></svg>'+T('καταιγίδα','thunder')+'</em>'}));
+  document.body.append(rfc.bar); rfcShow(i0);
+  rfc.t=setInterval(function(){ if(!rfc.play||!rfc.data) return; rfcShow((rfc.i+1)%rfc.data.t.length); },650); }
+function rfcLoad(){ if(!cfg.rainfc||!map) return; var q=rfcBounds(), key=[q.s,q.n,q.w,q.e].join(','); if(rfc.data&&rfc.data.key===key&&Date.now()-rfc.data.at<45*60e3) return;
+  var la=[], lo=[]; for(var j=0;j<RFN;j++) for(var i=0;i<RFN;i++){ la.push((q.s+(q.n-q.s)*j/(RFN-1)).toFixed(3)); lo.push((q.w+(q.e-q.w)*i/(RFN-1)).toFixed(3)); }
+  var id=++rfc.req, keepT=rfc.data?rfc.data.t[rfc.i]:null;
+  fetch('https://api.open-meteo.com/v1/forecast?latitude='+la.join(',')+'&longitude='+lo.join(',')+'&hourly=precipitation,weather_code&past_hours=1&forecast_hours=72&timezone=UTC').then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }).then(function(arr){
+    if(id!==rfc.req||!cfg.rainfc||!map) return; arr=Array.isArray(arr)?arr:[arr]; if(arr.length<RFN*RFN||!arr[0].hourly) throw new Error('short');
+    var tt=arr[0].hourly.time.map(function(t){ return Date.parse(t+':00Z'); }), P=[], C=[];
+    for(var hh=0;hh<tt.length;hh++){ var pp=new Float32Array(RFN*RFN), cc=new Uint8Array(RFN*RFN); for(var k=0;k<RFN*RFN;k++){ var H=arr[k].hourly; pp[k]=+H.precipitation[hh]||0; cc[k]=+H.weather_code[hh]||0; } P.push(pp); C.push(cc); }
+    var had=!!rfc.bar; rfc.url={}; rfc.data={key:key,at:Date.now(),s:q.s,n:q.n,w:q.w,e:q.e,t:tt,p:P,c:C};
+    if(!had) rfcBarMake(); else { var ki=keepT?tt.indexOf(keepT):-1; rfcShow(ki>=0?ki:rfc.i); }
+  }).catch(function(e){ if(id!==rfc.req) return; if(!rfc.data) { B.toast(T('Η πρόγνωση βροχής δεν είναι διαθέσιμη τώρα (χρειάζεται σύνδεση).','The rain forecast isn’t available right now (needs a connection).')); cfg.rainfc=false; saveCfg(); rfcStop(); } }); }
+function rfcMoved(){ if(!cfg.rainfc||!map) return; clearTimeout(rfc.T); rfc.T=setTimeout(function(){ rfcLoad(); if(rfc.data&&rfc.bar) rfcShow(rfc.i); },700); }
+function drawRainFc(){ if(!cfg.rainfc||!map){ rfcStop(); rfc.data=null; return; } if(rfc.bar&&rfc.data) return; rfcStop(); rfcLoad(); }
 /* 1.12.11: η πηγή ραντάρ αλλάζει όταν μετακινείς τον χάρτη μέσα ή έξω από την Κύπρο (πριν έμενε αυτή που διαλέχτηκε στο άνοιγμα) */
 var rainSrcT=0; function rainAuto(){ if(!cfg.rain||!map) return; clearTimeout(rainSrcT); rainSrcT=setTimeout(function(){ var rs=ls.get('alkyon-v4-rainsrc','auto'), want=(rs!=='rv'&&inCyR())?'dom':'rv'; if(want!==rainSrc&&!(want==='dom'&&rainDom.stale&&Date.now()-rainDom.stale<600000)) drawRain(); },800); }
 function drawRain(){ rainStop(); if(!cfg.rain||!map) return;
@@ -253,7 +301,7 @@ function drawRain(){ rainStop(); if(!cfg.rain||!map) return;
 function drawOverlays(){
   if(!map) return;
   Object.keys(ov).forEach(function(k){ if(ov[k]){ map.removeLayer(ov[k]); ov[k]=null; } });
-  drawSat(); drawRain(); if(B.seaRep) B.seaRep.draw(map); /* 1.9.17 */
+  drawSat(); drawRain(); drawRainFc(); if(B.seaRep) B.seaRep.draw(map); /* 1.9.17 */
   if(damZ!==map){ damZ=map; map.on('zoomend',function(){ if(cfg.dams&&ov.dams&&damPut) damPut(); }); }
   /* 1.11.4: το επίπεδο EMODnet «Προστατευόμενες» αφαιρέθηκε */
   if(cfg.zones&&(window.ZONES||window.ZONES_GR)){ ov.zones=L.layerGroup(); (window.ZONES||[]).forEach(function(z){ zonePoly(z,'cy').addTo(ov.zones); }); (window.ZONES_GR||[]).forEach(function(z){ zonePoly(z,'gr').addTo(ov.zones); }); ov.zones.addTo(map); }
@@ -697,7 +745,7 @@ function tapZoom(m,el){
     else if(s0.drag) m.setZoomAround(s0.p,Math.round(m.getZoom()),{animate:true}); else m.setZoomAround(s0.p,Math.min(m.getMaxZoom(),Math.round(m.getZoom())+1)); },{passive:false});
   m.on('dblclick',function(e){ if(Date.now()-done<900) return; var oe=e.originalEvent; if(oe&&oe.sourceCapabilities&&oe.sourceCapabilities.firesTouchEvents) return; m.setZoomAround(e.containerPoint,m.getZoom()+(oe&&oe.shiftKey?-1:1)); });
 }
-var LIC={relief:'<svg viewBox="0 0 24 24"><path d="M2 18l5-7 4 4 3-5 8 8z"/><path d="M7 11l2 5M14 10l-1 6"/></svg>',band:'<svg viewBox="0 0 24 24"><path d="M3 6c3 2 6 2 9 0s6-2 9 0"/><path d="M3 11c3 2 6 2 9 0s6-2 9 0"/><path d="M3 16c3 2 6 2 9 0s6-2 9 0"/><path d="M3 8.5h18v5H3z" fill="currentColor" opacity=".25" stroke="none"/></svg>',shoal:'<svg viewBox="0 0 24 24"><path d="M2 8c2-1.3 4-1.3 6 0s4 1.3 6 0 4-1.3 6 0"/><path d="M5 19l4-6 3 3 2-3 5 6z"/><path d="M12 2v3"/></svg>',mydepth:'<svg viewBox="0 0 24 24"><path d="M3 5h18"/><path d="M4 9l3 3 3-2 4 4 3-3 3 2"/><path d="M5 16h2M10 18h2M15 17h2M19 19h1"/></svg>',srep:'<svg viewBox="0 0 24 24"><path d="M2 10c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2M2 16c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2"/><circle cx="19" cy="4.5" r="2.2"/></svg>',rain:'<svg viewBox="0 0 24 24"><path d="M7 15a5 5 0 1 1 1.6-9.7A6 6 0 0 1 20 9a4 4 0 0 1-2 7.5"/><path d="M8 18l-1 3M12 18l-1 3M16 18l-1 3"/></svg>',best:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1" fill="currentColor"/><path d="M12 1v3M12 20v3M1 12h3M20 12h3"/></svg>',chl:'<svg viewBox="0 0 24 24"><circle cx="7" cy="8" r="2.2"/><circle cx="15" cy="6" r="1.6"/><circle cx="12" cy="13" r="2.6"/><circle cx="18" cy="14" r="1.8"/><circle cx="8" cy="17" r="1.6"/></svg>',sats:'<svg viewBox="0 0 24 24"><path d="M4 18l4-4M10 8l6 6M7 11l6-6 6 6-6 6z"/><path d="M3 21c2 0 3-1 3-3"/></svg>',sst:'<svg viewBox="0 0 24 24"><path d="M10 13.5V5a2 2 0 0 1 4 0v8.5a4 4 0 1 1-4 0z"/><path d="M17 7h3M17 11h3"/></svg>',heat:'<svg viewBox="0 0 24 24"><path d="M12 3c2 3.5 6 6.2 6 11a6 6 0 0 1-12 0c0-3 1.6-4.9 3-6.5.3 2 1.4 3.2 2.7 3.6C11.3 8.6 11 5.7 12 3z"/></svg>',gear:'<svg viewBox="0 0 24 24"><path d="M3 7h18M3 12h18M3 17h18M7 4v16M12 4v16M17 4v16"/></svg>',
+var LIC={rainfc:'<svg viewBox="0 0 24 24"><path d="M7 14a5 5 0 1 1 1.6-9.7A6 6 0 0 1 20 8a4 4 0 0 1-2 7.5"/><path d="M12.5 11l-3 5h3l-1.5 5"/></svg>',relief:'<svg viewBox="0 0 24 24"><path d="M2 18l5-7 4 4 3-5 8 8z"/><path d="M7 11l2 5M14 10l-1 6"/></svg>',band:'<svg viewBox="0 0 24 24"><path d="M3 6c3 2 6 2 9 0s6-2 9 0"/><path d="M3 11c3 2 6 2 9 0s6-2 9 0"/><path d="M3 16c3 2 6 2 9 0s6-2 9 0"/><path d="M3 8.5h18v5H3z" fill="currentColor" opacity=".25" stroke="none"/></svg>',shoal:'<svg viewBox="0 0 24 24"><path d="M2 8c2-1.3 4-1.3 6 0s4 1.3 6 0 4-1.3 6 0"/><path d="M5 19l4-6 3 3 2-3 5 6z"/><path d="M12 2v3"/></svg>',mydepth:'<svg viewBox="0 0 24 24"><path d="M3 5h18"/><path d="M4 9l3 3 3-2 4 4 3-3 3 2"/><path d="M5 16h2M10 18h2M15 17h2M19 19h1"/></svg>',srep:'<svg viewBox="0 0 24 24"><path d="M2 10c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2M2 16c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2"/><circle cx="19" cy="4.5" r="2.2"/></svg>',rain:'<svg viewBox="0 0 24 24"><path d="M7 15a5 5 0 1 1 1.6-9.7A6 6 0 0 1 20 9a4 4 0 0 1-2 7.5"/><path d="M8 18l-1 3M12 18l-1 3M16 18l-1 3"/></svg>',best:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1" fill="currentColor"/><path d="M12 1v3M12 20v3M1 12h3M20 12h3"/></svg>',chl:'<svg viewBox="0 0 24 24"><circle cx="7" cy="8" r="2.2"/><circle cx="15" cy="6" r="1.6"/><circle cx="12" cy="13" r="2.6"/><circle cx="18" cy="14" r="1.8"/><circle cx="8" cy="17" r="1.6"/></svg>',sats:'<svg viewBox="0 0 24 24"><path d="M4 18l4-4M10 8l6 6M7 11l6-6 6 6-6 6z"/><path d="M3 21c2 0 3-1 3-3"/></svg>',sst:'<svg viewBox="0 0 24 24"><path d="M10 13.5V5a2 2 0 0 1 4 0v8.5a4 4 0 1 1-4 0z"/><path d="M17 7h3M17 11h3"/></svg>',heat:'<svg viewBox="0 0 24 24"><path d="M12 3c2 3.5 6 6.2 6 11a6 6 0 0 1-12 0c0-3 1.6-4.9 3-6.5.3 2 1.4 3.2 2.7 3.6C11.3 8.6 11 5.7 12 3z"/></svg>',gear:'<svg viewBox="0 0 24 24"><path d="M3 7h18M3 12h18M3 17h18M7 4v16M12 4v16M17 4v16"/></svg>',
   sat:'<svg viewBox="0 0 24 24"><path d="M3 7l6-3 6 3 6-3v13l-6 3-6-3-6 3z"/><path d="M9 4v13M15 7v13"/></svg>',
   wind:'<svg viewBox="0 0 24 24"><path d="M3 8h11a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 16h8a3 3 0 1 1-3 3"/></svg>',
   wave:'<svg viewBox="0 0 24 24"><path d="M2 8c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2"/><path d="M2 13c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2"/><path d="M2 18c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2"/></svg>',
@@ -747,7 +795,8 @@ function layersSheet(o){ o=o&&o.into?o:{}; /* 1.7.4: o.into = μέσα στο μ
     tile('chl',T('Τροφή','Food'),T('χλωροφύλλη, δορυφόρος','chlorophyll, satellite'),function(){ return !!cfg.chl; },function(v){ cfg.chl=v; saveCfg(); drawSat(); if(v) setTimeout(function(){ satNote('chl'); },900); }),
     B.mydepth||B.sounder?tile('mydepth',T('Ο βυθός μου','My depths'),T('από το βυθόμετρό σου','from your sounder'),function(){ return !!(B.mydepth&&B.mydepth.on()); },function(v){ if(B.mydepth) B.mydepth.set(v); }):null, /* 1.10.12 */
     tile('depth',T('Δομή βυθού','Seabed'),T('drop-offs, υψώματα','drop-offs, rises'),function(){ return !!(B.seabed&&B.seabed.on()); },function(v){ if(B.seabed) B.seabed.set(v); }),
-    tile('rain',T('Βροχή (ραντάρ)','Rain (radar)'),T('τελευταίες 2 ώρες, κινούμενο','last 2 hours, animated'),function(){ return !!cfg.rain; },function(v){ cfg.rain=v; saveCfg(); drawRain(); }),
+    tile('rain',T('Βροχή (ραντάρ)','Rain (radar)'),T('τελευταίες 2 ώρες, κινούμενο','last 2 hours, animated'),function(){ return !!cfg.rain; },function(v){ cfg.rain=v; if(v&&cfg.rainfc){ cfg.rainfc=false; drawRainFc(); } saveCfg(); drawRain(); }),
+    tile('rainfc',T('Βροχή, καταιγίδες','Rain, thunder'),T('πρόγνωση 3 ημερών','3-day forecast'),function(){ return !!cfg.rainfc; },function(v){ cfg.rainfc=v; if(v&&cfg.rain){ cfg.rain=false; rainStop(); } saveCfg(); drawRainFc(); }),
     B.seaRep?tile('srep',T('Αναφορές θάλασσας','Sea reports'),T('από ψαράδες, 6 ώρες','from anglers, 6 hours'),function(){ return B.seaRep.on(); },function(v){ B.seaRep.set(v); }):null, /* 1.9.17 */
     tile('st',T('Σταθμοί','Stations'),T('πραγματικές μετρήσεις','measured'),function(){ return pressed('bWindSt'); },setStations,!ready),
     o.into?null /* 1.8.1: στον καθαρό χάρτη η «κάρτα καιρού» είναι η μπάρα πάνω */:tile('card',T('Κάρτα καιρού','Weather card'),T('πάνω στον χάρτη','on the map'),function(){ return ls.get('alkyon-v4-mapwx',true)!==false; },function(v){ ls.set('alkyon-v4-mapwx',v); drawMw(); })]);
@@ -1120,7 +1169,7 @@ function mount(el){
     var p=B.lastPos(), v=ls.get('alkyon-v4-mapview',null);
     map=L.map(lmEl,{zoomControl:false,attributionControl:true,tap:true}).setView(v?[v.lat,v.lon]:(p?[p.lat,p.lon]:[35.0,33.2]),v?v.z:(p?12:9));
     drawBase(); drawData(); drawOverlays(); applyDepth(); applyPend(); locate(false); drawDirect(); if(cfg.cur) currents(true);
-    map.on('zoomend',function(){ drawData(); depthFade(); }); map.on('zoomend moveend',posCheckSoon); map.on('moveend',rainAuto); map.on('moveend',function(){ declutterSoon(); if(cfg.zones){ clearTimeout(zwT); zwT=setTimeout(drawWorldZones,400); } if(cfg.cur) currents(false); var c=map.getCenter(); ls.set('alkyon-v4-mapview',{lat:+c.lat.toFixed(5),lon:+c.lng.toFixed(5),z:map.getZoom()}); });
+    map.on('zoomend',function(){ drawData(); depthFade(); }); map.on('zoomend moveend',posCheckSoon); map.on('moveend',rainAuto); map.on('moveend',rfcMoved); map.on('moveend',function(){ declutterSoon(); if(cfg.zones){ clearTimeout(zwT); zwT=setTimeout(drawWorldZones,400); } if(cfg.cur) currents(false); var c=map.getCenter(); ls.set('alkyon-v4-mapview',{lat:+c.lat.toFixed(5),lon:+c.lng.toFixed(5),z:map.getZoom()}); });
     map.on('contextmenu',function(e){ try{ e.originalEvent&&e.originalEvent.preventDefault(); }catch(x){} pointMenu(e.latlng); });
     try{ tapZoom(map,lmEl); }catch(e){}
     try{ new MutationObserver(function(){ var n=document.documentElement.classList.contains('night'); if(n!==!!drawBase.night) drawBase(); }).observe(document.documentElement,{attributes:true,attributeFilter:['class']}); }catch(e){}

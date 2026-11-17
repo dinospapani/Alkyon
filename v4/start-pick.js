@@ -97,19 +97,21 @@ function hasData(){ try{ return ['bites','trips','spots','tackle'].some(function
 /* 1.12.3: γλώσσα στην πρώτη οθόνη (η προεπιλογή για νέους είναι Αγγλικά)· η σελίδα ξαναφορτώνει και η υποδοχή ξεκινά στη νέα γλώσσα */
 function langRow(){ var cur=B.LANG==='en'?'en':'el', box=h('div',{class:'splang',style:'margin:6px 4px 4px;color:rgba(255,255,255,.88);font:550 14.5px var(--font);display:flex;align-items:center;gap:6px;flex-wrap:wrap'});
   function b(v,t){ return h('button',{type:'button',class:'lnk','aria-pressed':String(cur===v),style:cur===v?'font-weight:700;text-decoration:none':null,text:t,onclick:function(){ if(v===cur) return; try{ localStorage.setItem('alkyon-lang',v); }catch(e){} location.reload(); }}); }
-  box.append(h('span',{text:'🌐 '}),b('en','English'),h('span',{text:' · '}),b('el','Ελληνικά'));
-  return box; }
+  /* 1.14.62: φαίνεται μόνο για Κύπρο/Ελλάδα (χώρα ή θέση)· ξαναελέγχεται όταν αλλάξει η χώρα ή βρεθεί η θέση */
+  function paint(){ box.replaceChildren(); var ok=!B.langChoice||B.langChoice(); box.hidden=!ok; box.style.display=ok?'flex':'none'; if(!ok) return;
+    box.append(h('span',{text:T('Γλώσσα: ','Language: ')}),b('en','English'),h('span',{text:' · '}),b('el','Ελληνικά')); }
+  paint(); langRow.paint=paint; return box; }
 function country(){
   var box=h('div',{class:'spctry'}), open=false, busy=false, failed=false;
   /* 1.13.8: όταν γυρνάς από τις ρυθμίσεις του κινητού (π.χ. άνοιξες την τοποθεσία), ξαναδοκιμάζει μόνο του και μένεις στο ίδιο σημείο */
   document.addEventListener('visibilitychange',function(){ if(document.hidden||!failed||!box.isConnected) return; var p0=ls.get('alkyon-v4-pos',null); if(p0&&typeof p0.lat==='number') return; busy=true; paint(); B.locate(9000).then(function(p){ busy=false; if(p){ failed=false; open=false; ls.set('alkyon-country','auto'); } paint(); }); });
   function paint(){ var set=ls.get('alkyon-country','auto'), p=ls.get('alkyon-v4-pos',null), known=p&&typeof p.lat==='number', reg=known&&B.region?(B.region(p.lat,p.lon)||'xx'):null;
-    box.replaceChildren();
+    box.replaceChildren(); if(langRow.paint) langRow.paint();
     if(!open&&(set!=='auto'||known)){ var nm=set!=='auto'?B.countryName(set):reg==='xx'?T('αυτόματα, από τη θέση σου','automatic, from your location'):B.countryName(reg)+T(' (από τη θέση σου)',' (from your location)');
       box.append(h('span',{text:T('Χώρα: ','Country: ')+nm+' '}),h('button',{type:'button',class:'lnk',text:T('Αλλαγή','Change'),onclick:function(){ open=true; paint(); }})); return; }
     var row=h('div',{class:'row'});
     if(!known) row.append(h('button',{type:'button',class:'loc',disabled:busy,text:busy?T('Αναζήτηση θέσης…','Finding location…'):T('Χρήση της θέσης μου','Use my location'),onclick:function(){ busy=true; paint(); B.locate(9000).then(function(p){ busy=false; if(p){ open=false; failed=false; ls.set('alkyon-country','auto'); } else failed=true; paint(); }); }}));
-    row.append(B.countrySelect(set,function(v){ ls.set('alkyon-country',v); }));
+    row.append(B.countrySelect(set,function(v){ ls.set('alkyon-country',v); if(langRow.paint) langRow.paint(); }));
     if(failed&&!busy) row.append(h('small',{class:'wn',text:T('Δεν βρέθηκε η θέση. Άνοιξε την Τοποθεσία στο κινητό και δώσε άδεια στο Alkyon (Ρυθμίσεις › Εφαρμογές › Alkyon › Άδειες), μετά γύρνα εδώ: συνεχίζεις από το ίδιο σημείο. Ή διάλεξε χώρα από τη λίστα.','Location not found. Turn on Location on your phone and allow Alkyon (Settings › Apps › Alkyon › Permissions), then come back: you continue from the same place. Or pick a country from the list.')}));
     box.append(h('span',{text:T('Σε ποια χώρα ψαρεύεις;','Which country do you fish in?')}),row,h('small',{text:T('Για τους νόμους στον Οδηγό. Οι ζώνες απαγόρευσης στον χάρτη ακολουθούν πάντα το μέρος που βλέπεις. Αλλαγή: Προφίλ › Ρυθμίσεις › Χώρα.','For the laws in the Guide. No-fishing zones on the map always follow the place you look at. Change: Profile › Settings › Country.')})); }
   paint(); return box; }

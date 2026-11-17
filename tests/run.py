@@ -1462,7 +1462,7 @@ with sync_playwright() as p:
     sp3=pg.evaluate("()=>[!!document.querySelector('.sppage'),location.hash,!!(history.state&&history.state.spk)]")
     check('Είσοδος: «Συνέχεια» ορατό σε μικρή οθόνη, «πίσω» την κλείνει, «Συνέχεια» δεν αφήνει νεκρό «πίσω» (1.12.22)', sp1==[True,True] and sp2==[False,'#map'] and sp3==[False,'#map',False], [sp1,sp2,sp3])
     c.close()
-    c=b.new_context(viewport={'width':411,'height':740}); pg=page(c); pg.goto(BASE+'/v4/'); pg.wait_for_timeout(2500)
+    c=b.new_context(viewport={'width':411,'height':740}); c.add_init_script("localStorage.setItem('alkyon-country',JSON.stringify('cy'))"); pg=page(c); pg.goto(BASE+'/v4/'); pg.wait_for_timeout(2500)   # 1.14.62: η γλώσσα φαίνεται μόνο για Κύπρο/Ελλάδα
     tb=pg.evaluate("()=>{const r=[AK.backHook()]; document.querySelector('.sppage .spgo').click(); r.push(document.querySelectorAll('.obd i')[1].className==='on'); r.push(AK.backHook()); r.push(document.querySelectorAll('.obd i')[0].className==='on'); const l=document.querySelector('.splang .lnk'); r.push(l?getComputedStyle(l).backgroundColor:''); return r}")
     check('Καλωσόρισμα: «πίσω» της εφαρμογής = ένα βήμα πίσω, στο πρώτο βήμα όχι· κουμπιά γλώσσας χωρίς λευκό κουτί (1.12.22)', tb[:4]==[False,True,True,True] and tb[4] in ('rgba(0, 0, 0, 0)','transparent'), tb)
     c.close()
@@ -1749,6 +1749,24 @@ with sync_playwright() as p:
     cm=pg.evaluate("()=>{ const el=AK.commonCard(); return [...el.querySelectorAll('.cmhd')].map(x=>x.textContent.replace(/\\s+/g,' ').trim()); }")
     rj=open(os.path.join(ROOT,'ruler.js'),encoding='utf-8').read(); mv=open(os.path.join(ROOT,'v4','map-view.js'),encoding='utf-8').read()
     check('Πρόσκληση ?join=1 ανοίγει «Βοήθησε την πρόγνωση»· ορφός 1 kg μετρά στα μεγάλα ψάρια, χάννος 3 kg όχι· λεζάντες στον χάρακα (1.14.60)', j[0]=='Help the forecast' and j[1] is False and j[2] and len(cm)==2 and cm[0].startswith('Big fish (groupers') and cm[0].endswith('2 days') and cm[1].startswith('Other fish') and cm[1].endswith('3 days') and "T('Αναίρεση','Undo')" in rj and 'AK.crossLL' in mv and 'var has=new Uint8Array(16384)' in mv and not pg._errs, [j,cm,pg._errs]); c.close()
+
+    print('# 1.14.62 γλώσσα μόνο για Κύπρο/Ελλάδα, πρόγνωση βροχής, κύμα εκτός στεριάς')
+    def lrow(country,pos):
+        c=ctx(b,lang='en'); c.add_init_script("localStorage.setItem('alkyon-country',JSON.stringify('%s'));%s"%(country,("localStorage.setItem('alkyon-v4-pos',JSON.stringify(%s));"%pos) if pos else "localStorage.removeItem('alkyon-v4-pos');"))
+        pg=page(c); pg.goto(BASE+'/v4/#profile'); pg.wait_for_timeout(2200)
+        pg.evaluate("()=>{const b=[...document.querySelectorAll('.seg button')].find(x=>/Settings/.test(x.textContent)); b&&b.click()}"); pg.wait_for_timeout(900)
+        r=pg.evaluate("()=>[[...document.querySelectorAll('main .li b')].some(b=>/^Language/.test(b.textContent)), [...document.querySelectorAll('main .listh')].map(x=>x.textContent).filter(x=>/Appearance/.test(x)).join(), AK.langChoice()]"); e=pg._errs; c.close(); return r+[e]
+    l1=lrow('xx','{lat:43.3,lon:5.3}'); l2=lrow('cy',None); l3=lrow('auto','{lat:37.9,lon:23.7}')
+    c=ctx(b,lang='en'); c.add_init_script("if(!sessionStorage.__u){sessionStorage.__u=1; localStorage.removeItem('alkyon-onboard'); localStorage.removeItem('alkyon-bites'); localStorage.removeItem('alkyon-country'); localStorage.removeItem('alkyon-v4-pos');}")
+    pg=page(c); pg.goto(BASE+'/v4/'); pg.wait_for_timeout(3000)
+    t0=pg.evaluate("()=>{ const l=document.querySelector('.sppage .splang'); return l?[getComputedStyle(l).display!=='none', /Ελλην/.test(document.querySelector('.sppage').textContent)]:null; }")
+    pg.evaluate("()=>{ const b=[...document.querySelectorAll('.sppage .spctry button')].find(x=>/Change/.test(x.textContent)); b&&b.click(); const s=document.querySelector('.sppage select.ctrysel'); s.value='gr'; s.dispatchEvent(new Event('change',{bubbles:true})); }"); pg.wait_for_timeout(500)
+    t1=pg.evaluate("()=>{ const l=document.querySelector('.sppage .splang'); return l?[getComputedStyle(l).display!=='none', /Ελληνικά/.test(l.textContent)]:null; }"); te=pg._errs; c.close()
+    mv=open(os.path.join(ROOT,'v4','map-view.js'),encoding='utf-8').read(); ss=open(os.path.join(ROOT,'seastate.js'),encoding='utf-8').read(); wm=open(os.path.join(ROOT,'windmap.js'),encoding='utf-8').read(); op=open(os.path.join(ROOT,'v4','opps.js'),encoding='utf-8').read()
+    check('Γλώσσα: η επιλογή φαίνεται μόνο για Κύπρο/Ελλάδα (Προφίλ και πρώτη οθόνη)· στρώμα «Βροχή, καταιγίδες»· κύμα όχι πάνω σε μακρινή στεριά· προφόρτωση· «Ανανέωση» εικονίδιο (1.14.62)',
+      l1[:3]==[False,'Appearance',False] and l2[:3]==[True,'Appearance and language',True] and l3[0] is True and not (l1[3] or l2[3] or l3[3])
+      and t0==[False,False] and t1==[True,True] and not te
+      and "tile('rainfc'" in mv and 'hourly=precipitation,weather_code' in mv and 'ML.isLand(la,lo)' in ss and 'loadRegion(b)' in ss and 'pxMem[u]' in wm and "class:'oprf'" in op, [l1,l2,l3,t0,t1,te]); 
 
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)

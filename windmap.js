@@ -192,9 +192,15 @@ var LABEL={ecmwf_ifs:'ECMWF 9 km',ecmwf_ifs025:'ECMWF 25 km',icon_eu:'ICON-EU 7 
 /* Κοινή μνήμη στο Supabase (συνάρτηση wind-grid): το πλέγμα έρχεται από εκεί, όχι από το Open-Meteo απευθείας, ώστε να μη γεμίζει το όριο αιτημάτων. */
 async function fetchPx(px,set){
   var u=(window.ALKYON_WIND_URL||(SUPA+'/functions/v1/wind-grid'))+'?s='+px.s.toFixed(3)+'&n='+px.n.toFixed(3)+'&w='+px.w.toFixed(3)+'&e='+px.e.toFixed(3)+'&N='+N+'&models='+set.join(',');
-  var ac=new AbortController(), tm=setTimeout(function(){ ac.abort(); },30000);
-  try{ var r=await fetch(u,{signal:ac.signal,headers:{apikey:SKEY,Authorization:'Bearer '+SKEY}}); if(!r.ok) throw new Error('HTTP '+r.status); var j=await r.json(); if(!j||!Array.isArray(j.data)||!Array.isArray(j.lat)||!Array.isArray(j.lon)||j.N!==N) throw new Error('badproxy'); return j; } finally{ clearTimeout(tm); }
+  /* 1.14.62: η ίδια απάντηση μένει 10′ στη μνήμη (και η προφόρτωση τη μοιράζεται με το πρώτο άνοιγμα του στρώματος) */
+  var mm=pxMem[u]; if(mm&&Date.now()-mm.t<600e3) return mm.p;
+  var pr=(async function(){ var ac=new AbortController(), tm=setTimeout(function(){ ac.abort(); },30000);
+    try{ var r=await fetch(u,{signal:ac.signal,headers:{apikey:SKEY,Authorization:'Bearer '+SKEY}}); if(!r.ok) throw new Error('HTTP '+r.status); var j=await r.json(); if(!j||!Array.isArray(j.data)||!Array.isArray(j.lat)||!Array.isArray(j.lon)||j.N!==N) throw new Error('badproxy'); return j; } finally{ clearTimeout(tm); } })();
+  pxMem[u]={t:Date.now(),p:pr}; pr.catch(function(){ if(pxMem[u]&&pxMem[u].p===pr) delete pxMem[u]; }); return pr;
 }
+var pxMem={};
+function qBounds(){ var b=map.getBounds().pad(0.6), s=b.getSouth(), n=b.getNorth(), w=b.getWest(), e=b.getEast();
+  var qd=Math.max(0.125,Math.pow(2,Math.ceil(Math.log(Math.max(n-s,e-w)/4)/Math.LN2))); return {s:Math.floor(s/qd)*qd,n:Math.ceil(n/qd)*qd,w:Math.floor(w/qd)*qd,e:Math.ceil(e/qd)*qd}; }
 /* 1.8.4: κοινό πλέγμα για τα νερά της Κύπρου, φτιαγμένο κάθε 3 ώρες από το GitHub (wind_build.py → κλαδί wind-data). Ένα αρχείο για όλους:
    χωρίς όριο αιτημάτων όσο κι αν μεγαλώσουν οι χρήστες. Αν λείπει ή είναι παλιό (> 8 ώρες), πάμε στον παλιό δρόμο. */
 var ST_URL=window.ALKYON_WIND_STATIC||'https://raw.githubusercontent.com/dinospapani/alkyon/wind-data/cy-wind.json', ST_BOX=[33.0,36.4,31.0,35.8], stMem=null;
@@ -363,5 +369,8 @@ setTimeout(function(){ var v=null; try{ v=localStorage.getItem('alkyon-wst'); }c
 /* 1.14.5: για το χρώμα στις άκρες (όσο σέρνεις, πριν φορτωθεί νέο πλέγμα): η τιμή του πιο κοντινού σημείου του πλέγματος */
 function sampleNear(lat,lon){ if(!grid) return null; var L1=grid.lat.length-1, O1=grid.lon.length-1, a=Math.min(grid.lat[0],grid.lat[L1]), b=Math.max(grid.lat[0],grid.lat[L1]), c=Math.min(grid.lon[0],grid.lon[O1]), d=Math.max(grid.lon[0],grid.lon[O1]); var la=Math.max(a+1e-6,Math.min(b-1e-6,lat)), lo=Math.max(c+1e-6,Math.min(d-1e-6,lon)); if(Math.abs(la-lat)>3||Math.abs(lo-lon)>3) return null; return sample(la,lo); }
 function sampleAll(lat,lon){ if(!grid) return []; var o=[]; grid.m.forEach(function(m){ var v=sampleSrc(m,hi,lat,lon); if(v) o.push({name:m.name,v:v}); }); return o; }
+/* 1.14.62: προφόρτωση του πλέγματος ανέμου μόλις ανοίξει ο Χάρτης, πριν πατηθεί «Άνεμος» ή «Κύμα» */
+setTimeout(function(){ if(on||grid) return; try{ if(navigator.onLine===false||(navigator.connection&&navigator.connection.saveData)) return;
+  var q=qBounds(); if(stInside(q.s,q.n,q.w,q.e)) stFetch().catch(function(){}); else fetchPx({s:q.s,n:q.n,w:q.w,e:q.e},SETS[0]).catch(function(){}); }catch(e){} },1200);
 window.AlkyonWindMap={start:start,stop:stop,show:show,shown:function(){ return on&&shown; },on:function(){ return on; },sample:sample,sampleNear:sampleNear,sampleAll:sampleAll,obs:function(lat,lon){ return obsAdj(lat,lon,hi); },clearTap:function(){ clearTap(true); },col:col,hour:function(){ return hours[hi]||null; },hours:function(){ return hours; },idx:function(){ return hi; },modelFetch:modelFetch,diffTxt:diffTxt};
 })();
