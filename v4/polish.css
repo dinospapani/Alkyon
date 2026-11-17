@@ -377,3 +377,5 @@ body.mapon.navslid .sstleg.sstleg{right:42px!important}
 body.mapon.navslid:has(.sheet.on) .navtab,body.mapon.navslid:has(.mcdrw.open) .navtab{display:none}
 body.mapon.navslid .rfcbar .rbt{flex:1 1 90px}
 body.mapon.navslid .rfcbar input[type=range]{flex:0 1 72px;min-width:56px}
+/* 1.14.74: το κουμπί ψαριού της εξόδου δεν πατάει πάνω στο βελάκι */
+body.mapon.navslid:not(:has(#ndMapDock:not([hidden]))) .fishbtns{bottom:calc(var(--safe-b,0px) + 84px)}
