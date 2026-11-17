@@ -1804,6 +1804,15 @@ with sync_playwright() as p:
     g3=pg.evaluate("()=>{ const d=[...document.querySelectorAll('#spList details.sp')]; d.forEach(x=>x.open=true); return d.map(x=>x.innerText.replace(/\\s+/g,' ')).join(' || '); }")
     check('Οδηγός στα αγγλικά: Blue-barred parrotfish χωρίς ελληνικά (1.14.69)', 'Blue-barred parrotfish' in g3 and 'Red Sea species' in g3 and 'Παπαγαλόψαρο' not in g3 and not pg._errs, [g3[:400],pg._errs]); c.close()
 
+    print('# 1.14.70 γνώμη: αποτυχία με λόγο και email')
+    c=ctx(b); pg=page(c); c.route('**/rest/v1/app_errors',lambda r: r.fulfill(status=503,body='{}'))
+    pg.goto(BASE+'/v4/#profile'); pg.wait_for_timeout(2500)
+    pg.evaluate("()=>[...document.querySelectorAll('main .seg button')].find(x=>/Ρυθμίσεις/.test(x.textContent)).click()"); pg.wait_for_timeout(600)
+    pg.evaluate("()=>[...document.querySelectorAll('main .li')].find(x=>/Πες μας/.test(x.textContent)).click()"); pg.wait_for_timeout(800)
+    pg.fill('.sheet.on textarea','Δοκιμή μηνύματος'); pg.click('.sheet.on .btn.pri'); pg.wait_for_timeout(1500)
+    fb=pg.evaluate("()=>{ const s=document.querySelector('.sheet.on'); return [s?s.querySelector('[role=status]').textContent:'', s?[...s.querySelectorAll('.btn')].map(x=>x.textContent):[], s?s.querySelector('.btn.pri').disabled:null]; }")
+    check('«Πες μας τη γνώμη σου»: σε αποτυχία γράφει τον λόγο (HTTP 503), μένει ανοιχτό και δείχνει «Αποστολή με email» (1.14.70)', 'HTTP 503' in fb[0] and 'Αποστολή με email' in fb[1] and fb[2] is False, fb); c.close()
+
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)
     check('Οδηγός χωρίς καρτέλα Κόμποι (αφαιρέθηκε προσωρινά)', not pg.query_selector('#tab-guide .seg button[data-g=knots]') and not pg._errs, pg._errs); c.close()

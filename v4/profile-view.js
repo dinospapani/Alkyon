@@ -133,7 +133,11 @@ function feedbackSheet(){ var sh, s=C()&&C().session&&C().session(), topic='idea
     if(!window.AlkyonErr||!window.AlkyonErr.feedback){ location.href='mailto:alkyonfishingapp@gmail.com?subject='+encodeURIComponent('Alkyon '+(window.ALKYON_VERSION||''))+'&body='+encodeURIComponent(t); return; }
     go.disabled=true; msg.textContent=T('Αποστολή…','Sending…');
     window.AlkyonErr.feedback(t,em.value.trim(),topic).then(function(){ sh.close(); B.toast(T('Ευχαριστούμε! Το μήνυμα στάλθηκε.','Thank you! Your message was sent.'),5000); })
-      .catch(function(){ go.disabled=false; msg.textContent=T('Δεν στάλθηκε. Έλεγξε τη σύνδεση ή στείλε email.','Not sent. Check your connection or send an email.'); }); }});
+      .catch(function(e){ go.disabled=false; var why=String(e&&e.message||''), off=navigator.onLine===false, code=(/HTTP \d+/.exec(why)||[''])[0];
+        /* 1.14.70: λέει τον λόγο και δίνει κουμπί email με το μήνυμα έτοιμο, για να μη χαθεί */
+        msg.textContent=off?T('Δεν στάλθηκε: δεν υπάρχει σύνδεση.','Not sent: no connection.'):code?T('Δεν στάλθηκε (','Not sent (')+code+T('). Στείλ’ το με email.','). Send it by email.'):T('Δεν στάλθηκε: ο server δεν απάντησε. Δοκίμασε ξανά ή στείλ’ το με email.','Not sent: the server did not answer. Try again or send it by email.');
+        if(!ml.isConnected) go.after(ml); }); }});
+  var ml=h('button',{class:'btn full',type:'button',text:T('Αποστολή με email','Send by email'),onclick:function(){ location.href='mailto:alkyonfishingapp@gmail.com?subject='+encodeURIComponent('Alkyon '+(window.ALKYON_VERSION||''))+'&body='+encodeURIComponent(ta.value.trim()); }});
   sh=B.sheet({title:T('Πες μας τη γνώμη σου','Share feedback'),body:h('div',{class:'bform'},seg,ta,em,
     h('p',{class:'foot',text:T('Μαζί με το μήνυμα στέλνονται η έκδοση, η σελίδα και ο τύπος του κινητού. Όχι θέση, ψάρια ή σημεία.','The app version, the page and the phone type are sent with your message. No location, catches or spots.')}),msg,go)}); }
 /* 1.13.8: μόνο για διαχειριστές: τα μηνύματα «Πες μας τη γνώμη σου» (πολιτική ae_admin_read_feedback) */
