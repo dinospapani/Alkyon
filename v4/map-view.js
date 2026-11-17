@@ -301,16 +301,22 @@ function rfcLoad(){ if(!rfc.kind||!map) return; var q=rfcBounds(), key=[q.s,q.n,
     var nh=tt.length-2; if(nh<1) throw new Error('short'); tt=tt.slice(0,nh);
     for(var hh=0;hh<nh;hh++){ var pp=new Float32Array(RFN*RFN), cc=new Uint8Array(RFN*RFN), kk=new Float32Array(RFN*RFN); for(var k=0;k<RFN*RFN;k++){ var H=arr[k].hourly, sm=0, mc=0; for(var d3=0;d3<3;d3++){ sm+=+H.precipitation[hh+d3]||0; var wc=+H.weather_code[hh+d3]||0; if(wc>mc) mc=wc; } pp[k]=sm; cc[k]=mc; kk[k]=H.cloud_cover?(+H.cloud_cover[hh]||0):0; } P.push(pp); C.push(cc); K.push(kk); }
     var had=!!rfc.bar; rfc.url={}; rfc.data={key:key,at:Date.now(),s:q.s,n:q.n,w:q.w,e:q.e,t:tt,p:P,c:C,k:K};
+    if(rfc.pre){ rfc.pre=false; rfc.kind=null; return; } /* προφόρτωση: μόνο στη μνήμη, χωρίς να ανοίξει το στρώμα */
     if(!had) rfcBarMake(); else { var ki=keepT?tt.indexOf(keepT):-1; rfcShow(ki>=0?ki:rfc.i); }
-  }).catch(function(e){ if(id!==rfc.req) return; if(rfc.data&&/429/.test(String(e&&e.message))) B.toast(T('Πολλά αιτήματα πρόγνωσης· δείχνω την προηγούμενη περιοχή. Δοκίμασε σε ένα λεπτό.','Too many forecast requests; showing the previous area. Try again in a minute.')); if(!rfc.data) { B.toast(T('Η πρόγνωση βροχής/νέφωσης δεν είναι διαθέσιμη τώρα (χρειάζεται σύνδεση).','The rain/cloud forecast isn’t available right now (needs a connection).')); cfg.rainfc=false; cfg.cloudfc=false; saveCfg(); rfc.kind=null; rfcStop(); } }); }
+  }).catch(function(e){ if(id!==rfc.req) return; if(rfc.pre){ rfc.pre=false; rfc.kind=null; return; } if(rfc.data&&/429/.test(String(e&&e.message))) B.toast(T('Πολλά αιτήματα πρόγνωσης· δείχνω την προηγούμενη περιοχή. Δοκίμασε σε ένα λεπτό.','Too many forecast requests; showing the previous area. Try again in a minute.')); if(!rfc.data) { B.toast(T('Η πρόγνωση βροχής/νέφωσης δεν είναι διαθέσιμη τώρα (χρειάζεται σύνδεση).','The rain/cloud forecast isn’t available right now (needs a connection).')); cfg.rainfc=false; cfg.cloudfc=false; saveCfg(); rfc.kind=null; rfcStop(); } }); }
 function rfcMoved(){ if(!rfc.kind||!map) return; clearTimeout(rfc.T); rfc.T=setTimeout(function(){ rfcLoad(); if(rfc.data&&rfc.bar) rfcShow(rfc.i); },700); }
 /* 1.14.64: με τον άνεμο ανοιχτό, η βροχή/νέφωση δείχνει την ίδια ώρα με τη μπάρα του ανέμου (όπως στο Windy: χρώμα = βροχή, λευκές γραμμές = άνεμος) */
 window.addEventListener('alkyon-windhour',function(e){ if(!rfc.data||!rfc.bar) return; var t=e.detail&&e.detail.t; if(!t) return; var ms=Date.parse(t+(/Z$/.test(t)?'':':00Z')); if(isNaN(ms)) return; rfcShow(rfcIdxOf(ms)); });
 window.addEventListener('alkyon-windstop',function(){ if(rfc.bar) rfc.bar.classList.remove('sync'); if(B.wxRedraw) B.wxRedraw(); });
 B.fcLayerOn=function(){ return !!(rfc.kind&&rfc.bar&&rfc.data); };
 window.addEventListener('alkyon-wxchange',function(){ if(rfc.bar) rfc.bar.classList.toggle('sync',rfcWind()); });
-function drawRainFc(){ var kind=!map?null:cfg.cloudfc?'cloud':cfg.rainfc?'rain':null; if(!kind){ rfc.kind=null; rfcStop(); rfc.data=null; return; }
-  if(rfc.kind===kind&&rfc.bar&&rfc.data) return; rfc.kind=kind; rfcStop(); rfcLoad(); }
+function drawRainFc(){ var kind=!map?null:cfg.cloudfc?'cloud':cfg.rainfc?'rain':null; if(!kind){ rfc.kind=null; rfc.pre=false; rfcStop(); return; } /* 1.14.65: τα δεδομένα μένουν στη μνήμη 45′ και όταν κλείσεις το στρώμα */
+  ls.set('alkyon-v4-fcused',Date.now());
+  if(rfc.kind===kind&&rfc.bar&&rfc.data) return; rfc.kind=kind; rfc.pre=false; rfcStop(); rfcLoad(); }
+/* 1.14.65: προφόρτωση. Αν χρησιμοποίησες βροχή ή σύννεφα τις τελευταίες 7 μέρες, η πρόγνωση της περιοχής ζητιέται μόλις ανοίξει ο Χάρτης,
+   ώστε το στρώμα να ανοίγει αμέσως. Ένα αίτημα, όχι σε «εξοικονόμηση δεδομένων». */
+function rfcPre(){ try{ if(!map||rfc.kind||rfc.data||cfg.rainfc||cfg.cloudfc) return; if(navigator.onLine===false||(navigator.connection&&navigator.connection.saveData)) return;
+  var u=+ls.get('alkyon-v4-fcused',0)||0; if(!u||Date.now()-u>7*864e5) return; rfc.kind='rain'; rfc.pre=true; rfcLoad(); }catch(e){} }
 /* 1.12.11: η πηγή ραντάρ αλλάζει όταν μετακινείς τον χάρτη μέσα ή έξω από την Κύπρο (πριν έμενε αυτή που διαλέχτηκε στο άνοιγμα) */
 var rainSrcT=0; function rainAuto(){ if(!cfg.rain||!map) return; clearTimeout(rainSrcT); rainSrcT=setTimeout(function(){ var rs=ls.get('alkyon-v4-rainsrc','auto'), want=(rs!=='rv'&&inCyR())?'dom':'rv'; if(want!==rainSrc&&!(want==='dom'&&rainDom.stale&&Date.now()-rainDom.stale<600000)) drawRain(); },800); }
 function drawRain(){ rainStop(); if(!cfg.rain||!map) return;
@@ -1188,7 +1194,7 @@ function mount(el){
     var p=B.lastPos(), v=ls.get('alkyon-v4-mapview',null);
     map=L.map(lmEl,{zoomControl:false,attributionControl:true,tap:true}).setView(v?[v.lat,v.lon]:(p?[p.lat,p.lon]:[35.0,33.2]),v?v.z:(p?12:9));
     drawBase(); drawData(); drawOverlays(); applyDepth(); applyPend(); locate(false); drawDirect(); if(cfg.cur) currents(true);
-    map.on('zoomend',function(){ drawData(); depthFade(); }); map.on('zoomend moveend',posCheckSoon); map.on('moveend',rainAuto); map.on('moveend',rfcMoved); map.on('moveend',function(){ declutterSoon(); if(cfg.zones){ clearTimeout(zwT); zwT=setTimeout(drawWorldZones,400); } if(cfg.cur) currents(false); var c=map.getCenter(); ls.set('alkyon-v4-mapview',{lat:+c.lat.toFixed(5),lon:+c.lng.toFixed(5),z:map.getZoom()}); });
+    map.on('zoomend',function(){ drawData(); depthFade(); }); map.on('zoomend moveend',posCheckSoon); map.on('moveend',rainAuto); map.on('moveend',rfcMoved); setTimeout(rfcPre,2500); map.on('moveend',function(){ declutterSoon(); if(cfg.zones){ clearTimeout(zwT); zwT=setTimeout(drawWorldZones,400); } if(cfg.cur) currents(false); var c=map.getCenter(); ls.set('alkyon-v4-mapview',{lat:+c.lat.toFixed(5),lon:+c.lng.toFixed(5),z:map.getZoom()}); });
     map.on('contextmenu',function(e){ try{ e.originalEvent&&e.originalEvent.preventDefault(); }catch(x){} pointMenu(e.latlng); });
     try{ tapZoom(map,lmEl); }catch(e){}
     try{ new MutationObserver(function(){ var n=document.documentElement.classList.contains('night'); if(n!==!!drawBase.night) drawBase(); }).observe(document.documentElement,{attributes:true,attributeFilter:['class']}); }catch(e){}

@@ -70,6 +70,7 @@ var HELP=[
 ];
 /* έκδοση → αλλαγές (νεότερες πρώτες). Προσθέτεις γραμμή εδώ σε κάθε νέα λειτουργία. */
 var NEWS=[
+ ['1.14.65',[T('Βροχή και σύννεφα: αν τα χρησιμοποίησες τις τελευταίες 7 μέρες, η πρόγνωση της περιοχής σου φορτώνεται μόλις ανοίξει ο Χάρτης και το στρώμα ανοίγει αμέσως. Τα δεδομένα μένουν 45′ στη μνήμη και όταν κλείσεις το στρώμα.','Rain and clouds: if you used them in the last 7 days, the forecast for your area loads as soon as the Map opens and the layer opens at once. The data stays in memory for 45 min even after you close the layer.')]],
  ['1.14.64',[T('Βροχή μαζί με άνεμο: όταν είναι ανοιχτά και τα δύο, το χρώμα δείχνει τη βροχή και οι λευκές γραμμές τον άνεμο (όπως με το κύμα). Η ώρα της βροχής ακολουθεί τη μπάρα του ανέμου.','Rain with wind: with both on, the colour shows the rain and the white lines the wind (as with waves). The rain time follows the wind bar.'),
    T('Νέο στρώμα «Σύννεφα»: πρόγνωση νέφωσης 3 ημερών ανά ώρα. Δουλεύει και μαζί με τον άνεμο.','New “Clouds” layer: 3-day hourly cloud-cover forecast. It also works together with wind.'),
    T('Κάρτα ψαριού: φαίνεται η νέφωση της ώρας που το έπιασες (π.χ. «80% · συννεφιά»). Αποθηκευόταν ήδη με κάθε ψάρι, απλώς δεν φαινόταν.','Catch card: shows the cloud cover for the hour you caught it (e.g. “80% · overcast”). It was already saved with every catch, just not shown.')]],
