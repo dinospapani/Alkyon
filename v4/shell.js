@@ -48,7 +48,7 @@ function nav(){
 /* 1.14.71–72: στον Χάρτη η κάτω μπάρα μαζεύεται προς τα αριστερά, για να μένει όλο το ύψος στον χάρτη και στον καιρό.
    1.14.73: μαζεύεται προς τα δεξιά και το βελάκι είναι στη δεξιά άκρη, στο ύψος της μπάρας (πάτημα ή σύρσιμο προς τα αριστερά: επιστρέφει).
    Χωρίς κανένα κουμπί εξόδου όσο είναι μαζεμένη (ο χρόνος της εξόδου φαίνεται στο πάνω πλαίσιο)· για τέλος εξόδου ανοίγεις τη μπάρα.
-   Μαζεύεται με σύρσιμο προς τα δεξιά, και μόνη της όταν ανοίξεις στρώμα καιρού με μπάρα χρόνου (όχι όταν απλώς μπαίνεις στον Χάρτη)·
+   Μαζεύεται με σύρσιμο προς τα δεξιά, και μόνη της όσο είναι ανοιχτό στρώμα καιρού με μπάρα χρόνου (αν την ανοίξεις με το βελάκι, μένει ανοιχτή μέχρι να κλείσει το στρώμα ή να φύγεις από τον Χάρτη)·
    όταν κλείσει το στρώμα ή φύγεις από τον Χάρτη, επιστρέφει. */
 function navSlide(nv,bar){
   var fab=bar.querySelector('.fab'), x0=0, y0=0, dx=0, drag=false, moved=false, pid=null, had=false, auto=false, mapAt=0;
@@ -74,8 +74,9 @@ function navSlide(nv,bar){
   var dock=null, dockObs=null;
   function bars(){ var d=document.getElementById('ndMapDock'); if(d&&d!==dock){ dock=d; try{ dockObs=new MutationObserver(check); dockObs.observe(d,{attributes:true,attributeFilter:['hidden']}); }catch(e){} } return !!(document.querySelector('.rainbar')||(d&&!d.hidden)); }
   function check(){ var m=onMap(); if(!m){ mapAt=0; had=false; if(slid()) set(false); return; } if(!mapAt) mapAt=Date.now();
-    var now=bars(); if(now&&!had){ if(Date.now()-mapAt>3500&&!slid()) set(true,true); } else if(!now&&had){ if(auto&&slid()) set(false); auto=false; } had=now; }
+    var now=bars(); if(now&&!had){ if(!slid()) set(true,true); } /* 1.14.75: και όταν μπαίνεις στον Χάρτη με στρώμα καιρού ήδη ανοιχτό */ else if(!now&&had){ if(auto&&slid()) set(false); auto=false; } had=now; }
   try{ new MutationObserver(check).observe(document.body,{childList:true,attributes:true,attributeFilter:['class']}); }catch(e){}
+  setInterval(check,1200); /* δίχτυ ασφαλείας, αν κάποια αλλαγή δεν πιαστεί */
 }
 var HS=[];
 /* 1.13.7: αλλαγή γλώσσας χωρίς να γυρνάς στην αρχή: κρατά σελίδα και σημείο κύλισης */
