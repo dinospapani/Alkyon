@@ -334,7 +334,7 @@ body:has(#wxCard) .sstleg>small,body:has(#wxCard) .sstleg .slsrc{display:none}
 .rfcleg i:first-of-type{border-radius:6px 0 0 6px}.rfcleg i:last-of-type{border-radius:0 6px 6px 0}
 .rfcleg em{font-style:normal;display:inline-flex;align-items:center;gap:3px;margin-left:8px;white-space:nowrap}
 .rfcleg em svg,.rfcth svg{width:14px;height:14px;fill:#ffd23f;stroke:#7a5200;stroke-width:1.2;stroke-linejoin:round}
-.rfcth{background:none;border:0}.rfcth svg{width:22px;height:22px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))}
+.rfcth{background:none;border:0}.rfcth svg{width:18px;height:18px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))}
 .rfcimg{image-rendering:auto;pointer-events:none}
 body.mapon:has(.rfcbar) .sstleg.sstleg{bottom:calc(var(--nav-h,64px) + var(--safe-b,0px) + 122px)!important}
 .rfcbar input[type=range]{flex:1 1 96px;min-width:96px}
@@ -346,3 +346,7 @@ body.mapon:has(.rfcbar) .sstleg.sstleg{bottom:calc(var(--nav-h,64px) + var(--saf
 .oprf.spin svg{animation:oprf .8s linear}
 @keyframes oprf{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.oprf.spin svg{animation:none}}
+/* 1.14.63: το ✕ μένει στην πρώτη γραμμή της μπάρας πρόγνωσης */
+.rfcbar .rbt{flex:1 1 120px;min-width:0}
+.rfcbar .rbt small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.rfcbar input[type=range]{flex:0 1 104px;min-width:64px}
