@@ -43,7 +43,34 @@ function nav(){
       fab.addEventListener('contextmenu',function(ev){ ev.preventDefault(); });
       bar.append(fab); return; }
     var a=h('a',{href:'#'+t[0],data:{v:t[0]}}); a.innerHTML=B.iconSvg?B.iconSvg(t[2]):''; a.append(h('span',{text:t[1]})); bar.append(a); });
-  return h('nav',{class:'nav','aria-label':T('Κύρια πλοήγηση','Main navigation')},bar);
+  var nv=h('nav',{class:'nav','aria-label':T('Κύρια πλοήγηση','Main navigation')},bar); try{ navSlide(nv,bar); }catch(e){} return nv;
+}
+/* 1.14.71: στον Χάρτη η κάτω μπάρα σέρνεται προς τα δεξιά και κρύβεται, για να μένει όλο το ύψος στον χάρτη και στον καιρό.
+   Μένει μια γλώσσα με βελάκι στη δεξιά άκρη (πάτημα ή σύρσιμο προς τα αριστερά: επιστρέφει) και ένα μικρό κουμπί ψαριού/εξόδου.
+   Κρύβεται μόνο με κίνηση του χρήστη, ποτέ μόνη της· φεύγοντας από τον Χάρτη επιστρέφει. */
+function navSlide(nv,bar){
+  var fab=bar.querySelector('.fab'), x0=0, y0=0, dx=0, drag=false, moved=false, pid=null;
+  var tab=h('button',{type:'button',class:'navtab','aria-label':T('Εμφάνιση μπάρας πλοήγησης','Show the navigation bar'),html:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>',onclick:function(){ set(false); }});
+  var mini=h('button',{type:'button',class:'navmini','aria-label':fab?fab.getAttribute('aria-label')||'':'',onclick:function(){ if(fab) fab.click(); }});
+  function mirror(){ if(!fab) return; mini.innerHTML=fab.innerHTML; mini.classList.toggle('fabon',fab.classList.contains('fabon')); mini.classList.toggle('late',fab.classList.contains('late')); mini.setAttribute('aria-label',fab.getAttribute('aria-label')||''); }
+  if(fab){ mirror(); try{ new MutationObserver(mirror).observe(fab,{childList:true,attributes:true,attributeFilter:['class','aria-label']}); }catch(e){} } else mini.hidden=true;
+  nv.append(tab,mini);
+  function onMap(){ return document.body.classList.contains('mapon'); }
+  function set(on){ on=!!on&&onMap(); bar.style.transform=''; bar.style.transition=''; document.body.classList.toggle('navslid',on);
+    if(on&&!B.ls.get('alkyon-v4-navslid-tip',0)){ B.ls.set('alkyon-v4-navslid-tip',1); B.toast(T('Η μπάρα κρύφτηκε. Πάτα το βελάκι δεξιά για να επιστρέψει.','The bar is hidden. Tap the arrow on the right to bring it back.'),5000); }
+    try{ window.dispatchEvent(new Event('resize')); }catch(e){} }
+  B.navSlide=set;
+  bar.addEventListener('pointerdown',function(e){ if(!onMap()||document.body.classList.contains('navslid')) return; pid=e.pointerId; x0=e.clientX; y0=e.clientY; dx=0; drag=true; moved=false; });
+  bar.addEventListener('pointermove',function(e){ if(!drag||e.pointerId!==pid) return; var ddx=e.clientX-x0, ddy=e.clientY-y0; if(!moved){ if(Math.abs(ddx)<12||Math.abs(ddx)<Math.abs(ddy)*1.4) return; moved=true; bar.style.transition='none'; try{ bar.setPointerCapture(pid); }catch(e2){} }
+    dx=Math.max(0,ddx); bar.style.transform='translateX('+dx+'px)'; });
+  function end(e){ if(!drag||(e&&e.pointerId!==pid)) return; drag=false; if(!moved){ return; } var go=dx>Math.min(90,bar.offsetWidth*0.22); set(go); if(!go){ bar.style.transform=''; bar.style.transition=''; } }
+  bar.addEventListener('pointerup',end); bar.addEventListener('pointercancel',end);
+  /* το σύρσιμο δεν πρέπει να ανοίξει σελίδα ή έξοδο */
+  bar.addEventListener('click',function(e){ if(moved){ moved=false; e.preventDefault(); e.stopPropagation(); } },true);
+  /* γλώσσα: και με σύρσιμο προς τα αριστερά */
+  var tx=0; tab.addEventListener('pointerdown',function(e){ tx=e.clientX; }); tab.addEventListener('pointermove',function(e){ if(tx&&tx-e.clientX>24){ tx=0; set(false); } }); tab.addEventListener('pointerup',function(){ tx=0; });
+  window.addEventListener('hashchange',function(){ if(!/^#map/.test(location.hash||'')) set(false); });
+  try{ new MutationObserver(function(){ if(!onMap()&&document.body.classList.contains('navslid')) set(false); }).observe(document.body,{attributes:true,attributeFilter:['class']}); }catch(e){}
 }
 var HS=[];
 /* 1.13.7: αλλαγή γλώσσας χωρίς να γυρνάς στην αρχή: κρατά σελίδα και σημείο κύλισης */

@@ -360,3 +360,19 @@ body.mapon:has(.rfcbar) .sstleg.sstleg{bottom:calc(var(--nav-h,64px) + var(--saf
 .csatbar .rbt{min-width:118px}
 .csatbar .rbt small{white-space:nowrap}
 .csattile{image-rendering:auto}
+
+/* ===== 1.14.71: η κάτω μπάρα σέρνεται δεξιά και κρύβεται (μόνο στον Χάρτη) ===== */
+.nav>div{transition:transform .28s cubic-bezier(.2,.8,.2,1);touch-action:pan-y}
+.navtab,.navmini{display:none}
+body.mapon.navslid{--nav-h:0px}
+body.mapon.navslid .nav>div{transform:translateX(calc(100% + 40px));pointer-events:none}
+body.mapon.navslid .nav::before{display:none}
+body.mapon.navslid .navtab{display:grid;place-items:center;position:fixed;right:0;bottom:calc(var(--safe-b,0px) + 168px);z-index:51;width:30px;height:60px;padding:0;border:0;border-radius:16px 0 0 16px;background:var(--surface);color:var(--ink);box-shadow:0 0 0 1px var(--line),0 8px 20px -10px rgba(0,0,0,.5);pointer-events:auto;cursor:pointer;touch-action:none}
+body.mapon.navslid .navtab svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+body.mapon.navslid .navmini{display:grid;place-items:center;position:fixed;right:10px;bottom:calc(var(--safe-b,0px) + 238px);z-index:51;width:46px;height:46px;padding:0;border:0;border-radius:50%;background:var(--accent);color:var(--accent-ink);box-shadow:0 8px 18px -8px rgba(0,0,0,.6),0 0 0 3px var(--bg);pointer-events:auto;cursor:pointer}
+body.mapon.navslid .navmini svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+body.mapon.navslid .navmini .fabt{display:none}
+body.mapon.navslid .navmini.fabon{background:var(--good,#2f9e5a)}
+body.mapon.navslid .navmini.late{background:var(--poor,#d93b3b)}
+body.mapon.navslid:has(.sheet.on) .navtab,body.mapon.navslid:has(.sheet.on) .navmini,body.mapon.navslid:has(.mcdrw.open) .navtab,body.mapon.navslid:has(.mcdrw.open) .navmini{display:none}
+html.nightred body.mapon.navslid .navmini{background:#000;color:#fff;box-shadow:0 0 0 2px #fff}
