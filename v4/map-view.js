@@ -188,7 +188,11 @@ var SatGL=null; function satGL(){ if(SatGL) return SatGL; SatGL=L.GridLayer.exte
       /* 1.14.60: τα κενά του δορυφόρου δίπλα στην ακτή (κελιά που το προϊόν τα μετρά ως στεριά) παίρνουν το χρώμα του διπλανού κελιού θάλασσας,
          έως ~1,5 κελί· μισή ανάλυση (128×128) για ταχύτητα */
       var has=new Uint8Array(16384), fr=[], R=Math.max(2,Math.round(20/Math.pow(2,Math.max(0,10-c.z)))), i, k;
-      for(i=0;i<16384;i++){ k=(((i>>7)<<1)*256+((i&127)<<1))*4; if(d[k+3]>40){ has[i]=1; fr.push(i); } }
+      /* 1.14.61: ένα τετράγωνο 2×2 μετρά ως «έχει τιμή» αν έχει έστω ένα αδιαφανές pixel, και τα υπόλοιπα pixel του γεμίζουν από αυτό
+         (πριν έμεναν λεπτές σκούρες γραμμές στην άκρη των παλιών κενών) */
+      for(i=0;i<16384;i++){ if(land[i]) continue; k=(((i>>7)<<1)*256+((i&127)<<1))*4; var o4=[k,k+4,k+1024,k+1028], src=-1, m4; for(m4=0;m4<4;m4++) if(d[o4[m4]+3]>200){ src=o4[m4]; break; }
+        if(src<0) continue; has[i]=1; fr.push(i); for(m4=0;m4<4;m4++){ var t4=o4[m4]; if(t4!==src&&d[t4+3]<=200){ d[t4]=d[src]; d[t4+1]=d[src+1]; d[t4+2]=d[src+2]; d[t4+3]=d[src+3]; } }
+        if(src!==k){ d[k]=d[src]; d[k+1]=d[src+1]; d[k+2]=d[src+2]; d[k+3]=d[src+3]; } }
       if(fr.length&&fr.length<16384) for(var pass=0;pass<R&&fr.length;pass++){ var nx=[]; for(var f=0;f<fr.length;f++){ var s0=fr[f], sy=s0>>7, sx=s0&127, ks=((sy<<1)*256+(sx<<1))*4;
           for(var q=0;q<4;q++){ var ty=sy+(q===0?-1:q===1?1:0), tx=sx+(q===2?-1:q===3?1:0); if(ty<0||tx<0||ty>127||tx>127) continue; var ti=ty*128+tx; if(has[ti]||land[ti]) continue; has[ti]=1; nx.push(ti);
             for(var ey=0;ey<2;ey++) for(var ex=0;ex<2;ex++){ var kt=(((ty<<1)+ey)*256+(tx<<1)+ex)*4; d[kt]=d[ks]; d[kt+1]=d[ks+1]; d[kt+2]=d[ks+2]; d[kt+3]=d[ks+3]; } } }

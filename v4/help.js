@@ -70,6 +70,7 @@ var HELP=[
 ];
 /* έκδοση → αλλαγές (νεότερες πρώτες). Προσθέτεις γραμμή εδώ σε κάθε νέα λειτουργία. */
 var NEWS=[
+ ['1.14.61',[T('Χλωροφύλλη και νερό από δορυφόρο: έφυγαν οι λεπτές σκούρες γραμμές που έμεναν στην άκρη των παλιών κενών κοντά στην ακτή.','Chlorophyll and satellite water: the thin dark lines left at the edge of the old gaps near the coast are gone.')]],
  ['1.14.60',[T('«Τι κοινό είχαν τα ψαρέματά σου»: τα «Μεγάλα ψάρια» χωρίζονται πλέον ανά είδος και όχι ανά κιλά. Ροφός/ορφός, σφυρίδα, στήρα, βλάχος, συναγρίδα, φαγκρί, μαγιάτικο, λίτσα, τόνοι, ξιφίας, κυνηγός και μυλοκόπι μετρούν στα μεγάλα όσο κι αν ζυγίζουν.','“Your catches in common”: “Big fish” is now split by species, not by weight. Groupers, wreckfish, dentex, red porgy, amberjack, leerfish, tunas, swordfish, mahi-mahi and meagre count as big whatever they weigh.'),
    T('«Κάλεσε φίλους»: ο σύνδεσμος ανοίγει κατευθείαν το «Βοήθησε την πρόγνωση» (σε νέο χρήστη, μόλις τελειώσει η πρώτη ρύθμιση).','“Invite friends”: the link opens straight on “Help the forecast” (for a new user, right after the first setup).'),
    T('Χάρτης, ρεύματα: τα βέλη δεν πέφτουν πια πάνω στον σταυρό ούτε στους αριθμούς βάθους.','Map, currents: arrows no longer land on the cross or on the depth numbers.'),
