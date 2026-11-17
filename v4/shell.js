@@ -46,33 +46,29 @@ function nav(){
   var nv=h('nav',{class:'nav','aria-label':T('Κύρια πλοήγηση','Main navigation')},bar); try{ navSlide(nv,bar); }catch(e){} return nv;
 }
 /* 1.14.71–72: στον Χάρτη η κάτω μπάρα μαζεύεται προς τα αριστερά, για να μένει όλο το ύψος στον χάρτη και στον καιρό.
-   Στη θέση της μένει ένα βελάκι στην αριστερή άκρη (πάτημα ή σύρσιμο προς τα δεξιά: επιστρέφει). Χωρίς κουμπί εξόδου όσο είναι μαζεμένη·
-   μόνο όταν τρέχει έξοδος φαίνεται πάνω από το βελάκι το πράσινο με τον χρόνο, και με τη μπάρα ανοιχτή ξαναμπαίνει στη μπάρα.
-   Μαζεύεται με σύρσιμο προς τα αριστερά, και μόνη της όταν ανοίξεις στρώμα καιρού με μπάρα χρόνου (όχι όταν απλώς μπαίνεις στον Χάρτη)·
+   1.14.73: μαζεύεται προς τα δεξιά και το βελάκι είναι στη δεξιά άκρη, στο ύψος της μπάρας (πάτημα ή σύρσιμο προς τα αριστερά: επιστρέφει).
+   Χωρίς κανένα κουμπί εξόδου όσο είναι μαζεμένη (ο χρόνος της εξόδου φαίνεται στο πάνω πλαίσιο)· για τέλος εξόδου ανοίγεις τη μπάρα.
+   Μαζεύεται με σύρσιμο προς τα δεξιά, και μόνη της όταν ανοίξεις στρώμα καιρού με μπάρα χρόνου (όχι όταν απλώς μπαίνεις στον Χάρτη)·
    όταν κλείσει το στρώμα ή φύγεις από τον Χάρτη, επιστρέφει. */
 function navSlide(nv,bar){
   var fab=bar.querySelector('.fab'), x0=0, y0=0, dx=0, drag=false, moved=false, pid=null, had=false, auto=false, mapAt=0;
-  var tab=h('button',{type:'button',class:'navtab','aria-label':T('Εμφάνιση μπάρας πλοήγησης','Show the navigation bar'),html:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>',onclick:function(){ set(false); }});
-  var mini=h('button',{type:'button',class:'navmini',hidden:true,onclick:function(){ if(fab) fab.click(); }});
-  function mirror(){ if(!fab) return; var on=fab.classList.contains('fabon'), t=fab.querySelector('.fabt'); mini.hidden=!on; mini.classList.toggle('late',fab.classList.contains('late'));
-    mini.innerHTML=(B.profIcon?B.profIcon(B.prof()):'')+'<i>'+(t?t.textContent:'')+'</i>'; mini.setAttribute('aria-label',fab.getAttribute('aria-label')||''); }
-  if(fab){ mirror(); try{ new MutationObserver(mirror).observe(fab,{childList:true,attributes:true,attributeFilter:['class','aria-label']}); }catch(e){} }
-  nv.append(tab,mini);
+  var tab=h('button',{type:'button',class:'navtab','aria-label':T('Εμφάνιση μπάρας πλοήγησης','Show the navigation bar'),html:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>',onclick:function(){ set(false); }});
+  nv.append(tab);
   function onMap(){ return document.body.classList.contains('mapon'); }
   function slid(){ return document.body.classList.contains('navslid'); }
   function set(on,byAuto){ on=!!on&&onMap(); bar.style.transform=''; bar.style.transition=''; if(on===slid()) return; document.body.classList.toggle('navslid',on); auto=!!(on&&byAuto);
-    if(on&&!B.ls.get('alkyon-v4-navslid-tip',0)){ B.ls.set('alkyon-v4-navslid-tip',1); B.toast(T('Η μπάρα μαζεύτηκε. Πάτα το βελάκι κάτω αριστερά για να επιστρέψει.','The bar is tucked away. Tap the arrow at the bottom left to bring it back.'),5000); }
+    if(on&&!B.ls.get('alkyon-v4-navslid-tip',0)){ B.ls.set('alkyon-v4-navslid-tip',1); B.toast(T('Η μπάρα μαζεύτηκε. Πάτα το βελάκι κάτω δεξιά για να επιστρέψει.','The bar is tucked away. Tap the arrow at the bottom right to bring it back.'),5000); }
     try{ window.dispatchEvent(new Event('resize')); }catch(e){} }
   B.navSlide=set;
   bar.addEventListener('pointerdown',function(e){ if(!onMap()||slid()) return; pid=e.pointerId; x0=e.clientX; y0=e.clientY; dx=0; drag=true; moved=false; });
   bar.addEventListener('pointermove',function(e){ if(!drag||e.pointerId!==pid) return; var ddx=e.clientX-x0, ddy=e.clientY-y0; if(!moved){ if(Math.abs(ddx)<12||Math.abs(ddx)<Math.abs(ddy)*1.4) return; moved=true; bar.style.transition='none'; try{ bar.setPointerCapture(pid); }catch(e2){} }
-    dx=Math.min(0,ddx); bar.style.transform='translateX('+dx+'px)'; });
-  function end(e){ if(!drag||(e&&e.pointerId!==pid)) return; drag=false; if(!moved){ return; } var go=-dx>Math.min(90,bar.offsetWidth*0.22); if(go) set(true); else { bar.style.transform=''; bar.style.transition=''; } }
+    dx=Math.max(0,ddx); bar.style.transform='translateX('+dx+'px)'; });
+  function end(e){ if(!drag||(e&&e.pointerId!==pid)) return; drag=false; if(!moved){ return; } var go=dx>Math.min(90,bar.offsetWidth*0.22); if(go) set(true); else { bar.style.transform=''; bar.style.transition=''; } }
   bar.addEventListener('pointerup',end); bar.addEventListener('pointercancel',end);
   /* το σύρσιμο δεν πρέπει να ανοίξει σελίδα ή έξοδο */
   bar.addEventListener('click',function(e){ if(moved){ moved=false; e.preventDefault(); e.stopPropagation(); } },true);
-  /* βελάκι: και με σύρσιμο προς τα δεξιά */
-  var tx=0; tab.addEventListener('pointerdown',function(e){ tx=e.clientX; }); tab.addEventListener('pointermove',function(e){ if(tx&&e.clientX-tx>24){ tx=0; set(false); } }); tab.addEventListener('pointerup',function(){ tx=0; });
+  /* βελάκι: και με σύρσιμο προς τα αριστερά */
+  var tx=0; tab.addEventListener('pointerdown',function(e){ tx=e.clientX; }); tab.addEventListener('pointermove',function(e){ if(tx&&tx-e.clientX>24){ tx=0; set(false); } }); tab.addEventListener('pointerup',function(){ tx=0; });
   window.addEventListener('hashchange',function(){ if(!/^#map/.test(location.hash||'')) set(false); });
   /* στρώμα καιρού με μπάρα χρόνου (ραντάρ, βροχή, σύννεφα, δορυφόρος, άνεμος/κύμα): άνοιξε → μαζεύεται, έκλεισε → επιστρέφει */
   var dock=null, dockObs=null;

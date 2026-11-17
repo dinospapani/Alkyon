@@ -361,29 +361,19 @@ body.mapon:has(.rfcbar) .sstleg.sstleg{bottom:calc(var(--nav-h,64px) + var(--saf
 .csatbar .rbt small{white-space:nowrap}
 .csattile{image-rendering:auto}
 
-/* ===== 1.14.71–72: η κάτω μπάρα μαζεύεται αριστερά (μόνο στον Χάρτη) ===== */
+/* ===== 1.14.71–73: η κάτω μπάρα μαζεύεται δεξιά (μόνο στον Χάρτη) ===== */
 .nav>div{transition:transform .28s cubic-bezier(.2,.8,.2,1);touch-action:pan-y}
-.navtab,.navmini{display:none}
+.navtab{display:none}
 body.mapon.navslid{--nav-h:-14px}
-body.mapon.navslid .nav>div{transform:translateX(calc(-100% - 40px));pointer-events:none}
+body.mapon.navslid .nav>div{transform:translateX(calc(100% + 40px));pointer-events:none}
 body.mapon.navslid .nav::before{display:none}
-/* το βελάκι στο ύψος όπου ήταν η μπάρα */
-body.mapon.navslid .navtab{display:grid;place-items:center;position:fixed;left:0;bottom:calc(var(--safe-b,0px) + 10px);z-index:51;width:32px;height:60px;padding:0;border:0;border-radius:0 16px 16px 0;background:var(--surface);color:var(--ink);box-shadow:0 0 0 1px var(--line),0 8px 20px -10px rgba(0,0,0,.5);pointer-events:auto;cursor:pointer;touch-action:none}
+/* το βελάκι δεξιά, στο ύψος όπου ήταν η μπάρα */
+body.mapon.navslid .navtab{display:grid;place-items:center;position:fixed;right:0;bottom:calc(var(--safe-b,0px) + 10px);z-index:51;width:32px;height:60px;padding:0;border:0;border-radius:16px 0 0 16px;background:var(--surface);color:var(--ink);box-shadow:0 0 0 1px var(--line),0 8px 20px -10px rgba(0,0,0,.5);pointer-events:auto;cursor:pointer;touch-action:none}
 body.mapon.navslid .navtab svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
-/* σε έξοδο: το πράσινο με τον χρόνο, πάνω από το βελάκι */
-body.mapon.navslid .navmini:not([hidden]){display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;position:fixed;left:0;bottom:calc(var(--safe-b,0px) + 76px);z-index:51;width:44px;height:56px;padding:0 2px 0 0;border:0;border-radius:0 16px 16px 0;background:var(--good,#2f9e5a);color:#fff;box-shadow:0 8px 18px -8px rgba(0,0,0,.6);pointer-events:auto;cursor:pointer}
-body.mapon.navslid .navmini svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-body.mapon.navslid .navmini i{font:800 11px/1 var(--font);font-style:normal;letter-spacing:.02em}
-body.mapon.navslid .navmini.late{background:var(--poor,#d93b3b)}
-html.nightred body.mapon.navslid .navmini{background:#1a0000;box-shadow:0 0 0 2px #fff}
-/* οι μπάρες καιρού αφήνουν χώρο αριστερά για το βελάκι */
-body.mapon.navslid .rainbar{left:42px}
-body.mapon.navslid #ndMapDock{left:42px!important}
-body.mapon.navslid .sstleg.sstleg{left:42px!important}
-body.mapon.navslid:has(.navmini:not([hidden])) .rainbar{left:52px}
-body.mapon.navslid:has(.navmini:not([hidden])) #ndMapDock,body.mapon.navslid:has(.navmini:not([hidden])) .sstleg.sstleg{left:52px!important}
-body.mapon.navslid:has(.sheet.on) .navtab,body.mapon.navslid:has(.sheet.on) .navmini,body.mapon.navslid:has(.mcdrw.open) .navtab,body.mapon.navslid:has(.mcdrw.open) .navmini{display:none}
+/* οι μπάρες καιρού κατεβαίνουν στο ύψος της μπάρας και αφήνουν χώρο δεξιά για το βελάκι */
+body.mapon.navslid .rainbar{right:42px}
+body.mapon.navslid #ndMapDock{right:42px!important;bottom:calc(var(--safe-b,0px) + 10px)!important}
+body.mapon.navslid .sstleg.sstleg{right:42px!important}
+body.mapon.navslid:has(.sheet.on) .navtab,body.mapon.navslid:has(.mcdrw.open) .navtab{display:none}
 body.mapon.navslid .rfcbar .rbt{flex:1 1 90px}
 body.mapon.navslid .rfcbar input[type=range]{flex:0 1 72px;min-width:56px}
-/* το βελάκι και το πράσινο της εξόδου στην ίδια ευθεία: ίδιο πλάτος */
-body.mapon.navslid:has(.navmini:not([hidden])) .navtab{width:44px}

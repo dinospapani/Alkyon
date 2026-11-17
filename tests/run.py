@@ -1813,16 +1813,18 @@ with sync_playwright() as p:
     fb=pg.evaluate("()=>{ const s=document.querySelector('.sheet.on'); return [s?s.querySelector('[role=status]').textContent:'', s?[...s.querySelectorAll('.btn')].map(x=>x.textContent):[], s?s.querySelector('.btn.pri').disabled:null]; }")
     check('«Πες μας τη γνώμη σου»: σε αποτυχία γράφει τον λόγο (HTTP 503), μένει ανοιχτό και δείχνει «Αποστολή με email» (1.14.70)', 'HTTP 503' in fb[0] and 'Αποστολή με email' in fb[1] and fb[2] is False, fb); c.close()
 
-    print('# 1.14.72 κάτω μπάρα: μαζεύεται αριστερά')
+    print('# 1.14.73 κάτω μπάρα: μαζεύεται δεξιά')
     c=ctx(b,touch=True); c.add_init_script("localStorage.setItem('alkyon-smart',JSON.stringify({weekly:Date.now()+9e9}))"); pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(4500)
     ns=pg.evaluate("""async()=>{ const bar=document.querySelector('.nav>div'), r=bar.getBoundingClientRect(), y=r.top+r.height/2, o=[], W=ms=>new Promise(z=>setTimeout(z,ms)); const ev=(t,x)=>bar.dispatchEvent(new PointerEvent(t,{pointerId:7,clientX:x,clientY:y,bubbles:true,pointerType:'touch'}));
-      const h0=location.hash; ev('pointerdown',r.right-40); ev('pointermove',r.right-70); ev('pointermove',r.right-200); ev('pointerup',r.right-200); bar.querySelector('a').dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));
-      await W(500); const tb=document.querySelector('.navtab').getBoundingClientRect(); o.push(document.body.classList.contains('navslid'), location.hash===h0, tb.left===0&&innerHeight-tb.bottom<40, bar.getBoundingClientRect().right<5, getComputedStyle(document.querySelector('.navmini')).display);
+      const h0=location.hash; ev('pointerdown',r.left+40); ev('pointermove',r.left+70); ev('pointermove',r.left+200); ev('pointerup',r.left+200); bar.querySelector('a').dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));
+      await W(500); const tb=document.querySelector('.navtab').getBoundingClientRect(); o.push(document.body.classList.contains('navslid'), location.hash===h0, Math.round(tb.right)===innerWidth&&innerHeight-tb.bottom<40, bar.getBoundingClientRect().left>innerWidth-5, !document.querySelector('.navmini'));
       document.querySelector('.navtab').click(); await W(500); o.push(document.body.classList.contains('navslid'), Math.round(bar.getBoundingClientRect().left)===Math.round(r.left));
-      ev('pointerdown',r.right-40); ev('pointermove',r.right-60); ev('pointerup',r.right-60); await W(300); o.push(document.body.classList.contains('navslid'));
-      const rb=document.createElement('div'); rb.className='rainbar'; document.body.append(rb); await W(300); o.push(document.body.classList.contains('navslid')); rb.remove(); await W(300); o.push(document.body.classList.contains('navslid'));
+      ev('pointerdown',r.left+40); ev('pointermove',r.left+60); ev('pointerup',r.left+60); await W(300); o.push(document.body.classList.contains('navslid'));
+      const rb=document.createElement('div'); rb.className='rainbar'; document.body.append(rb); await W(300); o.push(document.body.classList.contains('navslid'));
+      const dk=document.createElement('div'); dk.id='ndMapDock'; dk.style.cssText='position:fixed;left:8px;right:8px;bottom:94px;height:80px'; document.body.append(dk); await W(200); const dr=dk.getBoundingClientRect(), tb2=document.querySelector('.navtab').getBoundingClientRect(); o.push(Math.abs(dr.bottom-tb2.bottom)<=2&&dr.right<=tb2.left); dk.remove();
+      rb.remove(); await W(300); o.push(document.body.classList.contains('navslid'));
       AK.navSlide(true); location.hash='#log'; await W(900); o.push(document.body.classList.contains('navslid')); return o; }""")
-    check('Κάτω μπάρα: σύρσιμο αριστερά τη μαζεύει χωρίς να ανοίξει σελίδα, βελάκι κάτω αριστερά, χωρίς κουμπί εξόδου, επιστρέφει με το βελάκι· στρώμα καιρού τη μαζεύει και το κλείσιμό του τη φέρνει πίσω· φεύγοντας από τον Χάρτη επιστρέφει (1.14.72)', ns==[True,True,True,True,'none',False,True,False,True,False,False] and not pg._errs, [ns,pg._errs]); c.close()
+    check('Κάτω μπάρα: σύρσιμο δεξιά τη μαζεύει χωρίς να ανοίξει σελίδα, βελάκι κάτω δεξιά, κανένα κουμπί εξόδου, επιστρέφει με το βελάκι· στρώμα καιρού τη μαζεύει, η μπάρα ανέμου κατεβαίνει στο ύψος του βελακιού, το κλείσιμο τη φέρνει πίσω· φεύγοντας από τον Χάρτη επιστρέφει (1.14.73)', ns==[True,True,True,True,True,False,True,False,True,True,False,False] and not pg._errs, [ns,pg._errs]); c.close()
 
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)
