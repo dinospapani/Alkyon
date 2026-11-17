@@ -16,6 +16,49 @@ function r1(v){ return v==null?null:Math.round(v*10)/10; }
 function moonAt(ms){ var a=((ms-REF)/DAY)%SYN; if(a<0) a+=SYN; var f=a/SYN; return {i:Math.floor(f*8+0.5)%8,illum:(1-Math.cos(2*Math.PI*f))/2,age:a}; }
 function moonTxt(ms){ var m=moonAt(ms); return '🌙 '+MOON[m.i]+' · '+T('φωτισμός ','illumination ')+Math.round(m.illum*100)+'% · '+T('ηλικία ','age ')+m.age.toFixed(1)+T(' ημέρες',' days'); }
 
+/* ---------- 1.14.66: φεγγάρι και φως φεγγαριού την ώρα του ψαριού ----------
+   Θέση σελήνης (ύψος, αζιμούθιο) για το ακριβές σημείο και λεπτό: σειρά χαμηλής ακρίβειας (~0,3°) με διόρθωση παράλλαξης και διάθλασης.
+   Φως στη θάλασσα (0–100, 100 = πανσέληνος στο ζενίθ με καθαρό ουρανό) = φάση × ύψος × ατμόσφαιρα × διαπερατότητα νεφών.
+   - Φάση: συνάρτηση φάσης της σελήνης, 10^(-0,4·(0,026·φ + 4e-9·φ⁴)), φ = γωνία φάσης σε μοίρες (η μισή σελήνη δίνει ~9% του φωτός της πανσελήνου, όχι 50%).
+   - Ατμόσφαιρα: εξασθένηση 0,2 mag ανά αέρια μάζα (Kasten–Young), επί ημίτονο ύψους (οριζόντια επιφάνεια).
+   - Νέφη: ανά στρώμα 1 − α·κάλυψη, α = 0,85 χαμηλά, 0,70 μεσαία, 0,30 ψηλά (τα ψηλά, λεπτά νέφη αφήνουν φως). Είναι εκτίμηση από ωριαίο μοντέλο ~10–25 km,
+     όχι παρατήρηση: δεν μπορεί να πει αν ένα συγκεκριμένο σύννεφο ήταν μπροστά από το φεγγάρι εκείνο το λεπτό, μόνο πόσο πιθανό ήταν. */
+var RD=Math.PI/180;
+function jd0(ms){ return ms/DAY+2440587.5-2451545; }
+function moonEq(d){ var T0=d/36525;
+  var L=218.32+481267.881*T0+6.29*Math.sin((135.0+477198.87*T0)*RD)-1.27*Math.sin((259.3-413335.36*T0)*RD)+0.66*Math.sin((235.7+890534.22*T0)*RD)+0.21*Math.sin((269.9+954397.74*T0)*RD)-0.19*Math.sin((357.5+35999.05*T0)*RD)-0.11*Math.sin((186.5+966404.03*T0)*RD);
+  var Bm=5.13*Math.sin((93.3+483202.02*T0)*RD)+0.28*Math.sin((228.2+960400.89*T0)*RD)-0.28*Math.sin((318.3+6003.15*T0)*RD)-0.17*Math.sin((217.6-407332.21*T0)*RD);
+  var lam=L*RD, b=Bm*RD, e=(23.4393-3.6e-7*d)*RD;
+  return {ra:Math.atan2(Math.sin(lam)*Math.cos(e)-Math.tan(b)*Math.sin(e),Math.cos(lam)),dec:Math.asin(Math.sin(b)*Math.cos(e)+Math.cos(b)*Math.sin(e)*Math.sin(lam)),lam:lam}; }
+function sunEq(d){ var M=(357.529+0.98560028*d)*RD, lam=(M/RD+1.9148*Math.sin(M)+0.02*Math.sin(2*M)+180+102.9372)*RD, e=(23.4393-3.6e-7*d)*RD;
+  return {ra:Math.atan2(Math.sin(lam)*Math.cos(e),Math.cos(lam)),dec:Math.asin(Math.sin(e)*Math.sin(lam)),lam:lam}; }
+function altAz(q,d,lat,lon){ var H=(280.46061837+360.98564736629*d)*RD+lon*RD-q.ra, ph=lat*RD;
+  var alt=Math.asin(Math.sin(ph)*Math.sin(q.dec)+Math.cos(ph)*Math.cos(q.dec)*Math.cos(H)), az=Math.atan2(Math.sin(H),Math.cos(H)*Math.sin(ph)-Math.tan(q.dec)*Math.cos(ph))+Math.PI;
+  return {alt:alt/RD,az:((az/RD)%360+360)%360}; }
+function cloudT(c){ if(!c) return null; var f=function(v){ return v==null?null:Math.max(0,Math.min(1,v/100)); }, lo=f(c.lo), mi=f(c.mi), hi=f(c.hi), t=f(c.t);
+  if(lo!=null&&mi!=null&&hi!=null) return (1-0.85*lo)*(1-0.70*mi)*(1-0.30*hi);
+  if(t!=null) return 1-0.75*Math.pow(t,3.4); return null; }
+function moonLight(ms,lat,lon,c){
+  var d=jd0(ms), m=moonEq(d), su=sunEq(d), ma=altAz(m,d,lat,lon), sa=altAz(su,d,lat,lon);
+  var alt=ma.alt-0.9507*Math.cos(ma.alt*RD); /* παράλλαξη: από το κέντρο της Γης στο σημείο του παρατηρητή */
+  if(alt>-1) alt+=1.02/Math.tan((alt+10.3/(alt+5.11))*RD)/60; /* διάθλαση κοντά στον ορίζοντα */
+  var el=((m.lam-su.lam)/RD%360+360)%360, ill=(1-Math.cos(el*RD))/2, phi=Math.abs(180-el), ph=Math.pow(10,-0.4*(0.026*phi+4e-9*Math.pow(phi,4)));
+  var clear=0; if(alt>0){ var X=1/(Math.sin(alt*RD)+0.50572*Math.pow(alt+6.07995,-1.6364)); clear=100*ph*Math.pow(10,-0.4*0.2*(X-1))*Math.sin(alt*RD); }
+  var tr=cloudT(c), light=tr==null?null:clear*tr, o={alt:r1(alt),az:Math.round(ma.az),ill:Math.round(ill*100),sun:r1(sa.alt),clear:r1(clear)};
+  if(light!=null){ o.light=r1(light); o.tr=Math.round(tr*100); }
+  if(c&&c.lo!=null&&c.mi!=null&&c.hi!=null) o.cov=Math.round(100*(1-(1-c.lo/100)*(1-c.mi/100)*(1-c.hi/100))); else if(c&&c.t!=null) o.cov=Math.round(c.t); /* πόσο πιθανό ήταν να είναι σύννεφο μπροστά από το φεγγάρι */
+  return o; }
+function lightWord(v){ return v==null?'':v<1?T('σκοτάδι','dark'):v<8?T('αχνό','faint'):v<30?T('μέτριο','moderate'):T('δυνατό','bright'); }
+function skyTxt(wx,ms,lat,lon){
+  var m=wx&&wx.m||(typeof lat==='number'?moonLight(ms,lat,lon,wx&&wx.c||null):null), c=wx&&wx.c, out=[];
+  if(c&&c.t!=null) out.push(T('Νέφωση ','Cloud ')+Math.round(c.t)+'%'+(c.lo!=null?' ('+T('χαμηλά ','low ')+Math.round(c.lo)+T(' · μεσαία ',' · mid ')+Math.round(c.mi)+T(' · ψηλά ',' · high ')+Math.round(c.hi)+')':''));
+  if(m){ if(m.alt<=0) out.push(T('Φεγγάρι κάτω από τον ορίζοντα: χωρίς φως φεγγαριού','Moon below the horizon: no moonlight'));
+    else { out.push(T('Φεγγάρι ','Moon ')+Math.round(m.alt)+'° '+T('πάνω από τον ορίζοντα, ','above the horizon, ')+dn(m.az));
+      if(m.sun>-6) out.push(T('μέρα ή λυκόφως: το φως του φεγγαριού δεν μετρά','day or twilight: moonlight does not matter'));
+      else if(m.light!=null) out.push(T('φως φεγγαριού στη θάλασσα ~','moonlight on the sea ~')+(m.light<1?'<1':Math.round(m.light))+'% ('+lightWord(m.light)+')'+(m.cov!=null&&m.cov>=20?T(' · πιθανότητα σύννεφου μπροστά του ~',' · chance of cloud in front ~')+m.cov+'%':''));
+      else out.push(T('χωρίς σύννεφα θα έφτανε ~','with a clear sky ~')+Math.round(m.clear)+'%'); } }
+  return out.join(' · '); }
+
 /* ---------- δεδομένα ---------- */
 function getJson(url){
   var ac=('AbortController' in window)?new AbortController():null, t=setTimeout(function(){ if(ac) ac.abort(); },14000);
@@ -35,7 +78,7 @@ function ang(tm,arr,x){
 function fetchWx(lat,lon,ms){
   if(typeof lat!=='number'||typeof lon!=='number'||!(ms>0)||ms>Date.now()+10*MIN) return Promise.resolve(null);
   var t0=ms-4*HOUR, t1=ms+4*HOUR, age=Date.now()-t0, recent=age<85*DAY, past=Math.min(92,Math.ceil(age/DAY)+1);
-  var pos='latitude='+lat.toFixed(4)+'&longitude='+lon.toFixed(4)+'&timezone=GMT', hv='pressure_msl,wind_speed_10m,wind_gusts_10m,wind_direction_10m';
+  var pos='latitude='+lat.toFixed(4)+'&longitude='+lon.toFixed(4)+'&timezone=GMT', hv='pressure_msl,wind_speed_10m,wind_gusts_10m,wind_direction_10m,cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high';
   var url=recent?'https://api.open-meteo.com/v1/forecast?'+pos+'&hourly='+hv+'&past_days='+past+'&forecast_days=2&wind_speed_unit=kn'
                 :'https://archive-api.open-meteo.com/v1/archive?'+pos+'&hourly='+hv+'&start_date='+iso(t0)+'&end_date='+iso(t1)+'&wind_speed_unit=kn';
   return getJson(url).then(function(j){
@@ -46,7 +89,10 @@ function fetchWx(lat,lon,ms){
       P.push(r1(lin(tm,h.pressure_msl||[],x))); W.push(r1(lin(tm,h.wind_speed_10m||[],x))); G.push(r1(lin(tm,h.wind_gusts_10m||[],x)));
       var d=ang(tm,h.wind_direction_10m||[],x); D.push(d==null?null:Math.round(d)); }
     if(P.every(function(v){ return v==null; })&&W.every(function(v){ return v==null; })) return null;
-    return {v:1,t0:ms,la:Math.round(lat*1000)/1000,lo:Math.round(lon*1000)/1000,p:P,w:W,g:G,d:D,fc:ms+3*HOUR>Date.now()};
+    /* 1.14.66: νέφωση (σύνολο και τρία ύψη) στο λεπτό του ψαριού, και φως φεγγαριού */
+    var pc=function(k){ var v=lin(tm,h[k]||[],ms); return v==null?null:Math.round(Math.max(0,Math.min(100,v))); }, cl={t:pc('cloud_cover'),lo:pc('cloud_cover_low'),mi:pc('cloud_cover_mid'),hi:pc('cloud_cover_high')};
+    if(cl.t==null) cl=null;
+    return {v:1,t0:ms,la:Math.round(lat*1000)/1000,lo:Math.round(lon*1000)/1000,p:P,w:W,g:G,d:D,fc:ms+3*HOUR>Date.now(),c:cl,m:moonLight(ms,lat,lon,cl)};
   });
 }
 function valid(b){ var w=b&&b.wx; return !!(w&&w.v===1&&w.t0===C.biteMs(b)&&typeof b.lat==='number'&&Math.abs(w.la-b.lat)<0.003&&Math.abs(w.lo-b.lon)<0.003); }
@@ -60,7 +106,10 @@ function save(b,patch){
 function pump(){
   if(running||!q.length) return; running=true; var b=q.shift();
   fetchWx(b.lat,b.lon,C.biteMs(b)).then(function(wx){
-    if(wx) return save(b,{wx:wx,wxNA:false});
+    if(wx){ var pt={wx:wx,wxNA:false}; /* 1.14.66: και στα πεδία του ψαριού, για στατιστικά και εξαγωγή */
+      if(wx.c){ pt.cloud=wx.c.t; if(wx.c.lo!=null){ pt.cloudLo=wx.c.lo; pt.cloudMid=wx.c.mi; pt.cloudHi=wx.c.hi; } }
+      if(wx.m){ pt.moonAlt=wx.m.alt; pt.moonAz=wx.m.az; pt.moonIll=wx.m.ill; pt.sunAlt=wx.m.sun; if(wx.m.light!=null) pt.moonLight=wx.m.sun>-6?0:wx.m.light; if(wx.m.cov!=null) pt.moonCov=wx.m.cov; }
+      return save(b,pt); }
     return save(b,{wxNA:true});
   }).then(function(){ refresh(b.id); }).catch(function(){ tried[b.id]=0; refresh(b.id); }).then(function(){ running=false; setTimeout(pump,350); });
 }
@@ -165,6 +214,7 @@ function build(b,box){
     var n=document.createElement('div'); n.className='bwn'; n.textContent=T('Ωριαία δεδομένα μοντέλου με παρεμβολή ανά 30 λεπτά. Ενδεικτικά, όχι μέτρηση στο σημείο. Πάνω: πίεση. Κάτω: άνεμος (διακεκομμένη = ριπές, βέλη = προς πού πηγαίνει ο άνεμος). Η σκιασμένη ζώνη είναι ±30′ από το πιάσιμο.','Hourly model data interpolated every 30 minutes. Indicative, not measured on the spot. Top: pressure. Bottom: wind (dotted = gusts, arrows = where the wind goes). The shaded band is ±30′ around the catch.')+(wx.fc?T(' Περιλαμβάνει πρόγνωση, θα ανανεωθεί.',' Includes forecast, will refresh.'):''); body.append(n);
   } else if(b.wxNA){ body.append(line2(T('Δεν βρέθηκαν δεδομένα για αυτή την ώρα και θέση.','No data found for this time and place.'))); }
   var mo=line2(moonTxt(ms)); mo.style.marginTop='6px'; body.append(mo);
+  var sk=skyTxt(wx,ms,b.lat,b.lon); if(sk){ var sl=line2(sk); body.append(sl); if(wx&&wx.m&&wx.m.light!=null){ var sn=document.createElement('div'); sn.className='bwn'; sn.textContent=T('Φως φεγγαριού: εκτίμηση από τη θέση και τη φάση της σελήνης και τη νέφωση του μοντέλου στο σημείο. 100% = πανσέληνος ψηλά με καθαρό ουρανό.','Moonlight: estimated from the moon’s position and phase and the model cloud cover at the spot. 100% = full moon high up in a clear sky.'); body.append(sn); } }
   d.append(body); box.append(d);
   d.addEventListener('toggle',function(){ if(d.open){ openIds[b.id]=1; if(!valid(b)&&eligible(b)&&!b.wxNA){ tried[b.id]=0; enqueue(b,true); sm.textContent=head+': '+T('φορτώνει…','loading…'); } } else delete openIds[b.id]; });
 }
@@ -198,13 +248,14 @@ function slot(b){
   var ms=C.biteMs(b);
   if(!valid(b)&&eligible(b)&&!b.wxNA&&Date.now()-ms<36*HOUR) enqueue(b);
   else if(valid(b)&&b.wx.fc&&Date.now()>ms+4*HOUR&&!tried[b.id+'f']){ tried[b.id+'f']=1; enqueue(b,true); }
+  else if(valid(b)&&b.wx.c===undefined&&!tried[b.id+'c']){ tried[b.id+'c']=1; enqueue(b,true); } /* 1.14.66: παλιά ψάρια χωρίς νέφωση/φως φεγγαριού συμπληρώνονται όταν ανοίξεις την κάρτα τους */
   return box;
 }
 function ensure(b){ if(b&&eligible(b)) enqueue(b,true); }
 
 /* ---------- μαζική συμπλήρωση (ρυθμίσεις θάλασσας) ---------- */
 (window.AlkyonSeaRows=window.AlkyonSeaRows||[]).push(function(){
-  function todo(){ return ((C.Store.raw?C.Store.raw('bites'):C.Store.get('bites'))||[]).filter(function(b){ return eligible(b)&&!b.gear&&!valid(b)&&!b.wxNA; }); }
+  function todo(){ return ((C.Store.raw?C.Store.raw('bites'):C.Store.get('bites'))||[]).filter(function(b){ return eligible(b)&&!b.gear&&!b.wxNA&&(!valid(b)||b.wx.c===undefined); }); }
   var r=document.createElement('div'); r.className='sprow'; var x=document.createElement('div'); x.className='sptx';
   var b1=document.createElement('b'); b1.textContent=T('Πίεση και άνεμος γύρω από τα ψάρια','Pressure and wind around catches');
   var sp=document.createElement('span'); function txt(){ var n=todo().length; if(typeof bt!=='undefined'&&bt) bt.hidden=!n; sp.textContent=n?T('Υπάρχουν '+n+' ψάρια με θέση χωρίς γράφημα πίεσης και ανέμου ±30 λεπτά. Θα συμπληρωθούν με εκτίμηση μοντέλου.','There are '+n+' catches with a position but no pressure/wind chart (±30 min). They will be filled with a model estimate.'):T('Όλα τα ψάρια με θέση έχουν τα στοιχεία.','All catches with a position have the data.'); }
@@ -222,5 +273,5 @@ function ensure(b){ if(b&&eligible(b)) enqueue(b,true); }
   r.append(x,bt); r.dataset.k='wxfill'; return r;
 });
 
-window.AlkyonBiteWx={slot:slot,ensure:ensure,fetch:fetchWx,moon:moonAt};
+window.AlkyonBiteWx={moonLight:moonLight,slot:slot,ensure:ensure,fetch:fetchWx,moon:moonAt};
 })();

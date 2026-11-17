@@ -1768,6 +1768,14 @@ with sync_playwright() as p:
       and t0==[False,False] and t1==[True,True] and not te
       and "tile('rainfc'" in mv and 'hourly=precipitation,weather_code' in mv and 'ML.isLand(la,lo)' in ss and 'loadRegion(b)' in ss and 'pxMem[u]' in wm and "class:'oprf'" in op, [l1,l2,l3,t0,t1,te]); 
 
+    print('# 1.14.66 φως φεγγαριού στο ψάρι')
+    c=ctx(b,lang='en'); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(2500)
+    ml=pg.evaluate("()=>{ const f=AlkyonBiteWx.moonLight, P=[34.75,32.4]; return [f(Date.UTC(2026,10,24,22,0),P[0],P[1],{t:0,lo:0,mi:0,hi:0}), f(Date.UTC(2026,10,24,22,0),P[0],P[1],{t:100,lo:100,mi:0,hi:0}), f(Date.UTC(2026,10,17,17,0),P[0],P[1],{t:30,lo:0,mi:0,hi:30}), f(Date.UTC(2026,10,9,20,0),P[0],P[1],null)]; }")
+    bw=open(os.path.join(ROOT,'bitewx.js'),encoding='utf-8').read()
+    check('Φως φεγγαριού: πανσέληνος ψηλά ~89%, με χαμηλή συννεφιά ~13%, μισό φεγγάρι <10%, νέα σελήνη κάτω από τον ορίζοντα 0· νέφωση σε 3 ύψη ζητιέται και αποθηκεύεται στο ψάρι (1.14.66)',
+      ml[0]['ill']==100 and 80<ml[0]['alt']<83 and 85<ml[0]['light']<92 and 11<ml[1]['light']<15 and ml[1]['cov']==100 and 45<ml[2]['ill']<60 and 3<ml[2]['light']<9 and ml[3]['alt']<0 and ml[3]['clear']==0
+      and 'cloud_cover_low,cloud_cover_mid,cloud_cover_high' in bw and 'pt.moonLight=' in bw and not pg._errs, [ml,pg._errs]); c.close()
+
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)
     check('Οδηγός χωρίς καρτέλα Κόμποι (αφαιρέθηκε προσωρινά)', not pg.query_selector('#tab-guide .seg button[data-g=knots]') and not pg._errs, pg._errs); c.close()
