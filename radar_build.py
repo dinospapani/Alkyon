@@ -130,6 +130,17 @@ def s3_links(debug):
     debug['s3'] = info
     return out
 
+def cy_offset(now):
+    """Διαφορά ώρας Κύπρου από UTC (2 ή 3 ώρες)."""
+    try:
+        from zoneinfo import ZoneInfo
+        return now.astimezone(ZoneInfo('Asia/Nicosia')).utcoffset()
+    except Exception:
+        return dt.timedelta(hours=2)
+def fix_local(ts, now):
+    """1.14.59: τα αρχεία του ΤΜ γράφουν ώρα Κύπρου αντί για UTC. Ώρα «στο μέλλον» = τοπική: γυρίζει σε UTC."""
+    if ts and ts > now + dt.timedelta(minutes=10): return ts - cy_offset(now)
+    return ts
 TS_RES = [re.compile(r'(20\d{2})(\d{2})(\d{2})[T_\-]?(\d{2})(\d{2})(\d{2})?'),
           re.compile(r'(20\d{2})[\-_](\d{2})[\-_](\d{2})[T_\- ](\d{2})[:\-_]?(\d{2})')]
 def ts_of_name(name):
@@ -366,6 +377,12 @@ def main():
                 p = os.path.join(prev, fr['img'])
                 if os.path.exists(p): shutil.copy(p, os.path.join(out, fr['img']))
         except Exception as e: log('prev fail', e); meta = {'frames': []}
+    _n0 = dt.datetime.now(dt.timezone.utc)
+    if meta.get('tz') != 'utc':   # 1.14.59: τα παλιά καρέ είχαν όλα ώρα Κύπρου· μία φορά γυρίζουν σε UTC
+        for fr in meta.get('frames', []):
+            try: fr['t'] = (dt.datetime.strptime(fr['t'], '%Y%m%d%H%M').replace(tzinfo=dt.timezone.utc) - cy_offset(_n0)).strftime('%Y%m%d%H%M')
+            except Exception: pass
+        meta['tz'] = 'utc'
     have = {fr['t'] for fr in meta.get('frames', [])}
     debug = {'run': dt.datetime.now(dt.timezone.utc).isoformat(timespec='seconds'), 'base': BASE}
     now = dt.datetime.now(dt.timezone.utc)
@@ -418,7 +435,7 @@ def main():
             else: files.append((name, src))
         z, used, ts = build_frame(files, LON, LAT, debug)
         if not used: log('no reflectivity in', [n for n, _ in files]); continue
-        ts = ts or k or now
+        ts = fix_local(ts or k or now, now)
         tkey = ts.strftime('%Y%m%d%H%M')
         if tkey in have: continue
         img = colorize(despeckle(z))
@@ -435,7 +452,7 @@ def main():
     for p in glob.glob(os.path.join(out, 'radar_*.png')):
         if os.path.basename(p) not in keep: os.remove(p)
     w, s, e, n = BOX
-    meta = {'frames': fr, 'bounds': [[s, w], [n, e]], 'updated': now.isoformat(timespec='seconds'),
+    meta = {'tz': 'utc', 'frames': fr, 'bounds': [[s, w], [n, e]], 'updated': now.isoformat(timespec='seconds'),
             'source': 'Τμήμα Μετεωρολογίας Κύπρου (dom.org.cy) · WIS2', 'legend': [[t, list(c)] for t, c in PAL], 'proj': 'webmercator', 'new': new}
     json.dump(meta, open(os.path.join(out, 'radar.json'), 'w'), ensure_ascii=False, separators=(',', ':'))
     json.dump(debug, open(os.path.join(out, 'radar-debug.json'), 'w'), ensure_ascii=False, indent=1, default=str)

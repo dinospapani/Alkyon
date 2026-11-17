@@ -6,7 +6,7 @@ var B=window.AK, h=B.h, T=B.T, EN=B.EN, ls=B.ls;
 var root=null, map=null, layers={}, base=null, sea=null, me=null, meAcc=null, watch=null, gSpots=null, gFish=null;
 var TILES={night:'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',sat:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',osm:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',sea:'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png'};
 B.tileTpl={sat:TILES.sat,sea:TILES.sea}; /* v31z550: για το κατέβασμα πριν την έξοδο (prefetch.js, sw.js) */
-var cfg=Object.assign({base:'sat',sea:true,spots:true,fish:true,zones:true,depth:false,mpa:false,dams:B.prof()==='lake',wind:false},ls.get('alkyon-v4-map',{}));
+var cfg=Object.assign({base:'sat',sea:true,spots:true,fish:true,zones:true,depth:false,mpa:false,dams:B.prof()==='lake',wind:false},ls.get('alkyon-v4-map',{})); if(cfg.lost===undefined) cfg.lost=!!cfg.fish&&cfg.miss!==false; /* 1.14.59: «Χαμένα» ανεξάρτητα από τα «Ψάρια» */
 var DAMS=[
 ['Κούρης','Kouris',34.7278,32.9178,'open',110],['Ασπρόκρεμμος','Asprokremmos',34.7259,32.5543,'open',53],['Εύρετου','Evretou',34.9757,32.4727,'open',70],
 ['Κανναβιού','Kannaviou',34.9277,32.5878,'open',75],['Καλαβασός','Kalavasos',34.803972,33.260517,'open',60],['Λεύκαρα','Lefkara',34.8944,33.2956,'open',71],
@@ -100,7 +100,7 @@ function drawData(){
   if(cfg.spots){ var sps=S().raw('spots').filter(function(sp){ return !sp.deleted&&typeof sp.lat==='number'; }), sll=function(sp){ return L.latLng(sp.lat,sp.lon); };
     cluster(sps,sll).forEach(function(c){ if(c.a.length===1){ var sp=c.a[0]; L.marker([sp.lat,sp.lon],{icon:icon('spot k-'+spotKind(sp),'<i></i><b>'+esc(sp.name||'')+'</b>'),keyboard:true,title:sp.name||''}).on('click',function(){ spotSheet(sp); }).addTo(gSpots); return; }
       L.marker(c.ll,{icon:icon('spot grp','<i>'+c.a.length+'</i>'),title:c.a.map(function(x){ return x.name; }).join(', ')}).on('click',function(){ if(spread(c.a,sll)<120||map.getZoom()>=17) spotList(c.a); else map.fitBounds(L.latLngBounds(c.a.map(sll)).pad(0.5),{maxZoom:17}); }).addTo(gSpots); }); }
-  if(cfg.fish){ var fs=S().raw('bites').filter(function(b){ return !b.deleted&&typeof b.lat==='number'&&(!b.miss||cfg.miss!==false); }), fll=function(b){ return L.latLng(b.lat,b.lon); };
+  if(cfg.fish||cfg.lost){ var fs=S().raw('bites').filter(function(b){ return !b.deleted&&typeof b.lat==='number'&&(b.miss?cfg.lost:cfg.fish); }), fll=function(b){ return L.latLng(b.lat,b.lon); };
     cluster(fs,fll).forEach(function(c){ var a=c.a, caught=a.filter(function(b){ return !b.miss; }), n=caught.reduce(function(s,b){ return s+Math.max(1,Math.floor(+b.cnt)||1); },0), cls, html;
       if(!caught.length){ cls='fish miss'; html=a.length>1?'<b>'+a.length+'</b>':'✕'; }
       else { var gc={}; caught.forEach(function(b){ var g=fishGroup(b); gc[g]=(gc[g]||0)+1; }); var g=Object.keys(gc).sort(function(x,y){ return gc[y]-gc[x]; })[0];
@@ -225,6 +225,7 @@ function rainDom(force){
   return fetch(DOMR+'radar.json?t='+Math.floor(Date.now()/120000),{cache:'no-store'}).then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(j){
     var fr=(j.frames||[]).slice(-12); if(!fr.length) throw 0;
     var tm=function(t){ return Date.UTC(+t.slice(0,4),+t.slice(4,6)-1,+t.slice(6,8),+t.slice(8,10),+t.slice(10,12))/1000; };
+    if(j.tz!=='utc'){ var tm0=tm, lead=tm0(fr[fr.length-1].t)-Date.now()/1000, sh=lead>300?Math.ceil(lead/3600)*3600:0; tm=function(t){ return tm0(t)-sh; }; } /* 1.14.59: τα παλιά αρχεία είχαν ώρα Κύπρου αντί για UTC (έδειχνε 08:33 στις 07:21) */
     var age=Math.round((Date.now()/1000-tm(fr[fr.length-1].t))/60);
     if(force&&age>360) throw 0;
     if(!force&&age>100){ rainDom.stale=Date.now(); if(!rainDom.told){ rainDom.told=1; B.toast(T('Το ραντάρ ΤΜ Κύπρου δεν έχει πρόσφατη εικόνα (τελευταία πριν ','The DoM Cyprus radar has no recent image (last one ')+(age>=120?Math.floor(age/60)+T(' ώρ.',' h'):age+'′')+T('). Δείχνω RainViewer· με «⇄» βλέπεις την τελευταία του ΤΜ.',' ago). Showing RainViewer; «⇄» shows the latest DoM image.')); } throw 0; } /* 1.9.23: έως 100′ (το ραντάρ Πάφου στέλνει αραιά και το GitHub καθυστερεί) */
@@ -241,12 +242,16 @@ function drawOverlays(){
   if(!map) return;
   Object.keys(ov).forEach(function(k){ if(ov[k]){ map.removeLayer(ov[k]); ov[k]=null; } });
   drawSat(); drawRain(); if(B.seaRep) B.seaRep.draw(map); /* 1.9.17 */
+  if(damZ!==map){ damZ=map; map.on('zoomend',function(){ if(cfg.dams&&ov.dams&&damPut) damPut(); }); }
   /* 1.11.4: το επίπεδο EMODnet «Προστατευόμενες» αφαιρέθηκε */
   if(cfg.zones&&(window.ZONES||window.ZONES_GR)){ ov.zones=L.layerGroup(); (window.ZONES||[]).forEach(function(z){ zonePoly(z,'cy').addTo(ov.zones); }); (window.ZONES_GR||[]).forEach(function(z){ zonePoly(z,'gr').addTo(ov.zones); }); ov.zones.addTo(map); }
   if(cfg.zones){ zwKey=''; drawWorldZones(); }
   if(cfg.zones&&window.GR_LOCAL&&B.grLocal) drawGrLocal(); /* 1.13.3: τοπικές απαγορεύσεις Λιμενικών Αρχών */
-  if(cfg.dams){ ov.dams=L.layerGroup().addTo(map); var put=function(){ if(!ov.dams) return; ov.dams.clearLayers(); DAMS.forEach(function(d){ var lv=null; if(LV&&LV.dams) for(var n in LV.dams){ if(nrm(n)===nrm(d[0])) lv=LV.dams[n]; }
-      L.marker([d[2],d[3]],{icon:icon('dam '+(DST[d[4]]||DST.check)[1],'<b>'+(lv?Math.round(lv.pct)+'%':'\u2013')+'</b><i>'+esc(EN?d[1]:d[0])+'</i>')}).on('click',function(){ damSheet(d,lv); }).addTo(ov.dams); }); };
+  if(cfg.dams){ ov.dams=L.layerGroup().addTo(map); var put=function(){ if(!ov.dams) return; ov.dams.clearLayers(); var placed=[]; DAMS.forEach(function(d){ var lv=null; if(LV&&LV.dams) for(var n in LV.dams){ if(nrm(n)===nrm(d[0])) lv=LV.dams[n]; }
+      /* 1.14.59: όταν δύο φράγματα πέφτουν κοντά στην οθόνη, το δεύτερο δείχνει μόνο το ποσοστό (το όνομα έμπαινε κάτω από τη διπλανή ετικέτα) */
+      var pt=map.latLngToContainerPoint([d[2],d[3]]), tight=placed.some(function(q){ return Math.abs(q.x-pt.x)<96&&Math.abs(q.y-pt.y)<50; }); placed.push(pt);
+      L.marker([d[2],d[3]],{icon:icon('dam '+(DST[d[4]]||DST.check)[1]+(tight?' nn':''),'<b>'+(lv?Math.round(lv.pct)+'%':'\u2013')+'</b><i>'+esc(EN?d[1]:d[0])+'</i>'),title:EN?d[1]:d[0]}).on('click',function(){ damSheet(d,lv); }).addTo(ov.dams); }); };
+    damPut=put;
     put(); if(!LV) fetch('../dams_levels.json').then(function(r){ return r.json(); }).then(function(j){ LV=j; put(); }).catch(function(){}); }
 }
 /* 1.13.3: Λιμενικές Αρχές (σήμα ⚓, πατάς για τους κανόνες) και οι περιοχές τους με συντεταγμένες */
@@ -269,6 +274,7 @@ function drawGrLocal(){ var G=window.GR_LOCAL; ov.grl=L.layerGroup();
         g.osm?h('p',{class:'sub',text:T('Το περίγραμμα είναι από το OpenStreetMap (© συντελεστές OSM)· ο κανόνας από την απόφαση του Λιμενικού.','Outline from OpenStreetMap (© OSM contributors); the rule from the Coast Guard decision.')}):null,
         h('div',{class:'acts'},h('button',{class:'btn',type:'button',text:T('Όλοι οι κανόνες της περιοχής','All local rules'),onclick:function(){ B.grLocal.sheet(a); }})))}); }).addTo(ov.grl); }); });
   ov.grl.addTo(map); }
+var damPut=null, damZ=0;
 function damSheet(d,lv){
   var st=DST[d[4]]||DST.check, rows=[];
   if(lv){ rows.push([T('Πληρότητα','Fullness'),Math.round(lv.pct)+'%'],[T('Νερό','Water'),B.num(lv.stor,2)+' / '+B.num(lv.cap,2)+T(' εκ. m³',' million m³')]); if(lv.lyPct!=null) rows.push([T('Πέρσι, ίδια μέρα','Same day last year'),Math.round(lv.lyPct)+'%']); }
@@ -751,7 +757,7 @@ function layersSheet(o){ o=o&&o.into?o:{}; /* 1.7.4: o.into = μέσα στο μ
     tile('spot',T('Σημεία','Spots'),T('τα σημεία σου','your spots'),function(){ return !!cfg.spots; },function(v){ cfg.spots=v; saveCfg(); drawData(); }),
     tile('fish',T('Ψάρια','Catches'),T('ανά είδος','by species'),function(){ return !!cfg.fish; },function(v){ cfg.fish=v; saveCfg(); drawData(); }),
     tile('heat',T('Πού πιάνω','Where I catch'),T('ανά μήνα, είδος','by month, species'),function(){ return !!cfg.heat; },function(v){ cfg.heat=v; saveCfg(); drawHeat(); if(v) setTimeout(heatSheet,250); }),
-    tile('miss',T('Χαμένα','Lost bites'),T('τσιμπήματα','missed fish'),function(){ return !!cfg.fish&&cfg.miss!==false; },function(v){ cfg.miss=v; if(v) cfg.fish=true; saveCfg(); drawData(); }),
+    tile('miss',T('Χαμένα','Lost bites'),T('τσιμπήματα','missed fish'),function(){ return !!cfg.lost; },function(v){ cfg.lost=v; saveCfg(); drawData(); }),
     tile('dam',T('Φράγματα','Reservoirs'),T('πληρότητα','levels'),function(){ return !!cfg.dams; },function(v){ cfg.dams=v; saveCfg(); drawOverlays(); })]);
   /* ενέργειες */
   var acts=h('div',{class:'list lacts'});
@@ -974,7 +980,7 @@ function mcDrFill2(){ var pan=mcDr.querySelector('.mcpan'), keep=pan.scrollTop; 
     g=mcAcc(t,OPEN); groups[t]=g; return g; }
   [].slice.call(r.body.children).forEach(function(el){
     if(el.classList&&el.classList.contains('lyh')){ var t=el.textContent, gt=MERGE[t]||t; var had=!!groups[gt]; grp=group(gt);
-      if(gt!==t&&(had||t!==T('Χάρτης','Map type'))) grp.append(h('div',{class:'mcsub',text:t})); return; }
+      if(gt!==t&&(had||(t!==T('Χάρτης','Map type')&&t!==T('Πού να πάω','Where to go')))) grp.append(h('div',{class:'mcsub',text:t})); return; }
     if(el.classList&&el.classList.contains('foot')) return;
     (grp||pan).append(el); });
   var ORDER=[WXG,'@tools',T('Τα δικά μου','My data'),MAPG,T('Θάλασσα και κανόνες','Sea and rules'),T('Ενέργειες','Actions'),LEG];
@@ -1021,7 +1027,7 @@ function moreSheet(){ var sh, rb=document.getElementById('bRuler'), ab=document.
     it(B.iconSvg('bell'),T('Ειδοποιήσεις','Notifications'),unread>0?unread+T(' αδιάβαστες',' unread'):T('Καλές μέρες, πίεση, καιρός στην έξοδο','Good days, pressure, trip weather'),function(){ location.hash='#inbox'; }),
     ab?it('<span style="font:800 18px var(--font)">ⓘ</span>',T('Πηγές χάρτη','Map sources'),T('Από πού έρχονται ο χάρτης, τα βάθη και ο καιρός','Where the map, depths and weather come from'),function(){ ab.click(); }):null)}); }
 function mount(el){
-  root=el; document.body.classList.add('mapon'); cfg=Object.assign({base:'sat',sea:true,spots:true,fish:true,zones:true,mpa:false,dams:B.prof()==='lake',wind:false,seast:false},ls.get('alkyon-v4-map',{}));
+  root=el; document.body.classList.add('mapon'); cfg=Object.assign({base:'sat',sea:true,spots:true,fish:true,zones:true,mpa:false,dams:B.prof()==='lake',wind:false,seast:false},ls.get('alkyon-v4-map',{})); if(cfg.lost===undefined) cfg.lost=!!cfg.fish&&cfg.miss!==false; /* 1.14.59: «Χαμένα» ανεξάρτητα από τα «Ψάρια» */
   if(!box){ lmEl=h('div',{class:'lmap',id:'lmap'}); box=h('div',{class:'mapbox',id:'v4map'},lmEl); }
   if(!mbtns){ mbtns=h('div',{class:'mapbtns'}); hookBtns(); }
   var bar=h('div',{class:'mapbar'},

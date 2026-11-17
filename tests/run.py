@@ -1724,6 +1724,23 @@ with sync_playwright() as p:
     r=pg.evaluate("()=>{ const i=document.querySelectorAll('.sheet.on input[type=datetime-local]'); i[1].value='2026-11-07T12:30'; i[1].dispatchEvent(new Event('input')); const d=document.querySelector('.sheet.on .sub').textContent; [...document.querySelectorAll('.sheet.on button')].find(x=>/^Save/.test(x.textContent)).click(); const t=JSON.parse(localStorage.getItem('alkyon-trips'))[0]; return [d, (t.endMs-t.startMs)/3600000]; }")
     check('Έξοδος 32 ωρών: «Διόρθωση ωρών» την κάνει 7,5 ώρες (1.14.58)', r==['Duration: 7.5 h',7.5] and not pg._errs, [r,pg._errs]); c.close()
 
+    print('# 1.14.59 χάρτης: ψάρια/χαμένα ανεξάρτητα, ραντάρ σε UTC')
+    c=ctx(b,lang='en'); c.add_init_script("if(!sessionStorage.__s){sessionStorage.__s=1;localStorage.setItem('alkyon-bites',JSON.stringify([{id:'f1',date:'2026-11-10',time:'07:00',species:'Ροφός',kg:2,lat:34.80,lon:32.30,_u:1},{id:'f2',date:'2026-11-10',time:'08:00',miss:true,lat:34.70,lon:32.45,_u:1}]));localStorage.setItem('alkyon-v4-map',JSON.stringify({fish:true,spots:false}));localStorage.setItem('alkyon-v4-pos',JSON.stringify({lat:34.75,lon:32.38}));}")
+    pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(4500)
+    cnt="()=>[document.querySelectorAll('.mk.fish:not(.miss)').length,document.querySelectorAll('.mk.fish.miss').length]"
+    r0=pg.evaluate(cnt)
+    pg.evaluate("()=>document.querySelector('.mclay').click()"); pg.wait_for_timeout(900)
+    tap="(k)=>{ const t=document.querySelector('.mcpan .ltile[data-fk=\"l:'+k+'\"]'); t.click(); }"
+    pg.evaluate(tap,'miss'); pg.wait_for_timeout(900); r1=pg.evaluate(cnt)
+    pg.evaluate(tap,'fish'); pg.wait_for_timeout(900); r2=pg.evaluate(cnt)
+    pg.evaluate(tap,'miss'); pg.wait_for_timeout(900); r3=pg.evaluate(cnt)
+    cf=pg.evaluate("()=>{ const c=JSON.parse(localStorage.getItem('alkyon-v4-map')); return [!!c.fish,!!c.lost]; }")
+    import datetime as _dt, re as _re
+    rb=open(os.path.join(ROOT,'radar_build.py'),encoding='utf-8').read(); ns={'dt':_dt}; exec(rb[rb.index('def cy_offset'):rb.index('TS_RES = [')],ns)
+    n0=_dt.datetime(2026,11,17,5,40,tzinfo=_dt.timezone.utc); fl=[ns['fix_local'](_dt.datetime(2026,11,17,7,20,tzinfo=_dt.timezone.utc),n0).hour, ns['fix_local'](_dt.datetime(2026,11,17,5,20,tzinfo=_dt.timezone.utc),n0).hour]
+    mv=open(os.path.join(ROOT,'v4','map-view.js'),encoding='utf-8').read()
+    check('Χάρτης: «Χαμένα» και «Ψάρια» ανάβουν χωριστά· ώρα ραντάρ ΤΜ από ώρα Κύπρου σε UTC (1.14.59)', r0==[1,1] and r1==[1,0] and r2==[0,0] and r3==[0,1] and cf==[False,True] and fl==[5,5] and "'tz': 'utc'" in rb and "j.tz!=='utc'" in mv and not pg._errs, [r0,r1,r2,r3,cf,fl,pg._errs]); c.close()
+
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)
     check('Οδηγός χωρίς καρτέλα Κόμποι (αφαιρέθηκε προσωρινά)', not pg.query_selector('#tab-guide .seg button[data-g=knots]') and not pg._errs, pg._errs); c.close()

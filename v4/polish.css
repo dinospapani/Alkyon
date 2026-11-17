@@ -294,3 +294,24 @@ form.bf2 .depnote[hidden]{display:none}
 /* ===== 1.14.58 ===== */
 /* «Τέλος εξόδου» δεν είναι πια ίδιο πορτοκαλί με το «+ Νέο ψάρι»: ένα κύριο κουμπί ανά φύλλο, για να μην πατιέται κατά λάθος */
 .btn.endtrip{background:transparent;border:1.5px solid var(--line);color:var(--ink);font-weight:750;min-height:52px}
+
+/* ===== 1.14.59: Χάρτης ===== */
+/* μενού στρωμάτων: η πάνω μπάρα και η κάτω μπάρα δεν ξεπροβάλλουν δίπλα του */
+body:has(.mcdrw.open:not(.mcb)) .nav,body:has(.mcdrw.open:not(.mcb)) .mapwx,body:has(.mcdrw.open:not(.mcb)) .mcbar{opacity:0!important;pointer-events:none!important}
+.mcdrw:not(.mcb) .mcdim{background:rgba(6,16,22,.38)!important}
+/* όχι διπλή γραμμή στο τέλος κάθε ομάδας */
+.mcpan .mcacc>.lgrid:last-child>.ltile:last-child{border-bottom:0}
+.mcpan .mctile b{overflow-wrap:anywhere;hyphens:auto}
+/* ετικέτα κατάστασης σε φύλλο: τυλίγει αντί να κόβεται δεξιά */
+.sheet p.tag{display:inline-flex;max-width:100%;box-sizing:border-box;white-space:normal;border-radius:14px;line-height:1.3;align-items:flex-start;padding:7px 12px}
+.sheet p.tag::before{flex:none;margin-top:.45em}
+/* θερμοκρασία νερού: αδιαφανές πλαίσιο (φαίνονταν από πίσω οι ετικέτες του χάρτη) */
+body.mapon .sstleg.sstleg{background:var(--surface)!important;backdrop-filter:none}
+/* φράγματα πολύ κοντά: μόνο το ποσοστό */
+.mk.dam.nn i{display:none}
+/* διακόπτες με μακρύ κείμενο (Συρτή): κανονικό μέγεθος, όχι τίτλος */
+.sheet .tg{align-items:flex-start;font-size:14.5px;font-weight:500;line-height:1.38}
+.sheet .tg>input{margin-top:1px}
+/* χάρακας: δεν σκεπάζει το κουμπί της εξόδου */
+#ndRuler{bottom:calc(var(--nav-h,64px) + var(--safe-b,0px) + 28px)}
+body:has(.mcdrw.open:not(.mcb)) .mchips,body:has(.mcdrw.open:not(.mcb)) .seabar,body:has(.mcdrw.open:not(.mcb)) .mapbar{opacity:0!important;pointer-events:none!important}
