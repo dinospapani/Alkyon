@@ -379,3 +379,6 @@ body.mapon.navslid .rfcbar .rbt{flex:1 1 90px}
 body.mapon.navslid .rfcbar input[type=range]{flex:0 1 72px;min-width:56px}
 /* 1.14.74: το κουμπί ψαριού της εξόδου δεν πατάει πάνω στο βελάκι */
 body.mapon.navslid:not(:has(#ndMapDock:not([hidden]))) .fishbtns{bottom:calc(var(--safe-b,0px) + 84px)}
+
+/* 1.14.76: τα κουμπιά ψαριού της εξόδου δεν γίνονται σύρσιμο σελίδας, για να πιάνει το παρατεταμένο πάτημα */
+.fishbtns .fb{touch-action:none;-webkit-touch-callout:none}
