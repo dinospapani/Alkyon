@@ -59,6 +59,13 @@ function ask(){ var re=again(); if(!re&&(ls.get(ASKED,0)||ls.get(K,null)!==null|
 function sheet(){ var cb=h('input',{type:'checkbox',checked:on()}); cb.addEventListener('change',function(){ set(cb.checked); B.toast(cb.checked?T('Συμμετέχεις · ευχαριστούμε','You are taking part · thank you'):T('Σβήστηκαν τα στοιχεία σου από τον server','Your data was deleted from the server')); });
   B.sheet({title:T('Βοήθησε την πρόγνωση','Help the forecast'),body:h('div',{class:'bform'},explain(),h('label',{class:'tg',style:'padding:10px 4px'},cb,h('span',null,h('b',{text:T('Ανώνυμη συμμετοχή','Anonymous participation')}))))}); }
 B.contrib={on:on,set:set,sync:sync,ask:ask,sheet:sheet,_rowOf:rowOf};
+/* 1.14.60: ο σύνδεσμος της πρόσκλησης (?join=1) ανοίγει κατευθείαν το «Βοήθησε την πρόγνωση», μόλις τελειώσει η πρώτη ρύθμιση και δεν υπάρχει άλλο φύλλο ανοιχτό */
+(function(){ var JK='alkyon-v4-joinlink'; try{ if(/[?&]join=1(&|$)/.test(location.search)){ ls.set(JK,Date.now()); history.replaceState(history.state,'',location.pathname+location.search.replace(/([?&])join=1(&|$)/,function(m,a,b){ return b?a:''; })+location.hash); } }catch(e){}
+  var at=ls.get(JK,0); if(!at||Date.now()-at>864e5){ if(at) ls.set(JK,0); return; }
+  var tries=0, iv=setInterval(function(){ if(++tries>400){ clearInterval(iv); return; }
+    if(document.hidden||document.querySelector('.sheet.on,.sppage,.spk,.camov,.onb,.mcdrw.open')) return;
+    clearInterval(iv); ls.set(JK,0); if(on()){ B.toast(T('Συμμετέχεις ήδη στο «Βοήθησε την πρόγνωση» · ευχαριστούμε','You already take part in “Help the forecast” · thank you')); return; }
+    sheet(); if(!sess()) setTimeout(function(){ B.toast(T('Για να μετρήσουν τα ψάρια σου χρειάζεται δωρεάν λογαριασμός (Προφίλ).','A free account (Profile) is needed for your catches to count.')); },900); },1500); })();
 
 /* ---------- «Πότε τσιμπάνε · από όλους» (bite_stats) ---------- */
 var ST=null, stAt=0;
@@ -161,7 +168,7 @@ function card(sp0){ var box=h('section',{class:'card bscard'},h('h3',{text:T('Π
     box.append(h('div',{class:'bsinv'},h('small',{class:'sub',text:T('Όσο περισσότεροι συμμετέχουν, τόσο πιο σωστή γίνεται η πρόγνωση για όλους.','The more people take part, the better the forecast gets for everyone.')}),
       h('button',{class:'btn sm',type:'button',text:'👥 '+T('Κάλεσε φίλους','Invite friends'),onclick:invite}),on()?null:h('button',{class:'btn sm pri',type:'button',text:T('Συμμετέχω','Take part'),onclick:sheet}))); });
   return box; }
-function invite(){ var url='https://alkyonfishing.com/', tx=T('Ψαρεύω με το Alkyon: πρόγνωση για ψάρεμα, ημερολόγιο και πότε τσιμπάνε στην περιοχή μας. Έλα κι εσύ, όσο περισσότεροι τόσο πιο σωστή η πρόγνωση: ','I fish with Alkyon: fishing forecast, logbook and when fish bite in our area. Join in, the more of us the better the forecast: ');
+function invite(){ var url='https://alkyonfishing.com/?join=1', tx=T('Ψαρεύω με το Alkyon: πρόγνωση για ψάρεμα, ημερολόγιο και πότε τσιμπάνε στην περιοχή μας. Έλα κι εσύ, όσο περισσότεροι τόσο πιο σωστή η πρόγνωση: ','I fish with Alkyon: fishing forecast, logbook and when fish bite in our area. Join in, the more of us the better the forecast: ');
   if(navigator.share) navigator.share({title:'Alkyon',text:tx,url:url}).catch(function(){}); else { try{ navigator.clipboard.writeText(tx+url); B.toast(T('Αντιγράφηκε ο σύνδεσμος','Link copied')); }catch(e){ location.hash='#friends'; } } }
 /* 1.14.29: «Πόσο έπεσε μέσα η πρόγνωση»: ψάρια ανά ώρα ανά ζώνη βαθμού τσιμπήματος (με τον καιρό που έγινε) */
 function accBox(a,me){ if(!a||!a.n||a.trips<5) return null; var lab=['<'+a.b[0],a.b[0]+'–'+(a.b[1]-1),a.b[1]+'–'+(a.b[2]-1),a.b[2]+'+'], ul=h('ul',{class:'bstr bsacc'}), ok=[];

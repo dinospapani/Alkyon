@@ -182,9 +182,17 @@ B.ovZoom=function(map,c){ if(!c||c._ovz) return; c._ovz=1; c.classList.add('leaf
   function upd(z,ctr){ var s=c._ovS; if(!s) return; try{ var sc=map.getZoomScale(z,s.z), p=ctr?map._latLngToNewLayerPoint(s.tl,z,ctr):map.latLngToLayerPoint(s.tl); L.DomUtil.setTransform(c,p,sc); }catch(e){} }
   map.on('zoomanim',function(e){ upd(e.zoom,e.center); }); map.on('zoom',function(){ upd(map.getZoom()); }); };
 var SatGL=null; function satGL(){ if(SatGL) return SatGL; SatGL=L.GridLayer.extend({ createTile:function(c,done){ var t=document.createElement('canvas'); t.width=t.height=256; var u=this.options.url.replace('{z}',c.z).replace('{x}',c.x).replace('{y}',c.y), img=new Image(), tried=false;
-  function mask(){ var x=t.getContext('2d'); x.drawImage(img,0,0,256,256); var LA=B.landAt; if(!LA) return; try{ var id=x.getImageData(0,0,256,256), d=id.data, n=256*Math.pow(2,c.z);
+  function mask(){ var x=t.getContext('2d'); x.drawImage(img,0,0,256,256); var LA=B.landAt; if(!LA) return; try{ var id=x.getImageData(0,0,256,256), d=id.data, n=256*Math.pow(2,c.z), land=new Uint8Array(16384);
       for(var py=0;py<256;py+=2){ var Y=c.y*256+py+1, la=Math.atan(Math.sinh(Math.PI*(1-2*Y/n)))*180/Math.PI;
-        for(var px=0;px<256;px+=2){ var lo=(c.x*256+px+1)/n*360-180; if(LA(la,lo)===1){ for(var dy=0;dy<2;dy++) for(var dx=0;dx<2;dx++) d[((py+dy)*256+px+dx)*4+3]=0; } } }
+        for(var px=0;px<256;px+=2){ var lo=(c.x*256+px+1)/n*360-180; if(LA(la,lo)===1){ land[(py>>1)*128+(px>>1)]=1; for(var dy=0;dy<2;dy++) for(var dx=0;dx<2;dx++) d[((py+dy)*256+px+dx)*4+3]=0; } } }
+      /* 1.14.60: τα κενά του δορυφόρου δίπλα στην ακτή (κελιά που το προϊόν τα μετρά ως στεριά) παίρνουν το χρώμα του διπλανού κελιού θάλασσας,
+         έως ~1,5 κελί· μισή ανάλυση (128×128) για ταχύτητα */
+      var has=new Uint8Array(16384), fr=[], R=Math.max(2,Math.round(20/Math.pow(2,Math.max(0,10-c.z)))), i, k;
+      for(i=0;i<16384;i++){ k=(((i>>7)<<1)*256+((i&127)<<1))*4; if(d[k+3]>40){ has[i]=1; fr.push(i); } }
+      if(fr.length&&fr.length<16384) for(var pass=0;pass<R&&fr.length;pass++){ var nx=[]; for(var f=0;f<fr.length;f++){ var s0=fr[f], sy=s0>>7, sx=s0&127, ks=((sy<<1)*256+(sx<<1))*4;
+          for(var q=0;q<4;q++){ var ty=sy+(q===0?-1:q===1?1:0), tx=sx+(q===2?-1:q===3?1:0); if(ty<0||tx<0||ty>127||tx>127) continue; var ti=ty*128+tx; if(has[ti]||land[ti]) continue; has[ti]=1; nx.push(ti);
+            for(var ey=0;ey<2;ey++) for(var ex=0;ex<2;ex++){ var kt=(((ty<<1)+ey)*256+(tx<<1)+ex)*4; d[kt]=d[ks]; d[kt+1]=d[ks+1]; d[kt+2]=d[ks+2]; d[kt+3]=d[ks+3]; } } }
+        fr=nx; }
       x.putImageData(id,0,0); }catch(e){} }
   img.crossOrigin='anonymous'; img.onload=function(){ mask(); done(null,t); };
   img.onerror=function(){ if(!tried){ tried=true; img=new Image(); img.onload=function(){ t.getContext('2d').drawImage(img,0,0,256,256); done(null,t); }; img.onerror=function(){ done(new Error('tile'),t); }; img.src=u; } else done(new Error('tile'),t); };
@@ -437,7 +445,8 @@ function currents(force){
     var sz=map.getSize(), dk=document.getElementById('ndMapDock'), x0=70, x1=sz.x-78, y0=Math.min(sz.y*0.3,175), y1=sz.y-((dk&&!dk.hidden&&dk.offsetHeight)?dk.offsetHeight+110:150);
     if(y1-y0<120){ y0=sz.y*0.2; y1=sz.y*0.8; }
     /* 1.6.9: όχι βέλος ρεύματος πάνω σε ψάρι/σημείο: μετακινείται λίγο, αλλιώς παραλείπεται */
-    var mcR=lmEl.getBoundingClientRect(), occ=[].map.call(lmEl.querySelectorAll('.mk.fish,.mk.spot i'),function(e){ var r=e.getBoundingClientRect(); return [r.left-mcR.left,r.top-mcR.top,r.right-mcR.left,r.bottom-mcR.top]; });
+    var mcR=lmEl.getBoundingClientRect(), occ=[].map.call(lmEl.querySelectorAll('.mk.fish,.mk.spot i,.dlbl'),function(e){ var r=e.getBoundingClientRect(); return [r.left-mcR.left,r.top-mcR.top,r.right-mcR.left,r.bottom-mcR.top]; });
+    try{ var cl0=window.AK&&window.AK.crossLL; if(cl0){ var cp0=map.latLngToContainerPoint(cl0); occ.push([cp0.x-34,cp0.y-34,cp0.x+34,cp0.y+34]); } }catch(e){} /* 1.14.60: ούτε πάνω στον σταυρό ή στους αριθμούς βάθους */
     function hit(px,py){ return occ.some(function(o){ return px+28>o[0]-4&&px-28<o[2]+4&&py+26>o[1]-4&&py-22<o[3]+4; }); }
     for(var i=0;i<NY;i++) for(var j=0;j<NX;j++){ var cx0=x0+(x1-x0)*(j+0.5)/NX, cy0=y0+(y1-y0)*(i+0.5)/NY;
       if(hit(cx0,cy0)){ var mv=[[0,-50],[0,50],[-55,0],[55,0]].filter(function(d){ return !hit(cx0+d[0],cy0+d[1]); })[0]; if(!mv) continue; cx0+=mv[0]; cy0+=mv[1]; }

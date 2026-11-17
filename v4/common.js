@@ -101,12 +101,15 @@ function group(title,G){
   if(TR.length) box.append(det);
   return box;
 }
+var BIGSP=/^(epinephelus|mycteroperca|polyprion|dentex|pagrus|seriola|lichia|thunnus|euthynnus|katsuwonus|xiphias|tetrapturus|coryphaena|argyrosomus|umbrina cirrosa)\b/, BIGNM=/ροφ|ορφ|σφυρίδ|στήρ|βλάχ|συναγρίδ|φαγκρ|μαγιάτικ|λίτσα|τόνο|ξιφί|κυνηγ|grouper|dentex|amberjack|tuna|swordfish|wreckfish/;
 B.commonCard=function(){
   var D=days(); if(D.length<2) return null;
-  var big=D.filter(function(d){ return d.kgMax!=null&&d.kgMax>=2.5; }), small=D.filter(function(d){ return !(d.kgMax!=null&&d.kgMax>=2.5); });
+  /* 1.14.60: «μεγάλα ψάρια» ανά είδος, όχι ανά κιλά (ένας ορφός 1 kg μετρά στα μεγάλα): ροφοί/σφυρίδες/στήρες, βλάχος, συναγρίδες, φαγκρί, μαγιάτικο, λίτσα, τόνοι, ξιφίας, κυνηγός, μυλοκόπι/κρανιός */
+  var isBig=function(d){ return (d.sp||[]).some(function(n){ var k=''; try{ k=window.spKey?window.spKey(n):String(n).toLowerCase(); }catch(e){} return BIGSP.test(k)||BIGNM.test(String(n).toLowerCase()); }); };
+  var big=D.filter(isBig), small=D.filter(function(d){ return !isBig(d); });
   var c=h('section',{class:'card lycard cmcard'},h('h2',{text:T('Τι κοινό είχαν τα ψαρέματά σου','Your catches in common')}),
     null);
-  if(big.length>=2&&small.length>=2){ c.append(group(T('Μεγάλα ψάρια (από 2,5 kg)','Big fish (2.5 kg and up)'),big)); c.append(group(T('Μικρότερα ψάρια','Smaller fish'),small)); }
+  if(big.length>=2&&small.length>=2){ c.append(group(T('Μεγάλα ψάρια (ροφοί, συναγρίδα, μαγιάτικο…)','Big fish (groupers, dentex, amberjack…)'),big)); c.append(group(T('Άλλα ψάρια','Other fish'),small)); }
   else c.append(group(T('Μέρες με ψάρια','Days with catches'),D));
   /* σύγκριση με εξόδους χωρίς ψάρι */
   var E=emptyTrips();

@@ -315,3 +315,11 @@ body.mapon .sstleg.sstleg{background:var(--surface)!important;backdrop-filter:no
 /* χάρακας: δεν σκεπάζει το κουμπί της εξόδου */
 #ndRuler{bottom:calc(var(--nav-h,64px) + var(--safe-b,0px) + 28px)}
 body:has(.mcdrw.open:not(.mcb)) .mchips,body:has(.mcdrw.open:not(.mcb)) .seabar,body:has(.mcdrw.open:not(.mcb)) .mapbar{opacity:0!important;pointer-events:none!important}
+
+/* ===== 1.14.60 ===== */
+/* κάρτα σημείου ανοιχτή: το πλαίσιο της θερμοκρασίας μένει μόνο με την κλίμακα και την τιμή (η κάρτα γράφει ήδη το νερό) */
+body:has(#wxCard) .sstleg>small,body:has(#wxCard) .sstleg .slsrc{display:none}
+/* χάρακας: λεζάντα κάτω από κάθε κουμπί */
+#ndRuler .racts .rb.cap{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;height:54px;max-width:none;flex:1;padding:0 4px;font-size:17px}
+#ndRuler .racts .rb.cap small{font:650 10.5px/1.1 var(--font);opacity:.8;white-space:nowrap}
+#ndRuler .racts .rb.cap.sp{font-size:14px;flex:1.2}

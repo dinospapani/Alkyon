@@ -919,7 +919,7 @@ with sync_playwright() as p:
     c=ctx(b); c.add_init_script("localStorage.setItem('alkyon-bites',JSON.stringify(%s))"%json.dumps(cb)); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(3000)
     pg.evaluate("()=>{const b=[...document.querySelectorAll('.seg button')].find(x=>/Δικά μου/.test(x.textContent)); b&&b.click()}"); pg.wait_for_timeout(1500)
     r=pg.evaluate("()=>{const c=document.querySelector('.cmcard'); if(!c) return ''; const d=c.closest('details'); if(d) d.open=true; c.querySelectorAll('details').forEach(x=>x.open=true); return c.innerText}")
-    check('«Τι κοινό είχαν τα ψαρέματά σου» (1.9.59)', 'Μεγάλα ψάρια (από 2,5 kg) · 3 μέρες' in ' '.join(r.split()) and 'Ιανουάριος–Μάρτιος' in r and 'κοντά στη νέα σελήνη' in r and 'Μικρότερα ψάρια · 2 μέρες' in ' '.join(r.split()) and not pg._errs, [r[:500],pg._errs]); c.close()
+    check('«Τι κοινό είχαν τα ψαρέματά σου» (1.9.59)', 'Μεγάλα ψάρια (ροφοί, συναγρίδα, μαγιάτικο…) · 3 μέρες' in ' '.join(r.split()) and 'Ιανουάριος–Μάρτιος' in r and 'κοντά στη νέα σελήνη' in r and 'Άλλα ψάρια · 2 μέρες' in ' '.join(r.split()) and not pg._errs, [r[:500],pg._errs]); c.close()
     c=ctx(b); c.add_init_script("localStorage.setItem('alkyon-bites',JSON.stringify([{id:'tb1',date:'2026-10-01',time:'10:00',species:'Sargo',tech:'Βυθού',bait:'Live squid',_u:1}]))"); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(2500)
     pg.evaluate("()=>AK.biteForm()"); pg.wait_for_timeout(1200)
     r=pg.evaluate("()=>{const ch=[...document.querySelectorAll('.qchips .chip')].find(x=>x.dataset.v==='Βυθού'); if(!ch) return null; ch.click(); const bc=[...document.querySelectorAll('.qchips .chip')].find(x=>x.dataset.v==='Live squid'); bc&&bc.click(); return new Promise(res=>setTimeout(()=>res([ch.getAttribute('aria-pressed'), bc&&bc.getAttribute('aria-pressed')]),50))}")
@@ -1740,6 +1740,15 @@ with sync_playwright() as p:
     n0=_dt.datetime(2026,11,17,5,40,tzinfo=_dt.timezone.utc); fl=[ns['fix_local'](_dt.datetime(2026,11,17,7,20,tzinfo=_dt.timezone.utc),n0).hour, ns['fix_local'](_dt.datetime(2026,11,17,5,20,tzinfo=_dt.timezone.utc),n0).hour]
     mv=open(os.path.join(ROOT,'v4','map-view.js'),encoding='utf-8').read()
     check('Χάρτης: «Χαμένα» και «Ψάρια» ανάβουν χωριστά· ώρα ραντάρ ΤΜ από ώρα Κύπρου σε UTC (1.14.59)', r0==[1,1] and r1==[1,0] and r2==[0,0] and r3==[0,1] and cf==[False,True] and fl==[5,5] and "'tz': 'utc'" in rb and "j.tz!=='utc'" in mv and not pg._errs, [r0,r1,r2,r3,cf,fl,pg._errs]); c.close()
+
+    print('# 1.14.60 μεγάλα ψάρια ανά είδος, πρόσκληση, χάρακας')
+    c=ctx(b,lang='en'); c.add_init_script("if(!sessionStorage.__s){sessionStorage.__s=1;var B=[['2026-10-01','Ροφός',1],['2026-10-05','Ορφός',0.9],['2026-10-09','Χάννος',3],['2026-10-12','Πέρκα',3.2],['2026-10-15','Σαργός',0.4]].map(function(r,i){return {id:'q'+i,date:r[0],time:'07:00',species:r[1],kg:r[2],ptrend:'stable',wind:2,lat:34.75,lon:32.38,_u:1};});localStorage.setItem('alkyon-bites',JSON.stringify(B));}")
+    pg=page(c); pg.goto(BASE+'/?join=1'); pg.wait_for_timeout(6500)
+    j=pg.evaluate("()=>{ const s=document.querySelector('.sheet.on'); return [s?s.querySelector('h2,h3,.stitle,b').textContent.trim():null, /join=1/.test(location.search), /\\/v4\\//.test(location.pathname)]; }")
+    pg.evaluate("()=>{ const x=document.querySelector('.sheet.on .sx, .sheet.on [aria-label=Close], .sheet.on button'); x&&x.click(); }"); pg.wait_for_timeout(600)
+    cm=pg.evaluate("()=>{ const el=AK.commonCard(); return [...el.querySelectorAll('.cmhd')].map(x=>x.textContent.replace(/\\s+/g,' ').trim()); }")
+    rj=open(os.path.join(ROOT,'ruler.js'),encoding='utf-8').read(); mv=open(os.path.join(ROOT,'v4','map-view.js'),encoding='utf-8').read()
+    check('Πρόσκληση ?join=1 ανοίγει «Βοήθησε την πρόγνωση»· ορφός 1 kg μετρά στα μεγάλα ψάρια, χάννος 3 kg όχι· λεζάντες στον χάρακα (1.14.60)', j[0]=='Help the forecast' and j[1] is False and j[2] and len(cm)==2 and cm[0].startswith('Big fish (groupers') and cm[0].endswith('2 days') and cm[1].startswith('Other fish') and cm[1].endswith('3 days') and "T('Αναίρεση','Undo')" in rj and 'AK.crossLL' in mv and 'var has=new Uint8Array(16384)' in mv and not pg._errs, [j,cm,pg._errs]); c.close()
 
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)

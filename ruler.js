@@ -44,7 +44,7 @@ function fetchDep(i){ var q=P[i]; if(!q||!C.depthAt) return; C.depthAt(q.lat,q.l
 function add(ll){ P.push(L.latLng(ll.lat,ll.lng)); var i=P.length-1; dep[i]=undefined; drawAll(); paint(); fetchDep(i); try{ navigator.vibrate&&navigator.vibrate(12); }catch(e){} }
 
 function ensurePanel(){ if(panel) return panel; panel=document.createElement('div'); panel.id='ndRuler'; panel.setAttribute('role','group'); panel.setAttribute('aria-label',T('Χάρακας','Ruler')); document.body.appendChild(panel); return panel; }
-function b(txt,lab,fn,cls){ var x=document.createElement('button'); x.type='button'; x.className='rb'+(cls?' '+cls:''); x.textContent=txt; x.setAttribute('aria-label',lab); x.title=lab; x.addEventListener('click',fn); return x; }
+function b(txt,lab,fn,cls,cap){ var x=document.createElement('button'); x.type='button'; x.className='rb'+(cls?' '+cls:'')+(cap?' cap':''); if(cap){ var g=document.createElement('span'); g.textContent=txt; var sm=document.createElement('small'); sm.textContent=cap; x.append(g,sm); } else x.textContent=txt; /* 1.14.60: λεζάντα κάτω από κάθε εικονίδιο */ x.setAttribute('aria-label',lab); x.title=lab; x.addEventListener('click',fn); return x; }
 function paint(){
   var p=ensurePanel(); p.replaceChildren();
   var t=total(), last=P.length>1?bearing(P[P.length-2],P[P.length-1]):null, v=speed()||kn||5, mins=t/1852/v*60;
@@ -60,11 +60,11 @@ function paint(){
     main.append(d,info); }
   var acts=document.createElement('div'); acts.className='racts';
   /* η ταχύτητα με την οποία υπολογίζεται ο χρόνος (όταν το GPS δεν δίνει δική σου ταχύτητα): πάτα για 3 → 5 → 8 → 12 → 20 kn */
-  if(!speed()) acts.append(b('⏱ '+v+' kn',T('Ο χρόνος υπολογίζεται με '+v+' κόμβους. Πάτα για άλλη ταχύτητα.','Time is worked out at '+v+' knots. Tap for another speed.'),function(){ var L2=[3,5,8,12,20], k=L2.indexOf(+v); kn=L2[(k+1)%L2.length]; paint(); },'sp'));
-  if(P.length) acts.append(b('↶',T('Αναίρεση τελευταίου σημείου','Undo last point'),function(){ P.pop(); dep.length=P.length; if(!P.length) meStart=false; drawAll(); paint(); }));
-  if(!P.length||!meStart) acts.append(b('◎',T('Αρχή από τη θέση μου','Start from my position'),useMe));
-  if(P.length) acts.append(b('⌫',T('Καθαρισμός','Clear'),function(){ P=[]; dep=[]; meStart=false; drawAll(); paint(); }));
-  acts.append(b('✕',T('Κλείσιμο χάρακα','Close the ruler'),stop,'x'));
+  if(!speed()) acts.append(b(v+' kn',T('Ο χρόνος υπολογίζεται με '+v+' κόμβους. Πάτα για άλλη ταχύτητα.','Time is worked out at '+v+' knots. Tap for another speed.'),function(){ var L2=[3,5,8,12,20], k=L2.indexOf(+v); kn=L2[(k+1)%L2.length]; paint(); },'sp',T('Ταχύτητα','Speed')));
+  if(P.length) acts.append(b('↶',T('Αναίρεση τελευταίου σημείου','Undo last point'),function(){ P.pop(); dep.length=P.length; if(!P.length) meStart=false; drawAll(); paint(); },'',T('Αναίρεση','Undo')));
+  if(!P.length||!meStart) acts.append(b('◎',T('Αρχή από τη θέση μου','Start from my position'),useMe,'',T('Από εμένα','From me')));
+  if(P.length) acts.append(b('⌫',T('Καθαρισμός','Clear'),function(){ P=[]; dep=[]; meStart=false; drawAll(); paint(); },'',T('Καθάρισμα','Clear')));
+  acts.append(b('✕',T('Κλείσιμο χάρακα','Close the ruler'),stop,'x',T('Κλείσιμο','Close')));
   p.append(main,acts);
 }
 function useMe(){
