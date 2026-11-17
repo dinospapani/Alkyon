@@ -244,6 +244,17 @@ function spots(page){
     list.replaceChildren(h('p',{class:'sum',text:a.length+' '+T(a.length===1?'σημείο':'σημεία',a.length===1?'spot':'spots')+' · '+T('σύρε αριστερά για διαγραφή','swipe left to delete')}),l); }
   fill();
 }
+function tripTimes(t){ var loc=function(ms){ var d=new Date(ms); return d.getFullYear()+'-'+B.pad(d.getMonth()+1)+'-'+B.pad(d.getDate())+'T'+B.pad(d.getHours())+':'+B.pad(d.getMinutes()); };
+  var a=h('input',{type:'datetime-local',value:loc(t.startMs)}), b=h('input',{type:'datetime-local',value:loc(t.endMs||t.startMs)}), msg=h('p',{class:'err',role:'alert'}), dur=h('p',{class:'sub'}), sh;
+  var f=function(l,i){ return h('label',{class:'field'},h('span',{text:l}),i); };
+  var upd=function(){ var x=Date.parse(a.value), y=Date.parse(b.value); dur.textContent=isFinite(x)&&isFinite(y)&&y>x?T('Διάρκεια: ','Duration: ')+B.num((y-x)/3600000,1)+' h':''; };
+  a.addEventListener('input',upd); b.addEventListener('input',upd); upd();
+  sh=B.sheet({title:T('Διόρθωση ωρών','Correct times'),body:h('div',{class:'bform'},f(T('Έναρξη','Start'),a),f(T('Τέλος','End'),b),dur,msg,
+    h('button',{class:'btn pri full',type:'button',text:T('Αποθήκευση','Save'),onclick:function(){ var x=Date.parse(a.value), y=Date.parse(b.value);
+      if(!isFinite(x)||!isFinite(y)||y<=x){ msg.textContent=T('Το τέλος πρέπει να είναι μετά την έναρξη.','The end must be after the start.'); return; }
+      if(y-x>36*3600000){ msg.textContent=T('Μια έξοδος δεν μπορεί να είναι πάνω από 36 ώρες.','A trip cannot be longer than 36 hours.'); return; }
+      if(y>Date.now()+60000){ msg.textContent=T('Το τέλος δεν μπορεί να είναι στο μέλλον.','The end cannot be in the future.'); return; }
+      var nt=Object.assign({},t,{startMs:x,endMs:y,date:a.value.slice(0,10)}); S().save('trips',nt); sh.close(true); B.toast(T('Οι ώρες διορθώθηκαν.','Times corrected.')); tripDetail(S().get('trips',t.id)||nt); }}))}); }
 function tripDetail(t){
   var body=h('div',{class:'det'}), d=dur(t);
   var bs=S().bites().filter(function(b){ return (t.sid&&b.trip===t.sid)||(t.startMs&&ms(b)>=t.startMs-600000&&ms(b)<=t.endMs+600000); }).sort(function(a,b){ return ms(a)-ms(b); });
@@ -270,6 +281,8 @@ function tripDetail(t){
   if(B.cards) body.append(h('div',{class:'acts'},h('button',{class:'btn',type:'button',text:T('Κάρτα','Card'),onclick:function(){ B.cards.trip(t); }}),h('button',{class:'btn',type:'button',text:cst?T('Κόστος','Cost'):T('Πρόσθεσε κόστος','Add cost'),onclick:function(){ sh.close(true); B.cards.cost(t,function(nt){ tripDetail(nt); }); }})));
   if(t.trprof&&t.trprof.length>1&&B.trollProfile) body.append(h('div',{class:'acts'},h('button',{class:'btn',type:'button',text:'📈 '+T('Προφίλ βυθού (συρτή)','Seabed profile (trolling)'),onclick:function(){ B.trollProfile(t); }})));
   if(t.track&&t.track.length>1) body.append(h('div',{class:'acts'},B.replayTrip?h('button',{class:'btn pri',type:'button',text:'▶ '+T('Επανάληψη εξόδου','Replay trip'),onclick:function(){ sh.close(true); B.replayTrip(t); }}):null,h('button',{class:'btn',type:'button',text:T('Η διαδρομή στον χάρτη','Route on the map'),onclick:function(){ sh.close(true); B.mapGo(t.track[0][0],t.track[0][1],13,t.track); }})));
+  /* 1.14.58: διόρθωση ωρών (π.χ. έξοδος που έμεινε ανοιχτή και γράφει 32 ώρες) */
+  if(t.startMs) body.append(h('div',{class:'acts'},h('button',{class:'btn',type:'button',text:T('Διόρθωση ωρών','Correct times'),onclick:function(){ sh.close(true); tripTimes(t); }})));
   body.append(pv,h('div',{class:'acts'},h('button',{class:'btn del',type:'button',text:T('Διαγραφή εξόδου','Delete trip'),onclick:function(){ B.ask(T('Να διαγραφεί η έξοδος; Τα ψάρια της μένουν.','Delete this trip? Its catches stay.'),T('Διαγραφή','Delete'),true).then(function(y){ if(y){ S().remove('trips',t.id); sh.close(); B.toast(T('Η έξοδος διαγράφηκε.','Trip deleted.')); } }); }})));
   var sh=B.sheet({title:t.spot||T('Έξοδος','Trip'),body:body});
 }

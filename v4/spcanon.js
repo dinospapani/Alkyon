@@ -9,6 +9,7 @@
   var CYN={"γόππα":"boops boops","γύλος":"coris julis","δράκαινα":"trachinus draco","κοκκαλάρης":"squalus acanthias","κολαούζος":"polyprion americanus","κουρκούνα άσπρη":"siganus rivulatus","κουρκούνα μαύρη":"siganus luridus","λυθρίνι":"pagellus erythrinus","μάκερελ":"scomberomorus commerson","μελάνα":"oblada melanura","μινέρι":"seriola dumerili","μουγγρί":"conger conger","μουδιάστρα":"torpedo marmorata","μούρμουρος":"lithognathus mormyrus","μπαλάς":"pagellus bogaraveo","μυλοκόπι":"umbrina cirrosa","ούγενα":"diplodus puntazzo","παπαπέτρος":"zeus faber","πεζουνόψαρο":"myliobatis aquila","πιθκιαύλι":"fistularia commersonii","πιλότος":"naucrates ductor","ράζα":"raja clavata","σάρπα":"sarpa salpa","σκαθάρι":"spondyliosoma cantharus","σκορπιός":"helicolenus dactylopterus","σορκός":"diplodus sargus","σορκός φαραώ":"diplodus cervinus","στρίλια":"mullus barbatus","σφύρνα":"sphyraena sphyraena","τονάκι":"thunnus alalunga","τούνα":"thunnus thynnus","φατσούκλι":"pagellus acarne","φρίσσα":"sardinella aurita","χάννος":"serranus cabrilla","χαρατζίδα":"diplodus vulgaris","χοίρος":"balistes capriscus"};
   /* ελληνικά ονόματα που στη θάλασσα σημαίνουν άλλο ψάρι από ό,τι στο γλυκό νερό */
   var SEA={'πέρκα':'serranus scriba','λούτσος':'sphyraena sphyraena'}, LAKE={'πέρκα':'perca fluviatilis','λούτσος':'esox lucius'};
+  var OVR={}; [SEA,LAKE].forEach(function(o){ Object.keys(o).forEach(function(k){ OVR[o[k]]=1; }); });
   function cnt(){ return ((window.SPKB||[]).length)+((window.SPECIES_DB||[]).length)+((window.CY100||[]).length); }
   function lake(){ try{ return JSON.parse(localStorage.getItem('alkyon-fprof')||'""')==='lake'; }catch(e){ return false; } }
   function build(){ M={}; L={}; N=cnt();
@@ -25,7 +26,7 @@
   window.spKey=function(n){ if(!n) return ''; var k=String(n).trim().toLowerCase(); return lat(k)||k; };
   window.spLatin=function(n){ return n?lat(n):null; };
   function name(n,prev){ if(!n) return n; var s=String(n), l=lat(s), c=l&&L[l];
-    if(c){ if(EN){ if(c.en) return c.en; } else if(/[A-Za-z]{3}/.test(s)&&c.el) return c.el; }   /* στα ελληνικά μένει όπως το έγραψες (Μινέρι μένει Μινέρι) */
+    if(c){ if(EN){ /* 1.14.58: το όνομα του λεξικού της εφαρμογής έχει προτεραιότητα, ώστε το ίδιο ψάρι να μη λέγεται «Barracuda» σε μια οθόνη και «European barracuda» σε άλλη (εκτός από τα ονόματα που αλλάζουν θάλασσα/γλυκό νερό) */ try{ if(base&&c.el&&!OVR[l]){ var vd=base(c.el); if(vd&&vd!==c.el&&/[A-Za-z]/.test(vd)) return vd; } }catch(e){} if(c.en) return c.en; } else if(/[A-Za-z]{3}/.test(s)&&c.el) return c.el; }   /* στα ελληνικά μένει όπως το έγραψες (Μινέρι μένει Μινέρι) */
     return prev?prev(n):n; }
   window.spName=function(n){ return name(n,base); };
   if(!EN||baseD) window.dataName=function(n){ return name(n,baseD); }; else window.dataName=function(n){ return name(n,function(x){ /* 1.14.57: στα αγγλικά και τα δολώματα/τεχνικές που γράφτηκαν ελληνικά (π.χ. «Ζωντανή σουπιά») */ try{ return window.AlkyonTr?window.AlkyonTr(x):x; }catch(e){ return x; } }); };

@@ -290,3 +290,7 @@ form.bf2 .depnote[hidden]{display:none}
 .sheet .rows.one .row>span{flex:none}
 .sheet .bform>h3.h3{font:800 11.5px var(--font);letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);margin:16px 4px 6px}
 .sheet .bform>h3.h3:first-child{margin-top:4px}
+
+/* ===== 1.14.58 ===== */
+/* «Τέλος εξόδου» δεν είναι πια ίδιο πορτοκαλί με το «+ Νέο ψάρι»: ένα κύριο κουμπί ανά φύλλο, για να μην πατιέται κατά λάθος */
+.btn.endtrip{background:transparent;border:1.5px solid var(--line);color:var(--ink);font-weight:750;min-height:52px}

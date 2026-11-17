@@ -207,7 +207,7 @@ document.addEventListener('visibilitychange',function(){ if(!document.hidden) sc
 setTimeout(function(){ if(S()) sync(false); },1500);
 setTimeout(function(){ if(localCount()) persistOnce(); },4000);
 
-B.store={setsSync:setsSync,raw:raw,get:get,save:save,remove:remove,tombs:tombs,Photos:Photos,phKeys:phKeys,resize:resize,
+B.store={shrinkOld:function(){ return shrinkOld(); },setsSync:setsSync,raw:raw,get:get,save:save,remove:remove,tombs:tombs,Photos:Photos,phKeys:phKeys,resize:resize,
 
   /* v31z542: τα ψάρια χωρίς τους λαγοκέφαλους· αυτοί χωριστά στο pests() */
   bites:function(){ return raw('bites').filter(function(b){ return !b.miss&&!B.pest(b); }); }, misses:function(){ return raw('bites').filter(function(b){ return b.miss&&!B.pest(b); }); },
@@ -222,5 +222,17 @@ B.store.delUndo=function(k,rec,msg){
   B.toast(msg||T('Διαγράφηκε.','Deleted.'),7000,{label:T('Αναίρεση','Undo'),fn:function(){ undone=true; clearTimeout(t); var r=Object.assign({},rec); delete r.deleted; save(k,r);
     if(k==='bites'){ var pup=ls.get('alkyon-pup',{})||{}; keys.forEach(function(x){ delete pup[x]; }); ls.set('alkyon-pup',pup); recountTrip(rec.trip); } B.toast(T('Επαναφέρθηκε.','Restored.')); }});
 };
+/* 1.14.58: οι παλιές φωτογραφίες (~160 KB) ξανασυμπιέζονται σιγά σιγά στο κινητό με τη νέα ρύθμιση (στόχος 60–80 KB) και ξανανεβαίνουν στο cloud
+   στον επόμενο συγχρονισμό. Έως 4 ανά άνοιγμα της εφαρμογής, μόνο όσες είναι πάνω από 110 KB, και η νέα αντικαθιστά την παλιά μόνο αν είναι
+   πραγματική εικόνα και τουλάχιστον 25% μικρότερη. Κάθε φωτογραφία δοκιμάζεται μία φορά (alkyon-v4-phz). */
+function shrinkOld(){ try{
+  var done=ls.get('alkyon-v4-phz',{})||{}, keys=[]; raw('bites').forEach(function(b){ if(b&&!b.deleted) phKeys(b).forEach(function(k){ if(!done[k]) keys.push(k); }); });
+  var n=0, q=Promise.resolve(); keys.slice(0,40).forEach(function(k){ q=q.then(function(){ if(n>=4) return; return Photos.get(k).then(function(bl){ done[k]=1;
+      if(!bl||!bl.size||bl.size<=110000) return; n++;
+      return resize(bl).then(function(nb){ if(!nb||!nb.size||nb.size<5000||nb.size>bl.size*0.75) return;
+        return (window.createImageBitmap?createImageBitmap(nb):Promise.resolve(true)).then(function(){ return Photos.put(k,nb); }).then(function(){ var pup=ls.get('alkyon-pup',{})||{}; delete pup[k]; ls.set('alkyon-pup',pup); }); }); }).catch(function(){}); }); });
+  return q.then(function(){ ls.set('alkyon-v4-phz',done); return n; });
+}catch(e){ return Promise.resolve(0); } }
+setTimeout(function(){ if(!document.hidden) shrinkOld(); },25000);
 B.cloud={pub:function(path){ return fetch(URL_+'/rest/v1/'+path,{headers:H(null)}); }, /* 1.14.21: ανάγνωση δημόσιων πινάκων χωρίς λογαριασμό */ providers:providers,oauthUrl:oauthUrl,owner:owner,ownerChoice:ownerChoice,localCount:localCount,rest:rest,storage:storage,session:S,signIn:signIn,signUp:signUp,signOut:signOut,setName:setName,sync:sync,verify:verify,recover:recover,resend:resend,fromLink:fromLink,setPassword:setPassword,state:function(){ return state; },errText:errText};
 })();
