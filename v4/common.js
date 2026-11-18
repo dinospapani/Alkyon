@@ -16,9 +16,9 @@ function hm(m){ m=Math.round(m); return B.pad(Math.floor(m/60))+':'+B.pad(m%60);
 function tzAt(date){ try{ return -new Date(date+'T12:00:00').getTimezoneOffset(); }catch(e){ return 120; } }
 
 /* μία εγγραφή ανά μέρα με ψάρια */
-function days(){
+function days(keep){
   var by={};
-  S().raw('bites').forEach(function(b){ if(!b||b.deleted||b.miss||(B.pest&&B.pest(b))||!b.date) return;
+  S().raw('bites').forEach(function(b){ if(!b||b.deleted||b.miss||(B.pest&&B.pest(b))||!b.date) return; if(keep&&!keep(b)) return;
     var d=by[b.date]||(by[b.date]={date:b.date,b:[]}); d.b.push(b); });
   return Object.keys(by).sort().map(function(k){ var d=by[k], bs=d.b;
     var kg=bs.map(function(b){ return num(b.kg); }).filter(function(x){ return x!=null; });
@@ -105,12 +105,14 @@ var BIGSP=/^(epinephelus|mycteroperca|polyprion|dentex|pagrus|seriola|lichia|thu
 B.commonCard=function(){
   var D=days(); if(D.length<2) return null;
   /* 1.14.60: «μεγάλα ψάρια» ανά είδος, όχι ανά κιλά (ένας ορφός 1 kg μετρά στα μεγάλα): ροφοί/σφυρίδες/στήρες, βλάχος, συναγρίδες, φαγκρί, μαγιάτικο, λίτσα, τόνοι, ξιφίας, κυνηγός, μυλοκόπι/κρανιός */
-  var isBig=function(d){ return (d.sp||[]).some(function(n){ var k=''; try{ k=window.spKey?window.spKey(n):String(n).toLowerCase(); }catch(e){} return BIGSP.test(k)||BIGNM.test(String(n).toLowerCase()); }); };
-  var big=D.filter(isBig), small=D.filter(function(d){ return !isBig(d); });
+  /* 1.14.81: ο χωρισμός γίνεται ανά ψάρι, όχι ανά μέρα. Πριν, μια μέρα με έναν ροφό και πέντε γόπες μετρούσε ολόκληρη στα «μεγάλα», τα «άλλα» έμεναν με λιγότερες από 2 μέρες και η κάρτα γινόταν μία. Τώρα η ίδια μέρα μπαίνει και στις δύο ομάδες, η καθεμία με τα δικά της ψάρια (ώρες, βάθος, τεχνική, δόλωμα). */
+  var bigFish=function(b){ var n=b.species||'', k=''; try{ k=window.spKey?window.spKey(n):String(n).toLowerCase(); }catch(e){} return BIGSP.test(String(b.latin||'').toLowerCase())||BIGSP.test(k)||BIGNM.test(String(n).toLowerCase()); };
+  var big=days(function(b){ return bigFish(b); }), small=days(function(b){ return !!b.species&&!bigFish(b); });
   var c=h('section',{class:'card lycard cmcard'},h('h2',{text:T('Τι κοινό είχαν τα ψαρέματά σου','Your catches in common')}),
     null);
   if(big.length>=2&&small.length>=2){ c.append(group(T('Μεγάλα ψάρια (ροφοί, συναγρίδα, μαγιάτικο…)','Big fish (groupers, dentex, amberjack…)'),big)); c.append(group(T('Άλλα ψάρια','Other fish'),small)); }
-  else c.append(group(T('Μέρες με ψάρια','Days with catches'),D));
+  else { c.append(group(T('Μέρες με ψάρια','Days with catches'),D));
+    if(big.length>=2||small.length>=2) c.append(h('p',{class:'foot cmwhy',text:big.length>=2?T('Τα «άλλα ψάρια» θα φανούν ξεχωριστά όταν έχεις γράψει τέτοια ψάρια σε τουλάχιστον 2 μέρες (τώρα: '+small.length+').','“Other fish” will show separately once you have logged such fish on at least 2 days (now: '+small.length+').'):T('Τα «μεγάλα ψάρια» θα φανούν ξεχωριστά όταν έχεις γράψει τέτοια ψάρια σε τουλάχιστον 2 μέρες (τώρα: '+big.length+').','“Big fish” will show separately once you have logged such fish on at least 2 days (now: '+big.length+').')})); }
   /* σύγκριση με εξόδους χωρίς ψάρι */
   var E=emptyTrips();
   if(E.length>=2){ var pt=mode(E.map(function(t){ return t.cond0&&t.cond0.ptrend; })), ws=E.map(function(t){ return t.cond0&&num(t.cond0.wind); }).filter(function(x){ return x!=null; });

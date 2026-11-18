@@ -1874,6 +1874,15 @@ with sync_playwright() as p:
     ok=len(ex)==8 and ex[0]!=ex[1] and ex[2] and ex[1][-5:-3]==ex[3][-11:-9] and ex[4]!=ex[1] and ex[4].split(' ')[1][:2]==ex[5].replace('Now, ','')[:2] and ex[6]!=ex[4] and ex[7]=='❚❚'
     check('Έκθεση ακτής: μπάρα χρόνου με ▶, η ώρα γράφεται στον χάρτη, αλλάζει το κείμενο του ανέμου, και συγχρονίζεται με το «Ανά ώρα» προς τις δύο κατευθύνσεις (1.14.79)', ok and not pg._errs, [ex,pg._errs]); c.close()
 
+    print('# 1.14.81 μεγάλα/άλλα ανά ψάρι')
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(2500)
+    cm=pg.evaluate("""()=>{ AK.store.raw('bites').forEach(x=>{ try{ AK.store.remove('bites',x.id); }catch(e){} });
+      const add=(d,sp,la,kg)=>AK.store.save('bites',{date:d,time:'07:00',species:sp,latin:la,kg:kg,lat:34.7,lon:32.4,depth:40});
+      ['2026-10-01','2026-10-05','2026-10-09'].forEach(d=>{ add(d,'Ροφός','Epinephelus marginatus',1); add(d,'Γόπα','Boops boops',0.2); });
+      const card=AK.commonCard(); if(!card) return ['nocard']; const hs=[...card.querySelectorAll('.cmg h3,.cmg b,h3')].map(x=>x.textContent); const txt=card.textContent;
+      return [/Μεγάλα ψάρια/.test(txt), /Άλλα ψάρια/.test(txt), /Μέρες με ψάρια/.test(txt)]; }""")
+    check('«Τι κοινό είχαν»: μέρες με ροφό και γόπες δίνουν και «Μεγάλα ψάρια» και «Άλλα ψάρια» (χωρισμός ανά ψάρι) (1.14.81)', cm==[True,True,False] and not pg._errs, [cm,pg._errs]); c.close()
+
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)
     check('Οδηγός χωρίς καρτέλα Κόμποι (αφαιρέθηκε προσωρινά)', not pg.query_selector('#tab-guide .seg button[data-g=knots]') and not pg._errs, pg._errs); c.close()
