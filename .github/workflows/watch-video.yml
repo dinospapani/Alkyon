@@ -1,0 +1,63 @@
+# Alkyon · βίντεο του ρολογιού Wear OS από τον προσομοιωτή, για τη δήλωση «foreground service» στο Play.
+# Τρέχει μόνο με το χέρι. Δεν ανεβάζει τίποτα σε Play: το βίντεο πάει στο κλαδί «watch-video».
+name: Alkyon watch video
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  video:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - run: npm ci --no-audit --no-fund
+      - name: Αρχεία εφαρμογής → www → android
+        run: |
+          node tools/build-web.mjs www --native
+          npx cap sync android
+      - name: Χτίσιμο ρολογιού (Wear OS)
+        working-directory: android
+        run: |
+          ./gradlew --no-daemon :wear:assembleDebug -PalkVersionName=0.0.1 -PalkVersionCode=1
+          mkdir -p ../apk && cp wear/build/outputs/apk/debug/*.apk ../apk/
+      - name: KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+      - name: Βίντεο Wear OS (προσομοιωτής)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          target: android-wear
+          arch: x86_64
+          profile: wearos_large_round
+          disable-animations: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: bash watch/wear-video.sh
+      - name: Βίντεο από τα καρέ (εφεδρεία) και μετατροπή
+        if: always()
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg >/dev/null
+          cd video
+          ls frames | wc -l
+          ffmpeg -loglevel error -y -framerate 2 -pattern_type glob -i 'frames/f*.png' -vf "scale=720:720:flags=lanczos,format=yuv420p" -r 30 -c:v libx264 -crf 20 trip-frames.mp4 || true
+          [ -s trip-raw.mp4 ] && ffmpeg -loglevel error -y -i trip-raw.mp4 -vf "scale=720:720:flags=lanczos,format=yuv420p" -c:v libx264 -crf 20 -an trip.mp4 || true
+          rm -rf frames; ls -la
+      - name: Βίντεο → κλαδί «watch-video»
+        if: always()
+        run: |
+          mkdir -p /tmp/v && cd /tmp/v && git init -q -b watch-video
+          cp -r "$GITHUB_WORKSPACE/video/." . 2>/dev/null || true
+          echo "${{ github.sha }}" > SHA
+          git add -A && git -c user.name="github-actions" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -q -m "video ${{ github.sha }}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" watch-video
