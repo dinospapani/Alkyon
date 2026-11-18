@@ -71,6 +71,7 @@ var HELP=[
 ];
 /* έκδοση → αλλαγές (νεότερες πρώτες). Προσθέτεις γραμμή εδώ σε κάθε νέα λειτουργία. */
 var NEWS=[
+ ['1.14.84',[T('Εσωτερική αλλαγή χωρίς διαφορά στους βαθμούς: ο δείκτης ψαρέματος υπολογίζεται πλέον από έναν ενιαίο πυρήνα, ίδιο στην εφαρμογή, στις ειδοποιήσεις και στο ρολόι, με τα βάρη του σε ένα σημείο. Οι βαθμοί που βλέπεις είναι ακριβώς οι ίδιοι με πριν.','Internal change with no difference in the scores: the fishing score now comes from a single core, the same in the app, the alerts and the watch, with its weights in one place. The scores you see are exactly the same as before.')]],
  ['1.14.83',[T('Ασφάλεια δεδομένων: ο συγχρονισμός κατεβάζει μόνο ό,τι άλλαξε, σε σελίδες, και συνεχίζει από εκεί που σταμάτησε αν κοπεί η σύνδεση. Δεν χάνεται τίποτα όσο μεγάλο κι αν είναι το ημερολόγιό σου.','Data safety: sync now downloads only what changed, in pages, and resumes where it stopped if the connection drops. Nothing is lost however big your logbook is.'),
    T('Η επαναφορά αντιγράφου δεν ξαναφέρνει ό,τι έσβησες μετά και δεν σβήνει νεότερες αλλαγές σου.','Restoring a backup no longer brings back what you deleted later, and never overwrites newer changes.'),
    T('Ιδιωτικότητα: οι φωτογραφίες ιδιωτικών ψαριών δεν φαίνονται πια στους φίλους. Ένα SOS φαίνεται μόνο στους φίλους σου και σε σκάφη στη θάλασσα έως 20 ναυτικά μίλια.','Privacy: photos of private catches are no longer visible to friends. An SOS is shown only to your friends and to boats at sea within 20 nautical miles.'),

@@ -1,6 +1,6 @@
 // Network first for the app's own files so updates arrive at once; cache is the offline fallback.
 // Weather APIs and fonts are cross-origin and always go straight to the network.
-importScripts('forecast.js');
+importScripts('score-config.js', 'score-core.js', 'forecast.js');   /* 1.14.84 (P1.1): βάρη → πυρήνας του βαθμού → πρόγνωση */
 try{ importScripts('v4/notif-i18n.js'); }catch(e){}   /* 1.10.6: ειδοποίηση στη γλώσσα της εφαρμογής */
 const V = 'alkyon-1.14.15';
 const CFG = 'alkyon-cfg';

@@ -14,7 +14,7 @@ class FakeDate extends RealDate {
 }
 globalThis.Date = FakeDate;
 
-const g = {}; new Function('self', fs.readFileSync(path.join(ROOT, 'forecast.js'), 'utf8'))(g);
+const g = {}; for (const f of ['score-config.js', 'score-core.js', 'forecast.js']) new Function('self', fs.readFileSync(path.join(ROOT, f), 'utf8'))(g);   /* 1.14.84 (P1.1): βάρη → πυρήνας → πρόγνωση, όπως στη σελίδα */
 const PF = g.PF;
 const { run } = await import(pathToFileURL(path.join(ROOT, 'safety-job.mjs')).href);
 

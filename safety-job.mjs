@@ -1153,7 +1153,8 @@ if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {
   let PF = null, webpush = null;
   try {
     const fs = await import('node:fs'); const g = {};
-    new Function('self', fs.readFileSync('forecast.js', 'utf8'))(g); PF = g.PF;
+    /* 1.14.84 (P1.1): πρώτα τα βάρη και ο πυρήνας του βαθμού, μετά το forecast.js (ίδια σειρά με τη σελίδα και τις Edge Functions) */
+    for (const f of ['score-config.js', 'score-core.js', 'forecast.js']) new Function('self', fs.readFileSync(f, 'utf8'))(g); PF = g.PF;
     if (process.env.VAPID_PUBLIC && process.env.VAPID_PRIVATE) {
       webpush = (await import('web-push')).default;
       webpush.setVapidDetails('https://dinospapani.github.io/Alkyon/', process.env.VAPID_PUBLIC, process.env.VAPID_PRIVATE);
