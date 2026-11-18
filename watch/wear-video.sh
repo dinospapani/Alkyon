@@ -48,7 +48,9 @@ for t in 1 2 3 4 5 6; do has "Welcome" && break; has "ALKYON" && break; has "TOD
   adb shell input keyevent KEYCODE_WAKEUP; adb shell input swipe $CX $((H/4)) $CX $((H*3/4)) 300; sleep 3; done; texts
 tapText "OK"; sleep 3; texts
 # περιμένω να φορτώσει η πρόγνωση (έως 2 λεπτά)
-for t in $(seq 1 24); do has "/100" && break; sleep 5; done; texts
+# η πρώτη φόρτωση μπορεί να αποτύχει (δίκτυο του προσομοιωτή)· η επιστροφή στην εφαρμογή την ξαναζητά
+for t in $(seq 1 14); do has "/100" && break; sleep 6; has "/100" && break
+  adb shell input keyevent KEYCODE_HOME; sleep 2; adb shell am start -W -n $P/com.alkyonfishing.app.wear.ui.MainActivity; sleep 5; done; texts
 for i in 1 2 3; do adb shell input swipe $CX $((H/4)) $CX $((H*3/4)) 300; sleep 1; done
 geo; sleep 4
 
