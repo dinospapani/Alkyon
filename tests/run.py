@@ -1596,7 +1596,7 @@ with sync_playwright() as p:
         return pg.evaluate("()=>[...document.querySelectorAll('main .pgrp')].map(g=>((g.querySelector('.listh')||{}).textContent||'')+':'+[...g.querySelectorAll('.li b')].map(b=>b.firstChild?b.firstChild.textContent:b.textContent).join('|'))")
     m=ptab('Τα δικά μου'); st=ptab('Ρυθμίσεις'); ac=ptab('Λογαριασμός')
     check('Προφίλ: Οδηγός πάνω, βυθόμετρο στις συσκευές, Βοήθεια μόνο στις Ρυθμίσεις (1.14.34), Βοήθησε την πρόγνωση στον Λογαριασμό (1.14.32)',
-      not any('Οδηγός' in x for x in m) and 'Βυθόμετρο' in m[0] and 'Ρολόι Garmin' in m[0] and st[-1].startswith('Βοήθεια:Οδηγός|') and st[-1].startswith('Βοήθεια:') and not any(x.startswith('Βοήθεια:') for x in m+ac)
+      not any('Οδηγός' in x for x in m) and 'Βυθόμετρο' in m[0] and 'Ρολόι (Garmin' in m[0] and st[-1].startswith('Βοήθεια:Οδηγός|') and st[-1].startswith('Βοήθεια:') and not any(x.startswith('Βοήθεια:') for x in m+ac)
       and any(x.startswith('Εμφάνιση και γλώσσα:Θέμα') for x in st) and not any('Βοήθησε την πρόγνωση' in x for x in st) and any('Βοήθησε την πρόγνωση' in x for x in ac) and not any('Εισαγωγή από βυθόμετρο' in x for x in ac), [m,st,ac])
     check('1.14.32: χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
 
