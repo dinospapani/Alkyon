@@ -154,5 +154,7 @@ jobs:
           cp "$GITHUB_WORKSPACE/out/alkyon-$V.aab" alkyon.aab
           echo "$V" > VERSION
           git add alkyon.aab VERSION
+          # 18/11/2026: και το ρολόι Wear OS, για ανέβασμα στο δικό του track από τον browser
+          if [ -f "$GITHUB_WORKSPACE/out/alkyon-wear-$V.aab" ]; then cp "$GITHUB_WORKSPACE/out/alkyon-wear-$V.aab" alkyon-wear.aab; git add alkyon-wear.aab; fi
           git -c user.name="github-actions" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -q -m "AAB $V"
           git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" play-aab
