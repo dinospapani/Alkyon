@@ -54,6 +54,7 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+        <service android:name=".AlkTripService" android:exported="false" android:foregroundServiceType="location" />
     </application>
 
     <!-- Permissions -->
@@ -73,4 +74,7 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- 1.14.83 (P0.7): GPS εξόδου με σβηστή οθόνη (AlkTripService, foreground service τύπου location). Χωρίς ACCESS_BACKGROUND_LOCATION. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
 </manifest>

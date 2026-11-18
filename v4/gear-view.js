@@ -168,15 +168,17 @@ B.gearPast=function(){
 };
 
 /* ---------- χάρτης: γραμμές εργαλείων ---------- */
+/* 1.14.83 (P0.10): το Leaflet βάζει τα κείμενα του tooltip ως HTML· το όνομα εργαλείου (ή από αντίγραφο) μπαίνει ως απλό κείμενο */
+function tipEl(t){ var e=document.createElement('span'); e.textContent=String(t==null?'':t); return e; }
 B.gearLayers=function(L,onlyIds){
   var out=[], g=G(), list=g.items.slice();
   if(onlyIds) onlyIds.forEach(function(id){ if(!list.some(function(x){ return x.id===id; })){ var x=B.gearFind(id); if(x) list.push(x); } });
   list.forEach(function(it){ if(onlyIds?onlyIds.indexOf(it.id)<0:it.state==='done') return;
     var c=(TYPES[it.type]||TYPES.net).c, s=it.set||{}, hh=it.haul;
     if(s.pts&&s.pts.length>1) out.push(L.polyline(s.pts,{color:c,weight:4,opacity:.9}));
-    if(s.a) out.push(L.circleMarker(s.a,{radius:7,color:'#fff',weight:2,fillColor:'#2e9e5b',fillOpacity:1}).bindTooltip(nm(it)+' · '+T('ρίψη ','set ')+(s.ta?clock(s.ta):'')));
-    if(s.b&&(!s.a||s.b[0]!==s.a[0]||s.b[1]!==s.a[1])) out.push(L.circleMarker(s.b,{radius:7,color:'#fff',weight:2,fillColor:'#d33',fillOpacity:1}).bindTooltip(nm(it)+' · '+T('τέλος ρίψης','end of set')));
-    if(hh){ if(hh.pts&&hh.pts.length>1) out.push(L.polyline(hh.pts,{color:'#ffd23a',weight:4,opacity:.9,dashArray:'8 8'})); if(hh.a) out.push(L.circleMarker(hh.a,{radius:7,color:'#fff',weight:2,fillColor:'#ffd23a',fillOpacity:1}).bindTooltip(nm(it)+' · '+T('ανέβασμα ','haul ')+clock(hh.ta))); }
+    if(s.a) out.push(L.circleMarker(s.a,{radius:7,color:'#fff',weight:2,fillColor:'#2e9e5b',fillOpacity:1}).bindTooltip(tipEl(nm(it)+' · '+T('ρίψη ','set ')+(s.ta?clock(s.ta):''))));
+    if(s.b&&(!s.a||s.b[0]!==s.a[0]||s.b[1]!==s.a[1])) out.push(L.circleMarker(s.b,{radius:7,color:'#fff',weight:2,fillColor:'#d33',fillOpacity:1}).bindTooltip(tipEl(nm(it)+' · '+T('τέλος ρίψης','end of set'))));
+    if(hh){ if(hh.pts&&hh.pts.length>1) out.push(L.polyline(hh.pts,{color:'#ffd23a',weight:4,opacity:.9,dashArray:'8 8'})); if(hh.a) out.push(L.circleMarker(hh.a,{radius:7,color:'#fff',weight:2,fillColor:'#ffd23a',fillOpacity:1}).bindTooltip(tipEl(nm(it)+' · '+T('ανέβασμα ','haul ')+clock(hh.ta)))); }
   });
   return out;
 };

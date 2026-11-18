@@ -1,4 +1,4 @@
-"NSLocationWhenInUseUsageDescription" = "Alkyon uses your location to show the forecast and sea conditions where you are, and to save the position of your catches, waypoints and trips.";
+"NSLocationWhenInUseUsageDescription" = "Alkyon uses your location to show the forecast and sea conditions where you are, and to save the position of your catches, waypoints and trips. During a trip you start, it keeps recording your track and updating your safety contact while the screen is locked, until you end the trip.";
 "NSCameraUsageDescription" = "Alkyon uses the camera to take photos of your catches and to scan coordinates from your chartplotter screen.";
 "NSPhotoLibraryUsageDescription" = "Alkyon lets you pick photos of your catches from your library.";
 "NSPhotoLibraryAddUsageDescription" = "Alkyon can save catch cards and photos to your library.";

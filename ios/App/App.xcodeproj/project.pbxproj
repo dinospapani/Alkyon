@@ -30,6 +30,7 @@
 		A1C0FFEE000000000000101D /* Shared.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE000000000000100A /* Shared.swift */; };
 		A1C0FFEE000000000000101E /* Strings.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE000000000000100B /* Strings.swift */; };
 		A1C0FFEE000000000000101F /* AlkWatchPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE000000000000100F /* AlkWatchPlugin.swift */; };
+		A1C0FFEE00000000000014A1 /* AlkTripPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE00000000000014A0 /* AlkTripPlugin.swift */; };
 		A1C0FFEE0000000000001020 /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000001010 /* MainViewController.swift */; };
 		A1C0FFEE0000000000001021 /* AlkyonWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000001011 /* AlkyonWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		A1C0FFEE0000000000001022 /* AlkyonWatchWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000001012 /* AlkyonWatchWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -65,6 +66,7 @@
 		A1C0FFEE000000000000100D /* XInfo */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A1C0FFEE000000000000100E /* XEnt */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AlkyonWatchWidgets.entitlements; sourceTree = "<group>"; };
 		A1C0FFEE000000000000100F /* AlkWatchPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlkWatchPlugin.swift; sourceTree = "<group>"; };
+		A1C0FFEE00000000000014A0 /* AlkTripPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlkTripPlugin.swift; sourceTree = "<group>"; };
 		A1C0FFEE0000000000001010 /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
 		A1C0FFEE0000000000001011 /* AlkyonWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AlkyonWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1C0FFEE0000000000001012 /* AlkyonWatchWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = AlkyonWatchWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -165,6 +167,7 @@
 			children = (
 				9582B6822FE993A50072D4E8 /* SceneDelegate.swift */,
 				A1C0FFEE000000000000100F /* AlkWatchPlugin.swift */,
+				A1C0FFEE00000000000014A0 /* AlkTripPlugin.swift */,
 				A1C0FFEE0000000000001010 /* MainViewController.swift */,
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
@@ -364,6 +367,7 @@
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
 				A1C0FFEE000000000000101F,
+				A1C0FFEE00000000000014A1,
 				A1C0FFEE0000000000001020,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

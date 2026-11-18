@@ -34,7 +34,9 @@ window.AKN={
   /* 1.13.8: βαρόμετρο του κινητού (Android SensorManager, iPhone CMAltimeter) */
   baro:reg('AlkBaro'),
   /* ρολόι Apple Watch / Wear OS: στέλνει τον κωδικό σύνδεσης στο ρολόι (v4/garmin.js) */
-  watch:reg('AlkWatch')
+  watch:reg('AlkWatch'),
+  /* 1.14.83 (P0.7): GPS εξόδου με σβηστή/κλειδωμένη οθόνη (Android foreground service, iOS background location) + παλμός στον server */
+  trip:reg('AlkTrip')
 };
 try{ document.documentElement.classList.add('native','native-'+window.AKN.platform); }catch(e){}
 

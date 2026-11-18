@@ -13,16 +13,22 @@ function raw(k){ var a=ls.get('alkyon-'+k,[]); return Array.isArray(a)?a:[]; }
 function put(k,a){ ls.set('alkyon-'+k,a); }
 function tombs(){ var a=ls.get('alkyon-tomb',[]); return Array.isArray(a)?a:[]; }
 function newId(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+/* 1.14.83: v4/syncmerge.js. Αν για οποιονδήποτε λόγο δεν φορτώθηκε, η αποθήκευση δουλεύει κανονικά και ο συγχρονισμός περιμένει (δεν χάνεται τίποτα). */
+var SM=window.AKSync||{nextU:function(p,n){ return Math.max(+n||0,(+p||0)+1); },strip:function(o){ var c=Object.assign({},o); delete c._su; return c; },missing:true};
+/* 1.14.83: το _u μιας αλλαγής είναι πάντα μεγαλύτερο από την έκδοση που αλλάζει (και από διαγραφή της), ώστε η σύγκρουση να λύνεται σωστά ακόμα και με λάθος ρολόι */
+function prevU(k,id,obj){ var p=id?raw(k).filter(function(x){ return x.id===id; })[0]:null, t=id?tombs().filter(function(x){ return x.k===k&&x.id===id; })[0]:null;
+  return Math.max(p?(+p._u||0):0,obj&&+obj._u||0,t?(+t.u||0):0); }
 function save(k,obj){
-  var id=obj.id||newId(), data=Object.assign({},obj,{id:id,_u:Date.now()});
+  var id=obj.id||newId(), data=Object.assign({},obj,{id:id,_u:SM.nextU(prevU(k,obj.id,obj),Date.now())});
   if(!obj.id&&!data.prof&&(k==='trips'||k==='bites')) data.prof=B.prof();
   put(k,raw(k).filter(function(x){ return x.id!==id; }).concat([data]));
   ls.set('alkyon-tomb',tombs().filter(function(t){ return !(t.k===k&&t.id===id); }));
   B.emit('store','alkyon-'+k); sched(); return id;
 }
 function remove(k,id){
+  var u=SM.nextU(prevU(k,id,null),Date.now());
   put(k,raw(k).filter(function(x){ return x.id!==id; }));
-  ls.set('alkyon-tomb',tombs().filter(function(t){ return !(t.k===k&&t.id===id); }).concat([{k:k,id:id,u:Date.now()}]));
+  ls.set('alkyon-tomb',tombs().filter(function(t){ return !(t.k===k&&t.id===id); }).concat([{k:k,id:id,u:u}]));
   if(k==='bites'&&S()){ storage('DELETE','photos/'+S().uid+'/'+id+'.jpg').catch(function(){}); }
   B.emit('store','alkyon-'+k); sched();
 }
@@ -107,7 +113,7 @@ function setPassword(pw){ return ensure().then(function(s){ return fetch(URL_+'/
 function within(p,ms){ return Promise.race([p,new Promise(function(_,rej){ setTimeout(function(){ rej(new Error('timeout')); },ms); })]); }
 function signOut(opt){ opt=opt||{}; var s=S(), ok=false;
   var done=function(){ outing=true; clearTimeout(timer); ls.set('alkyon-sess',null); try{ localStorage.removeItem('alkyon-sess'); localStorage.removeItem('alkyon-last'); }catch(e){}
-    var wiped=false; if(opt.wipe&&ok){ try{ KINDS.forEach(function(k){ localStorage.removeItem('alkyon-'+k); }); ['alkyon-tomb','alkyon-pup','alkyon-v4-plans','alkyon-v4-goals'].forEach(function(k){ localStorage.removeItem(k); }); wiped=true; }catch(e){} }
+    var wiped=false; if(opt.wipe&&ok){ try{ KINDS.forEach(function(k){ localStorage.removeItem('alkyon-'+k); }); ['alkyon-tomb','alkyon-pup','alkyon-v4-plans','alkyon-v4-goals','alkyon-sync-cur'].forEach(function(k){ localStorage.removeItem(k); }); wiped=true; }catch(e){} }
     state={t:0,msg:'',err:false}; B.emit('store','alkyon-sess'); B.emit('sync',state); setTimeout(function(){ outing=false; },15000); return {wiped:wiped,synced:ok}; };
   return within(sync(true),12000).then(function(){ ok=!state.err; },function(){ ok=false; })
     .then(function(){ if(!s) return; return within(fetch(URL_+'/auth/v1/logout',{method:'POST',headers:H(s)}),5000).catch(function(){}); }).then(done,done); }
@@ -118,13 +124,16 @@ var busy=null, again=false, timer=0, state={t:ls.get('alkyon-last',0),msg:'',err
 function iso(ms){ return new Date(ms).toISOString(); }
 /* 1.4.5: σε ποιον λογαριασμό ανήκουν τα δεδομένα του κινητού. Αν συνδεθείς με άλλον λογαριασμό και υπάρχουν δεδομένα του προηγούμενου,
    ο συγχρονισμός σταματά και ρωτά: χωριστά (σβήνονται από το κινητό, μένουν στον παλιό λογαριασμό) ή μαζί (μπαίνουν και στον νέο). */
-var OWN='alkyon-owner';
+var OWN='alkyon-owner', CUR='alkyon-sync-cur';
 function localCount(){ return KINDS.reduce(function(n,k){ return n+raw(k).filter(function(o){ return !o.deleted; }).length; },0); }
 function owner(){ return ls.get(OWN,null); }
 function ownerCheck(s){ var o=owner(); if(!o||!o.uid||o.uid===s.uid) return 'ok'; if(!localCount()){ ls.set(OWN,{uid:s.uid,email:s.email||''}); return 'ok'; } return 'ask'; }
-function wipeLocal(){ try{ KINDS.forEach(function(k){ localStorage.removeItem('alkyon-'+k); }); ['alkyon-tomb','alkyon-pup','alkyon-v4-plans','alkyon-v4-goals','alkyon-last'].forEach(function(k){ localStorage.removeItem(k); }); }catch(e){} }
+function wipeLocal(){ try{ KINDS.forEach(function(k){ localStorage.removeItem('alkyon-'+k); }); ['alkyon-tomb','alkyon-pup','alkyon-v4-plans','alkyon-v4-goals','alkyon-last',CUR,'alkyon-sync-full'].forEach(function(k){ localStorage.removeItem(k); }); }catch(e){} }
+/* 1.14.83: τα δεδομένα του κινητού πάνε σε άλλον λογαριασμό: ξεχνά τι ήταν συγχρονισμένο (θα ανέβουν όλα) και ξεκινά πλήρη λήψη */
+function resetSyncMarks(){ try{ KINDS.forEach(function(k){ put(k,raw(k).map(function(o){ var c=SM.strip(o); return c; })); });
+  ls.set('alkyon-tomb',tombs().map(function(t){ return {k:t.k,id:t.id,u:t.u}; })); localStorage.removeItem(CUR); localStorage.removeItem('alkyon-sync-full'); }catch(e){} }
 function ownerChoice(ch){ var s=S(); if(!s) return Promise.resolve();
-  if(ch==='separate') wipeLocal();
+  if(ch==='separate') wipeLocal(); else resetSyncMarks();
   ls.set(OWN,{uid:s.uid,email:s.email||''}); state.ask=false; KINDS.forEach(function(k){ B.emit('store','alkyon-'+k); }); return sync(true); }
 /* 1.5.1: η γλώσσα της εφαρμογής γράφεται στον λογαριασμό (user_metadata.lang), ώστε τα email (π.χ. «Ξέχασα τον κωδικό») να έρχονται σε αυτήν. Μία φορά ανά λογαριασμό και γλώσσα. */
 function langMeta(s){ var k=s.uid+':'+lang(); if(ls.get('alkyon-v4-langmeta','')===k) return;
@@ -155,32 +164,65 @@ function gearMerge(rows){ try{
 function persistOnce(){ try{ if(ls.get('alkyon-v4-persist',0)||!navigator.storage||!navigator.storage.persist) return; if(/firefox/i.test(navigator.userAgent)) return;
   navigator.storage.persisted().then(function(p){ if(p){ ls.set('alkyon-v4-persist',1); return; } return navigator.storage.persist().then(function(ok){ if(ok) ls.set('alkyon-v4-persist',1); }); }).catch(function(){}); }catch(e){} }
 function sched(){ if(!S()) return; clearTimeout(timer); timer=setTimeout(function(){ sync(false); },2500); }
+/* 1.14.83 (P0.1): σταδιακός συγχρονισμός. Λήψη μόνο όσων άλλαξαν στον server από τον τελευταίο δείκτη (updated_at του server), σε σελίδες των 1000,
+   με σειρά (updated_at, kind, id). Κάθε σελίδα μπαίνει στο κινητό αμέσως και ο δείκτης προχωρά, οπότε μια διακοπή συνεχίζει από εκεί που έμεινε.
+   Αποστολή μόνο των «βρώμικων» (άλλαξαν εδώ από τον τελευταίο συγχρονισμό). Ό,τι απορρίψει ο server (έχει νεότερη έκδοση) ξαναδιαβάζεται και κερδίζει ο server.
+   Κάθε διάβασμα-συγχώνευση-γράψιμο γίνεται σε ένα σύγχρονο βήμα, ώστε μια αλλαγή του χρήστη στο μεταξύ να μη χάνεται. */
+function loadSt(){ var st={cache:{},tombs:tombs()}; KINDS.forEach(function(k){ st.cache[k]=raw(k); }); return st; }
+/* γράψιμο που ΔΕΝ «καταπίνει» σφάλμα (π.χ. γεμάτος χώρος): αν αποτύχει, ο δείκτης του συγχρονισμού δεν προχωρά και η σελίδα ξαναέρχεται */
+function strictSet(k,v){ localStorage.setItem(k,JSON.stringify(v)); }
+function storeSt(st){ KINDS.forEach(function(k){ strictSet('alkyon-'+k,st.cache[k]); }); strictSet('alkyon-tomb',st.tombs); }
+function withSt(fn){ var st=loadSt(), r=fn(st); if(r&&r.changed) storeSt(st); return r; }
+var retryN=0, retryT=0;
+/* 1.14.83: η σταδιακή λήψη χρειάζεται τον trigger records_touch στον server (updated_at από το ρολόι του server).
+   Μέχρι να υπάρχει (sql/2026-11-18-p0-trust.sql), κάθε συγχρονισμός κάνει πλήρη λήψη σε σελίδες, όπως πριν. */
+var SRV='alkyon-sync-srv', FULL='alkyon-sync-full', FULL_EVERY=7*864e5;
+function srvCaps(){ var c=ls.get(SRV,null); if(c&&c.t&&Date.now()-c.t<(c.v>=2?24:1)*3600e3) return Promise.resolve(c.v||0);
+  return rest('rpc/alkyon_sync_version',{method:'POST',body:'{}'}).then(function(r){ return r.json(); }).then(function(v){ v=+v||0; ls.set(SRV,{v:v,t:Date.now()}); return v; },
+    function(){ ls.set(SRV,{v:0,t:Date.now()}); return 0; }); }
+function retryLater(){ clearTimeout(retryT); var ms=Math.min(5*60000,30000*Math.pow(2,retryN++)); retryT=setTimeout(function(){ if(S()) sync(false); },ms); }
 function sync(manual){
   if(!S()) return Promise.resolve();
   if(busy){ again=true; return busy; }
   if(navigator.onLine===false){ state.msg=T('Χωρίς σύνδεση. Θα γίνει όταν συνδεθείς.','Offline. It will run when you are online.'); B.emit('sync',state); return Promise.resolve(); }
   if(ownerCheck(S())==='ask'){ var ow=owner(); state.ask=true; state.err=true; state.msg=T('Ο συγχρονισμός περιμένει: στο κινητό υπάρχουν δεδομένα του λογαριασμού ','Sync is waiting: this phone has data from the account ')+((ow&&ow.email)||T('άλλου λογαριασμού','another account'))+'.'; B.emit('sync',state); B.emit('owner-ask',ow); return Promise.resolve(); }
+  if(SM.missing){ state.err=true; state.msg=T('Ο συγχρονισμός θα γίνει μετά την επόμενη ενημέρωση της εφαρμογής.','Sync will run after the next app update.'); B.emit('sync',state); return Promise.resolve(); }
   state.msg=T('Συγχρονισμός…','Syncing…'); state.err=false; B.emit('sync',state);
-  var s0=S(), got=0, sent=0, needPh=[], pup=ls.get('alkyon-pup',{})||{};
-  busy=rest('records?select=kind,id,data,deleted,updated_at&user_id=eq.'+encodeURIComponent(s0.uid)+'&order=updated_at.asc&limit=10000').then(function(r){ return r.json(); }).then(function(rows){
-    /* 1) λήψη: ό,τι είναι νεότερο στον server */
-    var remote={}, cache={}, tb=tombs(); KINDS.forEach(function(k){ cache[k]=raw(k); });
-    rows.forEach(function(x){ remote[x.kind+'/'+x.id]=x; if(!cache[x.kind]) return;
-      var u=(x.data&&x.data._u)||Date.parse(x.updated_at)||0, cur=cache[x.kind].filter(function(o){ return o.id===x.id; })[0], t=tb.filter(function(o){ return o.k===x.kind&&o.id===x.id; })[0];
-      var lu=Math.max(cur?(cur._u||0):0,t?t.u:0); if(u<=lu) return;
-      if(x.deleted){ cache[x.kind]=cache[x.kind].filter(function(o){ return o.id!==x.id; }); tb=tb.filter(function(o){ return !(o.k===x.kind&&o.id===x.id); }).concat([{k:x.kind,id:x.id,u:u}]); }
-      else { cache[x.kind]=cache[x.kind].filter(function(o){ return o.id!==x.id; }).concat([Object.assign({},x.data||{},{id:x.id,_u:u})]); tb=tb.filter(function(o){ return !(o.k===x.kind&&o.id===x.id); });
-        if(x.kind==='bites'&&x.data&&x.data.photo){ needPh.push(x.id); for(var i=1;i<=(+x.data.xph||0);i++) needPh.push(x.id+'~'+i); } }
-      got++; });
-    if(got){ KINDS.forEach(function(k){ put(k,cache[k]); }); ls.set('alkyon-tomb',tb); }
-    /* 2) αποστολή: ό,τι είναι νεότερο εδώ */
-    var out=[];
-    KINDS.forEach(function(k){ cache[k].forEach(function(o){ var rm=remote[k+'/'+o.id], ru=rm?((rm.data&&rm.data._u)||Date.parse(rm.updated_at)||0):0; if(!rm||(o._u||0)>ru) out.push({kind:k,id:o.id,data:o,deleted:false,updated_at:iso(o._u||Date.now())}); }); });
-    tb.forEach(function(t){ var rm=remote[t.k+'/'+t.id], ru=rm?((rm.data&&rm.data._u)||Date.parse(rm.updated_at)||0):0; if(!rm||(!rm.deleted&&t.u>ru)) out.push({kind:t.k,id:t.id,data:{_u:t.u},deleted:true,updated_at:iso(t.u)}); });
-    got+=setsSync(rows,out);
-    got+=gearMerge(rows);
-    sent=out.length; var p=Promise.resolve();
-    for(var i=0;i<out.length;i+=200)(function(ch){ p=p.then(function(){ return rest('records',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(ch)}); }); })(out.slice(i,i+200));
+  var s0=S(), uid=s0.uid, got=0, sent=0, needPh=[], pup=ls.get('alkyon-pup',{})||{};
+  var cur=null, pages=0, srvDate='', full=true, incr=false, seen={}, other=[], done=false;
+  function page(){
+    return rest(SM.pagePath(uid,cur,SM.PAGE)).then(function(r){ try{ srvDate=r.headers&&r.headers.get&&r.headers.get('date')||''; }catch(e){ srvDate=''; } return r.json(); }).then(function(rows){
+      if(!Array.isArray(rows)) throw new Error('sync: bad page');
+      if(!rows.length){ done=true; if(incr&&cur&&cur.id!=null) ls.set(CUR,{uid:uid,ts:cur.ts,kind:cur.kind,id:cur.id,safe:SM.safeCursor(cur.ts,srvDate)}); return; }
+      var m=withSt(function(st){ return SM.mergePage(st,rows); }); got+=m.got; needPh=needPh.concat(m.photos);
+      var ex=rows.filter(function(x){ return KINDS.indexOf(x.kind)<0; }); if(ex.length){ got+=setsSync(ex,other); got+=gearMerge(ex); }   /* ρυθμίσεις/εργαλεία ανά σελίδα */
+      if(full) rows.forEach(function(x){ seen[x.kind+'/'+x.id]=1; });
+      var nx=SM.lastOf(rows); if(cur&&cur.id!=null&&nx.ts===cur.ts&&nx.kind===cur.kind&&nx.id===cur.id){ done=true; return; } /* ο server δεν προχώρησε: σταματά */
+      cur=nx; if(incr) ls.set(CUR,{uid:uid,ts:cur.ts,kind:cur.kind,id:cur.id});   /* μόνο αφού γράφτηκε η σελίδα (storeSt πετά σφάλμα αλλιώς) */
+      if(++pages>=500) return; return page(); }); }
+  busy=srvCaps().then(function(v){
+    incr=v>=2; var saved=ls.get(CUR,null), lf=ls.get(FULL,null);
+    /* σταδιακή λήψη αν ο server την υποστηρίζει και υπάρχει δείκτης· πλήρης στην αρχή, χωρίς τον trigger, και μία φορά την εβδομάδα (επιδιόρθωση) */
+    full=!incr||!(saved&&saved.uid===uid)||!(lf&&lf.uid===uid&&Date.now()-lf.t<FULL_EVERY);
+    cur=full?null:SM.startCursor(saved,uid);
+    return page();
+  }).then(function(){
+    if(full&&done){ withSt(function(st){ return SM.markMissing(st,seen); }); ls.set(FULL,{uid:uid,t:Date.now()}); }
+    got+=setsSync([],other);   /* ρυθμίσεις που άλλαξαν εδώ ανεβαίνουν ακόμα κι αν δεν ήρθε τίποτα από τον server */
+    /* 2) αποστολή: μόνο ό,τι άλλαξε εδώ */
+    var out=[]; withSt(function(st){ out=SM.collectOut(st,iso); return {changed:false}; });
+    sent=out.length+other.length; var p=Promise.resolve(), rejected=[];
+    /* απάντηση με τις γραμμές που δέχτηκε ο server· κενή απάντηση (π.χ. 204) = όλες δεκτές, όπως πριν */
+    var post=function(rows){ return rest('records?select=kind,id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=representation'},body:JSON.stringify(rows.map(SM.wire))}).then(function(r){ return r.text(); })
+      .then(function(t){ if(!t||!t.trim()) return rows; var j=JSON.parse(t); return Array.isArray(j)?j:rows; }); };
+    for(var i=0;i<out.length;i+=200)(function(ch){ p=p.then(function(){ return post(ch).then(function(echo){ withSt(function(st){ rejected=rejected.concat(SM.markPushed(st,ch,Array.isArray(echo)?echo:[])); return {changed:true}; }); }); }); })(out.slice(i,i+200));
+    for(var j=0;j<other.length;j+=200)(function(ch){ p=p.then(function(){ return post(ch); }); })(other.slice(j,j+200));
+    /* ό,τι απέρριψε ο server (έχει νεότερη έκδοση): το ξαναδιαβάζουμε και κερδίζει ο server */
+    p=p.then(function(){ if(!rejected.length) return; var by={}, expect={}, q2=Promise.resolve(); rejected.forEach(function(r){ (by[r.kind]=by[r.kind]||[]).push(r.id); expect[r.kind+'/'+r.id]=r._pu; });
+      Object.keys(by).forEach(function(k){ for(var a=0;a<by[k].length;a+=50)(function(ids){ q2=q2.then(function(){
+        return rest('records?select=kind,id,data,deleted,updated_at&user_id=eq.'+encodeURIComponent(uid)+'&kind=eq.'+encodeURIComponent(k)+'&id=in.('+ids.map(function(x){ return encodeURIComponent('"'+String(x).replace(/"/g,'')+'"'); }).join(',')+')')
+          .then(function(r){ return r.json(); }).then(function(rows){ var m=withSt(function(st){ return SM.mergePage(st,Array.isArray(rows)?rows:[],{force:true,expect:expect}); }); got+=m.got; needPh=needPh.concat(m.photos); }); }); })(by[k].slice(a,a+50)); });
+      return q2; });
     return p.then(function(){
       /* 3) φωτογραφίες: ανέβασμα όσων λείπουν, κατέβασμα όσων ήρθαν */
       var pl=[]; raw('bites').forEach(function(b){ phKeys(b).forEach(function(k){ pl.push(k); }); });
@@ -190,15 +232,17 @@ function sync(manual){
       return q;
     });
   }).then(function(){
+    retryN=0; clearTimeout(retryT);
     ls.set('alkyon-pup',pup); state.t=Date.now(); ls.set('alkyon-last',state.t); state.err=false; ls.set(OWN,{uid:s0.uid,email:s0.email||''}); langMeta(s0);
     state.msg=T('Συγχρονίστηκε ','Synced ')+new Date().toLocaleTimeString(B.EN?'en-GB':'el-GR',{hour:'2-digit',minute:'2-digit'})+(got?T(', ήρθαν ',', received ')+got:'')+(sent?T(', στάλθηκαν ',', sent ')+sent:'');
     if(got) KINDS.forEach(function(k){ B.emit('store','alkyon-'+k); });
   }).catch(function(e){
     var m=String(e&&e.message||e); state.err=true;
+    if(got) KINDS.forEach(function(k){ B.emit('store','alkyon-'+k); }); /* ό,τι ήρθε πριν τη διακοπή έχει ήδη μπει στο κινητό */
     /* 1.4.5: ο χρήστης δεν υπάρχει πια στον server (π.χ. διαγράφηκε από το Supabase): αποσύνδεση αντί για ακατανόητο σφάλμα */
     if(/23503|not present in table|User from sub claim|user_not_found/i.test(m)){ ls.set('alkyon-sess',null); try{ localStorage.removeItem('alkyon-sess'); }catch(x){} ls.set(OWN,null); state.msg=T('Ο λογαριασμός δεν βρέθηκε στον server (ίσως διαγράφηκε). Συνδέσου ξανά ή φτιάξε νέο λογαριασμό. Τα δεδομένα σου έμειναν στο κινητό.','The account was not found on the server (it may have been deleted). Sign in again or create a new account. Your data stayed on this phone.'); B.emit('store','alkyon-sess'); }
     else if(/HTTP 4(01|03)|JWT|refresh_token|Refresh Token|invalid_grant/i.test(m)){ ls.set('alkyon-sess',null); try{ localStorage.removeItem('alkyon-sess'); }catch(x){} state.msg=T('Η σύνδεση έληξε. Συνδέσου ξανά.','Your session expired. Sign in again.'); B.emit('store','alkyon-sess'); }
-    else state.msg=errText(e);
+    else { state.msg=errText(e); retryLater(); } /* 1.14.83: δίκτυο/server: ξαναδοκιμάζει μόνος του (30″, 1′, 2′ … έως 5′) */
   }).then(function(){ B.emit('sync',state); busy=null; if(again){ again=false; sched(); } });
   return busy;
 }
@@ -207,7 +251,12 @@ document.addEventListener('visibilitychange',function(){ if(!document.hidden) sc
 setTimeout(function(){ if(S()) sync(false); },1500);
 setTimeout(function(){ if(localCount()) persistOnce(); },4000);
 
-B.store={shrinkOld:function(){ return shrinkOld(); },setsSync:setsSync,raw:raw,get:get,save:save,remove:remove,tombs:tombs,Photos:Photos,phKeys:phKeys,resize:resize,
+/* 1.14.83 (P0.2): μία εγγραφή από αντίγραφο ασφαλείας. 'restored' | 'new' | 'skip-deleted' | 'skip-newer' | 'skip' */
+function restoreRec(k,it){ var st=loadSt(), r=SM.restoreRec(st,k,it);
+  if(r==='restored'){ storeSt(st); B.emit('store','alkyon-'+k); sched(); }
+  else if(r==='new') save(k,it);
+  return r; }
+B.store={shrinkOld:function(){ return shrinkOld(); },setsSync:setsSync,raw:raw,get:get,save:save,remove:remove,restoreRec:restoreRec,tombs:tombs,Photos:Photos,phKeys:phKeys,resize:resize,
 
   /* v31z542: τα ψάρια χωρίς τους λαγοκέφαλους· αυτοί χωριστά στο pests() */
   bites:function(){ return raw('bites').filter(function(b){ return !b.miss&&!B.pest(b); }); }, misses:function(){ return raw('bites').filter(function(b){ return b.miss&&!B.pest(b); }); },
@@ -234,5 +283,5 @@ function shrinkOld(){ try{
   return q.then(function(){ ls.set('alkyon-v4-phz',done); return n; });
 }catch(e){ return Promise.resolve(0); } }
 setTimeout(function(){ if(!document.hidden) shrinkOld(); },25000);
-B.cloud={pub:function(path){ return fetch(URL_+'/rest/v1/'+path,{headers:H(null)}); }, /* 1.14.21: ανάγνωση δημόσιων πινάκων χωρίς λογαριασμό */ providers:providers,oauthUrl:oauthUrl,owner:owner,ownerChoice:ownerChoice,localCount:localCount,rest:rest,storage:storage,session:S,signIn:signIn,signUp:signUp,signOut:signOut,setName:setName,sync:sync,verify:verify,recover:recover,resend:resend,fromLink:fromLink,setPassword:setPassword,state:function(){ return state; },errText:errText};
+B.cloud={resetSyncMarks:function(){ resetSyncMarks(); },pub:function(path){ return fetch(URL_+'/rest/v1/'+path,{headers:H(null)}); }, /* 1.14.21: ανάγνωση δημόσιων πινάκων χωρίς λογαριασμό */ providers:providers,oauthUrl:oauthUrl,owner:owner,ownerChoice:ownerChoice,localCount:localCount,rest:rest,storage:storage,session:S,signIn:signIn,signUp:signUp,signOut:signOut,setName:setName,sync:sync,verify:verify,recover:recover,resend:resend,fromLink:fromLink,setPassword:setPassword,state:function(){ return state; },errText:errText};
 })();

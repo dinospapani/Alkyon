@@ -34,6 +34,7 @@ function pushContact(){ var cl=Cl(); if(!cl) return Promise.resolve();
 function pollTg(){ var cl=Cl(); if(!cl) return Promise.resolve();
   return cl.rest('safety_contacts?select=tg_chat_id,tg_name,self_chat_id').then(function(r){ return r.json(); }).catch(function(){ return cl.rest('safety_contacts?select=tg_chat_id,tg_name').then(function(r){ return r.json(); }).catch(function(){ return null; }); })
     .then(function(j){ if(!j) return; var c=j[0], d=load(); d.tgLinked=!!(c&&c.tg_chat_id); d.tgName=c&&c.tg_name||''; d.selfLinked=!!(c&&c.self_chat_id); save(d); }); }
+var hbkOK=true;
 function pushTrip(){
   var s=load(), cl=Cl(); if(!s.id||!cl) return Promise.resolve();
   if(s.noAlert&&!s.sosAt){ srv=''; return Promise.resolve(); }
@@ -41,7 +42,10 @@ function pushTrip(){
     last_lat:s.last?s.last.lat:null,last_lon:s.last?s.last.lon:null,last_at:s.last?new Date(s.last.t).toISOString():null};
   if(s.noAlert&&s.sosAt) base.start_sent=true;
   var ext=Object.assign({},base,{battery:battPct(),hb_at:new Date().toISOString(),silence_min:s.noAlert?0:(s.sil||0)}), H={Prefer:'resolution=merge-duplicates,return=minimal'};
-  return (extOK?cl.rest('safety_trips',{method:'POST',headers:H,body:JSON.stringify(ext)}):Promise.reject()).catch(function(){ extOK=false; return cl.rest('safety_trips',{method:'POST',headers:H,body:JSON.stringify(base)}); })
+  /* 1.14.83 (P0.7): και το κλειδί του παλμού (native GPS)· αν ο server δεν έχει ακόμα τη στήλη, όπως πριν */
+  var extK=s.hbk?Object.assign({},ext,{hb_key:s.hbk}):null;
+  var post=function(o){ return cl.rest('safety_trips',{method:'POST',headers:H,body:JSON.stringify(o)}); };
+  return (extK&&hbkOK?post(extK):Promise.reject()).catch(function(e){ if(extK&&/hb_key|PGRST204|42703/.test(String(e&&e.message||e))) hbkOK=false; /* μόνο αν λείπει η στήλη· όχι σε σφάλμα δικτύου */ return extOK?post(ext):Promise.reject(); }).catch(function(){ extOK=false; return post(base); })
     .then(function(){ srv=s.active?T('Η δήλωση έφτασε στον server: η επαφή θα ειδοποιηθεί αυτόματα αν κάτι δεν πάει καλά.','The plan reached the server: your contact will be alerted automatically if something goes wrong.'):'';
       var q=load(); q.synced=true;
       if(q.active&&!q.pgStart){ q.pgStart=1; save(q); fn('trip',q.id,'start').catch(function(){ var z=load(); if(z.id===q.id){ z.pgStart=0; save(z); } }); }
@@ -101,6 +105,22 @@ function takeTrack(){ var s=load(), t=ls.get('alkyon-track',null), out=null;
     out={km:Math.round(t.m/100)/10,moving:(window.PP&&window.PP.movingFrom?window.PP.movingFrom(t.pts):undefined),track:tr.map(function(p){ return [+p[0].toFixed(5),+p[1].toFixed(5)]; })}; }
   ls.set('alkyon-track',null); return out; }
 
+/* ---------- 1.14.83 (P0.7): native GPS με σβηστή οθόνη ---------- */
+var QP='https://sgfohmqwdwtkhtrebnix.supabase.co/functions/v1/quick-processor', PUBK='sb_publishable_LGuwvrvLnAj1CF22Q6g9vg_4OImZYbA';
+function NT(){ return window.AKN&&window.AKN.trip; }
+function hexKey(){ var b=new Uint8Array(24); try{ crypto.getRandomValues(b); }catch(e){ for(var i=0;i<b.length;i++) b[i]=Math.random()*256; } return Array.prototype.map.call(b,function(x){ return ('0'+x.toString(16)).slice(-2); }).join(''); }
+function nativeStart(s){ var n=NT(); if(!n||!s||!s.active||!s.hbk||!gpsOn()) return;
+  n.start({id:s.id,key:s.hbk,url:QP,apikey:PUBK,interval:180,title:T('Alkyon · έξοδος σε εξέλιξη','Alkyon · trip in progress'),text:T('Καταγραφή διαδρομής και ασφάλεια ενεργά. Τέλος από την εφαρμογή.','Track and safety active. End it in the app.')}).catch(function(){}); }
+function nativeStop(){ var n=NT(); if(n) n.stop().catch(function(){}); }
+/* σημεία που κατέγραψε το native GPS όσο η οθόνη ήταν σβηστή: μπαίνουν στη διαδρομή με τη σειρά του χρόνου */
+function mergeFixes(){ var n=NT(), s=load(); if(!n||!s.active) return Promise.resolve(0);
+  var t=track(); if(!t) return Promise.resolve(0); var since=t.nat||s.start||0;
+  return n.fixes({id:s.id,since:since}).then(function(r){ var a=(r&&r.fixes)||[]; if(!a.length) return 0; var q=track(); if(!q||q.id!==s.id) return 0;
+    var add=a.filter(function(f){ return f&&f.length>=3&&!(f[3]>60); }).map(function(f){ return [+(+f[0]).toFixed(6),+(+f[1]).toFixed(6),+f[2]]; });
+    if(!add.length) return 0; var all=q.pts.concat(add).sort(function(x,y){ return x[2]-y[2]; }), out=[], m=0;
+    all.forEach(function(p){ var last=out[out.length-1]; if(last){ var d=dist(last,p); if(d<12) return; if(d>2000&&p[2]-last[2]<20000) return; m+=d; } out.push(p); });
+    if(out.length>3000) out=out.filter(function(_,i){ return i%2===0||i===out.length-1; });
+    q.pts=out; q.m=m; q.nat=Math.max(since,add[add.length-1][2]); ls.set('alkyon-track',q); B.emit('track'); return add.length; }).catch(function(){ return 0; }); }
 /* ---------- έξοδος ---------- */
 var timer=null, lastTrack=0, contSince=0, lastAct=0;
 function trackPos(){ var s=load(); if(!s.active) return Promise.resolve(); lastTrack=Date.now();
@@ -116,7 +136,7 @@ function tick(){ var s=load(); if(!s.active){ clearInterval(timer); timer=null; 
 function startTimer(){ clearInterval(timer); timer=setInterval(tick,60000); }
 
 function start(o){
-  var d=load(), s=Object.assign({},d,{active:true,id:'trip-'+Date.now().toString(36),route:o.route||'',due:o.due,autoExt:0,sosAt:0,pgStart:0,pgEnd:0,last:null,start:Date.now(),startDate:B.store?todayStr():'',cond0:cond0(),sil:o.sil||0,noAlert:!o.notify,target:o.target||null,targets:o.targets||null,synced:undefined});
+  var d=load(), s=Object.assign({},d,{active:true,id:'trip-'+Date.now().toString(36),hbk:hexKey(),route:o.route||'',due:o.due,autoExt:0,sosAt:0,pgStart:0,pgEnd:0,last:null,start:Date.now(),startDate:B.store?todayStr():'',cond0:cond0(),sil:o.sil||0,noAlert:!o.notify,target:o.target||null,targets:o.targets||null,synced:undefined});
   save(s); ls.set('alkyon-track',null); watch(); startTimer();
   /* 1.6.1: με την έναρξη κατεβαίνουν χάρτης και πρόγνωση γύρω από τη θέση σου (αν υπάρχει σήμα και το επιτρέπει η ρύθμιση), για να δουλεύουν χωρίς σήμα */
   try{ var pp=B.lastPos(); if(B.prefetch&&pp){ var pl0={date:s.startDate||new Date().toISOString().slice(0,10),lat:pp.lat,lon:pp.lon};
@@ -128,7 +148,7 @@ function start(o){
         navigator.onLine===false?null:{label:T('Κατέβασμα','Download'),fn:function(){ B.toast(T('Κατεβαίνει ο χάρτης…','Downloading the map…'),3000); B.prefetch.run(pl0,true).then(function(o2){ B.toast(o2&&o2.tiles?T('📥 Έτοιμο: ο χάρτης αποθηκεύτηκε.','📥 Done: the map is saved.'):T('Δεν κατέβηκε ο χάρτης. Δοκίμασε ξανά με σήμα.','The map did not download. Try again with signal.'),4000); }); }}); },4500); }); } }catch(e){}
   /* v31z543: στέλνει στον server όρια και λιμάνι, για ειδοποιήσεις καιρού / επιστροφής με κλειστό κινητό */
   try{ if(B.pushSync) B.pushSync(); }catch(e){}
-  pushContact().then(trackPos).then(pushTrip);
+  pushContact().then(trackPos).then(pushTrip).then(function(){ nativeStart(load()); });
   B.emit('tripstart',s);
   if(s.noAlert) B.toast(T('Καλή έξοδος! Η επαφή σου δεν θα ειδοποιηθεί σε αυτή την έξοδο (το SOS λειτουργεί).','Have a good trip! Your contact will not be notified on this trip (SOS still works).'));
   else B.toast(hasContact(d)?T('Καλή έξοδος! Η επαφή σου ενημερώθηκε.','Have a good trip! Your contact has been notified.'):T('Καλή έξοδος! Δεν έχεις επαφή ασφαλείας, θα έχεις μόνο υπενθύμιση στο κινητό.','Have a good trip! You have no safety contact, so you only get a reminder on your phone.'));
@@ -150,11 +170,13 @@ function gearCompact(tid){ var g=ls.get('alkyon-gear',null); if(!g||!Array.isArr
     var thin=function(p){ if(!p||p.length<=120) return p||[]; var k=Math.ceil(p.length/120); return p.filter(function(_,i){ return i%k===0||i===p.length-1; }); };
     out.push({id:it.id,type:it.type,name:it.name||it.type,set:{a:it.set.a||null,b:it.set.b,ta:it.set.ta,tb:it.set.tb,pts:thin(it.set.pts)},haul:it.haul?{a:it.haul.a,b:it.haul.b,ta:it.haul.ta,tb:it.haul.tb,pts:thin(it.haul.pts)}:null,n:n,kg:Math.round(kg*10)/10}); it.att=tid; });
   if(out.length) ls.set('alkyon-gear',g); return out.length?out:null; }
-function back(endAt){
+function back(endAt,merged){
+  /* 1.14.83: πρώτα τα σημεία του native GPS (σβηστή οθόνη), μετά το κλείσιμο της διαδρομής */
+  if(!merged&&NT()&&load().active){ var once=false, go=function(){ if(once) return; once=true; back(endAt,true); }; mergeFixes().then(go,go); setTimeout(go,1500); return; }
   /* 1.14.48: endAt = πότε τελείωσε πραγματικά, όταν η έξοδος είχε μείνει ανοιχτή */
   var NOW=(typeof endAt==='number'&&endAt>0&&endAt<Date.now())?endAt:Date.now();
   var s=load(); if(!s.active) return; if(NOW<=s.start) NOW=Date.now(); var d=NOW-s.start, sm=summary(s), tk=takeTrack();
-  s.active=false; save(s); pushTrip(); clearInterval(timer); timer=null; watch();
+  s.active=false; save(s); pushTrip(); clearInterval(timer); timer=null; watch(); nativeStop();
   if(d>=20*60000||sm.n>0||sm.miss>0){
     var pos=s.last||(s.cond0&&s.cond0.lat!=null?{lat:s.cond0.lat,lon:s.cond0.lon}:null);
     var rec={prof:B.prof?B.prof():'boat',target:s.target||null,targets:s.targets||null,sid:s.id,date:s.startDate||todayStr(),spot:s.route||'',tech:'',species:sm.species,count:sm.n,miss:sm.miss,kg:sm.kg,pn:sm.pn||0,pkg:sm.pkg||0,startMs:s.start,endMs:NOW,cond0:s.cond0||null,lat:pos?pos.lat:null,lon:pos?pos.lon:null,notes:T('Καταγράφηκε από Έναρξη/Τέλος εξόδου','Recorded from Start/End trip')};
@@ -280,7 +302,7 @@ function paintBar(){
   bar.textContent=(lt?T('Πέρασε η ώρα επιστροφής ','Past return time ')+hm(s.due)+T(' · πάτα εδώ',' · tap here'):T('Σε έξοδο · επιστροφή ','On a trip · back at ')+hm(s.due)+' ('+dur(s.due-Date.now())+')');
 }
 B.on('trip',paintBar);
-document.addEventListener('visibilitychange',function(){ if(!document.hidden){ paintBar(); watch(); if(load().active) trackPos(); } });
+document.addEventListener('visibilitychange',function(){ if(!document.hidden){ paintBar(); watch(); if(load().active){ mergeFixes(); trackPos(); } } });
 window.addEventListener('online',function(){ if(load().active) pushTrip(); });
 
 /* ---------- επαφή ασφαλείας (Προφίλ) ---------- */
@@ -331,7 +353,7 @@ B.mob=function(){ vib([200,100,200]); getPos().then(function(p){ var m=B.mobs();
 B.mobDel=function(t){ ls.set('alkyon-mob',B.mobs().filter(function(x){ return x.t!==t; })); B.emit('mob'); };
 
 /* εκκίνηση: αν υπάρχει ενεργή έξοδος ή άγκυρα, συνεχίζει */
-if(load().active){ startTimer(); setTimeout(function(){ trackPos(); },2000); }
+if(load().active){ startTimer(); (function(){ var s0=load(); if(!s0.hbk){ s0.hbk=hexKey(); save(s0); } })(); setTimeout(function(){ mergeFixes(); trackPos().then(function(){ nativeStart(load()); }); },2000); }
 if(anc()) lastAn=Date.now();
 setTimeout(function(){ watch(); paintBar(); },300);
 setInterval(function(){ if(load().active) watch(); },10000);

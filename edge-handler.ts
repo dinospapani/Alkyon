@@ -122,6 +122,8 @@ Deno.serve(async (req) => {
         return J({ ok: true, stats: r.stats });
       } catch (e) { return J({ ok: false, error: e.message }, 500); }
     }
+    // 1.14.83 (P0.7): παλμός από το native GPS (σβηστή οθόνη) — κλειδί εξόδου αντί για token χρήστη
+    if (body && body.action === 'hb') { try { const r = await heartbeat({ env }, body); return J(r.body, r.status); } catch (e) { return J({ ok: false, error: e.message }, 500); } }
     if (!body || body.action !== 'trip' || !/^[\w.-]{3,80}$/.test(String(body.id || '')) || !['start', 'end'].includes(body.phase)) return J({ ok: false, error: 'bad request' }, 400);
     try {
       const u = await fetch(env.SUPABASE_URL + '/auth/v1/user', { headers: { apikey: env.SUPABASE_SERVICE_KEY, Authorization: auth } });
