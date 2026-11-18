@@ -1,0 +1,59 @@
+# Alkyon · 1.14.83: έλεγχος ότι χτίζονται οι εφαρμογές Android και iOS (debug / προσομοιωτής, χωρίς υπογραφή).
+# Δεν ανεβάζει τίποτα πουθενά (ούτε Play, ούτε TestFlight, ούτε releases ή κλαδιά). Τρέχει σε κλαδιά εκτός main όταν αλλάζει κώδικας native, ή με το χέρι.
+name: Alkyon native build check
+on:
+  push:
+    branches-ignore: [main]
+    paths: ['android/**', 'ios/**', 'native.js', 'capacitor.config.json', '.github/workflows/native-check.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: native-check-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - run: npm ci --no-audit --no-fund
+      - run: |
+          node tools/build-web.mjs www --native
+          npx cap sync android
+      - name: Χτίσιμο κινητού (debug)
+        working-directory: android
+        run: ./gradlew --no-daemon :app:assembleDebug -PalkVersionName=0.0.1 -PalkVersionCode=1
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Xcode
+        run: |
+          X=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1); echo "Xcode: $X"; [ -n "$X" ] && sudo xcode-select -s "$X"
+          xcodebuild -version
+          xcodebuild -showsdks | grep -i watch || xcodebuild -downloadPlatform watchOS
+      - run: npm ci --no-audit --no-fund
+      - run: |
+          node tools/build-web.mjs www --native
+          npx cap sync ios
+      - name: Χτίσιμο iPhone (προσομοιωτής)
+        working-directory: ios/App
+        run: |
+          set -o pipefail
+          xcodebuild -project App.xcodeproj -scheme App -configuration Debug -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build > /tmp/ios.log 2>&1 || { grep -E "error:" -A3 /tmp/ios.log | head -150; tail -40 /tmp/ios.log; exit 1; }
+          tail -5 /tmp/ios.log

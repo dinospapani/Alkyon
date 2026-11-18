@@ -411,7 +411,7 @@ NOW = RealDate.parse('2026-11-09T10:00:00Z');
     { kind: 'gear', id: 'c', data: { id: 'c', src: 'watch', state: 'out', _u: 9 } }, { kind: 'gear', id: 'd', data: { id: 'd', src: 'watch', state: 'out', _u: 9 } }, { kind: 'bites', id: 'x', data: { id: 'x' } }]);
   const it = Object.fromEntries(ls.get('alkyon-gear').items.map(x => [x.id, x.state]));
   check('Εφαρμογή: εργαλεία από το ρολόι στα Εργαλεία· οι αλλαγές και τα σβησίματα του κινητού μένουν (1.10.4)', n === 2 && it.a === 'done' && it.b === 'out' && it.c === 'out' && !('d' in it), { n, it });
-  check('Εφαρμογή: το gearMerge τρέχει στον συγχρονισμό (1.10.4)', /got\+=setsSync\(rows,out\);\s*got\+=gearMerge\(rows\);/.test(st));
+  check('Εφαρμογή: το gearMerge τρέχει στον συγχρονισμό (1.10.4)', /got\+=setsSync\(ex,other\);\s*got\+=gearMerge\(ex\);/.test(st));
   check('Νέα: η έκδοση 1.10.4 υπάρχει στα «Τι νέο»', /\['1\.10\.4',\[T\('Ρολόι Garmin: δίχτυ/.test(fs.readFileSync(path.join(ROOT, 'v4', 'help.js'), 'utf8')));
 }
 
@@ -474,11 +474,12 @@ check('Νέα: η έκδοση 1.10.8 υπάρχει στα «Τι νέο»', /\
 
 /* ---------- 1.10.10: ρολόι — ελληνικά ονόματα ειδών και σημείων ---------- */
 {
-  const tmp = path.join(ROOT, 'tests', '.watch-tmp5.mjs'); fs.writeFileSync(tmp, fs.readFileSync(path.join(ROOT, 'watch-index.ts'), 'utf8'));
+  /* 1.14.83: τα ονόματα μπαίνουν στη function κατά το χτίσιμο (watch-edge-index.ts), όχι από το GitHub την ώρα που τρέχει */
+  const tmp = path.join(ROOT, 'tests', '.watch-tmp5.mjs'); fs.writeFileSync(tmp, fs.readFileSync(path.join(ROOT, 'watch-edge-index.ts'), 'utf8'));
   const W = await import(pathToFileURL(tmp).href); fs.unlinkSync(tmp);
-  const de = fs.readFileSync(path.join(ROOT, 'v4', 'data-el.js'), 'utf8');
-  const F = async (u) => ({ ok: true, text: async () => de });
+  const F = async (u) => { throw new Error('no network expected: ' + u); };
   const M = await W.elNames(F, RealDate.now());
+  check('Ρολόι (1.14.83): το bundle έχει μέσα το forecast.js (χωρίς λήψη από το GitHub)', !!(await W.loadPF(F, RealDate.now())).getForecast);
   const got = ['Dusky grouper', 'Map point', 'Λαβράκι', 'Longline 3', 'Totis net'].map(n => W.elName(M, n));
   check('Ρολόι: είδη και σημεία στα ελληνικά (Ροφός, Σημείο χάρτη, Παραγάδι 3), τα ελληνικά μένουν (1.10.10)', JSON.stringify(got) === JSON.stringify(['Ροφός', 'Σημείο χάρτη', 'Λαβράκι', 'Παραγάδι 3', 'Totis net']), got);
   const wi = fs.readFileSync(path.join(ROOT, 'watch-index.ts'), 'utf8');

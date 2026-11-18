@@ -1,9 +1,11 @@
 # Alkyon · αυτόματοι έλεγχοι. Τρέχουν σε κάθε ανέβασμα αρχείων (push) και με το χέρι από την καρτέλα Actions.
 # Αν αποτύχει κάτι, το GitHub στέλνει email και το ανέβασμα φαίνεται με κόκκινο ✗.
+# 1.14.83 (P0.8): το alkyonfishing.com ανεβαίνει ΜΟΝΟ αφού περάσουν αυτοί οι έλεγχοι (deploy-web.yml → workflow_run).
+#   Πρώτα οι γρήγοροι (unit, SQL, Edge Functions σε συμφωνία με τις πηγές) και μετά οι μεγάλοι έλεγχοι στον browser.
 name: Alkyon tests
 on:
   push:
-    paths-ignore: ['**.png', '**.jpg', '**.md', '**.json', 'garmin/**']   # οι αυτόματες ενημερώσεις δεδομένων (ακτογραμμή, φράγματα, push-state) δεν τρέχουν έλεγχο
+    paths-ignore: ['**.png', '**.jpg', '**.md', 'garmin/**']
   workflow_dispatch:
 jobs:
   test:
@@ -17,6 +19,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Unit tests (συγχρονισμός, αντίγραφα, ρολόι, ασφάλεια, βαθμός)
+        run: node --test tests/unit/*.test.mjs
+      - name: SQL migrations (τοπικό Postgres, RLS / SOS / κωδικοί ρολογιού)
+        run: bash tests/sql/run.sh
+      - name: Edge Functions σε συμφωνία με forecast.js / safety-job.mjs / watch-index.ts
+        run: python build_edge.py --check
       - run: pip install playwright==1.48.0
       - run: python -m playwright install --with-deps chromium
       - run: python tests/run.py

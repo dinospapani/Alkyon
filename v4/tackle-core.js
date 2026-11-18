@@ -32,14 +32,18 @@ B.backup={
   },
   importFile:function(file){ return file.text().then(function(t){ return B.backup.apply(JSON.parse(t)); }); },
   apply:function(d){
-    return Promise.resolve().then(function(){ var n=0;
-      ['spots','trips','bites','tackle'].forEach(function(k){ (Array.isArray(d[k])?d[k]:[]).forEach(function(it){ if(it&&typeof it==='object'){ S().save(k,it); n++; } }); });
+    return Promise.resolve().then(function(){ var n=0, keep={};
+      /* 1.14.83 (P0.2): επαναφορά χωρίς να ξαναζωντανεύει ό,τι σβήστηκε μετά το αντίγραφο και χωρίς να πατά νεότερες αλλαγές (κρατά το _u του αντιγράφου) */
+      ['spots','trips','bites','tackle'].forEach(function(k){ (Array.isArray(d[k])?d[k]:[]).forEach(function(it){ if(it&&typeof it==='object'){ var r=S().restoreRec(k,it); if(r==='restored'||r==='new'){ n++; if(it.id!=null) keep[it.id]=1; } } }); });
       if(Array.isArray(d.gear)&&d.gear.length){ var g=ls.get('alkyon-gear',{})||{}, ex={}; g.items=Array.isArray(g.items)?g.items:[]; g.items.forEach(function(x){ ex[x.id]=1; }); d.gear.forEach(function(x){ if(x&&x.id&&!ex[x.id]){ g.items.push(x); n++; } }); ls.set('alkyon-gear',g); }
       if(d.boat&&typeof d.boat==='object'){ ls.set('alkyon-boat',d.boat); n++; }
       /* v31z550: ρυθμίσεις (αν υπάρχουν στο αντίγραφο) */
       if(d.settings&&typeof d.settings==='object') Object.keys(d.settings).forEach(function(k0){ var k=k0.replace(/^psaro-/,'alkyon-'); d.settings[k]=d.settings[k0]; if(SETK.indexOf(k)>=0&&k!=='alkyon-gear'&&k!=='alkyon-boat'){ ls.set(k,d.settings[k]); n++; } });
       var ph=d.photos&&typeof d.photos==='object'?d.photos:{}, p=Promise.resolve();
-      Object.keys(ph).forEach(function(id){ p=p.then(function(){ return fetch(ph[id]).then(function(r){ return r.blob(); }).then(function(bl){ return S().Photos.put(id,bl); }).catch(function(){}); }); });
+      var pup=ls.get('alkyon-pup',{})||{};
+      Object.keys(ph).forEach(function(id){ var base=id.replace(/^tk-/,'').replace(/~\d+$/,''); if(!keep[base]) return; delete pup[id];
+        p=p.then(function(){ return fetch(ph[id]).then(function(r){ return r.blob(); }).then(function(bl){ return S().Photos.put(id,bl); }).catch(function(){}); }); });
+      ls.set('alkyon-pup',pup);
       return p.then(function(){ return n; }); });
   }
 };

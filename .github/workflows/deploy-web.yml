@@ -1,14 +1,13 @@
 # Alkyon · ανέβασμα της ιστοσελίδας στο Cloudflare (https://alkyonfishing.com).
-# Τρέχει σε κάθε push στο main, μετά από κάθε ενημέρωση δεδομένων (οι αυτόματες ενημερώσεις κάνουν push με το GITHUB_TOKEN,
-# που δεν ξεκινά άλλα workflows, γι' αυτό το workflow_run), και με το χέρι από την καρτέλα Actions.
+# Τρέχει αφού περάσουν οι έλεγχοι του main («Alkyon tests»), μετά από κάθε ενημέρωση δεδομένων (οι αυτόματες ενημερώσεις κάνουν push
+# με το GITHUB_TOKEN, που δεν ξεκινά άλλα workflows, γι' αυτό το workflow_run), και με το χέρι από την καρτέλα Actions.
+# Σε κάθε περίπτωση, πριν ανέβει: ο τελευταίος έλεγχος του main πρέπει να έχει περάσει, και τρέχουν ξανά τα unit tests (P0.8).
 # Χρειάζεται τα secrets CLOUDFLARE_API_TOKEN και CLOUDFLARE_ACCOUNT_ID. Χωρίς αυτά απλώς προειδοποιεί και σταματά.
 name: Alkyon web (Cloudflare)
 on:
-  push:
-    branches: [main]
-    paths-ignore: ['garmin/**', 'android/**', 'tests/**', '**.md', 'tools/*.py']
+  # 1.14.83 (P0.8): ανεβαίνει μόνο μετά από επιτυχημένους ελέγχους («Alkyon tests») στο main — όχι πια απευθείας σε κάθε push.
   workflow_run:
-    workflows: ['Coastline sync (OSM)', 'Dams fullness sync (WDD)', 'Alkyon Navigator sync', 'Greek coastal places (OSM)', 'Shoals and rocks (OSM)']
+    workflows: ['Alkyon tests', 'Coastline sync (OSM)', 'Dams fullness sync (WDD)', 'Alkyon Navigator sync', 'Greek coastal places (OSM)', 'Shoals and rocks (OSM)']
     types: [completed]
   workflow_dispatch:
 concurrency:
@@ -16,7 +15,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   deploy:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -33,7 +32,18 @@ jobs:
       - uses: actions/checkout@v4
         if: steps.chk.outputs.skip != '1'
         with:
-          ref: main
+          # μετά από «Alkyon tests»: ακριβώς το commit που ελέγχθηκε· μετά από ενημέρωση δεδομένων ή με το χέρι: το main
+          ref: ${{ github.event.workflow_run.name == 'Alkyon tests' && github.event.workflow_run.head_sha || 'main' }}
+      - name: Πύλη ελέγχων (P0.8)
+        if: steps.chk.outputs.skip != '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # ο τελευταίος ολοκληρωμένος έλεγχος του main πρέπει να έχει περάσει (καλύπτει ενημερώσεις δεδομένων και ανέβασμα με το χέρι)
+          C=$(gh run list -R "$GITHUB_REPOSITORY" -w "Alkyon tests" -b main -s completed -L 1 --json conclusion -q '.[0].conclusion')
+          echo "Τελευταίος έλεγχος main: ${C:-κανένας}"
+          [ "$C" = "success" ] || { echo "::error::Οι έλεγχοι του main δεν έχουν περάσει — δεν ανεβαίνει."; exit 1; }
+          node --test tests/unit/*.test.mjs
       - uses: actions/setup-node@v4
         if: steps.chk.outputs.skip != '1'
         with:

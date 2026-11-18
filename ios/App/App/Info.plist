@@ -47,7 +47,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>Alkyon uses the camera to take photos of your catches and to scan coordinates from your chartplotter screen.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Alkyon uses your location to show the forecast and sea conditions where you are, and to save the position of your catches, waypoints and trips.</string>
+	<string>Alkyon uses your location to show the forecast and sea conditions where you are, and to save the position of your catches, waypoints and trips. During a trip you start, it keeps recording your track and updating your safety contact while the screen is locked, until you end the trip.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Alkyon uses the microphone for voice notes and voice logging of catches. Recordings stay on your phone.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
@@ -56,6 +56,10 @@
 	<string>Alkyon lets you pick photos of your catches from your library.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Alkyon turns your voice into text when you log a catch by voice.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

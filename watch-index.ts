@@ -10,25 +10,19 @@
 // Χρειάζεται: Verify JWT = off. Τα SUPABASE_URL και SUPABASE_SERVICE_ROLE_KEY υπάρχουν ήδη σε κάθε Edge Function.
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS' };
 const J = (o, status = 200, cache = 'no-store') => new Response(JSON.stringify(o), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': cache, ...CORS } });
-const SRC = 'https://raw.githubusercontent.com/dinospapani/Alkyon/main/forecast.js'; /* 1.12.24: όχι από το GitHub Pages (το site είναι πλέον στο Cloudflare) */
+/* 1.14.83 (P0.5): ο κώδικας της πρόγνωσης (forecast.js) και τα ελληνικά ονόματα ειδών μπαίνουν στη function κατά το χτίσιμο
+   (build_edge.py → watch-edge-index.ts). Τίποτα δεν κατεβαίνει πια από το GitHub την ώρα που τρέχει. */
 const mem = { pf: null, pfAt: 0, fc: new Map(), codes: new Map(), el: null, elAt: 0 };
 /* 1.10.10: ελληνικά ονόματα για είδη που γράφτηκαν στα αγγλικά (ίδιος πίνακας με την εφαρμογή, v4/data-el.js) */
-export async function elNames(F, now) {
-  if (mem.el && now - mem.elAt < 6 * 3600e3) return mem.el;
-  try { const r = await F('https://raw.githubusercontent.com/dinospapani/Alkyon/main/v4/data-el.js'); const t = r.ok ? await r.text() : '';
-    const m = t.match(/var M=(\{[\s\S]*?\}), G=/); if (m) { mem.el = JSON.parse(m[1]); mem.elAt = now; } } catch (e) {}
-  return mem.el || {};
-}
+export async function elNames(F, now) { return globalThis.__ALKYON_EL || {}; }
 export function elName(M, n) { const s = String(n || ''); if (!/[A-Za-z]{3}/.test(s)) return s; const k = s.trim().toLowerCase(), v = M[k];
   if (v) return /^[A-Z]/.test(s.trim()) ? v.charAt(0).toUpperCase() + v.slice(1) : v;
   const g = k.match(/^(longline|net|pot|trap) (\d+)$/); return g ? ({ longline: 'Παραγάδι', net: 'Δίχτυ', pot: 'Κλουβί', trap: 'Κλουβί' })[g[1]] + ' ' + g[2] : s; }
 const env = (k) => (typeof Deno !== 'undefined' ? Deno.env.get(k) : (globalThis.process && process.env[k])) || '';
 
 export async function loadPF(F = fetch, now = Date.now()) {
-  if (mem.pf && now - mem.pfAt < 6 * 3600e3) return mem.pf;
-  const src = await (await F(SRC + '?v=' + Math.floor(now / 3600e3))).text();
-  const g = {}; new Function('self', src)(g); if (!g.PF) throw new Error('forecast.js');
-  mem.pf = g.PF; mem.pfAt = now; return mem.pf;
+  if (globalThis.__ALKYON_PF) return globalThis.__ALKYON_PF;
+  throw new Error('forecast bundle missing (deploy watch-edge-index.ts from build_edge.py)');
 }
 async function sb(F, path, opt = {}) {
   const url = env('SUPABASE_URL'), key = env('SUPABASE_SERVICE_ROLE_KEY');
@@ -36,12 +30,31 @@ async function sb(F, path, opt = {}) {
   const r = await F(url + '/rest/v1/' + path, { ...opt, headers: { apikey: key, Authorization: 'Bearer ' + key, 'Content-Type': 'application/json', ...(opt.headers || {}) } });
   return r;
 }
-export async function userOf(F, code, now = Date.now()) {
-  code = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); if (code.length < 6) return null;
-  const c = mem.codes.get(code); if (c && now - c.at < 600e3) return c.v;
-  const r = await sb(F, 'watch_links?select=user_id,lang&code=eq.' + code + '&limit=1'); if (!r.ok) return null;
-  const a = await r.json(); const v = a && a[0] ? a[0] : null; mem.codes.set(code, { at: now, v }); return v;
+/* 1.14.83 (P0.5): κωδικοί ρολογιού με λήξη (180 μέρες χωρίς χρήση· κάθε χρήση την ανανεώνει), ανάκληση (revoked_at ή διαγραφή από την εφαρμογή)
+   και όριο αποτυχημένων προσπαθειών: από την ίδια IP έως 20 λάθος κωδικούς ανά 15′, μετά 429. Η μνήμη κρατά έναν σωστό κωδικό έως 60″,
+   οπότε μια αποσύνδεση ρολογιού ισχύει μέσα σε ένα λεπτό. */
+export const WATCH_TTL_DAYS = 180, FAIL_MAX = 20, FAIL_WIN_MS = 15 * 60e3, CODE_CACHE_MS = 60e3;
+export function normCode(code) { return String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+export async function rateLimited(F, ip, now = Date.now()) {
+  if (!ip) return false;
+  try { const r = await sb(F, 'watch_auth_fail?select=at&ip=eq.' + encodeURIComponent(ip) + '&at=gt.' + encodeURIComponent(new Date(now - FAIL_WIN_MS).toISOString()) + '&limit=' + FAIL_MAX);
+    if (!r.ok) return false; const a = await r.json(); return Array.isArray(a) && a.length >= FAIL_MAX; } catch (e) { return false; }
 }
+export async function userOf(F, code, now = Date.now(), ip = '') {
+  code = normCode(code); if (code.length < 6) return null;
+  const c = mem.codes.get(code); if (c && c.v && now - c.at < CODE_CACHE_MS) return c.v;
+  if (await rateLimited(F, ip, now)) return { limited: true };
+  const nowIso = new Date(now).toISOString();
+  const r = await sb(F, 'watch_links?select=user_id,lang,last_used_at&code=eq.' + code + '&revoked_at=is.null&or=' + encodeURIComponent('(expires_at.is.null,expires_at.gt.' + nowIso + ')') + '&limit=1'); if (!r.ok) return null;
+  const a = await r.json(); const v = a && a[0] ? { user_id: a[0].user_id, lang: a[0].lang } : null;
+  if (!v) { mem.codes.delete(code); if (ip) sb(F, 'watch_auth_fail', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify([{ ip, at: nowIso }]) }).catch(() => {}); return null; }
+  mem.codes.set(code, { at: now, v });
+  /* ανανέωση λήξης το πολύ μία φορά την ώρα */
+  const lu = a[0].last_used_at ? Date.parse(a[0].last_used_at) : 0;
+  if (!(now - lu < 3600e3)) sb(F, 'watch_links?code=eq.' + code, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ last_used_at: nowIso, expires_at: new Date(now + WATCH_TTL_DAYS * 864e5).toISOString() }) }).catch(() => {});
+  return v;
+}
+const ipOf = (req) => String(req.headers.get('cf-connecting-ip') || (req.headers.get('x-forwarded-for') || '').split(',')[0] || '').trim().slice(0, 64);
 const DAYS_EL = ['Κυρ', 'Δευ', 'Τρι', 'Τετ', 'Πεμ', 'Παρ', 'Σαβ'], DAYS_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const bft = (kn) => kn == null ? null : [1, 4, 7, 11, 17, 22, 28, 34, 41, 48, 56, 64].findIndex(x => kn < x) === -1 ? 12 : [1, 4, 7, 11, 17, 22, 28, 34, 41, 48, 56, 64].findIndex(x => kn < x);
 const r1 = (x) => x == null ? null : Math.round(x * 10) / 10;
@@ -179,14 +192,15 @@ export function trollSpots(rows, lat, lon) {
 }
 export async function handle(req, F = fetch, now = Date.now()) {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
-  const u = new URL(req.url), q = u.searchParams;
+  const u = new URL(req.url), q = u.searchParams, ip = ipOf(req);
+  const user = async (code) => { const v = await userOf(F, code, now, ip).catch(() => null); return v && v.limited ? null : v; };
   try {
     if (req.method === 'GET') {
       const lat = parseFloat(q.get('lat')), lon = parseFloat(q.get('lon'));
       if (!Number.isFinite(lat) || !Number.isFinite(lon)) return J({ ok: 0, err: 'pos' }, 400);
       if (q.get('grid') === '1') {   // 1.9.72: χάρτης βυθού για το ρολόι
         let cs = [];
-        if (q.get('code')) { const us = await userOf(F, q.get('code'), now).catch(() => null);
+        if (q.get('code')) { const us = await user(q.get('code'));
           if (us) try { const r = await sb(F, 'records?user_id=eq.' + us.user_id + '&kind=eq.settings&id=eq.main&select=data&limit=1'); const a = r.ok ? await r.json() : [];
             const dc = a && a[0] && a[0].data ? a[0].data['alkyon-dcorr'] : null; if (Array.isArray(dc)) cs = dc.filter(c => Array.isArray(c) && Number.isFinite(+c[0]) && Number.isFinite(+c[1]) && Number.isFinite(+c[2]) && Math.abs(+c[2]) <= 60 && distM(lat, lon, +c[0], +c[1]) < 4000).map(c => [+c[0], +c[1], +c[2]]); } catch (e) {} }
         const gk = 'g' + lat.toFixed(3) + ',' + lon.toFixed(3) + ':' + JSON.stringify(cs).length + ':' + cs.length;
@@ -195,7 +209,7 @@ export async function handle(req, F = fetch, now = Date.now()) {
         return J(v, 200, 'private, max-age=3600');
       }
       let en = q.get('lang') === 'en', lim = null, us = null;
-      if (q.get('code')) { us = await userOf(F, q.get('code'), now).catch(() => null); if (us && us.lang && !q.get('lang')) en = us.lang === 'en'; }   // η γλώσσα του ρολογιού (lang) έχει προτεραιότητα
+      if (q.get('code')) { us = await user(q.get('code')); if (us && us.lang && !q.get('lang')) en = us.lang === 'en'; }   // η γλώσσα του ρολογιού (lang) έχει προτεραιότητα
       const key = lat.toFixed(2) + ',' + lon.toFixed(2) + (en ? 'e' : 'g') + JSON.stringify(lim || '');
       const bg = q.get('bg') === '1';   // από το παρασκήνιο του ρολογιού: μόνο οι καμπές πίεσης (λίγη μνήμη)
       const small = (v) => bg ? { ok: 1, tn: v.tn || [], p: v.now ? v.now.p : null, s: v.days && v.days[0] ? v.days[0].s : null, w: v.days && v.days[0] ? v.days[0].w : '', bw: v.bw || null } : v;
@@ -223,7 +237,8 @@ export async function handle(req, F = fetch, now = Date.now()) {
     }
     if (req.method === 'POST') {
       let b = {}; try { b = await req.json(); } catch (e) {}
-      const us = await userOf(F, b.code, now); if (!us) return J({ ok: 0, err: 'code' }, 403);
+      const us0 = await userOf(F, b.code, now, ip); if (us0 && us0.limited) return J({ ok: 0, err: 'rate' }, 429);
+      const us = us0; if (!us) return J({ ok: 0, err: 'code' }, 403);
       const t0 = Number.isFinite(+b.t) ? +b.t : Number.isFinite(+b.ts) ? +b.ts * 1000 : NaN;   // το ρολόι στέλνει ts σε δευτερόλεπτα
       const t = t0 > 1.5e12 && t0 < now + 600e3 ? t0 : now;
       const tripId = (v) => String(v || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 24);
@@ -274,7 +289,9 @@ export async function handle(req, F = fetch, now = Date.now()) {
         const cid = tripId(b.cid); if (!cid) return J({ ok: 0, err: 'cid' }, 400);
         const q = 'records?user_id=eq.' + us.user_id + '&kind=eq.bites&id=eq.' + cid;
         if (b.kind === 'undo') {
-          const r = await sb(F, q, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ deleted: true, updated_at: new Date(now).toISOString() }) });
+          /* 1.14.83: νέο _u στη διαγραφή, ώστε να κερδίζει καθαρά την προηγούμενη έκδοση σε κάθε κινητό */
+          const g0 = await sb(F, q + '&select=data&limit=1'); const d0 = g0.ok ? await g0.json() : [];
+          const r = await sb(F, q, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ deleted: true, data: { ...((d0 && d0[0] && d0[0].data) || {}), _u: now }, updated_at: new Date(now).toISOString() }) });
           if (!r.ok) return J({ ok: 0, err: 'db ' + r.status }, 502);
           return J({ ok: 1, id: cid });
         }

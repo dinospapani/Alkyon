@@ -33,7 +33,7 @@ function rec(msg,src,line,col,stack,kind){
   var q=get(Q,[])||[]; q.push(o); set(Q,q.slice(-40)); soon(4000);
 }
 function soon(ms){ clearTimeout(timer); timer=setTimeout(flush,ms); }
-function sess(){ var s=get('alkyon-sess',null); return s&&s.access_token&&Date.now()/1000<(s.exp||0)?s:null; }
+function sess(){ var s=get('alkyon-sess',null); return s&&s.access_token&&Date.now()<(+s.exp||0)?s:null; } /* 1.14.83: exp είναι σε ms (store.js), όχι δευτερόλεπτα */
 function flush(){
   if(busy||missing) return; var q=get(Q,[])||[]; if(!q.length) return; if(navigator.onLine===false){ soon(60000); return; }
   busy=true; var s=sess(), batch=q.slice(0,10);

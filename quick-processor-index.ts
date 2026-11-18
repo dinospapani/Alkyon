@@ -621,6 +621,50 @@ const hm = iso => new Intl.DateTimeFormat('el-GR', { timeZone: TZ, hour: '2-digi
 const hash32 = s => { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); };
 const mapLink = (la, lo) => (la != null && lo != null) ? `https://maps.google.com/?q=${(+la).toFixed(5)},${(+lo).toFixed(5)}` : '';
 
+/* 1.14.83 (P0.7): παλμός από το native GPS του κινητού (Android foreground service / iOS background location), με σβηστή οθόνη.
+   Δεν έχει token χρήστη: αποδεικνύει ποια έξοδο ενημερώνει με το κλειδί hb_key που έγραψε η εφαρμογή στο safety_trips όταν ξεκίνησε η έξοδος.
+   Ενημερώνει μόνο θέση/ώρα/μπαταρία ενεργής εξόδου· τίποτα άλλο. Αγνοεί παλμούς πιο πυκνούς από 20″. */
+export async function heartbeat({ env, fetch: F = fetch, now = Date.now() }, b) {
+  const id = String(b && b.id || ''), key = String(b && b.key || ''), lat = +(b && b.lat), lon = +(b && b.lon);
+  if (!/^[\w.-]{3,80}$/.test(id) || !/^[a-f0-9]{32,128}$/.test(key)) return { status: 400, body: { ok: false, error: 'bad request' } };
+  const hasPos = Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180 && !(lat === 0 && lon === 0);
+  const H = { apikey: env.SUPABASE_SERVICE_KEY, Authorization: 'Bearer ' + env.SUPABASE_SERVICE_KEY };
+  const r = await F(env.SUPABASE_URL + '/rest/v1/safety_trips?id=eq.' + encodeURIComponent(id) + '&hb_key=eq.' + key + '&status=in.(active,alerted)&select=id,hb_at', { headers: H });
+  const a = r.ok ? await r.json() : [];
+  if (!Array.isArray(a) || !a.length) return { status: 404, body: { ok: false, error: 'no active trip' } };
+  const last = a[0].hb_at ? Date.parse(a[0].hb_at) : 0;
+  if (now - last < 20e3) return { status: 200, body: { ok: true, skipped: 'rate' } };
+  const at = new Date(now).toISOString(), o = { hb_at: at, hb_src: 'native' };
+  if (hasPos) { o.last_lat = Math.round(lat * 1e5) / 1e5; o.last_lon = Math.round(lon * 1e5) / 1e5; o.last_at = at; }
+  const bat = Math.round(+(b && b.battery)); if (Number.isFinite(bat) && bat >= 0 && bat <= 100) o.battery = bat;
+  const u = await F(env.SUPABASE_URL + '/rest/v1/safety_trips?id=eq.' + encodeURIComponent(id) + '&hb_key=eq.' + key, { method: 'PATCH', headers: { ...H, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify(o) });
+  return u.ok ? { status: 200, body: { ok: true } } : { status: 502, body: { ok: false, error: 'update ' + u.status } };
+}
+/* 1.14.83 (P0.6): πρέπει να τρέξει ένα περιοδικό βήμα; Με ανοχή 60″ ώστε ένας cron κάθε 5′ να το τρέχει κάθε ~15′ χωρίς να γλιστρά. */
+export function isDue(lastOk, nowMs, periodMs, slackMs = 60e3) {
+  const t = lastOk ? Date.parse(lastOk) : NaN;
+  if (!Number.isFinite(t)) return true;
+  if (t > nowMs + 5 * 60e3) return true;   // ρολόι/τιμή στο μέλλον: δεν μπλοκάρει για πάντα
+  return nowMs - t >= periodMs - slackMs;
+}
+/* 1.14.83 (P0.6): «κλείδωμα» βήματος χωρίς ακριβές λεπτό. Τρέχει μόνο αν (α) πέρασε η περίοδος από την τελευταία ΕΠΙΤΥΧΙΑ και
+   (β) καμία άλλη εκτέλεση δεν το έχει ήδη πάρει τα τελευταία 5′. Το «πάρσιμο» είναι ατομικό: PATCH με όρο την προηγούμενη τιμή last_try
+   (αν δύο εκτελέσεις τρέξουν μαζί, μόνο η μία βρίσκει τη γραμμή αμετάβλητη). Αν μια εκτέλεση πέσει στη μέση, μετά από 5′ το βήμα ξαναπαίρνεται. */
+export async function claimStep(sb, name, periodMs, now = Date.now(), staleMs = 5 * 60e3) {
+  const r = await sb(`job_state?name=eq.${encodeURIComponent(name)}&select=last_ok,last_try`);
+  const row = r && r[0];
+  if (!isDue(row ? row.last_ok : null, now, periodMs)) return false;
+  const lt = row && row.last_try ? Date.parse(row.last_try) : NaN, lo = row && row.last_ok ? Date.parse(row.last_ok) : NaN;
+  if (Number.isFinite(lt) && now - lt < staleMs && !(Number.isFinite(lo) && lo >= lt)) return false;   // τρέχει ήδη αλλού
+  const at = new Date(now).toISOString();
+  if (!row) {
+    const ins = await sb('job_state', { method: 'POST', headers: { Prefer: 'return=representation,resolution=ignore-duplicates' }, body: JSON.stringify([{ name, last_try: at }]) });
+    return Array.isArray(ins) && ins.length === 1;
+  }
+  const cond = row.last_try ? 'last_try=eq.' + encodeURIComponent(row.last_try) : 'last_try=is.null';
+  const up = await sb(`job_state?name=eq.${encodeURIComponent(name)}&${cond}`, { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ last_try: at }) });
+  return Array.isArray(up) && up.length === 1;
+}
 export async function run({ env, fetch: F = fetch, sendMail, log = console.log, PF = null, webpush = null, only = null }) {
   const URL_ = env.SUPABASE_URL, KEY = env.SUPABASE_SERVICE_KEY, TG = env.TELEGRAM_BOT_TOKEN;
   if (!URL_ || !KEY) { log('Λείπουν τα SUPABASE_URL / SUPABASE_SERVICE_KEY.'); return { ok: false }; }
@@ -640,6 +684,16 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
   const ERRS = [], log0 = log;
   const STEP_ERR = /^(Telegram updates|Telegram send|Email send|Telegram ping|port note decide|port notes|weekly|morning|Forecast job|Πίεση|Πίεση Telegram|Πίεση \(Open-Meteo\)|community push|squid|squid fc|squid notif_log|Καιρός εξόδου|bite stats)$/;
   log = m => { log0(m); const t = String(m), k = t.split(':')[0].trim(); if (STEP_ERR.test(k)) ERRS.push({ k, m: t.slice(0, 300) }); };
+  /* 1.14.83 (P0.6): βήματα που τρέχουν «κάθε ~15′» δεν εξαρτώνται από το ακριβές λεπτό του cron: κρατιέται πότε έτρεξαν τελευταία φορά
+     με επιτυχία (job_state). Αν ο cron αργήσει ή χάσει μια εκτέλεση, το βήμα τρέχει στην επόμενη. Χωρίς τον πίνακα (παλιό σχήμα): όπως πριν. */
+  const jobs = {};
+  const stepDue = async (name, periodMs) => {
+    try { const ok = await claimStep(sb, name, periodMs, Date.now()); jobs[name] = { known: true }; return ok; }
+    /* χωρίς τον πίνακα job_state (πριν το migration): τρέχει σε κάθε εκτέλεση· οι ειδοποιήσεις δεν διπλασιάζονται (notif_log) */
+    catch (e) { jobs[name] = { known: false }; return true; } };
+  const stepOk = async (name) => { if (!jobs[name] || !jobs[name].known) return;
+    const at = new Date().toISOString();
+    await sb(`job_state?name=eq.${encodeURIComponent(name)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ last_ok: at }) }).catch(e => log('job_state: ' + e.message)); };
   const patch = (id, o) => sb(`safety_trips?id=eq.${encodeURIComponent(id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(o) });
   // 1.9.19: τα Telegram των διαχειριστών (app_admins → το δικό τους Telegram από safety_contacts.self_chat_id)
   let ADM = null;
@@ -1213,7 +1267,7 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
   // 8) v31z543: κατά την έξοδο, και με κλειστό κινητό: (α) καιρός που χαλάει τις επόμενες 3 ώρες στη θέση της εξόδου (καταιγίδα, άνεμος/ριπές/κύμα πάνω από τα όριά σου),
   //    (β) «ώρα να γυρίσεις»: απόσταση από το λιμάνι σου και ταχύτητα επιστροφής σε σχέση με τη δύση και την ώρα επιστροφής που δήλωσες. Έλεγχος ανά ~15 λεπτά.
   try {
-    if (webpush && new Date().getUTCMinutes() % 15 < 5) {
+    if (webpush && await stepDue('trip_wx', 15 * 60e3)) {
       const act = (await sb('safety_trips?status=eq.active&last_lat=not.is.null&select=*')) || [];
       for (const t of act) {
         const subs = (await sb(`push_subs?user_id=eq.${t.user_id}&select=*`).catch(() => [])) || []; if (!subs.length) continue;
@@ -1255,6 +1309,7 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
           for (const r of subs) { try { await webpush.sendNotification(r.sub, JSON.stringify({ title: m.title, body: m.body, full: m.body, kind: 'info', id: key, tag: 'alk-' + key.slice(-40), at, place: { name: tx('Έξοδος', 'Trip'), lat, lon } }), { TTL: 1800 }); stats.tripwx = (stats.tripwx || 0) + 1; } catch (e) { /* συνδρομή που έληξε: καθαρίζεται στο 6 */ } }
         }
       }
+      await stepOk('trip_wx');
     }
   } catch (e) { log('Καιρός εξόδου: ' + e.message); }
   // 8β) 1.14.21–1.14.23: «Πότε τσιμπάνε» από τον catch_obs (ανώνυμα, με συγκατάθεση).
@@ -1825,6 +1880,8 @@ Deno.serve(async (req) => {
         return J({ ok: true, stats: r.stats });
       } catch (e) { return J({ ok: false, error: e.message }, 500); }
     }
+    // 1.14.83 (P0.7): παλμός από το native GPS (σβηστή οθόνη) — κλειδί εξόδου αντί για token χρήστη
+    if (body && body.action === 'hb') { try { const r = await heartbeat({ env }, body); return J(r.body, r.status); } catch (e) { return J({ ok: false, error: e.message }, 500); } }
     if (!body || body.action !== 'trip' || !/^[\w.-]{3,80}$/.test(String(body.id || '')) || !['start', 'end'].includes(body.phase)) return J({ ok: false, error: 'bad request' }, 400);
     try {
       const u = await fetch(env.SUPABASE_URL + '/auth/v1/user', { headers: { apikey: env.SUPABASE_SERVICE_KEY, Authorization: auth } });

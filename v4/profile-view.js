@@ -9,17 +9,25 @@ function delAccount(){ var word=T('ΔΙΑΓΡΑΦΗ','DELETE'), cl=B.cloud, inp=
   var go=h('button',{class:'btn full sos',type:'button',text:T('Οριστική διαγραφή','Delete permanently'),onclick:function(){
     if(inp.value.trim().toUpperCase()!==word){ msg.textContent=T('Γράψε ','Type ')+word+T(' για να συνεχίσεις.',' to continue.'); return; }
     go.disabled=true; msg.textContent=T('Διαγραφή…','Deleting…'); var J={'Content-Type':'application/json'};
+    /* 1.14.83 (P0.10): κάθε βήμα ελέγχεται. Αν κάτι αποτύχει (δεδομένα ή αρχεία στο cloud), ο λογαριασμός ΔΕΝ διαγράφεται,
+       ώστε να μη μείνουν «ορφανά» αρχεία που κανείς δεν μπορεί πια να σβήσει· ο χρήστης ξαναδοκιμάζει. Τα αρχεία σβήνονται σε σελίδες (όχι μόνο τα πρώτα 1000). */
     cl.rest('rpc/delete_my_account',{method:'POST',headers:J,body:JSON.stringify({dry:true})}).then(function(){
-      var q=Promise.resolve(); ['records?id=not.is.null','safety_trips?id=not.is.null','safety_contacts?updated_at=not.is.null'].forEach(function(pth){ q=q.then(function(){ return cl.rest(pth,{method:'DELETE'}).catch(function(){}); }); });
-      var uid=(cl.session()||{}).uid, pup=ls.get('alkyon-pup',{})||{}; Object.keys(pup).forEach(function(k){ q=q.then(function(){ return cl.storage('DELETE','photos/'+uid+'/'+k+'.jpg').catch(function(){}); }); });
-      /* 1.12.6: και όλα τα αρχεία στο cloud (φωτογραφίες, αντίγραφα, Κοινότητα), όχι μόνο όσα ξέρει αυτό το κινητό */
-      function wipe(bk){ return cl.storage('POST','list/'+bk,JSON.stringify({prefix:uid+'/',limit:1000,offset:0}),'application/json').then(function(r){ return r.ok?r.json():[]; })
-        .then(function(a){ var n=(Array.isArray(a)?a:[]).filter(function(x){ return x&&x.name&&x.id!==null; }).map(function(x){ return uid+'/'+x.name; }); if(!n.length) return;
-          return cl.storage('DELETE',bk,JSON.stringify({prefixes:n}),'application/json'); }).catch(function(){}); }
-      if(uid) q=q.then(function(){ return Promise.all(['photos','backups','community'].map(wipe)); });
-      return q.then(function(){ return cl.rest('rpc/delete_my_account',{method:'POST',headers:J,body:JSON.stringify({dry:false})}); }).then(function(){
-        ['alkyon-sess','alkyon-last','alkyon-pup'].forEach(function(k){ try{ localStorage.removeItem(k); }catch(e){} }); sh.close(); B.toast(T('Ο λογαριασμός διαγράφηκε.','Your account was deleted.')); setTimeout(function(){ location.reload(); },1200); })
-        .catch(function(){ go.disabled=false; msg.textContent=T('Η διαγραφή απέτυχε. Δοκίμασε ξανά.','Deletion failed. Try again.'); }); },
+      var fails=[], uid=(cl.session()||{}).uid, q=Promise.resolve();
+      var must=function(label,p){ return p.then(function(r){ if(r&&r.ok===false) fails.push(label+' '+r.status); },function(e){ fails.push(label+' '+String(e&&e.message||e).slice(0,60)); }); };
+      function wipe(bk,round){ round=round||0; if(round>50){ fails.push(bk+' too many'); return Promise.resolve(); }
+        return cl.storage('POST','list/'+bk,JSON.stringify({prefix:uid+'/',limit:1000,offset:0}),'application/json').then(function(r){
+          if(!r.ok){ if(r.status===400||r.status===404) return []; throw new Error('list '+r.status); } return r.json(); })
+          .then(function(a){ var n=(Array.isArray(a)?a:[]).filter(function(x){ return x&&x.name&&x.id!==null; }).map(function(x){ return uid+'/'+x.name; }); if(!n.length) return;
+            return cl.storage('DELETE',bk,JSON.stringify({prefixes:n}),'application/json').then(function(r){ if(!r.ok) throw new Error('delete '+r.status); return n.length>=1000||Array.isArray(a)&&a.length>=1000?wipe(bk,round+1):null; }); })
+          .catch(function(e){ fails.push(bk+': '+String(e&&e.message||e)); }); }
+      if(uid) q=q.then(function(){ return Promise.all(['photos','backups','community'].map(function(bk){ return wipe(bk); })); });
+      /* πρώτα τα αρχεία· μόνο αν σβήσουν όλα, και οι εγγραφές */
+      ['records?id=not.is.null','safety_trips?id=not.is.null','safety_contacts?updated_at=not.is.null'].forEach(function(pth){ q=q.then(function(){ if(fails.length) return; return must(pth.split('?')[0],cl.rest(pth,{method:'DELETE'})); }); });
+      return q.then(function(){
+        if(fails.length){ go.disabled=false; msg.textContent=T('Δεν ολοκληρώθηκε το σβήσιμο όλων των δεδομένων στο cloud, οπότε ο λογαριασμός δεν διαγράφηκε. Έλεγξε τη σύνδεση και ξαναδοκίμασε.','Not all cloud data could be removed, so the account was not deleted. Check your connection and try again.')+' ('+fails.slice(0,3).join('; ')+')'; return; }
+        return cl.rest('rpc/delete_my_account',{method:'POST',headers:J,body:JSON.stringify({dry:false})}).then(function(){
+        ['alkyon-sess','alkyon-last','alkyon-pup','alkyon-sync-cur'].forEach(function(k){ try{ localStorage.removeItem(k); }catch(e){} }); sh.close(); B.toast(T('Ο λογαριασμός διαγράφηκε.','Your account was deleted.')); setTimeout(function(){ location.reload(); },1200); }); })
+        .catch(function(){ go.disabled=false; try{ cl.resetSyncMarks&&cl.resetSyncMarks(); }catch(e){} /* τα δεδομένα ξανανεβαίνουν στον λογαριασμό που έμεινε */ msg.textContent=T('Η διαγραφή απέτυχε. Δοκίμασε ξανά.','Deletion failed. Try again.'); }); },
       function(){ go.disabled=false; msg.textContent=T('Η διαγραφή λογαριασμού δεν είναι διαθέσιμη ακόμα. Δεν διαγράφηκε τίποτα.','Account deletion is not available yet. Nothing was deleted.'); }); }});
   sh=B.sheet({title:T('Διαγραφή λογαριασμού','Delete account'),body:h('div',{class:'bform'},h('p',{class:'sub',text:T('Θα διαγραφεί ο λογαριασμός σου και ό,τι έχει συγχρονιστεί στο cloud (ψάρια, σημεία, έξοδοι, φωτογραφίες, επαφή ασφαλείας). Δεν αναιρείται. Τα δεδομένα σε αυτό το κινητό μένουν.','Your account and everything synced to the cloud (catches, spots, trips, photos, safety contact) will be deleted. This cannot be undone. Data on this phone stays.')}),
     h('label',{class:'fld'},h('span',{text:T('Γράψε ','Type ')+word+T(' για επιβεβαίωση',' to confirm')}),inp),msg,go)}); }
