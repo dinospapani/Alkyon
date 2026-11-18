@@ -18,3 +18,9 @@ $P -f "$ROOT/tests/sql/supabase-stub.sql" >/dev/null
 $P -f "$ROOT/sql/2026-11-18-p0-trust.sql" >/dev/null
 $P -f "$ROOT/sql/2026-11-18-p0-trust.sql" >/dev/null   # idempotent: δεύτερη εκτέλεση
 $P -t -A -f "$ROOT/tests/sql/p0.test.sql" 2>&1 | grep -v "^$" | sed -e 's/^psql:[^ ]* NOTICE:  //' -e 's/^NOTICE:  //'
+# αναίρεση (rollback) και ξανά το migration: και τα δύο πρέπει να τρέχουν καθαρά, και οι έλεγχοι να ξαναπερνούν
+$P -f "$ROOT/sql/2026-11-18-p0-trust-rollback.sql" >/dev/null
+$P -f "$ROOT/sql/2026-11-18-p0-trust-rollback.sql" >/dev/null   # idempotent
+$P -t -A -c "select case when (select count(*) from pg_trigger where tgname in ('records_touch','sos_alerts_guard')) = 0 and (select qual !~ 'sos_can_see' from pg_policies where policyname = 'sos_read_active') and (select qual !~ 'priv' from pg_policies where policyname = 'photos_friends_read') and to_regprocedure('public.alkyon_sync_version()') is null then 'ok   rollback restores the pre-migration triggers/policies' else 'FAIL: rollback' end" | tee /dev/stderr | grep -q '^ok'
+$P -f "$ROOT/sql/2026-11-18-p0-trust.sql" >/dev/null
+$P -t -A -c "select case when (select count(*) from pg_trigger where tgname in ('records_touch','sos_alerts_guard')) = 2 and (select qual ~ 'sos_can_see' from pg_policies where policyname = 'sos_read_active') and to_regprocedure('public.alkyon_sync_version()') is not null then 'ok   migration re-applies after a rollback' else 'FAIL: re-apply' end" | tee /dev/stderr | grep -q '^ok'

@@ -121,6 +121,8 @@ create policy sos_read_active on public.sos_alerts for select to authenticated u
 -- notified / created_at: μόνο ο server. Ο client δεν μπορεί να μηδενίσει το notified για να ξαναστείλει push στο ίδιο SOS.
 -- Νέο SOS = νέο id ΚΑΙ notified 0 (η εφαρμογή στέλνει notified μόνο όταν ξεκινά νέο SOS). Επιτρέπεται αν το προηγούμενο τελείωσε
 -- («Είμαι καλά», πριν από 30″+) ή ξεκίνησε πριν από 10′+. Οι ενημερώσεις θέσης ενός ενεργού SOS δεν αγγίζουν το notified.
+-- Έλεγχος 18/11 (hardening): αν κάποιος πατήσει «Είμαι καλά» κατά λάθος και ξαναπατήσει SOS αμέσως, το SOS ΠΡΕΠΕΙ να ξαναφύγει.
+-- Γι' αυτό μετά από «Είμαι καλά» αρκεί το προηγούμενο SOS να είχε ξεκινήσει πριν από 15″+ (όριο κατάχρησης: έως 4 νέα SOS το λεπτό).
 create or replace function public.sos_alerts_guard() returns trigger
 language plpgsql as $$
 begin
@@ -130,7 +132,8 @@ begin
   end if;
   new.user_id := old.user_id; new.at := now();
   if new.id is distinct from old.id and new.notified = 0
-     and ((old.status = 'ok' and old.at < now() - interval '30 seconds') or old.created_at < now() - interval '10 minutes') then
+     and ((old.status = 'ok' and (old.at < now() - interval '30 seconds' or old.created_at < now() - interval '15 seconds'))
+          or old.created_at < now() - interval '10 minutes') then
     new.notified := 0; new.created_at := now();
   else
     new.id := old.id; new.notified := old.notified; new.created_at := old.created_at;

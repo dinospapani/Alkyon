@@ -121,6 +121,18 @@ reset role; update public.sos_alerts set at = now() - interval '45 seconds';
 set role authenticated; select pg_temp.as_user(:A);
 update public.sos_alerts set id = 'sos-4', status = 'active', notified = 0 where user_id = :A;
 select pg_temp.ok((select id = 'sos-4' and notified = 0 from public.sos_alerts), 'SOS again 45 s after "I am OK" alerts boats again');
+-- «Είμαι καλά» κατά λάθος και SOS ξανά αμέσως (το SOS έτρεχε ήδη 20″): πρέπει να ξαναειδοποιήσει
+reset role; update public.sos_alerts set notified = 5, created_at = now() - interval '20 seconds';
+set role authenticated; select pg_temp.as_user(:A);
+update public.sos_alerts set status = 'ok' where user_id = :A;
+update public.sos_alerts set id = 'sos-5', status = 'active', notified = 0 where user_id = :A;
+select pg_temp.ok((select id = 'sos-5' and notified = 0 and status = 'active' from public.sos_alerts), 'SOS right after an accidental "I am OK" alerts boats again');
+-- κατάχρηση: SOS / «Είμαι καλά» / SOS μέσα σε 15″ από την έναρξη δεν ξαναστέλνει push
+reset role; update public.sos_alerts set notified = 6;
+set role authenticated; select pg_temp.as_user(:A);
+update public.sos_alerts set status = 'ok' where user_id = :A;
+update public.sos_alerts set id = 'sos-6', status = 'active', notified = 0 where user_id = :A;
+select pg_temp.ok((select id = 'sos-5' and notified = 6 and status = 'active' from public.sos_alerts), 'SOS/OK flip-flop within 15 s of the start cannot re-send pushes');
 
 -- ---------- 4) αναφορές θάλασσας ----------
 select pg_temp.as_user(:A);
