@@ -9,7 +9,7 @@ adb install -r "$APK" || exit 1
 adb shell pm grant $P android.permission.ACCESS_FINE_LOCATION
 adb shell pm grant $P android.permission.POST_NOTIFICATIONS
 adb shell settings put system screen_off_timeout 1800000
-adb shell svc power stayon true
+adb shell dumpsys battery unplug
 adb shell settings put system show_touches 1
 S=$(adb shell wm size | grep -oE '[0-9]+x[0-9]+' | tail -1); W=${S%x*}; H=${S#*x}; CX=$((W/2)); CY=$((H/2))
 LOG=video/steps.txt; say(){ echo "$(date +%T) $*" | tee -a $LOG; }
@@ -43,10 +43,13 @@ focusApp(){ adb shell dumpsys window | grep -E "mCurrentFocus|mFocusedApp" | gre
 adb shell input keyevent KEYCODE_WAKEUP; sleep 3
 for t in 1 2 3 4 5 6; do adb shell am start -W -n $P/com.alkyonfishing.app.wear.ui.MainActivity; sleep 8; focusApp && break; done
 sleep 6; texts
-adb shell input tap $CX $CY; sleep 2
+# αν το ρολόι δείχνει την οθόνη φόρτισης/αδράνειας, ένα σύρσιμο προς τα κάτω τη διώχνει (στην 1η σελίδα δεν αλλάζει τίποτα)
+for t in 1 2 3 4 5 6; do has "Welcome" && break; has "ALKYON" && break; has "TODAY" && break
+  adb shell input keyevent KEYCODE_WAKEUP; adb shell input swipe $CX $((H/4)) $CX $((H*3/4)) 300; sleep 3; done; texts
 tapText "OK"; sleep 3; texts
-# περιμένω να φορτώσει η πρόγνωση (έως 90 δευτ.)
-for t in $(seq 1 18); do has "/100" && break; has "TODAY" && break; sleep 5; done; texts
+# περιμένω να φορτώσει η πρόγνωση (έως 2 λεπτά)
+for t in $(seq 1 24); do has "/100" && break; sleep 5; done; texts
+for i in 1 2 3; do adb shell input swipe $CX $((H/4)) $CX $((H*3/4)) 300; sleep 1; done
 geo; sleep 4
 
 # ---- εγγραφή: βίντεο οθόνης + καρέ ως εφεδρεία ----
@@ -58,7 +61,7 @@ sleep 3
 # σελίδα «Έξοδος» και έναρξη
 OK=0
 for i in 1 2 3 4 5; do if tapText "Start trip"; then OK=1; break; fi; adb shell input swipe $CX $((H*3/4)) $CX $((H/4)) 300; sleep 2; done
-[ $OK = 0 ] && { say "Start trip not found, hardware key"; adb shell input keyevent KEYCODE_STEM_1; }
+[ $OK = 0 ] && say "Start trip not found"
 sleep 9; texts; shot 1-trip-live
 adb shell dumpsys activity services $P | grep -E "isForeground|foregroundServiceType|GpsService" | head -5 | tee -a $LOG
 # έξω από την εφαρμογή: watch face και ειδοποιήσεις
@@ -74,7 +77,7 @@ OK=0
 for i in 1 2 3 4 5 6; do if tapText "End trip"; then OK=1; break; fi; adb shell input swipe $CX $((H*3/4)) $CX $((H*2/5)) 300; sleep 2; done
 [ $OK = 0 ] && say "End trip not found"
 sleep 3; texts; shot 5-confirm
-tapText "✓" || { say "confirm by coordinates"; adb shell input tap $((CX+W*9/100)) $((CY+H*9/100)); }
+tapText "✓" || say "confirm not found"
 sleep 5; texts; shot 6-ended
 adb shell dumpsys activity services $P | grep -E "isForeground|GpsService" | head -3 | tee -a $LOG
 adb shell input keyevent KEYCODE_HOME; sleep 3
