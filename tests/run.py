@@ -1826,6 +1826,26 @@ with sync_playwright() as p:
       AK.navSlide(true); location.hash='#log'; await W(900); o.push(document.body.classList.contains('navslid')); return o; }""")
     check('Κάτω μπάρα: σύρσιμο δεξιά τη μαζεύει χωρίς να ανοίξει σελίδα, βελάκι κάτω δεξιά, κανένα κουμπί εξόδου, επιστρέφει με το βελάκι· στρώμα καιρού τη μαζεύει, η μπάρα ανέμου κατεβαίνει στο ύψος του βελακιού, το κλείσιμο τη φέρνει πίσω· φεύγοντας από τον Χάρτη επιστρέφει (1.14.73)', ns==[True,True,True,True,True,False,True,False,True,True,False,False] and not pg._errs, [ns,pg._errs]); c.close()
 
+    print('# 1.14.77 στόχοι, αναπαραγωγή δορυφόρου, συρόμενο ψάρι')
+    c=ctx(b); c.add_init_script("localStorage.setItem('alkyon-smart',JSON.stringify({weekly:Date.now()+9e9}))"); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(2500)
+    pg.evaluate("()=>{ [['Λαβράκι','Dicentrarchus labrax'],['Συναγρίδα','Dentex dentex'],['Ροφός','Epinephelus marginatus'],['Λούτσος','Sphyraena sphyraena'],['Φαγκρί','Pagrus pagrus']].forEach((x,i)=>AK.store.save('bites',{date:'2026-11-0'+(i+1),time:'07:00',species:x[0],latin:x[1],lat:34.7,lon:32.4})); }")
+    pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(2500); pg.evaluate("()=>AK.tripStart()"); pg.wait_for_timeout(1000)
+    for k in range(5): pg.click('.sheet.on .tgchips .chip >> nth=%d'%k); pg.wait_for_timeout(120)
+    tg=pg.evaluate("()=>{ const cs=[...document.querySelectorAll('.sheet.on .tgchips .chip')], rs=cs.map(x=>x.getBoundingClientRect()); let ov=false; for(let i=0;i<rs.length;i++) for(let j=i+1;j<rs.length;j++){ const a=rs[i],b=rs[j]; if(a.left<b.right-1&&b.left<a.right-1&&a.top<b.bottom-1&&b.top<a.bottom-1) ov=true; } return [cs.filter(x=>x.getAttribute('aria-pressed')==='true').length, ov, cs.every(x=>x.scrollWidth<=x.clientWidth+1), document.querySelector('.sheet.on .tgn').textContent]; }")
+    pg.evaluate("()=>document.querySelector('.sheet.on .tgo').click()"); pg.wait_for_timeout(900)
+    st=pg.evaluate("()=>{ const s=AK.trip.state(); return [s.target&&s.target.name, (s.targets||[]).length]; }")
+    check('Έναρξη εξόδου: έως 4 είδη-στόχοι, χωρίς επικάλυψη ή κομμένα ονόματα, κρατιούνται όλα (1.14.77)', tg[0]==4 and not tg[1] and tg[2] and '4' in tg[3] and st[0] and st[1]==4, [tg,st])
+    pg.wait_for_timeout(1500)
+    fd=pg.evaluate("""async()=>{ const W=ms=>new Promise(z=>setTimeout(z,ms)), b=document.querySelector('.fb.fbc'), bx=document.querySelector('.fishbtns'); if(!b||getComputedStyle(bx).display==='none') return ['nobtn'];
+      const sh0=document.querySelectorAll('.sheet.on').length; const r=b.getBoundingClientRect(), x=r.left+r.width/2, y=r.top+r.height/2, ev=(t,dx,dy,bt)=>b.dispatchEvent(new PointerEvent(t,{pointerId:5,clientX:x+dx,clientY:y+dy,bubbles:true,buttons:bt,pointerType:'touch'}));
+      ev('pointerdown',0,0,1); ev('pointermove',-40,-60,1); ev('pointermove',-150,-260,1); ev('pointerup',-150,-260,0); b.dispatchEvent(new MouseEvent('click',{bubbles:true})); await W(500);
+      const r2=b.getBoundingClientRect(), p=JSON.parse(localStorage.getItem('alkyon-v4-fishpos')||'null'); return [Math.round(r.left-r2.left), Math.round(r.top-r2.top), !!p, document.querySelectorAll('.sheet.on').length!==sh0, !!document.querySelector('.fdial'), sh0]; }""")
+    check('Έξοδος: το πράσινο «ψάρι» σέρνεται, η θέση αποθηκεύεται, και το σύρσιμο δεν ανοίγει φόρμα ή κουμπιά (1.14.77)', len(fd)==6 and 140<=fd[0]<=160 and 240<=fd[1]<=270 and fd[2] and not fd[3] and not fd[4] and not pg._errs, [fd,pg._errs]); c.close()
+    c=ctx(b,lang='en'); c.add_init_script("if(!sessionStorage.__cs){sessionStorage.__cs=1;localStorage.setItem('alkyon-v4-map',JSON.stringify({cloudsat:true,fish:false,spots:false}));}")
+    pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(4500)
+    cp=pg.evaluate("""async()=>{ const W=ms=>new Promise(z=>setTimeout(z,ms)), bar=document.querySelector('.csatbar'), p=bar&&bar.querySelector('.rbp'); if(!p) return ['noplay']; const v0=bar.querySelector('input').value, t0=bar.querySelector('b').textContent; p.click(); await W(7500); const v1=bar.querySelector('input').value, tx=p.textContent; p.click(); await W(300); return [v0, v1, tx, p.textContent, bar.querySelector('b').textContent!==t0]; }""")
+    check('Σύννεφα από δορυφόρο: κουμπί αναπαραγωγής, η ώρα προχωρά και σταματά με παύση (1.14.77)', len(cp)==5 and cp[0]!=cp[1] and cp[2]=='❚❚' and cp[3]=='▶' and cp[4] and not pg._errs, [cp,pg._errs]); c.close()
+
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)
     check('Οδηγός χωρίς καρτέλα Κόμποι (αφαιρέθηκε προσωρινά)', not pg.query_selector('#tab-guide .seg button[data-g=knots]') and not pg._errs, pg._errs); c.close()
