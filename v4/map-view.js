@@ -964,7 +964,7 @@ function modePaint(){ if(!root) return; var m=md.m;
     var cells=[cell(T('ΤΑΧΥΤΗΤΑ','SPEED'),kn!=null?B.num(kn,1):'–','kn')];
     if(hasDep) cells.push(cell(T('ΒΥΘΟΣ','DEPTH'),md.dep?(U&&U.depthP?U.depthP(md.dep)[0]:String(Math.round(md.dep))):'…',md.dep?(U&&U.depthP?U.depthP(md.dep)[1]:'m'):'','dep'));
     if(due){ var left=Math.round((due-Date.now())/60000), dt=new Date(due), late=left<0;
-      cells.push(cell(T('ΕΠΙΣΤΡΟΦΗ','BACK BY'),B.pad(dt.getHours())+':'+B.pad(dt.getMinutes()),late?T('αργείς ','late ')+(-left<60?(-left)+'′':Math.floor(-left/60)+T('ω','h')):(left<60?T('σε ','in ')+left+'′':T('σε ','in ')+Math.floor(left/60)+T('ω ','h ')+B.pad(left%60)+'′'),late?'late':'')); }
+      cells.push(cell(T('ΕΠΙΣΤΡΟΦΗ','BACK BY'),B.pad(dt.getHours())+':'+B.pad(dt.getMinutes()),late?T('αργείς ','late ')+(-left<60?(-left)+'′':Math.floor(-left/60)+T('ω','h')):(left<60?left+'′':Math.floor(left/60)+T('ω ','h ')+B.pad(left%60)+'′'),late?'late':'')); }
     md.el.className='mcpanel fish c'+cells.length; cells.forEach(function(c0){ md.el.append(c0); });
     var c=B.tripCounts?B.tripCounts():null, row=[];
     if(cuF&&cuF.kn>=0.05) row.push(h('span',{class:'mpr',html:T('ρεύμα ','current ')+B.num(cuF.kn,1)+' kn '+(B.arrowSvg?B.arrowSvg(cuF.dir,'#f0a640',15):COMP[Math.round(cuF.dir/45)%8])}));
@@ -993,17 +993,32 @@ function meOver(q){ var L=(window.PF&&PF.lims)?PF.lims():{wind:14,wave:0.9,gust:
   if(q.code!=null&&q.code>=95) return T('καταιγίδα','thunderstorm'); if(q.wind!=null&&q.wind>L.wind) return w(q.wind); if(q.gust!=null&&q.gust>L.gust) return T('ριπές ','gusts ')+w(q.gust);
   if(q.wave!=null&&q.wave>L.wave) return T('κύμα ','waves ')+(U&&U.wave?U.wave(q.wave):B.num(q.wave,1)+' m'); return T('εκτός ορίων','over limits'); }
 function meDirName(deg){ var X=window.AlkyonExposure, n=X&&X.names?X.names():null; if(n&&n.length===16) return n[Math.round(deg/22.5)%16]; var e=B.EN?['N','NE','E','SE','S','SW','W','NW']:['Β','ΒΑ','Α','ΝΑ','Ν','ΝΔ','Δ','ΒΔ']; return e[Math.round(deg/45)%8]; }
+/* 1.14.80: εκτός από την κατεύθυνση και την ένταση (πάντα), ο χρήστης διαλέγει έως 3 στοιχεία για τη μπάρα, μέσα από το φύλλο των 6 ωρών */
+var MEK='alkyon-v4-mebar', MEDEF=['gust','wave','lim'];
+function meItems(){ return [['gust',T('Ριπές','Gusts')],['wave',T('Κύμα','Waves')],['lim',T('Προειδοποίηση ορίων','Limits warning')],['pres',T('Πίεση','Pressure')],['sst',T('Θερμοκρασία νερού','Water temperature')],['temp',T('Θερμοκρασία αέρα','Air temperature')],['cur',T('Ρεύμα','Current')]]; }
+function meSel(){ var v=B.ls.get(MEK,null), ok={}; meItems().forEach(function(x){ ok[x[0]]=1; }); return Array.isArray(v)?v.filter(function(k){ return ok[k]; }).slice(0,3):MEDEF.slice(); }
 function meBarHTML(){ var fc=meWxFc(); if(!fc) return ''; var hs=meHours(fc), q=hs[0]; if(!q||q.wind==null) return ''; var U=window.AlkyonUnits, A=B.arrowSvg, w=function(v){ return U&&U.wind?U.wind(v):Math.round(v)+' kn'; }, num=function(v){ return String(w(v)).replace(/\s*[^\d.,]+$/,''); };
-  var l1=(q.dir!=null&&A?A((q.dir+180)%360,'currentColor',15):'')+'<b>'+(q.dir!=null?meDirName(q.dir)+' ':'')+w(q.wind)+'</b>'+(q.gust!=null&&q.gust>q.wind+1?'<i> · '+T('ριπές ','gusts ')+num(q.gust)+'</i>':'');
-  var ov=null; for(var k=0;k<hs.length&&k<24;k++){ if(hs[k].safe===false){ ov=hs[k]; break; } }
-  var l2=(q.wave!=null?T('κύμα ','waves ')+(U&&U.wave?U.wave(q.wave):B.num(q.wave,1)+' m'):'')+(ov?(q.wave!=null?' · ':'')+'<em>↑ '+meOver(ov)+(ov===q?T(' τώρα',' now'):' '+ov.t.slice(11,13)+':00')+'</em>':'');
-  return '<span class="mbme" title="'+T('Στη θέση του σκάφους, τώρα','At the boat, now')+'"><span class="mbl1">'+l1+'</span><span class="mbl2">'+l2+'</span></span>'; }
+  var head=(q.dir!=null&&A?A((q.dir+180)%360,'currentColor',15):'')+'<b>'+(q.dir!=null?meDirName(q.dir)+' ':'')+w(q.wind)+'</b>', parts=[];
+  meSel().forEach(function(k){ var t='';
+    if(k==='gust'){ if(q.gust!=null) t=T('ριπές ','gusts ')+num(q.gust); }
+    else if(k==='wave'){ if(q.wave!=null) t=T('κύμα ','waves ')+(U&&U.wave?U.wave(q.wave):B.num(q.wave,1)+' m'); }
+    else if(k==='lim'){ var ov=null; for(var i2=0;i2<hs.length&&i2<24;i2++){ if(hs[i2].safe===false){ ov=hs[i2]; break; } } if(ov) t='<em>↑ '+meOver(ov)+(ov===q?T(' τώρα',' now'):' '+ov.t.slice(11,13)+':00')+'</em>'; }
+    else if(k==='pres'){ if(q.pres!=null) t=Math.round(q.pres)+' hPa'+(/rise/.test(q.ptrend||'')?' ↑':/fall|drop/.test(q.ptrend||'')?' ↓':''); }
+    else if(k==='sst'){ if(q.sst!=null) t=T('νερό ','water ')+(U&&U.temp?U.temp(q.sst):Math.round(q.sst)+'°'); }
+    else if(k==='temp'){ if(q.temp!=null) t=T('αέρας ','air ')+(U&&U.temp?U.temp(q.temp):Math.round(q.temp)+'°'); }
+    else if(k==='cur'){ var cu=fixNow&&B.curNear?B.curNear(fixNow.lat,fixNow.lon):null; if(cu&&cu.kn>=0.05) t=T('ρεύμα ','current ')+B.num(cu.kn,1)+' kn'+(A?' '+A(cu.dir,'#f0a640',13):''); }
+    if(t) parts.push(t); });
+  var l1=head+(parts.length?'<i> · '+parts[0]+'</i>':''), l2=parts.slice(1).join(' · ');
+  return '<span class="mbme'+(l2?'':' one')+'" title="'+T('Στη θέση του σκάφους, τώρα','At the boat, now')+'"><span class="mbl1">'+l1+'</span>'+(l2?'<span class="mbl2">'+l2+'</span>':'')+'</span>'; }
 function meSheet(){ var fc=meWxFc(); if(!fc) return false; var hs=meHours(fc).slice(0,6); if(!hs.length) return false; var U=window.AlkyonUnits, A=B.arrowSvg, w=function(v){ return U&&U.wind?U.wind(v):Math.round(v)+' kn'; };
   var tb=h('div',{class:'mefc'},h('div',{class:'mer meh'},h('span',{text:T('Ώρα','Time')}),h('span',{text:T('Άνεμος','Wind')}),h('span',{text:T('Ριπές','Gusts')}),h('span',{text:T('Κύμα','Waves')})));
   hs.forEach(function(q,i){ var bad=q.safe===false; tb.append(h('div',{class:'mer'+(bad?' bad':'')},h('span',{text:i===0?T('Τώρα','Now'):q.t.slice(11,13)+':00'}),
       h('span',{html:(q.dir!=null&&A?A((q.dir+180)%360,'currentColor',15)+' ':'')+'<b>'+String((q.dir!=null?meDirName(q.dir)+' ':'')+w(q.wind)).replace(/[<>&]/g,'')+'</b>'}),h('span',{text:q.gust!=null?w(q.gust):'–'}),h('span',{text:q.wave!=null?(U&&U.wave?U.wave(q.wave):B.num(q.wave,1)+' m'):'–'})));
     if(bad) tb.append(h('div',{class:'mew',text:'↑ '+T('πάνω από τα όριά σου: ','over your limits: ')+meOver(q)})); });
-  var d=new Date(meWx.t); B.sheet({title:T('Καιρός στη θέση σου','Weather at your position'),body:h('div',{},tb,h('p',{class:'foot',text:T('Πρόγνωση μοντέλου για το σημείο του σκάφους (','Model forecast for the boat’s position (')+meWx.lat.toFixed(3)+', '+meWx.lon.toFixed(3)+T('), ενημέρωση ','), updated ')+B.pad(d.getHours())+':'+B.pad(d.getMinutes())+T('. Τα όρια είναι αυτά που έχεις ορίσει στην Πρόγνωση.','. The limits are the ones you set in Forecast.')}))}); return true; }
+  var pick=h('div',{class:'chips sm mepick'}), pn=h('em',{class:'tgn',text:''});
+  function drawPick(){ var sel=meSel(); pick.replaceChildren(); meItems().forEach(function(x){ var on=sel.indexOf(x[0])>=0; pick.append(h('button',{type:'button',class:'chip sm','aria-pressed':String(on),text:x[1],onclick:function(){ var v=meSel(), k=v.indexOf(x[0]); if(k>=0) v.splice(k,1); else { if(v.length>=3){ B.toast(T('Έως 3 στοιχεία, όσα χωράει η μπάρα.','Up to 3 items, as many as the bar fits.'),3000); return; } v.push(x[0]); } B.ls.set(MEK,v); drawPick(); if(B.mcBarNow) B.mcBarNow(); }})); }); pn.textContent=' · '+sel.length+'/3'; }
+  drawPick();
+  var d=new Date(meWx.t); B.sheet({title:T('Καιρός στη θέση σου','Weather at your position'),body:h('div',{},tb,h('div',{class:'fld mepf'},h('span',{},T('Στη μπάρα, δίπλα στον άνεμο','On the bar, next to the wind'),pn),pick),h('p',{class:'foot',text:T('Πρόγνωση μοντέλου για το σημείο του σκάφους (','Model forecast for the boat’s position (')+meWx.lat.toFixed(3)+', '+meWx.lon.toFixed(3)+T('), ενημέρωση ','), updated ')+B.pad(d.getHours())+':'+B.pad(d.getMinutes())+T('. Τα όρια είναι αυτά που έχεις ορίσει στην Πρόγνωση.','. The limits are the ones you set in Forecast.')}))}); return true; }
 setInterval(function(){ if(document.body.classList.contains('ontrip')&&document.body.classList.contains('mapon')&&B.mcBarNow) B.mcBarNow(); },60000);
 function mcBarHTML(){ if(!map) return ''; meMode=false;
   if(fixNow&&Date.now()-fixNow.t<5*60000&&document.body.classList.contains('ontrip')){ var mh=meBarHTML(); if(mh){ meMode=true; return mh; } }
