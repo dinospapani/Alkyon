@@ -1851,6 +1851,25 @@ with sync_playwright() as p:
     cp=pg.evaluate("""async()=>{ const W=ms=>new Promise(z=>setTimeout(z,ms)), bar=document.querySelector('.csatbar'), p=bar&&bar.querySelector('.rbp'); if(!p) return ['noplay']; const v0=bar.querySelector('input').value, t0=bar.querySelector('b').textContent; p.click(); await W(7500); const v1=bar.querySelector('input').value, tx=p.textContent; p.click(); await W(300); return [v0, v1, tx, p.textContent, bar.querySelector('b').textContent!==t0]; }""")
     check('Σύννεφα από δορυφόρο: κουμπί αναπαραγωγής, η ώρα προχωρά και σταματά με παύση (1.14.77)', len(cp)==5 and cp[0]!=cp[1] and cp[2]=='❚❚' and cp[3]=='▶' and cp[4] and not pg._errs, [cp,pg._errs]); c.close()
 
+    print('# 1.14.79 καιρός στη θέση του σκάφους, έκθεση με μπάρα χρόνου')
+    now=int(time.time()*1000); c=ctx(b,lang='en'); c.add_init_script("if(!sessionStorage.mw){sessionStorage.mw=1;localStorage.setItem('alkyon-smart',JSON.stringify({weekly:Date.now()+9e9}));localStorage.setItem('alkyon-v4-mapui',JSON.stringify('clean'));localStorage.removeItem('alkyon-v4-mapui-test');localStorage.setItem('alkyon-safe',JSON.stringify({active:true,id:'T9',start:%d,due:%d}));}"%(now-600000,now+3*3600000))
+    pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(9000)
+    mb=pg.evaluate("()=>{ AK.mcBarNow&&AK.mcBarNow(); const m=document.querySelector('.mcbar'); return [document.body.classList.contains('ontrip'), m.classList.contains('mcme'), (m.querySelector('.mbl1')||{}).textContent||'', (m.querySelector('.mbl2')||{}).textContent||'', !!m.querySelector('.mbl1 svg')]; }")
+    if not mb[1]: pg.wait_for_timeout(4000); mb=pg.evaluate("()=>{ AK.mcBarNow&&AK.mcBarNow(); return new Promise(z=>setTimeout(()=>{ const m=document.querySelector('.mcbar'); z([document.body.classList.contains('ontrip'), m.classList.contains('mcme'), (m.querySelector('.mbl1')||{}).textContent||'', (m.querySelector('.mbl2')||{}).textContent||'', !!m.querySelector('.mbl1 svg')]); },300)); }")
+    pg.evaluate("()=>document.querySelector('.mcbar').click()"); pg.wait_for_timeout(700)
+    ms=pg.evaluate("()=>{ const s=document.querySelector('.sheet.on'); return [s?s.querySelectorAll('.mefc .mer').length:0, !!document.querySelector('.mcdrw'), s?(s.querySelector('.mefc .mer:nth-child(2) span')||{}).textContent:'']; }")
+    check('Έξοδος: η πάνω μπάρα δείχνει καιρό στη θέση του σκάφους (κατεύθυνση με βέλος, ένταση, κύμα) και με πάτημα ανοίγει πρόγνωση 6 ωρών, όχι το μενού (1.14.79)', mb[0] and mb[1] and any(ch.isdigit() for ch in mb[2]) and mb[4] and ms[0]==7 and not ms[1] and ms[2]=='Now' and not pg._errs, [mb,ms,pg._errs]); c.close()
+    c=ctx(b,lang='en'); c.set_geolocation({'latitude':35.045,'longitude':32.40}); c.add_init_script("localStorage.setItem('alkyon-v4-fcopen',JSON.stringify({expo:1}))"); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(6500)
+    ex=pg.evaluate("""async()=>{ const W=ms=>new Promise(z=>setTimeout(z,ms)); document.querySelectorAll('details').forEach(d=>{ if(d.querySelector('#fcExposure')) d.open=true; }); await W(400);
+      const x=document.querySelector('#fcExposure'); if(!x||x.hidden) return ['noexpo']; const rg=x.querySelector('.exbar input'), tl=x.querySelector('.extime'); if(!rg) return ['nobar', x.innerHTML.length];
+      const t0=tl.textContent, v0=+rg.value, nv=v0>3?v0-3:v0+3; rg.value=String(nv); rg.dispatchEvent(new Event('input',{bubbles:true})); await W(300);
+      const t1=tl.textContent, txt=(x.querySelector('.exv')||{}).textContent||'', hsel=(document.querySelector('.hcard .hsel b')||{}).textContent||'';
+      const bars=[...document.querySelectorAll('.hcard .hbars .hb')]; const bi=Math.min(bars.length-1,nv+2), r=bars[bi].getBoundingClientRect(); bars[bi].dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,clientX:r.left+r.width/2,clientY:r.top+3,pointerId:3})); bars[bi].dispatchEvent(new PointerEvent('pointerup',{bubbles:true,clientX:r.left+r.width/2,clientY:r.top+3,pointerId:3})); await W(300);
+      const t2=tl.textContent, hsel2=(document.querySelector('.hcard .hsel b')||{}).textContent||''; x.querySelector('.explay').click(); await W(1700); const t3=tl.textContent, pt=x.querySelector('.explay').textContent; x.querySelector('.explay').click();
+      return [t0,t1,/At \d\d:00 wind from|Now wind from/.test(txt),hsel,t2,hsel2,t3,pt]; }""")
+    ok=len(ex)==8 and ex[0]!=ex[1] and ex[2] and ex[1][-5:-3]==ex[3][-11:-9] and ex[4]!=ex[1] and ex[4].split(' ')[1][:2]==ex[5].replace('Now, ','')[:2] and ex[6]!=ex[4] and ex[7]=='❚❚'
+    check('Έκθεση ακτής: μπάρα χρόνου με ▶, η ώρα γράφεται στον χάρτη, αλλάζει το κείμενο του ανέμου, και συγχρονίζεται με το «Ανά ώρα» προς τις δύο κατευθύνσεις (1.14.79)', ok and not pg._errs, [ex,pg._errs]); c.close()
+
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)
     check('Οδηγός χωρίς καρτέλα Κόμποι (αφαιρέθηκε προσωρινά)', not pg.query_selector('#tab-guide .seg button[data-g=knots]') and not pg._errs, pg._errs); c.close()

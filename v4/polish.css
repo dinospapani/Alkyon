@@ -396,3 +396,33 @@ body.mapon.navslid:not(:has(#ndMapDock:not([hidden]))) .fishbtns{bottom:calc(var
 .fishbtns.drag{transition:none;opacity:.9}
 .fishbtns.drag .fb.fbc{box-shadow:0 0 0 6px rgba(255,255,255,.35),0 10px 24px rgba(0,0,0,.5)}
 .csatbar .rbp{flex:none}
+
+/* ===== 1.14.79: Έκθεση ακτής, μπάρα χρόνου ===== */
+#fcExposure .exmap{position:relative}
+#fcExposure .extime{position:absolute;left:10px;top:10px;padding:5px 10px;border-radius:10px;background:rgba(8,20,28,.82);color:#fff;font:800 13.5px/1 var(--font);letter-spacing:.01em;pointer-events:none}
+#fcExposure .exbar{display:flex;align-items:center;gap:10px;max-width:360px;margin:0 auto 10px;padding:6px 10px 6px 6px;border-radius:14px;background:var(--surface-2)}
+#fcExposure .explay{flex:none;width:40px;height:40px;border:0;border-radius:12px;background:var(--surface);color:var(--ink);font-size:14px;cursor:pointer}
+#fcExposure .exbar input[type=range]{flex:1 1 auto;min-width:0;accent-color:var(--accent)}
+#fcExposure .exbl{flex:none;min-width:76px;text-align:right;font:750 13px/1.1 var(--font);color:var(--ink);white-space:nowrap}
+
+/* ===== 1.14.79: πάνω μπάρα σε έξοδο = καιρός στη θέση του σκάφους, δύο γραμμές ===== */
+body.mapclean .mcbar.mcme .mci,body.mapclean .mcbar.mcme .mcv{display:none}
+body.mapclean .mcbar.mcme{padding:0 12px 0 14px}
+body.mapclean .mcbar.mcme::after{display:none}
+body.mapclean .mcbar.mcme .mct{text-align:left;white-space:normal;overflow:hidden}
+.mcbar .mbme{display:flex;flex-direction:column;gap:2px;min-width:0}
+.mcbar .mbl1,.mcbar .mbl2{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.15}
+.mcbar .mbl1{font:800 14px/1.15 var(--font)}
+.mcbar .mbl1 svg{width:15px;height:15px;vertical-align:-2px;margin-right:4px}
+.mcbar .mbl1 i{font-style:normal;font-weight:650;opacity:.85}
+.mcbar .mbl2{font:650 12px/1.15 var(--font);opacity:.9}
+.mcbar .mbl2 em{font-style:normal;font-weight:800;color:var(--poor,#e0533d)}
+.mefc{display:grid;gap:2px;margin:4px 0 10px}
+.mefc .mer{display:grid;grid-template-columns:64px 1.4fr 1fr 1fr;gap:8px;align-items:center;padding:9px 10px;border-radius:10px;font-size:15px}
+.mefc .mer:nth-child(even){background:var(--surface-2)}
+.mefc .meh{font-size:12px;font-weight:700;color:var(--ink-2);background:none!important;padding-bottom:2px}
+.mefc .mer svg{width:15px;height:15px;vertical-align:-2px}
+.mefc .mer.bad{box-shadow:inset 3px 0 0 var(--poor,#e0533d)}
+.mefc .mew{padding:0 10px 6px;font-size:12.5px;font-weight:700;color:var(--poor,#e0533d)}
+.mcbar .mbl1 svg,.mefc .mer svg{display:inline-block!important}
+.mefc .mer span{white-space:nowrap}

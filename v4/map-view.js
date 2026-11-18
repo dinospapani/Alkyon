@@ -980,7 +980,34 @@ B.setMapUI=function(v){ v=(v==='classic'&&ls.get('alkyon-v4-mapui-test',false))?
 function mcSum(){ var c=nowCond(), U=window.AlkyonUnits, out=[]; var wr=document.querySelector('.wxread'); if(wr&&wr.offsetParent!==null||wr&&document.body.classList.contains('mapclean')){ var bs=[].map.call(wr.querySelectorAll('.rgi b'),function(x){ return x.textContent.trim(); }).filter(Boolean); if(bs.length) return bs.slice(0,2).join(' · '); } if(!c) return '';
   if(c.wind!=null) out.push((c.dir!=null?COMP[Math.round((((c.dir%360)+360)%360)/45)%8]+' ':'')+(U?U.wind(c.wind):Math.round(c.wind)+' kn')+(c.gust!=null&&c.gust>=c.wind+5?' ('+(U?U.wind(c.gust):Math.round(c.gust))+')':''));
   if(c.wave!=null) out.push(U?U.wave(c.wave):B.num(c.wave,1)+' m'); if(c.sst!=null&&out.length<2) out.push(U?U.temp(c.sst):Math.round(c.sst)+'°'); return out.join(' · '); }
-function mcBarHTML(){ if(!map||!B.wxAt) return ''; var U=window.AlkyonUnits, me=fixNow&&Date.now()-fixNow.t<120000&&document.body.classList.contains('ontrip');
+/* 1.14.79: σε έξοδο η πάνω μπάρα κλειδώνει στη θέση του σκάφους και στην τρέχουσα ώρα (όχι στον σταυρό και στη μπάρα χρόνου):
+   κατεύθυνση με βέλος, ένταση, ριπές, κύμα, και η πρώτη ώρα που ο καιρός περνά τα όριά σου. Πάτημα = πρόγνωση 6 ωρών για το σημείο.
+   Πρόγνωση σημείου από το ίδιο μοντέλο με την Πρόγνωση (PF.getForecast), ξανά κάθε 25′ ή όταν μετακινηθείς ~5 km. */
+var meWx={fc:null,lat:0,lon:0,t:0,busy:false,fail:0}, meMode=false;
+function meWxFc(){ if(!fixNow||!window.PF||!PF.getForecast) return null; var now=Date.now(), far=!meWx.fc||Math.abs(meWx.lat-fixNow.lat)>0.045||Math.abs(meWx.lon-fixNow.lon)>0.055, old=now-meWx.t>25*60000;
+  if((far||old)&&!meWx.busy&&now-meWx.fail>60000&&navigator.onLine!==false){ meWx.busy=true; var la=fixNow.lat, lo=fixNow.lon;
+    PF.getForecast(la,lo,undefined,{days:2}).then(function(fc){ meWx.busy=false; if(fc&&fc.days){ meWx.fc=fc; meWx.lat=la; meWx.lon=lo; meWx.t=Date.now(); if(B.mcBarNow) B.mcBarNow(); } else meWx.fail=Date.now(); }).catch(function(){ meWx.busy=false; meWx.fail=Date.now(); }); }
+  return meWx.fc&&now-meWx.t<3*3600000&&Math.abs(meWx.lat-fixNow.lat)<0.2&&Math.abs(meWx.lon-fixNow.lon)<0.25?meWx.fc:null; }
+function meHours(fc){ var out=[], tz=Number.isFinite(+fc.tz)?+fc.tz:0, nowK=new Date(Date.now()+tz*60000).toISOString().slice(0,13); (fc.days||[]).forEach(function(d){ (d.hours||[]).forEach(function(q){ if(q&&q.t&&q.t.slice(0,13)>=nowK) out.push(q); }); }); return out; }
+function meOver(q){ var L=(window.PF&&PF.lims)?PF.lims():{wind:14,wave:0.9,gust:24}, U=window.AlkyonUnits, w=function(v){ return U&&U.wind?U.wind(v):Math.round(v)+' kn'; };
+  if(q.code!=null&&q.code>=95) return T('καταιγίδα','thunderstorm'); if(q.wind!=null&&q.wind>L.wind) return w(q.wind); if(q.gust!=null&&q.gust>L.gust) return T('ριπές ','gusts ')+w(q.gust);
+  if(q.wave!=null&&q.wave>L.wave) return T('κύμα ','waves ')+(U&&U.wave?U.wave(q.wave):B.num(q.wave,1)+' m'); return T('εκτός ορίων','over limits'); }
+function meDirName(deg){ var X=window.AlkyonExposure, n=X&&X.names?X.names():null; if(n&&n.length===16) return n[Math.round(deg/22.5)%16]; var e=B.EN?['N','NE','E','SE','S','SW','W','NW']:['Β','ΒΑ','Α','ΝΑ','Ν','ΝΔ','Δ','ΒΔ']; return e[Math.round(deg/45)%8]; }
+function meBarHTML(){ var fc=meWxFc(); if(!fc) return ''; var hs=meHours(fc), q=hs[0]; if(!q||q.wind==null) return ''; var U=window.AlkyonUnits, A=B.arrowSvg, w=function(v){ return U&&U.wind?U.wind(v):Math.round(v)+' kn'; }, num=function(v){ return String(w(v)).replace(/\s*[^\d.,]+$/,''); };
+  var l1=(q.dir!=null&&A?A((q.dir+180)%360,'currentColor',15):'')+'<b>'+(q.dir!=null?meDirName(q.dir)+' ':'')+w(q.wind)+'</b>'+(q.gust!=null&&q.gust>q.wind+1?'<i> · '+T('ριπές ','gusts ')+num(q.gust)+'</i>':'');
+  var ov=null; for(var k=0;k<hs.length&&k<24;k++){ if(hs[k].safe===false){ ov=hs[k]; break; } }
+  var l2=(q.wave!=null?T('κύμα ','waves ')+(U&&U.wave?U.wave(q.wave):B.num(q.wave,1)+' m'):'')+(ov?(q.wave!=null?' · ':'')+'<em>↑ '+meOver(ov)+(ov===q?T(' τώρα',' now'):' '+ov.t.slice(11,13)+':00')+'</em>':'');
+  return '<span class="mbme" title="'+T('Στη θέση του σκάφους, τώρα','At the boat, now')+'"><span class="mbl1">'+l1+'</span><span class="mbl2">'+l2+'</span></span>'; }
+function meSheet(){ var fc=meWxFc(); if(!fc) return false; var hs=meHours(fc).slice(0,6); if(!hs.length) return false; var U=window.AlkyonUnits, A=B.arrowSvg, w=function(v){ return U&&U.wind?U.wind(v):Math.round(v)+' kn'; };
+  var tb=h('div',{class:'mefc'},h('div',{class:'mer meh'},h('span',{text:T('Ώρα','Time')}),h('span',{text:T('Άνεμος','Wind')}),h('span',{text:T('Ριπές','Gusts')}),h('span',{text:T('Κύμα','Waves')})));
+  hs.forEach(function(q,i){ var bad=q.safe===false; tb.append(h('div',{class:'mer'+(bad?' bad':'')},h('span',{text:i===0?T('Τώρα','Now'):q.t.slice(11,13)+':00'}),
+      h('span',{html:(q.dir!=null&&A?A((q.dir+180)%360,'currentColor',15)+' ':'')+'<b>'+String((q.dir!=null?meDirName(q.dir)+' ':'')+w(q.wind)).replace(/[<>&]/g,'')+'</b>'}),h('span',{text:q.gust!=null?w(q.gust):'–'}),h('span',{text:q.wave!=null?(U&&U.wave?U.wave(q.wave):B.num(q.wave,1)+' m'):'–'})));
+    if(bad) tb.append(h('div',{class:'mew',text:'↑ '+T('πάνω από τα όριά σου: ','over your limits: ')+meOver(q)})); });
+  var d=new Date(meWx.t); B.sheet({title:T('Καιρός στη θέση σου','Weather at your position'),body:h('div',{},tb,h('p',{class:'foot',text:T('Πρόγνωση μοντέλου για το σημείο του σκάφους (','Model forecast for the boat’s position (')+meWx.lat.toFixed(3)+', '+meWx.lon.toFixed(3)+T('), ενημέρωση ','), updated ')+B.pad(d.getHours())+':'+B.pad(d.getMinutes())+T('. Τα όρια είναι αυτά που έχεις ορίσει στην Πρόγνωση.','. The limits are the ones you set in Forecast.')}))}); return true; }
+setInterval(function(){ if(document.body.classList.contains('ontrip')&&document.body.classList.contains('mapon')&&B.mcBarNow) B.mcBarNow(); },60000);
+function mcBarHTML(){ if(!map) return ''; meMode=false;
+  if(fixNow&&Date.now()-fixNow.t<5*60000&&document.body.classList.contains('ontrip')){ var mh=meBarHTML(); if(mh){ meMode=true; return mh; } }
+  if(!B.wxAt) return ''; var U=window.AlkyonUnits, me=fixNow&&Date.now()-fixNow.t<120000&&document.body.classList.contains('ontrip');
   /* 1.8.5: στη θέση σου μόνο όταν ο χάρτης σε ακολουθεί (ή ο σταυρός είναι πάνω σου)· μόλις κουνήσεις τον χάρτη αλλού, οι τιμές είναι για τον σταυρό */
   if(me&&!follow){ try{ var p1=map.latLngToContainerPoint([fixNow.lat,fixNow.lon]), p2=map.latLngToContainerPoint(B.crossLL||map.getCenter()); if(Math.abs(p1.x-p2.x)>40||Math.abs(p1.y-p2.y)>40) me=false; }catch(e){ me=false; } }
   var c=me?{lat:fixNow.lat,lng:fixNow.lon}:(B.crossLL||map.getCenter()), v=B.wxAt(c.lat,c.lng), out=[], A=B.arrowSvg;
@@ -994,15 +1021,15 @@ function mcBarHTML(){ if(!map||!B.wxAt) return ''; var U=window.AlkyonUnits, me=
   if(!out.length) return '';
   return '<span class="mbw" title="'+(me?T('Στη θέση σου','At your position'):T('Στον σταυρό στο κέντρο','At the centre cross'))+'">'+(me?'📍':'✛')+'</span>'+out.join(''); }
 var mcBarT=null, mcBarRaf=0;
-B.mcBarNow=function(){ if(mcBarRaf||!mcBar||!document.body.classList.contains('mapclean')) return; mcBarRaf=requestAnimationFrame(function(){ mcBarRaf=0; var tx=mcBar&&mcBar.querySelector('.mct'); if(!tx) return; var bh=mcBarHTML(); if(bh&&tx.innerHTML!==bh) tx.innerHTML=bh; }); };
+B.mcBarNow=function(){ if(mcBarRaf||!mcBar||!document.body.classList.contains('mapclean')) return; mcBarRaf=requestAnimationFrame(function(){ mcBarRaf=0; var tx=mcBar&&mcBar.querySelector('.mct'); if(!tx) return; var bh=mcBarHTML(); mcBar.classList.toggle('mcme',meMode); if(bh&&tx.innerHTML!==bh) tx.innerHTML=bh; }); };
 function mcPaint(){ if(!mcBar||!mcRefs) return; var ic=mcBar.querySelector('.mci'), tx=mcBar.querySelector('.mct'); ic.replaceChildren();
   [].forEach.call(mcRefs.qc.children,function(b){ var on=false; try{ on=!!b._g(); }catch(e){} if(on){ var sp=b.querySelector('span'); if(sp) ic.append(h('span',{html:sp.innerHTML})); } });
-  if(!ic.children.length) ic.append(h('span',{class:'mcl',text:T('Στρώματα','Layers')})); var bh=document.body.classList.contains('mapclean')?mcBarHTML():''; if(bh) tx.innerHTML=bh; else tx.textContent=mcSum(); if(mcDr&&!mcBuilding){ var sg=mcSigNow(); if(sg!==mcSig){ mcSig=sg; clearTimeout(mcRT); mcRT=setTimeout(mcDrFill,120); } } }
+  if(!ic.children.length) ic.append(h('span',{class:'mcl',text:T('Στρώματα','Layers')})); var bh=document.body.classList.contains('mapclean')?mcBarHTML():''; mcBar.classList.toggle('mcme',!!bh&&meMode); if(bh) tx.innerHTML=bh; else tx.textContent=mcSum(); if(mcDr&&!mcBuilding){ var sg=mcSigNow(); if(sg!==mcSig){ mcSig=sg; clearTimeout(mcRT); mcRT=setTimeout(mcDrFill,120); } } }
 /* 1.9.6: το μενού ξαναχτίζεται μόνο αν άλλαξε κάποιο στρώμα (όχι σε κάθε μετακίνηση του χάρτη) */
 var mcSig='';
 function mcSigNow(){ try{ return [].map.call(mcRefs.qc.children,function(b){ var on=false; try{ on=!!b._g(); }catch(e){} return on?1:0; }).join('')+'|'+(B.night&&B.night.active&&B.night.active()?1:0)+'|'+(B.troll&&B.troll.on&&B.troll.on()?1:0)+'|'+JSON.stringify(cfg); }catch(e){ return String(Math.random()); } }
 function cleanSetup(el,qc,seab,bar){ mcRefs={qc:qc,seab:seab,bar:bar}; document.body.classList.toggle('mapclean',mapUI()==='clean');
-  mcBar=h('button',{class:'mcbar',type:'button',hidden:mapUI()!=='clean','aria-label':T('Στρώματα και εργαλεία (πάτα ή σύρε αριστερά)','Layers and tools (tap or swipe left)'),onclick:function(){ if(!mcBar._sw) mcOpen(); mcBar._sw=false; }},
+  mcBar=h('button',{class:'mcbar',type:'button',hidden:mapUI()!=='clean','aria-label':T('Στρώματα και εργαλεία (πάτα ή σύρε αριστερά)','Layers and tools (tap or swipe left)'),onclick:function(){ if(!mcBar._sw){ if(!(mcBar.classList.contains('mcme')&&meSheet())) mcOpen(); } mcBar._sw=false; }},
     h('span',{class:'mci'}),h('span',{class:'mct'}),h('span',{class:'mcv',html:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>'}));
   var y0=null, x0=null; mcBar.addEventListener('pointerdown',function(e){ y0=e.clientY; x0=e.clientX; try{ mcBar.setPointerCapture(e.pointerId); }catch(x){} });
   mcBar.addEventListener('pointermove',function(e){ if(y0!=null&&(e.clientY-y0>24||x0-e.clientX>24)){ y0=null; mcBar._sw=true; mcOpen(); } });

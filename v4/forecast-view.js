@@ -612,8 +612,9 @@ function hourCard(fc,d,selH,nh){
     box.append(b); return b;
   });
   var head=h('div',{class:'hsel'}), huLine=h('p',{class:'hover',hidden:true}), rows=h('div',{class:'rows'}), cur=-1;
-  function set(i){
+  function set(i,quiet){
     i=Math.max(0,Math.min(hs.length-1,i)); if(i===cur) return; cur=i; var q=hs[i]; st.hour=q.hr;
+    /* 1.14.79: η «Έκθεση ακτής» πηγαίνει στην ίδια ώρα (και αντίστροφα) */ if(!quiet){ try{ window.dispatchEvent(new CustomEvent('alkyon-fchour',{detail:{date:d.date,hr:q.hr,src:'hourly'}})); }catch(e){} }
     bars.forEach(function(b,j){ b.classList.toggle('sel',j===i); b.setAttribute('aria-selected',String(j===i)); });
     head.className='hsel lv-'+(q.safe?lvl(q.score):'poor');
     var lw=!q.safe?T('εκτός ορίων','over limits'):q.score>=70?T('καλή ώρα','good hour'):q.score>=50?T('μέτρια ώρα','fair hour'):T('δύσκολη ώρα','tough hour');
@@ -623,7 +624,8 @@ function hourCard(fc,d,selH,nh){
   }
   scrub(box,function(fx){ set(Math.floor(fx*hs.length)); });
   box.addEventListener('keydown',function(e){ if(e.key==='ArrowLeft'){ set(cur-1); e.preventDefault(); } else if(e.key==='ArrowRight'){ set(cur+1); e.preventDefault(); } });
-  var si=0; hs.forEach(function(q,j){ if(q.hr===selH) si=j; }); set(si);
+  var si=0; hs.forEach(function(q,j){ if(q.hr===selH) si=j; }); set(si,true);
+  hourSync={date:d.date,box:box,go:function(hr){ for(var j=0;j<hs.length;j++) if(hs[j].hr===hr){ set(j,true); return; } }};
   /* 1.9.17: νύχτα σκιασμένη πίσω από τις μπάρες, λωρίδα με τις ώρες σελήνης, εξήγηση του ύψους */
   var pc=function(min){ return Math.max(0,Math.min(100,min/1440*100)); };
   if(d.rise!=null&&d.set!=null){ box.append(h('span',{class:'hnight','aria-hidden':'true',style:{left:'0',width:pc(d.rise)+'%'}}),h('span',{class:'hnight','aria-hidden':'true',style:{left:pc(d.set)+'%',right:'0'}})); }
@@ -639,6 +641,8 @@ function hourCard(fc,d,selH,nh){
   return c;
 }
 /* σύρσιμο οριζόντια πάνω σε ένα στοιχείο: fn(θέση 0–1). Η κάθετη κύλιση της σελίδας δουλεύει κανονικά. */
+var hourSync=null;
+window.addEventListener('alkyon-fchour',function(ev){ var x=ev.detail||{}; if(x.src!=='expo'||!hourSync||hourSync.date!==x.date||!hourSync.box.isConnected) return; try{ hourSync.go(+x.hr); }catch(e){} });
 function scrub(el,fn){
   var on=false;
   function at(e){ var r=el.getBoundingClientRect(); fn(Math.max(0,Math.min(0.9999,(e.clientX-r.left)/r.width))); }
