@@ -13,9 +13,14 @@ adb shell svc power stayon true
 adb shell settings put system show_touches 1
 S=$(adb shell wm size | grep -oE '[0-9]+x[0-9]+' | tail -1); W=${S%x*}; H=${S#*x}; CX=$((W/2)); CY=$((H/2))
 LOG=video/steps.txt; say(){ echo "$(date +%T) $*" | tee -a $LOG; }
-# θέση σκάφους που κινείται αργά (ανοιχτά της Λεμεσού)
-( i=0; while [ $i -lt 400 ]; do adb emu geo fix $(python3 -c "print(33.05+$i*0.00004)") $(python3 -c "print(34.63+$i*0.00002)") >/dev/null 2>&1; i=$((i+1)); sleep 1; done ) &
-GEO=$!
+adb shell settings put secure doze_always_on 0
+adb shell settings put global ambient_enabled 0
+# η οθόνη μένει ξύπνια σε όλη την εγγραφή
+( while true; do adb shell input keyevent KEYCODE_WAKEUP >/dev/null 2>&1; sleep 4; done ) &
+WK=$!
+# θέση σκάφους που κινείται αργά (ανοιχτά της Λεμεσού)· ξεκινά αφού φορτώσει η πρόγνωση
+geo(){ ( i=0; while [ $i -lt 400 ]; do adb emu geo fix $(python3 -c "print(33.05+$i*0.00004)") $(python3 -c "print(34.63+$i*0.00002)") >/dev/null 2>&1; i=$((i+1)); sleep 1; done ) & GEO=$!; }
+has(){ dump; grep -q "$1" /tmp/u.xml; }
 dump(){ adb shell uiautomator dump /sdcard/u.xml >/dev/null 2>&1; adb exec-out cat /sdcard/u.xml > /tmp/u.xml 2>/dev/null; }
 # πάτημα πάνω σε κείμενο· επιστρέφει 1 αν δεν βρέθηκε
 tapText(){ dump; XY=$(python3 - "$1" <<'PY'
@@ -38,7 +43,11 @@ focusApp(){ adb shell dumpsys window | grep -E "mCurrentFocus|mFocusedApp" | gre
 adb shell input keyevent KEYCODE_WAKEUP; sleep 3
 for t in 1 2 3 4 5 6; do adb shell am start -W -n $P/com.alkyonfishing.app.wear.ui.MainActivity; sleep 8; focusApp && break; done
 sleep 6; texts
-tapText "OK" || adb shell input keyevent KEYCODE_STEM_1; sleep 3; texts
+adb shell input tap $CX $CY; sleep 2
+tapText "OK"; sleep 3; texts
+# περιμένω να φορτώσει η πρόγνωση (έως 90 δευτ.)
+for t in $(seq 1 18); do has "/100" && break; has "TODAY" && break; sleep 5; done; texts
+geo; sleep 4
 
 # ---- εγγραφή: βίντεο οθόνης + καρέ ως εφεδρεία ----
 adb shell screenrecord --time-limit 110 --bit-rate 3000000 /sdcard/trip.mp4 &
@@ -74,7 +83,7 @@ adb shell input keyevent KEYCODE_HOME; sleep 2
 kill $FR 2>/dev/null
 adb shell pkill -2 screenrecord; sleep 4; wait $REC 2>/dev/null
 adb pull /sdcard/trip.mp4 video/trip-raw.mp4 || say "no screenrecord file"
-kill $GEO 2>/dev/null
+kill $GEO $WK 2>/dev/null
 adb logcat -d | grep -iE "alkyon|AndroidRuntime|FATAL" | tail -60 > video/logcat.txt
 ls -la video | tee -a $LOG
 exit 0
