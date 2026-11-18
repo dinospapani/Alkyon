@@ -119,7 +119,9 @@ function fetchWx(lat,lon,ms){
     if(cl.t==null) cl=null;
     return {v:1,t0:ms,la:Math.round(lat*1000)/1000,lo:Math.round(lon*1000)/1000,p:P,w:W,g:G,d:D,fc:ms+3*HOUR>Date.now(),c:cl,m:moonLight(ms,lat,lon,cl)};
   }).then(function(wx){ if(!wx) return wx; /* 1.14.67: και η παρατήρηση του δορυφόρου· αν αποτύχει, μένει το μοντέλο */
-    return satCloud(lat,lon,ms,wx.m).then(function(sc){ if(sc!==undefined){ wx.s=sc; applySat(wx); } return wx; }).catch(function(){ return wx; }); });
+    /* 1.14.78: ο καιρός δεν περιμένει τον δορυφόρο πάνω από 2,5″. Αν αργήσει, ο καιρός δείχνεται αμέσως και ο δορυφόρος συμπληρώνεται την επόμενη φορά (η εικόνα μένει στη μνήμη του browser) */
+    var late=new Promise(function(res){ setTimeout(function(){ res(undefined); },2500); });
+    return Promise.race([satCloud(lat,lon,ms,wx.m).catch(function(){ return undefined; }),late]).then(function(sc){ if(sc!==undefined){ wx.s=sc; applySat(wx); } return wx; }).catch(function(){ return wx; }); });
 }
 function valid(b){ var w=b&&b.wx; return !!(w&&w.v===1&&w.t0===C.biteMs(b)&&typeof b.lat==='number'&&Math.abs(w.la-b.lat)<0.003&&Math.abs(w.lo-b.lon)<0.003); }
 

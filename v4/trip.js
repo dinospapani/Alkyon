@@ -226,11 +226,25 @@ B.tripStart=function(o){ o=o&&typeof o==='object'?o:null; /* v31z541: o.where = 
       h('small',{text:!logged?T('Χωρίς λογαριασμό: μόνο υπενθύμιση στο κινητό','No account: phone reminder only'):c?T('Ειδοποιείται αν δεν γυρίσεις στην ώρα σου','Alerted if you are not back on time'):T('Πάτα για να ορίσεις','Tap to set one')})));
   var tmRow=h('label',{class:'ttime'},h('span',{text:T('Επιστροφή έως','Back by')}),tm);
   /* 1.14.23: στόχος (προαιρετικό): κάνει σωστά τα στοιχεία «πότε τσιμπάνε» ανά είδος */
-  var tgs=[], tgChips=h('div',{class:'chips sm tgchips'}), tops={}; /* 1.14.77: έως 4 είδη-στόχοι, με καθαρή ένδειξη επιλογής */
-  try{ B.store.raw('bites').forEach(function(b){ if(b.deleted||b.miss||!b.species) return; var k=b.latin||b.species; (tops[k]=tops[k]||{n:0,name:b.species,latin:b.latin||''}).n++; }); }catch(e){}
-  var tgSeen={}; Object.keys(tops).sort(function(a,b){ return tops[b].n-tops[a].n; }).filter(function(k){ var nm=String(tops[k].name||'').toLowerCase(); if(!nm||tgSeen[nm]) return false; tgSeen[nm]=1; return true; }).slice(0,8).forEach(function(k){ var o=tops[k]; tgChips.append(h('button',{type:'button',class:'chip sm',text:o.name,'aria-pressed':'false',onclick:function(ev){ var i=tgs.indexOf(o); if(i>=0) tgs.splice(i,1); else { if(tgs.length>=4){ B.toast(T('Έως 4 είδη.','Up to 4 species.'),2500); return; } tgs.push(o); } ev.currentTarget.setAttribute('aria-pressed',i>=0?'false':'true'); tgN.textContent=tgs.length?' · '+tgs.length+T(' επιλεγμένα',' selected'):''; }})); });
-  var tgN=h('em',{class:'tgn',text:''});
-  var tgRow=tgChips.children.length?h('div',{class:'fld'},h('span',{},T('Τι ψάχνεις; (προαιρετικό, έως 4)','What are you after? (optional, up to 4)'),tgN),tgChips):null;
+  /* 1.14.78: μία γραμμή που σέρνεται οριζόντια (η φόρμα χωράει σε μία οθόνη), πρώτο το «Αναζήτηση» για οποιοδήποτε είδος, μετά τα επιλεγμένα,
+     μετά οι προτάσεις: τα είδη που πιάνεις πιο συχνά και, για νέο χρήστη χωρίς ψάρια, τα είδη της εποχής στην περιοχή του. Έως 4 στόχοι. */
+  var tgs=[], tgChips=h('div',{class:'chips sm tgchips'}), tgN=h('em',{class:'tgn',text:''}), sugg=[], EN_=EN;
+  function tgKey(o){ return String(o.latin||o.name||'').toLowerCase(); }
+  function tgAdd(o){ var k=tgKey(o); if(!k) return; for(var i=0;i<tgs.length;i++) if(tgKey(tgs[i])===k) return; if(tgs.length>=4){ B.toast(T('Έως 4 είδη.','Up to 4 species.'),2500); return; } tgs.push(o); tgDraw(); }
+  function tgDel(o){ var k=tgKey(o); tgs=tgs.filter(function(x){ return tgKey(x)!==k; }); tgDraw(); }
+  function tgDraw(){ tgChips.replaceChildren(h('button',{type:'button',class:'chip sm tgfind',onclick:function(){ if(B.speciesPick) B.speciesPick(function(nm,sp){ tgAdd({name:nm,latin:(sp&&sp.la)||''}); }); }},h('span',{'aria-hidden':'true',text:'🔍 '}),T('Αναζήτηση','Search')));
+    tgs.forEach(function(o){ tgChips.append(h('button',{type:'button',class:'chip sm',text:o.name,'aria-pressed':'true',onclick:function(){ tgDel(o); }})); });
+    var have={}; tgs.forEach(function(o){ have[tgKey(o)]=1; });
+    sugg.forEach(function(o){ if(have[tgKey(o)]) return; tgChips.append(h('button',{type:'button',class:'chip sm',text:o.name,'aria-pressed':'false',onclick:function(){ tgAdd(o); }})); });
+    tgN.textContent=tgs.length?' · '+tgs.length+T(' επιλεγμένα',' selected'):''; tgChips.scrollLeft=0; }
+  try{ var tops={}, seen={}; B.store.raw('bites').forEach(function(b){ if(b.deleted||b.miss||!b.species) return; var k=String(b.latin||b.species).toLowerCase(); (tops[k]=tops[k]||{n:0,name:b.species,latin:b.latin||''}).n++; });
+    Object.keys(tops).sort(function(a,b){ return tops[b].n-tops[a].n; }).forEach(function(k){ var nm=String(tops[k].name).toLowerCase(); if(seen[nm]||seen[k]||sugg.length>=8) return; seen[nm]=seen[k]=1; sugg.push(tops[k]); });
+    if(sugg.length<8){ var mi=new Date().getMonth(), REG=window.SPECIES_REG||{}, pp=B.lastPos?B.lastPos():null, cur=(B.prof&&B.prof()==='lake')?'f':(pp&&window.regionAt?window.regionAt(pp.lat,pp.lon):'m'), DB={};
+      (window.SPECIES_DB||[]).forEach(function(r){ if(r[2]) DB[String(r[2]).toLowerCase()]=r; });
+      (window.SPKB||[]).filter(function(x){ return x.l&&x.m&&(x.m[mi]||0)>=2&&DB[x.l.toLowerCase()]&&(REG[x.l.toLowerCase()]||'m').indexOf(cur)>=0; }).sort(function(a,b){ return (b.m[mi]||0)-(a.m[mi]||0); }).forEach(function(x){ var k=x.l.toLowerCase(), r=DB[k]; if(seen[k]||sugg.length>=8) return; var el=r[0]?String(r[0]).split('/')[0].trim():'', nm=EN_?(r[1]||el):(el||r[1]); if(!nm||seen[nm.toLowerCase()]) return; seen[k]=seen[nm.toLowerCase()]=1; sugg.push({name:nm,latin:r[2]}); }); }
+  }catch(e){}
+  tgDraw();
+  var tgRow=h('div',{class:'fld tgfld'},h('span',{},T('Τι ψάχνεις; (προαιρετικό, έως 4)','What are you after? (optional, up to 4)'),tgN),tgChips);
   var more=h('details',{class:'tmore'},h('summary',{text:T('Περισσότερες ρυθμίσεις','More settings')}),
     h('label',{class:'fld'},h('span',{text:T('Αν χαθεί η επαφή με το κινητό','If contact with the phone is lost')}),sil,h('small',{text:T('Αν το κινητό σταματήσει να στέλνει σήμα για τόσο χρόνο, σε ρωτά στο Telegram και μετά ειδοποιεί την επαφή.','If the phone stops sending a signal this long, it asks you on Telegram, then alerts your contact.')})),
     ex?ex.nodes:null);

@@ -14,7 +14,9 @@ function r1(x){ return typeof x==='number'&&isFinite(x)?Math.round(x*10)/10:null
 function msOf(date,time,tz){ if(!date) return null; var t=String(time||'12:00').slice(0,5), ms=Date.parse(date+'T'+t+':00Z'); if(!isFinite(ms)) return null; return ms-(typeof tz==='number'?tz:-new Date().getTimezoneOffset())*60000; }
 function rowOf(kind,x){
   if(kind==='trip'){ if(!x.startMs||!x.endMs||x.endMs-x.startMs<20*60000) return null; var la=r1(x.lat), lo=r1(x.lon); if(la==null) return null;
-    return {cond:(x.rate===0||x.rate===1||x.rate===2)?{rt:x.rate}:null,ref:'t:'+x.id,kind:'trip',sp:x.target?String(x.target.latin||x.target.name||'').toLowerCase().slice(0,80)||null:null,day:x.date||new Date(x.startMs).toISOString().slice(0,10),ms:x.startMs,ms2:x.endMs,lat:la,lon:lo,cnt:Math.min(999,(x.count|0)),tech:x.tech?String(x.tech).slice(0,40):null,prof:x.prof||null}; } /* 1.14.28: cond.rt = «Πώς ήταν το ψάρεμα;» */
+    /* 1.14.78: όλοι οι στόχοι της εξόδου (έως 4) στο cond.tg· το sp μένει ο πρώτος, για συμβατότητα */
+    var tgA=(Array.isArray(x.targets)?x.targets:[]).map(function(o){ return String((o&&(o.latin||o.name))||'').toLowerCase().slice(0,80); }).filter(Boolean).slice(0,4), cd=(x.rate===0||x.rate===1||x.rate===2)?{rt:x.rate}:null; if(tgA.length>1){ cd=cd||{}; cd.tg=tgA; }
+    return {cond:cd,ref:'t:'+x.id,kind:'trip',sp:x.target?String(x.target.latin||x.target.name||'').toLowerCase().slice(0,80)||null:null,day:x.date||new Date(x.startMs).toISOString().slice(0,10),ms:x.startMs,ms2:x.endMs,lat:la,lon:lo,cnt:Math.min(999,(x.count|0)),tech:x.tech?String(x.tech).slice(0,40):null,prof:x.prof||null}; } /* 1.14.28: cond.rt = «Πώς ήταν το ψάρεμα;» */
   if(!x.date) return null; var la2=r1(x.lat), lo2=r1(x.lon); if(la2==null) return null;
   var c={}; CK.forEach(function(k){ var v=x[k]; if(typeof v==='number'&&isFinite(v)) c[k]=Math.round(v*10)/10; else if(typeof v==='string'&&v.length<=12) c[k]=v; });
   if(x.species) c.nm=String(x.species).trim().slice(0,40); /* 1.14.28: όνομα είδους για το «Τι πιάνεται τώρα» */

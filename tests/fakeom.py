@@ -20,7 +20,7 @@ def respond(route):
     lats=str(q.get('latitude','34.7')).split(','); lons=str(q.get('longitude','32.5')).split(',')
     hv=[x for x in q.get('hourly','').split(',') if x]; cv=[x for x in q.get('current','').split(',') if x]; mv=[x for x in q.get('minutely_15','').split(',') if x]
     now=datetime.datetime.utcnow().replace(minute=0,second=0,microsecond=0); st=now-datetime.timedelta(hours=int(q.get('past_hours',0) or 0)+ 24*int(q.get('past_days',0) or 0))
-    n=int(q.get('forecast_hours',0) or 0) or 24*int(q.get('forecast_days',3) or 3)+int(q.get('past_hours',0) or 0)
+    n=(int(q.get('forecast_hours',0) or 0) or 24*int(q.get('forecast_days',3) or 3))+int(q.get('past_hours',0) or 0)+24*int(q.get('past_days',0) or 0)  # όπως το πραγματικό API: και οι περασμένες μέρες μέσα (πριν, το τεστ 1.12.23 αποτύχαινε ορισμένες ώρες της μέρας)
     ts=[(st+datetime.timedelta(hours=k)).strftime('%Y-%m-%dT%H:%M') for k in range(n)]
     out=[]
     for i,(la,lo) in enumerate(zip(lats,lons)):

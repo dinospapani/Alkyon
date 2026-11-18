@@ -1557,7 +1557,7 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
           A0.data.mon = monOf(catches); put(g === 'sea' ? 'all' : 'g:' + g, A0, g);
           if (g !== 'ceph') for (const [sz, cs] of [['big', catches.filter(r => !isSmall(r))], ['small', catches.filter(isSmall)]]) if (cs.length >= 10 && cs.length < catches.length) { const a = analyse(cs, trips, 6, ex); a.data.size = sz; delete a.data.wk; put(pre + sz, a, g); }
           const bySp = {}; for (const r of catches) if (r.sp) (bySp[r.sp] = bySp[r.sp] || []).push(r);
-          for (const [sp, cs] of Object.entries(bySp)) { if (cs.length < 5) continue; const tg = trips.filter(t => t.sp === sp), hrs = tg.reduce((a, t) => a + t.cond.e.length, 0);
+          for (const [sp, cs] of Object.entries(bySp)) { if (cs.length < 5) continue; const tg = trips.filter(t => t.sp === sp || (Array.isArray(t.cond.tg) && t.cond.tg.includes(sp))) /* 1.14.78: όλοι οι στόχοι της εξόδου */, hrs = tg.reduce((a, t) => a + t.cond.e.length, 0);
             const a = blend(analyse(cs, hrs >= 10 ? tg : trips, 5, ex), A0, 5); a.data.tgt = hrs >= 10; a.data.mon = monOf(cs); put(pre + 'sp:' + sp, a, g); }
           const byR = {}; for (const r of catches) (byR[cell(r)] = byR[cell(r)] || []).push(r);
           if (Object.keys(byR).length > 1) for (const [rc, cs] of Object.entries(byR)) { if (cs.length < 30) continue; put(pre + 'r:' + rc, blend(analyse(cs, trips.filter(t => cell(t) === rc), 8, ex), A0, 8), g); }
