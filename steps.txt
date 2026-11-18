@@ -1,0 +1,35 @@
+Starting…
+Welcome | The forecast is ready. | For your logbook and spots: | Alkyon (phone) &gt; Profile &gt; Watch | the code comes to the watch by itself | OK
+08:14:33 tap 'OK' at 227 327
+TODAY | 72 | /100 | 16-17 · in 7:46 | 〰 | 3 Bft | ≈ | 0.9 m | ☀ | 16:45 | ≡
+TODAY | 72 | /100 | 16-17 · in 7:46 | 〰 | 3 Bft | ≈ | 0.9 m | ☀ | 16:45 | ≡
+08:15:08 tap 'Start trip' at 172 343
+TRIP · GPS | 0:00 | sunset in 8:30 | &#128031; | 0 | ↝ | 0.0 km | ⏱ | 0.0 kn | &#128031; | ≡
+  * ServiceRecord{698af2c u0 com.alkyonfishing.app/.wear.GpsService}
+    intent={cmp=com.alkyonfishing.app/.wear.GpsService}
+    infoAllowStartForeground=[callingPackage: com.alkyonfishing.app; callingUid: 10088; uidState: TOP ; intent: Intent { cmp=com.alkyonfishing.app/.wear.GpsService }; code:PROC_STATE_TOP; tempAllowListReason:<null>; targetSdkVersion:36; callerTargetSdkVersion:36; startForegroundCount:0; bindFromPackage:null]
+    isForeground=true foregroundId=7 foregroundNoti=Notification(channel=alkyon_trip shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x62 color=0x00000000 category=workout vis=PUBLIC)
+Android System | 1m | Serial console enabled | Performance is impacted. To disable, check bootloader. | Android System | 1m | Configure physical keyboard | Tap to select language and layout
+    NotificationRecord(0x07119360: pkg=com.alkyonfishing.app user=UserHandle{0} id=7 tag=null importance=2 key=0|com.alkyonfishing.app|7|null|10088: Notification(channel=alkyon_trip shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x62 color=0x00000000 category=workout vis=PUBLIC))
+      icon=Icon(typ=RESOURCE pkg=com.alkyonfishing.app id=0x7f070085)
+TRIP · GPS | 0:00 | sunset in 8:30 | &#128031; | 0 | ↝ | 0.1 km | ⏱ | 0.0 kn | &#128031; | ≡
+LOG | &#128031; | Fish | logs time and place | ✕ | Lost | got off on the way in | ☠ | Toadfish | does not count as a catch
+08:16:01 tap 'End trip' at 180 442
+End trip? | 0:00 · 0 fish · 0.2 km | ✕ | Cancel | ✓ | Save
+08:16:08 tap '✓' at 289 259
+TRIP | Today · 16-17 | 72 | /100 | ▶ Start trip | ◔ | 1018↑ | ° | 22° | ☾ | 59% | ≡
+Android System | 2m | Serial console enabled | Performance is impacted. To disable, check bootloader. | Android System | 2m | Configure physical keyboard | Tap to select language and layout
+total 5300
+drwxr-xr-x  3 runner runner    4096 Nov 18 08:16 .
+drwxr-xr-x 21 runner runner    4096 Nov 18 08:13 ..
+-rw-r--r--  1 runner runner   35976 Nov 18 08:15 1-trip-live.png
+-rw-r--r--  1 runner runner   73254 Nov 18 08:15 2-watchface.png
+-rw-r--r--  1 runner runner   54565 Nov 18 08:15 3-notification.png
+-rw-r--r--  1 runner runner   36225 Nov 18 08:15 4-trip-continues.png
+-rw-r--r--  1 runner runner   35782 Nov 18 08:16 5-confirm.png
+-rw-r--r--  1 runner runner   39001 Nov 18 08:16 6-ended.png
+-rw-r--r--  1 runner runner   55362 Nov 18 08:16 7-notification-gone.png
+drwxr-xr-x  2 runner runner    4096 Nov 18 08:16 frames
+-rw-r--r--  1 runner runner   14402 Nov 18 08:16 logcat.txt
+-rw-r--r--  1 runner runner    2354 Nov 18 08:16 steps.txt
+-rw-r--r--  1 runner runner 5053742 Nov 18 08:16 trip-raw.mp4
