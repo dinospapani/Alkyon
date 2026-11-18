@@ -7,10 +7,13 @@ const seed = (srv, uid, n, kind = 'bites') => { for (let i = 0; i < n; i++) srv.
 
 test('2500 records with page size 1000 all arrive (server max_rows 1000)', async () => {
   const srv = new FakeServer({ maxRows: 1000 }); seed(srv, 'u1', 2500);
+  const sizes = [], orig = srv.handle.bind(srv);
+  srv.handle = (m, url, body) => { const r = orig(m, url, body); if (m === 'GET' && /\/records\?/.test(url)) sizes.push(r.json.length); return r; };
   const d = device(srv); await d.sync();
   assert.equal(d.state().err, false, d.state().msg);
   assert.equal(d.recs('bites').length, 2500);
-  assert.equal(srv.gets, 4, 'three pages and one empty page');
+  assert.deepEqual(sizes, [1000, 1000, 500, 0], 'pages of 1000, 1000, 500, then an empty page ends the pull');
+  assert.equal(new Set(d.recs('bites').map(r => r.id)).size, 2500, 'no duplicates');
   assert.equal(srv.posts, 0, 'nothing to send back');
 });
 

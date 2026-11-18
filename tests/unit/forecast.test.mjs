@@ -61,3 +61,50 @@ test('the edge copy of forecast.js equals forecast.js (server and app score the 
   for (const f of ['quick-processor-index.ts', 'watch-edge-index.ts'])
     assert.ok(fs.readFileSync(path.join(ROOT, f), 'utf8').includes(fc), f + ' must contain the current forecast.js');
 });
+
+/* ---------- παράθυρο ψαρέματος της ημέρας (getForecast) με ψεύτικο Open-Meteo και σταθερή ώρα ---------- */
+function pfAt(nowIso) {
+  const NOW = Date.parse(nowIso), RD = Date;
+  class FD extends RD { constructor(...a) { if (a.length) super(...a); else super(NOW); } static now() { return NOW; } }
+  const store = new Map();
+  const ctx = { self: {}, console, Date: FD, Math, JSON, Promise, Intl, setTimeout, clearTimeout,
+    localStorage: { getItem: k => store.has(k) ? store.get(k) : null, setItem: (k, v) => store.set(k, String(v)), removeItem: k => store.delete(k) } };
+  ctx.globalThis = ctx; vm.createContext(ctx);
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'forecast.js'), 'utf8'), ctx, { filename: 'forecast.js' });
+  ctx.localStorage.setItem('alkyon-fprof', 'boat');
+  return ctx.self.PF;
+}
+function meteo(W) {
+  return async (url) => {
+    const u = new URL(String(url)), marine = u.hostname.startsWith('marine'), start = Date.parse('2026-11-06T00:00:00Z'), time = [];
+    for (let i = 0; i < 24 * 12; i++) time.push(new Date(start + i * 3600e3).toISOString().slice(0, 16));
+    const arr = f => time.map(f);
+    const j = marine ? { utc_offset_seconds: 7200, timezone: 'Asia/Nicosia', hourly: { time, wave_height: arr(t => W(t).wave), wave_period: arr(() => 4), sea_surface_temperature: arr(() => 22), sea_level_height_msl: arr(() => 0) } }
+      : { utc_offset_seconds: 7200, timezone: 'Asia/Nicosia', hourly: { time, pressure_msl: arr(() => 1016), wind_speed_10m: arr(t => W(t).wind), wind_gusts_10m: arr(t => W(t).wind + 4), wind_direction_10m: arr(() => 90), cloud_cover: arr(() => 20), temperature_2m: arr(() => 21), precipitation_probability: arr(() => 0), precipitation: arr(() => 0), weather_code: arr(() => 1) } };
+    return { ok: true, status: 200, json: async () => j, text: async () => JSON.stringify(j) };
+  };
+}
+
+test('daily window: inside daylight ±1 h, every hour in it within 6 points of the best, and only safe hours', async () => {
+  const PF = pfAt('2026-11-09T04:00:00Z');
+  const fc = await PF.getForecast(34.66, 33.04, meteo(() => ({ wind: 6, wave: 0.3 })), { days: 3 });
+  const days = fc.days.filter(d => d.safe && d.win);
+  assert.ok(days.length >= 2, 'calm days have a window');
+  for (const d of days) {
+    const hrs = d.hours.filter(h => h.hr >= d.win.s && h.hr <= d.win.e);
+    assert.ok(hrs.length >= 1);
+    for (const h of hrs) assert.ok(h.score >= d.best - 6, `${d.date} ${h.hr}: ${h.score} vs best ${d.best}`);
+    assert.ok(d.win.s >= 4 && d.win.e <= 20, `${d.date} window ${d.win.s}-${d.win.e} within daylight ±1 h`);
+  }
+});
+
+test('a day over the safety limits (strong wind all day) is not offered as a safe window', async () => {
+  const PF = pfAt('2026-11-09T04:00:00Z');
+  const stormDay = '2026-11-10';
+  const fc = await PF.getForecast(34.66, 33.04, meteo(t => t.startsWith(stormDay) ? { wind: 30, wave: 2.5 } : { wind: 6, wave: 0.3 }), { days: 3 });
+  const d = fc.days.find(x => x.date === stormDay);
+  assert.ok(d, 'storm day present');
+  assert.equal(d.safe, false, 'storm day is not safe');
+  const calmDay = fc.days.find(x => x.date === '2026-11-11');
+  assert.ok(calmDay && calmDay.safe && calmDay.win, 'the next calm day still has a window');
+});

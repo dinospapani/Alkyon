@@ -1,7 +1,7 @@
 // P0.6 χρονοπρογραμματιστής (τελευταία επιτυχής εκτέλεση, όχι ακριβές λεπτό) και P0.7 παλμός native GPS.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { isDue, heartbeat } from '../../safety-job.mjs';
+import { isDue, heartbeat, claimStep } from '../../safety-job.mjs';
 
 const T0 = Date.parse('2026-11-18T10:00:00Z'), MIN = 60e3;
 
@@ -64,4 +64,42 @@ test('heartbeats closer than 20 s are ignored (no write storm)', async () => {
   const rows = [{ id: 'trip-1', hb_key: KEY, status: 'active', hb_at: new Date(T0 - 5e3).toISOString() }]; const d = fakeDb(rows);
   const r = await heartbeat({ env, fetch: d.F, now: T0 }, { id: 'trip-1', key: KEY, lat: 34, lon: 32 });
   assert.equal(r.body.skipped, 'rate'); assert.ok(!d.calls.some(c => c.m === 'PATCH'));
+});
+
+/* ---------- P0.6: ατομικό «πάρσιμο» βήματος (job_state) ---------- */
+function jobDb() {
+  const rows = new Map();
+  const sb = async (p, opt = {}) => { const m = opt.method || 'GET', u = new URL('https://x/rest/v1/' + p), q = u.searchParams, name = decodeURIComponent((q.get('name') || '').replace(/^eq\./, ''));
+    if (m === 'GET') { const r = rows.get(name); return r ? [{ ...r }] : []; }
+    if (m === 'POST') { const out = []; for (const r of JSON.parse(opt.body)) if (!rows.has(r.name)) { rows.set(r.name, { last_ok: null, ...r }); out.push(r); } return out; }
+    if (m === 'PATCH') { const r = rows.get(name); if (!r) return [];
+      const lt = q.get('last_try'); if (lt && (lt === 'is.null' ? r.last_try != null : r.last_try !== decodeURIComponent(lt.replace(/^eq\./, '')))) return [];
+      Object.assign(r, JSON.parse(opt.body)); return [{ ...r }]; }
+  };
+  return { rows, sb };
+}
+const P15 = 15 * MIN;
+test('claimStep: first run claims; a second concurrent run does not (no duplicate execution)', async () => {
+  const d = jobDb();
+  const [a, b] = await Promise.all([claimStep(d.sb, 'trip_wx', P15, T0), claimStep(d.sb, 'trip_wx', P15, T0)]);
+  assert.equal(a + b, 1, 'exactly one of two simultaneous runs claims the step');
+});
+test('claimStep: two runs racing on an existing row — only one wins the conditional update', async () => {
+  const d = jobDb(); d.rows.set('trip_wx', { name: 'trip_wx', last_ok: new Date(T0 - 20 * MIN).toISOString(), last_try: new Date(T0 - 20 * MIN).toISOString() });
+  const res = await Promise.all([claimStep(d.sb, 'trip_wx', P15, T0), claimStep(d.sb, 'trip_wx', P15, T0), claimStep(d.sb, 'trip_wx', P15, T0)]);
+  assert.equal(res.filter(Boolean).length, 1);
+});
+test('claimStep: not due after a recent success; due again after the period', async () => {
+  const d = jobDb(); d.rows.set('trip_wx', { name: 'trip_wx', last_ok: new Date(T0 - 5 * MIN).toISOString(), last_try: new Date(T0 - 5 * MIN).toISOString() });
+  assert.equal(await claimStep(d.sb, 'trip_wx', P15, T0), false);
+  assert.equal(await claimStep(d.sb, 'trip_wx', P15, T0 + 10 * MIN), true);
+});
+test('claimStep: a run that crashed mid-step (claimed, never succeeded) is retried after 5 minutes, not before', async () => {
+  const d = jobDb(); d.rows.set('trip_wx', { name: 'trip_wx', last_ok: new Date(T0 - 30 * MIN).toISOString(), last_try: new Date(T0 - 2 * MIN).toISOString() });
+  assert.equal(await claimStep(d.sb, 'trip_wx', P15, T0), false, 'still running elsewhere');
+  assert.equal(await claimStep(d.sb, 'trip_wx', P15, T0 + 4 * MIN), true, 'stale claim (6 min) is taken over');
+});
+test('claimStep: a delayed cron (gap of 40 minutes) runs the step on the next execution', async () => {
+  const d = jobDb(); d.rows.set('trip_wx', { name: 'trip_wx', last_ok: new Date(T0 - 40 * MIN).toISOString(), last_try: new Date(T0 - 40 * MIN).toISOString() });
+  assert.equal(await claimStep(d.sb, 'trip_wx', P15, T0), true);
 });

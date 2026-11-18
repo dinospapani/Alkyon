@@ -34,6 +34,24 @@ export function isDue(lastOk, nowMs, periodMs, slackMs = 60e3) {
   if (t > nowMs + 5 * 60e3) return true;   // ρολόι/τιμή στο μέλλον: δεν μπλοκάρει για πάντα
   return nowMs - t >= periodMs - slackMs;
 }
+/* 1.14.83 (P0.6): «κλείδωμα» βήματος χωρίς ακριβές λεπτό. Τρέχει μόνο αν (α) πέρασε η περίοδος από την τελευταία ΕΠΙΤΥΧΙΑ και
+   (β) καμία άλλη εκτέλεση δεν το έχει ήδη πάρει τα τελευταία 5′. Το «πάρσιμο» είναι ατομικό: PATCH με όρο την προηγούμενη τιμή last_try
+   (αν δύο εκτελέσεις τρέξουν μαζί, μόνο η μία βρίσκει τη γραμμή αμετάβλητη). Αν μια εκτέλεση πέσει στη μέση, μετά από 5′ το βήμα ξαναπαίρνεται. */
+export async function claimStep(sb, name, periodMs, now = Date.now(), staleMs = 5 * 60e3) {
+  const r = await sb(`job_state?name=eq.${encodeURIComponent(name)}&select=last_ok,last_try`);
+  const row = r && r[0];
+  if (!isDue(row ? row.last_ok : null, now, periodMs)) return false;
+  const lt = row && row.last_try ? Date.parse(row.last_try) : NaN, lo = row && row.last_ok ? Date.parse(row.last_ok) : NaN;
+  if (Number.isFinite(lt) && now - lt < staleMs && !(Number.isFinite(lo) && lo >= lt)) return false;   // τρέχει ήδη αλλού
+  const at = new Date(now).toISOString();
+  if (!row) {
+    const ins = await sb('job_state', { method: 'POST', headers: { Prefer: 'return=representation,resolution=ignore-duplicates' }, body: JSON.stringify([{ name, last_try: at }]) });
+    return Array.isArray(ins) && ins.length === 1;
+  }
+  const cond = row.last_try ? 'last_try=eq.' + encodeURIComponent(row.last_try) : 'last_try=is.null';
+  const up = await sb(`job_state?name=eq.${encodeURIComponent(name)}&${cond}`, { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ last_try: at }) });
+  return Array.isArray(up) && up.length === 1;
+}
 export async function run({ env, fetch: F = fetch, sendMail, log = console.log, PF = null, webpush = null, only = null }) {
   const URL_ = env.SUPABASE_URL, KEY = env.SUPABASE_SERVICE_KEY, TG = env.TELEGRAM_BOT_TOKEN;
   if (!URL_ || !KEY) { log('Λείπουν τα SUPABASE_URL / SUPABASE_SERVICE_KEY.'); return { ok: false }; }
@@ -57,12 +75,12 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
      με επιτυχία (job_state). Αν ο cron αργήσει ή χάσει μια εκτέλεση, το βήμα τρέχει στην επόμενη. Χωρίς τον πίνακα (παλιό σχήμα): όπως πριν. */
   const jobs = {};
   const stepDue = async (name, periodMs) => {
-    try { const r = await sb(`job_state?name=eq.${encodeURIComponent(name)}&select=last_ok`); jobs[name] = { known: true };
-      return isDue(r && r[0] ? r[0].last_ok : null, Date.now(), periodMs); }
-    catch (e) { jobs[name] = { known: false }; return new Date().getUTCMinutes() % 15 < 5; } };
+    try { const ok = await claimStep(sb, name, periodMs, Date.now()); jobs[name] = { known: true }; return ok; }
+    /* χωρίς τον πίνακα job_state (πριν το migration): τρέχει σε κάθε εκτέλεση· οι ειδοποιήσεις δεν διπλασιάζονται (notif_log) */
+    catch (e) { jobs[name] = { known: false }; return true; } };
   const stepOk = async (name) => { if (!jobs[name] || !jobs[name].known) return;
     const at = new Date().toISOString();
-    await sb('job_state', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify([{ name, last_ok: at, last_try: at }]) }).catch(e => log('job_state: ' + e.message)); };
+    await sb(`job_state?name=eq.${encodeURIComponent(name)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ last_ok: at }) }).catch(e => log('job_state: ' + e.message)); };
   const patch = (id, o) => sb(`safety_trips?id=eq.${encodeURIComponent(id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(o) });
   // 1.9.19: τα Telegram των διαχειριστών (app_admins → το δικό τους Telegram από safety_contacts.self_chat_id)
   let ADM = null;

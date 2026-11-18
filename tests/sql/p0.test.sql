@@ -9,7 +9,9 @@ create or replace function pg_temp.as_user(u text) returns void language plpgsql
 \set C '''00000000-0000-0000-0000-00000000000c'''
 \set D '''00000000-0000-0000-0000-00000000000d'''
 \set E '''00000000-0000-0000-0000-00000000000e'''
-insert into auth.users values (:A), (:B), (:C), (:D), (:E);
+\set F '''00000000-0000-0000-0000-00000000000f'''
+\set G '''00000000-0000-0000-0000-000000000010'''
+insert into auth.users values (:A), (:B), (:C), (:D), (:E), (:F), (:G);
 insert into public.friends (owner, viewer) values (:A, :D);
 
 -- ---------- 1) records: ρολόι server και απόρριψη παλιότερης έκδοσης ----------
@@ -89,6 +91,14 @@ select pg_temp.as_user(:D);
 select pg_temp.ok((select count(*) = 1 from public.sos_alerts), 'D (friend, 300 km) sees the SOS');
 select pg_temp.as_user(:E);
 select pg_temp.ok((select count(*) = 0 from public.sos_alerts), 'E (no server-known position) does NOT see the SOS');
+-- όριο 20 ν.μ. = 37,04 km: F στα ~36,5 km βλέπει, G στα ~38 km όχι (το SOS είναι στο 34.601, 32.901)
+reset role;
+insert into public.trip_live (user_id, lat, lon, active, at) values (:F, 34.601 + 36.5 / 111.195, 32.901, true, now()), (:G, 34.601 + 38.0 / 111.195, 32.901, true, now());
+set role authenticated; select pg_temp.as_user(:F);
+select pg_temp.ok((select count(*) = 1 from public.sos_alerts), 'F at 36.5 km (inside 20 nm) sees the SOS');
+select pg_temp.as_user(:G);
+select pg_temp.ok((select count(*) = 0 from public.sos_alerts), 'G at 38 km (outside 20 nm) does NOT see the SOS');
+select pg_temp.ok((select abs(public.alkyon_km(34.0, 33.0, 34.0 + 37.04 / 111.195, 33.0) - 37.04) < 0.05), 'server distance function: 20 nm = 37.04 km');
 reset role; update public.trip_live set at = now() - interval '2 hours' where user_id = :B;
 set role authenticated; select pg_temp.as_user(:B);
 select pg_temp.ok((select count(*) = 0 from public.sos_alerts), 'B with a 2-hour-old position does NOT see the SOS');
