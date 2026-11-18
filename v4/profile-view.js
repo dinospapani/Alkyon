@@ -24,7 +24,11 @@ function delAccount(){ var word=T('ΔΙΑΓΡΑΦΗ','DELETE'), cl=B.cloud, inp=
   sh=B.sheet({title:T('Διαγραφή λογαριασμού','Delete account'),body:h('div',{class:'bform'},h('p',{class:'sub',text:T('Θα διαγραφεί ο λογαριασμός σου και ό,τι έχει συγχρονιστεί στο cloud (ψάρια, σημεία, έξοδοι, φωτογραφίες, επαφή ασφαλείας). Δεν αναιρείται. Τα δεδομένα σε αυτό το κινητό μένουν.','Your account and everything synced to the cloud (catches, spots, trips, photos, safety contact) will be deleted. This cannot be undone. Data on this phone stays.')}),
     h('label',{class:'fld'},h('span',{text:T('Γράψε ','Type ')+word+T(' για επιβεβαίωση',' to confirm')}),inp),msg,go)}); }
 /* εικονίδια γραμμής για τις λίστες του Προφίλ */
-var PI={sounder:'<path d="M4 5h16v10H4z"/><path d="M6 12l3-3 2 2 3-4 4 5"/><path d="M9 19h6M12 15v4"/>',lim:'<path d="M12 3l7.5 3v5.5c0 4.6-3.2 8.3-7.5 9.5-4.3-1.2-7.5-4.9-7.5-9.5V6z"/><path d="M8 12.5c1.3 0 1.3-1.2 2.7-1.2s1.3 1.2 2.6 1.2 1.3-1.2 2.7-1.2"/>',watch:'<rect x="7" y="6" width="10" height="12" rx="3"/><path d="M9 6l1-3h4l1 3M9 18l1 3h4l1-3M12 10v2.5l1.5 1"/>',tackle:'<path d="M4 20L18.5 5.5"/><path d="M18.5 5.5c1.2-1.2 2.5-.4 2.5 1v5"/><circle cx="7.5" cy="16.5" r="2.2"/>',boat:'<path d="M3 15h18l-2.5 4.5h-13z"/><path d="M7 15V9h7l3 6"/><path d="M10 9V5"/>',
+var PI={/* 1.14.43: δικό του εικονίδιο σε κάθε γραμμή (πριν πέντε γραμμές είχαν το ίδιο συννεφάκι) */
+  bulb:'<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.300 1 2.200h5.200c0-.900.400-1.700 1-2.200A6 6 0 0 0 12 3z"/>',
+  reply:'<path d="M3 5h12v8H8l-5 4z"/><path d="M18 9h3v8l-3-2.500h-6"/>',
+  camera:'<path d="M4 8h3.500l1.500-2.500h6L16.500 8H20v11H4z"/><circle cx="12" cy="13.300" r="3.300"/>',
+  sounder:'<path d="M4 5h16v10H4z"/><path d="M6 12l3-3 2 2 3-4 4 5"/><path d="M9 19h6M12 15v4"/>',lim:'<path d="M12 3l7.5 3v5.5c0 4.6-3.2 8.3-7.5 9.5-4.3-1.2-7.5-4.9-7.5-9.5V6z"/><path d="M8 12.5c1.3 0 1.3-1.2 2.7-1.2s1.3 1.2 2.6 1.2 1.3-1.2 2.7-1.2"/>',watch:'<rect x="7" y="6" width="10" height="12" rx="3"/><path d="M9 6l1-3h4l1 3M9 18l1 3h4l1-3M12 10v2.5l1.5 1"/>',tackle:'<path d="M4 20L18.5 5.5"/><path d="M18.5 5.5c1.2-1.2 2.5-.4 2.5 1v5"/><circle cx="7.5" cy="16.5" r="2.2"/>',boat:'<path d="M3 15h18l-2.5 4.5h-13z"/><path d="M7 15V9h7l3 6"/><path d="M10 9V5"/>',
   spots:'<path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>',gear:'<path d="M3 7h18M3 12h18M3 17h18M7 4v16M12 4v16M17 4v16"/>',
   people:'<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.2c3 .2 5.5 2.6 5.5 5.8"/>',community:'<path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/>',
   guide:'<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/>',bell:'<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/>',
@@ -32,6 +36,7 @@ var PI={sounder:'<path d="M4 5h16v10H4z"/><path d="M6 12l3-3 2 2 3-4 4 5"/><path
   units:'<path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/>',safety:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
   ai:'<path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',cloud:'<path d="M7 18h10a4 4 0 0 0 .5-8 6 6 0 0 0-11.5 2A3 3 0 0 0 7 18z"/>',
   voice:'<path d="M4 10v4h4l5 4V6L8 10z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/>',map:'<path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>',backup:'<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v3h16v-3"/>',hist:'<path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4h4"/><path d="M12 8v4l3 2"/>',stats:'<path d="M5 20V10M12 20V4M19 20v-7"/>',night:'<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',help:'<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6"/><path d="M12 17.2v.3"/>',
+  invite:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M19 8v6M16 11h6"/>',phone:'<path d="M6.6 3.5h3l1.5 4-2 1.3a11 11 0 0 0 6.1 6.1l1.3-2 4 1.5v3a2 2 0 0 0-2 2A16.5 16.5 0 0 1 4.6 5.5a2 2 0 0 0 2-2z"/>',
   flag:'<path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/>',theme:'<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/>',info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.3"/>',chat:'<path d="M4 5h16v11H9l-5 4z"/><path d="M8 9.5h.01M12 9.5h.01M16 9.5h.01" stroke-width="2.6"/>',mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5 12 13l8.5-6.5"/>',block:'<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/>',fish:'<path d="M3 12c3-4.5 9-6 14-2l4-3v10l-4-3c-5 4-11 2.5-14-2z"/><circle cx="8" cy="11" r=".8"/>'};
 function pic(k){ return h('span',{class:'ic pic',html:k==='type'&&B.profBadge?B.profBadge(B.prof()):'<svg viewBox="0 0 24 24" aria-hidden="true">'+(PI[k]||'')+'</svg>'}); }
 function row(k,title,sub,href,fn){ var a=h(href?'a':'button',{class:'li',href:href||null,type:href?null:'button',onclick:fn||null},pic(k),h('span',{class:'tx'},h('b',{text:title}),sub?h('small',{text:sub}):null),B.icon('chev')); return a; }
@@ -47,17 +52,7 @@ function head(s){ var st=C().state(), nm=s?((s.name||'').trim()||s.email||''):''
   var cls=!s?'off':st.err?'bad':(st.t&&Date.now()-st.t<86400000)?'ok':'warn', stx=!s?(function(){ var nn=0; try{ nn=B.store.raw('bites').filter(function(b){ return !b.deleted; }).length+B.store.raw('trips').filter(function(t){ return !t.deleted; }).length; }catch(e){} return nn>=3?T('Χωρίς λογαριασμό · '+nn+' ψάρια και έξοδοι μόνο σε αυτό το κινητό. Πάτα για να μη χαθούν.','No account · '+nn+' catches and trips on this phone only. Tap so they are never lost.'):T('Χωρίς λογαριασμό · μόνο σε αυτό το κινητό','No account · this phone only'); })():st.err?T('Πρόβλημα συγχρονισμού','Sync problem'):st.t?T('Συγχρονίστηκε ','Synced ')+new Date(st.t).toLocaleString(EN?'en-GB':'el-GR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):T('Δεν έχει συγχρονιστεί ακόμα','Not synced yet');
   var c=h('section',{class:'card phead'});
   c.append(h('button',{type:'button',class:'phid','aria-label':T('Λογαριασμός και συγχρονισμός','Account and sync'),onclick:function(){ tab='acc'; ls.set('alkyon-v4-ptab',tab); draw(); setTimeout(function(){ var t=document.querySelector('.bseg,.seg'); if(t&&t.scrollIntoView) t.scrollIntoView({behavior:'smooth',block:'start'}); },60); }},(function(){ var av=h('span',{class:'av'}), u=s&&B.commAvatar?B.commAvatar():''; if(u) av.append(h('img',{src:u,alt:''})); else av.textContent=(nm||'?').charAt(0).toUpperCase(); return av; })(),h('span',{class:'tx'},h('b',{text:nm||T('Σύνδεση ή εγγραφή','Sign in or sign up')}),h('small',null,h('i',{class:'sdot '+cls}),stx)),(tab==='acc'||nm)?null:B.icon('chev'))); /* 1.9.8: συνδεδεμένος → χωρίς βελάκι (υπάρχει ήδη η καρτέλα «Λογαριασμός» από κάτω)· v31z545: το βελάκι ανοίγει τον Λογαριασμό· όταν είσαι ήδη εκεί, δεν φαίνεται */
-  /* 1.12.15: 6 κουτάκια (3×2): έξοδοι, ψάρια, είδη · καλύτερο, σύνολο κιλών, σημείο (ή ψάρια ανά έξοδο) */
-  var spc={}; bs.forEach(function(b){ var k=String(b.latin||b.species||'').trim().toLowerCase(); if(k) spc[k]=1; }); var nsp=Object.keys(spc).length;
-  var cells=[[String(tr.length),T('Έξοδοι ','Trips ')+y,'boat'],[String(n),T('Ψάρια ','Fish ')+y,'tackle'],[String(nsp),T('Είδη ','Species ')+y,'fish'],[best?B.num(+best.kg,1)+' kg':'–',best?((window.dataName?window.dataName(best.species):best.species)||T('Καλύτερο','Best'))+' · '+y:T('Καλύτερο ','Best ')+y,'stats'],[B.num(bs.reduce(function(a,b){ return a+(+b.kg||0); },0),1)+' kg',T('Σύνολο ','Total ')+y,'stats'],top?[(window.dataName?window.dataName(top):top),T('Σημείο ','Top spot ')+y,'spots']:[tr.length?B.num(n/tr.length,1):'–',T('Ψάρια ανά έξοδο','Fish per trip'),'boat']];
-  /* 1.9.15: τα κουτάκια ανοίγουν: έξοδοι/ψάρια της χρονιάς στο ημερολόγιο, το μεγαλύτερο ψάρι, το σημείο στον χάρτη */
-  function toLog(tb){ ls.set('alkyon-v4-logtab',tb); ls.set('alkyon-v4-logrange','year'); location.hash='#log'; }
-  var topSp=top?sps.filter(function(x){ return (x.name||'')===top; })[0]:null;
-  if(top&&!topSp){ var tb2=bs.filter(function(b){ return ((b.place||'').trim()||nearSpot(b))===top&&typeof b.lat==='number'; })[0]; if(tb2) topSp={lat:tb2.lat,lon:tb2.lon,name:top}; }
-  var stt=function(){ ls.set('alkyon-v4-logtab','stats'); ls.set('alkyon-v4-logrange','year'); location.hash='#log'; };
-  var acts=[function(){ toLog('trips'); },function(){ toLog('fish'); },stt,best?function(){ if(B.biteDetail) B.biteDetail(best); }:null,stt,top?(topSp?function(){ if(B.spotSheet&&topSp.id) B.spotSheet(topSp); else B.mapGo(topSp.lat,topSp.lon,15,null,{lab:top}); }:null):function(){ toLog('trips'); }];
-  c.append(h('div',{class:'pstats'},cells.map(function(x,i){ var fn=acts[i]; return h(fn?'button':'div',{class:'pst'+(fn?' pgo':''),type:fn?'button':null,onclick:fn||null,title:x[0]+' · '+x[1]},h('span',{class:'psi',html:'<svg viewBox="0 0 24 24" aria-hidden="true">'+PI[x[2]]+'</svg>'}),h('b',{text:x[0],class:x[0].length>7?'lng':null}),h('small',{text:x[1]})); })));
-  c.append(h('a',{class:'pall',href:'#log',onclick:function(){ ls.set('alkyon-v4-logtab','stats'); },text:T('Όλα τα στατιστικά ›','All statistics ›')}));
+  /* 1.14.32: τα στατιστικά της χρονιάς έφυγαν από εδώ (είναι στο Ημερολόγιο › Στατιστικά), για να φαίνονται αμέσως οι καρτέλες του προφίλ */
   return c; }
 function draw(){
   if(!root) return;
@@ -70,10 +65,11 @@ function draw(){
       h('div',{class:'inrow'},B.accountBtn?B.accountBtn(null,T('Δημιουργία λογαριασμού','Create account')):null,h('button',{class:'btn',type:'button',text:T('Όχι, ευχαριστώ','No thanks'),onclick:function(){ ls.set('alkyon-v4-acctip',Date.now()); tip.remove(); }})));
       page.append(tip); } }
   page.append(B.seg([['mine',T('Τα δικά μου','My stuff')],['set',T('Ρυθμίσεις','Settings')],['acc',T('Λογαριασμός','Account')]],tab,function(v){ tab=v; ls.set('alkyon-v4-ptab',v); draw(); },T('Ενότητα προφίλ','Profile section')));
-  if(tab==='set') settingsTab(page); else if(tab==='acc') accountTab(page,s); else mineTab(page);
+  if(tab==='set'){ settingsTab(page); helpGroup(page); } else if(tab==='acc') accountTab(page,s); else mineTab(page); /* 1.14.34: η Βοήθεια μία φορά, στο τέλος των Ρυθμίσεων */
   var EL=window.AlkyonErrLog, ne=EL?EL.get().filter(function(e){ return !e.v||e.v===window.ALKYON_VERSION; }).length:0; /* 1.4.1: μόνο της τωρινής έκδοσης */
-  page.append(h('p',{class:'foot'},'Alkyon · '+(window.ALKYON_VERSION||''),
-    ne?' · ':'',ne?h('button',{type:'button',class:'linkbtn errlk',text:T('Αναφορά σφαλμάτων','Error report')+' ('+ne+')',onclick:function(){ location.hash='#check'; }}):''));
+  /* 1.14.35: η έκδοση φαίνεται ήδη στο «Σχετικά»· εδώ μόνο η αναφορά σφαλμάτων, αν υπάρχει */
+  if(ne) page.append(h('p',{class:'foot'},'',
+    '',ne?h('button',{type:'button',class:'linkbtn errlk',text:T('Αναφορά σφαλμάτων','Error report')+' ('+ne+')',onclick:function(){ location.hash='#check'; }}):''));
   root.replaceChildren(page); if(y) try{ window.scrollTo(0,y); }catch(e){}
 }
 /* αναφορά σφαλμάτων: τι κόλλησε στο κινητό, για να σταλεί και να διορθωθεί */
@@ -89,26 +85,28 @@ function mineTab(page){
   var n=B.store.raw('tackle').filter(function(x){ return !x.deleted; }).length;
   var bt=ls.get('alkyon-boat',null), bn=bt&&bt.boat&&bt.boat.name;
   /* 1.12.14: ο Οδηγός πρώτος (είναι από τα μεγάλα κομμάτια της εφαρμογής)· η εισαγωγή δεδομένων πήγε στον Λογαριασμό › Δεδομένα */
-  page.append(group(T('Οδηγός και εξοπλισμός','Guide and gear'),[
-    row('guide',T('Οδηγός','Guide'),T('Είδη, μεγέθη, νόμοι, τεχνικές','Species, sizes, laws, techniques'),'#guide'),
+  /* 1.14.35: ο Οδηγός πήγε στο Ημερολόγιο (📖), στη λεπτομέρεια ψαριού, στον χάρτη και στη Βοήθεια */
+  page.append(group(T('Εξοπλισμός και συσκευές','Gear and devices'),[
     row('tackle',T('Εξοπλισμός','Tackle'),n?n+' '+(n===1?T('κομμάτι','item'):T('κομμάτια','items')):T('Καλάμια, μουλινέ, τεχνητά, ψαροντούφεκα','Rods, reels, lures, spearguns'),'#tackle'),
     row('boat',T('Σκάφος','Boat'),bn||T('Κινητήρας, συντήρηση, λήξεις, μπαταρίες','Engine, maintenance, expiries, batteries'),'#boat'),
-    /* v31z552 */ B.garmin?row('watch',T('Ρολόι (Garmin, Apple Watch, Wear OS)','Watch (Garmin, Apple Watch, Wear OS)'),B.garmin.code()?T('Συνδεδεμένο ✓','Linked ✓'):T('Πρόγνωση, πίεση και καταγραφή ψαριού στο ρολόι','Forecast, pressure and catch logging on the watch'),null,function(){ B.garmin.sheet(); }):null].filter(Boolean)));
-  var nbl=(ls.get('alkyon-comm-block',[])||[]).length;
+    /* v31z552 */ B.garmin?row('watch',T('Ρολόι (Garmin, Apple Watch, Wear OS)','Watch (Garmin, Apple Watch, Wear OS)'),B.garmin.code()?T('Συνδεδεμένο ✓','Linked ✓'):T('Πρόγνωση, πίεση και καταγραφή ψαριού στο ρολόι','Forecast, pressure and catch logging on the watch'),null,function(){ B.garmin.sheet(); }):null,
+    B.sounder?row('sounder',T('Βυθόμετρο','Sounder'),B.sounder.summary(),null,function(){ B.sounder.sheet(); }):null].filter(Boolean)));
   page.append(group(T('Φίλοι και κοινότητα','Friends and community'),[
     (function(){ var r=row('community',T('Κοινότητα','Community'),T('Ψάρια άλλων ψαράδων, χωρίς θέση','Other anglers’ catches, no locations'),'#community'); /* 1.9.65: «Νέα» */
       if(B.commNewCount) B.commNewCount(function(n){ if(n){ var tx=r.querySelector('.tx b'); if(tx) tx.append(h('span',{class:'cmnew',text:n>=20?'20+':String(n)})); } }); return r; })(),
     row('people',T('Φίλοι','Friends'),T('Κοινά ψάρια και σημεία με φίλους','Share catches and spots with friends'),'#friends'),
-    /* 1.9.65: φωτογραφία προφίλ (φαίνεται στην Κοινότητα) και πρόσκληση φίλου */
-    (B.cloud&&B.cloud.session&&B.cloud.session()&&B.commAvatarPick)?row('people',T('Φωτογραφία προφίλ','Profile photo'),T('Φαίνεται στις αναρτήσεις και στα σχόλιά σου','Shown on your posts and comments'),null,function(){ B.commAvatarPick(); }):null,
-    B.commInvite?row('community',T('Πρόσκληση φίλου','Invite a friend'),T('Στείλε τον σύνδεσμο του Alkyon','Send the Alkyon link'),null,function(){ B.commInvite(); }):null,
-    /* 1.12.14 */ nbl?row('block',T('Αποκλεισμένοι χρήστες','Blocked users'),String(nbl),null,blockedSheet):null]));
+    B.commInvite?row('invite',T('Πρόσκληση φίλου','Invite a friend'),T('Στείλε τον σύνδεσμο του Alkyon','Send the Alkyon link'),null,function(){ B.commInvite(); }):null]));
   /* 1.9.19: διαχειριστής: σημειώσεις λιμανιών για έγκριση */
-  if(B.cloud&&B.cloud.session&&B.cloud.session()){ var cg=page.lastChild.querySelector('.list'); B.loadScripts(['portnotes.js']).then(function(){ B.portNotes.adminRow(cg,function(n){ return row('community',T('Σημειώσεις λιμανιών για έγκριση','Port notes to review'),n==null?T('Διαχειριστής','Admin'):n?n+T(' σε αναμονή',' waiting'):T('Τίποτα σε αναμονή','Nothing waiting'),null,function(){ B.portNotes.review(); }); }); B.portNotes.isAdmin().then(function(y){ if(!y) return; var rw=row('chat',T('Μηνύματα χρηστών','User messages'),T('Ό,τι στέλνουν από «Πες μας τη γνώμη σου»','What people send from “Share feedback”'),null,inboxSheet); cg.append(rw); fbUnread().then(function(n){ if(!n) return; var ic=rw.firstElementChild; if(!ic) return; ic.classList.add('hasbadge'); ic.append(h('i',{class:'icbadge','aria-label':n+T(' αδιάβαστα',' unread'),text:n>99?'99+':String(n)})); }); }); }).catch(function(){}); }
+  /* 1.14.33: εργαλεία διαχειριστή σε δική τους ομάδα (κρυφή για τους άλλους), όχι μέσα στους «Φίλους» */
+  if(B.cloud&&B.cloud.session&&B.cloud.session()){ var adm=group(T('Διαχείριση','Admin'),[]); adm.hidden=true; page.append(adm); var cg=adm.querySelector('.list'); new MutationObserver(function(){ adm.hidden=!cg.children.length; }).observe(cg,{childList:true}); B.loadScripts(['portnotes.js']).then(function(){ B.portNotes.adminRow(cg,function(n){ return row('community',T('Σημειώσεις λιμανιών για έγκριση','Port notes to review'),n==null?T('Διαχειριστής','Admin'):n?n+T(' σε αναμονή',' waiting'):T('Τίποτα σε αναμονή','Nothing waiting'),null,function(){ B.portNotes.review(); }); }); B.portNotes.isAdmin().then(function(y){ if(!y) return; var rw=row('chat',T('Μηνύματα χρηστών','User messages'),T('Ό,τι στέλνουν από «Πες μας τη γνώμη σου»','What people send from “Share feedback”'),null,inboxSheet); cg.append(rw); fbUnread().then(function(n){ if(!n) return; var ic=rw.firstElementChild; if(!ic) return; ic.classList.add('hasbadge'); ic.append(h('i',{class:'icbadge','aria-label':n+T(' αδιάβαστα',' unread'),text:n>99?'99+':String(n)})); }); }); }).catch(function(){}); }
+}
+/* 1.14.32: η Βοήθεια φαίνεται κάτω από όλες τις καρτέλες */
+function helpGroup(page){
   page.append(group(T('Βοήθεια','Help'),[
+    row('guide',T('Οδηγός','Guide'),T('Είδη, μεγέθη, νόμοι, τεχνικές','Species, sizes, laws, techniques'),'#guide'),
     row('help',T('Πώς δουλεύει','How it works'),T('Όλες οι λειτουργίες με λίγα λόγια','Every feature in a few words'),'#help'),
-    row('chat',T('Πες μας τη γνώμη σου','Share feedback'),T('Πρόταση, πρόβλημα ή κάτι που σου άρεσε','An idea, a problem, or something you liked'),null,feedbackSheet),
-    /* 1.14.13 */ (C()&&C().session&&C().session())?(function(){ var rw=row('mail',T('Μηνύματα με την Alkyon','Messages with Alkyon'),T('Οι απαντήσεις μας στα μηνύματά σου','Our replies to your messages'),null,function(){ msgThread({uid:C().session().uid,admin:false,onclose:function(){ draw(); }}); });
+    row('bulb',T('Πες μας τη γνώμη σου','Share feedback'),T('Πρόταση, πρόβλημα ή κάτι που σου άρεσε','An idea, a problem, or something you liked'),null,feedbackSheet),
+    /* 1.14.13 */ (C()&&C().session&&C().session())?(function(){ var rw=row('reply',T('Μηνύματα με την Alkyon','Messages with Alkyon'),T('Οι απαντήσεις μας στα μηνύματά σου','Our replies to your messages'),null,function(){ msgThread({uid:C().session().uid,admin:false,onclose:function(){ draw(); }}); });
       msgUnread().then(function(n){ if(!n) return; var ic=rw.firstElementChild; if(!ic) return; ic.classList.add('hasbadge'); ic.append(h('i',{class:'icbadge','aria-label':n+T(' νέα',' new'),text:String(n)})); }); return rw; })():null,
     row('mail',T('Επικοινωνία','Contact'),'alkyonfishingapp@gmail.com','mailto:alkyonfishingapp@gmail.com?subject='+encodeURIComponent('Alkyon '+(window.ALKYON_VERSION||''))), /* 1.9.24 */
     row('safety',T('Έλεγχος συστήματος','System check'),T('Δουλεύουν όλα; Καιρός, δορυφόρος, ειδοποιήσεις, αντίγραφο','Is everything working? Weather, satellite, alerts, backup'),'#check'),
@@ -135,7 +133,11 @@ function feedbackSheet(){ var sh, s=C()&&C().session&&C().session(), topic='idea
     if(!window.AlkyonErr||!window.AlkyonErr.feedback){ location.href='mailto:alkyonfishingapp@gmail.com?subject='+encodeURIComponent('Alkyon '+(window.ALKYON_VERSION||''))+'&body='+encodeURIComponent(t); return; }
     go.disabled=true; msg.textContent=T('Αποστολή…','Sending…');
     window.AlkyonErr.feedback(t,em.value.trim(),topic).then(function(){ sh.close(); B.toast(T('Ευχαριστούμε! Το μήνυμα στάλθηκε.','Thank you! Your message was sent.'),5000); })
-      .catch(function(){ go.disabled=false; msg.textContent=T('Δεν στάλθηκε. Έλεγξε τη σύνδεση ή στείλε email.','Not sent. Check your connection or send an email.'); }); }});
+      .catch(function(e){ go.disabled=false; var why=String(e&&e.message||''), off=navigator.onLine===false, code=(/HTTP \d+/.exec(why)||[''])[0];
+        /* 1.14.70: λέει τον λόγο και δίνει κουμπί email με το μήνυμα έτοιμο, για να μη χαθεί */
+        msg.textContent=off?T('Δεν στάλθηκε: δεν υπάρχει σύνδεση.','Not sent: no connection.'):code?T('Δεν στάλθηκε (','Not sent (')+code+T('). Στείλ’ το με email.','). Send it by email.'):T('Δεν στάλθηκε: ο server δεν απάντησε. Δοκίμασε ξανά ή στείλ’ το με email.','Not sent: the server did not answer. Try again or send it by email.');
+        if(!ml.isConnected) go.after(ml); }); }});
+  var ml=h('button',{class:'btn full',type:'button',text:T('Αποστολή με email','Send by email'),onclick:function(){ location.href='mailto:alkyonfishingapp@gmail.com?subject='+encodeURIComponent('Alkyon '+(window.ALKYON_VERSION||''))+'&body='+encodeURIComponent(ta.value.trim()); }});
   sh=B.sheet({title:T('Πες μας τη γνώμη σου','Share feedback'),body:h('div',{class:'bform'},seg,ta,em,
     h('p',{class:'foot',text:T('Μαζί με το μήνυμα στέλνονται η έκδοση, η σελίδα και ο τύπος του κινητού. Όχι θέση, ψάρια ή σημεία.','The app version, the page and the phone type are sent with your message. No location, catches or spots.')}),msg,go)}); }
 /* 1.13.8: μόνο για διαχειριστές: τα μηνύματα «Πες μας τη γνώμη σου» (πολιτική ae_admin_read_feedback) */
@@ -208,35 +210,35 @@ function settingsTab(page){
       sheetOf(T('Τύπος ψαρέματος','Fishing type'),body); }),
     ]));
   page.append(group(T('Ασφάλεια','Safety'),[
-    row('safety',T('Επαφή ασφαλείας','Safety contact'),sf.name||sf.phone||sf.email||(sf.tgLinked?'Telegram':T('Δεν έχει οριστεί','Not set')),null,function(){ if(B.safetyCard) sheetOf(T('Επαφή ασφαλείας','Safety contact'),B.safetyCard()); }),
+    row('phone',T('Επαφή ασφαλείας','Safety contact'),sf.name||sf.phone||sf.email||(sf.tgLinked?'Telegram':T('Δεν έχει οριστεί','Not set')),null,function(){ if(B.safetyCard) sheetOf(T('Επαφή ασφαλείας','Safety contact'),B.safetyCard()); }),
     /* 1.9.40: όρια ασφαλείας για όλους (ακτή, ψαροντούφεκο, σκάφος), όχι μόνο μέσα στο Σκάφος */
     B.limitsCard?row('lim',T('Όρια ασφαλείας','Safety limits'),(function(){ var L=B.limits?B.limits():{}, U=window.AlkyonUnits; return T('άνεμος ','wind ')+(U&&U.wind?U.wind(L.wind):Math.round(L.wind)+' kn')+' · '+T('κύμα ','waves ')+B.num(L.wave,1)+' m · '+T('ριπές ','gusts ')+(U&&U.wind?U.wind(L.gust):Math.round(L.gust)+' kn'); })(),null,function(){ var on=function(){ ch=true; }, ch=false; window.addEventListener('alkyon-limits',on); B.sheet({title:T('Όρια ασφαλείας','Safety limits'),body:h('div',null,B.limitsCard()),onclose:function(){ window.removeEventListener('alkyon-limits',on); if(ch) draw(); }}); }):null,
     ]));
   page.append(group(T('Ειδοποιήσεις','Notifications'),[
     row('bell',T('Ρυθμίσεις ειδοποιήσεων','Notification settings'),n.on?T('Ενεργές','On'):T('Ανενεργές','Off'),'#alerts'),
     row('hist',T('Ιστορικό ειδοποιήσεων','Notification history'),T('Ό,τι σου στάλθηκε','Everything sent to you'),'#inbox')]));
-  page.append(group(T('Εφαρμογή','App'),[
-    /* 1.14.21 */ B.contrib?row('stats',T('Βοήθησε την πρόγνωση','Help the forecast'),B.contrib.on()?T('Συμμετέχεις ανώνυμα · ευχαριστούμε','Taking part anonymously · thank you'):T('Ανώνυμα στοιχεία τσιμπημάτων','Anonymous bite data'),null,function(){ B.contrib.sheet(); }):null,
-    row('lang',T('Γλώσσα','Language'),B.LANG==='en'?'English':'Ελληνικά',null,function(){ sheetOf(T('Γλώσσα','Language'),h('div',{class:'bform'},B.seg([['el','Ελληνικά'],['en','English']],B.LANG,function(v){ if(B.relang) B.relang(v); else { try{ localStorage.setItem('alkyon-lang',v); }catch(e){} location.reload(); } },T('Γλώσσα','Language')))); }),
+  /* 1.14.32: «Εμφάνιση και γλώσσα»: θέμα, νύχτα, χάρτης, μονάδες, γλώσσα, χώρα· φωνή και AI στους «Βοηθούς» */
+  var apG=group((B.langChoice&&!B.langChoice())?T('Εμφάνιση','Appearance'):T('Εμφάνιση και γλώσσα','Appearance and language'),[
+    (B.langChoice&&!B.langChoice())?null:row('lang',T('Γλώσσα','Language'),B.LANG==='en'?'English':'Ελληνικά',null,function(){ sheetOf(T('Γλώσσα','Language'),h('div',{class:'bform'},B.seg([['el','Ελληνικά'],['en','English']],B.LANG,function(v){ if(B.relang) B.relang(v); else { try{ localStorage.setItem('alkyon-lang',v); }catch(e){} location.reload(); } },T('Γλώσσα','Language')))); }),
     /* 1.11.0: χώρα για νόμους, γνωστά μέρη και ειδοποιήσεις κανόνων */
     row('flag',T('Χώρα','Country'),(function(){ var c=ls.get('alkyon-country','auto'); return c!=='auto'?B.countryName(c):T('Αυτόματα','Automatic')+(B.country&&B.country()&&B.country()!=='xx'?' · '+B.countryName(B.country()):''); })(),null,function(){ sheetOf(T('Χώρα','Country'),h('div',{class:'bform'},B.countrySelect(ls.get('alkyon-country','auto'),function(v){ ls.set('alkyon-country',v); B.toast(T('Αποθηκεύτηκε','Saved')); setTimeout(function(){ if(B.rerender) B.rerender(); else location.reload(); },300); }),h('p',{class:'sub',text:T('Για τους νόμους στον Οδηγό, τα γνωστά μέρη στην πρόγνωση και τις υπενθυμίσεις κανόνων. «Αυτόματα»: από τη θέση σου. Οι ζώνες απαγόρευσης στον χάρτη ακολουθούν πάντα το μέρος που βλέπεις.','For the laws in the Guide, known places in the forecast and rule reminders. “Automatic”: from your location. No-fishing zones on the map always follow the place you look at.')}))); }),
     U&&U.options?row('units',T('Μονάδες','Units'),uSum,null,unitsSheet):null,
-    B.saySheet?row('voice',T('Φωνή','Voice'),(B.sayCfg&&B.sayCfg().on)?T('Ανοιχτή · συρτή, ταχύτητα, άγκυρα, πλοήγηση','On · trolling, speed, anchor, navigation'):T('Κλειστή','Off'),null,B.saySheet):null,
     /* 1.12.2: ο κλασικός χάρτης αφαιρέθηκε· εδώ μένει μόνο το «η οθόνη αλλάζει μόνη της» */
     row('map',T('Χάρτης','Map'),(ls.get('alkyon-v4-automode',true)!==false)?T('Η οθόνη αλλάζει μόνη της στην έξοδο','Screen changes by itself on trips'):T('Σταθερή οθόνη στην έξοδο','Fixed screen on trips'),null,function(){ var sh;
       var am=h('input',{type:'checkbox',checked:ls.get('alkyon-v4-automode',true)!==false}); am.addEventListener('change',function(){ ls.set('alkyon-v4-automode',am.checked); B.render&&B.render(); });
       sh=B.sheet({title:T('Χάρτης','Map'),body:h('div',{class:'list'},h('label',{class:'tg',style:'padding:10px 14px'},am,h('span',null,h('b',{text:T('Η οθόνη αλλάζει μόνη της','Screen changes by itself')}),h('small',{class:'tgs',text:T('Σε έξοδο: ΠΗΓΑΙΝΩ πάνω από 6 kn, ΨΑΡΕΥΩ αργά ή με συρτή, ΑΓΚΥΡΑ με συναγερμό άγκυρας','On a trip: UNDERWAY above 6 kn, FISHING slow or trolling, ANCHORED with the anchor alarm')}))))}); }),
-    ]));
-  page.append(group(T('Εμφάνιση','Appearance'),[
-    row('theme',T('Θέμα','Theme'),themeLab(themeGet()),null,function(){ sheetOf(T('Θέμα','Theme'),h('div',{class:'bform'},
+    ]);
+  var apL=apG.querySelector('.list'), apFirst=apL.firstChild;
+  [row('theme',T('Θέμα','Theme'),themeLab(themeGet()),null,function(){ sheetOf(T('Θέμα','Theme'),h('div',{class:'bform'},
       h('p',{class:'sub',text:T('«Αυτόματο»: ακολουθεί το κινητό. Το φωτεινό διαβάζεται καλύτερα στον δυνατό ήλιο.','“Automatic”: follows your phone. Light is easier to read in strong sun.')}),
       B.seg([['auto',T('Αυτόματο','Automatic')],['light',T('Φωτεινό','Light')],['dark',T('Σκούρο','Dark')]],themeGet(),function(v){ themeSet(v); draw(); },T('Θέμα','Theme')))); }),
     B.night?row('night',T('Νυχτερινή λειτουργία','Night mode'),{auto:T('Αυτόματα στην έξοδο μετά τη δύση','Automatic on trips after sunset'),on:T('Πάντα','Always'),off:T('Ποτέ','Never')}[B.night.mode()],null,function(){ sheetOf(T('Νυχτερινή λειτουργία','Night mode'),h('div',{class:'bform'},
       h('p',{class:'sub',text:T('Κόκκινη οθόνη για το σκοτάδι: τα μάτια δεν χάνουν την προσαρμογή τους. Στον χάρτη, το κουμπί 🌙 την ανοίγει ή την κλείνει για την τρέχουσα έξοδο.','Red screen for the dark: your eyes keep their night vision. On the map, the 🌙 button turns it on or off for the current trip.')}),
-      B.seg([['auto',T('Αυτόματα','Automatic')],['on',T('Πάντα','Always')],['off',T('Ποτέ','Never')]],B.night.mode(),function(v){ B.night.set(v); draw(); },T('Νυχτερινή λειτουργία','Night mode')))); }):null,
-    ]));
-  page.append(group(T('Εργαλεία','Tools'),[
-    B.sounder?row('sounder',T('Βυθόμετρο','Sounder'),B.sounder.summary(),null,function(){ B.sounder.sheet(); }):null, /* 1.10.12 */
+      B.seg([['auto',T('Αυτόματα','Automatic')],['on',T('Πάντα','Always')],['off',T('Ποτέ','Never')]],B.night.mode(),function(v){ B.night.set(v); draw(); },T('Νυχτερινή λειτουργία','Night mode')))); }):null
+    ].forEach(function(r){ if(r) apL.insertBefore(r,apFirst); });
+  page.append(apG);
+  page.append(group(T('Βοηθοί','Assistants'),[
+    B.saySheet?row('voice',T('Φωνή','Voice'),(B.sayCfg&&B.sayCfg().on)?T('Ανοιχτή · συρτή, ταχύτητα, άγκυρα, πλοήγηση','On · trolling, speed, anchor, navigation'):T('Κλειστή','Off'),null,B.saySheet):null,
     B.dataCards?row('ai',T('Αναγνώριση ψαριού (AI)','Fish recognition (AI)'),T('Κλειδί και ρυθμίσεις','Key and settings'),null,function(){ sheetOf(T('Αναγνώριση ψαριού (AI)','Fish recognition (AI)'),B.dataCards()[1]); }):null]));
 }
 /* v31z545: αποσύνδεση με επιλογή: να μείνουν ή να σβηστούν τα δεδομένα από αυτό το κινητό (μένουν πάντα στον λογαριασμό) */
@@ -253,20 +255,27 @@ function unitsSheet(){ var body=h('div',{class:'bform'}), L={wind:T('Άνεμο�
   sheetOf(T('Μονάδες','Units'),body); }
 function accountTab(page,s){
   page.append(s?accountCard(s):signInCard());
+  privGroup(page,s);
   /* 1.9.6: πιο σύντομος «Λογαριασμός»: τα εργαλεία δεδομένων σε τρεις γραμμές που ανοίγουν φύλλο (ίδια κουμπιά μέσα) */
-  var IC={imp:'<rect x="7" y="3" width="10" height="18" rx="2"/><path d="M12 7v7m-3-3 3 3 3-3"/>',snd:'<path d="M4 5h16v10H4z"/><path d="M6 12l3-3 2 2 3-4 4 5"/><path d="M9 19h6M12 15v4"/>',bk:'<path d="M12 3v12m-4-4 4 4 4-4M5 21h14"/>',gx:'<path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><path d="M12 7v5m-2-2 2 2 2-2"/>',xl:'<path d="M4 4h16v16H4zM4 10h16M10 4v16"/>',ck:'<path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/>'};
+  var IC={fcsv:'<path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4"/><path d="M9 14.500c1.500-2 4-2 6 0-2 2-4.500 2-6 0zM15 14.500l1.500-1.200v2.400z"/>',imp:'<rect x="7" y="3" width="10" height="18" rx="2"/><path d="M12 7v7m-3-3 3 3 3-3"/>',snd:'<path d="M4 5h16v10H4z"/><path d="M6 12l3-3 2 2 3-4 4 5"/><path d="M9 19h6M12 15v4"/>',bk:'<path d="M12 3v12m-4-4 4 4 4-4M5 21h14"/>',gx:'<path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><path d="M12 7v5m-2-2 2 2 2-2"/>',xl:'<path d="M4 4h16v16H4zM4 10h16M10 4v16"/>',ck:'<path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/>'};
   function row(ic,t,sub,fn){ return h('button',{class:'li',type:'button',onclick:fn},h('span',{class:'ic',html:'<svg viewBox="0 0 24 24" aria-hidden="true">'+IC[ic]+'</svg>'}),h('span',{class:'tx'},h('b',{text:t}),h('small',{text:sub})),B.icon('chev')); }
   var lb=ls.get('alkyon-lastbackup',0), dcs=B.dataCards?B.dataCards():null, dm=dataCard();
   page.append(group(T('Δεδομένα','Data'),[
     /* 1.12.14: εδώ και η εισαγωγή (πριν ήταν στα «Τα δικά μου») */
     row('imp',T('Εισαγωγή από plotter, GPS ή ρολόι','Import from a plotter, GPS or watch'),'GPX · KML · CSV · FIT · UDDF',function(){ if(B.importSheet) B.importSheet(); }),
-    B.sounder?row('snd',T('Εισαγωγή από βυθόμετρο','Import from a sounder'),'Lowrance .sl2 · .sl3 · NMEA · GPX · CSV',function(){ B.sounder.sheet(); }):null,
+    /* 1.14.37: «Ψάρια φίλου» (CSV) εδώ, όχι στην Πρόγνωση */ window.AlkyonExt?row('fcsv',T('Ψάρια φίλου (CSV)','A friend’s catches (CSV)'),T('Ως εποχιακή ένδειξη στις προτάσεις ειδών','As a seasonal hint in species suggestions'),function(){ var xc=null; try{ xc=AlkyonExt.card(function(){ B.emit('store','alkyon-fprof'); }); }catch(e){} if(xc){ xc.classList.remove('card'); sheetOf(T('Ψάρια φίλου','A friend’s catches'),h('div',null,xc)); } }):null,
     row('bk',T('Αντίγραφο ασφαλείας','Backup'),lb?T('Τελευταίο: ','Last: ')+new Date(lb).toLocaleDateString(EN?'en-GB':'el-GR'):T('Δεν έχει γίνει ακόμα','Not done yet'),function(){ sheetOf(T('Αντίγραφο ασφαλείας','Backup'),h('div',null,backupCard())); }),
     B.geoSheet?row('gx',T('Εξαγωγή σε GPX / KML','Export to GPX / KML'),T('Σημεία, ψάρια και διαδρομές για plotter ή Google Earth','Spots, catches and tracks for a plotter or Google Earth'),function(){ B.geoSheet(); }):null,
     dcs&&dcs[0]?row('xl',T('Εξαγωγή σε Excel (CSV)','Export to Excel (CSV)'),T('Ψάρια ή έξοδοι σε αρχείο','Catches or trips in a file'),function(){ var d=B.dataCards(); sheetOf(T('Εξαγωγή σε Excel (CSV)','Export to Excel (CSV)'),h('div',null,d[0])); }):null,
     (dcs&&dcs[2])||dm?row('ck',T('Έλεγχος και συμπλήρωση δεδομένων','Check and fill in data'),T('Ασυνέπειες, καιρός σε παλιά ψάρια','Inconsistencies, weather for old catches'),function(){ var d=B.dataCards?B.dataCards():null, m=dataCard(); sheetOf(T('Έλεγχος και συμπλήρωση','Check and fill in'),h('div',null,d&&d[2]?d[2]:null,m||null)); }):null]));
   if(s) page.append(dangerCard());
 }
+/* 1.14.32: «Προφίλ και απόρρητο»: φωτογραφία προφίλ, Βοήθησε την πρόγνωση, αποκλεισμένοι (ήταν σκόρπια σε άλλες καρτέλες) */
+function privGroup(page,s){ var nbl=(ls.get('alkyon-comm-block',[])||[]).length;
+  page.append(group(T('Απόρρητο και κοινοποίηση','Privacy and sharing'),[
+    (s&&B.commAvatarPick)?row('camera',T('Φωτογραφία προφίλ','Profile photo'),T('Φαίνεται στις αναρτήσεις και στα σχόλιά σου','Shown on your posts and comments'),null,function(){ B.commAvatarPick(); }):null,
+    B.contrib?row('stats',T('Βοήθησε την πρόγνωση','Help the forecast'),B.contrib.on()?T('Συμμετέχεις ανώνυμα · ευχαριστούμε','Taking part anonymously · thank you'):T('Ανώνυμα στοιχεία τσιμπημάτων','Anonymous bite data'),null,function(){ B.contrib.sheet(); }):null,
+    nbl?row('block',T('Αποκλεισμένοι χρήστες','Blocked users'),String(nbl),null,blockedSheet):null])); }
 /* ---------- λογαριασμός ---------- */
 function accountCard(s){
   var c=h('section',{class:'card acc'}), st=C().state();

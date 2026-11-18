@@ -32,15 +32,26 @@ function get(k,id){ return raw(k).filter(function(x){ return x.id===id; })[0]||n
 var dbp=null;
 function db(){ if(window.alkyonPhotoDB) return window.alkyonPhotoDB(); return dbp||(dbp=new Promise(function(res,rej){ var r=indexedDB.open('alkyon',1); r.onupgradeneeded=function(){ r.result.createObjectStore('photos'); }; r.onsuccess=function(){ res(r.result); }; r.onerror=function(){ rej(r.error); }; })); }
 function tx(mode,fn){ return db().then(function(d){ return new Promise(function(res,rej){ var t=d.transaction('photos',mode), rq=fn(t.objectStore('photos')); t.oncomplete=function(){ res(rq&&rq.result); }; t.onerror=function(){ rej(t.error); }; t.onabort=function(){ rej(t.error); }; }); }); }
-var Photos={put:function(id,b){ return tx('readwrite',function(s){ return s.put(b,id); }); },get:function(id){ return tx('readonly',function(s){ return s.get(id); }).then(function(v){ return v!==undefined||!window.alkyonOldPhoto?v:window.alkyonOldPhoto(id); }); },del:function(id){ return tx('readwrite',function(s){ return s.delete(id); }); }};
+/* 1.14.57: μικρογραφία (έως 240 px, ~8 KB) για τις λίστες, φτιάχνεται μία φορά και μένει στο κινητό (κλειδί th~id)· πριν κάθε γραμμή φόρτωνε ολόκληρη τη φωτογραφία */
+function mkThumb(bl){ return (window.createImageBitmap?createImageBitmap(bl):Promise.reject()).catch(function(){ return new Promise(function(res,rej){ var im=new Image(); im.onload=function(){ res(im); }; im.onerror=rej; im.src=URL.createObjectURL(bl); }); }).then(function(bmp){
+  var w=bmp.width||bmp.naturalWidth, hh=bmp.height||bmp.naturalHeight, k=Math.min(1,240/Math.max(w,hh)), c=document.createElement('canvas'); c.width=Math.max(1,Math.round(w*k)); c.height=Math.max(1,Math.round(hh*k)); c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);
+  return new Promise(function(res){ c.toBlob(function(b){ res(b); },'image/jpeg',0.72); }); }); }
+var Photos={thumb:function(id){ return tx('readonly',function(s){ return s.get('th~'+id); }).then(function(t){ if(t) return t; return Photos.get(id).then(function(bl){ if(!bl) return bl; return mkThumb(bl).then(function(tb){ if(!tb) return bl; return tx('readwrite',function(s){ return s.put(tb,'th~'+id); }).then(function(){ return tb; },function(){ return tb; }); }).catch(function(){ return bl; }); }); }); },
+  put:function(id,b){ return tx('readwrite',function(s){ try{ s.delete('th~'+id); }catch(e){} return s.put(b,id); }); },get:function(id){ return tx('readonly',function(s){ return s.get(id); }).then(function(v){ return v!==undefined||!window.alkyonOldPhoto?v:window.alkyonOldPhoto(id); }); },del:function(id){ return tx('readwrite',function(s){ try{ s.delete('th~'+id); }catch(e){} return s.delete(id); }); }};
 function phKeys(b){ var a=[]; if(b&&b.photo){ a.push(b.id); for(var i=1;i<=(+b.xph||0);i++) a.push(b.id+'~'+i); } return a; }
 /* μικραίνει τη φωτογραφία στα 1280 px (όπως η κλασική) */
-function resize(file){
+function resize(file,opt){
   return (window.createImageBitmap?createImageBitmap(file,{imageOrientation:'from-image'}):Promise.reject()).catch(function(){
     return new Promise(function(res,rej){ var im=new Image(); im.onload=function(){ res(im); }; im.onerror=rej; im.src=URL.createObjectURL(file); }); }).then(function(bmp){
     var w=bmp.width||bmp.naturalWidth, hh=bmp.height||bmp.naturalHeight, k=Math.min(1,1280/Math.max(w,hh)), c=document.createElement('canvas');
     c.width=Math.round(w*k); c.height=Math.round(hh*k); c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);
-    return new Promise(function(res){ c.toBlob(function(b){ res(b); },'image/jpeg',0.82); }); });
+    /* 1.14.57: στόχος 60–80 KB (πριν ~160 KB): η ποιότητα κατεβαίνει σταδιακά μέχρι να χωρέσει· η μεγάλη πλευρά μένει 1280 px. Με opt.keep (σάρωση συντεταγμένων, μέτρηση) μένει η παλιά ποιότητα. */
+    var blobAt=function(q){ return new Promise(function(res){ c.toBlob(function(b){ res(b); },'image/jpeg',q); }); };
+    if(opt&&opt.keep) return blobAt(0.82);
+    var QS=[0.72,0.62,0.54,0.46], i=0, step=function(){ return blobAt(QS[i]).then(function(b){ if(!b||b.size<=82000||i>=QS.length-1) return b; i++; return step(); }); };
+    return step().then(function(b){ /* πολύ «φορτωμένη» φωτογραφία που δεν χωρά ούτε έτσι: μία φορά στα 1024 px */ if(!b||b.size<=110000||Math.max(c.width,c.height)<=1024) return b;
+      var k2=1024/Math.max(c.width,c.height), c2=document.createElement('canvas'); c2.width=Math.round(c.width*k2); c2.height=Math.round(c.height*k2); c2.getContext('2d').drawImage(c,0,0,c2.width,c2.height);
+      return new Promise(function(res){ c2.toBlob(function(x){ res(x&&x.size<b.size?x:b); },'image/jpeg',0.6); }); }); });
 }
 
 /* ---------- λογαριασμός ---------- */
@@ -196,7 +207,7 @@ document.addEventListener('visibilitychange',function(){ if(!document.hidden) sc
 setTimeout(function(){ if(S()) sync(false); },1500);
 setTimeout(function(){ if(localCount()) persistOnce(); },4000);
 
-B.store={setsSync:setsSync,raw:raw,get:get,save:save,remove:remove,tombs:tombs,Photos:Photos,phKeys:phKeys,resize:resize,
+B.store={shrinkOld:function(){ return shrinkOld(); },setsSync:setsSync,raw:raw,get:get,save:save,remove:remove,tombs:tombs,Photos:Photos,phKeys:phKeys,resize:resize,
 
   /* v31z542: τα ψάρια χωρίς τους λαγοκέφαλους· αυτοί χωριστά στο pests() */
   bites:function(){ return raw('bites').filter(function(b){ return !b.miss&&!B.pest(b); }); }, misses:function(){ return raw('bites').filter(function(b){ return b.miss&&!B.pest(b); }); },
@@ -211,5 +222,17 @@ B.store.delUndo=function(k,rec,msg){
   B.toast(msg||T('Διαγράφηκε.','Deleted.'),7000,{label:T('Αναίρεση','Undo'),fn:function(){ undone=true; clearTimeout(t); var r=Object.assign({},rec); delete r.deleted; save(k,r);
     if(k==='bites'){ var pup=ls.get('alkyon-pup',{})||{}; keys.forEach(function(x){ delete pup[x]; }); ls.set('alkyon-pup',pup); recountTrip(rec.trip); } B.toast(T('Επαναφέρθηκε.','Restored.')); }});
 };
+/* 1.14.58: οι παλιές φωτογραφίες (~160 KB) ξανασυμπιέζονται σιγά σιγά στο κινητό με τη νέα ρύθμιση (στόχος 60–80 KB) και ξανανεβαίνουν στο cloud
+   στον επόμενο συγχρονισμό. Έως 4 ανά άνοιγμα της εφαρμογής, μόνο όσες είναι πάνω από 110 KB, και η νέα αντικαθιστά την παλιά μόνο αν είναι
+   πραγματική εικόνα και τουλάχιστον 25% μικρότερη. Κάθε φωτογραφία δοκιμάζεται μία φορά (alkyon-v4-phz). */
+function shrinkOld(){ try{
+  var done=ls.get('alkyon-v4-phz',{})||{}, keys=[]; raw('bites').forEach(function(b){ if(b&&!b.deleted) phKeys(b).forEach(function(k){ if(!done[k]) keys.push(k); }); });
+  var n=0, q=Promise.resolve(); keys.slice(0,40).forEach(function(k){ q=q.then(function(){ if(n>=4) return; return Photos.get(k).then(function(bl){ done[k]=1;
+      if(!bl||!bl.size||bl.size<=110000) return; n++;
+      return resize(bl).then(function(nb){ if(!nb||!nb.size||nb.size<5000||nb.size>bl.size*0.75) return;
+        return (window.createImageBitmap?createImageBitmap(nb):Promise.resolve(true)).then(function(){ return Photos.put(k,nb); }).then(function(){ var pup=ls.get('alkyon-pup',{})||{}; delete pup[k]; ls.set('alkyon-pup',pup); }); }); }).catch(function(){}); }); });
+  return q.then(function(){ ls.set('alkyon-v4-phz',done); return n; });
+}catch(e){ return Promise.resolve(0); } }
+setTimeout(function(){ if(!document.hidden) shrinkOld(); },25000);
 B.cloud={pub:function(path){ return fetch(URL_+'/rest/v1/'+path,{headers:H(null)}); }, /* 1.14.21: ανάγνωση δημόσιων πινάκων χωρίς λογαριασμό */ providers:providers,oauthUrl:oauthUrl,owner:owner,ownerChoice:ownerChoice,localCount:localCount,rest:rest,storage:storage,session:S,signIn:signIn,signUp:signUp,signOut:signOut,setName:setName,sync:sync,verify:verify,recover:recover,resend:resend,fromLink:fromLink,setPassword:setPassword,state:function(){ return state; },errText:errText};
 })();

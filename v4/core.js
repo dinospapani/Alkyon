@@ -14,7 +14,8 @@ if(LANG!=='el'&&LANG!=='en') LANG='el';
 window.LANG=LANG;
 document.documentElement.lang=LANG;
 var EN=LANG==='en';
-function T(el,en){ return EN?en:el; }
+/* 1.14.43: στα αγγλικά τα εισαγωγικά είναι “ ” και όχι « » */
+function T(el,en){ return EN?((typeof en==='string'&&en.indexOf('\u00ab')>=0)?en.replace(/\u00ab/g,'\u201c').replace(/\u00bb/g,'\u201d'):en):el; }
 
 /* ---------- αποθήκευση ---------- */
 var ls={
@@ -109,6 +110,11 @@ window.AK.region=function(lat,lon){ if(lat==null||lon==null||isNaN(lat)||isNaN(l
 window.AK.country=function(){ var c=ls.get('alkyon-country','auto'); if(c&&c!=='auto'&&/^[a-z]{2}$/.test(c)) return c; var p=lastPos(); if(p&&typeof p.lat==='number'){ var r=window.AK.region(p.lat,p.lon)||'xx'; ls.set('alkyon-country-last',r); return r; } return ls.get('alkyon-country-last','')||''; };
 /* όλες οι χώρες (ISO 3166-1), με ονόματα από τον browser (Intl.DisplayNames) στη γλώσσα της εφαρμογής */
 window.AK.COUNTRIES='ad ae af ag ai al am ao ar as at au aw ax az ba bb bd be bf bg bh bi bj bl bm bn bo bq br bs bt bw by bz ca cc cd cf cg ch ci ck cl cm cn co cr cu cv cw cx cy cz de dj dk dm do dz ec ee eg eh er es et fi fj fk fm fo fr ga gb gd ge gf gg gh gi gl gm gn gp gq gr gs gt gu gw gy hk hn hr ht hu id ie il im in io iq ir is it je jm jo jp ke kg kh ki km kn kp kr kw ky kz la lb lc li lk lr ls lt lu lv ly ma mc md me mf mg mh mk ml mm mn mo mp mq mr ms mt mu mv mw mx my mz na nc ne nf ng ni nl no np nr nu nz om pa pe pf pg ph pk pl pm pn pr ps pt pw py qa re ro rs ru rw sa sb sc sd se sg sh si sk sl sm sn so sr ss st sv sx sy sz tc td tf tg th tj tk tl tm tn to tr tt tv tw tz ua ug um us uy uz va vc ve vg vi vn vu wf ws ye yt za zm zw'.split(' ');
+/* 1.14.62: η επιλογή γλώσσας (Ελληνικά/English) φαίνεται μόνο σε όποιον ψαρεύει στην Κύπρο ή την Ελλάδα (χώρα που διάλεξε ή θέση),
+   έχει ήδη τα Ελληνικά ή έχει ελληνικό κινητό. Σε όλους τους άλλους η εφαρμογή είναι απλώς αγγλική. */
+window.AK.langChoice=function(){ try{ if(LANG==='el') return true; var A=window.AK, c=A.ls.get('alkyon-country','auto'); if(c==='cy'||c==='gr') return true;
+  if(c==='auto'){ var p=A.ls.get('alkyon-v4-pos',null), r=p&&typeof p.lat==='number'?A.region(p.lat,p.lon):null; if(r==='cy'||r==='gr') return true; }
+  return (navigator.languages||[navigator.language||'']).some(function(l){ return /^el\b/i.test(l||''); }); }catch(e){ return false; } };
 window.AK.countryName=function(c){ if(!c) return ''; if(c==='xx') return EN?'Another country':'Άλλη χώρα'; if(c==='cy') return EN?'Cyprus':'Κύπρος'; if(c==='gr') return EN?'Greece':'Ελλάδα';
   try{ return new Intl.DisplayNames([EN?'en':'el'],{type:'region'}).of(c.toUpperCase())||c.toUpperCase(); }catch(e){ return c.toUpperCase(); } };
 /* <select> με «Αυτόματα» και όλες τις χώρες, ταξινομημένες με το όνομα */

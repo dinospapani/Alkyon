@@ -6,7 +6,9 @@ var A=function(){ return B.adv; };
 var sel={di:0,hr:null};
 
 function bar(label,v,max,right,cls){ return h('div',{class:'bar'+(cls?' '+cls:'')},h('span',{class:'bl',text:label}),h('span',{class:'bt'},h('i',{style:{width:Math.max(2,Math.min(100,Math.round(v/(max||1)*100)))+'%'}})),h('span',{class:'bv',text:right})); }
-function card(title,sub){ var c=h('section',{class:'card'},h('h2',{text:title})); if(sub) c.append(h('p',{class:'sub',style:{margin:'-4px 0 12px'},text:sub})); return c; }
+/* 1.14.37: η επεξήγηση κάθε κάρτας ανοίγει με το (i) δίπλα στον τίτλο */
+function card(title,sub){ var t=h('h2',{text:title}), c=h('section',{class:'card'},t); if(sub){ if(B.infoAdd) B.infoAdd(t,sub); else c.append(h('p',{class:'sub',style:{margin:'-4px 0 12px'},text:sub})); } return c; }
+function lvlTxt(r){ return r>=0.75?T('Καλές πιθανότητες','Good chance'):r>=0.45?T('Μέτριες','Fair'):T('Λιγότερες','Lower'); }
 function rerender(){ B.emit('fc-redraw'); }
 function moonTxt(f){ var i=Math.floor(f*8+0.5)%8; return (EN?['new moon','waxing crescent','first quarter','waxing gibbous','full moon','waning gibbous','last quarter','waning crescent']:['νέα σελήνη','αύξουσα ημισέληνος','πρώτο τέταρτο','αύξων αμφίκυρτος','πανσέληνος','φθίνων αμφίκυρτος','τελευταίο τέταρτο','φθίνουσα ημισέληνος'])[i]; }
 function ptTxt(t){ return {fast:T('πίεση πέφτει απότομα','pressure falling fast'),slow:T('πίεση πέφτει αργά','pressure falling slowly'),stable:T('σταθερή πίεση','steady pressure'),rise:T('πίεση ανεβαίνει','pressure rising')}[t]||''; }
@@ -31,17 +33,20 @@ B.fcAdv=function(page,fc,ctx){
   var S=q?A().suggest(D,A().slot(d,q)):{species:[],tech:[]};
   if(!S.species.length) c.append(h('p',{class:'sub',text:B.prof()==='lake'?T('Για λίμνη οι προτάσεις έρχονται από τα δικά σου ψάρια. Καταγράψε μερικά για να εμφανιστούν.','For lakes the suggestions come from your own catches. Log a few to see them.'):T('Δεν υπάρχουν ακόμα προτάσεις για αυτό το προφίλ.','No suggestions for this profile yet.')}));
   else {
-    var mx=S.species[0].p, l=h('div',{class:'spl'});
-    S.species.forEach(function(r){
-      var det=[r.tech.length?T('Τεχνική: ','Technique: ')+r.tech.join(', '):'',r.bait.length?T('Δόλωμα: ','Bait: ')+r.bait.join(', '):'',r.depth?T('Βάθος: ','Depth: ')+r.depth:''].filter(Boolean);
-      l.append(h('div',{class:'sp'},h('div',{class:'sph'},h('b',{text:r.name}),h('span',{text:Math.round(r.p*100)+'%'})),h('span',{class:'bt'},h('i',{style:{width:Math.max(3,Math.round(r.p/mx*100))+'%'}})),
+    var mx=S.species[0].p, l=h('div',{class:'spl'}), l0=l, rest=null;
+    S.species.forEach(function(r,ri){ /* 1.14.42: τα 5 πρώτα· τα υπόλοιπα ανοίγουν με «Περισσότερα είδη» */ if(ri===5){ rest=h('div',{class:'spl'}); l=rest; }
+      /* 1.14.43: «Άλλο» δεν λέει τίποτα· από το δόλωμα βγαίνει η πραγματική τεχνική (καλαμαριέρα, σαμπίκι) */
+      var bj=(r.bait||[]).join(' ').toLowerCase(), oth=/καλαμαρι[έε]ρ|squid jig|egi/.test(bj)?T('Καλαμαριέρα (eging)','Squid jigging (eging)'):/σαμπ[ίι]κι|sabiki/.test(bj)?'Sabiki':null;
+      var tk=r.tech.map(function(x){ return (x==='Άλλο'||x==='Other')&&oth?oth:x; });
+      var det=[tk.length?T('Τεχνική: ','Technique: ')+tk.join(', '):'',r.bait.length?T('Δόλωμα: ','Bait: ')+r.bait.join(', '):'',r.depth?T('Βάθος: ','Depth: ')+r.depth:''].filter(Boolean);
+      l.append(h('div',{class:'sp'},h('div',{class:'sph'},h('b',{text:r.name}),h('span',{class:'splv lv'+(r.p/mx>=0.75?'2':r.p/mx>=0.45?'1':'0'),text:lvlTxt(r.p/mx)})),h('span',{class:'bt lv'+(r.p/mx>=0.75?'2':r.p/mx>=0.45?'1':'0')},h('i',{style:{width:Math.max(3,Math.round(r.p/mx*100))+'%'}})),
         h('p',{class:'spd',text:det.join('. ')+(det.length?'. ':'')+(r.n?T('Από ','From ')+r.n+T(' δικά σου ψάρια.',' of your catches.'):T('Από γενική γνώση.','From general knowledge.'))}),
         r.warn?h('p',{class:'spw',text:r.warn}):null));
     });
-    c.append(l);
-    if(S.tech.length){ c.append(h('h3',{class:'h3',text:T('Προτεινόμενη τεχνική','Suggested technique')})); S.tech.forEach(function(t){ c.append(bar(t.name,t.p,S.tech[0].p,Math.round(t.p*100)+'%')); }); }
+    c.append(l0); if(rest) c.append(h('details',{class:'spmore'},h('summary',{text:T('Περισσότερα είδη (','More species (')+(S.species.length-5)+')'}),rest));
+    if(S.tech.length){ c.append(h('h3',{class:'h3',text:T('Προτεινόμενη τεχνική','Suggested technique')})); S.tech.forEach(function(t){ c.append(bar((t.name==='Άλλο'||t.name==='Other')?T('Καλαμαριέρα, σαμπίκι','Squid jig, sabiki'):t.name,t.p,S.tech[0].p,lvlTxt(t.p/S.tech[0].p),t.p/S.tech[0].p>=0.75?'up':t.p/S.tech[0].p>=0.45?'mid':'low')); }); }
   }
-  c.append(h('p',{class:'foot',style:{margin:'12px 0 0'},text:T('Τα ποσοστά δείχνουν σχετική πιθανότητα ανάμεσα στα είδη της λίστας, όχι σίγουρο αποτέλεσμα.','Percentages show relative likelihood among the listed species, not a certain result.')}));
+  if(B.infoAdd) B.infoAdd(c.querySelector('h2'),T('Τα είδη ταξινομημένα από το πιο πιθανό για αυτή την ώρα, από τα δικά σου ψάρια και τη γενική γνώση για κάθε είδος. Σχετική σύγκριση ανάμεσα στα είδη, όχι σίγουρο αποτέλεσμα.','Species ordered from most likely at this hour, from your own catches and general knowledge of each species. A relative comparison between species, not a certain result.'));
   page.append(c);
 
   /* πότε και πού για ένα είδος */
@@ -65,8 +70,8 @@ B.fcAdv=function(page,fc,ctx){
     else { var l3=h('div',{class:'mini-list'}); R.spots.forEach(function(z){ l3.append(h('a',{class:'mrow',href:'#map',onclick:function(ev){ ev.preventDefault(); B.mapGo(z.lat,z.lon,15,null,{lab:z.n+' '+T('ψάρια','fish')}); }},h('span',{text:z.lat.toFixed(4)+', '+z.lon.toFixed(4)}),h('b',{text:z.n+' '+T('ψάρια','fish')+(z.kg?', '+B.num(z.kg,1)+' kg':'')}),B.icon('chev'))); }); c2.append(l3); }
   }
   page.append(c2);
-  page.append(h('p',{class:'foot',text:T('Τρέχει μόνο στο κινητό σου. Ξεκινά από γενική γνώση για τα είδη και περνά στα δικά σου ψάρια όσο τα καταγράφεις.','Runs only on your phone. It starts from general knowledge about the species and moves to your own catches as you log them.')}));
-  if(window.AlkyonExt){ try{ var xc=AlkyonExt.card(function(){ B.emit('store','alkyon-fprof'); }); xc.classList.add('extcard'); page.append(xc); }catch(e){} }
+  if(false) page.append(h('p',{class:'foot',text:T('Τρέχει μόνο στο κινητό σου. Ξεκινά από γενική γνώση για τα είδη και περνά στα δικά σου ψάρια όσο τα καταγράφεις.','Runs only on your phone. It starts from general knowledge about the species and moves to your own catches as you log them.')}));
+  /* 1.14.37: «Ψάρια φίλου» (CSV) πήγε στον Λογαριασμό › Δεδομένα */
 };
 
 /* ---------- Δικά μου ---------- */
@@ -81,12 +86,16 @@ B.fcMine=function(page,fc,ctx){
   /* 1.9.34: ψάρια χωρίς έξοδο → πρόσκληση να μπουν οι ώρες */
   if(B.tripFill){ var tf=B.tripFill.card(function(){ rerender(); }); if(tf) page.append(tf); }
   /* 1.9.59: τι κοινό είχαν οι μέρες που έπιασες */
-  if(B.commonCard){ try{ var cc=B.commonCard(); if(cc) page.append(cc); }catch(e){} }
+  var F=function(k,card,hint){ return B.fcFoldCard?B.fcFoldCard(k,card,hint):card; };
+  var ccLater=null; if(B.commonCard){ try{ ccLater=B.commonCard(); }catch(e){} } /* 1.14.42: πρώτα η κατάσταση της προσωπικής πρόγνωσης· οι αναλύσεις πτυσσόμενες από κάτω */
   var m=A().model(), p=m.progress, N=p.need;
   /* κατάσταση */
   var c=card(T('Η προσωπική σου πρόγνωση','Your personal forecast'),T('Μαθαίνει από τις εξόδους σου (πόσες ώρες ψάρευες) και από όσα έπιασες.','It learns from your trips (how long you fished) and what you caught.'));
-  c.append(bar(T('Ώρες','Hours'),p.hours,N.hours,B.num(Math.min(p.hours,999),p.hours<10?1:0)+' / '+N.hours),bar(T('Έξοδοι','Trips'),p.sessions,N.sessions,p.sessions+' / '+N.sessions),bar(T('Ψάρια','Catches'),p.catches,N.catches,p.catches+' / '+N.catches));
-  var v=m.valid, msg=!m.ready?T('Μόλις συμπληρωθούν όλα, ανοίγει η προσωπική πρόγνωση.','Once all three are complete, your personal forecast unlocks.')
+  /* 1.14.37: «52 ✓» όταν έχει συμπληρωθεί, αλλιώς «3 από 15» */
+  var need=function(v,n,dec){ var x=B.num(Math.min(v,999),dec||0); return v>=n?x+' ✓':x+T(' από ',' of ')+n; };
+  /* 1.14.56: η γραμμή «Χρειάζονται τουλάχιστον…» έφυγε· οι μπάρες δείχνουν ήδη «5 από 10» */
+  c.append(bar(T('Ώρες','Hours'),Math.min(p.hours,N.hours),N.hours,need(p.hours,N.hours,p.hours<10?1:0),p.hours>=N.hours?'up':''),bar(T('Έξοδοι','Trips'),Math.min(p.sessions,N.sessions),N.sessions,need(p.sessions,N.sessions),p.sessions>=N.sessions?'up':''),bar(T('Ψάρια','Catches'),Math.min(p.catches,N.catches),N.catches,need(p.catches,N.catches),p.catches>=N.catches?'up':''));
+  var v=m.valid, msg=!m.ready?T('Ανοίγει όταν γεμίσουν και οι τρεις.','Unlocks when all three are full.')
     :!v?T('Έτοιμη. Για να ελεγχθεί αν προβλέπει καλύτερα από τον μέσο όρο σου χρειάζονται 10 έξοδοι.','Ready. To check whether it predicts better than your average, 10 trips are needed.')
     :v.gain>0?T('Ελέγχθηκε σε ','Checked on ')+v.n+T(' εξόδους που δεν είδε: προβλέπει ',' trips it had not seen: it predicts ')+Math.round(v.gain*100)+T('% καλύτερα από τον μέσο όρο σου.','% better than your average.')
     :T('Ελέγχθηκε σε ','Checked on ')+v.n+T(' εξόδους: δεν προβλέπει ακόμα καλύτερα από τον μέσο όρο σου. Συνέχισε να καταγράφεις.',' trips: it does not yet predict better than your average. Keep logging.');
@@ -95,24 +104,36 @@ B.fcMine=function(page,fc,ctx){
 
   /* σύγκριση γενικής και προσωπικής */
   var c3=card(T('Γενική και προσωπική','General and personal'),m.ready?null:T('Η προσωπική στήλη ανοίγει όταν υπάρχουν αρκετά δεδομένα.','The personal column unlocks when there is enough data.'));
-  var tb=h('div',{class:'cmp'},h('span'),h('span',{class:'ch',text:T('Γενική','General')}),h('span',{class:'ch',text:T('Προσωπική','Personal')}));
+  var pTrial=m.ready&&!(m.valid&&m.valid.gain>0); /* 1.14.37: σε δοκιμή μέχρι να αποδειχτεί καλύτερη από τον μέσο όρο */
+  var tb=h('div',{class:'cmp'+(pTrial?' trial':'')},h('span'),h('span',{class:'ch',text:T('Γενική','General')}),h('span',{class:'ch',text:pTrial?T('Προσωπική · σε δοκιμή','Personal · in trial'):T('Προσωπική','Personal')}));
   var nk=fc.nowLocal.slice(0,13)+':00', ag=0, tot=0;
   (fc.days||[]).forEach(function(d){
     var pd=m.ready?PP.day(m,d,d.date===ctx.today?nk:null):null, g=d.safe?d.best:null, pe=pd&&pd.safe?pd.best:null;
     if(d.win&&pd&&pd.win){ tot++; if(d.win.s<=pd.win.e&&pd.win.s<=d.win.e) ag++; }
     var cell=function(val,w){ return h('span',{class:'cc'},h('b',{text:val==null?'–':String(val)}),h('small',{text:w?B.pad(w.s)+':00–'+B.pad((w.e+1)%24)+':00':''})); };
+    if(g==null&&pe==null) return;   /* 1.14.43: μέρα χωρίς βαθμό και στις δύο (π.χ. σήμερα το βράδυ) δεν πιάνει γραμμή με δύο παύλες */
     tb.append(h('span',{class:'cd',text:B.dayName(d.date,ctx.today)}),cell(g,d.win),m.ready?cell(pe,pd&&pd.win):h('span',{class:'cc lock',text:'—'}));
   });
   c3.append(tb);
-  if(m.ready&&tot) c3.append(h('p',{class:'sub',style:{margin:'10px 0 0'},text:T('Συμφωνούν στην ώρα ','They agree on the time ')+ag+T(' από ',' of ')+tot+T(' μέρες.',' days.')}));
-  page.append(c3);
+  if(m.ready&&tot) c3.append(h('p',{class:'sub',style:{margin:'10px 0 0'},text:T('Συμφωνούν στην ώρα ','They agree on the time ')+ag+T(' από ',' of ')+tot+T(' μέρες.',' days.')+(pTrial?T(' Η προσωπική είναι ακόμα σε δοκιμή: εμπιστέψου τη γενική.',' The personal one is still in trial: trust the general one.'):'')}));
+  /* 1.14.56: όσο η προσωπική δεν έχει ανοίξει, ο πίνακας είχε μια στήλη με παύλες και επαναλάμβανε τους βαθμούς της λωρίδας ημερών· δεν εμφανίζεται */
+  if(m.ready) page.append(F('mgp',c3,m.ready?T('βαθμός και ώρα ανά μέρα','score and time per day'):T('ανοίγει με αρκετά δεδομένα','unlocks with enough data')));
+  if(ccLater) page.append(F('mcommon',ccLater,T('συνθήκες, δόλωμα, τεχνική, βάθος','conditions, bait, technique, depth')));
 
   /* μοτίβα */
   if(m.ready){ var c4=card(T('Τα μοτίβα σου','Your patterns'),T('Πόσο πάνω ή κάτω από τον μέσο όρο σου πιάνεις σε κάθε συνθήκη.','How far above or below your average you catch in each condition.'));
+    var patD=h('div'), patUp=[], patDn=[];
     Object.keys(TITLE).forEach(function(k){ var F=m.factors[k], mx=Math.max.apply(null,F.map(function(x){ return x.m; }));
-      c4.append(h('h3',{class:'h3',text:TITLE[k]}));
-      F.forEach(function(x,i){ if(!x.h) return; c4.append(bar(LAB[k](i),x.m,mx,'×'+B.num(x.m,1),x.m>=1.15?'up':x.m<=0.85?'down':'')); }); });
-    page.append(c4); }
+      patD.append(h('h3',{class:'h3',text:TITLE[k]}));
+      F.forEach(function(x,i){ if(!x.h) return; if(x.m>=1.15) patUp.push([x.m,LAB[k](i)]); else if(x.m<=0.85) patDn.push([x.m,LAB[k](i)]); patD.append(bar(LAB[k](i),x.m,mx,'×'+B.num(x.m,1),x.m>=1.15?'up':x.m<=0.85?'down':'')); }); });
+    /* 1.14.45: πρώτα το συμπέρασμα, οι μπάρες στις «Λεπτομέρειες» */
+    patUp.sort(function(a,b){ return b[0]-a[0]; }); patDn.sort(function(a,b){ return a[0]-b[0]; });
+    var chips=function(a,cls){ return h('div',{class:'patchips'},a.slice(0,4).map(function(x){ return h('span',{class:'patchip '+cls},h('b',{text:x[1]}),h('i',{text:'×'+B.num(x[0],1)})); })); };
+    if(patUp.length) c4.append(h('p',{class:'patl',text:T('Πιάνεις περισσότερο με:','You catch more with:')}),chips(patUp,'up'));
+    if(patDn.length) c4.append(h('p',{class:'patl',text:T('Πιάνεις λιγότερο με:','You catch less with:')}),chips(patDn,'down'));
+    if(!patUp.length&&!patDn.length) c4.append(h('p',{class:'sub',text:T('Καμία συνθήκη δεν ξεχωρίζει ακόμα.','No condition stands out yet.')}));
+    c4.append(h('details',{class:'spmore patmore'},h('summary',{text:T('Λεπτομέρειες','Details')}),patD));
+    page.append(F('mpat',c4,T('φως, σελήνη, πίεση, άνεμος','light, moon, pressure, wind'))); }
 
   /* ο βαθμός στην πράξη */
   var cb=A().calib(), c5=card(T('Ο βαθμός στην πράξη','The score in practice'),T('Ψάρια ανά ώρα ψαρέματος, ανάλογα με τον βαθμό που έδινε η εφαρμογή εκείνη την ώρα.','Catches per fishing hour, by the score the app gave at that hour.'));
@@ -121,7 +142,8 @@ B.fcMine=function(page,fc,ctx){
   c5.append(h('p',{class:'p',style:{margin:'10px 0 0',fontWeight:'600'},text:!cb.ok?T('Χρειάζονται τουλάχιστον 6 έξοδοι με καταγεγραμμένο βαθμό (τώρα ','Needs at least 6 trips with the score recorded (now ')+cb.n+').'
     :cb.ratio===Infinity||cb.ratio>=1.3?T('Ο βαθμός βοηθά: στις ώρες με υψηλό βαθμό πιάνεις περισσότερα.','The score helps: you catch more at well-scored hours.')
     :T('Δεν φαίνεται ακόμα διαφορά ανάμεσα σε υψηλό και χαμηλό βαθμό στα δικά σου νερά.','No clear difference between high and low scores in your waters yet.')}));
-  page.append(c5);
+  /* 1.14.37: κάρτες ελέγχου μόνο όταν έχουν στοιχεία· αλλιώς μία κάρτα προόδου στο τέλος */ var pend=[];
+  if(cb.ok) page.append(c5); else pend.push([T('Με βαθμό ανά ώρα','With hourly score'),cb.n,6]);
 
   /* 1.9.33: Alkyon ή «μόνο σελήνη»; με τα δικά σου ψάρια */
   var vm=A().vsMoon?A().vsMoon():null;
@@ -137,7 +159,7 @@ B.fcMine=function(page,fc,ctx){
       :T('Μέχρι τώρα προβλέπουν περίπου το ίδιο.','So far they predict about the same.');
     c7.append(h('p',{class:'p',style:{margin:'6px 0 0',fontWeight:'600'},text:verdict}));
     c7.append(h('p',{class:'foot',text:T('×1 = καμία διαφορά. Όσο μεγαλύτερο, τόσο καλύτερα ξεχωρίζει η μέθοδος τις ώρες που πιάνεις. Μετρούν μόνο οι έξοδοι όπου η εφαρμογή κράτησε τον βαθμό κάθε ώρας.','×1 = no difference. The bigger, the better the method picks the hours you catch. Only trips where the app kept the hourly score count.')}));
-    page.append(c7); }
+    if(vm.ok) page.append(c7); else pend.push([T('Με Έναρξη και Τέλος','With Start and End'),vm.n,6]); }
 
   /* 1.9.50: πρόγνωση και «Πώς ήταν»: μέσος βαθμός της πρόγνωσης στις εξόδους που σημείωσες καλές / μέτριες / τίποτα */
   (function(){ if(!B.RATE) return; var tr=B.store.raw('trips').filter(function(t){ return !t.deleted&&t.rate!=null&&Array.isArray(t.scoreH)&&t.scoreH.length; });
@@ -149,14 +171,18 @@ B.fcMine=function(page,fc,ctx){
     c8.append(h('p',{class:'p',style:{margin:'6px 0 0',fontWeight:'600'},text:tr.length<5?T('Χρειάζονται τουλάχιστον 5 έξοδοι με «Πώς ήταν» (τώρα ','Needs at least 5 trips with “How was it” (now ')+tr.length+T('). Η ερώτηση βγαίνει στο τέλος κάθε εξόδου.','). The question appears at the end of each trip.')
       :vG!=null&&vN!=null?(vG-vN>=5?T('Η πρόγνωση συμφωνεί: οι καλές σου έξοδοι είχαν υψηλότερο βαθμό.','The forecast agrees: your good trips had a higher score.'):vN-vG>=5?T('Η πρόγνωση δεν συμφωνεί ακόμα: οι έξοδοι χωρίς ψάρι είχαν υψηλότερο βαθμό.','The forecast does not agree yet: trips with nothing had a higher score.'):T('Μέχρι τώρα δεν φαίνεται διαφορά.','No clear difference so far.'))
       :T('Χρειάζονται έξοδοι και «Καλό» και «Τίποτα» για σύγκριση.','Needs both “Good” and “Nothing” trips to compare.')}));
-    page.append(c8); })();
+    if(tr.length>=5) page.append(c8); else pend.push([T('Με «Πώς ήταν;»','With «How was it?»'),tr.length,5]); })();
+  if(pend.length){ var cp=card(T('Έλεγχος της πρόγνωσης','Checking the forecast'),T('Όταν μαζευτούν αρκετές έξοδοι, εδώ θα φαίνεται πόσο έπεσε μέσα η πρόγνωση στα δικά σου νερά: ψάρια ανά ώρα ανάλογα με τον βαθμό, Alkyon ή μόνο σελήνη, και πρόγνωση σε σχέση με το «Πώς ήταν».','Once there are enough trips, this shows how right the forecast was in your waters: fish per hour by score, Alkyon vs moon only, and forecast vs «How was it».'));
+    cp.append(h('p',{class:'patl',text:T('Έξοδοι που μετράνε ως τώρα:','Trips that count so far:')}));
+    pend.forEach(function(x){ cp.append(bar(x[0],Math.min(x[1],x[2]),x[2],x[1]+T(' από ',' of ')+x[2])); });
+    cp.append(h('p',{class:'sub',style:{margin:'8px 0 0'},text:T('Πάτα Έναρξη και Τέλος σε κάθε έξοδο και απάντα στο «Πώς ήταν;».','Tap Start and End on each trip and answer «How was it?».')})); page.append(cp); }
 
   /* πρόσφατες έξοδοι */
   var S=PP.sessionsOf(A().trips()).sort(function(a,b){ return b.startMs-a.startMs; }).slice(0,6);
   if(S.length){ var bites=A().act(), utc=A().utcMin(), c6=card(T('Πρόσφατες έξοδοι','Recent trips')), l=h('div',{class:'mini-list'});
     S.forEach(function(s){ var hrs=(s.endMs-s.startMs)/3600000, n=s.manual?(+s.count||0):bites.filter(function(b){ var ms=PP.biteMs(b,utc); return ms!=null&&ms>=s.startMs-600000&&ms<=s.endMs+600000; }).length;
       l.append(h('div',{class:'mrow'},h('span',{text:s.date?B.dayName(s.date)+' '+B.dateShort(s.date):''}),h('b',{text:B.num(hrs,1)+' h, '+n+' '+T(n===1?'ψάρι':'ψάρια',n===1?'catch':'catches')}))); });
-    c6.append(l); page.append(c6); }
+    c6.append(l); page.append(F('mrecent',c6,S.length+T(' τελευταίες',' most recent'))); }
   page.append(h('p',{class:'foot'},T('Έξοδος χωρίς καταγραφή; ','A trip you did not log? '),h('button',{type:'button',class:'linkbtn',text:T('Πρόσθεσε παλιά έξοδο','Add a past trip'),onclick:function(){ if(B.pastTrip) B.pastTrip(); else location.hash='#log'; }}),'.')); /* 1.4.0: όχι πια στην κλασική */
 };
 })();

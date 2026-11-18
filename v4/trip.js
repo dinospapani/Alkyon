@@ -116,7 +116,7 @@ function tick(){ var s=load(); if(!s.active){ clearInterval(timer); timer=null; 
 function startTimer(){ clearInterval(timer); timer=setInterval(tick,60000); }
 
 function start(o){
-  var d=load(), s=Object.assign({},d,{active:true,id:'trip-'+Date.now().toString(36),route:o.route||'',due:o.due,autoExt:0,sosAt:0,pgStart:0,pgEnd:0,last:null,start:Date.now(),startDate:B.store?todayStr():'',cond0:cond0(),sil:o.sil||0,noAlert:!o.notify,target:o.target||null,synced:undefined});
+  var d=load(), s=Object.assign({},d,{active:true,id:'trip-'+Date.now().toString(36),route:o.route||'',due:o.due,autoExt:0,sosAt:0,pgStart:0,pgEnd:0,last:null,start:Date.now(),startDate:B.store?todayStr():'',cond0:cond0(),sil:o.sil||0,noAlert:!o.notify,target:o.target||null,targets:o.targets||null,synced:undefined});
   save(s); ls.set('alkyon-track',null); watch(); startTimer();
   /* 1.6.1: με την έναρξη κατεβαίνουν χάρτης και πρόγνωση γύρω από τη θέση σου (αν υπάρχει σήμα και το επιτρέπει η ρύθμιση), για να δουλεύουν χωρίς σήμα */
   try{ var pp=B.lastPos(); if(B.prefetch&&pp){ var pl0={date:s.startDate||new Date().toISOString().slice(0,10),lat:pp.lat,lon:pp.lon};
@@ -150,20 +150,22 @@ function gearCompact(tid){ var g=ls.get('alkyon-gear',null); if(!g||!Array.isArr
     var thin=function(p){ if(!p||p.length<=120) return p||[]; var k=Math.ceil(p.length/120); return p.filter(function(_,i){ return i%k===0||i===p.length-1; }); };
     out.push({id:it.id,type:it.type,name:it.name||it.type,set:{a:it.set.a||null,b:it.set.b,ta:it.set.ta,tb:it.set.tb,pts:thin(it.set.pts)},haul:it.haul?{a:it.haul.a,b:it.haul.b,ta:it.haul.ta,tb:it.haul.tb,pts:thin(it.haul.pts)}:null,n:n,kg:Math.round(kg*10)/10}); it.att=tid; });
   if(out.length) ls.set('alkyon-gear',g); return out.length?out:null; }
-function back(){
-  var s=load(); if(!s.active) return; var d=Date.now()-s.start, sm=summary(s), tk=takeTrack();
+function back(endAt){
+  /* 1.14.48: endAt = πότε τελείωσε πραγματικά, όταν η έξοδος είχε μείνει ανοιχτή */
+  var NOW=(typeof endAt==='number'&&endAt>0&&endAt<Date.now())?endAt:Date.now();
+  var s=load(); if(!s.active) return; if(NOW<=s.start) NOW=Date.now(); var d=NOW-s.start, sm=summary(s), tk=takeTrack();
   s.active=false; save(s); pushTrip(); clearInterval(timer); timer=null; watch();
   if(d>=20*60000||sm.n>0||sm.miss>0){
     var pos=s.last||(s.cond0&&s.cond0.lat!=null?{lat:s.cond0.lat,lon:s.cond0.lon}:null);
-    var rec={prof:B.prof?B.prof():'boat',target:s.target||null,sid:s.id,date:s.startDate||todayStr(),spot:s.route||'',tech:'',species:sm.species,count:sm.n,miss:sm.miss,kg:sm.kg,pn:sm.pn||0,pkg:sm.pkg||0,startMs:s.start,endMs:Date.now(),cond0:s.cond0||null,lat:pos?pos.lat:null,lon:pos?pos.lon:null,notes:T('Καταγράφηκε από Έναρξη/Τέλος εξόδου','Recorded from Start/End trip')};
+    var rec={prof:B.prof?B.prof():'boat',target:s.target||null,targets:s.targets||null,sid:s.id,date:s.startDate||todayStr(),spot:s.route||'',tech:'',species:sm.species,count:sm.n,miss:sm.miss,kg:sm.kg,pn:sm.pn||0,pkg:sm.pkg||0,startMs:s.start,endMs:NOW,cond0:s.cond0||null,lat:pos?pos.lat:null,lon:pos?pos.lon:null,notes:T('Καταγράφηκε από Έναρξη/Τέλος εξόδου','Recorded from Start/End trip')};
     if(tk){ rec.km=tk.km; rec.track=tk.track; if(tk.moving&&tk.moving.length) rec.moving=tk.moving; }
     var id=B.store.save('trips',rec), gc=gearCompact(id); if(gc){ var t=B.store.get('trips',id); B.store.save('trips',Object.assign({},t,{gear:gc})); }
     B.toast(T('Η έξοδος καταχωρήθηκε: ','Trip saved: ')+dur(d)+', '+(sm.n?sm.n+' '+T('ψάρια','catches'):T('χωρίς ψάρια (κρατήθηκε: βοηθά την προσωπική πρόγνωση)','no catches (kept: it helps your personal forecast)')));
     /* 1.6.1: πρώτα τα ψάρια χωρίς είδος (ένα πάτημα το καθένα), μετά η ερώτηση για τη θάλασσα */
     var next=function(){ rateQuestion(id,function(){ seaQuestion(id,pos); }); };
     if(B.speciesFill) B.speciesFill(s.id,next); else next();
-    B.emit('tripend',{id:id,startMs:s.start,endMs:Date.now()});
-  } else { B.emit('tripend',{id:null,startMs:s.start,endMs:Date.now()}); B.toast(T('Καλωσόρισες πίσω. Η έξοδος ήταν κάτω από 20 λεπτά χωρίς ψάρια, οπότε δεν καταχωρήθηκε.','Welcome back. The trip was under 20 minutes with no catches, so it was not saved.')); }
+    B.emit('tripend',{id:id,startMs:s.start,endMs:NOW});
+  } else { B.emit('tripend',{id:null,startMs:s.start,endMs:NOW}); B.toast(T('Καλωσόρισες πίσω. Η έξοδος ήταν κάτω από 20 λεπτά χωρίς ψάρια, οπότε δεν καταχωρήθηκε.','Welcome back. The trip was under 20 minutes with no catches, so it was not saved.')); }
 }
 /* 1.9.50: «Πώς ήταν το ψάρεμα;» (καλό / μέτριο / τίποτα): μετρά και τις εξόδους χωρίς ψάρι και δείχνει αν ο βαθμός της πρόγνωσης συμφωνεί με τη θάλασσα */
 var RATE=[[2,T('Καλό','Good')],[1,T('Μέτριο','So-so')],[0,T('Τίποτα','Nothing')]];
@@ -188,6 +190,20 @@ function sos(){
 }
 
 /* ---------- οθόνες ---------- */
+/* 1.14.48: έξοδος που έμεινε ανοιχτή πάνω από 14 ώρες: ρωτά αν τελείωσε, για να μη χαλάνε οι ώρες και τα «ψάρια ανά ώρα» */
+var STALE_H=14, staleAsk=0;
+function staleEnd(s){ var last=0; try{ B.store.raw('bites').forEach(function(b){ if(b.deleted||b.trip!==s.id||!b.date) return; var t=Date.parse(b.date+'T'+(b.time||'12:00')+':00'); if(isFinite(t)&&t>last) last=t; }); }catch(e){}
+  var g=last?last+30*60000:(s.due&&s.due>s.start?s.due:s.start+6*3600000); return Math.max(s.start+10*60000,Math.min(g,Date.now()-60000)); }
+function staleCheck(){ var s=load(); if(!s.active||!s.start) return; var hrs=(Date.now()-s.start)/3600000; if(hrs<STALE_H||Date.now()-staleAsk<3*3600000) return;
+  if(document.querySelector('.sheet')) return; staleAsk=Date.now(); var g=staleEnd(s), sh, sameDay=new Date(g).toDateString()===new Date().toDateString();
+  var when=hm(g), dstr=sameDay?'':(' ('+new Date(g).toLocaleDateString(B.LANG==='en'?'en-GB':'el-GR',{day:'numeric',month:'short'})+')');
+  var body=h('div',{class:'bform'},h('p',{class:'sub',text:T('Η έξοδος είναι ανοιχτή ','This trip has been open for ')+Math.round(hrs)+T(' ώρες. Αν γύρισες και ξέχασες να πατήσεις «Τέλος», διάλεξε πότε τελείωσε, για να βγουν σωστά οι ώρες.',' hours. If you are back and forgot to tap “End”, choose when it ended so the hours come out right.')}),
+    h('button',{class:'btn pri full',type:'button',text:T('Τελείωσε στις ','Ended at ')+when+dstr,onclick:function(){ sh.close(); back(g); }}),
+    h('button',{class:'btn full',type:'button',text:T('Τελείωσε τώρα','Ended just now'),onclick:function(){ sh.close(); back(); }}),
+    h('button',{class:'linkbtn',type:'button',text:T('Είμαι ακόμα έξω','I am still out'),onclick:function(){ sh.close(); }}));
+  sh=B.sheet({title:T('Τελείωσε η έξοδος;','Has the trip ended?'),body:body}); }
+setTimeout(staleCheck,4000); document.addEventListener('visibilitychange',function(){ if(!document.hidden) setTimeout(staleCheck,1500); });
+B.tripStaleCheck=staleCheck;
 B.trip={state:load,active:function(){ return !!load().active; },back:back,ext:ext,sos:sos,srv:function(){ return srv; },fix:function(){ return fixP; },track:function(){ var t=ls.get('alkyon-track',null), s=load(); return s.active&&t&&t.id===s.id?t:null; }};
 B.tripStart=function(o){ o=o&&typeof o==='object'?o:null; /* v31z541: o.where = σημείο από την αυτόματη ερώτηση */
   var d=load();
@@ -210,17 +226,32 @@ B.tripStart=function(o){ o=o&&typeof o==='object'?o:null; /* v31z541: o.where = 
       h('small',{text:!logged?T('Χωρίς λογαριασμό: μόνο υπενθύμιση στο κινητό','No account: phone reminder only'):c?T('Ειδοποιείται αν δεν γυρίσεις στην ώρα σου','Alerted if you are not back on time'):T('Πάτα για να ορίσεις','Tap to set one')})));
   var tmRow=h('label',{class:'ttime'},h('span',{text:T('Επιστροφή έως','Back by')}),tm);
   /* 1.14.23: στόχος (προαιρετικό): κάνει σωστά τα στοιχεία «πότε τσιμπάνε» ανά είδος */
-  var tgt=null, tgChips=h('div',{class:'chips sm tgchips'}), tops={};
-  try{ B.store.raw('bites').forEach(function(b){ if(b.deleted||b.miss||!b.species) return; var k=b.latin||b.species; (tops[k]=tops[k]||{n:0,name:b.species,latin:b.latin||''}).n++; }); }catch(e){}
-  Object.keys(tops).sort(function(a,b){ return tops[b].n-tops[a].n; }).slice(0,5).forEach(function(k){ var o=tops[k]; tgChips.append(h('button',{type:'button',class:'chip sm',text:o.name,'aria-pressed':'false',onclick:function(ev){ var on=tgt!==o; tgt=on?o:null; [].forEach.call(tgChips.children,function(c){ c.setAttribute('aria-pressed','false'); }); if(on) ev.currentTarget.setAttribute('aria-pressed','true'); }})); });
-  var tgRow=tgChips.children.length?h('div',{class:'fld'},h('span',{text:T('Τι ψάχνεις; (προαιρετικό)','What are you after? (optional)')}),tgChips):null;
+  /* 1.14.78: μία γραμμή που σέρνεται οριζόντια (η φόρμα χωράει σε μία οθόνη), πρώτο το «Αναζήτηση» για οποιοδήποτε είδος, μετά τα επιλεγμένα,
+     μετά οι προτάσεις: τα είδη που πιάνεις πιο συχνά και, για νέο χρήστη χωρίς ψάρια, τα είδη της εποχής στην περιοχή του. Έως 4 στόχοι. */
+  var tgs=[], tgChips=h('div',{class:'chips sm tgchips'}), tgN=h('em',{class:'tgn',text:''}), sugg=[], EN_=EN;
+  function tgKey(o){ return String(o.latin||o.name||'').toLowerCase(); }
+  function tgAdd(o){ var k=tgKey(o); if(!k) return; for(var i=0;i<tgs.length;i++) if(tgKey(tgs[i])===k) return; if(tgs.length>=4){ B.toast(T('Έως 4 είδη.','Up to 4 species.'),2500); return; } tgs.push(o); tgDraw(); }
+  function tgDel(o){ var k=tgKey(o); tgs=tgs.filter(function(x){ return tgKey(x)!==k; }); tgDraw(); }
+  function tgDraw(){ tgChips.replaceChildren(h('button',{type:'button',class:'chip sm tgfind',onclick:function(){ if(B.speciesPick) B.speciesPick(function(nm,sp){ tgAdd({name:nm,latin:(sp&&sp.la)||''}); }); }},h('span',{'aria-hidden':'true',text:'🔍 '}),T('Αναζήτηση','Search')));
+    tgs.forEach(function(o){ tgChips.append(h('button',{type:'button',class:'chip sm',text:o.name,'aria-pressed':'true',onclick:function(){ tgDel(o); }})); });
+    var have={}; tgs.forEach(function(o){ have[tgKey(o)]=1; });
+    sugg.forEach(function(o){ if(have[tgKey(o)]) return; tgChips.append(h('button',{type:'button',class:'chip sm',text:o.name,'aria-pressed':'false',onclick:function(){ tgAdd(o); }})); });
+    tgN.textContent=tgs.length?' · '+tgs.length+T(' επιλεγμένα',' selected'):''; tgChips.scrollLeft=0; }
+  try{ var tops={}, seen={}; B.store.raw('bites').forEach(function(b){ if(b.deleted||b.miss||!b.species) return; var k=String(b.latin||b.species).toLowerCase(); (tops[k]=tops[k]||{n:0,name:b.species,latin:b.latin||''}).n++; });
+    Object.keys(tops).sort(function(a,b){ return tops[b].n-tops[a].n; }).forEach(function(k){ var nm=String(tops[k].name).toLowerCase(); if(seen[nm]||seen[k]||sugg.length>=8) return; seen[nm]=seen[k]=1; sugg.push(tops[k]); });
+    if(sugg.length<8){ var mi=new Date().getMonth(), REG=window.SPECIES_REG||{}, pp=B.lastPos?B.lastPos():null, cur=(B.prof&&B.prof()==='lake')?'f':(pp&&window.regionAt?window.regionAt(pp.lat,pp.lon):'m'), DB={};
+      (window.SPECIES_DB||[]).forEach(function(r){ if(r[2]) DB[String(r[2]).toLowerCase()]=r; });
+      (window.SPKB||[]).filter(function(x){ return x.l&&x.m&&(x.m[mi]||0)>=2&&DB[x.l.toLowerCase()]&&(REG[x.l.toLowerCase()]||'m').indexOf(cur)>=0; }).sort(function(a,b){ return (b.m[mi]||0)-(a.m[mi]||0); }).forEach(function(x){ var k=x.l.toLowerCase(), r=DB[k]; if(seen[k]||sugg.length>=8) return; var el=r[0]?String(r[0]).split('/')[0].trim():'', nm=EN_?(r[1]||el):(el||r[1]); if(!nm||seen[nm.toLowerCase()]) return; seen[k]=seen[nm.toLowerCase()]=1; sugg.push({name:nm,latin:r[2]}); }); }
+  }catch(e){}
+  tgDraw();
+  var tgRow=h('div',{class:'fld tgfld'},h('span',{},T('Τι ψάχνεις; (προαιρετικό, έως 4)','What are you after? (optional, up to 4)'),tgN),tgChips);
   var more=h('details',{class:'tmore'},h('summary',{text:T('Περισσότερες ρυθμίσεις','More settings')}),
     h('label',{class:'fld'},h('span',{text:T('Αν χαθεί η επαφή με το κινητό','If contact with the phone is lost')}),sil,h('small',{text:T('Αν το κινητό σταματήσει να στέλνει σήμα για τόσο χρόνο, σε ρωτά στο Telegram και μετά ειδοποιεί την επαφή.','If the phone stops sending a signal this long, it asks you on Telegram, then alerts your contact.')})),
     ex?ex.nodes:null);
   /* 1.8.31: έξω από τις «Περισσότερες ρυθμίσεις», για να φαίνεται */
   var gpRow=h('div',null,h('label',{class:'tg'},gp,h('span',{text:T('Καταγραφή διαδρομής GPS (περισσότερη μπαταρία)','Record GPS route (uses more battery)')})),gpAuto?h('p',{class:'trhint warn',text:T('Την προηγούμενη φορά το κινητό δεν έδωσε άδεια θέσης και η καταγραφή έκλεισε. Την άνοιξα ξανά: αν σε ρωτήσει το κινητό, πάτα «Να επιτρέπεται».','Last time the phone did not allow location and recording turned off. Ticked again: if the phone asks, tap “Allow”.')}):null);
   var go=h('button',{class:'btn pri full tgo',type:'button',text:'▶ '+T('Έναρξη εξόδου','Start trip'),onclick:function(){ if(!tm.value){ B.toast(T('Βάλε ώρα επιστροφής.','Set a return time.')); return; }
-    ls.set('alkyon-gps',gp.checked?'1':'0'); ls.set('alkyon-gps-auto','0'); if(ex&&ex.apply) ex.apply(); sh.close(); start({due:toMs(tm.value),route:rt.value.trim(),sil:+sil.value||0,notify:nt.checked,target:tgt?{name:tgt.name,latin:tgt.latin}:null}); }});
+    ls.set('alkyon-gps',gp.checked?'1':'0'); ls.set('alkyon-gps-auto','0'); if(ex&&ex.apply) ex.apply(); sh.close(); start({due:toMs(tm.value),route:rt.value.trim(),sil:+sil.value||0,notify:nt.checked,target:tgs.length?{name:tgs[0].name,latin:tgs[0].latin}:null,targets:tgs.length?tgs.map(function(x){ return {name:x.name,latin:x.latin}; }):null}); }});
   var body=h('div',{class:'bform tstart'},info,h('div',{class:'fld'},h('span',{text:T('Πόση ώρα θα λείψεις;','How long will you be out?')}),chips,tmRow),h('label',{class:'fld twhere','aria-label':T('Πού πας (προαιρετικό)','Where (optional)')},rt),tgRow,
     c?h('label',{class:'tg'},nt,h('span',{text:T('Ειδοποίηση της επαφής μου σε αυτή την έξοδο','Alert my contact on this trip')})):null,B.liveToggle?B.liveToggle():null,gpRow,more,go);
   /* v31z542: συχνοί λαγοκέφαλοι εδώ; (από τα δικά σου τσιμπήματα σε 400 m) */
@@ -236,7 +267,7 @@ B.tripSheet=function(){
     srv?h('p',{class:'sub',style:{margin:'6px 0 0'},text:srv}):null));
   var sx=B.tripSheetExtras&&B.tripSheetExtras(); if(sx) body.append(sx);
   body.append(h('div',{class:'acts'},h('button',{class:'btn',type:'button',text:T('+30 λεπτά','+30 min'),onclick:function(){ ext(); sh.close(); }}),h('button',{class:'btn',type:'button',text:T('Στείλε το σχέδιο','Send the plan'),onclick:function(){ sh.close(); chooseSend(load(),'plan'); }})));
-  body.append(h('button',{class:'btn pri full',type:'button',text:'■ '+T('Τέλος εξόδου','End trip'),onclick:function(){ sh.close(); back(); }}));
+  body.append(h('button',{class:'btn full endtrip',type:'button',text:'■ '+T('Τέλος εξόδου','End trip'),onclick:function(){ sh.close(); back(); }}));
   body.append(h('button',{class:'btn full sos',type:'button',text:'SOS',onclick:function(){ B.ask(T('Να σταλεί SOS με τη θέση σου στην επαφή ασφαλείας, στους φίλους σου στην εφαρμογή και στα σκάφη με Alkyon έως 10 ναυτικά μίλια;','Send an SOS with your location to your safety contact, your friends in the app and boats with Alkyon within 10 nautical miles?'),T('Αποστολή SOS','Send SOS'),true).then(function(y){ if(y){ sh.close(); sos(); } }); }}));
   sh=B.sheet({title:T('Έξοδος σε εξέλιξη','Trip in progress'),body:body});
 };

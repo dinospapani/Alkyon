@@ -149,48 +149,42 @@ function drawMap(cv,r,cur,names,cols,mx){
   var sb=5*px, sx=S*0.05, sy=S*0.93; c.lineWidth=4; c.strokeStyle=dark?'#fff':'#0b1f2a'; c.beginPath(); c.moveTo(sx,sy); c.lineTo(sx+sb,sy); c.stroke();
   c.font='700 '+Math.round(S*0.036)+'px system-ui,sans-serif'; c.textAlign='left'; c.fillStyle=dark?'#fff':'#0b1f2a'; c.fillText('5 km',sx,sy-S*0.03);
 }
+/* 1.14.79: μπάρα χρόνου με ▶ κάτω από τον χάρτη. Σε κάθε ώρα αλλάζουν το βέλος του ανέμου, η φέτα που τονίζεται, το swell και η εκτίμηση κύματος·
+   το σχήμα της ακτής μένει ίδιο. Η ώρα γράφεται πάνω στον χάρτη. Ξεκινά από το «τώρα» (σήμερα) ή από την καλύτερη ώρα (άλλη μέρα),
+   και συγχρονίζεται με το «Ανά ώρα» της Πρόγνωσης μέσω του γεγονότος alkyon-fchour {date,hr,src}. */
+var XS=null; /* η τρέχουσα κατάσταση της κάρτας: {day,hs,i,show,...} */
+var WD_EL=['Κυρ','Δευ','Τρί','Τετ','Πέμ','Παρ','Σάβ'], WD_EN=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 function render(p,f,at){
   var box=document.getElementById('fcExposure'), D=document.getElementById('fcDays');
   if(!D) return;
   if(!box){ box=el('div',{id:'fcExposure','class':'card',style:'margin:10px 0'}); }
   var pr=document.getElementById('fcPress');
   if(pr&&pr.parentNode) pr.parentNode.insertBefore(box,pr.nextSibling); else D.parentNode.insertBefore(box,D);
-  box.replaceChildren();
+  box.replaceChildren(); if(XS&&XS.T) clearTimeout(XS.T); XS=null;
   if(!p||!f){ box.hidden=true; return; }
   var key=(+p.lat).toFixed(3)+','+(+p.lon).toFixed(3), r=cache[key];
   if(r===undefined){ try{ r=compute(+p.lat,+p.lon); }catch(e){ r=null; try{ console.error('exposure',e); }catch(e0){} } cache[key]=r; }
   if(!r){ box.hidden=true; return; }
   box.hidden=false;
-  var names=EN?NAMES_EN:NAMES_EL, cd=curDir(f,at), cur=cd?Math.round(cd.dir/22.5)%16:-1, atH=at?at.slice(11,13)+':00':null;
+  var names=EN?NAMES_EN:NAMES_EL, nowK=String(f.nowLocal||'').slice(0,13), startK=at?at.slice(0,13):nowK, day=startK.slice(0,10), hs=[];
+  try{ (f.days||[]).forEach(function(d){ if(d.date===day) hs=(d.hours||[]).filter(function(h){ return h&&h.t&&h.dir!=null; }); }); }catch(e){ hs=[]; }
+  var si=-1; hs.forEach(function(h,k){ if(h.t.slice(0,13)===startK) si=k; }); if(si<0&&hs.length){ var sh0=+startK.slice(11,13); hs.forEach(function(h,k){ if(si<0&&+h.t.slice(11,13)>=sh0) si=k; }); if(si<0) si=hs.length-1; }
   box.dataset.v='2';
   box.appendChild(el('h3',null,T('Έκθεση της ακτής ανά κατεύθυνση ανέμου','Coast exposure by wind direction')));
   var cols=['#3f9d6b','#c9a227','#d9731f','#c93a14'], mx=Math.max.apply(null,r.dirs.map(function(d){ return d.km; }));
-  /* 1.9.30: πρώτα η απάντηση (τώρα + ποιοι άνεμοι είναι απάνεμοι εδώ), μετά ο χάρτης, στο τέλος οι λεπτομέρειες */
+  /* πρώτα η απάντηση (η ώρα που βλέπεις + ποιοι άνεμοι είναι απάνεμοι εδώ), μετά ο χάρτης με τη μπάρα χρόνου, στο τέλος οι λεπτομέρειες */
   var est=el('div',{'class':'exest'}); est.hidden=true; box.appendChild(est);
-  if(cd){
-    var L=level(r.dirs[cur].km), nw=el('div',{'class':'exv'});
-    nw.appendChild(el('span',{'class':'exchip',style:'background:'+cols[L.k]},EN?L.en:L.el));
-    nw.appendChild(el('span',null,(atH?T('Στις '+atH+' άνεμος από ','At '+atH+' wind from '):T('Τώρα άνεμος από ','Now wind from '))+names[cur]+': '+(L.k>=2?T('το κύμα έρχεται ελεύθερα ('+fmtKm(r.dirs[cur].km)+' ανοιχτή θάλασσα).','waves come in freely ('+fmtKm(r.dirs[cur].km)+' of open sea).'):L.k===1?T('λίγη θάλασσα μπροστά σου ('+fmtKm(r.dirs[cur].km)+'), μικρό κύμα από τον άνεμο.','little sea upwind ('+fmtKm(r.dirs[cur].km)+'), small wind waves.'):T('ο άνεμος έρχεται από τη στεριά και δεν σηκώνει κύμα εδώ.','the wind comes off the land and builds no waves here.'))));
-    box.appendChild(nw);
-  }
+  var nw=el('div',{'class':'exv'}); nw.hidden=true; box.appendChild(nw);
   var shel=r.dirs.filter(function(d){ return level(d.km).k===0; }).map(function(d){ return names[d.i]; });
   box.appendChild(el('p',{'class':'exshel'},shel.length?T('Εδώ είσαι απάνεμα όταν ο άνεμος έρχεται από: ','Sheltered here when the wind comes from: ')+shel.join(', '):T('Δεν υπάρχει κατεύθυνση ανέμου που να είναι εντελώς απάνεμη εδώ.','No wind direction is fully sheltered here.')));
   var sw=el('p',{'class':'exsw'}); sw.hidden=true; box.appendChild(sw);
-  /* χάρτης: η πραγματική ακτή γύρω σου, και από το σημείο σου «φέτες» προς κάθε κατεύθυνση: όσο πιο μακριά και κόκκινη, τόσο περισσότερη ανοιχτή θάλασσα από εκεί */
-  var mapBox=el('div',{'class':'exmap'}), cv=el('canvas',{width:'600',height:'600','aria-label':T('Χάρτης έκθεσης της ακτής','Coast exposure map'),role:'img'}); mapBox.appendChild(cv); box.appendChild(mapBox);
+  var mapBox=el('div',{'class':'exmap'}), cv=el('canvas',{width:'600',height:'600','aria-label':T('Χάρτης έκθεσης της ακτής','Coast exposure map'),role:'img'}), tl=el('span',{'class':'extime'}); mapBox.appendChild(cv); mapBox.appendChild(tl); box.appendChild(mapBox);
   r.dirs.forEach(function(dd){ if(dd.ray===undefined){ var q=ray(r.lat,r.lon,dd.deg,MAXKM); dd.ray=q==null?MAXKM:q; } });
-  try{ drawMap(cv,r,cd?cur:-1,names,cols,mx); }catch(e){ try{ console.error('expomap',e); }catch(e0){} }
+  var bar=el('div',{'class':'exbar'}), pb=el('button',{type:'button','class':'explay','aria-label':T('Αναπαραγωγή/παύση','Play/pause')},'▶'), rg=el('input',{type:'range',min:'0',max:String(Math.max(0,hs.length-1)),step:'1',value:String(Math.max(0,si)),'aria-label':T('Ώρα','Hour')}), bl=el('b',{'class':'exbl'});
+  bar.appendChild(pb); bar.appendChild(rg); bar.appendChild(bl); if(hs.length>1) box.appendChild(bar);
   var lg=el('div',{'class':'exleg'}); [[0,T('Απάνεμο <5 km','Sheltered <5 km')],[1,T('Λίγο 5–20','Limited 5–20')],[2,T('Εκτεθειμένο 20–60','Exposed 20–60')],[3,T('Ανοιχτό >60 km','Open >60 km')]].forEach(function(x){ var it=el('span'); it.appendChild(el('i',{style:'background:'+cols[x[0]]})); it.appendChild(document.createTextNode(x[1])); lg.appendChild(it); }); box.appendChild(lg);
-  box.appendChild(el('p',{'class':'note exhow'},T('Κάθε «φέτα» φτάνει ως την πρώτη στεριά προς εκείνη την κατεύθυνση, σε πραγματική κλίμακα (όσες βγαίνουν από τον χάρτη γράφουν τα km). Το χρώμα δείχνει πόσο κύμα σηκώνει ο άνεμος όταν έρχεται από εκεί: κόκκινο πολύ, πράσινο καθόλου. Το βέλος είναι ο άνεμος τώρα.','Each slice reaches the first land in that direction, to real scale (those leaving the map show the km). The colour shows how much sea the wind builds when it comes from there: red a lot, green none. The black arrow is the wind now.')));
+  box.appendChild(el('p',{'class':'note exhow'},T('Κάθε «φέτα» φτάνει ως την πρώτη στεριά προς εκείνη την κατεύθυνση, σε πραγματική κλίμακα (όσες βγαίνουν από τον χάρτη γράφουν τα km). Το χρώμα δείχνει πόσο κύμα σηκώνει ο άνεμος όταν έρχεται από εκεί: κόκκινο πολύ, πράσινο καθόλου. Το βέλος είναι ο άνεμος την ώρα που γράφει ο χάρτης· σύρε τη μπάρα ή πάτα ▶ για να δεις τις άλλες ώρες.','Each slice reaches the first land in that direction, to real scale (those leaving the map show the km). The colour shows how much sea the wind builds when it comes from there: red a lot, green none. The arrow is the wind at the time written on the map; drag the bar or press ▶ to see other hours.')));
   var wrap=el('div',{style:'display:grid;gap:3px;margin:6px 0'});
-  r.dirs.forEach(function(d){
-    var L=level(d.km), row=el('div',{style:'display:flex;align-items:center;gap:6px;font-size:12px'+(d.i===cur?';font-weight:700':'')});
-    row.appendChild(el('span',{style:'width:34px;flex:none'},names[d.i]+(d.i===cur?' ◀':'')));
-    var bar=el('div',{style:'flex:1;height:9px;background:var(--line);border-radius:5px;overflow:hidden'});
-    bar.appendChild(el('div',{style:'height:100%;width:'+Math.max(2,Math.round(100*Math.sqrt(d.km/Math.max(mx,1))))+'%;background:'+cols[L.k]})); row.appendChild(bar);
-    row.appendChild(el('span',{style:'width:84px;flex:none;text-align:right'},fmtKm(d.km)));
-    wrap.appendChild(row);
-  });
   var dl=el('details',{'class':'exdet'}); dl.appendChild(el('summary',null,T('Αριθμοί ανά κατεύθυνση και σημειώσεις','Numbers by direction and notes'))); dl.appendChild(wrap);
   var warn=[T('Προσωρινός δείκτης, όχι πρόγνωση: δείχνει πόση ανοιχτή θάλασσα υπάρχει πριν από σένα για κάθε κατεύθυνση ανέμου.','Provisional index, not a forecast: it shows how much open sea lies upwind for each wind direction.')];
   if(r.coastKm<1.5) warn.push(T('Είσαι πολύ κοντά στην ακτή (<1,5 km): εκεί οι αριθμοί είναι λιγότερο ακριβείς.','You are very close to shore (<1.5 km): numbers are less precise there.'));
@@ -199,8 +193,44 @@ function render(p,f,at){
   dl.appendChild(el('p',{'class':'note'},warn.join(' ')));
   dl.appendChild(el('p',{'class':'note',style:'margin:2px 0 0;font-size:11px'},T('Ακτογραμμή: © OpenStreetMap contributors (ODbL)','Coastline: © OpenStreetMap contributors (ODbL)')));
   box.appendChild(dl);
-  marine(p,at,f).then(function(m){ if(m){ showSwell(sw,m,r); try{ estWave(est,m,r,cd,cur,atH); }catch(e){} } if(!at){ try{ logCard(box,p,r,cd,cur,m); }catch(e){} } }).catch(function(){ if(!at){ try{ logCard(box,p,r,cd,cur,null); }catch(e){} } }); /* 1.10.1: «Πώς είναι η θάλασσα εδώ τώρα;» μόνο για σήμερα */
+  var S={day:day,hs:hs,i:-1,T:0,play:false,MH:null}; XS=S;
+  function rows(cur){ wrap.replaceChildren(); r.dirs.forEach(function(d){
+      var L=level(d.km), row=el('div',{style:'display:flex;align-items:center;gap:6px;font-size:12px'+(d.i===cur?';font-weight:700':'')});
+      row.appendChild(el('span',{style:'width:34px;flex:none'},names[d.i]+(d.i===cur?' ◀':'')));
+      var b2=el('div',{style:'flex:1;height:9px;background:var(--line);border-radius:5px;overflow:hidden'});
+      b2.appendChild(el('div',{style:'height:100%;width:'+Math.max(2,Math.round(100*Math.sqrt(d.km/Math.max(mx,1))))+'%;background:'+cols[L.k]})); row.appendChild(b2);
+      row.appendChild(el('span',{style:'width:84px;flex:none;text-align:right'},fmtKm(d.km))); wrap.appendChild(row); }); }
+  /* ό,τι αλλάζει με την ώρα */
+  S.show=function(i,user){ if(!hs.length){ try{ drawMap(cv,r,-1,names,cols,mx); }catch(e){} rows(-1); return; }
+    i=Math.max(0,Math.min(hs.length-1,i)); var h=hs[i], k=h.t.slice(0,13), isNow=k===nowK, hh=k.slice(11,13)+':00', atH=isNow?null:hh, cd={dir:h.dir,wind:h.wind,gust:h.gust,t:h.t}, cur=Math.round(cd.dir/22.5)%16; S.i=i; S.cd=cd; S.cur=cur;
+    var dt=new Date(+k.slice(0,4),+k.slice(5,7)-1,+k.slice(8,10)), wd=(EN?WD_EN:WD_EL)[dt.getDay()], lab=wd+' '+hh+(isNow?T(' · τώρα',' · now'):'');
+    tl.textContent=lab; bl.textContent=lab; rg.value=String(i);
+    var L=level(r.dirs[cur].km); nw.replaceChildren(el('span',{'class':'exchip',style:'background:'+cols[L.k]},EN?L.en:L.el),
+      el('span',null,(atH?T('Στις '+atH+' άνεμος από ','At '+atH+' wind from '):T('Τώρα άνεμος από ','Now wind from '))+names[cur]+': '+(L.k>=2?T('το κύμα έρχεται ελεύθερα ('+fmtKm(r.dirs[cur].km)+' ανοιχτή θάλασσα).','waves come in freely ('+fmtKm(r.dirs[cur].km)+' of open sea).'):L.k===1?T('λίγη θάλασσα μπροστά σου ('+fmtKm(r.dirs[cur].km)+'), μικρό κύμα από τον άνεμο.','little sea upwind ('+fmtKm(r.dirs[cur].km)+'), small wind waves.'):T('ο άνεμος έρχεται από τη στεριά και δεν σηκώνει κύμα εδώ.','the wind comes off the land and builds no waves here.')))); nw.hidden=false;
+    try{ drawMap(cv,r,cur,names,cols,mx); }catch(e){ try{ console.error('expomap',e); }catch(e0){} }
+    rows(cur);
+    var m=S.MH?marineAt(S.MH,k,f):null; if(m){ showSwell(sw,m,r,atH); try{ estWave(est,m,r,cd,cur,atH); }catch(e){} } else if(S.MH){ sw.hidden=true; est.hidden=true; }
+    if(user){ try{ window.dispatchEvent(new CustomEvent('alkyon-fchour',{detail:{date:day,hr:+k.slice(11,13),src:'expo'}})); }catch(e){} } };
+  S.setHr=function(hr){ for(var k=0;k<hs.length;k++) if(+hs[k].t.slice(11,13)===hr){ if(k!==S.i) S.show(k,false); return; } };
+  function stop(){ S.play=false; clearTimeout(S.T); pb.textContent='▶'; }
+  function step(){ if(!S.play||XS!==S||!box.isConnected){ stop(); return; } if(S.i>=hs.length-1){ stop(); return; } S.show(S.i+1,true); S.T=setTimeout(step,900); }
+  pb.addEventListener('click',function(){ if(S.play){ stop(); return; } S.play=true; pb.textContent='❚❚'; if(S.i>=hs.length-1) S.show(0,true); S.T=setTimeout(step,500); });
+  rg.addEventListener('input',function(){ stop(); S.show(+rg.value,true); });
+  S.show(Math.max(0,si),false);
+  marineAll(p).then(function(H){ if(XS!==S) return; S.MH=H; S.show(Math.max(0,S.i),false);
+    if(!at){ var m0=hs.length&&si>=0?marineAt(H,hs[si].t.slice(0,13),f):null; try{ logCard(box,p,r,si>=0?{dir:hs[si].dir,wind:hs[si].wind,gust:hs[si].gust,t:hs[si].t}:null,si>=0?Math.round(hs[si].dir/22.5)%16:-1,m0); }catch(e){} }
+  }).catch(function(){ if(!at&&XS===S){ try{ logCard(box,p,r,si>=0?{dir:hs[si].dir,wind:hs[si].wind,gust:hs[si].gust,t:hs[si].t}:null,si>=0?Math.round(hs[si].dir/22.5)%16:-1,null); }catch(e){} } }); /* «Πώς είναι η θάλασσα εδώ τώρα;» μόνο για σήμερα */
 }
+window.addEventListener('alkyon-fchour',function(ev){ var d=ev.detail||{}; if(d.src==='expo'||!XS||d.date!==XS.day) return; try{ if(XS.play){ XS.play=false; clearTimeout(XS.T); } XS.setHr(+d.hr); }catch(e){} });
+/* κύμα και swell για όλες τις ώρες του τόπου, μία κλήση (Open-Meteo marine, 7 μέρες) */
+var MA={};
+function marineAll(p){ var key=(+p.lat).toFixed(2)+','+(+p.lon).toFixed(2), hr=new Date().toISOString().slice(0,13), c=MA[key]; if(c&&c.hr===hr) return c.pr;
+  var u='https://marine-api.open-meteo.com/v1/marine?latitude='+(+p.lat).toFixed(3)+'&longitude='+(+p.lon).toFixed(3)+'&hourly=wave_height,wave_direction,wave_period,swell_wave_height,swell_wave_direction,swell_wave_period&timezone=GMT&forecast_days=7';
+  var pr=fetch(u).then(function(r){ if(!r.ok) throw new Error('marine '+r.status); return r.json(); }).then(function(j){ var H=j&&j.hourly; if(!H||!H.time) throw new Error('marine empty'); return H; });
+  MA[key]={hr:hr,pr:pr}; pr.catch(function(){ delete MA[key]; }); return pr; }
+function marineAt(H,localK,f){ var tz=f&&Number.isFinite(+f.tz)?+f.tz:120, hr=new Date(Date.UTC(+localK.slice(0,4),+localK.slice(5,7)-1,+localK.slice(8,10),+localK.slice(11,13))-tz*60000).toISOString().slice(0,13), i=H.time.indexOf(hr+':00'); if(i<0) return null;
+  function g(k){ var v=H[k]&&H[k][i]; return v==null?null:+v; }
+  var m={wh:g('wave_height'),wd:g('wave_direction'),wp:g('wave_period'),sh:g('swell_wave_height'),sd:g('swell_wave_direction'),sp:g('swell_wave_period')}; return (m.wh==null&&m.sh==null)?null:m; }
 /* ---------- swell (Open-Meteo marine), μία μικρή κλήση ανά τόπο/ώρα ---------- */
 var MC={};
 function marine(p,at,f){
@@ -238,13 +268,13 @@ function estWave(node,m,r,cd,cur,atH){
   node.hidden=false;
 }
 /* Το swell περνά αν η κατεύθυνσή του έχει ανοιχτή θάλασσα (≥60 km) προς το σημείο. Δεν υπολογίζει διάθλαση/περίθλαση. */
-function showSwell(node,m,r){
+function showSwell(node,m,r,atH){
   var names=EN?NAMES_EN:NAMES_EL, parts=[];
   if(m.sh!=null&&m.sd!=null&&m.sh>=0.15){
     var i=Math.round(m.sd/22.5)%16, d=r.dirs[i], L=level(d.km);
     var verdict=d.km>=60?T('μπαίνει ελεύθερα','enters freely'):d.km>=20?T('μπαίνει μερικώς','enters partly'):T('μάλλον μπλοκάρεται από την ακτή','mostly blocked by the coast');
     parts.push(T('Swell (κύμα από μακριά): από ','Swell (distant waves): from ')+names[i]+', '+m.sh.toFixed(1)+' m'+(m.sp?', '+Math.round(m.sp)+' s':'')+' → '+verdict+' ('+fmtKm(d.km)+T(' ανοιχτό)',' open)'));
-  } else if(m.sh!=null){ parts.push(T('Swell: αμελητέο τώρα (<0,15 m).','Swell: negligible now (<0.15 m).')); }
+  } else if(m.sh!=null){ parts.push(atH?T('Swell: αμελητέο στις '+atH+' (<0,15 m).','Swell: negligible at '+atH+' (<0.15 m).'):T('Swell: αμελητέο τώρα (<0,15 m).','Swell: negligible now (<0.15 m).')); }
   if(m.wh!=null) parts.push(T('Μοντέλο κύματος ανοιχτής θάλασσας: ','Open-sea wave model: ')+m.wh.toFixed(1)+' m'+(m.wd!=null?' '+T('από ','from ')+names[Math.round(m.wd/22.5)%16]:'')+T(' (στον κόλπο συνήθως μικρότερο, όχι πάντα).',' (inside a bay usually smaller, not always).'));
   node.textContent=parts.join(' · '); node.hidden=!parts.length;
 }

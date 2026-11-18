@@ -43,7 +43,40 @@ function nav(){
       fab.addEventListener('contextmenu',function(ev){ ev.preventDefault(); });
       bar.append(fab); return; }
     var a=h('a',{href:'#'+t[0],data:{v:t[0]}}); a.innerHTML=B.iconSvg?B.iconSvg(t[2]):''; a.append(h('span',{text:t[1]})); bar.append(a); });
-  return h('nav',{class:'nav','aria-label':T('Κύρια πλοήγηση','Main navigation')},bar);
+  var nv=h('nav',{class:'nav','aria-label':T('Κύρια πλοήγηση','Main navigation')},bar); try{ navSlide(nv,bar); }catch(e){} return nv;
+}
+/* 1.14.71–72: στον Χάρτη η κάτω μπάρα μαζεύεται προς τα αριστερά, για να μένει όλο το ύψος στον χάρτη και στον καιρό.
+   1.14.73: μαζεύεται προς τα δεξιά και το βελάκι είναι στη δεξιά άκρη, στο ύψος της μπάρας (πάτημα ή σύρσιμο προς τα αριστερά: επιστρέφει).
+   Χωρίς κανένα κουμπί εξόδου όσο είναι μαζεμένη (ο χρόνος της εξόδου φαίνεται στο πάνω πλαίσιο)· για τέλος εξόδου ανοίγεις τη μπάρα.
+   Μαζεύεται με σύρσιμο προς τα δεξιά, και μόνη της όσο είναι ανοιχτό στρώμα καιρού με μπάρα χρόνου (αν την ανοίξεις με το βελάκι, μένει ανοιχτή μέχρι να κλείσει το στρώμα ή να φύγεις από τον Χάρτη)·
+   όταν κλείσει το στρώμα ή φύγεις από τον Χάρτη, επιστρέφει. */
+function navSlide(nv,bar){
+  var fab=bar.querySelector('.fab'), x0=0, y0=0, dx=0, drag=false, moved=false, pid=null, had=false, auto=false, mapAt=0;
+  var tab=h('button',{type:'button',class:'navtab','aria-label':T('Εμφάνιση μπάρας πλοήγησης','Show the navigation bar'),html:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>',onclick:function(){ set(false); }});
+  nv.append(tab);
+  function onMap(){ return document.body.classList.contains('mapon'); }
+  function slid(){ return document.body.classList.contains('navslid'); }
+  function set(on,byAuto){ on=!!on&&onMap(); bar.style.transform=''; bar.style.transition=''; if(on===slid()) return; document.body.classList.toggle('navslid',on); auto=!!(on&&byAuto);
+    if(on&&!B.ls.get('alkyon-v4-navslid-tip',0)){ B.ls.set('alkyon-v4-navslid-tip',1); B.toast(T('Η μπάρα μαζεύτηκε. Πάτα το βελάκι κάτω δεξιά για να επιστρέψει.','The bar is tucked away. Tap the arrow at the bottom right to bring it back.'),5000); }
+    try{ window.dispatchEvent(new Event('resize')); }catch(e){} }
+  B.navSlide=set;
+  bar.addEventListener('pointerdown',function(e){ if(!onMap()||slid()) return; pid=e.pointerId; x0=e.clientX; y0=e.clientY; dx=0; drag=true; moved=false; });
+  bar.addEventListener('pointermove',function(e){ if(!drag||e.pointerId!==pid) return; var ddx=e.clientX-x0, ddy=e.clientY-y0; if(!moved){ if(Math.abs(ddx)<12||Math.abs(ddx)<Math.abs(ddy)*1.4) return; moved=true; bar.style.transition='none'; try{ bar.setPointerCapture(pid); }catch(e2){} }
+    dx=Math.max(0,ddx); bar.style.transform='translateX('+dx+'px)'; });
+  function end(e){ if(!drag||(e&&e.pointerId!==pid)) return; drag=false; if(!moved){ return; } var go=dx>Math.min(90,bar.offsetWidth*0.22); if(go) set(true); else { bar.style.transform=''; bar.style.transition=''; } }
+  bar.addEventListener('pointerup',end); bar.addEventListener('pointercancel',end);
+  /* το σύρσιμο δεν πρέπει να ανοίξει σελίδα ή έξοδο */
+  bar.addEventListener('click',function(e){ if(moved){ moved=false; e.preventDefault(); e.stopPropagation(); } },true);
+  /* βελάκι: και με σύρσιμο προς τα αριστερά */
+  var tx=0; tab.addEventListener('pointerdown',function(e){ tx=e.clientX; }); tab.addEventListener('pointermove',function(e){ if(tx&&tx-e.clientX>24){ tx=0; set(false); } }); tab.addEventListener('pointerup',function(){ tx=0; });
+  window.addEventListener('hashchange',function(){ if(!/^#map/.test(location.hash||'')) set(false); });
+  /* στρώμα καιρού με μπάρα χρόνου (ραντάρ, βροχή, σύννεφα, δορυφόρος, άνεμος/κύμα): άνοιξε → μαζεύεται, έκλεισε → επιστρέφει */
+  var dock=null, dockObs=null;
+  function bars(){ var d=document.getElementById('ndMapDock'); if(d&&d!==dock){ dock=d; try{ dockObs=new MutationObserver(check); dockObs.observe(d,{attributes:true,attributeFilter:['hidden']}); }catch(e){} } return !!(document.querySelector('.rainbar')||(d&&!d.hidden)); }
+  function check(){ var m=onMap(); if(!m){ mapAt=0; had=false; if(slid()) set(false); return; } if(!mapAt) mapAt=Date.now();
+    var now=bars(); if(now&&!had){ if(!slid()) set(true,true); } /* 1.14.75: και όταν μπαίνεις στον Χάρτη με στρώμα καιρού ήδη ανοιχτό */ else if(!now&&had){ if(auto&&slid()) set(false); auto=false; } had=now; }
+  try{ new MutationObserver(check).observe(document.body,{childList:true,attributes:true,attributeFilter:['class']}); }catch(e){}
+  setInterval(check,1200); /* δίχτυ ασφαλείας, αν κάποια αλλαγή δεν πιαστεί */
 }
 var HS=[];
 /* 1.13.7: αλλαγή γλώσσας χωρίς να γυρνάς στην αρχή: κρατά σελίδα και σημείο κύλισης */
@@ -58,6 +91,7 @@ function route(){
   /* v31z537: σύνδεσμος πρόσκλησης φίλου (#addfriend=ΚΩΔΙΚΟΣ): κρατά τον κωδικό και ανοίγει τους Φίλους με τον κωδικό συμπληρωμένο */
   if(/^addfriend=/.test(name)){ var fcd=decodeURIComponent(name.slice(10)).replace(/[^A-Za-z0-9]/g,'').toUpperCase(); try{ if(fcd.length>=6) localStorage.setItem('alk-friend-code',JSON.stringify({c:fcd,t:Date.now()})); }catch(e){} history.replaceState(null,'',location.pathname+'#friends'); name='friends'; }
   if(!VIEWS[name]) name='forecast';
+  try{ document.documentElement.setAttribute('data-view',name); }catch(e){}   /* 1.14.45: για το σβήσιμο πάνω από την κάτω μπάρα (όχι στον χάρτη) */
   [].forEach.call(document.querySelectorAll('.nav a[data-v]'),function(a){ if(a.dataset.v===name) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
   if(cur===name) return;
   if(B.closeSheet) B.closeSheet();

@@ -97,7 +97,7 @@ B.biteForm=function(edit,opt){
   var spSug=h('div',{class:'spsug',hidden:true}), spChips=h('div',{class:'chips qchips'}), baitChips=h('div',{class:'chips qchips'});
   function nrmS(x){ return String(x||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ς/g,'σ'); }
   /* όνομα είδους στη γλώσσα της εφαρμογής (τα αποθηκευμένα ονόματα μπορεί να είναι ελληνικά) */
-  function dispSp(v,la){ if(!EN) return v; var lw=(la||'').toLowerCase(), q=v.toLowerCase(), hit=null;
+  function dispSp(v,la){ if(!EN) return v; /* 1.14.49: πρώτα το ενιαίο όνομα (στη θάλασσα «Πέρκα» = Painted comber, όχι European perch από παλιό αποθηκευμένο λατινικό) */ try{ if(window.spLatin&&window.spLatin(v)) return window.spName(v); }catch(x){} var lw=(la||'').toLowerCase(), q=v.toLowerCase(), hit=null;
     (window.SPKB||[]).some(function(k){ if((lw&&(k.l||'').toLowerCase()===lw)||(k.n||'').toLowerCase()===q){ hit=k.en||null; return !!hit; } return false; });
     if(!hit) (window.SPECIES_DB||[]).some(function(r){ var el=String(r[0]||''); if((lw&&String(r[2]||'').toLowerCase()===lw)||el.toLowerCase().split('/').map(function(x){ return x.trim(); }).indexOf(q)>=0){ hit=r[1]||null; return !!hit; } return false; });
     return hit||(window.spName?window.spName(v):v); }
@@ -114,7 +114,7 @@ B.biteForm=function(edit,opt){
   sp.addEventListener('focus',function(){ setTimeout(lift,300); });
   sp.addEventListener('input',function(){ pickLa=''; showSug(); if(!spSug.hidden) lift(); }); sp.addEventListener('blur',function(){ setTimeout(function(){ spSug.hidden=true; },150); });
   (function(){ var fm=famOf(prof), mine=all.filter(function(b){ return famOf(b.prof||'boat')===fm; }).sort(function(a,b){ return (b.date+b.time).localeCompare(a.date+a.time); }), seen={}, n=0, sb={}, nb=0;
-    mine.forEach(function(b){ var v=(b.species||'').trim(); if(v&&!seen[v]&&n<6){ seen[v]=1; n++; var dv=dispSp(v,b.latin); spChips.append(h('button',{type:'button',class:'chip sm',text:dv,onclick:function(){ sp.value=dv; pickLa=b.latin||latinOf(v)||''; spSug.hidden=true; law(); sugTk(); }})); }
+    mine.forEach(function(b){ var v=(b.species||'').trim(), vk=v&&window.spKey?window.spKey(v):v; if(v&&!seen[vk]&&n<6){ seen[vk]=1; n++; var dv=dispSp(v,b.latin); spChips.append(h('button',{type:'button',class:'chip sm',text:dv,onclick:function(){ sp.value=dv; pickLa=b.latin||latinOf(v)||''; spSug.hidden=true; law(); sugTk(); }})); }
       var w=(b.bait||'').trim(); if(w&&!sb[w]&&nb<6){ sb[w]=1; nb++; baitChips.append(h('button',{type:'button',class:'chip sm',data:{v:w},text:w,onclick:function(){ bait.value=w; }})); } });
     /* 1.12.14: και τα συνηθισμένα δολώματα (θάλασσα / λίμνη), ώστε να μη γράφεις κάθε φορά: πρώτα τα δικά σου, μετά αυτά, ως 8 */
     if(fm!=='spear') commonBaits(fm).forEach(function(w){ if(nb>=8||sb[w]||Object.keys(sb).some(function(k){ return k.toLowerCase()===w.toLowerCase(); })) return; sb[w]=1; nb++; baitChips.append(h('button',{type:'button',class:'chip sm cb',data:{v:w},text:w,onclick:function(){ bait.value=w; }})); });
@@ -242,7 +242,7 @@ B.biteForm=function(edit,opt){
     var cam=h('button',{class:'btn',type:'button',text:'📷 '+T('Νέα φωτογραφία','New photo'),onclick:function(){ measCam(); }});
     /* 1.14.15: stack: η φόρμα του ψαριού μένει από κάτω· πριν το κλείσιμο της μέτρησης έκλεινε και τη φόρμα και δεν αποθηκευόταν τίποτα */
     var sh=measSh=B.sheet({stack:true,title:T('Μήκος από φωτογραφία','Length from a photo'),onclose:function(){ if(measSh===sh) measSh=null; },body:h('div',{class:'bform'},strip,h('label',{class:'fld'},h('span',{text:T('Αντικείμενο αναφοράς στη φωτογραφία','Reference object in the photo')}),sel),oth,info,cv,res,use,h('div',{class:'row2'},again,cam))}); }
-  function latinOf(name){ var n=String(name||'').trim().toLowerCase(); if(!n) return ''; var kb=(window.SPKB||[]).filter(function(k){ return k.n.toLowerCase()===n||(k.en||'').toLowerCase()===n; })[0]; if(kb) return kb.l;
+  function latinOf(name){ var n=String(name||'').trim().toLowerCase(); if(!n) return ''; try{ var sl=window.spLatin&&window.spLatin(n); if(sl) return sl.charAt(0).toUpperCase()+sl.slice(1); }catch(x){} var kb=(window.SPKB||[]).filter(function(k){ return k.n.toLowerCase()===n||(k.en||'').toLowerCase()===n; })[0]; if(kb) return kb.l;
     var r=(window.SPECIES_DB||[]).filter(function(x){ return (x[0]&&String(x[0]).toLowerCase().split(/\s*\/\s*/).indexOf(n)>=0)||(x[1]&&x[1].toLowerCase()===n); })[0]; return r?r[2]:''; }
   function minOf(la){ var M=window.MIN_SIZES||{}; if(!la) return 0; if(M[la]) return M[la]; var g=la.split(' ')[0]; if(g==='Chelon'||g==='Liza'||g==='Oedalechilus') return M['Mugil spp.']||0; return M[g+' spp.']||M[g+' sp.']||0; }
   function law(){ var la=pickLa||latinOf(sp.value), L=+len.value||0, mn=minOf(la), t='', warn=false, ok=false;
@@ -250,7 +250,14 @@ B.biteForm=function(edit,opt){
     else if((B.PEST_L||[]).indexOf(la)>=0||B.pest({species:sp.value})){ t=(B.pestWarn?B.pestWarn():T('⚠ Τοξικός. Μην τον φας και μην τον δώσεις.','⚠ Toxic. Do not eat it or give it away.'))+' '+T('Δεν μετράει στα ψάρια σου. Αν έκοψε αγκίστρι ή τεχνητό, πάτα το παρακάτω.','It does not count in your catches. If it cut a hook or lure, tap it below.'); warn=true; }
     else if(mn){ t=T('Ελάχιστο νόμιμο μήκος: ','Minimum legal length: ')+mn+' cm'; if(L&&L<mn){ t='⚠ '+t+T(' · κάτω από το όριο, ελευθέρωσέ το.',' · under the limit, release it.'); warn=true; } else if(L){ t='✓ '+t+T(' · εντάξει, πάνω από το όριο.',' · OK, at or above the limit.'); ok=true; } } /* 1.14.12: πράσινο ≥ όριο, κόκκινο κάτω */
     if(/καρχαρ|γαλεο|σκυλοψαρ|σαλαχ|τρυγον|βατοσ|βατος|shark|\bray\b|skate|stingray/i.test(sp.value||'')){ t=T('⚠ Καρχαρίες και σαλάχια δεν επιτρέπονται ως ερασιτεχνικό αλίευμα: ελευθέρωσέ τα.','⚠ Sharks and rays are not allowed as a recreational catch: release them.'); warn=true; }
+    /* 1.14.31: κάτω από το όριο / δεν κρατιέται → σημειώνει «Το άφησα ελεύθερο» (αν δεν το άλλαξες εσύ)· δεν μετρά στο όριο ποσότητας */
+    if(warn&&!miss.checked&&!relTouched&&!rel.checked){ rel.checked=true; relAuto=true; } else if(!warn&&relAuto&&!relTouched){ rel.checked=false; relAuto=false; }
+    if(relAuto&&rel.checked&&warn) t+=T(' Σημειώθηκε «Το άφησα ελεύθερο».',' Marked «I released it».');
+    /* 1.14.31: όριο ποσότητας της εξόδου (Κύπρος) */
+    try{ var sf0=ls.get('alkyon-safe',{})||{}, tid=(e&&e.trip)||(sf0.active?sf0.id:null);
+      if(B.bag&&tid&&!miss.checked){ var br=B.bag.of(tid,{kg:+kg.value||0,latin:la,species:sp.value,rel:rel.checked},e&&e.id), bt=B.bag.text(br); if(bt){ t=t?t+'\n'+bt:bt; if(br.over||br.near||br.oneOver.length) warn=true; } } }catch(er){}
     lawNote.textContent=t; lawNote.hidden=!t||miss.checked; lawNote.classList.toggle('warn',warn); lawNote.classList.toggle('ok',ok&&!warn); }
+  var relTouched=!!e, relAuto=false; rel.addEventListener('change',function(){ relTouched=true; relAuto=false; law(); }); kg.addEventListener('input',law);
   sp.addEventListener('input',law); sp.addEventListener('change',sugTk); if(!window.TACKLE_GUIDE&&prof!=='spear'){ var gs=document.createElement('script'); gs.src='../tackle-guide.js'; gs.onload=sugTk; document.head.appendChild(gs); } len.addEventListener('input',law); miss.addEventListener('change',law);
   /* v31z521: αναγνώριση από φωτογραφία. Με κλειδί AI τρέχει μόνη της μόλις βάλεις φωτογραφία (αν δεν έχεις γράψει είδος)· χωρίς κλειδί, σύνδεσμος για ρύθμιση */
   var aiSlot=h('div',{class:'aislot'}), aiBox=null;
@@ -296,7 +303,7 @@ B.biteForm=function(edit,opt){
     setW('none'); oldHint.hidden=false; wwBox.hidden=false; wwLine.classList.add('open'); }
   when.addEventListener('change',oldCheck); when.addEventListener('input',oldCheck); locP.then(function(){ wwPaint(); depFollow(); }); wwPaint();
   /* βάθος από τον χάρτη βυθού όταν δεν το έγραψες (εκτίμηση, σημειώνεται) */
-  var depNote=h('small',{class:'wn',hidden:true}), depAuto=false;
+  var depNote=h('small',{class:'wn depnote',hidden:true}), depAuto=false;
   /* 1.13.7: το βάθος ακολουθεί τη θέση που διάλεξες (GPS, χάρτης, συντεταγμένες, σημείο), όχι μόνο το GPS */
   function effPos(){ var v=where.value, g; if(v==='gps') return pos; if(v==='coord'){ g=cbx&&cbx.get(); return g&&isFinite(g.lat)&&isFinite(g.lon)?g:null; }
     if(v.slice(0,2)==='s:'){ g=S.get('spots',v.slice(2)); return g&&typeof g.lat==='number'?g:null; } if(v==='at') return opt&&opt.at||null; if(v==='keep') return e&&typeof e.lat==='number'?{lat:e.lat,lon:e.lon}:null; return null; }
@@ -305,7 +312,7 @@ B.biteForm=function(edit,opt){
     if(depAuto||(!first&&!dep.value)){ dep.value=''; depAuto=false; depNote.hidden=true; } if(p) autoDepth(); }
   function autoDepth(){ var p=effPos(); if((e&&where.value==='keep')||dep.value||!p||!B.depthAt||prof==='lake'||prof==='shore') return; var k=depKey; B.depthAt(p.lat,p.lon).then(function(v){ if(v==null||v<1||dep.value||k!==depKey) return; var U=window.AlkyonUnits, o=U&&U.depthOut?U.depthOut(v):Math.round(v);
       dep.value=String(Math.round(o)); depAuto=true; depNote.hidden=false; var src=B.lastDepthSrc; /* 1.10.12: από το βυθόμετρο ή τον «Βυθό μου» όταν υπάρχουν */
-      depNote.textContent=src==='sounder'?T('βάθος από το βυθόμετρο','depth from the sounder'):src==='mine'?T('βάθος από τον «Βυθό μου» (το βυθόμετρό σου)','depth from “My depths” (your sounder)'):'≈ '+T('βάθος από τον χάρτη βυθού· γράψε το πραγματικό αν το ξέρεις','depth from the seabed chart; enter the real one if you know it'); }).catch(function(){}); }
+      depNote.textContent=src==='sounder'?T('βάθος από το βυθόμετρο','depth from the sounder'):src==='mine'?T('βάθος από τον «Βυθό μου» (το βυθόμετρό σου)','depth from “My depths” (your sounder)'):'≈ '+T('βάθος από τον χάρτη· άλλαξέ το αν ξέρεις το πραγματικό','depth from the chart; change it if you know the real one'); }).catch(function(){}); }
   dep.addEventListener('input',function(){ depAuto=false; depNote.hidden=true; });
   /* εξοπλισμός σε μία γραμμή (τα επιλεγμένα· πάτα για αλλαγή) */
   var tkWrap=h('div',{class:'bftk',hidden:true},tkBox,tkDet,tkLostBox,tkSug), tkTx=h('span',{class:'bflt'});
@@ -318,7 +325,7 @@ B.biteForm=function(edit,opt){
   tkBox.addEventListener('click',function(){ setTimeout(tkPaint,30); }); tkPaint();
   /* τεχνική: στη συρτή συμπληρώνεται μόνη της· κουμπιά δολωμάτων από το ιστορικό */
   try{ if(!e&&!tech.value&&B.troll&&B.troll.on&&B.troll.on()){ var tc=B.troll.cfg?B.troll.cfg():null; tech.value=techShow(tc&&tc.mode==='bottom'?'Συρτή βυθού':'Συρτή αφρού'); } }catch(x){}
-  var techChips=h('div',{class:'chips qchips'}); (function(){ var u=uniq(all.map(function(b){ return b.tech; })).slice(0,4); u.forEach(function(v){ techChips.append(h('button',{type:'button',class:'chip sm',data:{v:v},text:techShow(v),onclick:function(){ tech.value=techShow(v); syncTech(); }})); }); techChips.hidden=!u.length; })();
+  var techChips=h('div',{class:'chips qchips'}); (function(){ var tseen={}, u=uniq(all.map(function(b){ return b.tech; })).filter(function(v){ var k=techShow(v).toLowerCase(); if(tseen[k]||/^(δίχτυ|δίχτυα|παραγάδι|κιούρτος|κλουβί|net|nets|longline|pot|trap)$/i.test(v.trim())||/^(net|longline|pot|trap)$/.test(k)) return false; tseen[k]=1; return true; }).slice(0,4);   /* 1.14.49: χωρίς διπλά και χωρίς εργαλεία (δίχτυ, παραγάδι) στις τεχνικές καλαμιού */ u.forEach(function(v){ techChips.append(h('button',{type:'button',class:'chip sm',data:{v:v},text:techShow(v),onclick:function(){ tech.value=techShow(v); syncTech(); }})); }); techChips.hidden=!u.length; })();
   /* 1.9.59: το chip που ταιριάζει με το πεδίο φαίνεται επιλεγμένο (και στην τεχνική, και όταν ανοίγεις παλιό ψάρι ή γράφεις με το χέρι). Πριν, η τεχνική σύγκρινε το μεταφρασμένο κείμενο και δεν άναβε ποτέ. */
   function syncTech(){ var cur=techStore(tech.value); [].forEach.call(techChips.children,function(c){ c.setAttribute('aria-pressed',String(!!cur&&(c.dataset.v===cur||techStore(c.dataset.v)===cur))); }); }
   function syncBait(){ var cur=String(bait.value||'').trim().toLowerCase(); [].forEach.call(baitChips.children,function(c){ c.setAttribute('aria-pressed',String(!!cur&&String(c.dataset.v||c.textContent).trim().toLowerCase()===cur)); }); }
@@ -352,7 +359,7 @@ B.biteForm=function(edit,opt){
     h('section',{class:'bfcard'},
     h('div',{class:'fld spfld'},spLbl,h('div',{class:'spwrap'},sp,spSug),spChips,h('small',{class:'spopt',text:T('Για χαμένο ψάρι είναι προαιρετικό.','Optional for a lost fish.')})),
     (sizeRow=h('div',{class:'g3',hidden:miss.checked},field(T('Βάρος (kg)','Weight (kg)'),kg),field(T('Μήκος (cm)','Length (cm)'),len),field(T('Βάθος','Depth')+' ('+(window.AlkyonUnits&&AlkyonUnits.depthUnit?AlkyonUnits.depthUnit():'m')+')',dep))),
-    lawNote,measBtn,camIn,kgEst,depNote, /* 1.14.12: το ελάχιστο μήκος κάτω από βάρος/μήκος */
+    lawNote,depNote,measBtn,camIn,kgEst, /* 1.14.51: η σημείωση του βάθους ακριβώς κάτω από το βάθος, σύντομη και δεξιά */ /* 1.14.12: το ελάχιστο μήκος κάτω από βάρος/μήκος */
     /* 1.12.7: «Πολλά ψάρια μαζί» αμέσως κάτω από βάρος/μήκος */
     (manyRow=h('div',{class:'bfmany',hidden:miss.checked},h('label',{class:'tg'},many,h('span',{text:T('Πολλά ψάρια μαζί (μία εγγραφή)','Several fish together (one entry)')})),cntRow)),
     prof==='spear'?h('label',{class:'fld'},h('span',{text:T('Ορατότητα νερού (m)','Water visibility (m)')}),vis,h('small',{text:T('Πόσα μέτρα έβλεπες. Έτσι η Πρόγνωση μαθαίνει τα νερά σου.','How many metres you could see. This teaches the Forecast your waters.')})):null),

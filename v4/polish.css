@@ -141,3 +141,308 @@ html.nightred .wpk .oldhint{background:#000;border:1px solid #fff}
 .mpkbar .mplrow{display:flex;align-items:center;gap:8px;margin:6px 0}.mpkbar .mplrow .btn{flex:0 0 auto;width:auto;padding:0 14px}.mpkbar .mplrow .mplcnt{flex:1;min-width:0;text-align:right;color:var(--ink-2)}
 /* 1.10.6: σελίδες με ‹ και τίτλο χωρίς κουμπί δεξιά (Φίλοι, Ειδοποιήσεις): ο τίτλος αριστερά, όχι δεξιά */
 .top>:first-child:last-child{margin-left:0;margin-right:auto;min-width:0}
+
+/* ===== 1.14.45: επαγγελματική όψη ===== */
+/* 1) το περιεχόμενο σβήνει ομαλά πριν την κάτω μπάρα */
+.nav::before{content:'';position:absolute;left:0;right:0;bottom:0;height:calc(var(--nav-h) + var(--safe-b) + 46px);background:linear-gradient(180deg,transparent 0,color-mix(in srgb,var(--bg) 86%,transparent) 44%,var(--bg) 78%);pointer-events:none;z-index:-1}
+html[data-view=map] .nav::before,html.nightred .nav::before,body.ontrip .nav::before{display:none}
+.nav>div{background:var(--surface);box-shadow:0 0 0 1px var(--line),0 10px 26px -12px rgba(0,0,0,.45)}
+/* 2) τρία μεγέθη τίτλων παντού: κάρτα 17.5, υπότιτλος 15, βοηθητικό 13.5 */
+.card>h2,.fcpage .card h2,.pwh h2,.hch h2,.fold>summary b,details.sfold>summary,.card .gh h2{font-size:17.5px;line-height:1.25;font-weight:740;letter-spacing:-.012em}
+.card .h3,.h3.subh,.card h3.listh,.cmgrp .listh{font-size:15px;line-height:1.3;font-weight:700;color:var(--ink);margin:16px 0 6px}
+.sub,.card>p.sub{font-size:14.5px;line-height:1.45}
+.fold>summary small,.card small.hint,.foot{font-size:13.5px;line-height:1.4}
+.fold>summary{padding:14px 16px;min-height:54px}
+.card{padding:16px}
+.bar .bl{font-size:14.5px}.bar .bv{font-size:13.5px}
+/* 3) εικονίδια στο ίδιο πάχος γραμμής */
+.pik svg{stroke-width:1.8}
+.pik-star svg{fill:currentColor;stroke:none}
+.pik-dotg svg,.pik-doty svg,.pik-dotr svg{width:.8em;height:.8em}
+/* 4) ετικέτες-συμπέρασμα και «Λεπτομέρειες» */
+.cmchips,.patchips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px}
+.cmchip,.patchip{display:inline-flex;align-items:baseline;gap:6px;padding:6px 10px;border-radius:10px;background:var(--surface-2);font-size:13.5px;line-height:1.25;max-width:100%}
+.cmchip i,.patchip i{font-style:normal;color:var(--ink-2);font-size:12.5px;font-weight:600}
+.cmchip b,.patchip b{font-weight:700}
+.patchip.up i{color:var(--good-ink)}.patchip.down i{color:var(--poor)}
+.patl{margin:10px 0 0;font-size:13.5px;font-weight:650;color:var(--ink-2)}
+details.cmmore>summary,details.patmore>summary{color:var(--ink-2);font-weight:650;font-size:13.5px;padding:8px 0 4px}
+details.cmmore>summary::after,details.patmore>summary::after,details.spmore>summary::after{content:' ›'}
+details.cmmore[open]>summary::after,details.patmore[open]>summary::after,details.spmore[open]>summary::after{content:' ‹'}
+/* 5) χρώματα με ένα νόημα: πράσινο καλό, κίτρινο μέτριο, κόκκινο κακό, γαλάζιο ουδέτερο· το πορτοκαλί μόνο για ενέργειες */
+:root{--wind:#8A6D3B}
+html[data-theme=dark],html.dark{--wind:#D9C7A3}
+@media (prefers-color-scheme:dark){html:not([data-theme=light]){--wind:#D9C7A3}}
+.pwc .wl,.pwc .gl2,.pwc .dot.w{stroke:var(--wind)}.pwc .wa,.pwc .arr,.pwc .axh.wk{fill:var(--wind)}
+.pwl .k2::before{background:var(--wind)!important}
+.sp .bt.lv2 i,.bar.up .bt i{background:var(--good)}
+.sp .bt.lv1 i,.bar.mid .bt i{background:var(--fair)}
+.sp .bt.lv0 i,.bar.low .bt i{background:var(--ink-3)}
+.simcard .simhead.lo b{color:var(--poor)}
+.simcard .simhead b{color:var(--ink)}
+.simcard .simhead.hi b{color:var(--good)}.simcard .simhead.mid b{color:var(--fair)}
+details.spmore>summary{color:var(--ink-2)}
+.card .gh h2{font-size:16.5px;flex:1 1 auto;min-width:0}
+
+/* ===== 1.14.46: Ημερολόγιο ===== */
+/* τα φίλτρα διαστήματος σε μία γραμμή που σύρεται (το «Από–Έως» έπεφτε μόνο του από κάτω) */
+.chips.rng{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;margin-right:-16px;padding-right:34px;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 34px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 34px),transparent)}
+.chips.rng::-webkit-scrollbar{display:none}
+.chips.rng .chip{flex:none;white-space:nowrap}
+.addrow.withsum{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.addrow.withsum .sum{margin:0;flex:1;min-width:0;font-size:13.5px;line-height:1.35;color:var(--ink-2)}
+.addrow.withsum .addbtn{flex:none}
+/* κάρτα εξόδου: ο αριθμός έχει ετικέτα, ο τίτλος δεν σπάει */
+.li.tcard .tc{display:flex;flex-direction:column;align-items:center;gap:0;min-width:44px;margin:12px 12px 0 4px}
+.li.tcard .tc b{font:800 22px/1 var(--font)}
+.li.tcard .tc small{font:600 11px/1.3 var(--font);color:var(--ink-3)}
+.li.tcard .tx b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:8px}
+.li.tcard .tx small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* λίστα ψαριών: το όνομα σε μία γραμμή, η ώρα μικρότερη */
+.li.fishrow .tx b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:16px;line-height:1.25}
+
+/* ===== 1.14.48: φόρμα ψαριού για χρήση πάνω στη βάρκα: μεγαλύτεροι στόχοι αφής ===== */
+/* 1.14.49: οι γρήγορες επιλογές σε ΜΙΑ γραμμή που σύρεται (με τα μεγάλα κουμπιά έπεφταν μία ανά γραμμή και η φόρμα μάκραινε) */
+form.bf2 .qchips{display:flex;flex-wrap:nowrap!important;overflow-x:auto;gap:8px;margin:8px -4px 0 0;padding:2px 28px 2px 0;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent)}
+form.bf2 .qchips::-webkit-scrollbar{display:none}
+form.bf2 .qchips .chip,form.bf2 .qchips .chip.sm{flex:none;min-height:42px;padding:0 14px;font-size:14.5px;white-space:nowrap;margin:0}
+form.bf2 input[type=text],form.bf2 input[type=number],form.bf2 input:not([type]),form.bf2 select{min-height:52px;font-size:17px}
+form.bf2 .bfsave{min-height:56px;font-size:17px;border-radius:16px}
+form.bf2 .seg button{min-height:48px}
+
+.opps .oph{display:flex;align-items:center;gap:8px}.opps .oph h2{flex:1 1 auto;min-width:0;font-size:16.5px}
+
+/* 1.14.50: Δόλωμα και Τεχνική το ένα κάτω από το άλλο, για να χωρούν οι επιλογές σε όλο το πλάτος (σε δύο στήλες φαινόταν μία επιλογή και μισή) */
+form.bf2 .bfbt2{display:grid;grid-template-columns:1fr!important;gap:14px}
+form.bf2 .qchips{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 10px,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,transparent 0,#000 10px,#000 calc(100% - 28px),transparent);padding-left:2px;scroll-padding-left:2px}
+
+/* 1.14.51 */
+form.bf2 .depnote{display:block;text-align:right;margin:-4px 0 6px;font-size:12.5px;line-height:1.3;color:var(--ink-3)}
+form.bf2 .depnote[hidden]{display:none}
+
+/* 1.14.52: οι τίτλοι των πτυσσόμενων καρτών στην ίδια ευθεία με τους άλλους τίτλους (είχαν διπλό περιθώριο)· το (i) στις «Ευκαιρίες» ανοίγει κάτω από τον τίτλο, όχι δίπλα του */
+.card.fold>summary{padding-left:0;padding-right:0;padding-top:2px;padding-bottom:2px;min-height:44px}
+.opps .oph{flex-wrap:wrap}
+.opps .oph .infot{flex:1 0 100%;order:9;margin-top:8px!important}
+.cmchip{align-items:baseline}.cmchip b{white-space:normal}
+.card.fold[open]>summary{margin-bottom:10px}
+/* 1.14.53: το περιεχόμενο μιας πτυσσόμενης κάρτας στην ίδια ευθεία με τον τίτλο της */
+.card.fold>:not(summary){margin-left:0;margin-right:0}
+/* 1.14.53: από το πλήρες πέρασμα (όλες οι οθόνες, όλα ανοιχτά, 360 px, δύο γλώσσες, δύο θέματα) */
+.sph .splv{background:var(--surface-2);color:var(--ink-2)}
+.sph .splv.lv2{background:color-mix(in srgb,var(--good) 20%,transparent);color:var(--good-ink)}
+.sph .splv.lv1{background:color-mix(in srgb,var(--fair) 22%,transparent);color:var(--ink)}
+.infot{background:var(--surface-2)!important}
+.empty .btn{margin-top:14px}
+.card.fold>summary b,.fold>summary b{font-size:16.5px}
+
+/* ===== 1.14.54: «Τι κοινό είχαν τα ψαρέματά σου» ===== */
+.cmcard .cmbox{margin-top:12px;padding:14px;border-radius:16px;background:var(--surface-2)}
+.cmcard .cmhd{display:flex;align-items:center;gap:8px;margin:0 0 4px!important;font-size:15.5px}
+.cmcard .cmhd .cmt{flex:1;min-width:0}
+.cmcard .cmhd .cmsep{font-size:0;width:0}
+.cmcard .cmhd .cmcnt{flex:none;font-size:12.5px;font-weight:700;padding:3px 9px;border-radius:999px;background:color-mix(in srgb,var(--info,#5fb3d9) 18%,transparent);color:var(--ink)}
+.cmcard .cmsp{margin:0 0 10px!important;font-size:13.5px;line-height:1.4;color:var(--ink-2)}
+.cmfacts{display:grid;grid-template-columns:1fr 1fr;gap:1px;border-radius:12px;overflow:hidden;background:var(--line)}
+.cmfact{display:flex;flex-direction:column;gap:2px;padding:9px 12px;background:var(--surface);min-width:0}
+.cmfact:last-child:nth-child(odd){grid-column:1/-1}
+.cmfact i{font-style:normal;font-size:11.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3)}
+.cmfact b{font-size:15px;font-weight:700;line-height:1.25;overflow-wrap:anywhere}
+.cmcard details.cmmore>summary{padding:10px 0 0}
+.cmcard details.cmmore[open]>summary{padding-bottom:6px}
+.cmcard .cmbox .lyrow{font-size:14px;padding:7px 0}
+.cmcard .cmbox .lyrow b{flex:0 0 84px}
+.cmcard .cmnone .sub{margin:4px 0 0;font-size:13.5px}
+.cmcard .foldinfo,.cmcard .infot{font-size:13.5px;line-height:1.45}
+
+/* ===== 1.14.55: οργανωμένες σελίδες ===== */
+.pgsec{margin:22px 6px 8px;font:800 11.5px var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);display:flex;align-items:center;gap:10px}
+.pgsec::after{content:'';flex:1;height:1px;background:var(--line)}
+.pgsec+.card,.pgsec+details.card,.pgsec+details.sfold{margin-top:0!important}
+/* ίδιο κενό ανάμεσα σε όλες τις κάρτες μιας σελίδας */
+.page>.card,.page>details.card,.page>details.sfold{margin-top:12px;margin-bottom:0}
+.page>.card+.foot,.page>details+.foot{margin-top:16px}
+.dwrap>.card,.dwrap>details.card{margin-top:12px;margin-bottom:0}
+.bscard>h3{font-size:17.5px;font-weight:740;letter-spacing:-.012em;margin:0 0 10px}
+
+/* ===== 1.14.56: ίδιο στυλ στις κάρτες «Δικά μου» και πιο σύντομη «Έκθεση ακτής» ===== */
+.cmfact.wide{grid-column:1/-1}
+.wkfacts{margin-top:4px}
+.patchips{display:grid;grid-template-columns:1fr 1fr;gap:1px;border-radius:12px;overflow:hidden;background:var(--line);margin:6px 0 4px}
+.patchip{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:10px 12px;border-radius:0;background:var(--surface-2);font-size:14.5px;max-width:none}
+.patchip:last-child:nth-child(odd){grid-column:1/-1}
+.patchip i{font-size:14px;font-weight:800}
+.patl{margin:12px 0 0;font:800 11.5px var(--font);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.expo .sealog{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.expo .sealog>b{flex:1 0 100%;font-size:15px}
+.expo details.sealmore{flex:1 0 100%}
+.expo details.sealmore>summary,.expo details.exdet>summary{list-style:none;color:var(--ink-2);font-weight:650;font-size:13.5px;padding:6px 0;cursor:pointer}
+.expo details.sealmore>summary::-webkit-details-marker{display:none}
+.expo details.sealmore>summary::after{content:' ›'}.expo details.sealmore[open]>summary::after{content:' ‹'}
+.expo details.sealmore .note{margin:4px 0 0}
+.expo details.exdet>summary::-webkit-details-marker{display:none}
+.expo details.exdet>summary::after{content:' ›'}.expo details.exdet[open]>summary::after{content:' ‹'}
+
+/* ===== 1.14.57: φύλλα ===== */
+.ctrysel{width:100%;min-height:48px;padding:0 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);font:550 16px var(--font);-webkit-appearance:none;appearance:none}
+.ctrysel option{color:#111;background:#fff}
+.sheet .rows.one .row b{white-space:normal;overflow-wrap:anywhere;text-align:right;min-width:0}
+.sheet .rows.one .row>span{flex:none}
+.sheet .bform>h3.h3{font:800 11.5px var(--font);letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);margin:16px 4px 6px}
+.sheet .bform>h3.h3:first-child{margin-top:4px}
+
+/* ===== 1.14.58 ===== */
+/* «Τέλος εξόδου» δεν είναι πια ίδιο πορτοκαλί με το «+ Νέο ψάρι»: ένα κύριο κουμπί ανά φύλλο, για να μην πατιέται κατά λάθος */
+.btn.endtrip{background:transparent;border:1.5px solid var(--line);color:var(--ink);font-weight:750;min-height:52px}
+
+/* ===== 1.14.59: Χάρτης ===== */
+/* μενού στρωμάτων: η πάνω μπάρα και η κάτω μπάρα δεν ξεπροβάλλουν δίπλα του */
+body:has(.mcdrw.open:not(.mcb)) .nav,body:has(.mcdrw.open:not(.mcb)) .mapwx,body:has(.mcdrw.open:not(.mcb)) .mcbar{opacity:0!important;pointer-events:none!important}
+.mcdrw:not(.mcb) .mcdim{background:rgba(6,16,22,.38)!important}
+/* όχι διπλή γραμμή στο τέλος κάθε ομάδας */
+.mcpan .mcacc>.lgrid:last-child>.ltile:last-child{border-bottom:0}
+.mcpan .mctile b{overflow-wrap:anywhere;hyphens:auto}
+/* ετικέτα κατάστασης σε φύλλο: τυλίγει αντί να κόβεται δεξιά */
+.sheet p.tag{display:inline-flex;max-width:100%;box-sizing:border-box;white-space:normal;border-radius:14px;line-height:1.3;align-items:flex-start;padding:7px 12px}
+.sheet p.tag::before{flex:none;margin-top:.45em}
+/* θερμοκρασία νερού: αδιαφανές πλαίσιο (φαίνονταν από πίσω οι ετικέτες του χάρτη) */
+body.mapon .sstleg.sstleg{background:var(--surface)!important;backdrop-filter:none}
+/* φράγματα πολύ κοντά: μόνο το ποσοστό */
+.mk.dam.nn i{display:none}
+/* διακόπτες με μακρύ κείμενο (Συρτή): κανονικό μέγεθος, όχι τίτλος */
+.sheet .tg{align-items:flex-start;font-size:14.5px;font-weight:500;line-height:1.38}
+.sheet .tg>input{margin-top:1px}
+/* χάρακας: δεν σκεπάζει το κουμπί της εξόδου */
+#ndRuler{bottom:calc(var(--nav-h,64px) + var(--safe-b,0px) + 28px)}
+body:has(.mcdrw.open:not(.mcb)) .mchips,body:has(.mcdrw.open:not(.mcb)) .seabar,body:has(.mcdrw.open:not(.mcb)) .mapbar{opacity:0!important;pointer-events:none!important}
+
+/* ===== 1.14.60 ===== */
+/* κάρτα σημείου ανοιχτή: το πλαίσιο της θερμοκρασίας μένει μόνο με την κλίμακα και την τιμή (η κάρτα γράφει ήδη το νερό) */
+body:has(#wxCard) .sstleg>small,body:has(#wxCard) .sstleg .slsrc{display:none}
+/* χάρακας: λεζάντα κάτω από κάθε κουμπί */
+#ndRuler .racts .rb.cap{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;height:54px;max-width:none;flex:1;padding:0 4px;font-size:17px}
+#ndRuler .racts .rb.cap small{font:650 10.5px/1.1 var(--font);opacity:.8;white-space:nowrap}
+#ndRuler .racts .rb.cap.sp{font-size:14px;flex:1.2}
+
+/* ===== 1.14.62: πρόγνωση βροχής/καταιγίδας ===== */
+.rfcbar{flex-wrap:wrap;row-gap:6px}
+.rfcbar .rbt{min-width:104px}
+.rfcbar .rbt small{white-space:nowrap}
+.rfcleg{flex:1 0 100%;display:flex;align-items:center;gap:0;font:700 10px/1 var(--font);color:var(--ink-2)}
+.rfcleg span{margin-right:8px;white-space:nowrap}
+.rfcleg i{flex:1;font-style:normal;text-align:center;padding:3px 0;color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.45)}
+.rfcleg i:first-of-type{border-radius:6px 0 0 6px}.rfcleg i:last-of-type{border-radius:0 6px 6px 0}
+.rfcleg em{font-style:normal;display:inline-flex;align-items:center;gap:3px;margin-left:8px;white-space:nowrap}
+.rfcleg em svg,.rfcth svg{width:14px;height:14px;fill:#ffd23f;stroke:#7a5200;stroke-width:1.2;stroke-linejoin:round}
+.rfcth{background:none;border:0}.rfcth svg{width:18px;height:18px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))}
+.rfcimg{image-rendering:auto;pointer-events:none}
+body.mapon:has(.rfcbar) .sstleg.sstleg{bottom:calc(var(--nav-h,64px) + var(--safe-b,0px) + 122px)!important}
+.rfcbar input[type=range]{flex:1 1 96px;min-width:96px}
+.rfcbar .rbt small{white-space:normal}
+
+/* 1.14.62: «Ανανέωση» ως εικονίδιο (στα ελληνικά σε στενή οθόνη στρίμωχνε τον τίτλο) */
+.oprf{flex:none;width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.oprf svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.oprf.spin svg{animation:oprf .8s linear}
+@keyframes oprf{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.oprf.spin svg{animation:none}}
+/* 1.14.63: το ✕ μένει στην πρώτη γραμμή της μπάρας πρόγνωσης */
+.rfcbar .rbt{flex:1 1 120px;min-width:0}
+.rfcbar .rbt small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.rfcbar input[type=range]{flex:0 1 104px;min-width:64px}
+
+/* ===== 1.14.64: σύννεφα (πρόγνωση), βροχή μαζί με άνεμο ===== */
+.rfcbar.sync .rbp,.rfcbar.sync input[type=range]{display:none}
+.rfcleg i.cl{color:#17242d;text-shadow:none;border:1px solid rgba(0,0,0,.12);border-left-width:0}
+.rfcleg i.cl:first-of-type{border-left-width:1px}
+
+/* ===== 1.14.67: σύννεφα από δορυφόρο ===== */
+.csatbar .rbt{min-width:118px}
+.csatbar .rbt small{white-space:nowrap}
+.csattile{image-rendering:auto}
+
+/* ===== 1.14.71–73: η κάτω μπάρα μαζεύεται δεξιά (μόνο στον Χάρτη) ===== */
+.nav>div{transition:transform .28s cubic-bezier(.2,.8,.2,1);touch-action:pan-y}
+.navtab{display:none}
+body.mapon.navslid{--nav-h:-14px}
+body.mapon.navslid .nav>div{transform:translateX(calc(100% + 40px));pointer-events:none}
+body.mapon.navslid .nav::before{display:none}
+/* το βελάκι δεξιά, στο ύψος όπου ήταν η μπάρα */
+body.mapon.navslid .navtab{display:grid;place-items:center;position:fixed;right:0;bottom:calc(var(--safe-b,0px) + 10px);z-index:51;width:32px;height:60px;padding:0;border:0;border-radius:16px 0 0 16px;background:var(--surface);color:var(--ink);box-shadow:0 0 0 1px var(--line),0 8px 20px -10px rgba(0,0,0,.5);pointer-events:auto;cursor:pointer;touch-action:none}
+body.mapon.navslid .navtab svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+/* οι μπάρες καιρού κατεβαίνουν στο ύψος της μπάρας και αφήνουν χώρο δεξιά για το βελάκι */
+body.mapon.navslid .rainbar{right:42px}
+body.mapon.navslid #ndMapDock{right:42px!important;bottom:calc(var(--safe-b,0px) + 10px)!important}
+body.mapon.navslid .sstleg.sstleg{right:42px!important}
+body.mapon.navslid:has(.sheet.on) .navtab,body.mapon.navslid:has(.mcdrw.open) .navtab{display:none}
+body.mapon.navslid .rfcbar .rbt{flex:1 1 90px}
+body.mapon.navslid .rfcbar input[type=range]{flex:0 1 72px;min-width:56px}
+/* 1.14.74: το κουμπί ψαριού της εξόδου δεν πατάει πάνω στο βελάκι */
+body.mapon.navslid:not(:has(#ndMapDock:not([hidden]))) .fishbtns{bottom:calc(var(--safe-b,0px) + 84px)}
+
+/* 1.14.76: τα κουμπιά ψαριού της εξόδου δεν γίνονται σύρσιμο σελίδας, για να πιάνει το παρατεταμένο πάτημα */
+.fishbtns .fb{touch-action:none;-webkit-touch-callout:none}
+
+/* ===== 1.14.77 ===== */
+/* είδη-στόχοι της εξόδου: τυλίγουν σε γραμμές, δεν πατάει το ένα το άλλο, και το επιλεγμένο φαίνεται καθαρά */
+.tgchips.tgchips{display:flex;flex-wrap:nowrap;gap:8px;margin:6px -16px 0;padding:2px 16px 4px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch;-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 14px,#000 calc(100% - 28px),transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 14px,#000 calc(100% - 28px),transparent 100%)}
+.tgchips.tgchips::-webkit-scrollbar{display:none}
+.tgchips .chip.tgfind{border-style:dashed;color:var(--ink-2)}
+.tgchips.tgchips .chip{flex:0 0 auto;width:auto;margin:0!important;min-height:40px;padding:0 14px!important;font-size:14px;white-space:nowrap;border:1.5px solid var(--line);background:transparent;color:var(--ink)}
+.tgchips .chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink,#fff);border-color:var(--accent);font-weight:700}
+.tgchips .chip[aria-pressed="true"]::before{content:'✓';margin-right:6px;font-weight:800}
+.fld .tgn{font-style:normal;color:var(--accent);font-weight:700}
+/* το πράσινο «ψάρι» την ώρα που σέρνεται */
+.fishbtns.drag{transition:none;opacity:.9}
+.fishbtns.drag .fb.fbc{box-shadow:0 0 0 6px rgba(255,255,255,.35),0 10px 24px rgba(0,0,0,.5)}
+.csatbar .rbp{flex:none}
+
+/* ===== 1.14.79: Έκθεση ακτής, μπάρα χρόνου ===== */
+#fcExposure .exmap{position:relative}
+#fcExposure .extime{position:absolute;left:10px;top:10px;padding:5px 10px;border-radius:10px;background:rgba(8,20,28,.82);color:#fff;font:800 13.5px/1 var(--font);letter-spacing:.01em;pointer-events:none}
+#fcExposure .exbar{display:flex;align-items:center;gap:10px;max-width:360px;margin:0 auto 10px;padding:6px 10px 6px 6px;border-radius:14px;background:var(--surface-2)}
+#fcExposure .explay{flex:none;width:40px;height:40px;border:0;border-radius:12px;background:var(--surface);color:var(--ink);font-size:14px;cursor:pointer}
+#fcExposure .exbar input[type=range]{flex:1 1 auto;min-width:0;accent-color:var(--accent)}
+#fcExposure .exbl{flex:none;min-width:76px;text-align:right;font:750 13px/1.1 var(--font);color:var(--ink);white-space:nowrap}
+
+/* ===== 1.14.79: πάνω μπάρα σε έξοδο = καιρός στη θέση του σκάφους, δύο γραμμές ===== */
+body.mapclean .mcbar.mcme .mci,body.mapclean .mcbar.mcme .mcv{display:none}
+body.mapclean .mcbar.mcme{padding:0 12px 0 14px}
+body.mapclean .mcbar.mcme::after{display:none}
+body.mapclean .mcbar.mcme .mct{text-align:left;white-space:normal;overflow:hidden}
+.mcbar .mbme{display:flex;flex-direction:column;gap:2px;min-width:0}
+.mcbar .mbl1,.mcbar .mbl2{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.15}
+.mcbar .mbl1{font:800 14px/1.15 var(--font)}
+.mcbar .mbl1 svg{width:15px;height:15px;vertical-align:-2px;margin-right:4px}
+.mcbar .mbl1 i{font-style:normal;font-weight:650;opacity:.85}
+.mcbar .mbl2{font:650 12px/1.15 var(--font);opacity:.9}
+.mcbar .mbl2 em{font-style:normal;font-weight:800;color:var(--poor,#e0533d)}
+.mefc{display:grid;gap:2px;margin:4px 0 10px}
+.mefc .mer{display:grid;grid-template-columns:64px 1.4fr 1fr 1fr;gap:8px;align-items:center;padding:9px 10px;border-radius:10px;font-size:15px}
+.mefc .mer:nth-child(even){background:var(--surface-2)}
+.mefc .meh{font-size:12px;font-weight:700;color:var(--ink-2);background:none!important;padding-bottom:2px}
+.mefc .mer svg{width:15px;height:15px;vertical-align:-2px}
+.mefc .mer.bad{box-shadow:inset 3px 0 0 var(--poor,#e0533d)}
+.mefc .mew{padding:0 10px 6px;font-size:12.5px;font-weight:700;color:var(--poor,#e0533d)}
+.mcbar .mbl1 svg,.mefc .mer svg{display:inline-block!important}
+.mefc .mer span{white-space:nowrap}
+
+/* ===== 1.14.80 ===== */
+.mcbar .mbme.one .mbl1{font-size:15px}
+.mcbar .mbl2 svg{display:inline-block!important;width:13px;height:13px;vertical-align:-2px}
+.mepf{margin:2px 0 10px}
+.mepick.mepick{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 0}
+.mepick .chip{flex:0 0 auto;width:auto;margin:0!important;min-height:38px;padding:0 13px!important;font-size:13.5px;white-space:nowrap;border:1.5px solid var(--line);background:transparent;color:var(--ink)}
+.mepick .chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink,#fff);border-color:var(--accent);font-weight:700}
+.mepick .chip[aria-pressed="true"]::before{content:'✓';margin-right:6px;font-weight:800}
+/* πλαίσιο εξόδου στον χάρτη (ΤΑΧΥΤΗΤΑ · ΒΥΘΟΣ · ΕΠΙΣΤΡΟΦΗ): πιο λεπτό, μία γραμμή, η ετικέτα «ΨΑΡΕΜΑ» σαν καρτελάκι στην άκρη */
+body.mapclean .mcpanel.fish{padding:9px 12px 7px!important;gap:2px 10px!important;border-radius:16px!important;grid-template-columns:.8fr .9fr 1.35fr}
+body.mapclean .mcpanel.fish.c1{grid-template-columns:1fr}
+body.mapclean .mcpanel.fish.c2{grid-template-columns:.8fr 1.4fr}
+body.mapclean .mcpanel.fish .mph{position:absolute;left:12px;top:-8px;margin:0;padding:2px 8px!important;font-size:9px!important;line-height:1.3;background:#22313c!important;color:#ffd166!important;box-shadow:0 0 0 2px rgba(12,22,32,.94)}
+html:not(.night) body.mapclean .mcpanel.fish .mph{background:#eef2f3!important;color:#b8511d!important;box-shadow:0 0 0 2px #fff}
+body.mapclean .mcpanel.fish .mpc{white-space:nowrap;overflow:hidden}
+body.mapclean .mcpanel.fish .mpc i{font-size:9px!important;line-height:1.2;margin-top:2px}
+body.mapclean .mcpanel.fish .mpc b{font-size:20px!important;line-height:1.1}
+body.mapclean .mcpanel.fish .mpc small{font-size:11.5px!important;margin-left:3px}
+body.mapclean .mcpanel.fish .mprow,body.mapclean .mcpanel.fish .mpto{grid-column:1/-1}

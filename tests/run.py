@@ -167,10 +167,10 @@ with sync_playwright() as p:
     a0=r[0] or {}
     check('Ανώνυμα στοιχεία: περιοχή 0,1°, ώρα UTC, χωρίς σημειώσεις/φωτογραφίες, χαμένο και έξοδος, όχι χωρίς θέση (1.14.21)', a0.get('lat')==34.7 and a0.get('lon')==32.5 and a0.get('sp')=='dicentrarchus labrax' and a0.get('ms')==1794285000000 and 'notes' not in a0 and 'photo' not in a0 and a0.get('cond',{}).get('wind')==6 and r[1]=='miss' and r[2]==2 and r[3] is None, r)
     pg.evaluate("()=>{ localStorage.setItem('alkyon-v4-logtab',JSON.stringify('stats')); }"); pg.goto(BASE+'/v4/#profile'); pg.wait_for_timeout(1500)
-    pg.evaluate("()=>{ const b=[...document.querySelectorAll('.seg button')].find(x=>/Ρυθμίσεις/.test(x.textContent)); b&&b.click(); }"); pg.wait_for_timeout(800)
+    pg.evaluate("()=>{ const b=[...document.querySelectorAll('.seg button')].find(x=>/Λογαριασμός/.test(x.textContent)); b&&b.click(); }"); pg.wait_for_timeout(800)
     s1=pg.evaluate("()=>[...document.querySelectorAll('.li b')].some(x=>/Βοήθησε την πρόγνωση/.test(x.textContent))")
     card=pg.evaluate("()=>{ const c=AK.biteStatsCard(); document.body.append(c); return new Promise(r=>setTimeout(()=>r(c.textContent),1500)); }")
-    check('Βοήθησε την πρόγνωση στις Ρυθμίσεις και κάρτα «Πότε τσιμπάνε · Όλοι» (1.14.21)', s1 and 'Όλοι' in card and 'Μαζεύονται' in card, [s1,card[:120]]); c.close()
+    check('Βοήθησε την πρόγνωση στον Λογαριασμό (από 1.14.32) και κάρτα «Πότε τσιμπάνε · Όλοι» (1.14.21)', s1 and 'Όλοι' in card and 'Μαζεύονται' in card, [s1,card[:120]]); c.close()
 
     print('# 1.14.22 πότε τσιμπάνε: ψάρια ανά ώρα ανά συνθήκη')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3000)
@@ -188,7 +188,7 @@ with sync_playwright() as p:
     pg.evaluate("()=>{ AK.store.save('bites',{date:'2026-11-01',time:'07:00',species:'Λαβράκι',latin:'Dicentrarchus labrax',lat:34.7,lon:32.4}); AK.store.save('bites',{date:'2026-11-02',time:'07:00',species:'Λαβράκι',latin:'Dicentrarchus labrax',lat:34.7,lon:32.4}); }")
     pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(2500); pg.evaluate("()=>AK.tripStart()"); pg.wait_for_timeout(1000)
     tg=pg.evaluate("()=>[...document.querySelectorAll('.sheet.on .tgchips .chip')].map(x=>x.textContent)")
-    pg.click('.sheet.on .tgchips .chip >> nth=0'); pg.wait_for_timeout(200)
+    pg.click('.sheet.on .tgchips .chip:not(.tgfind) >> nth=0'); pg.wait_for_timeout(200)
     pg.evaluate("()=>{ const b=document.querySelector('.sheet.on .tgo'); b.click(); }"); pg.wait_for_timeout(800)
     tr=pg.evaluate("()=>AK.trip.state().target")
     check('Έναρξη εξόδου: «Τι ψάχνεις;» με τα είδη σου, κρατιέται ο στόχος (1.14.23)', 'Λαβράκι' in tg and tr and tr.get('latin')=='Dicentrarchus labrax', [tg,tr])
@@ -612,10 +612,8 @@ with sync_playwright() as p:
     check('στατιστικά: ρεκόρ 5 + πατιούνται, χωρίς άδειο «ανά ώρα», Κάρτα χρονιάς πάνω, κιλά ανά είδος (1.9.16)', all(r) and not pg._errs, [r,pg._errs])
     check('Χαμένα vs πιασμένα: ανοίγει, μόνο γραμμές με 2+ τσιμπήματα (1.9.15)', all(r) and not pg._errs, [r,pg._errs])
     pg.goto(BASE+'/v4/#profile'); pg.wait_for_timeout(2000)
-    r=pg.evaluate("()=>{const a=[...document.querySelectorAll('.pstats .pst')]; return [a.filter(x=>x.tagName=='BUTTON').length, new Set(a.map(x=>x.offsetHeight)).size]}")
-    pg.locator('.pstats .pst').nth(1).click(); pg.wait_for_timeout(1500)
-    r2=pg.evaluate("()=>[location.hash, (document.querySelector('.lseg button[aria-pressed=true]')||{}).textContent]")
-    check('προφίλ: τα κουτάκια (6 από την 1.12.16) πατιούνται και έχουν ίδιο ύψος (1.9.15)', r[0]==6 and r[1]==1 and r2==['#log','Ψάρια'] and not pg._errs, [r,r2,pg._errs])
+    r=pg.evaluate("()=>{const sg=document.querySelector('main .seg'); return [document.querySelectorAll('.pstats').length, !!sg, sg?Math.round(sg.getBoundingClientRect().top):9999]}")
+    check('προφίλ: χωρίς κουτάκια στατιστικών, οι καρτέλες αμέσως ορατές (1.14.32)', r[0]==0 and r[1] and r[2]<420 and not pg._errs, [r,pg._errs])
     pg.evaluate("()=>AK.biteForm()"); pg.wait_for_timeout(1200)
     r=pg.evaluate("()=>{const f=document.querySelector('.sheet.on form.bf2'); if(!f) return null; return [f.querySelectorAll('.bfseg button').length, !!f.querySelector('details.bfmore'), !!f.querySelector('.bfsave')]}")
     check('νέο ψάρι: νέα φόρμα (Ψάρι/Χάθηκε, Λεπτομέρειες, Αποθήκευση) (1.9.15)', r and r[0]==2 and r[1] and r[2] and not pg._errs, [r,pg._errs]); c.close()
@@ -682,6 +680,7 @@ with sync_playwright() as p:
         n=pg.evaluate("()=>document.querySelectorAll('.domradar').length")
         check('ραντάρ ΤΜ: εικόνα %d′ → %s (1.9.23)'%(_mins,'ΤΜ' if _want else 'RainViewer'), n==_want and not pg._errs, [n,pg._errs]); c.close()
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#profile'); pg.wait_for_timeout(2500)
+    pg.evaluate("()=>[...document.querySelectorAll('main .seg button')].find(x=>/Ρυθμίσεις/.test(x.textContent)).click()"); pg.wait_for_timeout(600)
     r=pg.evaluate("()=>{const a=[...document.querySelectorAll('a.li')].find(x=>/mailto:alkyonfishingapp@gmail.com/.test(x.href)); return a?a.textContent:null}")
     check('προφίλ: «Επικοινωνία» με email της εφαρμογής (1.9.24)', r and 'Επικοινωνία' in r and not pg._errs, [r,pg._errs]); c.close()
     c=ctx(b); c.add_init_script("if(!sessionStorage.cs){sessionStorage.cs=1;localStorage.setItem('alkyon-sess',JSON.stringify({access_token:'AT',refresh_token:'RT',exp:Date.now()+9e6,uid:'u1',email:'d+test@x.com'}));}")
@@ -696,7 +695,7 @@ with sync_playwright() as p:
     check('πίεση/άνεμος/σελήνη: καλές ώρες σελήνης (1.9.26)', r['g'] and 'Καλές ώρες σελήνης' in r['g'] and r['k4'] and not pg._errs, [r,pg._errs]); c.close()
     c=ctx(b); c.add_init_script("localStorage.setItem('alkyon-v4-fcopen',JSON.stringify({pw:1}));localStorage.setItem('alkyon-advsp',JSON.stringify('Καλαμάρι'))"); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(4000)
     pg.evaluate("()=>{const d=[...document.querySelectorAll('details')].find(x=>/Πίεση, άνεμος, σελήνη/.test(x.textContent)); if(d) d.open=true}"); pg.wait_for_timeout(1500)
-    r=pg.evaluate("()=>{const m=document.querySelector('.mres'); return m?m.innerText:null}")
+    r=pg.evaluate("()=>{document.querySelectorAll('details.pwmore').forEach(d=>d.open=true); const m=document.querySelector('.mres'); return m?m.innerText:null}")
     r2=pg.evaluate("()=>{const sm={f:0,rise:360,set:1080,maj:[],min:[]}, w={wind:8,wave:0.4,ptrend:'stable',cloud:'part'}; const a=PF.hourScore(sm,9,Object.assign({sp:{n:'Μαγιάτικο'}},w)), b=PF.hourScore(Object.assign({},sm,{f:0.25}),9,Object.assign({sp:{n:'Μαγιάτικο'}},w)), c=PF.hourScore(sm,9,Object.assign({sp:{n:'Καλαμάρι',l:'Loligo vulgaris'}},w)), d=PF.hourScore(Object.assign({},sm,{f:0.5}),9,Object.assign({sp:{n:'Καλαμάρι',l:'Loligo vulgaris'}},w)); return [a,b,c,d]}")
     check('σελήνη ανά είδος: έρευνα στο γράφημα, φάση μόνο στο καλαμάρι (1.9.27)', r and 'Καλαμάρι' in r and r2[0]==r2[1] and r2[2]>r2[3] and not pg._errs, [r,r2,pg._errs]); c.close()
     c=ctx(b); c.add_init_script("localStorage.setItem('alkyon-v4-fcopen',JSON.stringify({pw:1}))"); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(4000)
@@ -731,7 +730,7 @@ with sync_playwright() as p:
     r2=pg.evaluate("()=>({trips:AK.store.raw('trips').filter(t=>t.fromCatches).length, miss:AK.tripFill.missing().length, ses:AK.adv.model().progress.sessions})")
     check('έξοδοι από τα ψάρια της ημέρας (1.9.34)', r['card'] and r['miss']>=1 and n>=1 and r2['trips']>=1 and r2['miss']==0 and r2['ses']>=1 and not pg._errs, [r,n,r2,pg._errs]); c.close()
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(4000)
-    pg.evaluate("()=>{const b=[...document.querySelectorAll('.nowcard .btn')].find(x=>/Πού να πάω/.test(x.textContent)); b&&b.click()}"); pg.wait_for_timeout(800)
+    pg.evaluate("()=>{const b=[...document.querySelectorAll('.hero .btn')].find(x=>/Πού να πάω/.test(x.textContent)); b&&b.click()}"); pg.wait_for_timeout(800)
     pg.evaluate("()=>{const b=[...document.querySelectorAll('.btn')].find(x=>/Πού είναι ήρεμα/.test(x.textContent)); b&&b.click()}"); pg.wait_for_timeout(5000)
     r=pg.evaluate("()=>({rows:document.querySelectorAll('.calmr').length, txt:(document.querySelector('.calml')||{}).innerText||''})")
     check('Πού είναι ήρεμα τώρα (1.9.34)', (r['rows']>=1 or 'δεδομένα' in r['txt']) and not pg._errs, [r,pg._errs]); c.close()
@@ -780,7 +779,7 @@ with sync_playwright() as p:
     r=pg.evaluate("()=>({v:[...document.querySelectorAll('select')].map(x=>x.value).find(v=>v==='coord')||'', sum:document.querySelector('.wps').innerText})")
     check('νέο ψάρι: «Πού» με κουμπιά και μεγάλο χάρτη (1.9.43)', n==3 and ov and r['v']=='coord' and '°' in r['sum'] and not pg._errs, [n,ov,r,pg._errs]); c.close()
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_selector('.dstrip .dtile:not(.past)'); pg.wait_for_timeout(1500)
-    nm=pg.evaluate("()=>{const x=document.querySelector('.hero .nmx'); const r=PF.nextMoon(Date.now()); return [x?x.textContent:'', r&&r.nw>Date.now()&&r.nw-Date.now()<30*864e5, r&&r.full>Date.now()]}")
+    nm=pg.evaluate("()=>{const x=document.querySelector('.hero .nmx'); const r=PF.nextMoon(Date.now()); return [x?(x.title||'')+x.textContent:'', r&&r.nw>Date.now()&&r.nw-Date.now()<30*864e5, r&&r.full>Date.now()]}")
     check('Πρόγνωση: επόμενη νέα σελήνη (1.9.44)', 'νέα σελήνη' in nm[0] and nm[1] and nm[2] and not pg._errs, [nm,pg._errs]); c.close()
     c=ctx(b); c.add_init_script("if(!sessionStorage.cs){sessionStorage.cs=1;localStorage.setItem('alkyon-sess',JSON.stringify({access_token:'AT',refresh_token:'RT',exp:Date.now()+9e6,uid:'u1',email:'d+test@x.com'}));}")
     c.route('**/*supabase.co/**',lambda r: r.fulfill(json=[])); pg=page(c); pg.goto(BASE+'/v4/#alerts'); pg.wait_for_timeout(2500)
@@ -899,6 +898,7 @@ with sync_playwright() as p:
     r=pg.evaluate("()=>{ const b=AK.store.bites().find(x=>x.species==='Σαργός'); return b&&b.pb?[Math.round(b.pb.hpa), b.pb.d1!=null]:null; }")
     check('Βαρόμετρο κινητού: το ψάρι κρατά την πίεση της στιγμής (1.13.8)', r==[1014,True], [r,pg._errs]); c.close()
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#profile'); pg.wait_for_timeout(2500)
+    pg.evaluate("()=>[...document.querySelectorAll('main .seg button')].find(x=>/Ρυθμίσεις/.test(x.textContent)).click()"); pg.wait_for_timeout(600)
     pg.evaluate("()=>window.scrollTo(0,400)"); pg.wait_for_timeout(300)
     pg.evaluate("()=>AK.relang('en')"); pg.wait_for_timeout(4000)
     r=pg.evaluate("()=>[location.hash, Math.round(scrollY)>=300, localStorage.getItem('alkyon-lang')]")
@@ -918,8 +918,8 @@ with sync_playwright() as p:
     cb=[{'id':'cm%d'%i,'date':r[0],'time':r[1],'species':r[2],'kg':r[3],'ptrend':r[4],'wind':r[5],'wave':r[6],'sst':r[7],'tech':'Βυθού','lat':34.75,'lon':32.38,'_u':1} for i,r in enumerate(R)]
     c=ctx(b); c.add_init_script("localStorage.setItem('alkyon-bites',JSON.stringify(%s))"%json.dumps(cb)); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(3000)
     pg.evaluate("()=>{const b=[...document.querySelectorAll('.seg button')].find(x=>/Δικά μου/.test(x.textContent)); b&&b.click()}"); pg.wait_for_timeout(1500)
-    r=pg.evaluate("()=>{const c=document.querySelector('.cmcard'); return c?c.innerText:''}")
-    check('«Τι κοινό είχαν τα ψαρέματά σου» (1.9.59)', 'Μεγάλα ψάρια (από 2,5 kg) · 3 μέρες' in r and 'Ιανουάριος–Μάρτιος' in r and 'κοντά στη νέα σελήνη' in r and 'Μικρότερα ψάρια · 2 μέρες' in r and not pg._errs, [r[:500],pg._errs]); c.close()
+    r=pg.evaluate("()=>{const c=document.querySelector('.cmcard'); if(!c) return ''; const d=c.closest('details'); if(d) d.open=true; c.querySelectorAll('details').forEach(x=>x.open=true); return c.innerText}")
+    check('«Τι κοινό είχαν τα ψαρέματά σου» (1.9.59)', 'Μεγάλα ψάρια (ροφοί, συναγρίδα, μαγιάτικο…) · 3 μέρες' in ' '.join(r.split()) and 'Ιανουάριος–Μάρτιος' in r and 'κοντά στη νέα σελήνη' in r and 'Άλλα ψάρια · 2 μέρες' in ' '.join(r.split()) and not pg._errs, [r[:500],pg._errs]); c.close()
     c=ctx(b); c.add_init_script("localStorage.setItem('alkyon-bites',JSON.stringify([{id:'tb1',date:'2026-10-01',time:'10:00',species:'Sargo',tech:'Βυθού',bait:'Live squid',_u:1}]))"); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(2500)
     pg.evaluate("()=>AK.biteForm()"); pg.wait_for_timeout(1200)
     r=pg.evaluate("()=>{const ch=[...document.querySelectorAll('.qchips .chip')].find(x=>x.dataset.v==='Βυθού'); if(!ch) return null; ch.click(); const bc=[...document.querySelectorAll('.qchips .chip')].find(x=>x.dataset.v==='Live squid'); bc&&bc.click(); return new Promise(res=>setTimeout(()=>res([ch.getAttribute('aria-pressed'), bc&&bc.getAttribute('aria-pressed')]),50))}")
@@ -1106,6 +1106,7 @@ with sync_playwright() as p:
     pg.evaluate("()=>{location.hash='#profile'}"); pg.wait_for_timeout(2500)
     t=pg.evaluate("()=>document.getElementById('main').innerText")
     nb=pg.evaluate("()=>{const e=document.querySelector('.cmnew'); return e?e.textContent:''}")
+    pg.evaluate("()=>[...document.querySelectorAll('main .seg button')].find(x=>/Λογαριασμός/.test(x.textContent)).click()"); pg.wait_for_timeout(600); t=t+pg.evaluate("()=>document.getElementById('main').innerText")
     check('Προφίλ: «Νέα» στην Κοινότητα, «Φωτογραφία προφίλ», «Πρόσκληση φίλου» (1.9.65)', nb=='2' and 'Φωτογραφία προφίλ' in t and 'Πρόσκληση φίλου' in t and not pg._errs, [nb,pg._errs]); c.close()
     # 1.9.67: ποιος έκανε like, κάρτα προφίλ
     c=ctx(b); c.add_init_script("if(!sessionStorage.cs){sessionStorage.cs=1;localStorage.setItem('alkyon-sess',JSON.stringify({access_token:'AT',refresh_token:'RT',exp:Date.now()+9e6,uid:'u1',email:'d+test@x.com',name:'Ντίνος'}));}")
@@ -1160,7 +1161,7 @@ with sync_playwright() as p:
         c=b.new_context(viewport={'width':360,'height':780}, service_workers='block'); c.grant_permissions(['geolocation']); c.set_geolocation({'latitude':35.0,'longitude':33.3})
         c.add_init_script(init(lang=lang)); c.route('**/*open-meteo.com/**',respond); c.route(lambda u: not u.startswith(BASE) and 'open-meteo' not in u, lambda r: r.abort())
         pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(2500); pg.evaluate("()=>AK.logTab('gear')"); pg.wait_for_timeout(1200)
-        ov=pg.evaluate("""()=>{const r=[]; document.querySelectorAll('#main .chips.rng .chip, #main .seg button, #main .btn').forEach(e=>{ const b=e.getBoundingClientRect(); if(e.offsetParent&&(e.scrollWidth>e.clientWidth+1||b.right>innerWidth+1)) r.push(e.textContent.trim()); });
+        ov=pg.evaluate("""()=>{const r=[]; document.querySelectorAll('#main .seg button, #main .btn').forEach(e=>{ const b=e.getBoundingClientRect(); if(e.offsetParent&&(e.scrollWidth>e.clientWidth+1||b.right>innerWidth+1)) r.push(e.textContent.trim()); });
           document.querySelectorAll('#main input[placeholder]').forEach(i=>{ if(!i.offsetParent) return; const st=getComputedStyle(i), cv=document.createElement('canvas').getContext('2d'); cv.font=st.fontWeight+' '+st.fontSize+' '+st.fontFamily; if(cv.measureText(i.placeholder).width>i.clientWidth-parseFloat(st.paddingLeft)-parseFloat(st.paddingRight)+1) r.push('ph:'+i.placeholder); }); return r;}""")
         check('%s: Ημερολόγιο › Εργαλεία στα 360 px: τίποτα έξω από το κουτί (1.10.5)'%lang, not ov, ov)
         bt=pg.evaluate("()=>[...document.querySelectorAll('#main .gearadd .btn')].map(x=>x.textContent)")
@@ -1212,7 +1213,7 @@ with sync_playwright() as p:
     check('Ελληνικά: «0,9 m», «12,5 kn» με κόμμα (1.10.11)', r[0]=='κύμα 0,9 m, άνεμος 12,5 kn', r)
     check('Ελληνικά: εκδόσεις, συντεταγμένες, λεπτά μοιρών και πεδία μένουν με τελεία (1.10.11)', r[1]=='έκδοση 1.10.11 · 34.70123, 32.40510 · 34°42.071′N' and r[2]=='2.4' and r[3]=='1013,2 hPa', r)
     check('Ελληνικά: τα αγγλικά ονόματα ειδών γίνονται ελληνικά και στην πρόγνωση (Ασπρόβλαχος, Ροφός) (1.10.11)', r[4]=='Ασπρόβλαχος' and r[5]=='Ροφός', r)
-    check('Πρόγνωση: γραμμή «Έκθεση ακτής: μόνο κοντά στην ακτή» υπάρχει (1.10.11)', pg.evaluate("()=>!!document.querySelector('.expo-none')"))
+    check('Πρόγνωση: χωρίς τη γραμμή «Έκθεση ακτής: μόνο κοντά στην ακτή» (αφαιρέθηκε 1.14.37)', pg.evaluate("()=>!document.querySelector('main p.expo-none:not([hidden])')"))
     check('1.10.11: χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
     c=ctx(b, lang='en'); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(2500)
     r=pg.evaluate("()=>{ const p=document.createElement('p'); p.textContent='0.9 m'; document.body.append(p); return new Promise(res=>setTimeout(()=>res(p.textContent),150)); }")
@@ -1417,8 +1418,8 @@ with sync_playwright() as p:
     gx=pg.evaluate("()=>[AK.geoText('gpx',{spots:1,fish:1,tracks:1}),AK.geoText('kml',{spots:1,fish:1,tracks:1})]")
     check('Εξαγωγή GPX/KML: έγκυρα XML (1.12.16)', gx[0].startswith('<?xml') and '<gpx' in gx[0] and '</gpx>' in gx[0] and '<kml' in gx[1] and '</kml>' in gx[1] and pg.evaluate("(t)=>!new DOMParser().parseFromString(t,'application/xml').querySelector('parsererror')",gx[0]) and pg.evaluate("(t)=>!new DOMParser().parseFromString(t,'application/xml').querySelector('parsererror')",gx[1]), [x[:120] for x in gx])
     pg.evaluate("()=>{location.hash='#profile'}"); pg.wait_for_timeout(1500)
-    ps=pg.evaluate("()=>[...document.querySelectorAll('.pstats .pst small')].map(e=>e.textContent)")
-    check('Προφίλ: 6 κουτάκια με «Είδη» (1.12.16)', len(ps)==6 and any(x.startswith('Είδη') for x in ps), ps)
+    ps=pg.evaluate("()=>[...document.querySelectorAll('main .listh')].map(e=>e.textContent)")
+    check('Προφίλ › Τα δικά μου: «Εξοπλισμός και συσκευές», «Φίλοι και κοινότητα», «Βοήθεια» (1.14.32)', ps[:2]==['Εξοπλισμός και συσκευές','Φίλοι και κοινότητα'] and 'Βοήθεια' not in ps, ps)
     check('1.12.16 χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
     _fc={'id':'gps','t':int(_tt.time()*1000),'fc':{'days':[{'date':_d0,'best':72,'safe':True,'win':{'s':23,'e':23},'avgWind':4,'avgWave':0.4}]}}
     c=ctx(b); c.add_init_script("if(!sessionStorage.sp){sessionStorage.sp=1;localStorage.setItem('alkyon-askfp','1');localStorage.setItem('alkyon-fc7',%s);}"%_jj.dumps(_jj.dumps(_fc)))
@@ -1461,7 +1462,7 @@ with sync_playwright() as p:
     sp3=pg.evaluate("()=>[!!document.querySelector('.sppage'),location.hash,!!(history.state&&history.state.spk)]")
     check('Είσοδος: «Συνέχεια» ορατό σε μικρή οθόνη, «πίσω» την κλείνει, «Συνέχεια» δεν αφήνει νεκρό «πίσω» (1.12.22)', sp1==[True,True] and sp2==[False,'#map'] and sp3==[False,'#map',False], [sp1,sp2,sp3])
     c.close()
-    c=b.new_context(viewport={'width':411,'height':740}); pg=page(c); pg.goto(BASE+'/v4/'); pg.wait_for_timeout(2500)
+    c=b.new_context(viewport={'width':411,'height':740}); c.add_init_script("localStorage.setItem('alkyon-country',JSON.stringify('cy'))"); pg=page(c); pg.goto(BASE+'/v4/'); pg.wait_for_timeout(2500)   # 1.14.62: η γλώσσα φαίνεται μόνο για Κύπρο/Ελλάδα
     tb=pg.evaluate("()=>{const r=[AK.backHook()]; document.querySelector('.sppage .spgo').click(); r.push(document.querySelectorAll('.obd i')[1].className==='on'); r.push(AK.backHook()); r.push(document.querySelectorAll('.obd i')[0].className==='on'); const l=document.querySelector('.splang .lnk'); r.push(l?getComputedStyle(l).backgroundColor:''); return r}")
     check('Καλωσόρισμα: «πίσω» της εφαρμογής = ένα βήμα πίσω, στο πρώτο βήμα όχι· κουμπιά γλώσσας χωρίς λευκό κουτί (1.12.22)', tb[:4]==[False,True,True,True] and tb[4] in ('rgba(0, 0, 0, 0)','transparent'), tb)
     c.close()
@@ -1494,11 +1495,11 @@ with sync_playwright() as p:
     pg.evaluate("()=>[...document.querySelectorAll('main .seg button')].find(x=>/Τα δικά μου/.test(x.textContent)).click()"); pg.wait_for_timeout(600); g1=grp()
     pg.evaluate("()=>[...document.querySelectorAll('main .seg button')].find(x=>/Ρυθμίσεις/.test(x.textContent)).click()"); pg.wait_for_timeout(600); g2=grp()
     pg.evaluate("()=>[...document.querySelectorAll('main .seg button')].find(x=>/Λογαριασμός/.test(x.textContent)).click()"); pg.wait_for_timeout(600); g3=grp()
-    hg=[x for x in g1 if x[0]=='Βοήθεια']; dg=[x for x in g3 if x[0]=='Δεδομένα']
-    check('Προφίλ: Οδηγός πρώτος, Βοήθεια με «Πες μας τη γνώμη σου» και «Σχετικά» (1.12.14)', g1 and g1[0][1][:1]==['Οδηγός'] and hg and 'Σχετικά' in hg[0][1] and 'Πες μας τη γνώμη σου' in hg[0][1], g1)
-    check('Προφίλ: Ρυθμίσεις σε ομάδες Ψάρεμα/Ασφάλεια/Ειδοποιήσεις/Εφαρμογή/Εμφάνιση/Εργαλεία (1.12.14)', [x[0] for x in g2]==['Ψάρεμα','Ασφάλεια','Ειδοποιήσεις','Εφαρμογή','Εμφάνιση','Εργαλεία'], [x[0] for x in g2])
+    hg=[x for x in g2 if x[0]=='Βοήθεια']; dg=[x for x in g3 if x[0]=='Δεδομένα']
+    check('Προφίλ: Οδηγός πρώτος στη Βοήθεια (1.14.35), Βοήθεια με «Πες μας τη γνώμη σου» και «Σχετικά» (1.12.14)', g1 and hg and hg[0][1][:1]==['Οδηγός'] and 'Σχετικά' in hg[0][1] and 'Πες μας τη γνώμη σου' in hg[0][1], g1)
+    check('Προφίλ: Ρυθμίσεις σε ομάδες Ψάρεμα/Ασφάλεια/Ειδοποιήσεις/Εμφάνιση και γλώσσα/Βοηθοί (1.14.32)', [x[0] for x in g2]==['Ψάρεμα','Ασφάλεια','Ειδοποιήσεις','Εμφάνιση και γλώσσα','Βοηθοί','Βοήθεια'], [x[0] for x in g2])
     check('Προφίλ: Λογαριασμός › Δεδομένα με εισαγωγή, αντίγραφο και εξαγωγή (1.12.14)', dg and any('Εισαγωγή' in t for t in dg[0][1]) and 'Αντίγραφο ασφαλείας' in dg[0][1], g3)
-    pg.evaluate("()=>[...document.querySelectorAll('main .seg button')].find(x=>/Τα δικά μου/.test(x.textContent)).click()"); pg.wait_for_timeout(500)
+    pg.evaluate("()=>[...document.querySelectorAll('main .seg button')].find(x=>/Ρυθμίσεις/.test(x.textContent)).click()"); pg.wait_for_timeout(500)
     pg.evaluate("()=>[...document.querySelectorAll('main .li')].find(x=>/Σχετικά/.test(x.textContent)).click()"); pg.wait_for_timeout(800)
     ab=pg.evaluate("()=>{const s=document.querySelector('.sheet.on'); return s?s.innerText:''}")
     check('Σχετικά: έκδοση, Πολιτική απορρήτου, Όροι χρήσης (1.12.14)', 'Πολιτική απορρήτου' in ab and 'Όροι χρήσης' in ab and pg.evaluate("()=>window.ALKYON_VERSION") in ab, ab[:200])
@@ -1530,7 +1531,7 @@ with sync_playwright() as p:
     pg.click(".sheet.on button:has-text('Αποκλεισμός χρήστη')"); pg.wait_for_timeout(800); pg.click(".sheet.on button:has-text('Αποκλεισμός')"); pg.wait_for_timeout(1200)
     cm=pg.evaluate("()=>[...document.querySelectorAll('.cmc .noik b')].map(e=>e.textContent.trim())")
     check('Κοινότητα: αποκλεισμός χρήστη κρύβει αναρτήσεις ΚΑΙ σχόλιά του (1.12.14)', au()==['Καλός'] and cm==['Άλλος'], [au(),cm])
-    pg.evaluate("()=>{location.hash='#profile'}"); pg.wait_for_timeout(1500); pg.evaluate("()=>[...document.querySelectorAll('main .seg button')].find(x=>/Τα δικά μου/.test(x.textContent)).click()"); pg.wait_for_timeout(500)
+    pg.evaluate("()=>{location.hash='#profile'}"); pg.wait_for_timeout(1500); pg.evaluate("()=>[...document.querySelectorAll('main .seg button')].find(x=>/Λογαριασμός/.test(x.textContent)).click()"); pg.wait_for_timeout(500)
     pg.evaluate("()=>[...document.querySelectorAll('main .li')].find(x=>/Αποκλεισμένοι/.test(x.textContent)).click()"); pg.wait_for_timeout(700)
     pg.click(".sheet.on button:has-text('Άρση')"); pg.wait_for_timeout(500)
     check('Προφίλ › Αποκλεισμένοι χρήστες: άρση αποκλεισμού (1.12.14)', pg.evaluate("()=>localStorage.getItem('alkyon-comm-block')")=='[]', pg.evaluate("()=>localStorage.getItem('alkyon-comm-block')"))
@@ -1546,7 +1547,7 @@ with sync_playwright() as p:
     card=pg.evaluate('''()=>{ localStorage.setItem('alkyon-lastpos',JSON.stringify({lat:34.7,lon:32.4,t:Date.now()})); const st=[{key:'all',n:72,users:3,data:{v:2,hrs:195,trips:40,fitMin:200,ins:[],f:{}}},{key:'trend:34_32',n:9,users:3,data:{items:[{sp:'loligo vulgaris',nm:'Καλαμάρι',g:'ceph',n7:9,prev:0,ratio:10,users:3,up:true,fresh:true}]}}];
       AK.cloud.pub=()=>Promise.resolve(new Response(JSON.stringify(st),{status:200})); const pos=AK.lastPos; AK.lastPos=()=>({lat:34.7,lon:32.4}); const c=AK.biteStatsCard(); document.body.append(c);
       return new Promise(r=>setTimeout(()=>r(c.textContent),1500)); }''')
-    check('«Τι πιάνεται τώρα κοντά σου» με 🦑 και «200 έξοδοι (τώρα 40)» στην κάρτα (1.14.28)', 'Τι πιάνεται τώρα' in card and '🦑' in card and '(τώρα 40)' in card, card[:400])
+    check('«Τι πιάνεται τώρα κοντά σου» με 🦑 και «200 έξοδοι (τώρα 40)» στην κάρτα (1.14.28)', 'Τι πιάνεται τώρα' in card and 'Καλαμάρι' in card and '(τώρα 40)' in card, card[:400])
     check('1.14.28: χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
 
     print('# 1.14.29 ακρίβεια, τι δουλεύει, εποχή, σημεία ανά άνεμο, χλωροφύλλη')
@@ -1563,6 +1564,324 @@ with sync_playwright() as p:
       return new Promise(r=>setTimeout(()=>{ const t0=c.textContent; const ch=[...c.querySelectorAll('.bschips .chip')].find(x=>/αλαμάρι|oligo/i.test(x.textContent)); ch&&ch.click(); setTimeout(()=>r([t0,c.textContent,c.querySelectorAll('.bsm').length]),300); },1500)); }''')
     check('Κάρτα: «Πόσο έπεσε μέσα» (×4,5), «Τι δουλεύει τώρα», «Κάλεσε φίλους», εποχή είδους 12 μήνες (1.14.29)', 'Πόσο έπεσε μέσα' in card[0] and '×4,5' in card[0] and 'Τι δουλεύει τώρα' in card[0] and 'Καλαμαριέρα' in card[0] and 'Κάλεσε φίλους' in card[0] and 'Εποχή από τα στοιχεία' in card[1] and card[2]==12, [card[0][:500],card[1][-300:],card[2]])
     check('1.14.29: χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
+
+    print('# 1.14.30 σχέδιο, θερμοκλινές')
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3000)
+    r=pg.evaluate('''()=>{ localStorage.setItem('alkyon-works',JSON.stringify({day:new Date().toISOString().slice(0,10),w:{lure:[{v:'πορτοκαλί 2.5'}],tech:[{v:'Καλαμαριέρα'}],bait:[]}}));
+      const a=AK.contrib.tryNow(); localStorage.setItem('alkyon-works',JSON.stringify({day:'2020-01-01',w:{lure:[{v:'x'}]}})); window.AlkyonLearn={ins:[{f:'sun',b:1,lift:2,w:{tech:['Συρτή']}}]}; const b2=AK.contrib.tryNow();
+      const sm={rise:390,set:1020}; return [a,b2,PF.learnBins(sm,{hr:9,thd:0}).thc,PF.learnBins(sm,{hr:9,thd:30}).thc]; }''')
+    check('«Δοκίμασε»: τι δουλεύει τώρα στην περιοχή, αλλιώς τα δικά σου ευρήματα· θερμοκλινές στον δείκτη (1.14.30)', r==['πορτοκαλί 2.5, Καλαμαριέρα','Συρτή',0,2], r)
+    check('1.14.30: χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
+
+    print('# 1.14.31 όριο ποσότητας, «το άφησα», όρια από τις εξόδους')
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3000)
+    r=pg.evaluate('''()=>{ const B=[{id:'a',trip:'T1',date:'2026-11-10',kg:4,lat:34.7,lon:32.4,latin:'Dentex dentex',species:'Συναγρίδα'},{id:'b',trip:'T1',date:'2026-11-10',kg:3,lat:34.7,lon:32.4,species:'Λαβράκι'},{id:'c',trip:'T1',date:'2026-11-10',kg:9,rel:true,lat:34.7,lon:32.4},{id:'d',trip:'T2',kg:20,lat:34.7,lon:32.4}];
+      for(let i=0;i<9;i++) B.push({id:'w'+i,date:'2026-10-0'+(i+1),wind:8+i,gust:12+i,wave:0.3+i*0.05,prof:'boat'});
+      localStorage.setItem('alkyon-bites',JSON.stringify(B)); localStorage.setItem('alkyon-fprof','boat');
+      const r1=AK.bag.of('T1',{kg:2,species:'Σαργός'}), r2=AK.bag.of('T1',{kg:4.5,latin:'Dentex dentex',species:'Συναγρίδα'}), r3=AK.bag.of('T3',{kg:12,species:'Μαγιάτικο',lat:34.7,lon:32.4}), r4=AK.bag.of('T1',{kg:7,species:'Μαγιάτικο'});
+      const L=AK.limitsLearn('boat'); return [r1.kg,r1.over,r2.oneOver.length,r2.over,r3.over,r4.over,AK.bag.text(r4).slice(0,40),L&&[L.wind,L.gust,L.wave,L.days]]; }''')
+    check('Όριο ποσότητας: 9 kg εντάξει, 2η συναγρίδα ⚠, ένα μεγάλο ψάρι επιτρέπεται (5 kg + 1), 14 kg πάνω από το όριο· όρια από 9 μέρες (1.14.31)', r[0]==9 and r[1] is False and r[2]==1 and r[3] is True and r[4] is False and r[5] is True and 'Πέρασες το όριο' in r[6] and r[7]==[16,20,0.7,9], r)
+    pg.evaluate("()=>{ localStorage.setItem('alkyon-safe',JSON.stringify({active:true,id:'T1',start:Date.now()-3600e3})); AK.biteForm(); }"); pg.wait_for_timeout(1200)
+    pg.fill('.bf2 .spwrap input','Ροφός'); pg.wait_for_timeout(150); pg.fill('.bf2 .g3 .fld:nth-child(2) input','30'); pg.wait_for_timeout(200)
+    r=pg.evaluate("()=>{ const n=document.querySelector('.bf2 .lawnote'); const rel=[...document.querySelectorAll('.bf2 label.tg')].find(l=>/άφησα ελεύθερο/.test(l.textContent)).querySelector('input'); return [n.textContent,rel.checked]; }")
+    pg.fill('.bf2 .g3 .fld:nth-child(2) input','50'); pg.wait_for_timeout(200)
+    r2=pg.evaluate("()=>{ const rel=[...document.querySelectorAll('.bf2 label.tg')].find(l=>/άφησα ελεύθερο/.test(l.textContent)).querySelector('input'); return [document.querySelector('.bf2 .lawnote').textContent,rel.checked]; }")
+    check('Κάτω από το ελάχιστο → «Το άφησα ελεύθερο» αυτόματα, πάνω → ξεστσεκάρεται· κρατημένα της εξόδου στη φόρμα (1.14.31)', r[1] is True and 'Σημειώθηκε' in r[0] and r2[1] is False and 'Κρατημένα σε αυτή την έξοδο: 7' in r2[0], [r,r2])
+    check('1.14.31: χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
+
+    print('# 1.14.32 προφίλ: νέα κατανομή')
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#profile'); pg.wait_for_timeout(2500)
+    def ptab(name):
+        pg.evaluate("n=>[...document.querySelectorAll('main .seg button')].find(x=>x.textContent.trim()===n).click()",name); pg.wait_for_timeout(600)
+        return pg.evaluate("()=>[...document.querySelectorAll('main .pgrp')].map(g=>((g.querySelector('.listh')||{}).textContent||'')+':'+[...g.querySelectorAll('.li b')].map(b=>b.firstChild?b.firstChild.textContent:b.textContent).join('|'))")
+    m=ptab('Τα δικά μου'); st=ptab('Ρυθμίσεις'); ac=ptab('Λογαριασμός')
+    check('Προφίλ: Οδηγός πάνω, βυθόμετρο στις συσκευές, Βοήθεια μόνο στις Ρυθμίσεις (1.14.34), Βοήθησε την πρόγνωση στον Λογαριασμό (1.14.32)',
+      not any('Οδηγός' in x for x in m) and 'Βυθόμετρο' in m[0] and 'Ρολόι Garmin' in m[0] and st[-1].startswith('Βοήθεια:Οδηγός|') and st[-1].startswith('Βοήθεια:') and not any(x.startswith('Βοήθεια:') for x in m+ac)
+      and any(x.startswith('Εμφάνιση και γλώσσα:Θέμα') for x in st) and not any('Βοήθησε την πρόγνωση' in x for x in st) and any('Βοήθησε την πρόγνωση' in x for x in ac) and not any('Εισαγωγή από βυθόμετρο' in x for x in ac), [m,st,ac])
+    check('1.14.32: χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
+
+    print('# 1.14.35 Οδηγός από το Ημερολόγιο / ψάρι / χάρτη, εικονίδια')
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(2500)
+    gi=pg.evaluate("()=>!!document.querySelector('main .top a.iconbtn[href=\"#guide\"]')")
+    pg.evaluate("()=>AK.guideGo('species','Σαργός')"); pg.wait_for_timeout(4000)
+    gq=pg.evaluate("()=>[location.hash,(document.getElementById('spQ')||{}).value,document.querySelectorAll('#spList details.sp').length]")
+    pg.evaluate("()=>AK.guideGo('law')"); pg.wait_for_timeout(1500)
+    gl=pg.evaluate("()=>{ const b=document.querySelector('.gseg button[data-g=law]'); return b&&b.getAttribute('aria-pressed'); }")
+    check('Οδηγός: 📖 στο Ημερολόγιο, άνοιγμα σε είδος (Σαργός) και στους Νόμους (1.14.35)', gi and gq[0]=='#guide' and gq[1]=='Σαργός' and 0<gq[2]<15 and gl=='true', [gi,gq,gl])
+    pg.goto(BASE+'/v4/#profile'); pg.wait_for_timeout(2000); pg.evaluate("()=>{location.hash='#log'}"); pg.wait_for_timeout(1500)
+    pg.click("main .top a.iconbtn[href='#guide']"); pg.wait_for_timeout(2500); pg.click("main .top a.iconbtn[aria-label='Πίσω']"); pg.wait_for_timeout(1500)
+    check('Οδηγός από το Ημερολόγιο: το «Πίσω» γυρίζει στο Ημερολόγιο, όχι στο Προφίλ (1.14.36)', pg.evaluate("()=>location.hash")=='#log', pg.evaluate("()=>location.hash"))
+    pg.goto(BASE+'/v4/#profile'); pg.wait_for_timeout(2000)
+    pg.evaluate("()=>[...document.querySelectorAll('main .seg button')].find(x=>/Ρυθμίσεις/.test(x.textContent)).click()"); pg.wait_for_timeout(600)
+    ic=pg.evaluate("()=>{ const f=t=>{ const r=[...document.querySelectorAll('main .li')].find(x=>x.querySelector('b')&&x.querySelector('b').textContent.trim().startsWith(t)); return r?r.querySelector('.ic').innerHTML:null; }; return [f('Επαφή ασφαλείας')!==f('Όρια ασφαλείας'), !document.querySelector('main p.foot') || !/Alkyon ·/.test(document.querySelector('main p.foot').textContent)]; }")
+    check('Προφίλ: διαφορετικά εικονίδια, χωρίς διπλή έκδοση κάτω (1.14.35)', ic==[True,True], ic)
+    check('1.14.35: χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
+
+    print('# 1.14.37 Πρόγνωση: (i), επόμενη ώρα, καθαρές κάρτες')
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(5000)
+    r=pg.evaluate("()=>{ const s=document.querySelector('main .infob'), q=[...document.querySelectorAll('main summary,main .hwhy2 summary')].map(x=>x.textContent).join('|'); let o=null; if(s){ s.click(); o=s.nextElementSibling; } const pn=document.querySelector('main .infot:not([hidden])'); return [!!s, !!pn, !/;$/.test('x'), document.querySelectorAll('main .opps').length]; }")
+    pg.evaluate("()=>[...document.querySelectorAll('main .seg button')].find(x=>/Είδη/.test(x.textContent)).click()"); pg.wait_for_timeout(2500)
+    sp=pg.evaluate("()=>[document.querySelectorAll('main .splv').length, /\\d%/.test((document.querySelector('main .spl')||{}).textContent||''), !document.querySelector('main .extcard')]")
+    pg.evaluate("()=>[...document.querySelectorAll('main .seg button')].find(x=>/Δικά μου/.test(x.textContent)).click()"); pg.wait_for_timeout(2500)
+    mn=pg.evaluate("()=>{ const t=document.getElementById('main').innerText; return [/Έλεγχος της πρόγνωσης/.test(t), !/Ο βαθμός στην πράξη/.test(t), / από 15/.test(t)]; }")
+    check('Πρόγνωση: (i) ανοίγει εξήγηση, χωρίς διπλές «Ευκαιρίες» στις Μέρες· Είδη με «Καλές/Μέτριες» όχι %· μία κάρτα «Έλεγχος της πρόγνωσης» (1.14.37)', r[0] and r[1] and r[3]==0 and sp[0]>0 and not sp[1] and sp[2] and mn==[True,True,True], [r,sp,mn])
+    check('1.14.37: χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
+
+    print('# 1.14.39 Πρόγνωση: μικρή μπάρα ημερών στο κύλισμα, ετικέτες στο γράφημα')
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(5000)
+    pg.evaluate("()=>{document.querySelectorAll('main details').forEach(d=>d.open=true); window.scrollTo(0,900)}"); pg.wait_for_timeout(1200)
+    r=pg.evaluate("()=>[document.querySelector('.dstrip').classList.contains('stuck'), document.querySelector('.dstrip').offsetHeight<70, document.querySelectorAll('.hline .hlchip').length>=2, document.querySelectorAll('.hb.s-good,.hb.s-fair,.hb.s-poor,.hb.best,.hb.bad').length===24]")
+    pg.evaluate("()=>window.scrollTo(0,0)"); pg.wait_for_timeout(800); r.append(pg.evaluate("()=>!document.querySelector('.dstrip').classList.contains('stuck')"))
+    check('Πρόγνωση: η μπάρα ημερών μικραίνει στο κύλισμα και επανέρχεται, τιμές γραφήματος σε ετικέτες, μπάρες ωρών με χρώμα βαθμού (1.14.39)', all(r) and not pg._errs, [r,pg._errs]); c.close()
+
+    print('# 1.14.40 Πρόγνωση: κύκλος βαθμού')
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(5000)
+    r=pg.evaluate("()=>{ const h=document.querySelector('main .hero'); return [!!h.querySelector('.hring b'), /^\\d\\d:00–\\d\\d:00$/.test((h.querySelector('.hpw')||{}).textContent||'')||!h.querySelector('.hpw'), !!h.querySelector('.nowcard .nwg'), !!h.querySelector('.nwa .btn'), document.querySelectorAll('main .card.nowcard').length===0]; }")
+    check('Πρόγνωση: κύκλος βαθμού με ένα παράθυρο, ο καιρός τώρα και τα κουμπιά μέσα στην πρώτη κάρτα (1.14.40)', all(r) and not pg._errs, [r,pg._errs]); c.close()
+
+    print('# 1.14.42 μικρές έξοδοι: η λίστα μένει ανοιχτή')
+    c=ctx(b); c.add_init_script("if(!sessionStorage.st){sessionStorage.st=1;localStorage.setItem('alkyon-trips',JSON.stringify([1,2,3].map(i=>({id:'s'+i,date:'2026-11-1'+i,startMs:Date.parse('2026-11-1'+i+'T08:00:00Z'),endMs:Date.parse('2026-11-1'+i+'T08:02:00Z'),count:0,prof:'boat',_u:1}))));localStorage.setItem('alkyon-v4-logtab',JSON.stringify('trips'));}")
+    pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3000)
+    pg.click('main .shortbtn'); pg.wait_for_timeout(400)
+    pg.evaluate("()=>{ const t=AK.store.raw('trips').find(x=>x.id==='s1'); AK.store.delUndo('trips',t,'x'); AK.emit('store','alkyon-trips'); }"); pg.wait_for_timeout(1200)
+    r=pg.evaluate("()=>{ const sl=document.querySelector('main .shortbtn + .list'); return [!!sl&&!sl.hidden, sl?sl.querySelectorAll('.triprow').length:0, /\\(2\\)/.test(document.querySelector('main .shortbtn').textContent)]; }")
+    pg.click('main .shortall'); pg.wait_for_timeout(1200)
+    r.append(pg.evaluate("()=>!document.querySelector('main .shortbtn')"))
+    check('Μικρές έξοδοι: μετά τη διαγραφή η λίστα μένει ανοιχτή (2 από 3), «Διαγραφή όλων» τις σβήνει (1.14.42)', r==[True,2,True,True] and not pg._errs, [r,pg._errs]); c.close()
+
+    print('# 1.14.43 εμφάνιση')
+    c=ctx(b,lang='en'); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(4000)
+    r=pg.evaluate("()=>{ const q=document.querySelector('#spQ'), l=document.querySelector('#g-species'); return [q&&q.placeholder, getComputedStyle(l).backgroundColor, AK.T('α','say «x»')]; }")
+    check('Οδηγός στα αγγλικά: αναζήτηση στα αγγλικά, λίστα χωρίς φόντο κάρτας, εισαγωγικά “ ” (1.14.43)', r[0].startswith('Search species') and r[1]=='rgba(0, 0, 0, 0)' and r[2]=='say \u201cx\u201d' and not pg._errs, [r,pg._errs]); c.close()
+    c=ctx(b); c.add_init_script("localStorage.removeItem('alkyon-fprof-done');localStorage.setItem('alkyon-askfp','1');localStorage.setItem('alkyon-fprof','shore');"); pg=page(c); pg.set_viewport_size({'width':360,'height':700}); pg.goto(BASE+'/v4/'); pg.wait_for_timeout(3000)
+    r=pg.evaluate("()=>{ const p=document.querySelector('.sppage'), a=p&&p.querySelector('.spask'), g=p&&p.querySelector('.spgo'); if(!a||!g) return null; const ra=a.getBoundingClientRect(), rg=g.getBoundingClientRect(); return [ra.bottom<=rg.top+1, rg.bottom<=innerHeight+1, getComputedStyle(p).backgroundColor===getComputedStyle(document.body).backgroundColor||true]; }")
+    check('Είσοδος (ακτή, 3 τρόποι, μικρή οθόνη): το «Να μη ρωτάει» φαίνεται πάνω από το «Συνέχεια» (1.14.43)', r and r[0] and r[1] and not pg._errs, [r,pg._errs]); c.close()
+
+    print('# 1.14.45 όψη')
+    c=ctx(b,lang='en'); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(3500)
+    r=pg.evaluate("()=>{ const n=document.querySelector('.nav'), cs=getComputedStyle(n,'::before'); const t=document.createElement('p'); t.textContent='\U0001F313 x \u2605 y \U0001F991'; document.querySelector('main').append(t); return new Promise(res=>setTimeout(()=>res([cs.content!=='none'&&cs.display!=='none', document.documentElement.getAttribute('data-view'), t.querySelectorAll('i.pik').length, [...t.textContent].some(ch=>ch.codePointAt(0)>0x1F000||ch.codePointAt(0)===0x2605)]),600)); }")
+    pg.evaluate("()=>{location.hash='#map'}"); pg.wait_for_timeout(2500)
+    r.append(pg.evaluate("()=>getComputedStyle(document.querySelector('.nav'),'::before').display"))
+    check('Κάτω μπάρα: σβήσιμο περιεχομένου (όχι στον χάρτη)· emoji γίνονται γραμμικά εικονίδια (1.14.45)', r==[True,'forecast',3,False,'none'] and not pg._errs, [r,pg._errs]); c.close()
+
+    print('# 1.14.47 συναγρίδα')
+    R=[]
+    for lg in ('en','el'):
+        c=ctx(b,lang=lg); c.add_init_script("localStorage.setItem('alkyon-bites',JSON.stringify([{id:'a',date:'2026-03-11',time:'10:00',species:'Common dentex',kg:5,_u:1},{id:'b',date:'2026-04-02',time:'10:00',species:'Dentex',kg:3,len:55,_u:1},{id:'c',date:'2026-05-02',time:'10:00',species:'Συναγρίδα',kg:2,_u:1}]));localStorage.setItem('alkyon-v4-logtab','\"stats\"');")
+        pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3500)
+        R.append(pg.evaluate("()=>[...document.querySelectorAll('.recs .rec b')].map(x=>x.textContent).join('|')")); R.append(pg._errs); c.close()
+    check('Dentex / Common dentex / Συναγρίδα: ένα ρεκόρ, «Common dentex» στα αγγλικά και «Συναγρίδα» στα ελληνικά (1.14.47)', R==['Common dentex',[],'Συναγρίδα',[]], R)
+
+    print('# 1.14.48 ένα είδος ένα όνομα, ανοιχτή έξοδος')
+    c=ctx(b,lang='en'); c.add_init_script("localStorage.setItem('alkyon-bites',JSON.stringify([{id:'a',date:'2026-03-11',time:'10:00',species:'Πέρκα',kg:0.2,_u:1},{id:'b',date:'2026-04-02',time:'10:00',species:'Painted comber',kg:0.3,_u:1},{id:'c',date:'2026-05-02',time:'10:00',species:'Μινέρι',kg:6,_u:1},{id:'d',date:'2026-05-03',time:'10:00',species:'Greater amberjack',kg:8,_u:1},{id:'e',date:'2026-05-04',time:'10:00',species:'Μαγιάτικο',kg:4,_u:1}]));localStorage.setItem('alkyon-v4-logtab','\"stats\"');")
+    pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3500)
+    r=pg.evaluate("()=>[[...document.querySelectorAll('.recs .rec b')].map(x=>x.textContent).join('|'), [...document.querySelectorAll('.spkg .bl')].map(x=>x.textContent).join('|'), spKey('Dentex')===spKey('Συναγρίδα'), spName('Πέρκα'), spKey('Κάτι άγνωστο')]")
+    check('Ένα είδος, ένα όνομα: Πέρκα = Painted comber (θάλασσα), Μινέρι = Μαγιάτικο = Greater amberjack σε ρεκόρ και στατιστικά (1.14.48)', r==['Greater amberjack|Painted comber','Greater amberjack|Painted comber',True,'Painted comber','κάτι άγνωστο'] and not pg._errs, [r,pg._errs]); c.close()
+    c=ctx(b,lang='en'); c.add_init_script("if(!sessionStorage.__s){sessionStorage.__s=1;localStorage.setItem('alkyon-safe',JSON.stringify({active:true,id:'trip-x1',start:Date.now()-32*3600000,due:Date.now()-26*3600000,route:'Test'}));}")
+    pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(6500)
+    r=pg.evaluate("()=>{ const s=document.querySelector('.sheet'); if(!s) return ['no sheet',localStorage.getItem('alkyon-safe')]; const b=[...s.querySelectorAll('button')].find(x=>/^Ended at/.test(x.textContent)); const t=s.textContent; b&&b.click(); return new Promise(res=>setTimeout(()=>{ const tr=JSON.parse(localStorage.getItem('alkyon-trips')||'[]')[0]; res([/Has the trip ended/.test(t), /open for 32 hours/.test(t), tr?Math.round((tr.endMs-tr.startMs)/3600000):null, AK.trip.active()]); },800)); }")
+    check('Έξοδος ανοιχτή 32 ώρες: ρωτά «Τελείωσε;» και κλείνει στην ώρα επιστροφής (6 ώρες), όχι στις 32 (1.14.48)', r==[True,True,6,False] and not pg._errs, [r,pg._errs]); c.close()
+
+    print('# 1.14.49 φόρμα ψαριού')
+    c=ctx(b,lang='en'); c.add_init_script("localStorage.setItem('alkyon-bites',JSON.stringify([{id:'a',date:'2026-03-11',time:'10:00',species:'Πέρκα',latin:'Perca fluviatilis',tech:'Δίχτυ',kg:0.2,_u:1},{id:'b',date:'2026-04-02',time:'10:00',species:'Συναγρίδα',tech:'Βυθού',kg:3,_u:1},{id:'c',date:'2026-04-03',time:'10:00',species:'Dentex',tech:'Net',kg:3,_u:1},{id:'d',date:'2026-04-04',time:'10:00',species:'Ροφός',tech:'Παραγάδι',kg:3,_u:1}]));")
+    pg=page(c); pg.set_viewport_size({'width':360,'height':740}); pg.goto(BASE+'/v4/#new'); pg.wait_for_timeout(3500)
+    r=pg.evaluate("()=>{ const q=[...document.querySelectorAll('form.bf2 .qchips')]; return [q.map(x=>[...x.children].map(c=>c.textContent).join(',')).join(' | '), q.every(x=>x.getBoundingClientRect().height<56)]; }")
+    check('Νέο ψάρι: επιλογές σε μία γραμμή· «Painted comber», μία συναγρίδα, χωρίς δίχτυ/παραγάδι στις τεχνικές (1.14.49)', 'Painted comber' in r[0] and 'European perch' not in r[0] and r[0].count('Common dentex')==1 and 'Net' not in r[0] and 'Longline' not in r[0] and 'Bottom fishing' in r[0] and r[1] and not pg._errs, [r,pg._errs]); c.close()
+
+    print('# 1.14.53 παλίρροια χωρίς επικαλύψεις, (i) κάτω από τον τίτλο')
+    c=ctx(b,lang='en'); pg=page(c); pg.set_viewport_size({'width':360,'height':760}); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(4000)
+    r=pg.evaluate("()=>{ const t0=Date.UTC(2026,10,15,21), pts=[]; for(let i=0;i<48;i++){ pts.push({t:t0+i*3600000,p:1018,w:6,g:10,d:300,l:0.06*Math.sin(i/12.4*2*Math.PI+1)+(i>=14&&i<=20?0.006*Math.sin(i*2.2):0)}); } const C=AK.pwChart(pts,{lat:34.7,lon:32.4,tz:120,rk:'d1',nowI:20}); document.body.append(C.svg); const bb=[...C.svg.querySelectorAll('text.tt')].map(t=>t.getBBox()); let ov=0; for(let i=0;i<bb.length;i++) for(let j=i+1;j<bb.length;j++){ const a=bb[i], b2=bb[j]; if(Math.min(a.x+a.width,b2.x+b2.width)-Math.max(a.x,b2.x)>0&&Math.min(a.y+a.height,b2.y+b2.height)-Math.max(a.y,b2.y)>0) ov++; } const n=C.svg.querySelectorAll('circle.th,circle.tlo').length; C.svg.remove(); const h2=[...document.querySelectorAll('main h2')].filter(x=>x.querySelector('.infob')&&x.offsetParent); h2.forEach(x=>x.querySelector('.infob').click()); return [bb.length>=5, ov, n<=8, h2.length>0&&h2.every(x=>x.getBoundingClientRect().height<60)]; }")
+    check('Παλίρροια: ώρες χωρίς επικάλυψη, μικρά δοντάκια δεν σημειώνονται· (i) δεν σπάει τον τίτλο στα 360 px (1.14.53)', r==[True,0,True,True] and not pg._errs, [r,pg._errs]); c.close()
+
+    print('# 1.14.55 ενότητες')
+    c=ctx(b,lang='en'); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(4500)
+    r=[pg.evaluate("()=>[...document.querySelectorAll('.pgsec')].map(e=>e.textContent+'>'+((e.nextElementSibling.querySelector('h2,summary b')||{}).textContent||'').slice(0,14)).join('|')")]
+    pg.evaluate("()=>{[...document.querySelectorAll('main .seg button')].find(x=>/Mine/.test(x.textContent)).click()}"); pg.wait_for_timeout(2500)
+    r.append(pg.evaluate("()=>[[...document.querySelectorAll('.pgsec')].map(e=>e.textContent).join('|'), [...document.querySelectorAll('.pgsec')].every(e=>e.nextElementSibling&&/card|sfold/.test(e.nextElementSibling.className))]"))
+    check('Ενότητες: «Conditions» πριν από την Έκθεση ακτής· στα «Δικά μου» κάθε επικεφαλίδα πριν από κάρτα (1.14.55)', r[0].startswith('Conditions>') and 'Checks and history' in r[1][0] and 'Conditions' not in r[1][0] and r[1][1] and not pg._errs, [r,pg._errs]); c.close()
+
+    print('# 1.14.57 φωτογραφίες, φύλλα')
+    c=ctx(b,lang='en'); pg=page(c); pg.goto(BASE+'/v4/#profile'); pg.wait_for_timeout(3000)
+    r=pg.evaluate("()=>new Promise(res=>{ const cv=document.createElement('canvas'); cv.width=3000; cv.height=2000; const g=cv.getContext('2d'); const gr=g.createLinearGradient(0,0,3000,2000); gr.addColorStop(0,'#135'); gr.addColorStop(1,'#fa6'); g.fillStyle=gr; g.fillRect(0,0,3000,2000); for(let i=0;i<4000;i++){ g.fillStyle='hsl('+(i*37%360)+',60%,'+(30+i%40)+'%)'; g.fillRect((i*131)%3000,(i*71)%2000,26,26); } cv.toBlob(async f=>{ const S=AK.store, a=await S.resize(f), k=await S.resize(f,{keep:true}); await S.Photos.put('zz1',a); const t=await S.Photos.thumb('zz1'), t2=await S.Photos.thumb('zz1'); const im=await createImageBitmap(a), ti=await createImageBitmap(t); await S.Photos.del('zz1'); const gone=await S.Photos.thumb('zz1'); res([a.size<k.size*0.75, true, Math.max(im.width,im.height)>=1024?1280:0, Math.max(ti.width,ti.height), t.size<20000, t2.size===t.size, !gone]); },'image/jpeg',0.95); })")
+    sh=pg.evaluate("()=>{ const b=AK.h('div',null,AK.h('h3',{text:'Safety limits'}),AK.h('p',{text:'x'})); const s=AK.sheet({title:'Safety limits',body:b}); const hid=b.querySelector('h3').hidden; s.close(); return hid; }")
+    check('Φωτογραφία: συμπίεση (1280 px, μικρότερη από πριν), μικρογραφία 240 px που σβήνεται μαζί· φύλλο χωρίς διπλό τίτλο (1.14.57)', r==[True,True,1280,240,True,True,True] and sh is True and not pg._errs, [r,sh,pg._errs]); c.close()
+
+    print('# 1.14.58 αυτο-επισκευή, παλιές φωτογραφίες')
+    c=ctx(b,lang='en'); c.add_init_script("if(!sessionStorage.__s){sessionStorage.__s=1;localStorage.setItem('alkyon-bites',JSON.stringify([{id:'zb1',date:'2026-03-11',time:'10:00',species:'Ροφός',kg:5,photo:true,_u:1}]));}")
+    pg=page(c); pg.goto(BASE+'/v4/#profile'); pg.wait_for_timeout(3000)
+    r=pg.evaluate("()=>new Promise(res=>{ const cv=document.createElement('canvas'); cv.width=1280; cv.height=960; const g=cv.getContext('2d'); for(let i=0;i<9000;i++){ g.fillStyle='hsl('+(i*37%360)+',70%,'+(20+i%60)+'%)'; g.fillRect((i*131)%1280,(i*71)%960,18,18); } cv.toBlob(async f=>{ const S=AK.store; await S.Photos.put('zb1',f); localStorage.setItem('alkyon-pup',JSON.stringify({zb1:1})); const n=await S.shrinkOld(); const a=await S.Photos.get('zb1'); const n2=await S.shrinkOld(); res([f.size>110000, n, a.size<f.size*0.75, !JSON.parse(localStorage.getItem('alkyon-pup')).zb1, n2]); },'image/jpeg',0.97); })")
+    sw=open(os.path.join(ROOT,'v4','sw.js'),encoding='utf-8').read(); el=open(os.path.join(ROOT,'v4','errlog.js'),encoding='utf-8').read()
+    pg.evaluate("()=>{ localStorage.removeItem('alkyon-v4-heal'); window.dispatchEvent(new ErrorEvent('error',{message:\"Uncaught SyntaxError: Unexpected token '<'\",filename:location.origin+'/v4/help.js',lineno:1,colno:1})); }"); pg.wait_for_timeout(2500)
+    hl=pg.evaluate("()=>[+localStorage.getItem('alkyon-v4-heal')>0, !!window.AK]")
+    check('Παλιά φωτογραφία ξανασυμπιέζεται μία φορά και ξανανεβαίνει· «Unexpected token <» σε .js καθαρίζει την αποθήκη και ξαναφορτώνει· ο service worker δεν δίνει HTML για .js (1.14.58)', r==[True,1,True,True,0] and hl==[True,True] and 'wrong(r)' in sw and 'function heal(' in el and not pg._errs, [r,hl,pg._errs]); c.close()
+
+    print('# 1.14.58 διόρθωση ωρών εξόδου')
+    c=ctx(b,lang='en'); c.add_init_script("if(!sessionStorage.__s){sessionStorage.__s=1;var st=Date.parse('2026-11-07T05:00:00');localStorage.setItem('alkyon-trips',JSON.stringify([{id:'tq1',sid:'sq1',date:'2026-11-07',startMs:st,endMs:st+32*3600000,count:1,kg:2,_u:1}]));localStorage.setItem('alkyon-v4-logtab','\"trips\"');}")
+    pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3000)
+    pg.evaluate("()=>{ [...document.querySelectorAll('.seg button')].find(x=>/^Trips/.test(x.textContent)).click(); }"); pg.wait_for_timeout(1200)
+    pg.evaluate("()=>document.querySelector('main .tcard').click()"); pg.wait_for_timeout(1500)
+    pg.evaluate("()=>[...document.querySelectorAll('.sheet.on button')].find(x=>/Correct times/.test(x.textContent)).click()"); pg.wait_for_timeout(1200)
+    r=pg.evaluate("()=>{ const i=document.querySelectorAll('.sheet.on input[type=datetime-local]'); i[1].value='2026-11-07T12:30'; i[1].dispatchEvent(new Event('input')); const d=document.querySelector('.sheet.on .sub').textContent; [...document.querySelectorAll('.sheet.on button')].find(x=>/^Save/.test(x.textContent)).click(); const t=JSON.parse(localStorage.getItem('alkyon-trips'))[0]; return [d, (t.endMs-t.startMs)/3600000]; }")
+    check('Έξοδος 32 ωρών: «Διόρθωση ωρών» την κάνει 7,5 ώρες (1.14.58)', r==['Duration: 7.5 h',7.5] and not pg._errs, [r,pg._errs]); c.close()
+
+    print('# 1.14.59 χάρτης: ψάρια/χαμένα ανεξάρτητα, ραντάρ σε UTC')
+    c=ctx(b,lang='en'); c.add_init_script("if(!sessionStorage.__s){sessionStorage.__s=1;localStorage.setItem('alkyon-bites',JSON.stringify([{id:'f1',date:'2026-11-10',time:'07:00',species:'Ροφός',kg:2,lat:34.80,lon:32.30,_u:1},{id:'f2',date:'2026-11-10',time:'08:00',miss:true,lat:34.70,lon:32.45,_u:1}]));localStorage.setItem('alkyon-v4-map',JSON.stringify({fish:true,spots:false}));localStorage.setItem('alkyon-v4-pos',JSON.stringify({lat:34.75,lon:32.38}));}")
+    pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(4500)
+    cnt="()=>[document.querySelectorAll('.mk.fish:not(.miss)').length,document.querySelectorAll('.mk.fish.miss').length]"
+    r0=pg.evaluate(cnt)
+    pg.evaluate("()=>document.querySelector('.mclay').click()"); pg.wait_for_timeout(900)
+    tap="(k)=>{ const t=document.querySelector('.mcpan .ltile[data-fk=\"l:'+k+'\"]'); t.click(); }"
+    pg.evaluate(tap,'miss'); pg.wait_for_timeout(900); r1=pg.evaluate(cnt)
+    pg.evaluate(tap,'fish'); pg.wait_for_timeout(900); r2=pg.evaluate(cnt)
+    pg.evaluate(tap,'miss'); pg.wait_for_timeout(900); r3=pg.evaluate(cnt)
+    cf=pg.evaluate("()=>{ const c=JSON.parse(localStorage.getItem('alkyon-v4-map')); return [!!c.fish,!!c.lost]; }")
+    import datetime as _dt, re as _re
+    rb=open(os.path.join(ROOT,'radar_build.py'),encoding='utf-8').read(); ns={'dt':_dt}; exec(rb[rb.index('def cy_offset'):rb.index('TS_RES = [')],ns)
+    n0=_dt.datetime(2026,11,17,5,40,tzinfo=_dt.timezone.utc); fl=[ns['fix_local'](_dt.datetime(2026,11,17,7,20,tzinfo=_dt.timezone.utc),n0).hour, ns['fix_local'](_dt.datetime(2026,11,17,5,20,tzinfo=_dt.timezone.utc),n0).hour]
+    mv=open(os.path.join(ROOT,'v4','map-view.js'),encoding='utf-8').read()
+    check('Χάρτης: «Χαμένα» και «Ψάρια» ανάβουν χωριστά· ώρα ραντάρ ΤΜ από ώρα Κύπρου σε UTC (1.14.59)', r0==[1,1] and r1==[1,0] and r2==[0,0] and r3==[0,1] and cf==[False,True] and fl==[5,5] and "'tz': 'utc'" in rb and "j.tz!=='utc'" in mv and not pg._errs, [r0,r1,r2,r3,cf,fl,pg._errs]); c.close()
+
+    print('# 1.14.60 μεγάλα ψάρια ανά είδος, πρόσκληση, χάρακας')
+    c=ctx(b,lang='en'); c.add_init_script("if(!sessionStorage.__s){sessionStorage.__s=1;var B=[['2026-10-01','Ροφός',1],['2026-10-05','Ορφός',0.9],['2026-10-09','Χάννος',3],['2026-10-12','Πέρκα',3.2],['2026-10-15','Σαργός',0.4]].map(function(r,i){return {id:'q'+i,date:r[0],time:'07:00',species:r[1],kg:r[2],ptrend:'stable',wind:2,lat:34.75,lon:32.38,_u:1};});localStorage.setItem('alkyon-bites',JSON.stringify(B));}")
+    pg=page(c); pg.goto(BASE+'/?join=1'); pg.wait_for_timeout(6500)
+    j=pg.evaluate("()=>{ const s=document.querySelector('.sheet.on'); return [s?s.querySelector('h2,h3,.stitle,b').textContent.trim():null, /join=1/.test(location.search), /\\/v4\\//.test(location.pathname)]; }")
+    pg.evaluate("()=>{ const x=document.querySelector('.sheet.on .sx, .sheet.on [aria-label=Close], .sheet.on button'); x&&x.click(); }"); pg.wait_for_timeout(600)
+    cm=pg.evaluate("()=>{ const el=AK.commonCard(); return [...el.querySelectorAll('.cmhd')].map(x=>x.textContent.replace(/\\s+/g,' ').trim()); }")
+    rj=open(os.path.join(ROOT,'ruler.js'),encoding='utf-8').read(); mv=open(os.path.join(ROOT,'v4','map-view.js'),encoding='utf-8').read()
+    check('Πρόσκληση ?join=1 ανοίγει «Βοήθησε την πρόγνωση»· ορφός 1 kg μετρά στα μεγάλα ψάρια, χάννος 3 kg όχι· λεζάντες στον χάρακα (1.14.60)', j[0]=='Help the forecast' and j[1] is False and j[2] and len(cm)==2 and cm[0].startswith('Big fish (groupers') and cm[0].endswith('2 days') and cm[1].startswith('Other fish') and cm[1].endswith('3 days') and "T('Αναίρεση','Undo')" in rj and 'AK.crossLL' in mv and 'var has=new Uint8Array(16384)' in mv and not pg._errs, [j,cm,pg._errs]); c.close()
+
+    print('# 1.14.62 γλώσσα μόνο για Κύπρο/Ελλάδα, πρόγνωση βροχής, κύμα εκτός στεριάς')
+    def lrow(country,pos):
+        c=ctx(b,lang='en'); c.add_init_script("localStorage.setItem('alkyon-country',JSON.stringify('%s'));%s"%(country,("localStorage.setItem('alkyon-v4-pos',JSON.stringify(%s));"%pos) if pos else "localStorage.removeItem('alkyon-v4-pos');"))
+        pg=page(c); pg.goto(BASE+'/v4/#profile'); pg.wait_for_timeout(2200)
+        pg.evaluate("()=>{const b=[...document.querySelectorAll('.seg button')].find(x=>/Settings/.test(x.textContent)); b&&b.click()}"); pg.wait_for_timeout(900)
+        r=pg.evaluate("()=>[[...document.querySelectorAll('main .li b')].some(b=>/^Language/.test(b.textContent)), [...document.querySelectorAll('main .listh')].map(x=>x.textContent).filter(x=>/Appearance/.test(x)).join(), AK.langChoice()]"); e=pg._errs; c.close(); return r+[e]
+    l1=lrow('xx','{lat:43.3,lon:5.3}'); l2=lrow('cy',None); l3=lrow('auto','{lat:37.9,lon:23.7}')
+    c=ctx(b,lang='en'); c.add_init_script("if(!sessionStorage.__u){sessionStorage.__u=1; localStorage.removeItem('alkyon-onboard'); localStorage.removeItem('alkyon-bites'); localStorage.removeItem('alkyon-country'); localStorage.removeItem('alkyon-v4-pos');}")
+    pg=page(c); pg.goto(BASE+'/v4/'); pg.wait_for_timeout(3000)
+    t0=pg.evaluate("()=>{ const l=document.querySelector('.sppage .splang'); return l?[getComputedStyle(l).display!=='none', /Ελλην/.test(document.querySelector('.sppage').textContent)]:null; }")
+    pg.evaluate("()=>{ const b=[...document.querySelectorAll('.sppage .spctry button')].find(x=>/Change/.test(x.textContent)); b&&b.click(); const s=document.querySelector('.sppage select.ctrysel'); s.value='gr'; s.dispatchEvent(new Event('change',{bubbles:true})); }"); pg.wait_for_timeout(500)
+    t1=pg.evaluate("()=>{ const l=document.querySelector('.sppage .splang'); return l?[getComputedStyle(l).display!=='none', /Ελληνικά/.test(l.textContent)]:null; }"); te=pg._errs; c.close()
+    mv=open(os.path.join(ROOT,'v4','map-view.js'),encoding='utf-8').read(); ss=open(os.path.join(ROOT,'seastate.js'),encoding='utf-8').read(); wm=open(os.path.join(ROOT,'windmap.js'),encoding='utf-8').read(); op=open(os.path.join(ROOT,'v4','opps.js'),encoding='utf-8').read()
+    check('Γλώσσα: η επιλογή φαίνεται μόνο για Κύπρο/Ελλάδα (Προφίλ και πρώτη οθόνη)· στρώμα «Βροχή, καταιγίδες»· κύμα όχι πάνω σε μακρινή στεριά· προφόρτωση· «Ανανέωση» εικονίδιο (1.14.62)',
+      l1[:3]==[False,'Appearance',False] and l2[:3]==[True,'Appearance and language',True] and l3[0] is True and not (l1[3] or l2[3] or l3[3])
+      and t0==[False,False] and t1==[True,True] and not te
+      and "tile('rainfc'" in mv and 'hourly=precipitation,weather_code' in mv and 'ML.isLand(la,lo)' in ss and 'loadRegion(b)' in ss and 'pxMem[u]' in wm and "class:'oprf'" in op, [l1,l2,l3,t0,t1,te]); 
+
+    print('# 1.14.66 φως φεγγαριού στο ψάρι')
+    c=ctx(b,lang='en'); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(2500)
+    ml=pg.evaluate("()=>{ const f=AlkyonBiteWx.moonLight, P=[34.75,32.4]; return [f(Date.UTC(2026,10,24,22,0),P[0],P[1],{t:0,lo:0,mi:0,hi:0}), f(Date.UTC(2026,10,24,22,0),P[0],P[1],{t:100,lo:100,mi:0,hi:0}), f(Date.UTC(2026,10,17,17,0),P[0],P[1],{t:30,lo:0,mi:0,hi:30}), f(Date.UTC(2026,10,9,20,0),P[0],P[1],null)]; }")
+    bw=open(os.path.join(ROOT,'bitewx.js'),encoding='utf-8').read()
+    check('Φως φεγγαριού: πανσέληνος ψηλά ~89%, με χαμηλή συννεφιά ~13%, μισό φεγγάρι <10%, νέα σελήνη κάτω από τον ορίζοντα 0· νέφωση σε 3 ύψη ζητιέται και αποθηκεύεται στο ψάρι (1.14.66)',
+      ml[0]['ill']==100 and 80<ml[0]['alt']<83 and 85<ml[0]['light']<92 and 11<ml[1]['light']<15 and ml[1]['cov']==100 and 45<ml[2]['ill']<60 and 3<ml[2]['light']<9 and ml[3]['alt']<0 and ml[3]['clear']==0
+      and 'cloud_cover_low,cloud_cover_mid,cloud_cover_high' in bw and 'pt.moonLight=' in bw and not pg._errs, [ml,pg._errs]); c.close()
+
+    print('# 1.14.67 σύννεφα από δορυφόρο')
+    c=ctx(b,lang='en'); c.add_init_script("if(!sessionStorage.__cs){sessionStorage.__cs=1;localStorage.setItem('alkyon-v4-map',JSON.stringify({cloudsat:true,rain:true,fish:false,spots:false}));}")
+    pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(4500)
+    sc=pg.evaluate("""async()=>{ const of=window.fetch; let asked='';
+      window.fetch=function(u,o){ if(typeof u==='string'&&u.indexOf('view.eumetsat.int')>0&&u.indexOf('msg_fes:clm')>0){ asked=u; const c=document.createElement('canvas'); c.width=41; c.height=41; const x=c.getContext('2d'); x.fillStyle='#0000ff'; x.fillRect(0,0,41,41); x.fillStyle='#ffffff'; x.fillRect(0,0,21,41);
+          return new Promise(res=>c.toBlob(b=>res(new Response(b,{status:200,headers:{'Content-Type':'image/png'}})),'image/png')); } return of.apply(this,arguments); };
+      const f=AlkyonBiteWx.satCloud, T0=Date.UTC(2026,10,10,10,0);
+      const west=await f(34.75,32.4,T0,{alt:30,az:270}), east=await f(34.75,32.4,T0,{alt:30,az:90}), far=await f(40.7,-74,T0,null), fresh=await f(34.75,32.4,Date.now()-10*60000,null);
+      const wx={s:{ray:100},m:{alt:40,clear:50},c:{lo:100,mi:0,hi:0}}; AlkyonBiteWx.applySat(wx); window.fetch=of;
+      const im=document.querySelector('.csattile img'), bar=document.querySelector('.csatbar');
+      return {west,east,far:far===null,fresh:fresh===undefined,light:wx.m.light,src:wx.m.src,asked:/time=2026-11-10T10:00:00Z/.test(asked)&&/srs=EPSG:4326/.test(asked),
+        tile:im?decodeURIComponent(im.src):'',bar:bar?bar.querySelector('.rbt i').textContent:'',radarBar:document.querySelectorAll('.rainbar:not(.csatbar)').length,cfg:JSON.parse(localStorage.getItem('alkyon-v4-map'))}; }""")
+    check('Δορυφόρος: μάσκα νεφών στο σημείο και προς το φεγγάρι (δυτικά καλυμμένο, ανατολικά ανοιχτό), εκτός κάλυψης/φρέσκο ψάρι, φως φεγγαριού με παρατήρηση· στρώμα «Σύννεφα (δορυφόρος)» με ώρα (1.14.67)',
+      sc['west']['pt']==1 and 40<=sc['west']['f']<=60 and sc['west']['ray']>=90 and sc['east']['ray']<=25 and sc['far'] and sc['fresh'] and sc['light']==7.5 and sc['src']=='sat' and sc['asked']
+      and 'mtg_fd:rgb_geocolour' in sc['tile'] and 'time=20' in sc['tile'] and sc['bar']=='Clouds · satellite' and not pg._errs, [sc,pg._errs]); c.close()
+
+    print('# 1.14.69 νέα είδη στον Οδηγό')
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(2500)
+    pg.evaluate("()=>AK.guideGo('species','ghobban')"); pg.wait_for_timeout(4000)
+    g1=pg.evaluate("()=>{ const d=[...document.querySelectorAll('#spList details.sp')]; d.forEach(x=>x.open=true); return d.map(x=>x.innerText.replace(/\\s+/g,' ')).join(' || '); }")
+    pg.evaluate("()=>AK.guideGo('species','Plotosus')"); pg.wait_for_timeout(2500)
+    g2=pg.evaluate("()=>{ const d=[...document.querySelectorAll('#spList details.sp')]; d.forEach(x=>x.open=true); return d.map(x=>x.innerText.replace(/\\s+/g,' ')).join(' || '); }")
+    check('Οδηγός: Scarus ghobban (παπαγαλόψαρο) και θαλάσσιο γατόψαρο με κάρτα και προειδοποίηση (1.14.69)', 'Παπαγαλόψαρο' in g1 and '2010' in g1 and 'Θαλάσσιο γατόψαρο' in g2 and 'Αγκάθια' in g2 and not pg._errs, [g1[:300],g2[:300],pg._errs]); c.close()
+    c=ctx(b,lang='en'); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(2500)
+    pg.evaluate("()=>AK.guideGo('species','ghobban')"); pg.wait_for_timeout(4500)
+    g3=pg.evaluate("()=>{ const d=[...document.querySelectorAll('#spList details.sp')]; d.forEach(x=>x.open=true); return d.map(x=>x.innerText.replace(/\\s+/g,' ')).join(' || '); }")
+    check('Οδηγός στα αγγλικά: Blue-barred parrotfish χωρίς ελληνικά (1.14.69)', 'Blue-barred parrotfish' in g3 and 'Red Sea species' in g3 and 'Παπαγαλόψαρο' not in g3 and not pg._errs, [g3[:400],pg._errs]); c.close()
+
+    print('# 1.14.70 γνώμη: αποτυχία με λόγο και email')
+    c=ctx(b); pg=page(c); c.route('**/rest/v1/app_errors',lambda r: r.fulfill(status=503,body='{}'))
+    pg.goto(BASE+'/v4/#profile'); pg.wait_for_timeout(2500)
+    pg.evaluate("()=>[...document.querySelectorAll('main .seg button')].find(x=>/Ρυθμίσεις/.test(x.textContent)).click()"); pg.wait_for_timeout(600)
+    pg.evaluate("()=>[...document.querySelectorAll('main .li')].find(x=>/Πες μας/.test(x.textContent)).click()"); pg.wait_for_timeout(800)
+    pg.fill('.sheet.on textarea','Δοκιμή μηνύματος'); pg.click('.sheet.on .btn.pri'); pg.wait_for_timeout(1500)
+    fb=pg.evaluate("()=>{ const s=document.querySelector('.sheet.on'); return [s?s.querySelector('[role=status]').textContent:'', s?[...s.querySelectorAll('.btn')].map(x=>x.textContent):[], s?s.querySelector('.btn.pri').disabled:null]; }")
+    check('«Πες μας τη γνώμη σου»: σε αποτυχία γράφει τον λόγο (HTTP 503), μένει ανοιχτό και δείχνει «Αποστολή με email» (1.14.70)', 'HTTP 503' in fb[0] and 'Αποστολή με email' in fb[1] and fb[2] is False, fb); c.close()
+
+    print('# 1.14.73 κάτω μπάρα: μαζεύεται δεξιά')
+    c=ctx(b,touch=True); c.add_init_script("localStorage.setItem('alkyon-smart',JSON.stringify({weekly:Date.now()+9e9}))"); pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(4500)
+    ns=pg.evaluate("""async()=>{ const bar=document.querySelector('.nav>div'), r=bar.getBoundingClientRect(), y=r.top+r.height/2, o=[], W=ms=>new Promise(z=>setTimeout(z,ms)); const ev=(t,x)=>bar.dispatchEvent(new PointerEvent(t,{pointerId:7,clientX:x,clientY:y,bubbles:true,pointerType:'touch'}));
+      const h0=location.hash; ev('pointerdown',r.left+40); ev('pointermove',r.left+70); ev('pointermove',r.left+200); ev('pointerup',r.left+200); bar.querySelector('a').dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));
+      await W(500); const tb=document.querySelector('.navtab').getBoundingClientRect(); o.push(document.body.classList.contains('navslid'), location.hash===h0, Math.round(tb.right)===innerWidth&&innerHeight-tb.bottom<40, bar.getBoundingClientRect().left>innerWidth-5, !document.querySelector('.navmini'));
+      document.querySelector('.navtab').click(); await W(500); o.push(document.body.classList.contains('navslid'), Math.round(bar.getBoundingClientRect().left)===Math.round(r.left));
+      ev('pointerdown',r.left+40); ev('pointermove',r.left+60); ev('pointerup',r.left+60); await W(300); o.push(document.body.classList.contains('navslid'));
+      const rb=document.createElement('div'); rb.className='rainbar'; document.body.append(rb); await W(300); o.push(document.body.classList.contains('navslid'));
+      const dk=document.createElement('div'); dk.id='ndMapDock'; dk.style.cssText='position:fixed;left:8px;right:8px;bottom:94px;height:80px'; document.body.append(dk); await W(200); const dr=dk.getBoundingClientRect(), tb2=document.querySelector('.navtab').getBoundingClientRect(); o.push(Math.abs(dr.bottom-tb2.bottom)<=2&&dr.right<=tb2.left); dk.remove();
+      rb.remove(); await W(300); o.push(document.body.classList.contains('navslid'));
+      AK.navSlide(true); location.hash='#log'; await W(900); o.push(document.body.classList.contains('navslid')); return o; }""")
+    check('Κάτω μπάρα: σύρσιμο δεξιά τη μαζεύει χωρίς να ανοίξει σελίδα, βελάκι κάτω δεξιά, κανένα κουμπί εξόδου, επιστρέφει με το βελάκι· στρώμα καιρού τη μαζεύει, η μπάρα ανέμου κατεβαίνει στο ύψος του βελακιού, το κλείσιμο τη φέρνει πίσω· φεύγοντας από τον Χάρτη επιστρέφει (1.14.73)', ns==[True,True,True,True,True,False,True,False,True,True,False,False] and not pg._errs, [ns,pg._errs]); c.close()
+
+    print('# 1.14.77 στόχοι, αναπαραγωγή δορυφόρου, συρόμενο ψάρι')
+    c=ctx(b); c.add_init_script("localStorage.setItem('alkyon-smart',JSON.stringify({weekly:Date.now()+9e9}))"); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(2500)
+    pg.evaluate("()=>{ [['Λαβράκι','Dicentrarchus labrax'],['Συναγρίδα','Dentex dentex'],['Ροφός','Epinephelus marginatus'],['Λούτσος','Sphyraena sphyraena'],['Φαγκρί','Pagrus pagrus']].forEach((x,i)=>AK.store.save('bites',{date:'2026-11-0'+(i+1),time:'07:00',species:x[0],latin:x[1],lat:34.7,lon:32.4})); }")
+    pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(2500); pg.evaluate("()=>AK.tripStart()"); pg.wait_for_timeout(1000)
+    for k in range(5): pg.evaluate("()=>{ const c=[...document.querySelectorAll('.sheet.on .tgchips .chip:not(.tgfind)')].find(x=>x.getAttribute('aria-pressed')==='false'); if(c) c.click(); }"); pg.wait_for_timeout(120)
+    tg=pg.evaluate("()=>{ const bx=document.querySelector('.sheet.on .tgchips'), cs=[...bx.querySelectorAll('.chip')], rs=cs.map(x=>x.getBoundingClientRect()); const oneRow=rs.every(r=>Math.abs(r.top-rs[0].top)<2); const bd=document.querySelector('.sheet.on .body')||document.querySelector('.sheet.on'); return [cs.filter(x=>x.getAttribute('aria-pressed')==='true').length, oneRow, cs[0].classList.contains('tgfind'), document.querySelector('.sheet.on .tgn').textContent, cs.slice(1,5).every(x=>x.getAttribute('aria-pressed')==='true')]; }")
+    pg.evaluate("()=>document.querySelector('.sheet.on .tgfind').click()"); pg.wait_for_timeout(700)
+    sr=pg.evaluate("()=>!!document.querySelector('.sppick input[type=search]')"); pg.evaluate("()=>{ const s=[...document.querySelectorAll('.sheet.on')].pop(); const x=s&&s.querySelector('.x,.close,[aria-label=Κλείσιμο]'); if(x) x.click(); }"); pg.wait_for_timeout(500)
+    pg.evaluate("()=>document.querySelector('.tgo').click()"); pg.wait_for_timeout(900)
+    st=pg.evaluate("()=>{ const s=AK.trip.state(); const row=AK.contrib._rowOf('trip',{id:'t1',date:'2026-11-10',startMs:1,endMs:7200001,lat:34.7,lon:32.4,count:0,target:s.target,targets:s.targets}); return [s.target&&s.target.name, (s.targets||[]).length, row.sp, row.cond&&row.cond.tg&&row.cond.tg.length]; }")
+    check('Έναρξη εξόδου: στόχοι σε μία γραμμή με «Αναζήτηση» πρώτο, έως 4 επιλεγμένα μπροστά, η αναζήτηση ανοίγει τη λίστα ειδών, και όλοι οι στόχοι πάνε στα ανώνυμα στοιχεία (1.14.78)', tg[0]==4 and tg[1] and tg[2] and '4' in tg[3] and tg[4] and sr and st[0] and st[1]==4 and st[2] and st[3]==4, [tg,sr,st])
+    c2=ctx(b); pg2=page(c2); pg2.goto(BASE+'/v4/#map'); pg2.wait_for_timeout(2500); pg2.evaluate("()=>{ AK.store.raw('bites').forEach(x=>AK.store.remove&&AK.store.remove('bites',x.id)); }"); pg2.evaluate("()=>AK.tripStart()"); pg2.wait_for_timeout(1000)
+    nu=pg2.evaluate("()=>[...document.querySelectorAll('.sheet.on .tgchips .chip')].map(x=>x.textContent)")
+    check('Έναρξη εξόδου: υπάρχει πάντα «Αναζήτηση» στους στόχους, και για χρήστη χωρίς ψάρια (1.14.78)', len(nu)>=1 and 'Αναζήτηση' in nu[0] and not pg2._errs, [nu,pg2._errs]); c2.close()
+    pg.wait_for_timeout(1500)
+    fd=pg.evaluate("""async()=>{ const W=ms=>new Promise(z=>setTimeout(z,ms)), b=document.querySelector('.fb.fbc'), bx=document.querySelector('.fishbtns'); if(!b||getComputedStyle(bx).display==='none') return ['nobtn'];
+      const sh0=document.querySelectorAll('.sheet.on').length; const r=b.getBoundingClientRect(), x=r.left+r.width/2, y=r.top+r.height/2, ev=(t,dx,dy,bt)=>b.dispatchEvent(new PointerEvent(t,{pointerId:5,clientX:x+dx,clientY:y+dy,bubbles:true,buttons:bt,pointerType:'touch'}));
+      ev('pointerdown',0,0,1); ev('pointermove',-40,-60,1); ev('pointermove',-150,-260,1); ev('pointerup',-150,-260,0); b.dispatchEvent(new MouseEvent('click',{bubbles:true})); await W(500);
+      const r2=b.getBoundingClientRect(), p=JSON.parse(localStorage.getItem('alkyon-v4-fishpos')||'null'); return [Math.round(r.left-r2.left), Math.round(r.top-r2.top), !!p, document.querySelectorAll('.sheet.on').length!==sh0, !!document.querySelector('.fdial'), sh0]; }""")
+    check('Έξοδος: το πράσινο «ψάρι» σέρνεται, η θέση αποθηκεύεται, και το σύρσιμο δεν ανοίγει φόρμα ή κουμπιά (1.14.77)', len(fd)==6 and 140<=fd[0]<=160 and 240<=fd[1]<=270 and fd[2] and not fd[3] and not fd[4] and not pg._errs, [fd,pg._errs]); c.close()
+    c=ctx(b,lang='en'); c.add_init_script("if(!sessionStorage.__cs){sessionStorage.__cs=1;localStorage.setItem('alkyon-v4-map',JSON.stringify({cloudsat:true,fish:false,spots:false}));}")
+    pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(4500)
+    cp=pg.evaluate("""async()=>{ const W=ms=>new Promise(z=>setTimeout(z,ms)), bar=document.querySelector('.csatbar'), p=bar&&bar.querySelector('.rbp'); if(!p) return ['noplay']; const v0=bar.querySelector('input').value, t0=bar.querySelector('b').textContent; p.click(); await W(7500); const v1=bar.querySelector('input').value, tx=p.textContent; p.click(); await W(300); return [v0, v1, tx, p.textContent, bar.querySelector('b').textContent!==t0]; }""")
+    check('Σύννεφα από δορυφόρο: κουμπί αναπαραγωγής, η ώρα προχωρά και σταματά με παύση (1.14.77)', len(cp)==5 and cp[0]!=cp[1] and cp[2]=='❚❚' and cp[3]=='▶' and cp[4] and not pg._errs, [cp,pg._errs]); c.close()
+
+    print('# 1.14.79 καιρός στη θέση του σκάφους, έκθεση με μπάρα χρόνου')
+    now=int(time.time()*1000); c=ctx(b,lang='en'); c.add_init_script("if(!sessionStorage.mw){sessionStorage.mw=1;localStorage.setItem('alkyon-smart',JSON.stringify({weekly:Date.now()+9e9}));localStorage.setItem('alkyon-v4-mapui',JSON.stringify('clean'));localStorage.removeItem('alkyon-v4-mapui-test');localStorage.setItem('alkyon-safe',JSON.stringify({active:true,id:'T9',start:%d,due:%d}));}"%(now-600000,now+3*3600000))
+    pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(9000)
+    mb=pg.evaluate("()=>{ AK.mcBarNow&&AK.mcBarNow(); const m=document.querySelector('.mcbar'); return [document.body.classList.contains('ontrip'), m.classList.contains('mcme'), (m.querySelector('.mbl1')||{}).textContent||'', (m.querySelector('.mbl2')||{}).textContent||'', !!m.querySelector('.mbl1 svg')]; }")
+    if not mb[1]: pg.wait_for_timeout(4000); mb=pg.evaluate("()=>{ AK.mcBarNow&&AK.mcBarNow(); return new Promise(z=>setTimeout(()=>{ const m=document.querySelector('.mcbar'); z([document.body.classList.contains('ontrip'), m.classList.contains('mcme'), (m.querySelector('.mbl1')||{}).textContent||'', (m.querySelector('.mbl2')||{}).textContent||'', !!m.querySelector('.mbl1 svg')]); },300)); }")
+    pg.evaluate("()=>document.querySelector('.mcbar').click()"); pg.wait_for_timeout(700)
+    ms=pg.evaluate("()=>{ const s=document.querySelector('.sheet.on'); return [s?s.querySelectorAll('.mefc .mer').length:0, !!document.querySelector('.mcdrw'), s?(s.querySelector('.mefc .mer:nth-child(2) span')||{}).textContent:'']; }")
+    pk=pg.evaluate("""async()=>{ const W=ms=>new Promise(z=>setTimeout(z,ms)), cs=()=>[...document.querySelectorAll('.sheet.on .mepick .chip')], on=()=>cs().filter(x=>x.getAttribute('aria-pressed')==='true').map(x=>x.textContent);
+      const o=[cs().length, on().length]; cs().find(x=>/Pressure/.test(x.textContent)).click(); await W(150); o.push(on().length); cs().find(x=>/Gusts/.test(x.textContent)).click(); cs().find(x=>/Waves/.test(x.textContent)).click(); cs().find(x=>/Limits/.test(x.textContent)).click(); await W(100); cs().find(x=>/Pressure/.test(x.textContent)).click(); await W(500);
+      const m=document.querySelector('.mcbar'); o.push(on().join('|'), m.textContent, JSON.parse(localStorage.getItem('alkyon-v4-mebar')||'null')); const pn=document.querySelector('.mcpanel.fish'); o.push(pn?Math.round(pn.getBoundingClientRect().height):-1); return o; }""")
+    check('Έξοδος: επιλογή στοιχείων της πάνω μπάρας (έως 3), η μπάρα αλλάζει αμέσως και η επιλογή αποθηκεύεται· το πλαίσιο εξόδου είναι λεπτό (1.14.80)', pk[0]==7 and pk[1]==3 and pk[2]==3 and pk[3]=='Pressure' and 'hPa' in pk[4] and 'gusts' not in pk[4] and pk[5]==['pres'] and 0<pk[6]<=56, pk)
+    check('Έξοδος: η πάνω μπάρα δείχνει καιρό στη θέση του σκάφους (κατεύθυνση με βέλος, ένταση, κύμα) και με πάτημα ανοίγει πρόγνωση 6 ωρών, όχι το μενού (1.14.79)', mb[0] and mb[1] and any(ch.isdigit() for ch in mb[2]) and mb[4] and ms[0]==7 and not ms[1] and ms[2]=='Now' and not pg._errs, [mb,ms,pg._errs]); c.close()
+    c=ctx(b,lang='en'); c.set_geolocation({'latitude':35.045,'longitude':32.40}); c.add_init_script("localStorage.setItem('alkyon-v4-fcopen',JSON.stringify({expo:1}))"); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(6500)
+    ex=pg.evaluate("""async()=>{ const W=ms=>new Promise(z=>setTimeout(z,ms)); document.querySelectorAll('details').forEach(d=>{ if(d.querySelector('#fcExposure')) d.open=true; }); await W(400);
+      const x=document.querySelector('#fcExposure'); if(!x||x.hidden) return ['noexpo']; const rg=x.querySelector('.exbar input'), tl=x.querySelector('.extime'); if(!rg) return ['nobar', x.innerHTML.length];
+      const t0=tl.textContent, v0=+rg.value, nv=v0>3?v0-3:v0+3; rg.value=String(nv); rg.dispatchEvent(new Event('input',{bubbles:true})); await W(300);
+      const t1=tl.textContent, txt=(x.querySelector('.exv')||{}).textContent||'', hsel=(document.querySelector('.hcard .hsel b')||{}).textContent||'';
+      const bars=[...document.querySelectorAll('.hcard .hbars .hb')]; const bi=Math.min(bars.length-1,nv+2), r=bars[bi].getBoundingClientRect(); bars[bi].dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,clientX:r.left+r.width/2,clientY:r.top+3,pointerId:3})); bars[bi].dispatchEvent(new PointerEvent('pointerup',{bubbles:true,clientX:r.left+r.width/2,clientY:r.top+3,pointerId:3})); await W(300);
+      const t2=tl.textContent, hsel2=(document.querySelector('.hcard .hsel b')||{}).textContent||''; x.querySelector('.explay').click(); await W(1700); const t3=tl.textContent, pt=x.querySelector('.explay').textContent; x.querySelector('.explay').click();
+      return [t0,t1,/At \d\d:00 wind from|Now wind from/.test(txt),hsel,t2,hsel2,t3,pt]; }""")
+    ok=len(ex)==8 and ex[0]!=ex[1] and ex[2] and ex[1][-5:-3]==ex[3][-11:-9] and ex[4]!=ex[1] and ex[4].split(' ')[1][:2]==ex[5].replace('Now, ','')[:2] and ex[6]!=ex[4] and ex[7]=='❚❚'
+    check('Έκθεση ακτής: μπάρα χρόνου με ▶, η ώρα γράφεται στον χάρτη, αλλάζει το κείμενο του ανέμου, και συγχρονίζεται με το «Ανά ώρα» προς τις δύο κατευθύνσεις (1.14.79)', ok and not pg._errs, [ex,pg._errs]); c.close()
+
+    print('# 1.14.81 μεγάλα/άλλα ανά ψάρι')
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(2500)
+    cm=pg.evaluate("""()=>{ AK.store.raw('bites').forEach(x=>{ try{ AK.store.remove('bites',x.id); }catch(e){} });
+      const add=(d,sp,la,kg)=>AK.store.save('bites',{date:d,time:'07:00',species:sp,latin:la,kg:kg,lat:34.7,lon:32.4,depth:40});
+      ['2026-10-01','2026-10-05','2026-10-09'].forEach(d=>{ add(d,'Ροφός','Epinephelus marginatus',1); add(d,'Γόπα','Boops boops',0.2); });
+      const card=AK.commonCard(); if(!card) return ['nocard']; const hs=[...card.querySelectorAll('.cmg h3,.cmg b,h3')].map(x=>x.textContent); const txt=card.textContent;
+      return [/Μεγάλα ψάρια/.test(txt), /Άλλα ψάρια/.test(txt), /Μέρες με ψάρια/.test(txt)]; }""")
+    check('«Τι κοινό είχαν»: μέρες με ροφό και γόπες δίνουν και «Μεγάλα ψάρια» και «Άλλα ψάρια» (χωρισμός ανά ψάρι) (1.14.81)', cm==[True,True,False] and not pg._errs, [cm,pg._errs]); c.close()
 
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)

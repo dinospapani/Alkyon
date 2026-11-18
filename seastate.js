@@ -404,7 +404,11 @@ function draw(){
   var bd=map.getBounds(); if(!covers(REG,bd)||(REG&&Date.now()-REG.at>3600000)) loadRegion(bd).then(function(){ PREP=null; later(); });
   /* v31z389: μέχρι να έρθουν τα μοντέλα κύματος (έως ~20″) δεν ζωγραφίζεται προσωρινή εικόνα, για να μην «πηδάει» ο χάρτης από τη μία στην άλλη */
   if(REG&&!REG.done&&!REG.waves.length&&Date.now()-REG.t0<20000){ status(T('Φόρτωση μοντέλων κύματος…','Loading wave models…')); setTimeout(later,1500); return; }
-  var P=prepNow(), X=window.AlkyonExposure, land=(X&&X.isLand)?X.isLand:null;
+  /* 1.14.62: έξω από την Κύπρο/Ελλάδα η λεπτομερής ακτή δεν έχει δεδομένα (-1) και το κύμα βαφόταν πάνω στη στεριά (π.χ. Τουρκία με τον χάρτη μακριά)·
+     εκεί ρωτάμε τη μάσκα Μεσογείου/κόσμου, όπως κάνουν ο άνεμος και τα ρεύματα */
+  var P=prepNow(), X=window.AlkyonExposure, ML=window.AlkyonMedLand, xl=(X&&X.isLand)?X.isLand:null,
+      land=(xl||ML)?function(la,lo){ var r=-1; try{ if(xl) r=xl(la,lo); }catch(e){ r=-1; } if(r===-1&&ML){ try{ r=ML.isLand(la,lo); }catch(e2){} } return r; }:null,
+      far=ML?function(la,lo){ var r=-1; try{ if(xl) r=xl(la,lo); }catch(e){ r=-1; } if(r!==-1) return false; try{ return ML.isLand(la,lo)===1; }catch(e2){ return false; } }:null;
   var s=bd.getSouth(), n=bd.getNorth(), w=bd.getWest(), e=bd.getEast(), M=4, bdP=bd.pad(SPAD);
   var r0=Math.floor((LAT_TOP-bdP.getNorth())/STEP)-M, r1=Math.floor((LAT_TOP-bdP.getSouth())/STEP)+M, c0=Math.floor((bdP.getWest()-LON_LEFT)/STEP)-M, c1=Math.floor((bdP.getEast()-LON_LEFT)/STEP)+M;
   var cw=c1-c0+1, ch=r1-r0+1, N=cw*ch, H=new Float32Array(N), A=new Float32Array(N), U=new Float32Array(N);
@@ -453,6 +457,7 @@ function draw(){
     for(var x3=0;x3<bw;x3++){
       if(!field(LAT[y3],LON[x3],fv)||fv[1]<0.03) continue;
       if(mk&&land&&land(LAT[y3],LON[x3])===1){ mk[y3*bw+x3]=1; continue; }
+      if(!mk&&far&&far(LAT[y3],LON[x3])) continue; /* 1.14.62: με ακριβή ακτή στην οθόνη, η μακρινή στεριά κόβεται από τη χοντρή μάσκα */
       var g2=grad(fv[0]), o=(y3*bw+x3)*4, R0=g2[0], G0=g2[1], B0=g2[2];
       if(fv[2]>0.5&&((x3*bs+y3*bs)%12)<2){ R0=R0*0.62+255*0.38; G0=G0*0.62+255*0.38; B0=B0*0.62+255*0.38; }
       d[o]=R0; d[o+1]=G0; d[o+2]=B0; d[o+3]=Math.round(ALPHA*Math.min(1,fv[1]*1.15));
@@ -567,5 +572,10 @@ function modelIn(RG,lat,lon){ var b=RG.b; if(b&&(lat<b.s-0.05||lat>b.n+0.05||lon
   P.waves.forEach(function(m){ var s=latSample(m.L,lat,lon,function(p){ return m.ok[p]?[m.h[p],m.wu[p],m.wv[p],m.tp[p]]:null; }); if(s){ hs+=s[0]; u+=s[1]; v+=s[2]; tp+=s[3]; n++; } });
   if(!n) return null; return {h:hs/n,dir:(u||v)?(Math.atan2(u,v)*180/Math.PI+360)%360:null,tp:tp/n}; }
 window.AlkyonSeaState.ready=function(){ return !!(on&&REG&&regs().some(function(x){ return x.waves&&x.waves.length; })); };
+/* 1.14.62: προφόρτωση. Μόλις ανοίξει ο Χάρτης (πριν πατηθεί το «Κύμα») ζητιούνται τα πλακίδια ακτής και τα μοντέλα κύματος της περιοχής,
+   ώστε το στρώμα να ανοίγει χωρίς αναμονή. Μένουν στη μνήμη 1 ώρα (__ndSeaRegs). */
+setTimeout(function(){ if(on) return; try{ if(navigator.onLine===false||(navigator.connection&&navigator.connection.saveData)) return;
+  loadIndex().then(function(){ if(on) return; var vt=viewTiles(); if(vt) vt.forEach(function(k){ if(!TL[k]) loadTile(k); }); }).catch(function(){});
+  var b=map.getBounds(); if(b.getNorth()-b.getSouth()<=24&&b.getEast()-b.getWest()<=32){ var p=loadRegion(b); if(p&&p.catch) p.catch(function(){}); } }catch(e){} },1500);
 window.AlkyonSeaState.start=start; window.AlkyonSeaState.stop=stop; window.AlkyonSeaState.pointInfo=pointInfo; window.AlkyonSeaState.clearTap=function(){ if(tapMk){ try{ map.removeLayer(tapMk); }catch(e){} tapMk=null; } tapLL=null; showPoint(); };
 })();

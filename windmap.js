@@ -192,9 +192,15 @@ var LABEL={ecmwf_ifs:'ECMWF 9 km',ecmwf_ifs025:'ECMWF 25 km',icon_eu:'ICON-EU 7 
 /* Κοινή μνήμη στο Supabase (συνάρτηση wind-grid): το πλέγμα έρχεται από εκεί, όχι από το Open-Meteo απευθείας, ώστε να μη γεμίζει το όριο αιτημάτων. */
 async function fetchPx(px,set){
   var u=(window.ALKYON_WIND_URL||(SUPA+'/functions/v1/wind-grid'))+'?s='+px.s.toFixed(3)+'&n='+px.n.toFixed(3)+'&w='+px.w.toFixed(3)+'&e='+px.e.toFixed(3)+'&N='+N+'&models='+set.join(',');
-  var ac=new AbortController(), tm=setTimeout(function(){ ac.abort(); },30000);
-  try{ var r=await fetch(u,{signal:ac.signal,headers:{apikey:SKEY,Authorization:'Bearer '+SKEY}}); if(!r.ok) throw new Error('HTTP '+r.status); var j=await r.json(); if(!j||!Array.isArray(j.data)||!Array.isArray(j.lat)||!Array.isArray(j.lon)||j.N!==N) throw new Error('badproxy'); return j; } finally{ clearTimeout(tm); }
+  /* 1.14.62: η ίδια απάντηση μένει 10′ στη μνήμη (και η προφόρτωση τη μοιράζεται με το πρώτο άνοιγμα του στρώματος) */
+  var mm=pxMem[u]; if(mm&&Date.now()-mm.t<600e3) return mm.p;
+  var pr=(async function(){ var ac=new AbortController(), tm=setTimeout(function(){ ac.abort(); },30000);
+    try{ var r=await fetch(u,{signal:ac.signal,headers:{apikey:SKEY,Authorization:'Bearer '+SKEY}}); if(!r.ok) throw new Error('HTTP '+r.status); var j=await r.json(); if(!j||!Array.isArray(j.data)||!Array.isArray(j.lat)||!Array.isArray(j.lon)||j.N!==N) throw new Error('badproxy'); return j; } finally{ clearTimeout(tm); } })();
+  pxMem[u]={t:Date.now(),p:pr}; pr.catch(function(){ if(pxMem[u]&&pxMem[u].p===pr) delete pxMem[u]; }); return pr;
 }
+var pxMem={};
+function qBounds(){ var b=map.getBounds().pad(0.6), s=b.getSouth(), n=b.getNorth(), w=b.getWest(), e=b.getEast();
+  var qd=Math.max(0.125,Math.pow(2,Math.ceil(Math.log(Math.max(n-s,e-w)/4)/Math.LN2))); return {s:Math.floor(s/qd)*qd,n:Math.ceil(n/qd)*qd,w:Math.floor(w/qd)*qd,e:Math.ceil(e/qd)*qd}; }
 /* 1.8.4: κοινό πλέγμα για τα νερά της Κύπρου, φτιαγμένο κάθε 3 ώρες από το GitHub (wind_build.py → κλαδί wind-data). Ένα αρχείο για όλους:
    χωρίς όριο αιτημάτων όσο κι αν μεγαλώσουν οι χρήστες. Αν λείπει ή είναι παλιό (> 8 ώρες), πάμε στον παλιό δρόμο. */
 var ST_URL=window.ALKYON_WIND_STATIC||'https://raw.githubusercontent.com/dinospapani/alkyon/wind-data/cy-wind.json', ST_BOX=[33.0,36.4,31.0,35.8], stMem=null;
@@ -289,11 +295,13 @@ function drawStations(){
   if(!stOn||!stations||!stations.length) return; stLayer=L.layerGroup().addTo(map);
   var b=map.getBounds(), c0=map.getCenter(), vis=stations.filter(function(x){ return b.contains([x.lat,x.lon])&&Date.now()-Date.parse(x.t||0)<3*3600000; });
   vis=dedupe(vis); vis.sort(function(p,q){ return dist2(p,c0)-dist2(q,c0); }); vis=vis.slice(0,30);
+  /* 1.14.59: σταθμοί που πέφτουν ο ένας πάνω στον άλλο στην οθόνη: μένει ο πιο κοντινός στο κέντρο (με ζουμ φαίνονται όλοι) */
+  var seenPt=[]; vis=vis.filter(function(st){ var p=map.latLngToContainerPoint([st.lat,st.lon]); if(seenPt.some(function(q){ return Math.abs(q.x-p.x)<48&&Math.abs(q.y-p.y)<46; })) return false; seenPt.push(p); return true; });
   vis.forEach(function(st){
     var rot=(st.dir==null?0:st.dir)%360, c=col(st.spd);
     var ic=L.divIcon({className:'',iconSize:[46,46],iconAnchor:[23,23],html:'<div style="width:46px;text-align:center;font:700 11px system-ui;color:#fff;text-shadow:0 1px 3px #000"><div style="width:26px;height:26px;margin:0 auto;border-radius:50%;background:'+c+';border:2px solid #fff;box-shadow:0 1px 5px #0008;display:flex;align-items:center;justify-content:center">'+((st.dir==null||!(st.spd>=1))?'<span style="font-size:16px;line-height:1">•</span>':'<svg viewBox="0 0 24 24" width="16" height="16" style="transform:rotate('+rot+'deg)"><path d="M12 3v16M6 13l6 6 6-6" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>')+'</div>'+W(st.spd)+'</div>'});
     var m=L.marker([st.lat,st.lon],{icon:ic,keyboard:false,interactive:true,title:(st.name||st.id)+' '+W(st.spd)}).addTo(stLayer);
-    m.bindPopup('<b>'+(st.name||st.id||'')+'</b>'+(st.src?' <small>('+st.src+')</small>':'')+'<br>'+T('Μέτρηση','Observed')+': '+((st.dir!=null&&st.spd>=1)?dn(st.dir)+' '+W(st.spd):(st.spd>=1?W(st.spd)+' · '+T('μεταβλητή κατεύθυνση','variable direction'):T('άπνοια (0 κόμβοι) ή δεν δίνεται κατεύθυνση','calm (0 kn) or no direction reported')))+(st.gust?' · '+T('ριπές ','gusts ')+W(st.gust):'')+(st.pres!=null&&pu()&&pu().press?'<br>'+T('Πίεση','Pressure')+': '+pu().press(st.pres):'')+(st.t?'<br>'+String(st.t).slice(11,16)+'Z':''));
+    m.bindPopup('<b>'+(st.name||st.id||'')+'</b>'+(st.src?' <small>('+st.src+')</small>':'')+'<br>'+T('Μέτρηση','Observed')+': '+((st.dir!=null&&st.spd>=1)?dn(st.dir)+' '+W(st.spd):(st.spd>=1?W(st.spd)+' · '+T('μεταβλητή κατεύθυνση','variable direction'):T('άπνοια (0 κόμβοι) ή δεν δίνεται κατεύθυνση','calm (0 kn) or no direction reported')))+(st.gust?' · '+T('ριπές ','gusts ')+W(st.gust):'')+(st.pres!=null&&pu()&&pu().press?'<br>'+T('Πίεση','Pressure')+': '+pu().press(st.pres):'')+(st.t?'<br>'+(function(){ var d=new Date(st.t); if(isNaN(d)) return String(st.t).slice(11,16)+'Z'; return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2); })():''));
   });
 }
 function dedupe(list){ /* ίδιος τόπος από δύο πηγές (π.χ. METAR και DoM στο αεροδρόμιο): κρατά την πιο πρόσφατη παρατήρηση */
@@ -361,5 +369,8 @@ setTimeout(function(){ var v=null; try{ v=localStorage.getItem('alkyon-wst'); }c
 /* 1.14.5: για το χρώμα στις άκρες (όσο σέρνεις, πριν φορτωθεί νέο πλέγμα): η τιμή του πιο κοντινού σημείου του πλέγματος */
 function sampleNear(lat,lon){ if(!grid) return null; var L1=grid.lat.length-1, O1=grid.lon.length-1, a=Math.min(grid.lat[0],grid.lat[L1]), b=Math.max(grid.lat[0],grid.lat[L1]), c=Math.min(grid.lon[0],grid.lon[O1]), d=Math.max(grid.lon[0],grid.lon[O1]); var la=Math.max(a+1e-6,Math.min(b-1e-6,lat)), lo=Math.max(c+1e-6,Math.min(d-1e-6,lon)); if(Math.abs(la-lat)>3||Math.abs(lo-lon)>3) return null; return sample(la,lo); }
 function sampleAll(lat,lon){ if(!grid) return []; var o=[]; grid.m.forEach(function(m){ var v=sampleSrc(m,hi,lat,lon); if(v) o.push({name:m.name,v:v}); }); return o; }
+/* 1.14.62: προφόρτωση του πλέγματος ανέμου μόλις ανοίξει ο Χάρτης, πριν πατηθεί «Άνεμος» ή «Κύμα» */
+setTimeout(function(){ if(on||grid) return; try{ if(navigator.onLine===false||(navigator.connection&&navigator.connection.saveData)) return;
+  var q=qBounds(); if(stInside(q.s,q.n,q.w,q.e)) stFetch().catch(function(){}); else fetchPx({s:q.s,n:q.n,w:q.w,e:q.e},SETS[0]).catch(function(){}); }catch(e){} },1200);
 window.AlkyonWindMap={start:start,stop:stop,show:show,shown:function(){ return on&&shown; },on:function(){ return on; },sample:sample,sampleNear:sampleNear,sampleAll:sampleAll,obs:function(lat,lon){ return obsAdj(lat,lon,hi); },clearTap:function(){ clearTap(true); },col:col,hour:function(){ return hours[hi]||null; },hours:function(){ return hours; },idx:function(){ return hi; },modelFetch:modelFetch,diffTxt:diffTxt};
 })();

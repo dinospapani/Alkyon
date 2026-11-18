@@ -10,6 +10,14 @@ var MAP=['worldland.js','medland.js','map-view.js','wxfx.js','seabed.js','shallo
 /* 1.5.2: το Leaflet κατεβαίνει μαζί με τα αρχεία του χάρτη, όχι μετά */
 function loadMap(){ if(B.leaflet) B.leaflet().catch(function(){}); return B.loadScripts(MAP); }
 B.loadMap=loadMap;
+/* 1.14.62: προφόρτωση. Λίγα δευτερόλεπτα μετά το άνοιγμα της εφαρμογής (με σύνδεση, όχι σε «εξοικονόμηση δεδομένων») φορτώνονται από πριν
+   τα αρχεία του Χάρτη και ζεσταίνονται ο άνεμος της Κύπρου και ο κατάλογος ακτής, ώστε ο Χάρτης και τα στρώματα Άνεμος/Κύμα να ανοίγουν αμέσως. */
+(function(){ var done=false; function go(){ if(done) return; if(document.hidden){ setTimeout(go,4000); return; } done=true;
+  try{ if(navigator.onLine===false||(navigator.connection&&navigator.connection.saveData)) return; }catch(e){}
+  loadMap().catch(function(){});
+  ['../bathy-lines.js','../windmap.js','../windlocal.js','../seastate.js','../ruler.js','../ports.js','../orient.js','../navigator.js','../route.js','../cx_index.json'].forEach(function(f){ try{ fetch(f).catch(function(){}); }catch(e){} });
+  try{ var p=B.lastPos&&B.lastPos(); if(p&&p.lat>=33.4&&p.lat<=36.0&&p.lon>=31.4&&p.lon<=35.4) fetch('https://raw.githubusercontent.com/dinospapani/alkyon/wind-data/cy-wind.json?h='+new Date().toISOString().slice(0,13)).catch(function(){}); }catch(e){} }
+  var idle=window.requestIdleCallback||function(f){ return setTimeout(f,1); }; setTimeout(function(){ idle(go,{timeout:4000}); },4500); })();
 function fail(){ B.toast&&B.toast(T('Ο χάρτης δεν φορτώθηκε. Έλεγξε τη σύνδεση και ξαναδοκίμασε.','The map did not load. Check your connection and try again.')); }
 /* γέφυρα: φορτώνει τον χάρτη και καλεί την πραγματική συνάρτηση (αν η γέφυρα δεν έχει αντικατασταθεί, δεν καλεί τον εαυτό της) */
 function bridge(name){ var self=function(){ var a=arguments; loadMap().then(function(){ var f=B[name]; if(typeof f==='function'&&f!==self) f.apply(null,a); }).catch(fail); }; B[name]=self; }

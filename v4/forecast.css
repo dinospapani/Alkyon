@@ -501,3 +501,85 @@ html.nightred .calmr .exwc{background:#000!important;outline:1px solid currentCo
 .pwc .pmkl.stop{fill:#d6453a}
 .pwl .k5::before{background:#2f8fb8}
 .bwpw{margin:8px 0 2px}.bwpw .pwc{width:100%;height:auto;display:block}.bwpw .pwl{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--ink-2);margin-top:6px}
+/* 1.14.39: πιο καθαρή Πρόγνωση */
+.hb.s-good{background:color-mix(in srgb,var(--good) 62%,transparent)}
+.hb.s-fair{background:color-mix(in srgb,var(--fair) 60%,transparent)}
+.hb.s-poor{background:color-mix(in srgb,var(--ink-3) 40%,transparent)}
+.dstrip{transition:padding .15s}
+.dstrip.stuck{padding:6px 16px 7px;box-shadow:0 6px 14px -8px rgba(0,0,0,.35)}
+.dstrip.stuck .dtile{flex-direction:row;gap:6px;padding:6px 9px;border-radius:12px;flex:0 0 auto;max-width:none}
+.dstrip.stuck .dtile .dd,.dstrip.stuck .dtile .dw,.dstrip.stuck .dtile .dwx{display:none}
+.dstrip.stuck .dtile .dsc{margin:0;min-width:32px;padding:3px 0;font-size:14px}
+.dstrip.stuck .dpast{display:none}
+.hline{display:block;margin:8px 0 0}
+.hline .hlt{display:block;font:800 16px var(--font);margin:0 0 6px}
+.hline .hlc{display:flex;flex-wrap:wrap;gap:6px}
+.hline .hlchip{padding:4px 10px;border-radius:999px;background:var(--surface-2);font:600 13px var(--font);color:var(--ink)}
+.simcard .simhead.hi b{color:var(--good)}.simcard .simhead.mid b{color:var(--fair)}
+.simrow{padding:10px 0;border-top:1px solid var(--line,rgba(127,127,127,.2))}
+.simrow .simtop{display:flex;align-items:center;gap:10px}
+.simrow .simtop>b:first-child{font:700 15px var(--font);min-width:92px}
+.simrow .simbar{flex:1;height:8px;border-radius:999px;background:var(--surface-2);overflow:hidden}
+.simrow .simbar i{display:block;height:100%;border-radius:999px;background:var(--poor)}
+.simrow .simbar i.mid{background:var(--fair)}.simrow .simbar i.hi{background:var(--good)}
+.simrow .simp{font:800 15px var(--font);min-width:42px;text-align:right}
+.simrow small{display:block;margin-top:4px;color:var(--ink-2);font-size:13px}
+.h3.subh{margin-top:22px}
+.measp{font-size:12px;opacity:.75}
+/* 1.14.40: νέα πρώτη κάρτα (κύκλος βαθμού) */
+.hero2 .htop{display:flex;align-items:center;gap:16px}
+.hring{--c:var(--poor);width:104px;height:104px;border-radius:50%;flex:none;display:grid;place-items:center;background:conic-gradient(var(--c) calc(var(--p)*1%),color-mix(in srgb,var(--ink-3) 28%,transparent) 0)}
+.hring.lv-good{--c:var(--good)}.hring.lv-fair{--c:var(--fair)}
+.hring>div{width:82px;height:82px;border-radius:50%;background:var(--surface);display:grid;place-content:center;text-align:center}
+.hring b{font:800 34px/1 var(--font);color:var(--ink)}.hring small{font:600 11px var(--font);color:var(--ink-2)}
+.hero2 .htx{min-width:0}
+.hero2 .hv h2{margin:0}
+.hero2 .hpt{font:800 21px/1.15 var(--font);margin:4px 0 4px}
+.hero2 .hpw{display:block;font:800 27px/1 var(--font);letter-spacing:-.01em;white-space:nowrap}
+.hero2 .hsec{margin:12px 0 0;font-size:14px}
+.hero2 .nowin{margin:14px 0 0}
+.hero2 .nowin .nwh{display:flex;align-items:center;gap:8px;font-size:13px;margin:0 0 8px}
+.hero2 .nowin .nwh b{font:700 13px var(--font);color:var(--ink-2)}
+.hero2 .nowin .nwh .infob{margin-left:auto}
+.hero2 .nwa{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0 0}
+.hero2 .hsun1{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;margin:12px 0 0;padding-top:12px;border-top:1px solid var(--line,rgba(127,127,127,.2))}
+.dstrip:not(.stuck) .dtile{padding:8px 4px 8px}
+.dstrip .dtile .dd,.dstrip .dtile .dwx{display:none}
+/* 1.14.41: τελειώματα της πρώτης κάρτας */
+.fcpage .ftop{align-items:center;margin-bottom:12px}
+.fcpage .ftop h1.lt{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.fcpage .ftop .place{margin:0;min-width:0;flex:1;font-size:18px;font-weight:700;color:var(--ink)}
+.fcpage .ftop .place b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.hring{background:none;position:relative}
+.hring svg{position:absolute;inset:0;width:100%;height:100%}
+.hring circle{fill:none;stroke-width:10}
+.hring .rt{stroke:color-mix(in srgb,var(--ink-3) 28%,transparent)}
+.hring .rv{stroke:var(--c);stroke-linecap:round}
+.hring>div{background:none;width:auto;height:auto;position:relative}
+.hero2 .nowin{padding:0;margin:12px 0 0;background:none;box-shadow:none}
+.hero2 .hsec{margin:10px 0 0}
+.hero2 .hsun1{margin:10px 0 0;padding-top:10px}
+.hero2 .nwa{margin:12px 0 0}
+/* 1.14.42: «Ανά ώρα»: οι τιμές της ώρας σε κουτάκια, όπως στο «Τώρα» */
+.hcard .rows{grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}
+.hcard .rows .row{flex-direction:column-reverse;align-items:center;justify-content:flex-end;gap:2px;padding:9px 4px;border:0!important;border-radius:12px;background:var(--surface-2);text-align:center}
+.hcard .rows .row span{font:600 11.5px var(--font);color:var(--ink-2)}
+.hcard .rows .row b{font:800 15px/1.2 var(--font);text-align:center}
+.hcard .rows .row b small{font-weight:600;font-size:11px}
+.hcard .rows .row b small.wsub{font-size:10.5px;margin:0}
+@media (max-width:340px){.hcard .rows{grid-template-columns:repeat(2,1fr)}}
+/* πιο μαζεμένα «Τσίμπημα / Θάλασσα» και λόγοι στην πρώτη κάρτα */
+.hero2 .hsplit{margin:12px 0 0}
+.hero2 .hsb{flex-direction:row;flex-wrap:wrap;align-items:center;gap:2px 8px;padding:8px 11px}
+.hero2 .hsb b{font-size:16px}
+.hero2 .hsb span{display:none}
+.hero2 .hsb.lv-good span,.hero2 .hsb.lv-fair span,.hero2 .hsb.lv-poor span{display:inline;font-size:12px}
+.hero2 .hsb.sea-bad span,.hero2 .hsb.sea-mid span{display:block;flex-basis:100%}
+.hero2 .hwhy2{margin:10px 0 0;gap:5px}
+.hero2 .hwhy2 .hz{font-size:12px;padding:4px 9px;border-radius:999px}
+.foldin{padding:0!important;margin:0!important;background:none!important;box-shadow:none!important}
+.foldinfo{margin:8px 0 10px!important}
+details.spmore{margin-top:6px}
+details.spmore>summary{cursor:pointer;font:700 14px var(--font);color:var(--accent);padding:8px 0;list-style:none}
+details.spmore>summary::-webkit-details-marker{display:none}
+.spl .spd{font-size:13px}

@@ -40,7 +40,8 @@ function compute(force){
         items.push({name:cd.name,lat:cd.lat,lon:cd.lon,date:d.date,s:d.win.s,e:d.win.e,base:d.best,score:sc,wind:d.avgWind,wave:d.avgWave,m:m}); });
     }).catch(function(){}); }); },Promise.resolve()).then(function(){
     items.sort(function(a,b){ return b.score-a.score; }); var top=[], seen={};
-    items.forEach(function(it){ var k=it.name+it.date; if(top.length<5&&!seen[k]){ seen[k]=1; top.push(it); } });
+    /* 1.14.37: ένα κουτί ανά σημείο (η καλύτερη μέρα του) και δίπλα οι άλλες καλές μέρες, αντί για το ίδιο σημείο ξανά και ξανά */
+    items.forEach(function(it){ var k=it.name; if(!seen[k]){ if(top.length<5){ seen[k]=it; it.more=[]; top.push(it); } } else if(seen[k].more&&seen[k].more.length<3&&seen[k].date!==it.date&&!seen[k].more.some(function(x){ return x.date===it.date; })) seen[k].more.push({date:it.date,score:it.score,s:it.s,e:it.e}); });
     ls.set(KEY,{t:Date.now(),items:top}); busy=null; notifyBest(top); return top; });
   return busy;
 }
@@ -65,16 +66,17 @@ function notifyBest(top){
 B.oppsCard=function(max,opt){ opt=opt||{};
   var box=h('section',{class:'card opps','aria-label':T('Ευκαιρίες για τα σημεία σου','Chances at your spots')}), list=h('div',{class:'opl'});
   if(opt.inFold) box.classList.remove('card'); /* 1.12.15: μέσα σε κάρτα που ανοίγει/κλείνει (ο τίτλος είναι στην κάρτα) */
-  box.append(h('div',{class:'oph'},opt.inFold?h('span'):h('h2',{text:T('Ευκαιρίες για τα σημεία σου','Chances at your spots')}),h('button',{class:'linkbtn',type:'button',text:T('Ανανέωση','Refresh'),onclick:function(){ list.replaceChildren(h('p',{class:'sub',text:T('Υπολογισμός…','Calculating…')})); compute(true).then(paint); }})),
+  box.append(h('div',{class:'oph'},opt.inFold?h('span'):h('h2',{text:T('Ευκαιρίες στα σημεία σου','Chances at your spots')}),h('button',{class:'oprf',type:'button','aria-label':T('Ανανέωση','Refresh'),title:T('Ανανέωση','Refresh'),html:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/></svg>',onclick:function(){ var bt=this; bt.classList.add('spin'); setTimeout(function(){ bt.classList.remove('spin'); },900); list.replaceChildren(h('p',{class:'sub',text:T('Υπολογισμός…','Calculating…')})); compute(true).then(paint); }})),
     /* 1.9.17: εξήγηση γιατί η ώρα και ο βαθμός εδώ διαφέρουν από την πρόγνωση της τοποθεσίας πάνω */
-    h('p',{class:'sub opx',text:T('Η πρόγνωση σε κάθε σημείο σου, με μπόνους όπου έχεις πιάσει ψάρια αυτή την εποχή. Γι’ αυτό ώρα και βαθμός μπορεί να διαφέρουν από την πρόγνωση πάνω.','The forecast at each of your spots, with a bonus where you have caught fish this season. That is why time and score can differ from the forecast above.')}),list);
+    list);
+  /* 1.14.37: η εξήγηση ανοίγει με το (i) δίπλα στον τίτλο */ if(B.infoAdd){ var oh2=box.querySelector('.oph h2'); if(oh2) B.infoAdd(oh2,T('Η πρόγνωση σε κάθε σημείο σου, με μπόνους όπου έχεις πιάσει ψάρια αυτή την εποχή. Γι’ αυτό ώρα και βαθμός μπορεί να διαφέρουν από την πρόγνωση της τοποθεσίας.','The forecast at each of your spots, with a bonus where you have caught fish this season. That is why time and score can differ from the forecast for the place.')); }
   function paint(items){ list.replaceChildren(); items=(items||[]).slice(0,max||3); if(opt.onPaint) setTimeout(function(){ try{ opt.onPaint(items); }catch(e){} },0);
     if(!items.length){ if(opt.hideEmpty){ box.hidden=true; return; } list.append(h('p',{class:'sub',text:cands().length?T('Καμία καλή και ασφαλής ευκαιρία τις επόμενες μέρες.','No good, safe chance in the coming days.'):T('Πρόσθεσε τοποθεσίες στις Ειδοποιήσεις ή σημεία με ψάρια για να βλέπεις ευκαιρίες εδώ.','Add places in Alerts or spots with catches to see chances here.')})); return; }
     box.hidden=false;
     items.forEach(function(it){ var cls=it.score>=80?'hi':it.score>=65?'mid':'lo';
       list.append(h('button',{type:'button',class:'opr',onclick:function(){ if(B.mapGo) B.mapGo(it.lat,it.lon,13,null,{lab:it.name,sea:true}); }},
         h('span',{class:'ops '+cls,text:String(it.score)}),
-        h('span',{class:'opt'},h('b',{text:it.name}),h('small',{class:'opw',text:dayLbl(it.date)+' '+B.pad(it.s)+':00–'+B.pad((it.e+1)%24)+':00'}),h('small',{text:whyTxt(it)||T('Καλές συνθήκες','Good conditions')}),it.base!=null&&it.score>it.base?h('small',{class:'opb',text:T('πρόγνωση ','forecast ')+it.base+' + '+(it.score-it.base)+T(' από τα ψάρια σου εκεί',' from your catches there')}):null),B.icon?B.icon('chev'):null)); }); }
+        h('span',{class:'opt'},h('b',{text:it.name}),h('small',{class:'opw',text:dayLbl(it.date)+' '+B.pad(it.s)+':00–'+B.pad((it.e+1)%24)+':00'}),h('small',{text:whyTxt(it)||T('Καλές συνθήκες','Good conditions')}),it.base!=null&&it.score>it.base?h('small',{class:'opb',text:T('πρόγνωση ','forecast ')+it.base+' + '+(it.score-it.base)+T(' από τα ψάρια σου εκεί',' from your catches there')}):null,it.more&&it.more.length?h('small',{class:'opmore',text:T('Και: ','Also: ')+it.more.map(function(x){ return dayLbl(x.date)+' '+x.score; }).join(' · ')}):null),B.icon?B.icon('chev'):null)); }); }
   var c=ls.get(KEY,null); if(c&&c.items) paint(c.items); else list.append(h('p',{class:'sub',text:T('Υπολογισμός…','Calculating…')}));
   compute(false).then(paint);
   return box; };

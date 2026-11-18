@@ -79,11 +79,16 @@ B.pwChart=function(pts,cfg){
     tx(W-R+4,YL(lmx)+3.5,'+'+Math.round((lmx-lmean)*100)); tx(W-R+4,YL(lmn)+3.5,String(Math.round((lmn-lmean)*100)));
     var ld='', la='M'+X(0)+','+(tT+tH); pts.forEach(function(q,i){ if(typeof q.l!=='number') return; var p0=X(i).toFixed(1)+','+YL(q.l).toFixed(1); ld+=(ld?' L':'M')+p0; la+=' L'+p0; }); la+=' L'+X(n-1)+','+(tT+tH)+' Z';
     svg.appendChild(s('path',{d:la,class:'ta'})); svg.appendChild(s('path',{d:ld,class:'tl'}));
+    /* 1.14.53: πρώτα μαζεύονται οι ψηλές/χαμηλές· μικρά «δοντάκια» (κάτω από 18% του εύρους) δεν σημειώνονται, και οι ώρες δεν πέφτουν η μία πάνω στην άλλη */
+    var EX=[], lv=pts.map(function(q){ return q.l; }).filter(function(v){ return typeof v==='number'; }), rng=lv.length?Math.max.apply(null,lv)-Math.min.apply(null,lv):0;
     for(var i2=1;i2<n-1;i2++){ var a=pts[i2-1].l, b=pts[i2].l, c=pts[i2+1].l; if(typeof a!=='number'||typeof b!=='number'||typeof c!=='number') continue;
       var hi=b>a&&b>=c, lo=b<a&&b<=c; if(!hi&&!lo) continue;
-      var den=a-2*b+c, off=den?Math.max(-0.5,Math.min(0.5,0.5*(a-c)/den)):0, xm=X(i2+off), ym=YL(b-0.25*(a-c)*off);
-      svg.appendChild(s('circle',{cx:xm.toFixed(1),cy:ym.toFixed(1),r:3,class:hi?'th':'tlo'}));
-      if(rk==='d1'||rk==='catch'){ var mm=Math.round((pts[i2].t+off*3600000)/60000)*60000; tx(xm,hi?ym-5:ym+11,loc(mm).slice(11,16),'tt','middle'); } }
+      var den=a-2*b+c, off=den?Math.max(-0.5,Math.min(0.5,0.5*(a-c)/den)):0; EX.push({hi:hi,v:b-0.25*(a-c)*off,x:X(i2+off),t:pts[i2].t+off*3600000}); }
+    for(var guard=0;guard<40&&EX.length>2;guard++){ var bi=-1, bd=1e9; for(var e2=0;e2<EX.length-1;e2++){ var dd=Math.abs(EX[e2].v-EX[e2+1].v); if(dd<bd){ bd=dd; bi=e2; } } if(bi<0||bd>=0.18*rng) break; EX.splice(bi,2); }
+    var lastX={h:-99,l:-99};
+    EX.forEach(function(e){ var ym=YL(e.v); svg.appendChild(s('circle',{cx:e.x.toFixed(1),cy:ym.toFixed(1),r:3,class:e.hi?'th':'tlo'}));
+      if(rk==='d1'||rk==='catch'){ var k=e.hi?'h':'l'; if(e.x-lastX[k]<40) return; if(e.hi&&e.x<Lm+34) return;   /* δίπλα στον τίτλο «παλίρροια» δεν χωρά ώρα */
+        lastX[k]=e.x; var mm=Math.round(e.t/60000)*60000; tx(Math.min(W-R-14,e.x),e.hi?ym-5:ym+11,loc(mm).slice(11,16),'tt',e.x<Lm+14?'start':'middle'); } });
   }
   /* σημάδια (π.χ. «πιάστηκε», «σταμάτησαν») */
   (cfg.marks||[]).forEach(function(m){ if(m.t<t0||m.t>t1) return; var x=Xt(m.t); svg.appendChild(s('line',{x1:x,x2:x,y1:pT-2,y2:bot,class:'pmk '+(m.cls||'')})); if(m.lbl) tx(Math.min(W-R-2,Math.max(Lm+2,x)),pT-4,m.lbl,'pmkl '+(m.cls||''),x>W-R-40?'end':x<Lm+40?'start':'middle'); });
@@ -103,7 +108,8 @@ B.pwChart=function(pts,cfg){
     var mq=moonAt(q.t+1800000); if(mq) bits.push(mLbl(mq));
     if(lmean!=null&&typeof q.l==='number'){ var nx=pts[Math.min(n-1,ri+1)].l, pv=pts[Math.max(0,ri-1)].l, tr=typeof nx==='number'&&typeof pv==='number'?nx-pv:0, cmv=Math.round((q.l-lmean)*100);
       bits.push(T('στάθμη ','sea level ')+(cmv>0?'+':'')+cmv+' cm'+(Math.abs(tr)<0.006?T(' (νεκρό νερό)',' (slack)'):tr>0?' ↑':' ↓')); }
-    rd.textContent=bits.join(' · ');
+    /* 1.14.39: η ώρα ως τίτλος και οι τιμές σε ετικέτες, αντί για μία πυκνή γραμμή */
+    rd.replaceChildren(h('b',{class:'hlt',text:bits[0]}),h('span',{class:'hlc'},bits.slice(1).map(function(x){ return h('span',{class:'hlchip',text:x}); })));
   }
   scrub(svg,function(fx){ var x=fx*W; setSel(Math.round((x-Lm)/((W-Lm-R)/(n-1))),true); });
   if(cfg.sel!=null&&cfg.sel<n) setSel(cfg.sel,true); else setSel(Math.max(0,nowI),false);

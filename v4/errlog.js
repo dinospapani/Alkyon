@@ -10,8 +10,17 @@ function set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
 var busy=false, timer=null, missing=false;
 function short(s,n){ s=String(s==null?'':s); return s.length>n?s.slice(0,n)+'…':s; }
 function file(u){ u=String(u||''); var m=u.match(/[^\/?#]+(?=[?#]|$)/); return m?m[0]:u.slice(-60); }
+/* 1.14.58: αυτο-επισκευή. Αν ένα δικό μας αρχείο .js ήρθε ως σελίδα HTML («Unexpected token '<'» στη γραμμή 1), η αποθήκη της εφαρμογής
+   είναι χαλασμένη: σβήνονται οι αποθήκες alkyon4-*, αποσύρεται ο service worker και η σελίδα ξαναφορτώνει. Το πολύ μία φορά ανά 12 ώρες. Τα δεδομένα του χρήστη δεν αγγίζονται. */
+function heal(msg,src,line){ try{
+  if(!/Unexpected token '?<'?/.test(String(msg))||(+line||0)>1||!/\.js(\?|$)/.test(String(src||''))) return;
+  var last=+get('alkyon-v4-heal',0)||0; if(Date.now()-last<12*3600e3) return; set('alkyon-v4-heal',Date.now());
+  var p=[]; if(window.caches&&caches.keys) p.push(caches.keys().then(function(ks){ return Promise.all(ks.filter(function(k){ return k.indexOf('alkyon4-')===0; }).map(function(k){ return caches.delete(k); })); }));
+  if(navigator.serviceWorker&&navigator.serviceWorker.getRegistrations) p.push(navigator.serviceWorker.getRegistrations().then(function(rs){ return Promise.all(rs.map(function(r){ return r.unregister(); })); }));
+  Promise.all(p).then(function(){},function(){}).then(function(){ setTimeout(function(){ location.reload(); },400); });
+}catch(e){} }
 function rec(msg,src,line,col,stack,kind){
-  msg=short(msg,500); if(!msg) return;
+  msg=short(msg,500); if(!msg) return; heal(msg,src,line);
   /* θόρυβος που δεν βοηθά: σφάλματα από επεκτάσεις του browser, «Script error.» χωρίς στοιχεία, ακυρώσεις */
   if(/^Script error\.?$/.test(msg)||/ResizeObserver loop|AbortError|The user aborted|chrome-extension:|moz-extension:/.test(msg+' '+(src||''))) return;
   var now=Date.now(), all=get(K,[])||[], key=msg+'|'+file(src)+':'+(line||0);
@@ -43,7 +52,9 @@ window.AlkyonErr={list:function(){ return get(K,[])||[]; },clear:function(){ set
   /* 1.12.14: «Πες μας τη γνώμη σου»: το μήνυμα πάει στον ίδιο πίνακα (kind=feedback), με έκδοση, σελίδα και τύπο κινητού */
   feedback:function(text,contact,topic){ var s=sess(), hd={apikey:KEY,'Content-Type':'application/json',Prefer:'return=minimal'}; if(s) hd.Authorization='Bearer '+s.access_token;
     var meta=['topic: '+(topic||''),'contact: '+short(contact||'',120),'lang: '+(document.documentElement.lang||''),'screen: '+screen.width+'x'+screen.height,'native: '+(!!window.AKN)].join('\n');
-    return fetch(URL_+'/rest/v1/app_errors',{method:'POST',headers:hd,body:JSON.stringify([{ver:window.ALKYON_VERSION||'',msg:short(text,4000),kind:'feedback',hash:short((location.hash||'').replace(/=.*/,'='),40),stack:meta,ua:short(navigator.userAgent,200),n:1}])}).then(function(r){ if(!r.ok) throw new Error(r.status); /* 1.14.13: και στη συζήτηση του χρήστη με την Alkyon (για να βλέπει μήνυμα και απάντηση μαζί) */ if(s&&s.uid) try{ fetch(URL_+'/rest/v1/user_messages',{method:'POST',headers:hd,body:JSON.stringify({user_id:s.uid,from_admin:false,author:s.uid,body:short(text,4000),name:short(s.name||'',60)||null,ref:'fb'})}).catch(function(){}); }catch(e2){} /* 1.14.1: ειδοποίηση στον διαχειριστή */ try{ fetch(URL_+'/functions/v1/sos-alert',{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json',Authorization:'Bearer '+(s?s.access_token:KEY)},body:JSON.stringify({action:'fb'})}).catch(function(){}); }catch(x){} return r.status; }); },
+    /* 1.14.70: όριο 15″ (πριν, με κακό σήμα έμενε για πάντα στο «Αποστολή…») και ο λόγος της αποτυχίας γυρίζει στη φόρμα */
+    var ac=('AbortController' in window)?new AbortController():null, tm=setTimeout(function(){ if(ac) ac.abort(); },15000);
+    return fetch(URL_+'/rest/v1/app_errors',{method:'POST',signal:ac?ac.signal:undefined,headers:hd,body:JSON.stringify([{ver:window.ALKYON_VERSION||'',msg:short(text,4000),kind:'feedback',hash:short((location.hash||'').replace(/=.*/,'='),40),stack:meta,ua:short(navigator.userAgent,200),n:1}])}).then(function(r){ clearTimeout(tm); if(!r.ok) throw new Error('HTTP '+r.status); /* 1.14.13: και στη συζήτηση του χρήστη με την Alkyon (για να βλέπει μήνυμα και απάντηση μαζί) */ if(s&&s.uid) try{ fetch(URL_+'/rest/v1/user_messages',{method:'POST',headers:hd,body:JSON.stringify({user_id:s.uid,from_admin:false,author:s.uid,body:short(text,4000),name:short(s.name||'',60)||null,ref:'fb'})}).catch(function(){}); }catch(e2){} /* 1.14.1: ειδοποίηση στον διαχειριστή */ try{ fetch(URL_+'/functions/v1/sos-alert',{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json',Authorization:'Bearer '+(s?s.access_token:KEY)},body:JSON.stringify({action:'fb'})}).catch(function(){}); }catch(x){} return r.status; }); },
   /* έλεγχος ότι ο πίνακας δέχεται εγγραφές (από τη σελίδα «Έλεγχος συστήματος») */
   test:function(){ var s=sess(), hd={apikey:KEY,'Content-Type':'application/json',Prefer:'return=minimal'}; if(s) hd.Authorization='Bearer '+s.access_token;
     return fetch(URL_+'/rest/v1/app_errors',{method:'POST',headers:hd,body:JSON.stringify([{ver:window.ALKYON_VERSION||'',msg:'selftest',kind:'test',hash:'#check',ua:short(navigator.userAgent,200),n:1}])}).then(function(r){ return r.status; }); }};

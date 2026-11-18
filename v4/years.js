@@ -80,7 +80,8 @@ function catches(from,to){ var bs=[], ts=[]; try{ bs=B.store.bites().filter(func
   return {n:bs.reduce(function(s,b){ return s+bc(b); },0),trips:ts.length,top:top.slice(0,2),bestWk:bw!=null&&wk[bw]>=2?[addD(from,7*bw),addD(from,7*bw+6),wk[bw]]:null}; }
 function fmt(k,x){ if(x==null) return '–'; var U=window.AlkyonUnits;
   if(k==='sst'||k==='ta') return U&&U.temp?U.temp(x,1):B.num(x,1)+'°'; if(k==='wave') return U&&U.wave?U.wave(x):B.num(x,1)+' m'; if(k==='rain') return Math.round(x)+' mm'; if(k==='windy') return String(Math.round(x)); return B.num(x,1); }
-function diff(k,a,b){ if(a==null||b==null) return ''; var d=a-b, s=d>0?'+':d<0?'−':'±', ad=Math.abs(d);
+function diff(k,a,b){ if(a==null||b==null) return ''; var rr=(k==='sst'||k==='ta'||k==='wave')?10:1; a=Math.round(a*rr)/rr; b=Math.round(b*rr)/rr;   /* 1.14.43: η διαφορά βγαίνει από τους αριθμούς που φαίνονται (0,7 − 0,5 = 0,2, όχι 0,1) */
+  var d=Math.round((a-b)*rr)/rr, s=d>0?'+':d<0?'−':'±', ad=Math.abs(d);
   if(k==='sst'||k==='ta') return s+B.num(ad,1)+'°'; if(k==='wave') return s+B.num(ad,1)+' m'; if(k==='rain') return s+Math.round(ad)+' mm'; return s+Math.round(ad); }
 function dm(s){ return new Date(s+'T12:00:00Z').toLocaleDateString(EN?'en-GB':'el-GR',{day:'numeric',month:'short'}); }
 

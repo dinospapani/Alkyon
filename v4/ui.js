@@ -4,7 +4,7 @@
 var B=window.AK, h=B.h, T=B.T;
 
 /* εικονίδια γραμμής (24×24, χρώμα από το κείμενο) */
-var P={
+var P={book:'<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/>',
   pin:'<path d="M12 21s-6.5-5.8-6.5-11A6.5 6.5 0 0 1 18.5 10c0 5.2-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/>',
   gps:'<circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3"/><circle cx="12" cy="12" r="7"/>',
   refresh:'<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>',
@@ -109,6 +109,8 @@ function sheet(o){
   var x=h('button',{class:'iconbtn',type:'button','aria-label':T('Κλείσιμο','Close'),html:iconSvg('close')});
   var bk=back?h('button',{class:'iconbtn shback',type:'button','aria-label':T('Πίσω','Back'),html:iconSvg('back')}):null;
   box.append(h('div',{class:'grab'}),h('header',null,bk?h('div',{class:'shtl'},bk,h('h2',{text:o.title})):h('h2',{text:o.title}),x),h('div',{class:'body'},o.body));
+  /* 1.14.57: όταν η πρώτη επικεφαλίδα μέσα στο φύλλο επαναλαμβάνει τον τίτλο του (π.χ. «Όρια ασφαλείας» δύο φορές), κρύβεται */
+  try{ var fh=o.body&&o.body.querySelector&&o.body.querySelector('h2,h3'); if(fh&&String(fh.textContent||'').trim().toLowerCase()===String(o.title||'').trim().toLowerCase()&&!fh.querySelector('button,a,input')) fh.hidden=true; }catch(e){}
   document.body.append(scrim,box);
   var prevFocus=document.activeElement, cbDone=false;
   function cb(){ if(cbDone) return; cbDone=true; if(o.onclose) try{ o.onclose(); }catch(e){} }
