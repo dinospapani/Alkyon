@@ -21,7 +21,7 @@ WK=$!
 # θέση σκάφους που κινείται αργά (ανοιχτά της Λεμεσού)· ξεκινά αφού φορτώσει η πρόγνωση
 geo(){ ( i=0; while [ $i -lt 400 ]; do adb emu geo fix $(python3 -c "print(33.05+$i*0.00004)") $(python3 -c "print(34.63+$i*0.00002)") >/dev/null 2>&1; i=$((i+1)); sleep 1; done ) & GEO=$!; }
 has(){ dump; grep -q "$1" /tmp/u.xml; }
-dump(){ adb shell uiautomator dump /sdcard/u.xml >/dev/null 2>&1; adb exec-out cat /sdcard/u.xml > /tmp/u.xml 2>/dev/null; }
+dump(){ rm -f /tmp/u.xml; adb shell rm -f /sdcard/u.xml; adb shell uiautomator dump /sdcard/u.xml >/dev/null 2>&1; adb exec-out cat /sdcard/u.xml > /tmp/u.xml 2>/dev/null; }
 # πάτημα πάνω σε κείμενο· επιστρέφει 1 αν δεν βρέθηκε
 tapText(){ dump; XY=$(python3 - "$1" <<'PY'
 import re,sys
@@ -63,9 +63,10 @@ REC=$!
 ( n=0; while [ $n -lt 150 ]; do adb exec-out screencap -p > $(printf "video/frames/f%04d.png" $n) 2>/dev/null; n=$((n+1)); sleep 0.5; done ) &
 FR=$!
 sleep 3
-# σελίδα «Έξοδος» και έναρξη
+# έναρξη εξόδου από το μενού ≡ (η εφαρμογή περνά μόνη της στη σελίδα «Έξοδος»)
+adb shell input tap $CX $((H-16)); sleep 3
 OK=0
-for i in 1 2 3 4 5; do if tapText "Start trip"; then OK=1; break; fi; adb shell input swipe $CX $((H*3/4)) $CX $((H/4)) 300; sleep 2; done
+for i in 1 2 3 4 5 6; do if tapText "Start trip"; then OK=1; break; fi; adb shell input swipe $CX $((H*3/4)) $CX $((H*2/5)) 300; sleep 2; done
 [ $OK = 0 ] && say "Start trip not found"
 sleep 9; texts; shot 1-trip-live
 adb shell dumpsys activity services $P | grep -E "isForeground|foregroundServiceType|GpsService" | head -5 | tee -a $LOG
