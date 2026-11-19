@@ -10,7 +10,7 @@ import { ROOT } from './harness.mjs';
 function loadPF() {
   const ctx = { self: {}, console, Date, Math, JSON, Promise, Intl, setTimeout, clearTimeout, fetch: async () => { throw new Error('no network'); } };
   ctx.globalThis = ctx; vm.createContext(ctx);
-  vm.runInContext(fs.readFileSync(path.join(ROOT, 'forecast.js'), 'utf8'), ctx, { filename: 'forecast.js' });
+  for (const f of ['score-config.js', 'score-core.js', 'forecast.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });   /* 1.14.84 (P1.1): βάρη → πυρήνας → πρόγνωση */
   return ctx.self.PF;
 }
 const PF = loadPF();
@@ -70,7 +70,7 @@ function pfAt(nowIso) {
   const ctx = { self: {}, console, Date: FD, Math, JSON, Promise, Intl, setTimeout, clearTimeout,
     localStorage: { getItem: k => store.has(k) ? store.get(k) : null, setItem: (k, v) => store.set(k, String(v)), removeItem: k => store.delete(k) } };
   ctx.globalThis = ctx; vm.createContext(ctx);
-  vm.runInContext(fs.readFileSync(path.join(ROOT, 'forecast.js'), 'utf8'), ctx, { filename: 'forecast.js' });
+  for (const f of ['score-config.js', 'score-core.js', 'forecast.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });   /* 1.14.84 (P1.1): βάρη → πυρήνας → πρόγνωση */
   ctx.localStorage.setItem('alkyon-fprof', 'boat');
   return ctx.self.PF;
 }

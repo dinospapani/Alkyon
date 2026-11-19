@@ -4,7 +4,7 @@ import crypto from 'node:crypto';
 import webpush from 'web-push';
 
 const g = {};
-new Function('self', fs.readFileSync('forecast.js', 'utf8'))(g);
+for (const f of ['score-config.js', 'score-core.js', 'forecast.js']) new Function('self', fs.readFileSync(f, 'utf8'))(g);   /* 1.14.84 (P1.1): βάρη → πυρήνας → πρόγνωση */
 const PF = g.PF;
 
 const pub = process.env.VAPID_PUBLIC, priv = process.env.VAPID_PRIVATE;

@@ -8,7 +8,11 @@
 ώστε η function «watch» να μην κατεβάζει κώδικα από το GitHub την ώρα που τρέχει."""
 import re, sys, json
 
+# 1.14.84 (P1.1): ο βαθμός είναι στον ενιαίο πυρήνα· μπαίνουν με αυτή τη σειρά πριν από το forecast.js, όπως στη σελίδα
+sc = open("score-config.js", encoding="utf-8").read()
+co = open("score-core.js", encoding="utf-8").read()
 fc = open("forecast.js", encoding="utf-8").read()
+SCORE = "// ---- score-config.js ----\n" + sc.rstrip() + "\n\n// ---- score-core.js ----\n" + co.rstrip() + "\n\n"
 sj = open("safety-job.mjs", encoding="utf-8").read()
 
 # safety-job: χωρίς τα κομμάτια του Node (import και εκτέλεση από τη γραμμή εντολών)
@@ -25,6 +29,7 @@ out = (
     "// Alkyon cron: forecast push, ασφάλεια εξόδων (Telegram), πτώση πίεσης. Παράγεται από build_edge.py. Μην το επεξεργάζεσαι στο χέρι.\n"
     "import webpush from 'npm:web-push@3.6.7';\n\n"
     "globalThis.self = globalThis.self || globalThis;\n"
+    + SCORE +
     "// ---- forecast.js ----\n" + fc.rstrip() + "\n\nconst PF = self.PF;\n\n"
     "// ---- safety-job.mjs ----\n" + sj + "\n// ---- handler ----\n" + HANDLER
 )
@@ -40,6 +45,7 @@ wout = (
     "// @ts-nocheck\n"
     "// Alkyon «watch» Edge Function. Παράγεται από build_edge.py (forecast.js + v4/data-el.js + watch-index.ts). Μην το επεξεργάζεσαι στο χέρι.\n"
     "globalThis.self = globalThis.self || globalThis;\n"
+    + SCORE +
     "// ---- forecast.js ----\n" + fc.rstrip() + "\n\nglobalThis.__ALKYON_PF = self.PF;\n"
     "globalThis.__ALKYON_EL = " + json.dumps(M, ensure_ascii=False, sort_keys=True) + ";\n"
     "// ---- watch-index.ts ----\n" + re.sub(r"^// @ts-nocheck\n", "", wi)
