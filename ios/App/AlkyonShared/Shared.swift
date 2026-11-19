@@ -6,7 +6,13 @@ let BC_URL = "https://sgfohmqwdwtkhtrebnix.supabase.co/functions/v1/watch"
 let BC_KEY = "sb_publishable_LGuwvrvLnAj1CF22Q6g9vg_4OImZYbA"
 let APP_GROUP = "group.com.alkyonfishing.app"
 
-func nowS() -> Int { Int(Date().timeIntervalSince1970) }
+// si-begin
+/** Double → Int χωρίς trap (1.14.88). Τα Apple Watch Series 4–8 και SE είναι arm64_32, όπου το Int είναι 32-bit: μια τιμή έξω από τα όρια, NaN ή ∞
+    κλείνει την εφαρμογή (EXC_BREAKPOINT). Εδώ: NaN/∞ → 0, αλλιώς μέσα στα όρια του Int32, ίδια συμπεριφορά σε κάθε ρολόι και στον προσομοιωτή.
+    ΚΑΝΟΝΑΣ: στο ρολόι καμία μετατροπή Int(Double) απευθείας· πάντα si(...). Το ελέγχει το tests/unit/watch-arm64-32.test.mjs. */
+func si(_ x: Double) -> Int { x.isFinite ? Int(max(-2147483648.0, min(2147483647.0, x))) : 0 }
+// si-end
+func nowS() -> Int { si(Date().timeIntervalSince1970) }
 
 /* ---------- JSON ---------- */
 typealias JO = [String: Any]
@@ -31,7 +37,7 @@ enum L {
         let nf = NumberFormatter(); nf.locale = Locale(identifier: el ? "el_GR" : "en_US"); nf.minimumFractionDigits = d; nf.maximumFractionDigits = d; nf.usesGroupingSeparator = false
         return nf.string(from: NSNumber(value: x)) ?? String(x)
     }
-    static func f0(_ x: Double) -> String { String(Int(x.rounded())) }
+    static func f0(_ x: Double) -> String { String(si(x.rounded())) }
     static func f1(_ x: Double) -> String { f(x, 1) }
     static func f2(_ x: Double) -> String { f(x, 2) }
 }

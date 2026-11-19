@@ -146,7 +146,7 @@ struct PickerV: View {
     var ok: (Int) -> Void
     @State var v: Double
     var body: some View {
-        let n = Int(v.rounded())
+        let n = si(v.rounded())
         VStack(spacing: 2) {
             TitleV(t: L.up(title), dot: col)
             Tx(n > minV ? "\(n - 1)" : " ", 14, pc(7))
@@ -174,9 +174,9 @@ struct DepthPicker: View {
     @Binding var path: [Route]
     var body: some View {
         let e = Engine.shared, ch = e.chartHere()
-        let last = ch.map { Int($0 + 0.5) } ?? P.i("dropD") ?? 20
+        let last = ch.map { si($0 + 0.5) } ?? P.i("dropD") ?? 20
         PickerV(title: L.t("DepthQ"), col: hx(0x4FB3FF), minV: 3, maxV: 120, unit: L.t("FmL"), bigStep: 5,
-                sub: { d in ch != nil && d == Int(ch! + 0.5) ? L.t("ChartSub") : nil },
+                sub: { d in ch != nil && d == si(ch! + 0.5) ? L.t("ChartSub") : nil },
                 ok: { d in pop($path); if only { e.sounderSet(d); e.sayK(L.t("DepthQ") + "\n\(d) " + L.t("FmL"), "down", 11) } else { e.dropStart(d) } },
                 v: Double(min(120, max(3, last))))
     }

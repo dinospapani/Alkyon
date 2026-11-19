@@ -76,9 +76,42 @@ final class Engine: ObservableObject {
         if let s = UserDefaults.standard.string(forKey: "alkPage"), let n = Int(s), (0..<6).contains(n) { page = n; pageSel = n }
         if UserDefaults.standard.string(forKey: "alkWel") == "0" { welcome = false }
         if let r = UserDefaults.standard.string(forKey: "alkRoute") { startRoute = r }
+        tripRestore()
         Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in self?.onTick() }
     }
     func ms() -> Double { Date().timeIntervalSince1970 * 1000 }
+
+    /* ---------- 1.14.88: αποθήκευση της εξόδου ---------- */
+    private var tripSavedAt = 0, tripSavedN = -1
+    var resumed = false
+    /** γράφει την κατάσταση της εξόδου· χωρίς force το πολύ μία φορά στα 15″ (σε κάθε νέο σημείο θα ήταν πολύ συχνά) */
+    func tripPersist(_ force: Bool = false) {
+        guard trip.active else { return }
+        let t = nowS()
+        if !force && (t - tripSavedAt < 15 || (trip.pts.count == tripSavedN && t - tripSavedAt < 120)) { return }
+        var o = trip.snapshot(); o["catchTs"] = catchTs; o["at"] = t
+        if let m = troll { o["troll"] = m }
+        if let l = trLeads { o["trLeads"] = l }
+        P.put("tripSt", o); tripSavedAt = t; tripSavedN = trip.pts.count
+    }
+    /** στην εκκίνηση: αν υπάρχει ενεργή έξοδος, συνεχίζει από εκεί που έμεινε (μόνο τα δεδομένα· GPS και Υγεία στο tripResume) */
+    private func tripRestore() {
+        let o = P.obj("tripSt")
+        guard trip.restore(o) else { if o != nil { P.put("tripSt", nil) }; return }
+        catchTs = ((o?["catchTs"] as? [NSNumber]) ?? []).map { $0.intValue }
+        let m = js(o, "troll"); troll = (m == "s" || m == "b") ? m : nil
+        trLeads = troll == "b" ? ji(o, "trLeads") : nil
+        homeWarned = false; resumed = true; page = 1; pageSel = 1
+    }
+    /** καλείται από το AppDelegate μετά την εκκίνηση (και από την ανάκτηση προπόνησης του watchOS): ξαναρχίζει GPS και συνεδρία Υγείας */
+    func tripResume() {
+        guard resumed, trip.active else { return }
+        resumed = false
+        gpsUpdate(); Health.shared.recover()
+        if troll == "b" { gridAt = -999999; gridNeed() }
+        vib(.start); sayK(L.t("TripResumed"), "play", 13, 4)
+        bump()
+    }
     func welcomeOk() { welcome = false; P.setB("wel", true); bump() }
 
     /* ---------- μηνύματα ---------- */
@@ -133,11 +166,11 @@ final class Engine: ObservableObject {
         cur = (lat, lon)
         gearFix(lat, lon)
         if let h = heading, (speed ?? 0) > 1.0 { gpsHead = h }
-        if trip.active { trip.onPos(lat, lon, speed, heading, acc) }
+        if trip.active { trip.onPos(lat, lon, speed, heading, acc); tripPersist() }
         checkAnchor(); checkArrive(); checkTroll(); checkDepth(); checkSpots(); checkAutoDown(); checkTurn()
         bump()
     }
-    func anchorR() -> Int { let r = Int(P.d("anchorM")); return r < 10 ? 40 : r }
+    func anchorR() -> Int { let r = si(P.d("anchorM")); return r < 10 ? 40 : r }
     private func checkAnchor() {
         guard let a = anchor, let c = cur else { return }
         anchorD = Geo.dist(a.0, a.1, c.0, c.1) * 1000
@@ -146,7 +179,7 @@ final class Engine: ObservableObject {
         if anchorOut >= 5 && (!anchorAlarm || now - alarmAt >= 20) {
             anchorAlarm = true; alarmAt = now
             vib(.failure, 3)
-            Notify.show(L.up(L.t("AnchorU")) + " · " + L.t("Drag", Int(anchorD)), id: "anchor")
+            Notify.show(L.up(L.t("AnchorU")) + " · " + L.t("Drag", si(anchorD)), id: "anchor")
             bump()
         }
     }
@@ -162,7 +195,7 @@ final class Engine: ObservableObject {
         var a: [Target] = []
         if trip.active, let p0 = trip.p0 { a.append(Target(name: L.t("TripStartPt"), lat: p0.0, lon: p0.1, home: true)) }
         let lc = P.arr("lastc")
-        if lc.count >= 3, let la = an(lc, 0), let lo = an(lc, 1), let ts = an(lc, 2) { a.append(Target(name: L.t("LastFish") + " " + Geo.tsHm(Int(ts)), lat: la, lon: lo)) }
+        if lc.count >= 3, let la = an(lc, 0), let lo = an(lc, 1), let ts = an(lc, 2) { a.append(Target(name: L.t("LastFish") + " " + Geo.tsHm(si(ts)), lat: la, lon: lo)) }
         if let an0 = anchor { a.append(Target(name: L.t("Anchor"), lat: an0.0, lon: an0.1)) }
         for e in (ja(fc, "sp") ?? []) { guard let r = e as? [Any], r.count >= 3, let la = an(r, 1), let lo = an(r, 2) else { continue }
             let n = (r[0] as? String) ?? ""; a.append(Target(name: n.isEmpty ? L.t("Spot") : n, lat: la, lon: lo)) }
@@ -192,6 +225,7 @@ final class Engine: ObservableObject {
     }
     func trollSet(_ m: String?) {
         troll = m; trOut = 0; adv = 0
+        defer { tripPersist(true) }
         if m == "b" { gridAt = -999999; gridNeed() }
         if m != "b" { drop = nil }
         if m == nil { trLeads = nil }
@@ -211,7 +245,7 @@ final class Engine: ObservableObject {
     func clrTxt(_ c: Double) -> String { (c < 3 && c > -3) ? L.f1(c) : L.f0(c) }
     func recN(_ d: Double) -> Int {
         let fpl = faPerLead(), cl = clrFa()
-        var n = Int((d - cl) / fpl)
+        var n = si((d - cl) / fpl)
         let c0 = d - Double(n) * fpl, c1 = d - Double(n + 1) * fpl
         if c1 >= cl * 0.66 && abs(c1 - cl) < abs(c0 - cl) { n += 1 }
         return min(80, max(1, n))
@@ -230,7 +264,7 @@ final class Engine: ObservableObject {
         let n = trLeads ?? dropN
         if dropD <= 0, let d = P.i("dropD") { dropD = d }
         if n < 1 || dropD <= 0 { leadsAdd(-1); return }
-        if let b = bdNow { dropD = Int(b) }
+        if let b = bdNow { dropD = si(b) }
         let ratio = min(1.35, max(0.75, Double(dropD) / (Double(n) * leadFa() * sf())))
         let nw = min(1.6, max(0.6, kD() * 0.6 + ratio * 0.4))
         P.setD("kD", nw)
@@ -263,7 +297,7 @@ final class Engine: ObservableObject {
         guard let g = grid, let x0 = jd(g, "x0"), let dx = jd(g, "dx"), let y0 = jd(g, "y0"), let dy = jd(g, "dy"), let w = ji(g, "w"), let h = ji(g, "h"), !gridD.isEmpty else { return nil }
         let fx = (lon - x0) / dx, fy = (y0 - lat) / dy
         if fx < 0 || fy < 0 || fx > Double(w - 1) || fy > Double(h - 1) { return nil }
-        let i = Int(floor(fx)), j = Int(floor(fy)), i1 = i + 1 < w ? i + 1 : i, j1 = j + 1 < h ? j + 1 : j
+        let i = si(floor(fx)), j = si(floor(fy)), i1 = i + 1 < w ? i + 1 : i, j1 = j + 1 < h ? j + 1 : j
         let a = fx - Double(i), b = fy - Double(j)
         func at(_ x: Int, _ y: Int) -> Double { let k = y * w + x; return k < gridD.count ? Double(gridD[k]) : 0 }
         let v00 = at(i, j), v10 = at(i1, j), v01 = at(i, j1), v11 = at(i1, j1)
@@ -291,12 +325,12 @@ final class Engine: ObservableObject {
         let bl = seaFa(lp.0, lp.1) ?? seaFa(c.0, c.1)
         bdNow = bl; bdAhead = seaFa(ap.0, ap.1)
         guard let b = bl, let nn = n, drop == nil else { adv = 0; return }
-        dropD = Int(b)
+        dropD = si(b)
         let now = nowS(), lure = Double(nn) * faPerLead()
         if let ba = bdAhead, ba < lure + 0.3, now - hitAt >= 60 {
             hitAt = now
             let k2 = (lure - ba + clrFa()) / faPerLead() + 0.99
-            vib(.failure, 3); toTroll(); sayK(L.t("HitAhead", Int(k2), L.f0(ba)), "up", 1); return
+            vib(.failure, 3); toTroll(); sayK(L.t("HitAhead", si(k2), L.f0(ba)), "up", 1); return
         }
         var use = b; if let ba = bdAhead, ba < use { use = ba }
         var dlt = recN(use) - nn
@@ -321,8 +355,8 @@ final class Engine: ObservableObject {
             if let last = spotSeen[i], now - last < 900 { continue }
             spotSeen[i] = now
             var info = ""
-            if let n = an(p, 2) { info = "\(Int(n)) " + L.t("LeadsL") }
-            if let bd = an(p, 3) { info += (info.isEmpty ? "" : " · ") + L.t("SeabedL", Int(bd)) }
+            if let n = an(p, 2) { info = "\(si(n)) " + L.t("LeadsL") }
+            if let bd = an(p, 3) { info += (info.isEmpty ? "" : " · ") + L.t("SeabedL", si(bd)) }
             vib(.notification, 2); toTroll()
             sayK(L.t("SpotHit") + "\n" + (info.isEmpty ? L.t("SpotHere") : L.t("SpotThen", info)), "fish", 2); return
         }
@@ -371,12 +405,14 @@ final class Engine: ObservableObject {
         afterStop(); guard afterCid != nil else { return }
         Sender.add(fixItem("undo")); Sender.flushBg()
         if trip.n > 0 { trip.n -= 1 }; if !catchTs.isEmpty { catchTs.removeLast() }
+        tripPersist(true)
         afterCid = nil; vib(.click, 2); sayK(L.t("Undone"), "undo", 6)
     }
     func afterLost() {
         afterStop(); guard afterCid != nil else { return }
         var it = fixItem("upd"); it["miss"] = 1; Sender.add(it); Sender.flushBg()
         if trip.n > 0 { trip.n -= 1 }; if !catchTs.isEmpty { catchTs.removeLast() }
+        tripPersist(true)
         sayK(L.t("LostOk"), "x", 1)
     }
     func speciesList() -> [(String, String)] {
@@ -396,7 +432,7 @@ final class Engine: ObservableObject {
     }
     func keysLeads() -> Bool { page == 1 && troll == "b" && trip.active && P.b("keysL") }
     func keysLine() -> Bool { page == 1 && troll == "s" && trip.active && P.b("keysL") }
-    func lineNow() -> Int { P.i("trLn") ?? Int(P.d("trollLine")) }
+    func lineNow() -> Int { P.i("trLn") ?? si(P.d("trollLine")) }
     func lineStep() -> Int { P.i("trLs") ?? 5 }
     func lineStepNext() { let s = lineStep(); P.setI("trLs", s == 1 ? 5 : s == 5 ? 10 : 1); bump() }
     func lineAdd(_ d: Int) { if msg != nil { msgEnd() }; P.setI("trLn", min(300, max(0, lineNow() + d))); vib(.click); bump() }
@@ -429,7 +465,7 @@ final class Engine: ObservableObject {
         let km = Geo.dist(c.0, c.1, p0.0, p0.1)
         var kn = P.d("boatKn"); if kn < 2 { kn = 15 }
         let eta = (km / 1.852) / kn * 3600
-        if Double(nowS()) >= Double(tg.0) - eta - 600 { homeWarned = true; vib(.notification, 2); sayK(L.t("HeadBack", Int(eta / 60 + 1)), "home", 4) }
+        if Double(nowS()) >= Double(tg.0) - eta - 600 { homeWarned = true; vib(.notification, 2); sayK(L.t("HeadBack", si(eta / 60 + 1)), "home", 4) }
     }
 
     /* ---------- καταγραφή ---------- */
@@ -437,19 +473,19 @@ final class Engine: ObservableObject {
         var p = cur ?? realPos()
         let ts = nowS()
         var item: JO = ["ts": ts, "tz": Geo.tzMin(), "k": kind]
-        let cid = "c\(ts)" + String(format: "%03d", Int(ms()) % 1000)
+        let cid = "c\(ts)" + String(format: "%03d", si(ms().truncatingRemainder(dividingBy: 1000)))
         item["cid"] = cid; afterCid = cid
         if let p = p { item["lat"] = Geo.r5(p.0); item["lon"] = Geo.r5(p.1) }
         if let tr = troll, kind == "fish", trip.active {
             var o: JO = ["m": tr]
             if let s = trip.spd { o["kn"] = (s * 10).rounded() / 10 }
-            if let h = trip.lastHd { o["hd"] = Int(h) }
+            if let h = trip.lastHd { o["hd"] = si(h) }
             if tr == "b", let l = trLeads { o["n"] = l }
             if tr == "b", let b = bdNow { o["bd"] = (b * 10).rounded() / 10; if let l = trLeads { o["cl"] = ((b - Double(l) * faPerLead()) * 10).rounded() / 10 } }
             if tr == "s" { o["ln"] = lineNow() }
             item["tr"] = o
         }
-        if trip.active { item["trip"] = trip.onCatch(kind) ?? ""; if kind == "fish" { catchTs.append(ts) } }
+        if trip.active { item["trip"] = trip.onCatch(kind) ?? ""; if kind == "fish" { catchTs.append(ts) }; tripPersist(true) }
         Sender.add(item)
         if troll == "s" && kind == "fish" && trip.active, let lp = lurePos(p, lineNow()) { p = lp }
         if let p = p { P.put("lastc", [p.0, p.1, ts]) }
@@ -466,7 +502,8 @@ final class Engine: ObservableObject {
         }
     }
     func tripStart() {
-        trip.begin(); catchTs = []; homeWarned = false
+        trip.begin(); catchTs = []; homeWarned = false; resumed = false
+        tripPersist(true)
         vib(.start); page = 1; pageSel = 1
         Health.shared.start()
         gpsUpdate()
@@ -475,13 +512,14 @@ final class Engine: ObservableObject {
     func tripEnd(_ save: Bool) {
         troll = nil; trLeads = nil; drop = nil
         let it = trip.finish(save)
+        P.put("tripSt", nil); tripSavedN = -1; tripSavedAt = 0; resumed = false
         gpsUpdate()
         Health.shared.stop(save)
         if let it = it { Sender.add(it); Sender.flushBg(); vib(.stop); sayK(L.t("TripSaved"), "stop", 13) }
         bump()
     }
     private func onTick() {
-        checkHome()
+        checkHome(); tripPersist()
         if troll != nil && trip.active && page != 1 && ms() - pageAt > 60000 { toTroll() }
         bump()
     }
@@ -524,7 +562,7 @@ final class Engine: ObservableObject {
         let now = nowS(); var g = gear()
         var seq = P.obj("gseq") ?? [:]; let k = (ji(seq, t) ?? 0) + 1; seq[t] = k; P.put("gseq", seq)
         let p = gearPos(), trap = t == "trap"
-        var it: JO = ["id": "g\(now)" + String(format: "%03d", Int(ms()) % 1000), "t": t, "nm": gearType(t) + " \(k)", "st": trap ? "out" : "set", "s0": now, "sa": p]
+        var it: JO = ["id": "g\(now)" + String(format: "%03d", si(ms().truncatingRemainder(dividingBy: 1000))), "t": t, "nm": gearType(t) + " \(k)", "st": trap ? "out" : "set", "s0": now, "sa": p]
         if trap { it["s1"] = now; it["sb"] = p }
         g.append(it); gearPut(g); gpsUpdate(); vib(.success)
         if trap { gearSend(it, nil); sayK(L.t("GearOutMsg", js(it, "nm")), "net", 12) } else { sayK(L.t("GearSetMsg", js(it, "nm")), "down", 12) }

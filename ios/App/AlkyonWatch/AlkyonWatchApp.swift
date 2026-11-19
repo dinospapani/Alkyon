@@ -9,7 +9,10 @@ final class AppDelegate: NSObject, WKApplicationDelegate, UNUserNotificationCent
         UNUserNotificationCenter.current().delegate = self
         Link.shared.activate()
         Bg.schedule()
+        Engine.shared.tripResume()   // 1.14.88: έξοδος που έμεινε ανοιχτή (κλείσιμο ή crash) συνεχίζει
     }
+    /** το watchOS ξανανοίγει την εφαρμογή όταν έκλεισε με ενεργή προπόνηση */
+    func handleActiveWorkoutRecovery() { Engine.shared.resumed = Engine.shared.trip.active || Engine.shared.resumed; Engine.shared.tripResume() }
     func applicationDidBecomeActive() {
         let e = Engine.shared
         e.visible = true; Loc.shared.once(); e.load(false); Sender.flushBg(); e.gpsUpdate()

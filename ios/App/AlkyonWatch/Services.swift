@@ -73,6 +73,20 @@ final class Health: NSObject {
             b.beginCollection(withStart: Date()) { _, _ in }
         } catch { session = nil; builder = nil; route = nil }
     }
+    /* 1.14.88: μετά από κλείσιμο/crash με ενεργή έξοδο, ξαναπιάνει τη συνεδρία προπόνησης που κρατά το watchOS (recoverActiveWorkoutSession)·
+       αν δεν υπάρχει πια, ξεκινά καινούρια, ώστε η εφαρμογή να μείνει ζωντανή μέχρι το τέλος της εξόδου. */
+    func recover() {
+        guard HKHealthStore.isHealthDataAvailable(), session == nil else { return }
+        store.recoverActiveWorkoutSession { [weak self] s, _ in
+            DispatchQueue.main.async {
+                guard let me = self, me.session == nil, Engine.shared.trip.active else { return }
+                guard let s = s else { me.start(); return }
+                let b = s.associatedWorkoutBuilder()
+                if b.dataSource == nil { b.dataSource = HKLiveWorkoutDataSource(healthStore: me.store, workoutConfiguration: s.workoutConfiguration) }
+                me.session = s; me.builder = b; me.route = HKWorkoutRouteBuilder(healthStore: me.store, device: nil)
+            }
+        }
+    }
     func add(_ locs: [CLLocation]) {
         guard session != nil, let r = route else { return }
         let ok = locs.filter { $0.horizontalAccuracy >= 0 && $0.horizontalAccuracy < 50 }
@@ -116,7 +130,7 @@ enum Baro {
     }
     static func store(_ p: Double) {
         let now = nowS()
-        var a = P.arr("bh").compactMap { $0 as? [Double] }.filter { now - Int($0[0]) < 5 * 3600 }
+        var a = P.arr("bh").compactMap { $0 as? [Double] }.filter { now - si($0[0]) < 5 * 3600 }
         a.append([Double(now), p]); P.put("bh", a)
     }
     /** αλλαγή σε 3 ώρες (hPa) και η τωρινή τιμή, ή nil */
@@ -124,7 +138,7 @@ enum Baro {
         let a = P.arr("bh").compactMap { $0 as? [Double] }
         guard a.count >= 2, let last = a.last else { return nil }
         let now = nowS()
-        guard let p3 = a.last(where: { now - Int($0[0]) >= 10800 }) else { return nil }
+        guard let p3 = a.last(where: { now - si($0[0]) >= 10800 }) else { return nil }
         let d = last[1] - p3[1]
         if abs(d) > 15 { return nil }   // όχι καιρός: υψόμετρο ή λάθος αισθητήρα
         return (d, last[1])
