@@ -28,7 +28,8 @@ const rows = T.map((t, i) => { const [u, ms, ms2, la, lo, prof0, rt, sp, e] = t,
     b0 += bite; b1 += h1.bite; s0 += full; n++; }
   const h = Math.max(1, (ms2 - ms) / HR), fish = F[i][1];
   /* «έξοδος από τα ψάρια της ημέρας» (φτιάχνεται εκ των υστέρων γύρω από ψάρια): στρογγυλές ώρες. Έχει ΠΑΝΤΑ ψάρια, άρα δεν είναι δίκαιη δοκιμή του βαθμού. */
-  const synth = ms % 60000 === 0 && ms2 % 60000 === 0;
+  /* 1.14.86: ο ΙΔΙΟΣ κανόνας με την εφαρμογή και τον server (AlkyonScore.session): «tracked» = έγκυρη έξοδος, καταγραμμένη ανεξάρτητα από το αν είχε ψάρια. */
+  const synth = !AS.session({ ms, ms2, lat: la, cnt: fish }).valid;
   return { u, h, fish, y: fish / h, rt, prof: prof0 || 'boat', synth, bite: b0 / n, learn: b1 / n, full: s0 / n, conf: cf / n, learned: learned / n, nowave: nowave / n, hours: n }; });
 
 const f2 = v => v == null ? 'n/a' : (Math.round(v * 100) / 100).toFixed(2), ci = b => `${f2(b.est)}  [95%: ${f2(b.lo)} … ${f2(b.hi)}]`;
