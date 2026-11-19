@@ -1432,12 +1432,13 @@ with sync_playwright() as p:
         return pg.evaluate("()=>[location.hash||'',navigation.currentEntry.index,navigation.canGoBack,document.querySelectorAll('.sheet.on').length]")
     BK="()=>history.back()"
     nv("()=>{location.hash='#profile'}"); nv("()=>{location.hash='#tackle'}"); r1=nv("()=>document.querySelector('.top a.iconbtn').click()"); r2=nv(BK)
-    check('Πλοήγηση: ‹ από Εξοπλισμό → Προφίλ, μετά «πίσω» → Πρόγνωση (όχι ξανά Εξοπλισμός) (1.12.13)', r1[0]=='#profile' and r2[0]=='' and not r2[2], [r1,r2])
-    r0=nv("()=>document.querySelector('.nav a[data-v=forecast]').click()")
-    check('Πλοήγηση: «Πρόγνωση» ενώ είσαι ήδη εκεί δεν γράφει νέα εγγραφή (1.12.13)', r0[1]==0 and not r0[2], r0)
+    check('Πλοήγηση: ‹ από Εξοπλισμό → Προφίλ, μετά «πίσω» → αρχική σελίδα (όχι ξανά Εξοπλισμός) (1.12.13)', r1[0]=='#profile' and r2[0]=='' and not r2[2], [r1,r2])
+    # 1.14.89: αρχική σελίδα είναι πλέον ο Χάρτης, άρα «η καρτέλα όπου είσαι ήδη» είναι ο Χάρτης (πριν η Πρόγνωση). Ο έλεγχος είναι ο ίδιος: δεν γράφεται νέα εγγραφή.
+    r0=nv("()=>document.querySelector('.nav a[data-v=map]').click()")
+    check('Πλοήγηση: «Χάρτης» ενώ είσαι ήδη εκεί (αρχική σελίδα) δεν γράφει νέα εγγραφή (1.12.13 · 1.14.89)', r0[1]==0 and not r0[2], r0)
     nv("()=>{location.hash='#log'}"); nv("()=>AK.biteForm()"); r1=nv("()=>[...document.querySelectorAll('.sheet.on .bfline')].find(x=>/Εξοπλισμός|Tackle/.test(x.textContent)).click()",1600)
     r2=nv(BK); r3=nv(BK)
-    check('Πλοήγηση: φόρμα → Εξοπλισμός, «πίσω» → Ημερολόγιο, «πίσω» → Πρόγνωση χωρίς άδειο πάτημα (1.12.13)', r1[0]=='#tackle' and r2[0]=='#log' and r2[3]==0 and r3[0]=='', [r1,r2,r3])
+    check('Πλοήγηση: φόρμα → Εξοπλισμός, «πίσω» → Ημερολόγιο, «πίσω» → αρχική σελίδα χωρίς άδειο πάτημα (1.12.13)', r1[0]=='#tackle' and r2[0]=='#log' and r2[3]==0 and r3[0]=='', [r1,r2,r3])
     pg.goto(BASE+'/v4/?n=1#boat'); pg.wait_for_timeout(2000); r0=nv(); r1=nv("()=>document.querySelector('.top a.iconbtn').click()")
     check('Πλοήγηση: άνοιγμα απευθείας στο #boat, ‹ → Προφίλ χωρίς νέα εγγραφή (1.12.13)', r1[0]=='#profile' and r1[1]==r0[1], [r0,r1])
     pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(2000); nv("()=>{location.hash='#map'}",2500); r1=nv("()=>document.querySelector('.mclay').click()"); r2=nv(BK)
@@ -1446,9 +1447,10 @@ with sync_playwright() as p:
     check('1.12.13: πλοήγηση χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
     # 1.12.15: με <base> /v4/ και διεύθυνση άλλη από /v4/ (π.χ. /v4/index.html ή alkyonfishing.com/), οι καρτέλες δεν ξαναφορτώνουν την εφαρμογή
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/index.html'); pg.wait_for_timeout(2500); pg.evaluate("()=>{window.__mk=1}"); rr=[]
-    for v in ['map','log','profile','forecast']:
+    # 1.14.89: ξεκινά από τον Χάρτη, άρα η πρώτη αλλαγή καρτέλας είναι προς την Πρόγνωση (πριν προς τον Χάρτη)
+    for v in ['forecast','log','profile','map']:
         pg.click('.nav a[data-v="%s"]'%v); pg.wait_for_timeout(1000); rr.append(pg.evaluate("()=>[location.pathname,location.hash,window.__mk===1]"))
-    check('Καρτέλες: χωρίς νέα φόρτωση της σελίδας όταν η διεύθυνση δεν είναι /v4/ (1.12.15)', all(x[0]=='/v4/index.html' and x[2] for x in rr) and rr[0][1]=='#map', rr)
+    check('Καρτέλες: χωρίς νέα φόρτωση της σελίδας όταν η διεύθυνση δεν είναι /v4/ (1.12.15)', all(x[0]=='/v4/index.html' and x[2] for x in rr) and rr[0][1]=='#forecast' and rr[3][1]=='#map', rr)
     c.close()
     # 1.12.16: παλίρροια, φίλτρα Οδηγού, GPX/KML, «Είδη» στο Προφίλ, «Σήμερα» στην είσοδο
     import json as _jj, time as _tt
@@ -1913,11 +1915,14 @@ with sync_playwright() as p:
     def csr(route):
         u=route.request.url; _cs['n']+=1; _cs['urls'].append(u)
         import time as _tm, re as _re
-        m=_re.search(r'time=(\d{4}-\d\d-\d\dT\d\d%3A(\d\d))',u); mm=int(m.group(2)) if m else 0
-        if mm in (10,40): return route.abort()            # δύο ώρες που «δεν απαντά» ο server
+        m=_re.search(r'time=(\d{4}-\d\d-\d\dT\d\d%3A\d\d)',u); tk=m.group(1) if m else ''
+        if 'dead' not in _cs: _cs['dead']=[tk]            # η πιο πρόσφατη ώρα (η πρώτη που ζητιέται) «δεν έχει βγει ακόμα»
+        elif len(_cs['dead'])==1 and tk not in _cs['dead'] and _cs['n']>=4: _cs['dead'].append(tk)   # και μία ακόμη, παλιότερη, «δεν απαντά»
+        if tk in _cs['dead']: return route.abort()
         _tm.sleep(0.9); return route.fulfill(body=_png,content_type='image/jpeg')
     c=ctx(b,lang='en'); c.add_init_script("if(!sessionStorage.__c2){sessionStorage.__c2=1;localStorage.setItem('alkyon-v4-map',JSON.stringify({cloudsat:true,fish:false,spots:false}));}")
     c.route('**/view.eumetsat.int/**',csr); pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(6500)
+    import urllib.parse as _up2
     n0=_cs['n']; u0=_cs['urls'][0] if _cs['urls'] else ''
     r=pg.evaluate("""async()=>{ const W=ms=>new Promise(z=>setTimeout(z,ms)), bar=document.querySelector('.csatbar'), img=()=>document.querySelector('.csattile img'), o={blank:0,mismatch:0,samples:0,labels:[]};
       const tOf=()=>{ const m=/time=(\\d{4}-\\d\\d-\\d\\dT\\d\\d%3A\\d\\d)/.exec(img()?img().src:''); return m?new Date(decodeURIComponent(m[1])+':00Z'):null; };
@@ -1926,7 +1931,8 @@ with sync_playwright() as p:
       bar.querySelector('.rbp').click();
       const iv=setInterval(()=>{ o.samples++; const im=img(); if(!im||!im.naturalWidth||+getComputedStyle(im).opacity<0.1) o.blank++; const t=tOf(); if(t&&im.complete&&lab()!==hm(t)) o.mismatch++; const l=lab(); if(o.labels[o.labels.length-1]!==l) o.labels.push(l); },60);
       await W(16000); clearInterval(iv); bar.querySelector('.rbp').click(); await W(300);
-      o.mins=[...new Set(o.labels.map(x=>x.slice(3)))]; o.play=bar.querySelector('.rbp').textContent; return o; }""")
+      o.play=bar.querySelector('.rbp').textContent; o.shown=tOf()?tOf().toISOString().slice(0,16):''; return o; }""")
+    dead=[_up2.unquote(x)+':00Z' for x in _cs.get('dead',[])]; deadHM=pg.evaluate("a=>a.map(x=>{const d=new Date(x); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')})",dead)
     n1=_cs['n']
     mv=pg.evaluate("""async()=>{ const W=ms=>new Promise(z=>setTimeout(z,ms)), m=AlkyonCore.map(); m.panBy([40,30],{animate:false}); await W(1600); return 1; }""")
     n2=_cs['n']
@@ -1935,12 +1941,19 @@ with sync_playwright() as p:
     cl=pg.evaluate("""async()=>{ const W=ms=>new Promise(z=>setTimeout(z,ms)); document.querySelector('.csatbar .rbx').click(); await W(400); return [document.querySelectorAll('.csatbar').length,document.querySelectorAll('.csattile img').length]; }""")
     import urllib.parse as _up
     q0=_up.parse_qs(_up.urlparse(u0).query)
-    check('Σύννεφα από δορυφόρο: μία εικόνα JPEG ανά ώρα για την περιοχή που βλέπεις (όχι πλακίδια), φορτώνει πρώτα η τελευταία και μετά μόνο η τελευταία ώρα στο παρασκήνιο (1.14.89)',
-          q0.get('format')==['image/jpeg'] and q0.get('layers')==['mtg_fd:rgb_geocolour'] and q0.get('crs')==['EPSG:3857'] and 64<=int(q0['width'][0])<=1024 and 64<=int(q0['height'][0])<=1280 and r['first'][0] and r['first'][1] and r['first'][2] and r['first'][3]==1 and 1<=n0<=7, [u0[:200],n0,r['first']])
+    check('Σύννεφα από δορυφόρο: μία εικόνα JPEG ανά ώρα για την περιοχή που βλέπεις (όχι πλακίδια)· αν η πιο πρόσφατη δεν έχει βγει, δείχνει την προηγούμενη· στο παρασκήνιο μόνο η τελευταία ώρα (1.14.89)',
+          q0.get('format')==['image/jpeg'] and q0.get('layers')==['mtg_fd:rgb_geocolour'] and q0.get('crs')==['EPSG:3857'] and 64<=int(q0['width'][0])<=1024 and 64<=int(q0['height'][0])<=1280 and r['first'][0] and r['first'][1] and r['first'][2] and r['first'][3]==1 and 1<=n0<=8, [u0[:200],n0,r['first']])
     check('Σύννεφα από δορυφόρο: στην αναπαραγωγή ο χάρτης δεν μένει ποτέ άδειος, η ώρα αλλάζει μόνο μαζί με την εικόνα, και οι ώρες που δεν απαντούν προσπερνιούνται (1.14.89)',
-          r['blank']==0 and r['mismatch']==0 and len(r['labels'])>=6 and not any(x in ('10','40') for x in r['mins']) and r['play']=='▶' and n1<=19+2 and not pg._errs, [r,n1,pg._errs])
+          r['blank']==0 and r['mismatch']==0 and len(r['labels'])>=6 and len(dead)==2 and not any(x in deadHM for x in r['labels']) and r['play']=='▶' and n1<=19+3 and not pg._errs, [r,n1,dead,deadHM,pg._errs])
     check('Σύννεφα από δορυφόρο: μικρή μετακίνηση δεν ξαναφορτώνει τίποτα· όταν βγεις από την περιοχή έρχεται νέα εικόνα· το ✕ τα κλείνει όλα (1.14.89)',
           n2==n1 and n3>n1 and u3!=u0 and cl==[0,0] and not pg._errs, [n1,n2,n3,cl,pg._errs]); c.close()
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/'); pg.wait_for_timeout(5000)
+    hm=pg.evaluate("()=>[document.documentElement.getAttribute('data-view'),!!document.querySelector('.leaflet-container'),(document.querySelector('.nav a[aria-current=page]')||{}).dataset?document.querySelector('.nav a[aria-current=page]').dataset.v:'',document.body.classList.contains('mapon')]")
+    pg.evaluate("()=>{ location.hash='#forecast'; }"); pg.wait_for_timeout(2500)
+    hf=pg.evaluate("()=>[document.documentElement.getAttribute('data-view'),document.body.classList.contains('mapon')]")
+    pg.goto(BASE+'/v4/#nosuchpage'); pg.wait_for_timeout(3000); hx=pg.evaluate("()=>document.documentElement.getAttribute('data-view')")
+    check('Αρχική σελίδα ο Χάρτης: άνοιγμα χωρίς σελίδα → Χάρτης· η Πρόγνωση ανοίγει κανονικά από τη μπάρα· άγνωστη σελίδα → Χάρτης (1.14.89)',
+          hm==['map',True,'map',True] and hf==['forecast',False] and hx=='map' and not pg._errs, [hm,hf,hx,pg._errs]); c.close()
 
     print('# 1.14.79 καιρός στη θέση του σκάφους, έκθεση με μπάρα χρόνου')
     now=int(time.time()*1000); c=ctx(b,lang='en'); c.add_init_script("if(!sessionStorage.mw){sessionStorage.mw=1;localStorage.setItem('alkyon-smart',JSON.stringify({weekly:Date.now()+9e9}));localStorage.setItem('alkyon-v4-mapui',JSON.stringify('clean'));localStorage.removeItem('alkyon-v4-mapui-test');localStorage.setItem('alkyon-safe',JSON.stringify({active:true,id:'T9',start:%d,due:%d}));}"%(now-600000,now+3*3600000))
