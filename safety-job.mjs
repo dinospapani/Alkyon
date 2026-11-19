@@ -926,21 +926,29 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
     };
     // 1.14.29: «Πόσο έπεσε μέσα»: κάθε έξοδος με τον βαθμό τσιμπήματος που θα έδινε ο δείκτης στις ώρες της (με τον καιρό που έγινε) → ψάρια ανά ώρα ανά ζώνη βαθμού
     const ACC_B = [50, 60, 70];
+    // 1.14.86 (P1.2): ΕΓΚΥΡΗ ΕΞΟΔΟΣ για τον έλεγχο του βαθμού. Ο κανόνας είναι ένας, στο score-core.js (AlkyonScore.session), ίδιος με την εφαρμογή:
+    // μετράνε οι έξοδοι που υπάρχουν ανεξάρτητα από το αν πιάστηκαν ψάρια (ζωντανή καταγραφή, «Ψάρεψα, τίποτα», με το χέρι), 20′ έως 16 ώρες, με θέση.
+    // Μένουν έξω οι «έξοδοι από τα ψάρια της ημέρας» (έχουν πάντα ψάρια) και οι άκυρες. Η μάθηση (analyse) ΔΕΝ αλλάζει: χρησιμοποιεί όλες τις εξόδους όπως πριν.
+    const sesOf = t => { try { return PF.session ? PF.session(t) : { kind: 'live', valid: true }; } catch (e) { return { kind: 'live', valid: true }; } };
+    const evalOK = t => sesOf(t).valid;
+    const sesCount = trips => { const o = {}; for (const t of trips) { const k = sesOf(t).kind; o[k] = (o[k] || 0) + 1; } return o; };
     const accOf = (catches, trips, g) => {
-      const T = trips.filter(t => t.ms2 > t.ms && t.cond && Array.isArray(t.cond.e) && t.cond.e.length); if (T.length < 5) return null;
+      const T = trips.filter(t => t.ms2 > t.ms && t.cond && Array.isArray(t.cond.e) && t.cond.e.length && evalOK(t)); if (T.length < 5) return null;
       const prof = g === 'spear' ? 'spear' : g === 'lake' ? 'lake' : 'boat', n = [0, 0, 0, 0], hr = [0, 0, 0, 0], fi = [0, 0, 0, 0], hit = [0, 0, 0, 0];
       for (const t of T) { const { sm } = sunOf(t.ms, t.lat, t.lon); let s = 0, k = 0; for (const f of t.cond.e) { const w = fcHour(f, t.lat, t.lon, prof); s += PF.hourScore(sm, w.hr, Object.assign({}, w, { bite: true })); k++; } if (!k) continue;
         const sc = s / k, b = sc < ACC_B[0] ? 0 : sc < ACC_B[1] ? 1 : sc < ACC_B[2] ? 2 : 3, fishN = catches.filter(r => r.user_id === t.user_id && +r.ms >= +t.ms - 15 * 60000 && +r.ms <= +t.ms2 + 15 * 60000).reduce((a, r) => a + Math.max(1, Math.min(64, r.cnt || 1)), 0);
         n[b]++; hr[b] += (t.ms2 - t.ms) / HR; fi[b] += fishN; if (fishN > 0 || t.cond.rt === 2) hit[b]++; }
       return { b: ACC_B, n, r: hr.map((h, i) => h >= 1 ? Math.round(fi[i] / h * 100) / 100 : null), hit: n.map((x, i) => x ? Math.round(hit[i] / x * 100) : null), trips: n.reduce((a, b) => a + b, 0) };
     };
-    const backtest = (catches, trips, ex, g) => {
-      const T = trips.filter(t => t.ms2 > t.ms); if (T.length < 8) return null;
+    // vo = true: δοκιμάζεται ΜΟΝΟ στις έγκυρες εξόδους (TV)· τα ευρήματα κάθε ομάδας βγαίνουν όπως πάντα από όλες τις υπόλοιπες (T).
+    // vo = false: ο έλεγχος όπως ήταν έως την 1.14.85 (από αυτόν εξαρτάται ακόμα το αν η μάθηση είναι ενεργή, ώστε να μην αλλάξει κανένας βαθμός).
+    const backtest = (catches, trips, ex, g, vo) => {
+      const T = trips.filter(t => t.ms2 > t.ms), TV = vo ? T.filter(evalOK) : T; if (TV.length < 8) return null;
       const fold = d => { let x = 0; for (const ch of String(d)) x = (x * 31 + ch.charCodeAt(0)) >>> 0; return x % 4; };
       const prof = g === 'spear' ? 'spear' : g === 'lake' ? 'lake' : 'boat';
       const res = [];
       for (let k = 0; k < 4; k++) {
-        const test = T.filter(t => fold(t.day) === k); if (!test.length) continue;
+        const test = TV.filter(t => fold(t.day) === k); if (!test.length) continue;
         const L = analyse(catches.filter(r => fold(r.day) !== k), T.filter(t => fold(t.day) !== k), 8, ex).data;
         for (const t of test) { const fishN = catches.filter(r => r.user_id === t.user_id && +r.ms >= +t.ms - 15 * 60000 && +r.ms <= +t.ms2 + 15 * 60000).reduce((a, r) => a + Math.max(1, r.cnt || 1), 0);
           let sb0 = 0, sb1 = 0, nh = 0; const { sm } = sunOf(t.ms, t.lat, t.lon);
@@ -955,7 +963,7 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
       const out = { n: res.length, base: A.a, adj: B2.a, on: B2.a >= A.a - 0.01 };
       if (T.length >= FIT_MIN) {
         // βαθμός κάθε εξόδου από το μοντέλο που μάθαμε χωρίς αυτήν
-        const resF = []; for (let k = 0; k < 4; k++) { const test = T.filter(t => fold(t.day) === k); if (!test.length) continue; const F = fitPoisson(catches.filter(r => fold(r.day) !== k), T.filter(t => fold(t.day) !== k), ex); if (!F) continue;
+        const resF = []; for (let k = 0; k < 4; k++) { const test = TV.filter(t => fold(t.day) === k); if (!test.length) continue; const F = fitPoisson(catches.filter(r => fold(r.day) !== k), T.filter(t => fold(t.day) !== k), ex); if (!F) continue;
           for (const t of test) { const fishN = catches.filter(r => r.user_id === t.user_id && +r.ms >= +t.ms - 15 * 60000 && +r.ms <= +t.ms2 + 15 * 60000).reduce((a, r) => a + Math.max(1, r.cnt || 1), 0); let z = 0, nh = 0; for (const f of t.cond.e) { z += F.score(f, t); nh++; } if (nh) resF.push({ y: fishN / Math.max(1, (t.ms2 - t.ms) / HR), b2: z / nh }); } }
         let s2 = 0, p = 0; for (let i = 0; i < resF.length; i++) for (let j = 0; j < resF.length; j++) { if (resF[i].y <= resF[j].y) continue; p++; s2 += resF[i].b2 > resF[j].b2 ? 1 : resF[i].b2 === resF[j].b2 ? 0.5 : 0; }
         if (p) { out.fit = Math.round(s2 / p * 100) / 100; out.fitOn = out.fit >= Math.max(out.base, out.adj) + 0.02; } }
@@ -995,7 +1003,7 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
           const catches = catchesAll.filter(r => grpOf(r) === g), trips = tripsAll.filter(t => grpOf(t) === g), ex = EXG[g];
           if (g !== 'sea' && !catches.length) continue;
           const pre = g === 'sea' ? '' : 'g:' + g + '|';   // θάλασσα: 'all', 'sp:…', 'r:…' (όπως πριν) · αλλιώς 'g:spear', 'g:spear|sp:…'
-          const A0 = analyse(catches, trips, 8, ex); const A0wk = A0.data.wk; delete A0.data.wk; try { const bt = backtest(catches, trips, ex, g); A0.data.trips = trips.length; A0.data.fitMin = FIT_MIN; A0.data.acc = accOf(catches, trips, g); if (g === 'sea') A0.data.qc = QC; if (bt) { A0.data.bt = bt; if (bt.fitOn) { const F = fitPoisson(catches, trips, ex); if (F && F.ins.length) { A0.data.ins = F.ins; A0.data.fitted = true; } } else if (!bt.on) A0.data.learnOff = true; } } catch (e) { log('bite stats: backtest ' + e.message); }
+          const A0 = analyse(catches, trips, 8, ex); const A0wk = A0.data.wk; delete A0.data.wk; try { const bt = backtest(catches, trips, ex, g); A0.data.trips = trips.length; A0.data.ses = sesCount(trips); try { const bv = backtest(catches, trips, ex, g, true); if (bv) A0.data.btv = { n: bv.n, base: bv.base, adj: bv.adj }; } catch (e) { } A0.data.fitMin = FIT_MIN; A0.data.acc = accOf(catches, trips, g); if (g === 'sea') A0.data.qc = QC; if (bt) { A0.data.bt = bt; if (bt.fitOn) { const F = fitPoisson(catches, trips, ex); if (F && F.ins.length) { A0.data.ins = F.ins; A0.data.fitted = true; } } else if (!bt.on) A0.data.learnOff = true; } } catch (e) { log('bite stats: backtest ' + e.message); }
           A0.data.mon = monOf(catches); put(g === 'sea' ? 'all' : 'g:' + g, A0, g);
           if (g !== 'ceph') for (const [sz, cs] of [['big', catches.filter(r => !isSmall(r))], ['small', catches.filter(isSmall)]]) if (cs.length >= 10 && cs.length < catches.length) { const a = analyse(cs, trips, 6, ex); a.data.size = sz; delete a.data.wk; put(pre + sz, a, g); }
           const bySp = {}; for (const r of catches) if (r.sp) (bySp[r.sp] = bySp[r.sp] || []).push(r);

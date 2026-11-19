@@ -231,6 +231,35 @@ function evaluate(sm,h,meta,cfg){ cfg=cfg||CFG0; meta=meta||{}; var ctx={sp:meta
   return {score:x.score,bite:x.bite,core:core,coreBite:coreBite,raw:ex.raw,base:ex.base,reasons:reasons,learn:x.learn||null,input:inp,
     confidence:confidence(inp,{dayOffset:meta.dayOffset,prof:meta.prof,unc:meta.unc,local:meta.local!=null?meta.local:h.waveOff!=null,evidence:ev},cfg),cfg:cfg.version}; }
 
-g.AlkyonScore={VERSION:CFG0.version,config:CFG0,hour:hour,explain:explain,window:windowOf,daylight:daylight,bins:bins,learn:learn,kindOf:kindOf,profOf:profOf,
+/* ---------- έγκυρη έξοδος ψαρέματος ----------
+   ΕΝΑΣ κανόνας, ίδιος στην εφαρμογή και στον server, για το ποιες έξοδοι μετράνε όταν ελέγχουμε «πόσο έπεσε μέσα ο βαθμός».
+   Αρχή: μια έξοδος μετρά όταν η ΥΠΑΡΞΗ της δεν εξαρτάται από το αν πιάστηκαν ψάρια. Έξοδος χωρίς ψάρια είναι το ίδιο έγκυρη με έξοδο με ψάρια.
+     live         καταγράφηκε την ώρα του ψαρέματος (Έναρξη/Τέλος, ρολόι, εργαλείο που ποντίστηκε και σηκώθηκε, διαδρομή με ώρες)   → ΕΓΚΥΡΗ
+     nofish       «Ψάρεψα, τίποτα»: ο χρήστης δήλωσε μόνος του έξοδο χωρίς ψάρι                                                  → ΕΓΚΥΡΗ
+     manual       έξοδος που πέρασε ο χρήστης με το χέρι (με ή χωρίς ψάρια)                                                      → ΕΓΚΥΡΗ
+     fromCatches  «Έξοδος από τα ψάρια της ημέρας»: φτιάχνεται ΜΟΝΟ για μέρες που έχουν ψάρια, άρα έχει πάντα ψάρια             → ΟΧΙ (θα έδειχνε τον βαθμό καλύτερο ή χειρότερο χωρίς λόγο)
+     unknown      παλιά γραμμή του server χωρίς σημάδι, με στρογγυλές ώρες και ψάρια: δεν ξέρουμε αν είναι manual ή fromCatches   → ΟΧΙ, μέχρι να την ξαναστείλει η εφαρμογή με σημάδι
+     invalid      λάθος ώρες, κάτω από minMin λεπτά, πάνω από maxHours ώρες (ξεχασμένη έξοδος) ή χωρίς θέση                       → ΟΧΙ
+   Δέχεται έξοδο της εφαρμογής ({startMs, endMs, lat, manual, nothing, fromCatches, sid, track, count}) ή γραμμή του catch_obs ({ms, ms2, lat, cnt, cond:{k}}).
+   Το σημάδι cond.k που στέλνει η εφαρμογή: 'l' live · 'n' nofish · 'm' manual · 'c' fromCatches · 'x' invalid.
+   Ο κανόνας αφορά ΜΟΝΟ την αξιολόγηση. Η μάθηση «πότε τσιμπάνε» και η προσωπική πρόγνωση συνεχίζουν να χρησιμοποιούν όλες τις εξόδους όπως πριν. */
+var SK={l:'live',n:'nofish',m:'manual',c:'fromCatches',x:'invalid'}, SKR={live:'l',nofish:'n',manual:'m',fromCatches:'c',invalid:'x'};
+function session(t,cfg){ var S=(cfg||CFG0).session; if(!t) return {kind:'invalid',valid:false,why:'no trip',k:'x'};
+  var app=t.startMs!=null||t.endMs!=null, s=+(app?t.startMs:t.ms), e=+(app?t.endMs:t.ms2), k=t.cond&&typeof t.cond.k==='string'?t.cond.k:null, cnt=+(app?t.count:t.cnt)||0;
+  var out=function(kind,why){ var v=kind==='live'||kind==='nofish'||kind==='manual'; return {kind:kind,valid:v,why:why||null,k:SKR[kind]||null}; };
+  if(!(s>0)||!(e>s)) return out('invalid','times');
+  var lat=t.lat!=null?t.lat:(t.cond0&&t.cond0.lat); if(lat==null||lat==='') return out('invalid','position');
+  var d=e-s; if(d<S.minMin*60000) return out('invalid','short'); if(d>S.maxHours*3600000) return out('invalid','long');
+  if(t.fromCatches||k==='c') return out('fromCatches');
+  if(k==='x') return out('invalid','flagged');
+  if(t.nothing||k==='n') return out('nofish');
+  if(t.manual||k==='m') return out('manual');
+  if(k==='l'||t.sid||(Array.isArray(t.track)&&t.track.length)) return out('live');
+  /* χωρίς σημάδι: οι έξοδοι που καταγράφονται ζωντανά έχουν ώρες με ακρίβεια χιλιοστού· όσες μπαίνουν με το χέρι, ακέραια λεπτά */
+  if(s%60000!==0||e%60000!==0) return out('live');
+  if(app) return out('manual');
+  return cnt>0?out('unknown','legacy row'):out('nofish'); }
+
+g.AlkyonScore={VERSION:CFG0.version,session:session,config:CFG0,hour:hour,explain:explain,window:windowOf,daylight:daylight,bins:bins,learn:learn,kindOf:kindOf,profOf:profOf,
   contract:contract,validate:validate,confidence:confidence,evaluate:evaluate,step:step,cls:cls,circDist:circDist,nearMin:nearMin,clamp:clamp};
 })(typeof self!=='undefined'?self:this);
