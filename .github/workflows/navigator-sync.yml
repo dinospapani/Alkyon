@@ -33,6 +33,7 @@ jobs:
           curl -s -A "Alkyon-sync/1.0" "https://map.navigatormap.org/api/detail/?ps_id=${{ github.event.inputs.probe }}&lang=en_EN" | python3 -c "import json,sys; d=json.load(sys.stdin); print(json.dumps({k:(v if not isinstance(v,(dict,list)) or k in ('regulations','designations') else '...') for k,v in d.items()}, ensure_ascii=False, indent=1)[:6000])" || true
       - run: node navigator-sync.mjs
         env:
+          NAV_CONTACT: ${{ secrets.NAV_CONTACT }}   # 1.14.91: διεύθυνση επικοινωνίας για το User-Agent (όχι μέσα στον κώδικα)
           NAV_CY_OUT: ${{ runner.temp }}/nav-cy.txt
           NAV_SINCE: ${{ github.event.inputs.since || (github.event.schedule == '41 5 10 1,4,7,10 *' && '2000-01-01') || '' }}
       - name: Μόνο θάλασσα (κόβεται η στεριά από τις περιοχές)

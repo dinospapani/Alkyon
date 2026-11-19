@@ -10,7 +10,7 @@ import fs from 'node:fs';
 
 export const BASE = 'https://map.navigatormap.org';
 export const KEEP = new Set(['Cyprus', 'Greece', 'Turkey', 'Israel', 'Lebanon', 'Egypt', 'Syria', 'Libya', 'Palestine']);
-const UA = 'Alkyon-sync/1.0 (fishing app, contact: dinospapanicolaou@gmail.com)';
+const UA = 'Alkyon-sync/1.0 (fishing app' + (process.env.NAV_CONTACT ? ', contact: ' + process.env.NAV_CONTACT : '') + ')';   /* 1.14.91: η διεύθυνση επικοινωνίας έρχεται από το περιβάλλον (GitHub secret), όχι από τον κώδικα */
 const PAGE = 200;
 const MAX_REMOVE_FRAC = 0.1;   /* πάνω από 10% διαγραφές: σταμάτα */
 const MAX_SHRINK_FRAC = 0.1;
@@ -62,9 +62,12 @@ function trunc(s, n) {
   s = s.split(/\s+/).filter(Boolean).join(' ');
   return s.length <= n ? s : s.slice(0, n - 1).replace(/\s+$/, '') + '…';
 }
-/* Κρατάμε ό,τι κρατούσε το reduce.py. */
+/* Κρατάμε ό,τι κρατούσε το reduce.py.
+   1.14.91: η κατηγορία 9 («Jurisdictional Authority Area») έχει δύο είδη. Τα εθνικά ύδατα (ΑΟΖ, χωρικά ύδατα, LFP 1–3) μένουν έξω:
+   καλύπτουν όλη τη θάλασσα της χώρας με τους γενικούς κανόνες. Οι ειδικές ζώνες (στρατιωτικές, ασφαλείας λιμανιών) με LFP 4–5
+   απαγορεύουν το ψάρεμα και πρέπει να φαίνονται (πριν κόβονταν μαζί με τα εθνικά ύδατα). */
 export function wanted(p) {
-  return p && KEEP.has(p.country) && p.category_id !== 9 && p.lfp != null && p.lfp !== 0;
+  return !!p && KEEP.has(p.country) && p.lfp != null && p.lfp !== 0 && (p.category_id !== 9 || p.lfp >= 4);
 }
 export function compact(p, G) {
   return {
