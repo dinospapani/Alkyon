@@ -203,3 +203,46 @@ test('1.14.89 satellite clouds: one JPEG image per time step, the visible image 
   assert.ok(!/setTimeout\(swap,6000\)/.test(m), 'the 6 s forced swap that blanked the map is gone'); assert.ok(fn(m, 'csatPump').includes('csat.fr.length-7') && fn(m, 'csatPump').includes('busy<3'));
   assert.ok(fn(m, 'csatNext').includes('csat.st[c]!==3'), 'failed frames are skipped in playback'); assert.ok(fn(m, 'csatMoved').includes('csat.box.b.contains(map.getBounds())'), 'small pans do not reload');
 });
+
+// ---------- 1.14.90 ----------
+test('1.14.90 server stats: when learning is switched off for a group, it is off in every key of that group (region, species); when it is on, in none', async () => {
+  const RealDate = Date, NOW = RealDate.parse('2026-11-19T10:00:00Z');
+  class FD extends RealDate { constructor(...a) { if (a.length) super(...a); else super(NOW); } static now() { return NOW; } } globalThis.Date = FD;
+  try {
+    const g = {}; for (const f of ['score-config.js', 'score-core.js', 'forecast.js']) new Function('self', rd(f))(g);
+    const { run } = await import(pathToFileURL(path.join(ROOT, 'safety-job.mjs')).href + '?v1490');
+    /* 80 έξοδοι σε δύο περιοχές, δύο είδη· τα ψάρια δεν ακολουθούν τις συνθήκες (τυχαία). Ανάλογα με τον σπόρο, ο έλεγχος βγάζει ότι η μάθηση βοηθά ή όχι. */
+    const stats = async seed => { let s = seed; const rnd = () => (s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff; const rows = [], D0 = RealDate.parse('2026-08-01T00:00:00Z'); let id = 1;
+      for (let i = 0; i < 80; i++) { const u = 'u' + (i % 6), st = D0 + i * 30 * HR + 5 * HR + 1234 + i * 77, dur = 4 * HR + 4321, good = i % 2 === 0, east = i % 4 < 2, e = [];
+        for (let t = st; t < st + dur; t += HR) e.push({ t, wind: good ? 6 : 16, gust: good ? 9 : 22, wave: good ? 0.3 : 1.1, press: good ? 1012 : 1021, pt: good ? -1.5 : 0.5, rain: 0, cloud: 30, temp: 24, sst: 23, tide: 0 });
+        const fish = rnd() < 0.5 ? 1 + Math.floor(rnd() * 3) : 0, day = new RealDate(st).toISOString().slice(0, 10), lat = 34.7, lon = east ? 34.2 : 32.4;
+        rows.push({ id: id++, user_id: u, kind: 'trip', sp: null, day, ms: st, ms2: st + dur, lat, lon, cnt: fish, tech: null, prof: 'boat', cond: { e, k: 'l' } });
+        for (let k = 0; k < fish; k++) rows.push({ id: id++, user_id: u, kind: 'catch', sp: ['pagrus pagrus', 'dentex dentex'][k % 2], day, ms: st + Math.floor(rnd() * dur), ms2: null, lat, lon, cnt: 1, tech: 'jig', prof: 'boat', cond: { wind: good ? 6 : 16, wave: good ? 0.3 : 1.1, pres: good ? 1012 : 1021, pt: good ? -1.5 : 0.5, hr: 9, sm: { rise: 6, set: 18 } } }); }
+      const posts = {}, res = (o, stc = 200) => ({ ok: stc < 400, status: stc, json: async () => o, text: async () => (o == null ? '' : JSON.stringify(o)), headers: new Map() });
+      const F = async (url, opt = {}) => { url = String(url); const m = (opt.method || 'GET').toUpperCase();
+        if (url.includes('/rest/v1/catch_obs') && m === 'GET') { const off = +(/offset=(\d+)/.exec(url) || [0, 0])[1]; return res(rows.slice(off, off + 1000)); }
+        if (m !== 'GET') { const t = /\/rest\/v1\/(\w+)/.exec(url); if (t && opt.body) { try { (posts[t[1]] = posts[t[1]] || []).push(JSON.parse(opt.body)); } catch (e) { } } return res(m === 'POST' && /rpc\//.test(url) ? true : null); }
+        if (url.includes('open-meteo')) return res({ error: true }, 500); return res([]); };
+      await run({ env: { SUPABASE_URL: 'https://x.supabase.co', SUPABASE_SERVICE_KEY: 'k' }, fetch: F, PF: g.PF, webpush: null, sendMail: null, log: () => { } });
+      return Object.fromEntries((posts.bite_stats || []).flat().filter(x => x && x.key && !/^trend:/.test(x.key)).map(x => [x.key, x])); };
+    const cj = rd('v4/contrib.js'), MIN = 20;
+    assert.ok(cj.includes("st.n>=MIN&&st.data&&!st.data.learnOff&&st.data.ins&&st.data.ins.length") && cj.includes("st.n>=10&&st.data&&!st.data.learnOff"), 'the app reads the switch on whichever key it picks');
+    const used = S => Object.keys(S).filter(k => { const st = S[k]; return !!(st && st.n >= (/(^|\|)sp:/.test(k) ? 10 : MIN) && st.data && !st.data.learnOff && st.data.ins && st.data.ins.length); });
+    /* α) ο έλεγχος λέει ότι η μάθηση δεν βοηθά */
+    const off = await stats(63352), subOff = Object.keys(off).filter(k => k !== 'all');
+    assert.equal(off.all.data.bt.on, false, JSON.stringify(off.all.data.bt)); assert.equal(off.all.data.learnOff, true);
+    assert.ok(subOff.some(k => /^r:/.test(k)) && subOff.some(k => /^sp:/.test(k)), 'region and species keys exist: ' + subOff.join(', '));
+    assert.deepEqual(subOff.filter(k => off[k].data.learnOff !== true), [], 'every key of the group carries the switch');
+    assert.deepEqual(used(off), [], 'the app finds no key to learn from, with or without a known position');
+    /* β) ο έλεγχος λέει ότι βοηθά: τίποτα δεν κλείνει */
+    const on = await stats(31676); assert.equal(on.all.data.bt.on, true, JSON.stringify(on.all.data.bt));
+    assert.deepEqual(Object.keys(on).filter(k => on[k].data.learnOff), [], 'nothing is switched off when the check passes'); assert.ok(used(on).includes('all') && used(on).some(k => /^r:/.test(k)));
+  } finally { globalThis.Date = RealDate; }
+});
+
+test('1.14.90 server stats: when the check passes, nothing is switched off (the rule itself did not change)', () => {
+  const s = rd('safety-job.mjs');
+  assert.ok(s.includes("const OFF = !!A0.data.learnOff, putG = (k, a) => { if (OFF) a.data.learnOff = true; put(k, a, g); };"), 'sub-keys follow the group, only when the group is off');
+  assert.ok(s.includes("if (bt.fitOn) {") && s.includes("else if (!bt.on) A0.data.learnOff = true;"), 'when learning is switched on or off is decided exactly as before');
+  assert.equal((s.match(/putG\(pre \+ /g) || []).length, 3, 'size, species and region keys');
+});
