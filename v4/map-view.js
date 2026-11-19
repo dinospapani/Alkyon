@@ -332,7 +332,7 @@ function rfcPre(){ try{ if(!map||rfc.kind||rfc.data||cfg.rainfc||cfg.cloudfc) re
 var csat={ov:null,bar:null,fr:[],st:[],img:[],cb:[],i:0,want:0,reg:null,box:null,z:0,gen:0,T:0,P:0,play:false,told:0};
 var CSAT_WMS='https://view.eumetsat.int/geoserver/ows';
 function csatStop(){ clearTimeout(csat.T); clearTimeout(csat.P); csat.play=false; csat.gen++; csatDrop(); if(csat.ov){ try{ map.removeLayer(csat.ov); }catch(e){} csat.ov=null; } if(csat.bar){ csat.bar.remove(); csat.bar=null; } csat.reg=null; csat.box=null; }
-function csatDrop(){ (csat.img||[]).forEach(function(im){ if(im){ im.onload=im.onerror=null; try{ im.src=''; }catch(e){} } }); csat.img=[]; csat.st=csat.fr.map(function(){ return 0; }); csat.cb=[]; }
+function csatDrop(){ var vis=csat.ov&&csat.ov.getElement?csat.ov.getElement():null; (csat.img||[]).forEach(function(im){ if(im&&im!==vis){ im.onload=im.onerror=null; try{ im.src=''; }catch(e){} } }); /* η εικόνα που φαίνεται τώρα μένει ως έχει */ csat.img=[]; csat.st=csat.fr.map(function(){ return 0; }); csat.cb=[]; }
 function csatReg(){ var c=map.getCenter(); return Math.abs(c.lng)<=62&&Math.abs(c.lat)<=68?'eu':'world'; }
 function csatFrames(reg){ var st=reg==='eu'?10*60e3:3*3600e3, last=Math.floor((Date.now()-(reg==='eu'?28*60e3:2.6*3600e3))/st)*st, n=reg==='eu'?19:9, o=[]; for(var k=n-1;k>=0;k--) o.push(last-k*st); return o; }
 function csatIso(ms){ return new Date(ms).toISOString().slice(0,19)+'Z'; }
@@ -348,7 +348,7 @@ function csatPane(){ var pn=map.getPane('csat'); if(!pn){ pn=map.createPane('csa
 function csatLoad(i,cb){ if(csat.st[i]===2){ if(cb) cb(true); return; } if(cb) (csat.cb[i]=csat.cb[i]||[]).push(cb); if(csat.st[i]===1) return;
   var g=csat.gen, done=false, tm=0, url=csatUrl(csat.fr[i]), fin=function(ok){ if(done||g!==csat.gen) return; done=true; clearTimeout(tm); csat.st[i]=ok?2:3; var q=csat.cb[i]||[]; csat.cb[i]=null; q.forEach(function(f){ try{ f(ok); }catch(e){} }); csatNote(); csatPump(); };
   csat.st[i]=1; tm=setTimeout(function(){ fin(false); },20000);
-  if(!csat.ov){ csatPane(); csat.ov=L.imageOverlay(url,csat.box.b,{pane:'csat',opacity:csatOp(),interactive:false,attribution:'Contains modified EUMETSAT Meteosat data '+new Date().getFullYear()}); csat.ov._csU=url; csat.ov.once('load',function(){ fin(true); }); csat.ov.once('error',function(){ fin(false); }); csat.ov.addTo(map); return; }
+  if(!csat.ov){ csatPane(); csat.ov=L.imageOverlay(url,csat.box.b,{pane:'csat',opacity:csatOp(),interactive:false,attribution:'Contains modified EUMETSAT Meteosat data '+new Date().getFullYear()}); var ov0=csat.ov; ov0.once('load',function(){ if(g===csat.gen) csat.img[i]=ov0.getElement(); fin(true); }); ov0.once('error',function(){ fin(false); }); ov0.addTo(map); return; }
   var im=new Image(); csat.img[i]=im; im.onload=function(){ fin(true); }; im.onerror=function(){ fin(false); }; im.src=url; }
 /* οι υπόλοιπες ώρες στο παρασκήνιο: από τη νεότερη, έως 3 μαζί· όχι σε «εξοικονόμηση δεδομένων» (εκεί φορτώνει μόνο ό,τι ζητήσεις) */
 function csatPump(){ if(!csat.bar||!csat.box) return; try{ if(navigator.connection&&navigator.connection.saveData&&!csat.play) return; }catch(e){}
@@ -358,8 +358,10 @@ function csatAgo(ms){ var ago=Math.round((Date.now()-ms)/60000); return (ago>=12
 function csatNote(){ if(!csat.bar) return; var ok=csat.st.filter(function(x){ return x===2; }).length, pend=csat.st.filter(function(x){ return x<2; }).length, sm=csat.bar.querySelector('small');
   if(sm) sm.textContent=csatAgo(csat.fr[csat.i])+(pend&&csat.st.some(function(x){ return x===1; })?T(' · φόρτωση ',' · loading ')+ok+'/'+csat.fr.length:''); csat.bar.classList.toggle('csload',csat.st[csat.want]===1); }
 /* δείχνει την ώρα i ΜΟΝΟ αν έχει έρθει η εικόνα της· ως τότε μένει η προηγούμενη */
-function csatPut(i){ if(!map||!csat.ov||csat.st[i]!==2) return; var url=csatUrl(csat.fr[i]); csat.i=i; csat.auto=false;
-  if(csat.ov._csU!==url){ csat.ov._csU=url; csat.ov.setBounds(csat.box.b); csat.ov.setUrl(url); }
+/* Η αλλαγή γίνεται με το ίδιο το στοιχείο εικόνας που έχει ήδη φορτώσει (όχι με νέο αίτημα στη διεύθυνση): η νέα εικόνα μπαίνει στον χάρτη έτοιμη
+   και μετά βγαίνει η παλιά. Έτσι δεν εξαρτάται από το αν ο browser κράτησε την εικόνα στην προσωρινή του μνήμη. */
+function csatPut(i){ if(!map||!csat.ov||csat.st[i]!==2) return; var im=csat.img[i]; if(!im) return; csat.i=i; csat.auto=false;
+  if(csat.ov.getElement()!==im){ var nov=L.imageOverlay(im,csat.box.b,{pane:'csat',opacity:csatOp(),interactive:false,attribution:'Contains modified EUMETSAT Meteosat data '+new Date().getFullYear()}), old=csat.ov; nov.addTo(map); csat.ov=nov; try{ map.removeLayer(old); }catch(e){} }
   if(csat.bar){ var d=new Date(csat.fr[i]); csat.bar.querySelector('b').textContent=B.pad(d.getHours())+':'+B.pad(d.getMinutes()); var r=csat.bar.querySelector('input'); if(r) r.value=String(i); } csatNote(); }
 function csatShow(i){ i=Math.max(0,Math.min(csat.fr.length-1,i)); csat.want=i; if(!map||!csat.box) return; if(csat.st[i]===3) csat.st[i]=0; csatNote();
   csatLoad(i,function(ok){ if(csat.want!==i) return; if(ok){ csatPut(i); if(csat.play) csatNext(); } else { csatNote(); if(csat.play) csatNext(); else if(csat.auto&&i>0&&i>csat.fr.length-4){ csatShow(i-1); } /* 1.14.89: αν η πιο πρόσφατη εικόνα δεν έχει βγει ακόμα ή δεν απαντά, δείχνει την αμέσως προηγούμενη (έως 3 πίσω) αντί για άδειο χάρτη */ else if(Date.now()-csat.told>30000){ csat.told=Date.now(); B.toast(T('Η εικόνα του δορυφόρου δεν φόρτωσε (αργή σύνδεση ή δεν απαντά η EUMETSAT). Δοκίμασε ξανά.','The satellite image did not load (slow connection or EUMETSAT is not responding). Try again.')); } } }); }
