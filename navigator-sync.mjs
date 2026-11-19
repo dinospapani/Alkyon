@@ -84,13 +84,14 @@ export function compact(p, G) {
 export function makeClient(fetchFn, sleep) {
   let last = 0;
   return async function get(path) {
-    /* 1.14.91: 2.5 s ανάμεσα στα αιτήματα και, αν ο server απαντήσει 429 (όριο ρυθμού), αναμονή 12 s και ξανά, έως 5 φορές.
+    /* 1.14.91: 2.5 s ανάμεσα στα αιτήματα και, αν ο server απαντήσει 429 (όριο ρυθμού), αναμονή 12 s και ξανά, έως 5 φορές. Το ίδιο και σε διακοπή δικτύου.
        Πριν ένα μόνο 429 σταματούσε όλο τον συγχρονισμό (πλήρης έλεγχος 19/11/2026: σταμάτησε στη σελίδα 9). */
     let r = null;
     for (let tries = 0; ; tries++) {
       const wait = 2500 - (Date.now() - last); if (wait > 0) await sleep(wait);
       last = Date.now();
-      r = await fetchFn(BASE + path, { headers: { 'User-Agent': UA, Accept: 'application/json' } });
+      try { r = await fetchFn(BASE + path, { headers: { 'User-Agent': UA, Accept: 'application/json' } }); }
+      catch (e) { if (tries >= 5) throw e; r = { ok: false, status: 429 }; }   /* διακοπή δικτύου: ίδια αναμονή και ξανά */
       if (r.status !== 429 || tries >= 5) break;
       await sleep(12000);
     }

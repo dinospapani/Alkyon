@@ -40,3 +40,9 @@ test('a 429 answer is retried after a pause, and gives up after five retries', a
   let m = 0; const bad = makeClient(async () => { m++; return { ok: false, status: 429 }; }, async () => {});
   await assert.rejects(() => bad('/y'), /HTTP 429/); assert.equal(m, 6);
 });
+test('a dropped connection is retried like a 429', async () => {
+  let n = 0; const get = makeClient(async () => { n++; if (n === 1) throw new TypeError('fetch failed'); return { ok: true, status: 200, json: async () => ({ b: 2 }) }; }, async () => {});
+  assert.deepEqual(await get('/x'), { b: 2 }); assert.equal(n, 2);
+  const dead = makeClient(async () => { throw new TypeError('fetch failed'); }, async () => {});
+  await assert.rejects(() => dead('/y'), /fetch failed/);
+});
