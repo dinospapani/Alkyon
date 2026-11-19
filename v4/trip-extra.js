@@ -23,9 +23,12 @@ function patchTrip(id,o){ var t=B.store.get('trips',id); if(t) B.store.save('tri
 function scoreSnap(){
   var s=st(); if(!s.active||!s.id||!window.PF) return; var cur=ls.get('alkyon-tscore',null); if(cur&&cur.id===s.id) return;
   var p=pos(); if(!p) return;
-  PF.getForecast(+p.lat,+p.lon,undefined,{days:2}).then(function(fc){ var out=[];
-    fc.days.forEach(function(d){ d.hours.forEach(function(x){ if(x.score==null) return; out.push([Math.floor((Date.parse(x.t+':00Z')-fc.tz*60000)/3600000),x.score]); }); });
-    if(out.length) ls.set('alkyon-tscore',{id:s.id,h:out,sp:ls.get('alkyon-advsp','')||''}); }).catch(function(){});
+  PF.getForecast(+p.lat,+p.lon,undefined,{days:2}).then(function(fc){ var out=[], cfg=null;
+    /* 1.14.85 (P1.2): μαζί με τον βαθμό κρατιούνται ο βαθμός πυρήνα, η βεβαιότητα, αν υπήρχε τοπική διόρθωση κύματος και αν εφαρμόστηκαν κοινά ευρήματα,
+       και η έκδοση των βαρών (scoreCfg). Έτσι αργότερα μετριέται αν αυτά προβλέπουν κάτι. Οι δύο πρώτες στήλες μένουν όπως ήταν. */
+    try{ if(PF.scoreRows){ var R=PF.scoreRows(fc,+p.lat,+p.lon); out=R.h; cfg=R.cfg; } }catch(e){ out=[]; }
+    if(!out.length) fc.days.forEach(function(d){ d.hours.forEach(function(x){ if(x.score==null) return; out.push([Math.floor((Date.parse(x.t+':00Z')-fc.tz*60000)/3600000),x.score]); }); });
+    if(out.length) ls.set('alkyon-tscore',{id:s.id,h:out,sp:ls.get('alkyon-advsp','')||'',cfg:cfg}); }).catch(function(){});
 }
 /* ---------- condH: πίεση και άνεμος κάθε ώρας της εξόδου ---------- */
 function condH(t){
@@ -43,7 +46,7 @@ function condH(t){
 B.on('tripend',function(e){ var id=e&&e.id; if(!id) { ls.set('alkyon-tscore',null); return; }
   setTimeout(function(){ var t=B.store.get('trips',id), sc=ls.get('alkyon-tscore',null);
     if(t&&sc&&Array.isArray(sc.h)&&(t.sid===sc.id||!t.sid)){ var lo=Math.floor(t.startMs/3600000), hi=Math.floor(t.endMs/3600000), hs=sc.h.filter(function(r){ return r[0]>=lo&&r[0]<=hi; });
-      if(hs.length) patchTrip(id,{scoreH:hs,scoreSp:sc.sp||undefined}); }
+      if(hs.length) patchTrip(id,{scoreH:hs,scoreSp:sc.sp||undefined,scoreCfg:sc.cfg||undefined}); }
     ls.set('alkyon-tscore',null); },2500);
   setTimeout(function(){ condH(B.store.get('trips',id)).catch(function(){}); },5000); });
 /* παλιότερες έξοδοι χωρίς condH: λίγες κάθε φορά, στο παρασκήνιο */

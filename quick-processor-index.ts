@@ -889,7 +889,17 @@ function scoreHour(sm,h,o){ o=o||{}; const c=scoreCtx(Object.assign({},h,o.sp?{s
   /* τα κοινά ευρήματα διαλέγονται όπως στο getForecast (ανά είδος ή ανά προφίλ) */
   const L=learnPick(o.learn||(o.learn===false?null:(typeof window!=='undefined'&&window.AlkyonLearn)||null),o.sp);
   return AS.evaluate(sm,h,{sp:c.sp,prof:c.prof,learn:L,dayOffset:o.dayOffset,unc:o.unc,local:o.local,evidence:o.evidence,src:o.src,extra:o.extra}); }
-g.PF={scoreHour,scoreConfig:CFG.version,explainHour,ensSpread,learnPick,learnBins,learnAdj,darkTxt,darkWin,squidEves,nextMoon,moonInfo,lims,moonAlt,moonEvents,moonPhase,solunarPeriods,pressureRise,sunMoon,hourScore,getForecast,findIdeal,message,check,goodDays,checkPlaces,dayLabel,bft,pressureEvent,windEvent,pressureTurns,pressureOutlook};
+/* P1.2 (αξιολόγηση): στιγμιότυπο της πρόγνωσης για αποθήκευση στην αρχή μιας εξόδου, ώστε αργότερα να συγκρίνεται με το τι έγινε.
+   Γραμμή ανά ώρα: [ώρα UTC (ms/3600000), βαθμός όπως τον είδε ο χρήστης, βαθμός πυρήνα πριν από τη μάθηση, βεβαιότητα 0–2,
+   τοπική διόρθωση κύματος 0/1, εφαρμόστηκαν κοινά ευρήματα 0/1]. Οι δύο πρώτες στήλες είναι ό,τι κρατούσε το scoreH ως τώρα (συμβατό με τις παλιές εξόδους).
+   Δεν αλλάζει κανέναν βαθμό και δεν εμφανίζεται πουθενά. */
+function scoreRows(fc,lat,lon,o){ const out=[]; if(!fc||!fc.days) return {cfg:CFG.version,h:out};
+  fc.days.forEach((d,di)=>{ let sm=null; try{ sm=sunMoon(d.date,+lat,+lon,fc.tz); }catch(e){}
+    for(const x of d.hours){ if(x.score==null) continue; const row=[Math.floor((Date.parse(x.t+':00Z')-fc.tz*60000)/3600000),x.score];
+      try{ if(sm){ const e=scoreHour(sm,x,Object.assign({dayOffset:di,unc:d.unc},o)); row.push(e.core,e.confidence.n,x.waveOff!=null?1:0,e.learn?1:0); } }catch(e){}
+      out.push(row); } });
+  return {cfg:CFG.version,h:out}; }
+g.PF={scoreRows,scoreHour,scoreConfig:CFG.version,explainHour,ensSpread,learnPick,learnBins,learnAdj,darkTxt,darkWin,squidEves,nextMoon,moonInfo,lims,moonAlt,moonEvents,moonPhase,solunarPeriods,pressureRise,sunMoon,hourScore,getForecast,findIdeal,message,check,goodDays,checkPlaces,dayLabel,bft,pressureEvent,windEvent,pressureTurns,pressureOutlook};
 })(typeof self!=='undefined'?self:this);
 
 const PF = self.PF;
