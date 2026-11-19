@@ -82,15 +82,17 @@ var HS=[];
 /* 1.13.7: αλλαγή γλώσσας χωρίς να γυρνάς στην αρχή: κρατά σελίδα και σημείο κύλισης */
 B.relang=function(v){ try{ localStorage.setItem('alkyon-lang',v); sessionStorage.setItem('alkyon-relang',JSON.stringify({h:location.hash||'',y:window.scrollY||0,t:Date.now()})); }catch(e){} location.reload(); };
 var RL=null; try{ RL=JSON.parse(sessionStorage.getItem('alkyon-relang')||'null'); sessionStorage.removeItem('alkyon-relang'); if(RL&&Date.now()-RL.t>30000) RL=null; }catch(e){ RL=null; }
+var HOME='map';
 function route(){
   if(RL){ var rl=RL; RL=null; if(!location.hash&&rl.h){ try{ history.replaceState(history.state,'',location.pathname+location.search+rl.h); }catch(e){} } if(rl.y>0) [300,900,1800].forEach(function(ms){ setTimeout(function(){ if(Math.abs((window.scrollY||0)-rl.y)>40) try{ window.scrollTo(0,rl.y); }catch(e){} },ms); }); }
-  var name=(location.hash||'').slice(1)||'forecast';
+  /* 1.14.89: αρχική σελίδα ο Χάρτης (ήταν η Πρόγνωση): ό,τι ανοίγει χωρίς συγκεκριμένη σελίδα πάει στον Χάρτη */
+  var name=(location.hash||'').slice(1)||HOME;
   /* συντομεύσεις: #new = νέο ψάρι, #trip = έναρξη εξόδου */
   if(name==='new'||name==='trip'){ var act=name; history.replaceState(null,'',location.pathname+(act==='new'?'#log':'#map')); name=act==='new'?'log':'map'; setTimeout(function(){ if(act==='new'&&B.biteForm) B.biteForm(); else if(B.tripStart) B.tripStart(); },500); }
   if(/^share=/.test(name)) name='map';
   /* v31z537: σύνδεσμος πρόσκλησης φίλου (#addfriend=ΚΩΔΙΚΟΣ): κρατά τον κωδικό και ανοίγει τους Φίλους με τον κωδικό συμπληρωμένο */
   if(/^addfriend=/.test(name)){ var fcd=decodeURIComponent(name.slice(10)).replace(/[^A-Za-z0-9]/g,'').toUpperCase(); try{ if(fcd.length>=6) localStorage.setItem('alk-friend-code',JSON.stringify({c:fcd,t:Date.now()})); }catch(e){} history.replaceState(null,'',location.pathname+'#friends'); name='friends'; }
-  if(!VIEWS[name]) name='forecast';
+  if(!VIEWS[name]) name=VIEWS[HOME]?HOME:'forecast';
   try{ document.documentElement.setAttribute('data-view',name); }catch(e){}   /* 1.14.45: για το σβήσιμο πάνω από την κάτω μπάρα (όχι στον χάρτη) */
   [].forEach.call(document.querySelectorAll('.nav a[data-v]'),function(a){ if(a.dataset.v===name) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
   if(cur===name) return;

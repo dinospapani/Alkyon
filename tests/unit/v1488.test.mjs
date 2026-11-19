@@ -168,3 +168,38 @@ test('map: switching radar source keeps the time bar in place (the main menu no 
 test('1.14.88 does not touch the score: config, weights and golden parity inputs are unchanged', () => {
   assert.equal(CFG.version, '2026.11-1'); assert.deepEqual(plain(CFG.learn), { shrink: 60, min: 0.85, max: 1.15, minN: 15 }); assert.deepEqual(plain(CFG.confidence.adjust), { modelDisagree: -1, noLocal: 0, evidenceStrong: 0 });
 });
+
+// ---------- 1.14.89 ----------
+test('1.14.89 notifications: "Plan for tomorrow" and "Your week" are written in the user\'s language, not half Greek and half English', () => {
+  const s = rd('safety-job.mjs'), GR = /[Ͱ-Ͽ]/, bad = [];
+  /* κανένα κείμενο ειδοποίησης με ελληνικά ΚΑΙ αγγλική «ουρά» μετά από « · ». Εξαίρεση: το μήνυμα προς τις επαφές ασφαλείας (δεν ξέρουμε τη γλώσσα του παραλήπτη). */
+  s.split('\n').forEach((l, i) => { if (/Not back yet|not confirmed/.test(l)) return; for (const m of l.matchAll(/'((?:[^'\\]|\\.)*)'/g)) { const t = m[1]; if (GR.test(t) && /· [A-Z][a-z]+ [a-z]+/.test(t)) bad.push((i + 1) + ': ' + t.slice(0, 70)); } });
+  assert.deepEqual(bad, []);
+  const best = s.slice(s.indexOf("const nid = 'best:'"), s.indexOf("stats.best = "));
+  assert.ok(best.includes("const en = !!subs.find(r => (r.places || []).find(p => p && p.lang === 'en')), LB = en ? LBL_EN : LBL;"), 'language from what the app sent, like the other notifications');
+  assert.ok(best.includes("title: '🎯 Plan for tomorrow: ' + tz + '–' + tz2,") && best.includes("title: '🎯 Το σχέδιο για αύριο: ' + tz + '–' + tz2,"));
+  const en = best.slice(best.indexOf('const msg = en ?'), best.indexOf(": { id: nid, kind: 'best'")), el = best.slice(best.indexOf(": { id: nid, kind: 'best'"));
+  assert.ok(!GR.test(en.replace(/🎯/g, '')), 'the English version has no Greek'); assert.ok(!/[A-Za-z]{4,} [a-z]{3,} [a-z]{3,}/.test((el.match(/'[^']*'/g) || []).filter(x => GR.test(x)).join(' ')), 'the Greek version has no English sentence');
+  /* οι ετικέτες συνθηκών υπάρχουν και στις δύο γλώσσες, με τα ίδια κλειδιά και το ίδιο πλήθος */
+  const tab = n => new Function('return ' + s.slice(s.indexOf('const ' + n + ' = {') + ('const ' + n + ' = ').length, s.indexOf('};', s.indexOf('const ' + n + ' = {')) + 1))(), A = tab('LBL'), E = tab('LBL_EN');
+  assert.deepEqual(Object.keys(E).sort(), Object.keys(A).sort()); for (const k of Object.keys(A)) { assert.equal(E[k].length, A[k].length, k); assert.ok(E[k].every(x => !GR.test(x)) && A[k].every(x => GR.test(x) || /kn|m$|\d/.test(x)), k); }
+  const wk = s.slice(s.indexOf("const nid = 'week:'"), s.indexOf("stats.week = ")); assert.ok(wk.includes("title: '📅 Your week',") && wk.includes("title: '📅 Η εβδομάδα σου',") && wk.includes("(enW ? DNE : DNW)[dix]"));
+});
+
+test('1.14.89 notifications list: the same notification from the phone and from the server is shown once', () => {
+  const a = rd('v4/alerts-view.js'); assert.ok(a.includes("if(x.id&&seen['#'+x.id]) return; if(tl.some(function(m){ return Math.abs(m-ms)<180000; })) return;"));
+  /* ο ίδιος κανόνας, όπως είναι γραμμένος, σε δεδομένα: ίδιος τίτλος 70″ μετά (άλλο λεπτό) = ίδια· ίδιος κωδικός = ίδια· ίδιος τίτλος 2 ώρες μετά = άλλη */
+  const body = a.slice(a.indexOf("var ms=Date.parse(x.at)||0, ti=x.title||''"), a.indexOf("all.push(x); });", a.indexOf("var ms=Date.parse(x.at)||0")) + 12);
+  const run = list => { const seen = {}, all = []; list.forEach(new Function('seen', 'all', 'return function(x){ if(!x||!x.at) return; ' + body + ' }')(seen, all)); return all.length; };
+  const T = Date.parse('2026-11-19T15:00:50Z'), at = d => new Date(T + d * 1000).toISOString();
+  assert.equal(run([{ at: at(0), title: 'Plan' }, { at: at(70), title: 'Plan' }]), 1); assert.equal(run([{ at: at(0), title: 'Plan', id: 'a' }, { at: at(900), title: 'Plan (edited)', id: 'a' }]), 1);
+  assert.equal(run([{ at: at(0), title: 'Pressure' }, { at: at(7200), title: 'Pressure' }]), 2); assert.equal(run([{ at: at(0), title: 'A' }, { at: at(5), title: 'B' }]), 2);
+});
+
+test('1.14.89 satellite clouds: one JPEG image per time step, the visible image is replaced only by a loaded one', () => {
+  const m = rd('v4/map-view.js');
+  assert.ok(!/L\.tileLayer\.wms\('https:\/\/view\.eumetsat\.int/.test(m), 'no more WMS tiles'); assert.ok(fn(m, 'csatUrl').includes('format=image%2Fjpeg') && fn(m, 'csatUrl').includes('crs=EPSG%3A3857'));
+  assert.ok(fn(m, 'csatPut').startsWith('function csatPut(i){ if(!map||!csat.ov||csat.st[i]!==2) return;'), 'a frame is shown only when its image has arrived');
+  assert.ok(!/setTimeout\(swap,6000\)/.test(m), 'the 6 s forced swap that blanked the map is gone'); assert.ok(fn(m, 'csatPump').includes('csat.fr.length-7') && fn(m, 'csatPump').includes('busy<3'));
+  assert.ok(fn(m, 'csatNext').includes('csat.st[c]!==3'), 'failed frames are skipped in playback'); assert.ok(fn(m, 'csatMoved').includes('csat.box.b.contains(map.getBounds())'), 'small pans do not reload');
+});
