@@ -210,7 +210,15 @@ export async function handle(req, F = fetch, now = Date.now()) {
       }
       let en = q.get('lang') === 'en', lim = null, us = null;
       if (q.get('code')) { us = await user(q.get('code')); if (us && us.lang && !q.get('lang')) en = us.lang === 'en'; }   // η γλώσσα του ρολογιού (lang) έχει προτεραιότητα
-      const key = lat.toFixed(2) + ',' + lon.toFixed(2) + (en ? 'e' : 'g') + JSON.stringify(lim || '');
+      const PF = await loadPF(F, now);
+      /* 1.14.87 (P1.3a): το ρολόι βαθμολογεί με τις ρυθμίσεις του χρήστη (προφίλ ψαρέματος, είδος-στόχος, όρια), όπως η εφαρμογή του. Ο κανόνας είναι ο PF.userPrefs.
+         Χωρίς κωδικό ή αν κάτι αποτύχει: όπως πριν (σκάφος, χωρίς είδος, προεπιλεγμένα όρια). */
+      let up = { prof: null, sp: null, limits: null };
+      if (us && PF.userPrefs) { try { const jj = async (pth) => { const r = await sb(F, pth); return r.ok ? await r.json() : []; };
+        const [st, ps, lr] = await Promise.all([jj('records?user_id=eq.' + us.user_id + '&kind=eq.settings&id=eq.main&select=data&limit=1').catch(() => []), jj('push_subs?user_id=eq.' + us.user_id + '&select=places,updated_at&order=updated_at.desc&limit=1').catch(() => []), jj('records?user_id=eq.' + us.user_id + '&kind=in.(trips,bites)&deleted=eq.false&select=p:data->>prof,s:data->>src&order=updated_at.desc&limit=8').catch(() => [])]);
+        up = PF.userPrefs({ places: (ps && ps[0] && ps[0].places) || [], settings: st && st[0] && st[0].data, lastProf: ((lr || []).find((x) => x && x.p && x.s !== 'watch') || {}).p || null }); } catch (e) {} }
+      lim = up.limits;
+      const key = lat.toFixed(2) + ',' + lon.toFixed(2) + (en ? 'e' : 'g') + JSON.stringify(lim || '') + '|' + (up.prof || '') + '|' + (up.sp ? String(up.sp.l || up.sp.n || '') : '');
       const bg = q.get('bg') === '1';   // από το παρασκήνιο του ρολογιού: μόνο οι καμπές πίεσης (λίγη μνήμη)
       const small = (v) => bg ? { ok: 1, tn: v.tn || [], p: v.now ? v.now.p : null, s: v.days && v.days[0] ? v.days[0].s : null, w: v.days && v.days[0] ? v.days[0].w : '', bw: v.bw || null } : v;
       /* 1.2.0: ώρα επιστροφής από το πλάνο εξόδου του κινητού (αν υπάρχει ενεργό), για το δαχτυλίδι της εξόδου στο ρολόι */
@@ -230,8 +238,7 @@ export async function handle(req, F = fetch, now = Date.now()) {
           const tc = trollSpots(a || [], lat, lon); if (tc.length) o = { ...o, tc }; } catch (e) {}
         return o; };
       const hit = mem.fc.get(key); if (hit && now - hit.at < 30 * 60e3) return J(small(await withDue(hit.v)), 200, 'private, max-age=300');
-      const PF = await loadPF(F, now);
-      const fc = await PF.getForecast(lat, lon, F, { days: 6 });
+      const fc = await PF.getForecast(lat, lon, F, { days: 6, prof: up.prof, sp: up.sp, limits: up.limits });
       const v = compact(PF, fc, en, lat, lon); mem.fc.set(key, { at: now, v }); if (mem.fc.size > 300) mem.fc.clear();
       return J(small(await withDue(v)), 200, 'private, max-age=300');
     }

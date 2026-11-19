@@ -16,9 +16,9 @@ const g = {}; for (const f of ['score-config.js', 'score-core.js', 'forecast.js'
 const PF = g.PF, AS = g.AlkyonScore, HR = 3600000;
 const T = fs.readFileSync(path.join(DIR, 'trips.jsonl'), 'utf8').trim().split('\n').map(l => JSON.parse(l)), F = JSON.parse(fs.readFileSync(path.join(DIR, 'fish.json'), 'utf8')), INS = JSON.parse(fs.readFileSync(path.join(DIR, 'ins.json'), 'utf8'));
 const tzOf = lon => Math.round((+lon || 0) / 15) * 60, isoD = ms => new Date(ms).toISOString().slice(0, 10);
-/* ίδια μετατροπή με τον server (safety-job fcHour), ΜΕ το γνωστό του σφάλμα (βροχή mm στο πεδίο της πιθανότητας), ώστε να αναπαράγεται ο σημερινός έλεγχος */
+/* ίδια μετατροπή με τον server (safety-job fcHour). 1.14.87: η βροχή των καταγεγραμμένων ωρών είναι mm και περνά μόνο ως mm (όχι ως πιθανότητα). */
 const fcHour = (f, la, lo, prof) => { const tz = tzOf(lo), [t, wind, gust, wave, press, pt, rain, cloud, temp, sst, tide] = f, hr = Math.floor(((t + tz * 60000) % 86400000) / HR);
-  return { hr, wind, gust, wave, pres: press, rain, mm: rain, clp: cloud, mal: PF.moonAlt(t, +la, +lo), temp, sst, prof: prof || 'boat', t: new Date(t + tz * 60000).toISOString().slice(0, 16),
+  return { hr, wind, gust, wave, pres: press, mm: rain, clp: cloud, mal: PF.moonAlt(t, +la, +lo), temp, sst, prof: prof || 'boat', t: new Date(t + tz * 60000).toISOString().slice(0, 16),
     ptrend: pt == null ? 'stable' : pt <= -3 ? 'fast' : pt <= -1 ? 'slow' : pt >= 1 ? 'rise' : 'stable', tide: tide == null ? null : tide > 0.01 ? 'up' : tide < -0.01 ? 'down' : 'slack', cloud: cloud == null ? 'part' : cloud < 20 ? 'clear' : cloud < 70 ? 'part' : 'over' }; };
 const rows = T.map((t, i) => { const [u, ms, ms2, la, lo, prof0, rt, sp, e] = t, prof = prof0 === 'spear' ? 'spear' : prof0 === 'lake' ? 'lake' : 'boat', tz = tzOf(lo), sm = PF.sunMoon(isoD(ms + tz * 60000), +la, +lo, tz);
   let b0 = 0, b1 = 0, s0 = 0, cf = 0, n = 0, learned = 0, nowave = 0;
