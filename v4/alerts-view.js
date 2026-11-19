@@ -169,7 +169,8 @@ function draw(){
 function loadHist(){
   var loc=caches.open('alkyon-cfg').then(function(c){ return c.match(new URL('__inbox',ROOT).href); }).then(function(r){ return r?r.json():[]; }).catch(function(){ return []; });
   var cl=B.cloud&&B.cloud.session()?B.cloud:null, srv=cl?cl.rest('notif_log?select=id,at,kind,title,body,details,place,t&order=at.desc&limit=200').then(function(r){ return r.json(); }).then(function(a){ return (a||[]).map(function(x){ x.full=x.details||x.body; return x; }); }).catch(function(){ return []; }):Promise.resolve([]);
-  Promise.all([loc,srv]).then(function(r){ var seen={}, all=[]; (Array.isArray(r[0])?r[0]:[]).concat(r[1]).concat(ls.get('alkyon-v4-inbox',[])||[]).forEach(function(x){ if(!x||!x.at) return; var k=(x.title||'')+String(x.at).slice(0,16); if(seen[k]) return; seen[k]=1; all.push(x); });
+  Promise.all([loc,srv]).then(function(r){ var seen={}, all=[]; (Array.isArray(r[0])?r[0]:[]).concat(r[1]).concat(ls.get('alkyon-v4-inbox',[])||[]).forEach(function(x){ if(!x||!x.at) return; /* 1.14.89: η ίδια ειδοποίηση έρχεται και από το κινητό και από τον server· αν οι δύο ώρες έπεφταν σε διαφορετικό λεπτό, φαινόταν δύο φορές. Τώρα: ίδιος κωδικός, ή ίδιος τίτλος μέσα σε 3 λεπτά = η ίδια. */
+      var ms=Date.parse(x.at)||0, ti=x.title||'', tl=seen['t'+ti]||(seen['t'+ti]=[]); if(x.id&&seen['#'+x.id]) return; if(tl.some(function(m){ return Math.abs(m-ms)<180000; })) return; if(x.id) seen['#'+x.id]=1; tl.push(ms); all.push(x); });
     hist=all.sort(function(a,b){ return String(b.at).localeCompare(String(a.at)); }); draw(); if(ib.root) ibDraw(); B.emit('inbox'); });
 }
 /* τοπικός έλεγχος όταν ανοίγει η εφαρμογή (όταν ο server δεν έχει τη συνδρομή) και περιοδικός στο παρασκήνιο, όπως η κλασική */

@@ -325,33 +325,62 @@ function rfcPre(){ try{ if(!map||rfc.kind||rfc.data||cfg.rainfc||cfg.cloudfc) re
 /* ===== 1.14.67: Σύννεφα από δορυφόρο (πραγματικά) =====
    EUMETSAT EUMETView (WMS, ελεύθερη πρόσβαση). Ευρώπη, Αφρική, Μέση Ανατολή: «Geo Colour» του Meteosat ανά 10′ (μέρα πραγματικό χρώμα, νύχτα υπέρυθρο).
    Αλλού (Αμερική, Ασία, Ειρηνικός): παγκόσμιο υπέρυθρο από όλους τους γεωστατικούς δορυφόρους, ανά 3 ώρες. Η εικόνα βγαίνει με καθυστέρηση ~30′ (3ωρο: έως ~3 ώρες). */
-var csat={l:null,nl:null,bar:null,fr:[],i:0,reg:null,T:0,P:0,play:false};
-function csatStop(){ clearTimeout(csat.T); clearTimeout(csat.P); csat.play=false; [csat.l,csat.nl].forEach(function(x){ if(x){ try{ map.removeLayer(x); }catch(e){} } }); csat.l=csat.nl=null; if(csat.bar){ csat.bar.remove(); csat.bar=null; } csat.reg=null; }
+/* 1.14.89: ΜΙΑ εικόνα ανά ώρα αντί για πλακίδια. Πριν κάθε ώρα ζητούσε 8–15 πλακίδια PNG (~27 KB το καθένα, 0,5–1,3″) και, αν δεν προλάβαιναν σε 6″,
+   η προηγούμενη εικόνα έβγαινε και ο χάρτης έμενε άδειος. Τώρα: μία εικόνα JPEG για την περιοχή που βλέπεις (με περιθώριο), ~90 KB και ~1,2″ η καθεμία·
+   οι υπόλοιπες ώρες φορτώνουν στο παρασκήνιο (3 μαζί, από τη νεότερη), η αναπαραγωγή δείχνει μόνο όσες έχουν έρθει, και η εικόνα που βλέπεις
+   δεν φεύγει ποτέ πριν είναι έτοιμη η επόμενη. Η ώρα στη μπάρα αλλάζει μόνο όταν αλλάξει και η εικόνα. */
+var csat={ov:null,bar:null,fr:[],st:[],img:[],cb:[],i:0,want:0,reg:null,box:null,z:0,gen:0,T:0,P:0,play:false,told:0};
+var CSAT_WMS='https://view.eumetsat.int/geoserver/ows';
+function csatStop(){ clearTimeout(csat.T); clearTimeout(csat.P); csat.play=false; csat.gen++; csatDrop(); if(csat.ov){ try{ map.removeLayer(csat.ov); }catch(e){} csat.ov=null; } if(csat.bar){ csat.bar.remove(); csat.bar=null; } csat.reg=null; csat.box=null; }
+function csatDrop(){ (csat.img||[]).forEach(function(im){ if(im){ im.onload=im.onerror=null; try{ im.src=''; }catch(e){} } }); csat.img=[]; csat.st=csat.fr.map(function(){ return 0; }); csat.cb=[]; }
 function csatReg(){ var c=map.getCenter(); return Math.abs(c.lng)<=62&&Math.abs(c.lat)<=68?'eu':'world'; }
 function csatFrames(reg){ var st=reg==='eu'?10*60e3:3*3600e3, last=Math.floor((Date.now()-(reg==='eu'?28*60e3:2.6*3600e3))/st)*st, n=reg==='eu'?19:9, o=[]; for(var k=n-1;k>=0;k--) o.push(last-k*st); return o; }
 function csatIso(ms){ return new Date(ms).toISOString().slice(0,19)+'Z'; }
 function csatOp(){ return csat.reg==='eu'?.92:.7; }
-function csatLayer(ms){ return L.tileLayer.wms('https://view.eumetsat.int/geoserver/ows',{layers:csat.reg==='eu'?'mtg_fd:rgb_geocolour':'mumi:worldcloudmap_ir108',format:'image/png',transparent:true,version:'1.3.0',time:csatIso(ms),opacity:0,zIndex:255,maxZoom:19,className:'csattile',attribution:'Contains modified EUMETSAT Meteosat data '+new Date().getFullYear()}); }
-/* 1.14.77: κάθε εικόνα φορτώνει πρώτα αόρατη και μετά παίρνει τη θέση της προηγούμενης, ώστε να μην αναβοσβήνει· έτσι δουλεύει και η αναπαραγωγή */
-function csatShow(i){ csat.i=i=Math.max(0,Math.min(csat.fr.length-1,i)); var ms=csat.fr[i]; if(!map) return;
-  if(csat.nl){ try{ map.removeLayer(csat.nl); }catch(e){} csat.nl=null; }
-  var nl=csatLayer(ms), done=false; csat.nl=nl;
-  function swap(){ if(done||csat.nl!==nl) return; done=true; nl.setOpacity(csatOp()); if(csat.l){ try{ map.removeLayer(csat.l); }catch(e){} } csat.l=nl; csat.nl=null; if(csat.play){ clearTimeout(csat.P); csat.P=setTimeout(function(){ if(csat.play) csatShow(csat.i>=csat.fr.length-1?0:csat.i+1); },csat.i>=csat.fr.length-1?1800:650); } }
-  nl.on('load',swap); nl.addTo(map); setTimeout(swap,6000);
-  if(csat.bar){ var d=new Date(ms), ago=Math.round((Date.now()-ms)/60000); csat.bar.querySelector('b').textContent=B.pad(d.getHours())+':'+B.pad(d.getMinutes());
-    csat.bar.querySelector('small').textContent=(ago>=120?T('πριν ','')+Math.round(ago/60)+T(' ώρες',' h ago'):T('πριν ','')+ago+T('′','′ ago'))+(csat.reg==='world'?T(' · υπέρυθρο, ανά 3 ώρες',' · infrared, every 3 h'):''); var r=csat.bar.querySelector('input'); if(r) r.value=String(i); } }
-function csatPlay(on){ csat.play=!!on; clearTimeout(csat.P); var b=csat.bar&&csat.bar.querySelector('.rbp'); if(b) b.textContent=csat.play?'❚❚':'▶'; if(csat.play) csatShow(csat.i>=csat.fr.length-1?0:csat.i+1); }
-function csatMake(){ csatStop(); if(!cfg.cloudsat||!map) return; var reg=csatReg(); csat.reg=reg; csat.fr=csatFrames(reg);
+/* η περιοχή της εικόνας: ό,τι βλέπεις συν 30% γύρω γύρω (μικρές μετακινήσεις δεν ξαναφορτώνουν), σε 3/4 της ανάλυσης της οθόνης, έως 1024×1280 */
+function csatBox(){ var vb=map.getBounds().pad(0.3), s=Math.max(-82,vb.getSouth()), n=Math.min(82,vb.getNorth()), w=Math.max(-180,vb.getWest()), e=Math.min(180,vb.getEast());
+  if(!(e>w)){ w=-180; e=180; } var P=L.Projection.SphericalMercator, a=P.project(L.latLng(s,w)), c=P.project(L.latLng(n,e)), sz=map.getSize();
+  var W=Math.round(sz.x*1.6*0.75), H=Math.round(W*(c.y-a.y)/Math.max(1,c.x-a.x)), m=Math.max(W/1024,H/1280,1); W=Math.max(64,Math.round(W/m)); H=Math.max(64,Math.round(H/m));
+  return {b:L.latLngBounds([s,w],[n,e]),w:W,h:H,bbox:[a.x,a.y,c.x,c.y].map(function(v){ return v.toFixed(0); }).join(',')}; }
+function csatUrl(ms){ var B0=csat.box; return CSAT_WMS+'?service=WMS&request=GetMap&version=1.3.0&layers='+encodeURIComponent(csat.reg==='eu'?'mtg_fd:rgb_geocolour':'mumi:worldcloudmap_ir108')+'&styles=&format=image%2Fjpeg&crs=EPSG%3A3857&width='+B0.w+'&height='+B0.h+'&bbox='+B0.bbox+'&time='+encodeURIComponent(csatIso(ms)); }
+function csatPane(){ var pn=map.getPane('csat'); if(!pn){ pn=map.createPane('csat',map.getPane('tilePane')); pn.classList.add('csattile'); pn.style.zIndex='255'; pn.style.pointerEvents='none'; } return pn; }
+/* φόρτωση μιας ώρας: 0 όχι ακόμα · 1 έρχεται · 2 ήρθε · 3 απέτυχε (20″ ή σφάλμα). Η πρώτη εικόνα μπαίνει κατευθείαν στον χάρτη, οι άλλες στη μνήμη του browser. */
+function csatLoad(i,cb){ if(csat.st[i]===2){ if(cb) cb(true); return; } if(cb) (csat.cb[i]=csat.cb[i]||[]).push(cb); if(csat.st[i]===1) return;
+  var g=csat.gen, done=false, tm=0, url=csatUrl(csat.fr[i]), fin=function(ok){ if(done||g!==csat.gen) return; done=true; clearTimeout(tm); csat.st[i]=ok?2:3; var q=csat.cb[i]||[]; csat.cb[i]=null; q.forEach(function(f){ try{ f(ok); }catch(e){} }); csatNote(); csatPump(); };
+  csat.st[i]=1; tm=setTimeout(function(){ fin(false); },20000);
+  if(!csat.ov){ csatPane(); csat.ov=L.imageOverlay(url,csat.box.b,{pane:'csat',opacity:csatOp(),interactive:false,attribution:'Contains modified EUMETSAT Meteosat data '+new Date().getFullYear()}); csat.ov._csU=url; csat.ov.once('load',function(){ fin(true); }); csat.ov.once('error',function(){ fin(false); }); csat.ov.addTo(map); return; }
+  var im=new Image(); csat.img[i]=im; im.onload=function(){ fin(true); }; im.onerror=function(){ fin(false); }; im.src=url; }
+/* οι υπόλοιπες ώρες στο παρασκήνιο: από τη νεότερη, έως 3 μαζί· όχι σε «εξοικονόμηση δεδομένων» (εκεί φορτώνει μόνο ό,τι ζητήσεις) */
+function csatPump(){ if(!csat.bar||!csat.box) return; try{ if(navigator.connection&&navigator.connection.saveData&&!csat.play) return; }catch(e){}
+  /* χωρίς αναπαραγωγή φορτώνει μόνο την τελευταία ώρα (7 εικόνες)· οι παλιότερες έρχονται όταν πατήσεις ▶ ή σύρεις τη μπάρα (λιγότερα δεδομένα κινητού) */
+  var lo=csat.all?0:Math.max(0,csat.fr.length-7), busy=csat.st.filter(function(x){ return x===1; }).length; for(var i=csat.fr.length-1;i>=lo&&busy<3;i--) if(csat.st[i]===0){ csatLoad(i); busy++; } }
+function csatAgo(ms){ var ago=Math.round((Date.now()-ms)/60000); return (ago>=120?T('πριν ','')+Math.round(ago/60)+T(' ώρες',' h ago'):T('πριν ','')+ago+T('′','′ ago'))+(csat.reg==='world'?T(' · υπέρυθρο, ανά 3 ώρες',' · infrared, every 3 h'):''); }
+function csatNote(){ if(!csat.bar) return; var ok=csat.st.filter(function(x){ return x===2; }).length, pend=csat.st.filter(function(x){ return x<2; }).length, sm=csat.bar.querySelector('small');
+  if(sm) sm.textContent=csatAgo(csat.fr[csat.i])+(pend&&csat.st.some(function(x){ return x===1; })?T(' · φόρτωση ',' · loading ')+ok+'/'+csat.fr.length:''); csat.bar.classList.toggle('csload',csat.st[csat.want]===1); }
+/* δείχνει την ώρα i ΜΟΝΟ αν έχει έρθει η εικόνα της· ως τότε μένει η προηγούμενη */
+function csatPut(i){ if(!map||!csat.ov||csat.st[i]!==2) return; var url=csatUrl(csat.fr[i]); csat.i=i;
+  if(csat.ov._csU!==url){ csat.ov._csU=url; csat.ov.setBounds(csat.box.b); csat.ov.setUrl(url); }
+  if(csat.bar){ var d=new Date(csat.fr[i]); csat.bar.querySelector('b').textContent=B.pad(d.getHours())+':'+B.pad(d.getMinutes()); var r=csat.bar.querySelector('input'); if(r) r.value=String(i); } csatNote(); }
+function csatShow(i){ i=Math.max(0,Math.min(csat.fr.length-1,i)); csat.want=i; if(!map||!csat.box) return; if(csat.st[i]===3) csat.st[i]=0; csatNote();
+  csatLoad(i,function(ok){ if(csat.want!==i) return; if(ok){ csatPut(i); if(csat.play) csatNext(); } else { csatNote(); if(csat.play) csatNext(); else if(Date.now()-csat.told>30000){ csat.told=Date.now(); B.toast(T('Η εικόνα του δορυφόρου δεν φόρτωσε (αργή σύνδεση ή δεν απαντά η EUMETSAT). Δοκίμασε ξανά.','The satellite image did not load (slow connection or EUMETSAT is not responding). Try again.')); } } }); }
+/* αναπαραγωγή: επόμενη ώρα που έχει έρθει ή έρχεται· όσες απέτυχαν προσπερνιούνται· αν δεν υπάρχει καμία άλλη, σταματά */
+function csatNext(){ clearTimeout(csat.P); if(!csat.play) return; var n=csat.fr.length, k, j=-1; for(k=1;k<=n;k++){ var c=(csat.i+k)%n; if(csat.st[c]!==3){ j=c; break; } }
+  if(j<0||(j===csat.i&&n>1)){ csatPlay(false); return; } var end=csat.i>=n-1||j<csat.i; csat.P=setTimeout(function(){ if(csat.play) csatShow(j); },end?1800:650); }
+function csatPlay(on){ csat.play=!!on; if(on) csat.all=true; clearTimeout(csat.P); var b=csat.bar&&csat.bar.querySelector('.rbp'); if(b) b.textContent=csat.play?'❚❚':'▶'; if(csat.play){ csatPump(); var n=csat.fr.length, j=(csat.i+1)%n; csat.st.forEach(function(x,q){ if(x===3) csat.st[q]=0; }); csatShow(j); } }
+function csatMake(){ csatStop(); if(!cfg.cloudsat||!map) return; var reg=csatReg(); csat.reg=reg; csat.fr=csatFrames(reg); csat.box=csatBox(); csat.z=map.getZoom(); csat.st=csat.fr.map(function(){ return 0; }); csat.img=[]; csat.cb=[]; csat.i=csat.want=csat.fr.length-1; csat.all=false;
   csat.bar=h('div',{class:'rainbar csatbar',role:'group','aria-label':T('Σύννεφα από δορυφόρο','Satellite clouds')},
     h('button',{type:'button',class:'rbp','aria-label':T('Αναπαραγωγή/παύση','Play/pause'),text:'▶',onclick:function(){ csatPlay(!csat.play); }}),
     h('span',{class:'rbt'},h('i',{text:T('Σύννεφα · δορυφόρος','Clouds · satellite')}),h('b',{text:''}),h('small',{text:''})),
-    h('input',{type:'range',min:'0',max:String(csat.fr.length-1),value:String(csat.fr.length-1),'aria-label':T('Ώρα εικόνας','Image time'),onchange:function(){ csatPlay(false); csatShow(+this.value); },oninput:function(){ var ms=csat.fr[+this.value], d=new Date(ms); csat.bar.querySelector('b').textContent=B.pad(d.getHours())+':'+B.pad(d.getMinutes()); }}),
+    h('input',{type:'range',min:'0',max:String(csat.fr.length-1),value:String(csat.fr.length-1),'aria-label':T('Ώρα εικόνας','Image time'),onchange:function(){ csatPlay(false); csat.all=true; csatShow(+this.value); csatPump(); },oninput:function(){ var ms=csat.fr[+this.value], d=new Date(ms); csat.bar.querySelector('b').textContent=B.pad(d.getHours())+':'+B.pad(d.getMinutes()); }}),
     h('button',{type:'button',class:'rbx','aria-label':T('Κλείσιμο','Close'),text:'✕',onclick:function(){ cfg.cloudsat=false; saveCfg(); csatStop(); }}));
-  document.body.append(csat.bar); csatShow(csat.fr.length-1); }
-function csatMoved(){ if(!cfg.cloudsat||!map||!(csat.l||csat.nl)) return; clearTimeout(csat.T); csat.T=setTimeout(function(){ if(csatReg()!==csat.reg) csatMake(); },900); }
+  document.body.append(csat.bar); var d0=new Date(csat.fr[csat.i]); csat.bar.querySelector('b').textContent=B.pad(d0.getHours())+':'+B.pad(d0.getMinutes()); csatShow(csat.fr.length-1); }
+/* μετακίνηση χάρτη: νέα εικόνα μόνο αν βγήκες από την περιοχή της (ή έκανες ζουμ 2 επίπεδα μέσα)· η παλιά μένει μέχρι να έρθει η νέα */
+function csatMoved(){ if(!cfg.cloudsat||!map||!csat.bar) return; clearTimeout(csat.T); csat.T=setTimeout(function(){ if(!csat.bar||!map) return; if(csatReg()!==csat.reg){ csatMake(); return; }
+  var out=!csat.box||!csat.box.b.contains(map.getBounds()), zin=map.getZoom()-csat.z>=2; if(!out&&!zin) return;
+  var was=csat.play, i=csat.want; csat.gen++; csatDrop(); csat.box=csatBox(); csat.z=map.getZoom(); clearTimeout(csat.P); csatShow(i); if(was) csatPump(); },900); }
 /* ραντάρ, πρόγνωση βροχής, πρόγνωση νέφωσης και δορυφόρος έχουν την ίδια θέση μπάρας: όποιο ανάψει, σβήνει τα άλλα */
 function barOnly(k){ ['rain','rainfc','cloudfc','cloudsat'].forEach(function(x){ if(x!==k) cfg[x]=false; }); if(k!=='rain') rainStop(); if(k!=='rainfc'&&k!=='cloudfc') drawRainFc(); if(k!=='cloudsat') csatStop(); }
-function drawCloudSat(){ if(!cfg.cloudsat||!map){ csatStop(); return; } if((csat.l||csat.nl)&&csat.bar) return; csatMake(); }
+function drawCloudSat(){ if(!cfg.cloudsat||!map){ csatStop(); return; } if(csat.ov&&csat.bar) return; csatMake(); }
 /* 1.12.11: η πηγή ραντάρ αλλάζει όταν μετακινείς τον χάρτη μέσα ή έξω από την Κύπρο (πριν έμενε αυτή που διαλέχτηκε στο άνοιγμα) */
 var rainSrcT=0; function rainAuto(){ if(!cfg.rain||!map) return; clearTimeout(rainSrcT); rainSrcT=setTimeout(function(){ var rs=ls.get('alkyon-v4-rainsrc','auto'), want=(rs!=='rv'&&inCyR())?'dom':'rv'; if(want!==rainSrc&&!(want==='dom'&&rainDom.stale&&Date.now()-rainDom.stale<600000)) drawRain(); },800); }
 function drawRain(sw){ rainStop(sw===true); if(!cfg.rain||!map){ rainBarDrop(); return; }

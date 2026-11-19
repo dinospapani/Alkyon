@@ -360,6 +360,7 @@ body.mapon:has(.rfcbar) .sstleg.sstleg{bottom:calc(var(--nav-h,64px) + var(--saf
 .csatbar .rbt{min-width:118px}
 .csatbar .rbt small{white-space:nowrap}
 .csattile{image-rendering:auto}
+.csatbar.csload .rbt b{opacity:.5}
 
 /* ===== 1.14.71–73: η κάτω μπάρα μαζεύεται δεξιά (μόνο στον Χάρτη) ===== */
 .nav>div{transition:transform .28s cubic-bezier(.2,.8,.2,1);touch-action:pan-y}

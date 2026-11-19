@@ -1903,9 +1903,44 @@ with sync_playwright() as p:
       const r2=b.getBoundingClientRect(), p=JSON.parse(localStorage.getItem('alkyon-v4-fishpos')||'null'); return [Math.round(r.left-r2.left), Math.round(r.top-r2.top), !!p, document.querySelectorAll('.sheet.on').length!==sh0, !!document.querySelector('.fdial'), sh0]; }""")
     check('Έξοδος: το πράσινο «ψάρι» σέρνεται, η θέση αποθηκεύεται, και το σύρσιμο δεν ανοίγει φόρμα ή κουμπιά (1.14.77)', len(fd)==6 and 140<=fd[0]<=160 and 240<=fd[1]<=270 and fd[2] and not fd[3] and not fd[4] and not pg._errs, [fd,pg._errs]); c.close()
     c=ctx(b,lang='en'); c.add_init_script("if(!sessionStorage.__cs){sessionStorage.__cs=1;localStorage.setItem('alkyon-v4-map',JSON.stringify({cloudsat:true,fish:false,spots:false}));}")
+    # 1.14.89: η ώρα προχωρά μόνο όταν έρθει η εικόνα της (πριν προχωρούσε και με άδειο χάρτη, μετά από 6″). Γι' αυτό ο έλεγχος δίνει πλέον εικόνες στη θέση της EUMETSAT.
+    c.route('**/view.eumetsat.int/**',lambda route: route.fulfill(body=_png,content_type='image/png'))
     pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(4500)
     cp=pg.evaluate("""async()=>{ const W=ms=>new Promise(z=>setTimeout(z,ms)), bar=document.querySelector('.csatbar'), p=bar&&bar.querySelector('.rbp'); if(!p) return ['noplay']; const v0=bar.querySelector('input').value, t0=bar.querySelector('b').textContent; p.click(); await W(7500); const v1=bar.querySelector('input').value, tx=p.textContent; p.click(); await W(300); return [v0, v1, tx, p.textContent, bar.querySelector('b').textContent!==t0]; }""")
     check('Σύννεφα από δορυφόρο: κουμπί αναπαραγωγής, η ώρα προχωρά και σταματά με παύση (1.14.77)', len(cp)==5 and cp[0]!=cp[1] and cp[2]=='❚❚' and cp[3]=='▶' and cp[4] and not pg._errs, [cp,pg._errs]); c.close()
+    print('# 1.14.89 σύννεφα από δορυφόρο: μία εικόνα ανά ώρα, ποτέ άδειος χάρτης')
+    _cs={'n':0,'urls':[]}
+    def csr(route):
+        u=route.request.url; _cs['n']+=1; _cs['urls'].append(u)
+        import time as _tm, re as _re
+        m=_re.search(r'time=(\d{4}-\d\d-\d\dT\d\d%3A(\d\d))',u); mm=int(m.group(2)) if m else 0
+        if mm in (10,40): return route.abort()            # δύο ώρες που «δεν απαντά» ο server
+        _tm.sleep(0.9); return route.fulfill(body=_png,content_type='image/jpeg')
+    c=ctx(b,lang='en'); c.add_init_script("if(!sessionStorage.__c2){sessionStorage.__c2=1;localStorage.setItem('alkyon-v4-map',JSON.stringify({cloudsat:true,fish:false,spots:false}));}")
+    c.route('**/view.eumetsat.int/**',csr); pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(6500)
+    n0=_cs['n']; u0=_cs['urls'][0] if _cs['urls'] else ''
+    r=pg.evaluate("""async()=>{ const W=ms=>new Promise(z=>setTimeout(z,ms)), bar=document.querySelector('.csatbar'), img=()=>document.querySelector('.csattile img'), o={blank:0,mismatch:0,samples:0,labels:[]};
+      const tOf=()=>{ const m=/time=(\\d{4}-\\d\\d-\\d\\dT\\d\\d%3A\\d\\d)/.exec(img()?img().src:''); return m?new Date(decodeURIComponent(m[1])+':00Z'):null; };
+      const lab=()=>bar.querySelector('b').textContent, hm=d=>String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+      o.first=[!!img(),img()&&img().complete&&img().naturalWidth>0,lab()===hm(tOf()),document.querySelectorAll('.csattile img').length,bar.querySelector('small').textContent];
+      bar.querySelector('.rbp').click();
+      const iv=setInterval(()=>{ o.samples++; const im=img(); if(!im||!im.naturalWidth||+getComputedStyle(im).opacity<0.1) o.blank++; const t=tOf(); if(t&&im.complete&&lab()!==hm(t)) o.mismatch++; const l=lab(); if(o.labels[o.labels.length-1]!==l) o.labels.push(l); },60);
+      await W(16000); clearInterval(iv); bar.querySelector('.rbp').click(); await W(300);
+      o.mins=[...new Set(o.labels.map(x=>x.slice(3)))]; o.play=bar.querySelector('.rbp').textContent; return o; }""")
+    n1=_cs['n']
+    mv=pg.evaluate("""async()=>{ const W=ms=>new Promise(z=>setTimeout(z,ms)), m=AlkyonCore.map(); m.panBy([40,30],{animate:false}); await W(1600); return 1; }""")
+    n2=_cs['n']
+    pg.evaluate("""async()=>{ const W=ms=>new Promise(z=>setTimeout(z,ms)), m=AlkyonCore.map(); m.panBy([900,0],{animate:false}); await W(3200); return 1; }""")
+    n3=_cs['n']; u3=_cs['urls'][-1]
+    cl=pg.evaluate("""async()=>{ const W=ms=>new Promise(z=>setTimeout(z,ms)); document.querySelector('.csatbar .rbx').click(); await W(400); return [document.querySelectorAll('.csatbar').length,document.querySelectorAll('.csattile img').length]; }""")
+    import urllib.parse as _up
+    q0=_up.parse_qs(_up.urlparse(u0).query)
+    check('Σύννεφα από δορυφόρο: μία εικόνα JPEG ανά ώρα για την περιοχή που βλέπεις (όχι πλακίδια), φορτώνει πρώτα η τελευταία και μετά μόνο η τελευταία ώρα στο παρασκήνιο (1.14.89)',
+          q0.get('format')==['image/jpeg'] and q0.get('layers')==['mtg_fd:rgb_geocolour'] and q0.get('crs')==['EPSG:3857'] and 64<=int(q0['width'][0])<=1024 and 64<=int(q0['height'][0])<=1280 and r['first'][0] and r['first'][1] and r['first'][2] and r['first'][3]==1 and 1<=n0<=7, [u0[:200],n0,r['first']])
+    check('Σύννεφα από δορυφόρο: στην αναπαραγωγή ο χάρτης δεν μένει ποτέ άδειος, η ώρα αλλάζει μόνο μαζί με την εικόνα, και οι ώρες που δεν απαντούν προσπερνιούνται (1.14.89)',
+          r['blank']==0 and r['mismatch']==0 and len(r['labels'])>=6 and not any(x in ('10','40') for x in r['mins']) and r['play']=='▶' and n1<=19+2 and not pg._errs, [r,n1,pg._errs])
+    check('Σύννεφα από δορυφόρο: μικρή μετακίνηση δεν ξαναφορτώνει τίποτα· όταν βγεις από την περιοχή έρχεται νέα εικόνα· το ✕ τα κλείνει όλα (1.14.89)',
+          n2==n1 and n3>n1 and u3!=u0 and cl==[0,0] and not pg._errs, [n1,n2,n3,cl,pg._errs]); c.close()
 
     print('# 1.14.79 καιρός στη θέση του σκάφους, έκθεση με μπάρα χρόνου')
     now=int(time.time()*1000); c=ctx(b,lang='en'); c.add_init_script("if(!sessionStorage.mw){sessionStorage.mw=1;localStorage.setItem('alkyon-smart',JSON.stringify({weekly:Date.now()+9e9}));localStorage.setItem('alkyon-v4-mapui',JSON.stringify('clean'));localStorage.removeItem('alkyon-v4-mapui-test');localStorage.setItem('alkyon-safe',JSON.stringify({active:true,id:'T9',start:%d,due:%d}));}"%(now-600000,now+3*3600000))

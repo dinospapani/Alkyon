@@ -1095,6 +1095,10 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
         const LBL = { sun: ['νύχτα', 'αυγή', 'πρωί', 'μεσημέρι', 'απόγευμα', 'σούρουπο'], pt: ['πίεση πέφτει', 'πίεση σταθερή', 'πίεση ανεβαίνει'], sol: ['κύρια σεληνιακή περίοδος', 'δευτερεύουσα περίοδος', 'εκτός περιόδων'],
           pl: ['πίεση <1010', 'πίεση 1010–15', 'πίεση 1015–20', 'πίεση >1020'], wind: ['άνεμος 0–4 kn', 'άνεμος 5–9 kn', 'άνεμος 10–14 kn', 'άνεμος 15+ kn'], wave: ['κύμα <0,3 m', 'κύμα 0,3–0,6 m', 'κύμα 0,6–1 m', 'κύμα >1 m'],
           tide: ['στάθμη ανεβαίνει', 'στάθμη κατεβαίνει', 'στάθμη στάσιμη'], cloud: ['καθαρός ουρανός', 'λίγα σύννεφα', 'συννεφιά'], rain: ['χωρίς βροχή', 'βροχή'], cur: ['ρεύμα ασθενές', 'ρεύμα μέτριο', 'ρεύμα δυνατό'] };
+        /* 1.14.89: «Το σχέδιο για αύριο» στη γλώσσα του χρήστη (πριν ήταν μισό ελληνικά, μισό αγγλικά για όλους). Ίδια σειρά με το LBL. */
+        const LBL_EN = { sun: ['night', 'dawn', 'morning', 'midday', 'afternoon', 'dusk'], pt: ['pressure falling', 'pressure steady', 'pressure rising'], sol: ['major lunar period', 'minor lunar period', 'outside lunar periods'],
+          pl: ['pressure <1010', 'pressure 1010–15', 'pressure 1015–20', 'pressure >1020'], wind: ['wind 0–4 kn', 'wind 5–9 kn', 'wind 10–14 kn', 'wind 15+ kn'], wave: ['waves <0.3 m', 'waves 0.3–0.6 m', 'waves 0.6–1 m', 'waves >1 m'],
+          tide: ['tide rising', 'tide falling', 'slack tide'], cloud: ['clear sky', 'a few clouds', 'overcast'], rain: ['no rain', 'rain'], cur: ['weak current', 'moderate current', 'strong current'] };
         for (const u of us) {
           const good = ((u.data && u.data.ins) || []).filter(x => x.lift >= 1.3 && x.f !== 'moon'); if (good.length < 2) continue;
           const nid = 'best:' + u.user_id + ':' + tom; if (((await sb(`notif_log?id=eq.${encodeURIComponent(nid)}&select=id`)) || []).length) continue;
@@ -1107,12 +1111,16 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
           if (!best) continue;
           const tz = new Date(sc[best.i].t).toLocaleString('en-GB', { timeZone: 'Asia/Nicosia', hour: '2-digit', minute: '2-digit', hour12: false });
           const tz2 = new Date(sc[best.j].t + HR).toLocaleString('en-GB', { timeZone: 'Asia/Nicosia', hour: '2-digit', minute: '2-digit', hour12: false });
-          const why = [...new Set(sc[best.i].m.map(x => LBL[x.f] && LBL[x.f][x.b]).filter(Boolean))].slice(0, 3).join(' · ');
+          const en = !!subs.find(r => (r.places || []).find(p => p && p.lang === 'en')), LB = en ? LBL_EN : LBL;
+          const why = [...new Set(sc[best.i].m.map(x => LB[x.f] && LB[x.f][x.b]).filter(Boolean))].slice(0, 3).join(' · ');
           // 1.14.30: «Το σχέδιο για αύριο»: και τι να δοκιμάσεις: ό,τι δούλεψε σε αυτές τις συνθήκες (προσωπικά ευρήματα), αλλιώς «τι δουλεύει τώρα» στην περιοχή
           let tryW = ''; { const ws = sc[best.i].m.map(x => x.w).filter(Boolean)[0]; const pick = w => w && [].concat(w.lure || [], w.tech || [], w.bait || []).slice(0, 2).join(', ');
             tryW = pick(ws) || ''; if (!tryW) { try { const tw = ((await sb(`bite_stats?key=eq.${encodeURIComponent('trend:' + Math.floor(pl.lat) + '_' + Math.floor(pl.lon))}&select=data`)) || [])[0]; const w = tw && tw.data && tw.data.day >= isoD(Date.now() - 3 * DAY) && tw.data.works; if (w) tryW = [].concat((w.lure || []).map(x => x.v), (w.tech || []).map(x => x.v), (w.bait || []).map(x => x.v)).slice(0, 2).join(', '); } catch (e) { } } }
-          const msg = { id: nid, kind: 'best', tag: 'best-' + tom, url: '#forecast', title: '🎯 Το σχέδιο για αύριο: ' + tz + '–' + tz2 + ' · Plan for tomorrow',
-            body: 'Μοιάζει με τις ώρες που πιάνεις τα περισσότερα ψάρια: ' + why + (pl.name ? ' (' + String(pl.name).slice(0, 30) + ')' : '') + '.' + (tryW ? ' Δοκίμασε: ' + tryW + '.' : '') + ' Τα σημεία σου για αυτόν τον άνεμο στην πρόγνωση. · Matches the conditions you catch most in.' };
+          const pn = pl.name ? ' (' + String(pl.name).slice(0, 30) + ')' : '';
+          const msg = en ? { id: nid, kind: 'best', tag: 'best-' + tom, url: '#forecast', title: '🎯 Plan for tomorrow: ' + tz + '–' + tz2,
+            body: 'It matches the hours you catch the most fish in: ' + why + pn + '.' + (tryW ? ' Try: ' + tryW + '.' : '') + ' Your spots for that wind are in the forecast.' }
+            : { id: nid, kind: 'best', tag: 'best-' + tom, url: '#forecast', title: '🎯 Το σχέδιο για αύριο: ' + tz + '–' + tz2,
+            body: 'Μοιάζει με τις ώρες που πιάνεις τα περισσότερα ψάρια: ' + why + pn + '.' + (tryW ? ' Δοκίμασε: ' + tryW + '.' : '') + ' Τα σημεία σου για αυτόν τον άνεμο στην πρόγνωση.' };
           for (const r of subs) { try { await webpush.sendNotification(r.sub, JSON.stringify(msg), { TTL: 12 * 3600 }); } catch (e) { if (e.statusCode === 404 || e.statusCode === 410) await sb(`push_subs?id=eq.${encodeURIComponent(r.id)}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } }).catch(() => {}); } }
           await sb('notif_log', { method: 'POST', headers: { 'Content-Type': 'application/json', Prefer: 'resolution=ignore-duplicates,return=minimal' }, body: JSON.stringify({ id: nid, user_id: u.user_id, kind: 'best', title: msg.title, body: msg.body, at: new Date().toISOString() }) }).catch(() => {});
           stats.best = (stats.best || 0) + 1;
@@ -1132,11 +1140,16 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
           const mine = (await sb(`catch_obs?user_id=eq.${encodeURIComponent(u)}&day=gte.${isoD(Date.now() - 7 * DAY)}&select=kind,cnt`).catch(() => [])) || [];
           const fish = mine.filter(x => x.kind === 'catch').reduce((a, x) => a + Math.max(1, Math.min(200, x.cnt || 1)), 0), trips = mine.filter(x => x.kind === 'trip').length;
           let bestD = null; try { const up = await prefsOf(u, subs.reduce((a, x) => a.concat(x.places || []), [])); const fc = await PF.getForecast(+pl.lat, +pl.lon, F, { days: 7, learn: false, prof: up.prof, sp: up.sp, limits: up.limits }); for (const d of fc.days) { if (d.date <= todayW || !d.safe || !d.win) continue; if (!bestD || d.best > bestD.best) bestD = d; } } catch (e) { }
-          let acc = ''; try { const us = ((await sb(`user_bite_stats?user_id=eq.${encodeURIComponent(u)}&select=data`)) || [])[0], a = us && us.data && us.data.acc; if (a && a.r) { const ok = a.r.map((x, i) => [x, i]).filter(x => x[0] != null && a.n[x[1]] >= 2); if (ok.length >= 2 && ok[0][0] > 0) { const k = ok[ok.length - 1][0] / ok[0][0]; if (k >= 1.2) acc = ' Στις ώρες με ψηλό δείκτη έπιασες ×' + String(Math.round(k * 10) / 10).replace('.', ',') + ' περισσότερα.'; } } } catch (e) { }
+          let acc = ''; try { const us = ((await sb(`user_bite_stats?user_id=eq.${encodeURIComponent(u)}&select=data`)) || [])[0], a = us && us.data && us.data.acc; if (a && a.r) { const ok = a.r.map((x, i) => [x, i]).filter(x => x[0] != null && a.n[x[1]] >= 2); if (ok.length >= 2 && ok[0][0] > 0) { const k = ok[ok.length - 1][0] / ok[0][0]; if (k >= 1.2) acc = String(Math.round(k * 10) / 10); } } } catch (e) { }
           if (!bestD && !fish && !trips) continue;
-          const pad2 = n => String(n).padStart(2, '0'), dn = bestD ? DNW[new Date(bestD.date + 'T12:00:00Z').getUTCDay()] : '';
-          const msg = { id: nid, kind: 'week', tag: 'week', url: '#forecast', title: '📅 Η εβδομάδα σου · Your week',
-            body: (fish || trips ? 'Αυτή την εβδομάδα: ' + fish + ' ψάρια' + (trips ? ' σε ' + trips + (trips === 1 ? ' έξοδο' : ' εξόδους') : '') + '.' : 'Καμία καταγραφή αυτή την εβδομάδα.') + acc + (bestD ? ' Καλύτερη μέρα: ' + dn + ' ' + pad2(bestD.win.s) + ':00–' + pad2((bestD.win.e + 1) % 24) + ':00 (δείκτης ' + bestD.best + ')' + (pl.name ? ', ' + String(pl.name).slice(0, 30) : '') + '.' : '') + ' · Weekly summary.' };
+          /* 1.14.89: στη γλώσσα του χρήστη (πριν: ελληνικά με αγγλική ουρά για όλους) */
+          const enW = !!subs.find(r => (r.places || []).find(p => p && p.lang === 'en')), DNE = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+          const pad2 = n => String(n).padStart(2, '0'), dix = bestD ? new Date(bestD.date + 'T12:00:00Z').getUTCDay() : 0, dn = bestD ? (enW ? DNE : DNW)[dix] : '';
+          const win = bestD ? dn + ' ' + pad2(bestD.win.s) + ':00–' + pad2((bestD.win.e + 1) % 24) + ':00' : '', pnm = pl.name ? ', ' + String(pl.name).slice(0, 30) : '';
+          const msg = enW ? { id: nid, kind: 'week', tag: 'week', url: '#forecast', title: '📅 Your week',
+            body: (fish || trips ? 'This week: ' + fish + ' fish' + (trips ? ' in ' + trips + (trips === 1 ? ' trip' : ' trips') : '') + '.' : 'Nothing logged this week.') + (acc ? ' In the hours with a high score you caught ×' + acc + ' more.' : '') + (bestD ? ' Best day ahead: ' + win + ' (score ' + bestD.best + ')' + pnm + '.' : '') }
+            : { id: nid, kind: 'week', tag: 'week', url: '#forecast', title: '📅 Η εβδομάδα σου',
+            body: (fish || trips ? 'Αυτή την εβδομάδα: ' + fish + ' ψάρια' + (trips ? ' σε ' + trips + (trips === 1 ? ' έξοδο' : ' εξόδους') : '') + '.' : 'Καμία καταγραφή αυτή την εβδομάδα.') + (acc ? ' Στις ώρες με ψηλό δείκτη έπιασες ×' + acc.replace('.', ',') + ' περισσότερα.' : '') + (bestD ? ' Καλύτερη μέρα: ' + win + ' (δείκτης ' + bestD.best + ')' + pnm + '.' : '') };
           for (const r of subs) { try { await webpush.sendNotification(r.sub, JSON.stringify(msg), { TTL: 12 * 3600 }); } catch (e) { if (e.statusCode === 404 || e.statusCode === 410) await sb(`push_subs?id=eq.${encodeURIComponent(r.id)}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } }).catch(() => {}); } }
           await sb('notif_log', { method: 'POST', headers: { 'Content-Type': 'application/json', Prefer: 'resolution=ignore-duplicates,return=minimal' }, body: JSON.stringify({ id: nid, user_id: u, kind: 'week', title: msg.title, body: msg.body, at: new Date().toISOString() }) }).catch(() => {});
           sent++; stats.week = (stats.week || 0) + 1; }
