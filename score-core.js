@@ -243,7 +243,7 @@ function evaluate(sm,h,meta,cfg){ cfg=cfg||CFG0; meta=meta||{}; var ctx={sp:meta
    Δέχεται έξοδο της εφαρμογής ({startMs, endMs, lat, manual, nothing, fromCatches, sid, track, count}) ή γραμμή του catch_obs ({ms, ms2, lat, cnt, cond:{k}}).
    Το σημάδι cond.k που στέλνει η εφαρμογή: 'l' live · 'n' nofish · 'm' manual · 'c' fromCatches · 'x' invalid.
    Ο κανόνας αφορά ΜΟΝΟ την αξιολόγηση. Η μάθηση «πότε τσιμπάνε» και η προσωπική πρόγνωση συνεχίζουν να χρησιμοποιούν όλες τις εξόδους όπως πριν. */
-var SK={l:'live',n:'nofish',m:'manual',c:'fromCatches',x:'invalid'}, SKR={live:'l',nofish:'n',manual:'m',fromCatches:'c',invalid:'x'};
+var SK={l:'live',n:'nofish',m:'manual',c:'fromCatches',x:'invalid',u:'unlogged'}, SKR={live:'l',nofish:'n',manual:'m',fromCatches:'c',invalid:'x',unlogged:'u'};
 /* 1.14.87 (P1.3a): ΜΕΤΡΗΤΗΣ ΕΤΟΙΜΟΤΗΤΑΣ. Πόσες έγκυρες έξοδοι / χρήστες / έξοδοι με ψάρια υπάρχουν σε σχέση με τα όρια του evalGate.
    Καθαρή συνάρτηση, μόνο πληροφορία: το open λέει πότε υπάρχουν αρκετά δεδομένα για να ΑΞΙΟΛΟΓΗΘΕΙ ο βαθμός. Δεν ενεργοποιεί μάθηση, δεν αλλάζει βαθμό. */
 function readiness(c,cfg){ var G=(cfg||CFG0).evalGate, n=function(v){ v=Math.floor(+v); return v>0?v:0; }, t=n(c&&c.trips), u=n(c&&c.users), p=n(c&&c.pos);
@@ -257,6 +257,8 @@ function session(t,cfg){ var S=(cfg||CFG0).session; if(!t) return {kind:'invalid
   var d=e-s; if(d<S.minMin*60000) return out('invalid','short'); if(d>S.maxHours*3600000) return out('invalid','long');
   if(t.fromCatches||k==='c') return out('fromCatches');
   if(k==='x') return out('invalid','flagged');
+  /* 1.14.88: ο ψαράς είπε ότι έπιασε αλλά δεν τα έγραψε (ή είπε «θα τα γράψω» και δεν γράφτηκε κανένα): το αποτέλεσμα είναι άγνωστο, άρα εκτός ελέγχου */
+  if(k==='u'||t.fish0==='unlogged'||(t.fish0==='log'&&!(cnt>0))) return out('unlogged','catch not logged');
   if(t.nothing||k==='n') return out('nofish');
   if(t.manual||k==='m') return out('manual');
   if(k==='l'||t.sid||(Array.isArray(t.track)&&t.track.length)) return out('live');

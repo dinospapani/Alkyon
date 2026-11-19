@@ -27,6 +27,7 @@ OVR = {
  'HBack': ('undo', 'αναίρεση'), 'HUp': ('got away', 'χάθηκε'), 'HDown': ('species', 'είδος'),
 }
 EXTRA = {
+ 'TripResumed': ('Trip resumed|it was left open', 'Η έξοδος συνεχίζεται|είχε μείνει ανοιχτή'),   # 1.14.88
  'Settings': ('Settings', 'Ρυθμίσεις'),
  'Refresh': ('Refresh forecast', 'Ανανέωση πρόγνωσης'),
  'Menu': ('Menu', 'Μενού'),

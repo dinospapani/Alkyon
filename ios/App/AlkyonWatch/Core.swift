@@ -53,7 +53,7 @@ enum Geo {
         let r = hd * .pi / 180
         return (lat + m * cos(r) / 111320.0, lon + m * sin(r) / (111320.0 * cos(lat * .pi / 180)))
     }
-    static func distTxt(_ m: Double) -> String { m < 1000 ? "\(Int(m)) m" : (m < 10000 ? L.f1(m / 1000) : L.f0(m / 1000)) + " km" }
+    static func distTxt(_ m: Double) -> String { m < 1000 ? "\(si(m)) m" : (m < 10000 ? L.f1(m / 1000) : L.f0(m / 1000)) + " km" }
     static func hms(_ sx: Int) -> String { let s = max(0, sx); return "\(s / 3600):" + String(format: "%02d", (s % 3600) / 60) }
     static func minHm(_ m: Int) -> String { let x = ((m % 1440) + 1440) % 1440; return String(format: "%02d:%02d", x / 60 % 24, x % 60) }
     static func tsHm(_ ts: Int) -> String { let c = Calendar.current.dateComponents([.hour, .minute], from: Date(timeIntervalSince1970: Double(ts))); return String(format: "%02d:%02d", c.hour ?? 0, c.minute ?? 0) }
@@ -93,6 +93,23 @@ final class Track {
         pts.append([Geo.r5(lat), Geo.r5(lon), Double(t)])
         if pts.count > 500 { pts = Track.simplify(pts, 350) }
     }
+    /* 1.14.88: η έξοδος αποθηκεύεται (App Group) για να συνεχίσει αν η εφαρμογή κλείσει ή κρασάρει. Πριν ζούσε μόνο στη μνήμη και χανόταν μαζί με τη διαδρομή. */
+    func snapshot() -> JO {
+        var o: JO = ["active": active, "tid": tid, "start": start, "n": n, "pts": pts, "km": (km * 1000).rounded() / 1000, "lastT": lastT]
+        if let p = p0 { o["p0"] = [p.0, p.1] }
+        return o
+    }
+    /** true αν υπήρχε ενεργή έξοδος και συνεχίζεται. Έξοδος πάνω από 36 ώρες δεν συνεχίζεται (ο server δεν τη δέχεται). */
+    func restore(_ o: JO?) -> Bool {
+        guard let o = o, (o["active"] as? Bool) == true, let st = ji(o, "start"), st > 0, nowS() - st < 36 * 3600, nowS() >= st else { return false }
+        let id = js(o, "tid"); guard !id.isEmpty else { return false }
+        active = true; tid = id; start = st; n = max(0, ji(o, "n") ?? 0); km = max(0, jd(o, "km") ?? 0); lastT = ji(o, "lastT") ?? 0
+        pts = ((o["pts"] as? [[NSNumber]]) ?? []).filter { $0.count >= 3 }.map { $0.map { $0.doubleValue } }
+        if let a = ja(o, "p0"), let la = an(a, 0), let lo = an(a, 1) { p0 = (la, lo) } else { p0 = nil }
+        if let l = pts.last { lastFix = (l[0], l[1]) } else { lastFix = nil }
+        spd = nil; fixAt = 0; lastHd = nil
+        return true
+    }
     func hasFix() -> Bool { active && nowS() - fixAt < 30 }
     func secs() -> Int { active ? nowS() - start : 0 }
     func onCatch(_ kind: String) -> String? { guard active else { return nil }; if kind == "fish" { n += 1 }; return tid }
@@ -101,7 +118,7 @@ final class Track {
         active = false
         let p = Track.simplify(pts, 250); pts = []
         guard save else { return nil }
-        return ["k": "trip", "ts": start, "te": nowS(), "tz": Geo.tzMin(), "tid": tid, "n": n, "pts": p.map { [$0[0], $0[1], Int($0[2])] }]
+        return ["k": "trip", "ts": start, "te": nowS(), "tz": Geo.tzMin(), "tid": tid, "n": n, "pts": p.map { [$0[0], $0[1], si($0[2])] }]
     }
     static func simplify(_ a: [[Double]], _ maxN: Int) -> [[Double]] {
         if a.count <= maxN { return a }

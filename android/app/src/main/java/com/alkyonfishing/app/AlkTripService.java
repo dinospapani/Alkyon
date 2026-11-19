@@ -47,6 +47,23 @@ public class AlkTripService extends Service implements LocationListener {
     private String tripId = "", key = "", url = "", apikey = "";
     private long intervalMs = 180000, lastHb = 0;
     private Location last = null;
+    /* 1.14.88: διάγνωση διαδρομής. raw = θέσεις που έδωσε το GPS · acc = απορρίφθηκαν (ακρίβεια > 60 m) · near = πολύ κοντά στο προηγούμενο ·
+       kept = γράφτηκαν · gaps60 / gapMax = κενά πάνω από 60″ ανάμεσα σε δύο θέσεις του GPS (το GPS ζητείται κάθε 5″, άρα κενό = το κινητό δεν έδινε θέση) */
+    private long dRaw = 0, dAcc = 0, dNear = 0, dKept = 0, dGaps = 0, dGapMax = 0, dHalf = 0, dT0 = 0, dT1 = 0;
+    private void loadDiag(SharedPreferences p) {
+        try { JSONObject d = new JSONObject(p.getString("diag:" + tripId, "{}"));
+            dRaw = d.optLong("raw"); dAcc = d.optLong("acc"); dNear = d.optLong("near"); dKept = d.optLong("kept"); dGaps = d.optLong("gaps60");
+            dGapMax = d.optLong("gapMax"); dHalf = d.optLong("half"); dT0 = d.optLong("t0"); dT1 = d.optLong("t1");
+        } catch (Exception e) { }
+        if (dT0 == 0) dT0 = System.currentTimeMillis();
+    }
+    private void saveDiag() {
+        try { JSONObject d = new JSONObject();
+            d.put("raw", dRaw); d.put("acc", dAcc); d.put("near", dNear); d.put("kept", dKept); d.put("gaps60", dGaps); d.put("gapMax", dGapMax);
+            d.put("half", dHalf); d.put("t0", dT0); d.put("t1", dT1); d.put("every", 5);
+            getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString("diag:" + tripId, d.toString()).apply();
+        } catch (Exception e) { }
+    }
     private final Runnable beat = new Runnable() { @Override public void run() { sendHb(true); hd.postDelayed(this, intervalMs); } };
 
     @Override public IBinder onBind(Intent intent) { return null; }
@@ -69,7 +86,10 @@ public class AlkTripService extends Service implements LocationListener {
         } catch (Exception e) { stopSelf(); return START_NOT_STICKY; }   // χωρίς άδεια θέσης: δεν τρέχει (η εφαρμογή συνεχίζει όπως πριν)
         if (lm == null) {
             lm = (LocationManager) getSystemService(LOCATION_SERVICE);
-            try { lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000L, 10f, this, Looper.getMainLooper()); }
+            loadDiag(p);
+            /* 1.14.88: ελάχιστη απόσταση 0 (ήταν 10 m): το GPS δίνει θέση κάθε 5″ και όταν είσαι ακίνητος, ώστε η διάγνωση να ξεχωρίζει «δεν κινήθηκα» από «το κινητό δεν έδινε θέση».
+               Το ποια σημεία γράφονται στη διαδρομή δεν αλλάζει (12 m ή 60″). */
+            try { lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000L, 0f, this, Looper.getMainLooper()); }
             catch (SecurityException | IllegalArgumentException e) { stopSelf(); return START_NOT_STICKY; }
         }
         running = true;
@@ -93,9 +113,14 @@ public class AlkTripService extends Service implements LocationListener {
     }
 
     @Override public void onLocationChanged(Location l) {
-        if (l == null || (l.hasAccuracy() && l.getAccuracy() > 60)) return;
+        if (l == null) return;
+        long now = System.currentTimeMillis();
+        if (dT1 > 0 && now - dT1 > 60000) { dGaps++; dGapMax = Math.max(dGapMax, (now - dT1) / 1000); }
+        dRaw++; dT1 = now;
+        if (l.hasAccuracy() && l.getAccuracy() > 60) { dAcc++; if (dRaw % 6 == 0) saveDiag(); return; }
         boolean moved = last == null || last.distanceTo(l) >= 12 || l.getTime() - last.getTime() >= 60000;
-        if (moved) { addFix(l); last = l; }
+        if (moved) { addFix(l); last = l; dKept++; } else dNear++;
+        if (moved || dRaw % 6 == 0) saveDiag();
         if (System.currentTimeMillis() - lastHb >= intervalMs) sendHb(false);
     }
     @Override public void onStatusChanged(String p, int s, Bundle b) { }
@@ -108,7 +133,7 @@ public class AlkTripService extends Service implements LocationListener {
             JSONArray a = new JSONArray(p.getString("fixes:" + tripId, "[]"));
             JSONArray f = new JSONArray(); f.put(l.getLatitude()); f.put(l.getLongitude()); f.put(l.getTime()); f.put(l.hasAccuracy() ? Math.round(l.getAccuracy()) : -1);
             a.put(f);
-            if (a.length() > MAX_FIXES) { JSONArray b = new JSONArray(); for (int i = 0; i < a.length(); i++) if (i % 2 == 0 || i == a.length() - 1) b.put(a.get(i)); a = b; }
+            if (a.length() > MAX_FIXES) { dHalf++; JSONArray b = new JSONArray(); for (int i = 0; i < a.length(); i++) if (i % 2 == 0 || i == a.length() - 1) b.put(a.get(i)); a = b; }
             p.edit().putString("fixes:" + tripId, a.toString()).apply();
         } catch (Exception e) { /* η διαδρομή είναι βοηθητική· ο παλμός συνεχίζει */ }
     }
@@ -145,7 +170,7 @@ public class AlkTripService extends Service implements LocationListener {
     }
 
     @Override public void onDestroy() {
-        running = false; hd.removeCallbacks(beat);
+        running = false; hd.removeCallbacks(beat); saveDiag();
         try { if (lm != null) lm.removeUpdates(this); } catch (Exception e) { }
         lm = null; super.onDestroy();
     }

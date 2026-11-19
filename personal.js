@@ -14,7 +14,9 @@ const moonOf=ms=>{let a=((ms-REF)/86400000)%SYN; if(a<0)a+=SYN; return Math.floo
 const windCls=w=>w==null||isNaN(w)?null:w<8?0:w<=14?1:2;
 const PTS=['fast','slow','stable','rise'];
 const biteMs=(b,utcMin)=>{ if(!b||!b.date||!b.time) return null; const [y,m,d]=b.date.split('-').map(Number), [hh,mm]=b.time.split(':').map(Number); return Date.UTC(y,m-1,d,hh,mm)-utcMin*60000; };
-function sessionsOf(trips){ return (trips||[]).filter(t=>t&&t.startMs&&t.endMs&&t.endMs>t.startMs&&(t.endMs-t.startMs)>=10*60000&&(t.endMs-t.startMs)<=16*3600000); }
+/* 1.14.88: έξοδος όπου ο ψαράς είπε ότι έπιασε αλλά δεν τα έγραψε δεν μετρά ως ώρες χωρίς τσίμπημα (fish0, ίδιος κανόνας με το AlkyonScore.session) */
+const unlogged=t=>t.fish0==='unlogged'||(t.fish0==='log'&&!(+t.count>0));
+function sessionsOf(trips){ return (trips||[]).filter(t=>t&&t.startMs&&t.endMs&&t.endMs>t.startMs&&(t.endMs-t.startMs)>=10*60000&&(t.endMs-t.startMs)<=16*3600000&&!unlogged(t)); }
 /* φως: 0 νύχτα, 1 αυγή (ανατολή ±90′), 2 πρωί, 3 μεσημέρι (μέσο της μέρας ±60′), 4 απόγευμα, 5 σούρουπο (δύση ±90′) */
 const LV={block:6,moon:4,ptrend:4,wind:3};
 function phaseOf(m,rise,set){

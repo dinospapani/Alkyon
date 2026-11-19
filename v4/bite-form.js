@@ -420,7 +420,7 @@ B.biteForm=function(edit,opt){
     else if(lat!=null&&(!e||moved||HK.every(function(k){ return e[k]==null||e[k]===''; }))) needHist=true;
     if(moved){ HK.forEach(function(k){ rec[k]=null; }); delete rec.wavePeriod; delete rec.hist; }
     /* ενεργή έξοδος (από την κλασική): σύνδεση με την έξοδο */
-    if(!e){ var sf=ls.get('alkyon-safe',{})||{}; if(sf.active&&sf.id){ rec.trip=sf.id; rec.n=S.raw('bites').filter(function(b){ return b.trip===sf.id&&!!b.miss===!!rec.miss; }).reduce(function(m,b){ return Math.max(m,+b.n||0); },0)+1; } }
+    if(!e){ var sf=ls.get('alkyon-safe',{})||{}, tid=(sf.active&&sf.id)?sf.id:(opt&&opt.trip)||null; /* 1.14.88: opt.trip = ψάρι που γράφεται αμέσως μετά το τέλος της εξόδου («Έπιασα, θα τα γράψω τώρα») */ if(tid){ rec.trip=tid; rec.n=S.raw('bites').filter(function(b){ return b.trip===tid&&!!b.miss===!!rec.miss; }).reduce(function(m,b){ return Math.max(m,+b.n||0); },0)+1; } }
     if(e&&tsel){ if(tsel.value&&tsel.value!==e.trip){ rec.trip=tsel.value; rec.n=S.raw('bites').filter(function(b){ return b.trip===tsel.value&&!!b.miss===!!rec.miss; }).reduce(function(m,b){ return Math.max(m,+b.n||0); },0)+1; } else if(!tsel.value){ delete rec.trip; delete rec.n; } }
     if(phDirty||!e){ rec.photo=photos.length>0; if(photos.length>1) rec.xph=photos.length-1; else delete rec.xph; }
     save.disabled=true;

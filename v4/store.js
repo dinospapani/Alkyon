@@ -143,12 +143,17 @@ function langMeta(s){ var k=s.uid+':'+lang(); if(ls.get('alkyon-v4-langmeta','')
    Όχι ό,τι αφορά μόνο τη συσκευή (ενεργή έξοδος, ειδοποιήσεις, νυχτερινή, γλώσσα). Κανόνας: αν άλλαξαν εδώ από τον τελευταίο συγχρονισμό, ανεβαίνουν·
    αλλιώς, αν ο server έχει νεότερες, έρχονται. Νέο κινητό (ποτέ συγχρονισμένο): παίρνει ό,τι έχει ο server. */
 var SETS=['alkyon-boat','alkyon-limits','alkyon-places','alkyon-v4-plans','alkyon-v4-goals','alkyon-maint','alkyon-units','alkyon-fprof','alkyon-gear','alkyon-smart','alkyon-advsp','alkyon-comm-follow','alkyon-dcorr','alkyon-comm-block','alkyon-comm-blockn'];  /* 1.12.15: και οι αποκλεισμένοι χρήστες */
-function setBlob(){ var o={}; SETS.forEach(function(k){ var v=ls.get(k,undefined); if(v!==undefined&&v!==null) o[k]=v; }); return o; }
+/* 1.14.88: ο τρόπος ψαρέματος (alkyon-fprof) αποθηκεύεται ως σκέτο κείμενο, όχι JSON: διαβαζόταν ως «άκυρο» και δεν ανέβαινε ποτέ στον λογαριασμό.
+   Τα κλειδιά του RAWS διαβάζονται και γράφονται σκέτα (ο server και το ρολόι βλέπουν πια το προφίλ από τις ρυθμίσεις). */
+var RAWS={'alkyon-fprof':1};
+function setGet(k){ if(RAWS[k]){ var r=null; try{ r=ls.raw?ls.raw(k):localStorage.getItem(k); }catch(e){ r=null; } if(r==null||r==='') return undefined; if(r.charAt(0)==='"'){ try{ r=JSON.parse(r); }catch(e){} } return typeof r==='string'?r:undefined; } return ls.get(k,undefined); }
+function setPut(k,v){ if(RAWS[k]){ if(typeof v!=='string'||!v) return false; try{ localStorage.setItem(k,v); }catch(e){} return true; } ls.set(k,v); return true; }
+function setBlob(){ var o={}; SETS.forEach(function(k){ var v=setGet(k); if(v!==undefined&&v!==null) o[k]=v; }); return o; }
 function setHash(o){ return JSON.stringify(SETS.map(function(k){ return o[k]===undefined?null:o[k]; })); }
 function setsSync(rows,out){ try{
   var st=ls.get('alkyon-v4-setsync',{})||{}, rm=rows.filter(function(x){ return x.kind==='settings'&&x.id==='main'&&!x.deleted; })[0], rd=rm&&rm.data||null, ru=rd?(rd._u||0):0;
   var loc=setBlob(), lh=setHash(loc), changed=st.h!==lh;
-  if(rd&&ru>(st.u||0)&&(!changed||st.h===undefined)){ var got={}; SETS.forEach(function(k){ if(rd[k]!==undefined){ ls.set(k,rd[k]); got[k]=1; } }); ls.set('alkyon-v4-setsync',{h:setHash(setBlob()),u:ru}); Object.keys(got).forEach(function(k){ B.emit('store',k); }); return 1; }
+  if(rd&&ru>(st.u||0)&&(!changed||st.h===undefined)){ var got={}; SETS.forEach(function(k){ if(rd[k]!==undefined){ if(setPut(k,rd[k])) got[k]=1; } }); ls.set('alkyon-v4-setsync',{h:setHash(setBlob()),u:ru}); Object.keys(got).forEach(function(k){ B.emit('store',k); }); return 1; }
   if(changed&&Object.keys(loc).length){ var u=Math.max(Date.now(),ru+1); out.push({kind:'settings',id:'main',data:Object.assign({},loc,{_u:u}),deleted:false,updated_at:iso(u)}); ls.set('alkyon-v4-setsync',{h:lh,u:u}); }
   }catch(e){} return 0; }
 /* 1.10.4: δίχτυα/παραγάδια/κλουβιά από το ρολόι Garmin: ο server τα γράφει ως kind 'gear'· μπαίνουν στα Εργαλεία (alkyon-gear) αν είναι νέα ή νεότερα,

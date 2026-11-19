@@ -186,7 +186,7 @@ struct TripV: View {
         .focusable(e.keysLeads() || e.keysLine())
         .digitalCrownRotation($crown, from: -100000, through: 100000, by: 1, sensitivity: .low, isContinuous: true, isHapticFeedbackEnabled: true)
         .onChange(of: crown) { _, n in
-            let d = Int((n - crownBase).rounded())
+            let d = si((n - crownBase).rounded())
             if d != 0 { crownBase = n; if !e.afterOn { for _ in 0..<abs(d) { e.keyAct(d > 0 ? 1 : -1) } } }
         }
     }
@@ -211,7 +211,7 @@ struct TripIdle: View {
                 HStack(spacing: 10) {
                     if let p = jd(now, "p") {
                         let pd = jd(now, "pd")
-                        StatV(ic: "gauge", v: "\(Int(p))" + (pd == nil ? "" : pd! > 0.4 ? "↑" : pd! < -0.4 ? "↓" : "→"))
+                        StatV(ic: "gauge", v: "\(si(p))" + (pd == nil ? "" : pd! > 0.4 ? "↑" : pd! < -0.4 ? "↓" : "→"))
                         if let wt = jd(now, "wt") { StatV(ic: "temp", v: L.f0(wt) + "°") }
                         if let il = ji(sq, "il") { StatV(ic: "moon", v: "\(il)%") }
                     } else if let d = d {
@@ -299,7 +299,7 @@ struct NightRing: View {
 struct TimeLine: View {
     @ObservedObject var e = Engine.shared
     var body: some View {
-        if e.anchor != nil { let bad = e.anchorD > Double(e.anchorR()); ChipV(t: L.t("AnchorLine", Int(e.anchorD), e.anchorR()), col: bad ? pc(1) : pc(6), solid: bad) }
+        if e.anchor != nil { let bad = e.anchorD > Double(e.anchorR()); ChipV(t: L.t("AnchorLine", si(e.anchorD), e.anchorR()), col: bad ? pc(1) : pc(6), solid: bad) }
         else if let tg = e.tripTarget() { let left = tg.0 - nowS(); if left > 0 { ChipV(t: L.t(tg.1 ? "BackIn" : "SunsetIn", Geo.hms(left)), col: pc(0)) } else { ChipV(t: L.t("Late"), col: pc(1), solid: true) } }
         else { ChipV(t: L.t("ClockNow", Geo.minHm(Geo.nowMin())), col: pc(6)) }
     }
@@ -329,7 +329,7 @@ struct DropV: View {
     @ObservedObject var e = Engine.shared
     var body: some View {
         let tot = max(1, Double(e.dropN) * e.secPerLead())
-        let rem = e.dropAt + Int(tot) - nowS()
+        let rem = e.dropAt + si(tot) - nowS()
         ZStack {
             RingBG(); RingV(a1: 360 * min(1, max(0, 1 - Double(rem) / tot)), col: pc(4), round: true)
             VStack(spacing: 2) {
@@ -434,7 +434,7 @@ struct SpotV: View {
                     if let dm = dm, let br = br {
                         Tx(Geo.distTxt(dm), 24, pc(5))
                         let sp = (e.trip.spd ?? 0) > 2 ? e.trip.spd! : P.d("boatKn")
-                        Tx("\(Int(br))° · ~\(Int((dm / 1852) / sp * 60))′ · " + L.f1(sp) + " kn", 10, pc(6))
+                        Tx("\(si(br))° · ~\(si(min(99999, (dm / 1852) / max(sp, 0.5) * 60)))′ · " + L.f1(sp) + " kn", 10, pc(6))
                     } else { Tx(L.t("WaitGps"), 11, pc(7)) }
                     Tx(L.t("NavHint"), 9, pc(7))
                 }
@@ -475,7 +475,7 @@ struct PressV: View {
         let d3 = Baro.d3()
         VStack(spacing: 2) {
             TitleV(t: L.up(L.t("PressU")), dot: pc(14))
-            Tx(jd(jo(e.fc, "now"), "p").map { "\(Int($0)) hPa" } ?? "-", 24, pc(5))
+            Tx(jd(jo(e.fc, "now"), "p").map { "\(si($0)) hPa" } ?? "-", 24, pc(5))
             if let d3 = d3 { Tx(L.t("PressWatch") + ": " + (d3.0 >= 0 ? "+" : "") + L.f1(d3.0), 10, abs(d3.0) >= P.d("pressThr") ? pc(1) : pc(6)) }
             else if !Baro.has { Tx(L.t("NoBaro"), 9, pc(7)) }
             if let pr = jo(e.fc, "pr") { Tx(((jd(pr, "d") ?? 0) >= 0 ? L.t("PeakAt") : L.t("LowAt")) + " " + js(pr, "t") + " · \(ji(pr, "to") ?? 0) hPa", 11, pc(14), b: true) }
@@ -500,7 +500,7 @@ struct SquidV: View {
         if let sq = jo(e.fc, "sq") {
             let il = ji(sq, "il"), nd = jd(sq, "nd"), dk = ja(sq, "dk"), wax = ji(sq, "wx") == 1
             let st = ji(e.td(), "st"), r = ji(e.td(), "r"), nm = Geo.nowMin()
-            let verdict: (String, Color) = dk == nil ? (L.t("VBright"), pc(4)) : (an(dk, 2) ?? 0) == 1 ? (L.t("VIdeal"), pc(2)) : (L.t("VGoodTill", Geo.minHm(Int(an(dk, 1) ?? 0))), pc(3))   // ίδιο με το Garmin
+            let verdict: (String, Color) = dk == nil ? (L.t("VBright"), pc(4)) : (an(dk, 2) ?? 0) == 1 ? (L.t("VIdeal"), pc(2)) : (L.t("VGoodTill", Geo.minHm(si(an(dk, 1) ?? 0))), pc(3))   // ίδιο με το Garmin
             ZStack {
                 NightRing(dk: dk, st: st, r: r, nm: nm)
                 VStack(spacing: 2) {
@@ -513,7 +513,7 @@ struct SquidV: View {
                         }
                     }
                     ChipV(t: verdict.0, col: verdict.1)
-                    if let a0 = an(dk, 0), let a1 = an(dk, 1) { Tx((an(dk, 2) ?? 0) == 1 ? L.t("TillMorning", Geo.minHm(Int(a0))) : L.t("DarkWin", Geo.minHm(Int(a0)), Geo.minHm(Int(a1))), 10, pc(6)) }
+                    if let a0 = an(dk, 0), let a1 = an(dk, 1) { Tx((an(dk, 2) ?? 0) == 1 ? L.t("TillMorning", Geo.minHm(si(a0))) : L.t("DarkWin", Geo.minHm(si(a0)), Geo.minHm(si(a1))), 10, pc(6)) }
                     ForEach(Array(((ja(sq, "ev") as? [JO]) ?? []).prefix(3).enumerated()), id: \.offset) { k, v in
                         HStack(spacing: 4) { Tx(js(v, "n"), 11, k == 0 ? pc(5) : pc(6)).frame(width: 52, alignment: .leading); Tx(String(format: "%02d:00", ji(v, "h") ?? 0), 11, pc(6)); Tx("\(ji(v, "s") ?? 0)", 11, scoreCol(ji(v, "s")), b: true) }
                     }
@@ -597,7 +597,7 @@ struct AnchorAlarmV: View {
             ZStack {
                 Color(hex: 0x2A0B08).ignoresSafeArea()
                 RingV(a1: 360, col: pc(1), w: 10)
-                VStack(spacing: 4) { Tx("⚓ " + L.up(L.t("AnchorU")), 13, pc(1), b: true); Tx(L.t("Drag", Int(e.anchorD)), 20, .white, b: true); ChipV(t: L.t("StopAlarm"), col: pc(1), solid: true) }
+                VStack(spacing: 4) { Tx("⚓ " + L.up(L.t("AnchorU")), 13, pc(1), b: true); Tx(L.t("Drag", si(e.anchorD)), 20, .white, b: true); ChipV(t: L.t("StopAlarm"), col: pc(1), solid: true) }
             }.onTapGesture { e.anchorOff() }
         }
     }

@@ -65,6 +65,20 @@ jobs:
           set -o pipefail
           xcodebuild -project App.xcodeproj -target AlkyonWatch -configuration Release -sdk watchsimulator CODE_SIGNING_ALLOWED=NO build > /tmp/watch.log 2>&1 || { grep -E "error:|error\b" -A3 /tmp/watch.log | head -150; tail -40 /tmp/watch.log; exit 1; }
           grep -c "warning:" /tmp/watch.log || true; tail -5 /tmp/watch.log
+      # 1.14.88: τα Series 4–8 και SE είναι arm64_32 (Int 32-bit). Ο προσομοιωτής είναι 64-bit και δεν έπιασε το crash του 🐟.
+      # α) έλεγχοι λογικής με τα όρια του Int32 και αποθήκευση/συνέχιση εξόδου (τρέχουν στο macOS)
+      - name: Έλεγχοι λογικής ρολογιού (όρια 32-bit, αποθήκευση εξόδου)
+        run: |
+          swiftc ios/App/AlkyonShared/Shared.swift ios/App/AlkyonShared/Strings.swift ios/App/AlkyonWatch/Core.swift watch/tests/main.swift -o /tmp/wt
+          /tmp/wt
+      # β) χτίσιμο για πραγματικό ρολόι arm64_32 (χωρίς υπογραφή): πιάνει ό,τι δεν μεταγλωττίζεται σε 32-bit (π.χ. σταθερές που δεν χωράνε)
+      - name: Χτίσιμο ρολογιού για arm64_32 (Series 4–8, SE)
+        working-directory: ios/App
+        run: |
+          set -o pipefail
+          xcodebuild -project App.xcodeproj -target AlkyonWatch -configuration Release -sdk watchos ARCHS=arm64_32 ONLY_ACTIVE_ARCH=NO CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build > /tmp/watch32.log 2>&1 || { grep -E "error:" -A3 /tmp/watch32.log | head -150; tail -40 /tmp/watch32.log; exit 1; }
+          tail -3 /tmp/watch32.log
+          B=$(find build -path '*watchos*' -name AlkyonWatch -type f -perm +111 | head -1); echo "binary: $B"; [ -n "$B" ] && lipo -archs "$B" | tee /tmp/archs.txt && grep -q arm64_32 /tmp/archs.txt
       - name: Χτίσιμο iPhone με το ρολόι μέσα (iOS, προσομοιωτής)
         working-directory: ios/App
         run: |

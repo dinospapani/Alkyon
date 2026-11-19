@@ -41,7 +41,7 @@ public class AlkTripPlugin extends Plugin {
         Context c = getContext();
         SharedPreferences p = c.getSharedPreferences(AlkTripService.PREFS, Context.MODE_PRIVATE);
         String prev = p.getString("id", "");
-        if (!prev.isEmpty() && !prev.equals(id)) p.edit().remove("fixes:" + prev).apply();   // σημεία προηγούμενης εξόδου
+        if (!prev.isEmpty() && !prev.equals(id)) p.edit().remove("fixes:" + prev).remove("diag:" + prev).apply();   // σημεία προηγούμενης εξόδου
         Intent i = new Intent(c, AlkTripService.class)
             .putExtra("id", id).putExtra("key", key).putExtra("url", call.getString("url", "")).putExtra("apikey", call.getString("apikey", ""))
             .putExtra("interval", (long) (call.getInt("interval", 180) * 1000)).putExtra("title", call.getString("title", "Alkyon")).putExtra("text", call.getString("text", ""));
@@ -69,7 +69,9 @@ public class AlkTripPlugin extends Plugin {
             JSONArray a = new JSONArray(p.getString("fixes:" + id, "[]"));
             for (int i = 0; i < a.length(); i++) { JSONArray f = a.getJSONArray(i); if (f.getDouble(2) > since) out.put(f); }
         } catch (Exception e) { }
-        JSObject r = new JSObject(); r.put("fixes", out); call.resolve(r);
+        JSObject r = new JSObject(); r.put("fixes", out);
+        try { r.put("diag", new JSObject(p.getString("diag:" + id, "{}"))); } catch (Exception e) { }   // 1.14.88: μετρητές διάγνωσης της υπηρεσίας
+        call.resolve(r);
     }
 
     @PluginMethod

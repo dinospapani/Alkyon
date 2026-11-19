@@ -676,6 +676,47 @@ with sync_playwright() as p:
     c.route('**/raw.githubusercontent.com/dinospapani/alkyon/radar-data/**',radr); pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(5000)
     r=pg.evaluate("()=>[document.querySelectorAll('.domradar').length, /ΤΜ ΚΥΠΡΟΥ|ΤΜ Κύπρου/i.test((document.querySelector('.rainbar')||{}).innerText||'')]")
     check('ραντάρ ΤΜ Κύπρου στη Βροχή (1.9.20)', r[0]==1 and r[1] and not pg._errs, [r,pg._errs]); c.close()
+    print('# 1.14.88 ραντάρ: αλλαγή πηγής χωρίς να φεύγει η μπάρα · έξοδος με 0 ψάρια · φίλτρο ακινησίας')
+    def rvr(route):
+        u=route.request.url
+        if 'weather-maps.json' in u:
+            import time as _tm; _tm.sleep(1.2)
+            return route.fulfill(json={'host':'https://tilecache.rainviewer.com','radar':{'past':[{'time':int(_t.timestamp()),'path':'/v2/radar/x'}]}},headers={'Access-Control-Allow-Origin':'*'})
+        return route.fulfill(body=_png,content_type='image/png')
+    c=ctx(b); c.add_init_script("if(!sessionStorage.rd){sessionStorage.rd=1;localStorage.setItem('alkyon-v4-mapui',JSON.stringify('clean'));localStorage.setItem('alkyon-v4-map',JSON.stringify({base:'sat',sea:false,zones:false,rain:true}));}")
+    c.route('**/raw.githubusercontent.com/dinospapani/alkyon/radar-data/**',radr); c.route('**/*rainviewer.com/**',rvr); pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(5000)
+    r=pg.evaluate("""async()=>{ const W=ms=>new Promise(r=>setTimeout(r,ms)), o={before:[document.querySelectorAll('.rainbar').length,document.body.classList.contains('navslid'),(document.querySelector('.rainbar .rbt i')||{}).textContent], gone:0, nav:0, wait:false};
+      const iv=setInterval(()=>{ if(!document.querySelector('.rainbar')) o.gone++; if(!document.body.classList.contains('navslid')) o.nav++; if(document.querySelector('.rainbar.rbwait')) o.wait=true; },20);
+      const mo=new MutationObserver(()=>{ if(!document.querySelector('.rainbar')) o.gone++; }); mo.observe(document.body,{childList:true});
+      document.querySelector('.rainbar .rbs').click(); await W(3200); clearInterval(iv); mo.disconnect();
+      o.after=[document.querySelectorAll('.rainbar').length,document.body.classList.contains('navslid'),(document.querySelector('.rainbar .rbt i')||{}).textContent,!!document.querySelector('.rainbar.rbwait'),document.querySelectorAll('.domradar').length];
+      document.querySelector('.rainbar .rbx').click(); await W(600); o.closed=[document.querySelectorAll('.rainbar').length,document.body.classList.contains('navslid')]; return o; }""")
+    check('ραντάρ: στην αλλαγή πηγής «⇄» η μπάρα μένει και το κύριο μενού δεν εμφανίζεται ενδιάμεσα· με ✕ κλείνει και το μενού επιστρέφει (1.14.88)',
+          r['before'][0]==1 and r['before'][1] and r['gone']==0 and r['nav']==0 and r['wait'] and r['after'][0]==1 and r['after'][1] and not r['after'][3] and r['after'][4]==0 and r['after'][2]!=r['before'][2] and r['closed']==[0,False] and not pg._errs, [r,pg._errs]); c.close()
+    c=ctx(b); c.add_init_script("if(!sessionStorage.__z){sessionStorage.__z=1;localStorage.setItem('alkyon-safe',JSON.stringify({active:true,id:'trip-z1',start:Date.now()-50*60000,due:Date.now()+3*3600000,route:'Z',last:{lat:34.7,lon:32.4,t:Date.now()}}));}")
+    pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(4500)
+    r=pg.evaluate("""async()=>{ const W=ms=>new Promise(r=>setTimeout(r,ms)), o={};
+      const tr=()=>JSON.parse(localStorage.getItem('alkyon-trips')||'[]').filter(t=>!t.deleted), sheet=()=>{ const a=[...document.querySelectorAll('.sheet.on')]; return a[a.length-1]; }, k=t=>(AK.contrib._rowOf('trip',t).cond||{}).k;
+      const end=async(id)=>{ localStorage.setItem('alkyon-safe',JSON.stringify({active:true,id,start:Date.now()-50*60000,due:Date.now()+3*3600000,route:'Z',last:{lat:34.7,lon:32.4,t:Date.now()}})); AK.trip.back(); await W(900); const s=sheet(); return s?[(s.querySelector('h2,h3,.sht,.title')||{}).textContent||s.textContent.slice(0,40),[...s.querySelectorAll('.zeroq .btn')].map(x=>x.textContent)]:['no sheet',[]]; };
+      const tap=async(txt)=>{ const bt=[...document.querySelectorAll('.sheet.on .zeroq .btn')].find(x=>x.textContent===txt); bt&&bt.click(); await W(900); };
+      o.q=await end('trip-z1'); await tap('Έπιασα, αλλά δεν θα τα γράψω'); let t=tr().find(x=>x.sid==='trip-z1'); o.un=[t&&t.fish0,k(t),AK.PF?1:0,!!document.querySelector('.sheet.on .rateq')];
+      document.querySelectorAll('.sheet.on .linkbtn').forEach(x=>x.click()); await W(700); document.querySelectorAll('.sheet.on .shx,.sheet.on .close').forEach(x=>x.click()); await W(500);
+      o.q2=await end('trip-z2'); await tap('Δεν έπιασα τίποτα'); t=tr().find(x=>x.sid==='trip-z2'); o.none=[t&&t.fish0,t&&t.rate,k(t),!!document.querySelector('.sheet.on .rateq')];
+      document.querySelectorAll('.sheet.on .shx,.sheet.on .close').forEach(x=>x.click()); await W(500);
+      o.q3=await end('trip-z3'); await tap('Έπιασα, θα τα γράψω τώρα'); t=tr().find(x=>x.sid==='trip-z3'); o.log=[t&&t.fish0,k(t),!!document.querySelector('.sheet.on .bform:not(.zeroq):not(.rateq)'),!!document.querySelector('.sheet.on .rateq')];
+      return o; }""")
+    check('έξοδος με 0 ψάρια: «Έπιασες κάτι;» με τρεις απαντήσεις· «δεν θα τα γράψω» → εκτός ελέγχου (k=u), «τίποτα» → μετρά (k=l), «θα τα γράψω» → ανοίγει η φόρμα (1.14.88)',
+          len(r['q'][1])==3 and r['q'][1]==['Δεν έπιασα τίποτα','Έπιασα, θα τα γράψω τώρα','Έπιασα, αλλά δεν θα τα γράψω'] and r['un'][0]=='unlogged' and r['un'][1]=='u' and r['un'][3] and r['none'][:3]==['none',0,'l'] and not r['none'][3] and r['log'][0]=='log' and r['log'][1]=='u' and r['log'][2] and not r['log'][3] and not pg._errs, [r,pg._errs]); c.close()
+    c=ctx(b); c.add_init_script("if(!sessionStorage.__g){sessionStorage.__g=1;localStorage.setItem('alkyon-safe',JSON.stringify({active:true,id:'trip-g1',start:Date.now()-90*60000,due:Date.now()+3*3600000,route:'G',last:{lat:34.7,lon:32.4,t:Date.now()}}));}")
+    pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(4500)
+    r=pg.evaluate("""async()=>{ const W=ms=>new Promise(r=>setTimeout(r,ms)), t0=Date.now()-90*60000, pts=[], mla=1/111320, mlo=1/(111320*Math.cos(34.7*Math.PI/180)); let t=t0, m=0, s=5;
+      const rnd=()=>(s=(s*1103515245+12345)&0x7fffffff)/0x7fffffff, add=(x,y)=>{ const p=[34.7+y*mla,32.4+x*mlo,t+=20000,6]; pts.push(p); };
+      for(let i=0;i<40;i++) add(i*12,0); for(let i=0;i<60;i++) add(468+(rnd()-.5)*30,(rnd()-.5)*30); for(let i=1;i<=40;i++) add(468,i*12);
+      for(let i=1;i<pts.length;i++){ const a=pts[i-1],b=pts[i]; m+=Math.hypot((b[0]-a[0])/mla,(b[1]-a[1])/mlo); }
+      localStorage.setItem('alkyon-track',JSON.stringify({id:'trip-g1',pts,m,d:{js:pts.length}})); AK.trip.back(); await W(1200);
+      const tr=JSON.parse(localStorage.getItem('alkyon-trips')||'[]').find(x=>x.sid==='trip-g1')||{}; const g=tr.gps||{}; return {km:tr.km,n:(tr.track||[]).length,raw:g.raw,stops:g.stops,cut:g.cut,out:g.out,kmRaw:g.kmRaw,src:g.src,end:g.end,v:AK.gpsVerdict(g,tr.endMs-tr.startMs).code,js:g.js}; }""")
+    check('διαδρομή: η στάση 20 λεπτών γίνεται ένα σημείο, η απόσταση είναι η πραγματική (0,9 km, όχι με το τρέμουλο), η διάγνωση γράφεται στην έξοδο (1.14.88)',
+          r.get('raw')==140 and r.get('stops')==1 and r.get('cut',0)>=50 and abs((r.get('km') or 0)-0.9)<=0.1 and (r.get('kmRaw') or 0)>=1.3 and 3<=r.get('n',0)<=8 and r.get('out')==r.get('n') and r.get('src')=='web' and r.get('v')=='ok' and r.get('js')==140 and not pg._errs, [r,pg._errs]); c.close()
     c=ctx(b); c.add_init_script("if(!sessionStorage.ld){sessionStorage.ld=1;localStorage.setItem('alkyon-v4-mapui',JSON.stringify('clean'));}")
     pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(4000)
     pg.evaluate("()=>{AK.troll.landHere(34.80,32.45); AK.troll.landHere(34.70,32.45);}"); pg.wait_for_timeout(3000)
