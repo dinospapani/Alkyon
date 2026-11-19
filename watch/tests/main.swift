@@ -19,7 +19,7 @@ check("si keeps ordinary values", si(12.9) == 12 && si(-3.2) == -3 && si(0) == 0
 for x in [ms, ms * 1000, 1e300, -1e300, Double.greatestFiniteMagnitude, 4294967296.0, 2147483647.5, -2147483648.5] { check("si(\(x)) fits in 32 bits", fits32(si(x))) }
 // ETA στη σελίδα Spot: ταχύτητα 0 από τις ρυθμίσεις δεν διαιρεί πια με το μηδέν
 let dm = 5000.0, sp = 0.0
-check("spot ETA with speed 0 is finite and bounded", si(min(99999, (dm / 1852) / max(sp, 0.5) * 60)) == 324)
+check("spot ETA with speed 0 is finite and bounded", si(min(99999, (dm / 1852) / max(sp, 0.5) * 60)) == 323)
 check("division by a zero setting no longer traps", si((10.0 - 1.0) / 0.0) == 0 && si(0.0 / 0.0) == 0)
 check("nowS() fits in 32 bits", fits32(nowS()))
 
