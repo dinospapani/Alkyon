@@ -68,6 +68,9 @@ g.AlkyonScoreConfig={
   window:{within:6,daylightPad:60},
   /* ΕΓΚΥΡΗ ΕΞΟΔΟΣ ΨΑΡΕΜΑΤΟΣ για την αξιολόγηση του βαθμού (ο κανόνας είναι στο score-core.js: session). Διάρκεια από minMin λεπτά έως maxHours ώρες. */
   session:{minMin:20,maxHours:16},
+  /* 1.14.87 (P1.3a): πόσα πραγματικά δεδομένα χρειάζονται για να αξιολογηθεί ο βαθμός (και να ανοίξει το πλήρες P1.3). Ίδια όρια με το εργαλείο αξιολόγησης του P1.2.
+     Μόνο πληροφορία: ο μετρητής ετοιμότητας τα δείχνει, ΔΕΝ ενεργοποιεί ούτε αλλάζει τίποτα στον βαθμό ή στη μάθηση. */
+  evalGate:{minTrips:150,minUsers:10,minPos:30,minDelta:0.03},
   /* προεπιλεγμένα όρια «ασφαλούς» ώρας (ο χρήστης τα αλλάζει: alkyon-limits) */
   limits:{wind:14,wave:0.9,gust:24},
   /* κλάσεις συνθηκών (για τη μάθηση): όρια «μικρότερο από» με τη σειρά· κλάση = πόσα όρια ξεπερνά η τιμή */
@@ -351,6 +354,11 @@ function evaluate(sm,h,meta,cfg){ cfg=cfg||CFG0; meta=meta||{}; var ctx={sp:meta
    Το σημάδι cond.k που στέλνει η εφαρμογή: 'l' live · 'n' nofish · 'm' manual · 'c' fromCatches · 'x' invalid.
    Ο κανόνας αφορά ΜΟΝΟ την αξιολόγηση. Η μάθηση «πότε τσιμπάνε» και η προσωπική πρόγνωση συνεχίζουν να χρησιμοποιούν όλες τις εξόδους όπως πριν. */
 var SK={l:'live',n:'nofish',m:'manual',c:'fromCatches',x:'invalid'}, SKR={live:'l',nofish:'n',manual:'m',fromCatches:'c',invalid:'x'};
+/* 1.14.87 (P1.3a): ΜΕΤΡΗΤΗΣ ΕΤΟΙΜΟΤΗΤΑΣ. Πόσες έγκυρες έξοδοι / χρήστες / έξοδοι με ψάρια υπάρχουν σε σχέση με τα όρια του evalGate.
+   Καθαρή συνάρτηση, μόνο πληροφορία: το open λέει πότε υπάρχουν αρκετά δεδομένα για να ΑΞΙΟΛΟΓΗΘΕΙ ο βαθμός. Δεν ενεργοποιεί μάθηση, δεν αλλάζει βαθμό. */
+function readiness(c,cfg){ var G=(cfg||CFG0).evalGate, n=function(v){ v=Math.floor(+v); return v>0?v:0; }, t=n(c&&c.trips), u=n(c&&c.users), p=n(c&&c.pos);
+  var miss={trips:Math.max(0,G.minTrips-t),users:Math.max(0,G.minUsers-u),pos:Math.max(0,G.minPos-p)};
+  return {trips:t,users:u,pos:p,need:{trips:G.minTrips,users:G.minUsers,pos:G.minPos},missing:miss,pct:Math.round(Math.min(t/G.minTrips,u/G.minUsers,p/G.minPos,1)*100),open:!miss.trips&&!miss.users&&!miss.pos}; }
 function session(t,cfg){ var S=(cfg||CFG0).session; if(!t) return {kind:'invalid',valid:false,why:'no trip',k:'x'};
   var app=t.startMs!=null||t.endMs!=null, s=+(app?t.startMs:t.ms), e=+(app?t.endMs:t.ms2), k=t.cond&&typeof t.cond.k==='string'?t.cond.k:null, cnt=+(app?t.count:t.cnt)||0;
   var out=function(kind,why){ var v=kind==='live'||kind==='nofish'||kind==='manual'; return {kind:kind,valid:v,why:why||null,k:SKR[kind]||null}; };
@@ -367,7 +375,7 @@ function session(t,cfg){ var S=(cfg||CFG0).session; if(!t) return {kind:'invalid
   if(app) return out('manual');
   return cnt>0?out('unknown','legacy row'):out('nofish'); }
 
-g.AlkyonScore={VERSION:CFG0.version,session:session,config:CFG0,hour:hour,explain:explain,window:windowOf,daylight:daylight,bins:bins,learn:learn,kindOf:kindOf,profOf:profOf,
+g.AlkyonScore={VERSION:CFG0.version,readiness:readiness,session:session,config:CFG0,hour:hour,explain:explain,window:windowOf,daylight:daylight,bins:bins,learn:learn,kindOf:kindOf,profOf:profOf,
   contract:contract,validate:validate,confidence:confidence,evaluate:evaluate,step:step,cls:cls,circDist:circDist,nearMin:nearMin,clamp:clamp};
 })(typeof self!=='undefined'?self:this);
 
@@ -501,7 +509,8 @@ const bft=w=>[1,4,7,11,17,22,28,34,41,48,56,64].filter(x=>x<=w).length;
 /* v31z525: όρια «ασφαλούς» ώρας ρυθμίζονται από τον χρήστη (alkyon-limits: kn, kn, m)· προεπιλογή όπως πριν */
 const LIMD={wind:CFG.limits.wind,wave:CFG.limits.wave,gust:CFG.limits.gust}; let LIMO=null;
 function lims(){ if(LIMO) return Object.assign({},LIMD,LIMO); try{ const o=typeof localStorage!=='undefined'?JSON.parse(localStorage.getItem('alkyon-limits')||'null'):null; if(o&&typeof o==='object') return Object.assign({},LIMD,o); }catch(e){} return LIMD; }
-const safeHour=h=>{ const L=lims(); return h.wind<=L.wind&&(h.wave==null||h.wave<=L.wave)&&(h.gust==null||h.gust<=L.gust)&&(h.code==null||h.code<CFG.storm.code); };
+const safeWith=L=>h=>h.wind<=L.wind&&(h.wave==null||h.wave<=L.wave)&&(h.gust==null||h.gust<=L.gust)&&(h.code==null||h.code<CFG.storm.code);
+const safeHour=h=>safeWith(lims())(h);
 /* 1.14.23: «ο δείκτης μαθαίνει»: τα ευρήματα του «Πότε τσιμπάνε» (bite_stats) διορθώνουν λίγο τον δείκτη κάθε ώρας.
    Μόνο ισχυρά ευρήματα (και οι δύο μέθοδοι, ή ≥ 15 ψάρια), με «συρρίκνωση» n/(n+60): λίγα στοιχεία → σχεδόν καμία αλλαγή. Όριο ±15%.
    h.learn = τι ταίριαξε (για την εξήγηση). */
@@ -543,6 +552,10 @@ async function getForecast(lat,lon,fetchFn,opt){
     const f=EXP.r.dirs[Math.round((((dir%360)+360)%360)/22.5)%16].km; if(!(f<20)) return null;
     const wl=EXP.hs(ws*0.5144,Math.max(0.5,f)), ww=Math.min(mm.ww,wl), v=Math.sqrt(mm.sw*mm.sw+ww*ww);
     return v<mm.wave-0.05?Math.round(v*100)/100:null; };
+  /* 1.14.87 (P1.3a): οι ρυθμίσεις του χρήστη περνούν ρητά εκεί που δεν υπάρχει localStorage (server, ρολόι, service worker), ώστε η ίδια ώρα να παίρνει τον ίδιο βαθμό με την εφαρμογή:
+     opt.sp = είδος-στόχος, opt.prof = προφίλ ψαρέματος ('boat'|'shore'|'lake'|'spear'), opt.limits = τα όρια «ασφαλούς» ώρας του χρήστη. Χωρίς αυτά όλα μένουν όπως ήταν. */
+  const UX=(opt&&(opt.sp||opt.prof))?Object.assign({},opt.sp?{sp:opt.sp}:null,opt.prof?{prof:opt.prof}:null):null;
+  const SAFE=(opt&&opt.limits&&typeof opt.limits==='object')?safeWith(Object.assign({},LIMD,opt.limits)):safeHour;
   const byDay={};
   for(let i=0;i<T.length;i++){
     const t=T[i], date=t.slice(0,10); if(date<past0) continue;
@@ -558,7 +571,7 @@ async function getForecast(lat,lon,fetchFn,opt){
     const zn=(typeof w.value.timezone==='string')?w.value.timezone:null, tzd=zn?nicOffAt(date,tz,zn):(tz===120||tz===180)?nicOffAt(date,tz):tz, sm=sunMoon(date,lat,lon,tzd), rows=byDay[date];
     const LRN=learnPick((opt&&opt.learn)||(opt&&opt.learn===false?null:(typeof window!=='undefined'&&window.AlkyonLearn)||null),opt&&opt.sp);
     const chl=(opt&&typeof opt.chl==='number'&&(Date.parse(date)-Date.parse(today))/864e5<=2)?opt.chl:null, thd=(opt&&typeof opt.thd==='number'&&(Date.parse(date)-Date.parse(today))/864e5<=2)?opt.thd:null;
-    const hours=rows.map(h=>learnAdj(LRN,sm,{chl,thd,mal:LRN?moonAlt(Date.parse(h.t+':00Z')-tzd*60000,lat,lon):null,clp:h.clp,mm:h.mm,t:h.t,hr:h.hr,p:h.p,pres:h.pres,wind:h.wind,wave:h.wave,waveOff:h.waveOff,gust:h.gust,code:h.code,ptrend:h.ptrend,tide:h.tide,dir:h.dir,temp:h.temp,rain:h.rain,cloud:h.cloud,sst:h.sst,period:h.period,score:hourScore(sm,h.hr,opt&&opt.sp?Object.assign({sp:opt.sp},h):h),bite:hourScore(sm,h.hr,Object.assign(opt&&opt.sp?{sp:opt.sp}:{},h,{bite:true})),safe:safeHour(h)}));
+    const hours=rows.map(h=>learnAdj(LRN,sm,{chl,thd,mal:LRN?moonAlt(Date.parse(h.t+':00Z')-tzd*60000,lat,lon):null,clp:h.clp,mm:h.mm,t:h.t,hr:h.hr,p:h.p,pres:h.pres,wind:h.wind,wave:h.wave,waveOff:h.waveOff,gust:h.gust,code:h.code,ptrend:h.ptrend,tide:h.tide,dir:h.dir,temp:h.temp,rain:h.rain,cloud:h.cloud,sst:h.sst,period:h.period,score:hourScore(sm,h.hr,UX?Object.assign({},UX,h):h),bite:hourScore(sm,h.hr,Object.assign({},UX,h,{bite:true})),safe:SAFE(h)}));
     const day=h=>AS.daylight(sm,h.hr);
     const cand=hours.filter(h=>h.safe&&day(h)&&(date!==today||h.t>=nowLocal.slice(0,13)+':00'));
     /* παράθυρο της ημέρας (AlkyonScore.window): η μεγαλύτερη σειρά ασφαλών ωρών φωτός κοντά στον καλύτερο βαθμό */
@@ -791,7 +804,7 @@ async function checkPlaces(cfg,fetchFn){
   for(const p of (cfg.onlyPlans?[]:cfg.places||[])){
     if(p.watch===false||p.lat==null) continue;
     try{
-      const fc=await getForecast(p.lat,p.lon,fetchFn,{days:7,sp:cfg.sp||null});
+      const fc=await getForecast(p.lat,p.lon,fetchFn,{days:7,sp:cfg.sp||null,prof:cfg.prof||null});
       okN++;
       /* 1.14.28: καλή μέρα σε 2+ μέρες, μόνο αν τα μοντέλα συμφωνούν για τον άνεμο (αλλιώς περιμένουμε να ξεκαθαρίσει) */
       let gd=goodDays(fc,thr); const far=fc.nowLocal?new Date(Date.parse(fc.nowLocal.slice(0,10)+'T12:00:00Z')+2*864e5).toISOString().slice(0,10):null;
@@ -839,7 +852,7 @@ async function checkPlaces(cfg,fetchFn){
   for(const pl of (cfg.plans||[]).slice(0,6)){
     if(!pl||pl.lat==null||!pl.date) continue;
     try{
-      const fc=await getForecast(+pl.lat,+pl.lon,fetchFn,{days:7,sp:cfg.sp||null}); okN++;
+      const fc=await getForecast(+pl.lat,+pl.lon,fetchFn,{days:7,sp:cfg.sp||null,prof:cfg.prof||null}); okN++;
       const nowD=fc.nowLocal.slice(0,10), nowM=+fc.nowLocal.slice(11,13)*60+(+fc.nowLocal.slice(14,16)||0), tmr=new Date(Date.parse(nowD+'T12:00:00Z')+864e5).toISOString().slice(0,10);
       if(pl.date<nowD) continue; const d=fc.days.find(x=>x.date===pl.date); if(!d) continue;
       const xk='plan:x:'+pl.date, ek='plan:eve:'+pl.date, ak='plan:am:'+pl.date, bad=!d.safe?'unsafe':(d.best<thr-8?'worse':null);
@@ -850,7 +863,7 @@ async function checkPlaces(cfg,fetchFn){
     }catch(e){ errs.push((pl.name||'plan')+': '+(e&&e.message||e)); }
   }
   if(area&&!cfg.onlyPlans&&!areaDone&&(cfg.pressure!==false||cfg.turn)){
-    try{ const fc=await getForecast(area.lat,area.lon,fetchFn,{days:3,sp:cfg.sp||null}); okN++; await doPressure(fc,{name:area.name,lat:area.lat,lon:area.lon}); }
+    try{ const fc=await getForecast(area.lat,area.lon,fetchFn,{days:3,sp:cfg.sp||null,prof:cfg.prof||null}); okN++; await doPressure(fc,{name:area.name,lat:area.lat,lon:area.lon}); }
     catch(e){ errs.push((area.name||'area')+': '+(e&&e.message||e)); }
   }
   goods.sort((a,b)=>b.best-a.best);
@@ -928,7 +941,20 @@ function scoreRows(fc,lat,lon,o){ const out=[]; if(!fc||!fc.days) return {cfg:CF
       try{ if(sm){ const e=scoreHour(sm,x,Object.assign({dayOffset:di,unc:d.unc},o)); row.push(e.core,e.confidence.n,x.waveOff!=null?1:0,e.learn?1:0); } }catch(e){}
       out.push(row); } });
   return {cfg:CFG.version,h:out}; }
-g.PF={session:(t)=>AS.session(t),scoreRows,scoreHour,scoreConfig:CFG.version,explainHour,ensSpread,learnPick,learnBins,learnAdj,darkTxt,darkWin,squidEves,nextMoon,moonInfo,lims,moonAlt,moonEvents,moonPhase,solunarPeriods,pressureRise,sunMoon,hourScore,getForecast,findIdeal,message,check,goodDays,checkPlaces,dayLabel,bft,pressureEvent,windEvent,pressureTurns,pressureOutlook};
+/* 1.14.87 (P1.3a): οι ρυθμίσεις βαθμολόγησης ενός χρήστη για όσους υπολογίζουν ΧΩΡΙΣ το κινητό του μπροστά (quick-processor, ρολόι). Ένας κανόνας, καθαρή συνάρτηση.
+   Πηγές, με αυτή τη σειρά: (1) ό,τι έστειλε η ίδια η εφαρμογή μαζί με τις τοποθεσίες των ειδοποιήσεων (places[].prof, places[].sp),
+   (2) οι ρυθμίσεις του λογαριασμού (settings: alkyon-fprof, alkyon-limits), (3) το προφίλ της πιο πρόσφατης καταγραφής του (έξοδος/ψάρι).
+   Επιστρέφει {prof, sp, limits, src}: null όπου δεν ξέρουμε (τότε ισχύει ό,τι ίσχυε: «σκάφος», χωρίς είδος, προεπιλεγμένα όρια). */
+const PROFS=['boat','shore','lake','spear'];
+function userPrefs(o){ o=o||{}; const P=Array.isArray(o.places)?o.places:[], S=(o.settings&&typeof o.settings==='object')?o.settings:{}, ok=v=>typeof v==='string'&&PROFS.indexOf(v)>=0?v:null;
+  const unq=v=>{ if(typeof v!=='string') return v; const t=v.trim(); if(t.charAt(0)==='"'){ try{ return JSON.parse(t); }catch(e){} } return t; };
+  let prof=null, src=null; const pp=P.map(p=>p&&ok(unq(p.prof))).find(Boolean); if(pp){ prof=pp; src='app'; }
+  if(!prof){ const sp0=ok(unq(S['alkyon-fprof'])); if(sp0){ prof=sp0; src='settings'; } }
+  if(!prof){ const lp=ok(unq(o.lastProf)); if(lp){ prof=lp; src='last'; } }
+  const spo=(P.find(p=>p&&p.sp&&typeof p.sp==='object'&&(p.sp.n||p.sp.l))||{}).sp||null, sp=spo?{n:spo.n,l:spo.l,sst:Array.isArray(spo.sst)?spo.sst:undefined}:null;
+  const L=S['alkyon-limits'], lim={}; if(L&&typeof L==='object') for(const k of ['wind','wave','gust']) if(typeof L[k]==='number'&&isFinite(L[k])&&L[k]>0) lim[k]=L[k];
+  return {prof,sp,limits:Object.keys(lim).length?lim:null,src}; }
+g.PF={userPrefs,readiness:(c)=>AS.readiness(c),session:(t)=>AS.session(t),scoreRows,scoreHour,scoreConfig:CFG.version,explainHour,ensSpread,learnPick,learnBins,learnAdj,darkTxt,darkWin,squidEves,nextMoon,moonInfo,lims,moonAlt,moonEvents,moonPhase,solunarPeriods,pressureRise,sunMoon,hourScore,getForecast,findIdeal,message,check,goodDays,checkPlaces,dayLabel,bft,pressureEvent,windEvent,pressureTurns,pressureOutlook};
 })(typeof self!=='undefined'?self:this);
 
 globalThis.__ALKYON_PF = self.PF;
@@ -1145,7 +1171,15 @@ export async function handle(req, F = fetch, now = Date.now()) {
       }
       let en = q.get('lang') === 'en', lim = null, us = null;
       if (q.get('code')) { us = await user(q.get('code')); if (us && us.lang && !q.get('lang')) en = us.lang === 'en'; }   // η γλώσσα του ρολογιού (lang) έχει προτεραιότητα
-      const key = lat.toFixed(2) + ',' + lon.toFixed(2) + (en ? 'e' : 'g') + JSON.stringify(lim || '');
+      const PF = await loadPF(F, now);
+      /* 1.14.87 (P1.3a): το ρολόι βαθμολογεί με τις ρυθμίσεις του χρήστη (προφίλ ψαρέματος, είδος-στόχος, όρια), όπως η εφαρμογή του. Ο κανόνας είναι ο PF.userPrefs.
+         Χωρίς κωδικό ή αν κάτι αποτύχει: όπως πριν (σκάφος, χωρίς είδος, προεπιλεγμένα όρια). */
+      let up = { prof: null, sp: null, limits: null };
+      if (us && PF.userPrefs) { try { const jj = async (pth) => { const r = await sb(F, pth); return r.ok ? await r.json() : []; };
+        const [st, ps, lr] = await Promise.all([jj('records?user_id=eq.' + us.user_id + '&kind=eq.settings&id=eq.main&select=data&limit=1').catch(() => []), jj('push_subs?user_id=eq.' + us.user_id + '&select=places,updated_at&order=updated_at.desc&limit=1').catch(() => []), jj('records?user_id=eq.' + us.user_id + '&kind=in.(trips,bites)&deleted=eq.false&select=p:data->>prof,s:data->>src&order=updated_at.desc&limit=8').catch(() => [])]);
+        up = PF.userPrefs({ places: (ps && ps[0] && ps[0].places) || [], settings: st && st[0] && st[0].data, lastProf: ((lr || []).find((x) => x && x.p && x.s !== 'watch') || {}).p || null }); } catch (e) {} }
+      lim = up.limits;
+      const key = lat.toFixed(2) + ',' + lon.toFixed(2) + (en ? 'e' : 'g') + JSON.stringify(lim || '') + '|' + (up.prof || '') + '|' + (up.sp ? String(up.sp.l || up.sp.n || '') : '');
       const bg = q.get('bg') === '1';   // από το παρασκήνιο του ρολογιού: μόνο οι καμπές πίεσης (λίγη μνήμη)
       const small = (v) => bg ? { ok: 1, tn: v.tn || [], p: v.now ? v.now.p : null, s: v.days && v.days[0] ? v.days[0].s : null, w: v.days && v.days[0] ? v.days[0].w : '', bw: v.bw || null } : v;
       /* 1.2.0: ώρα επιστροφής από το πλάνο εξόδου του κινητού (αν υπάρχει ενεργό), για το δαχτυλίδι της εξόδου στο ρολόι */
@@ -1165,8 +1199,7 @@ export async function handle(req, F = fetch, now = Date.now()) {
           const tc = trollSpots(a || [], lat, lon); if (tc.length) o = { ...o, tc }; } catch (e) {}
         return o; };
       const hit = mem.fc.get(key); if (hit && now - hit.at < 30 * 60e3) return J(small(await withDue(hit.v)), 200, 'private, max-age=300');
-      const PF = await loadPF(F, now);
-      const fc = await PF.getForecast(lat, lon, F, { days: 6 });
+      const fc = await PF.getForecast(lat, lon, F, { days: 6, prof: up.prof, sp: up.sp, limits: up.limits });
       const v = compact(PF, fc, en, lat, lon); mem.fc.set(key, { at: now, v }); if (mem.fc.size > 300) mem.fc.clear();
       return J(small(await withDue(v)), 200, 'private, max-age=300');
     }

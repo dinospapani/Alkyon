@@ -29,6 +29,10 @@ const all = (posts.bite_stats || []).flat().find(x => x.key === 'all'), pers = (
 test('server stats: the kinds of trips are counted and stored (ses)', () => {
   assert.ok(all, 'stats were written: ' + logs.slice(-3).join(' | ')); assert.deepEqual(all.data.ses, { live: 20, unknown: 40 }); assert.equal(all.data.trips, 60);
 });
+test('server stats: the readiness meter counts valid trips, their users and those with fish (information only)', () => {
+  const r = all.data.ready; assert.ok(r, 'ready is stored with the daily statistics'); assert.equal(r.trips, 20); assert.equal(r.users, 2); assert.ok(r.pos >= 1 && r.pos < 20, 'valid trips with fish: ' + r.pos);
+  assert.deepEqual(r.need, { trips: 150, users: 10, pos: 30 }); assert.equal(r.open, false); assert.equal(r.missing.trips, 130);
+});
 test('server stats: "how right was the forecast" (acc) and the new check (btv) use the 20 valid trips only', () => {
   assert.equal(all.data.acc.trips, 20); assert.equal(all.data.btv.n, 20); assert.ok(all.data.btv.base >= 0 && all.data.btv.base <= 1 && all.data.btv.adj >= 0 && all.data.btv.adj <= 1);
   const hit = all.data.acc.hit.filter(x => x != null); assert.ok(hit.length && hit.every(x => x < 100), 'trips without fish are in the check: ' + JSON.stringify(all.data.acc.hit));

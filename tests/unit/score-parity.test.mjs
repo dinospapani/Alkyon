@@ -118,7 +118,7 @@ test('golden master: alerts (checkPlaces, findIdeal, goodDays) produce the same 
 test('golden master: every other function of forecast.js is unchanged (sun, moon, solunar, pressure events)', () => {
   const A = loadOld({ now: '2026-11-09T04:00:00Z' }), B = loadNew({ now: '2026-11-09T04:00:00Z' });
   assert.deepEqual(Object.keys(A.PF).filter(k => !(k in B.PF)), [], 'nothing was removed from PF');
-  assert.deepEqual(Object.keys(B.PF).filter(k => !(k in A.PF)).sort(), ['scoreConfig', 'scoreHour', 'scoreRows', 'session'], 'only the new score entries were added (1.14.86: + session, the valid-trip rule; it scores nothing)');
+  assert.deepEqual(Object.keys(B.PF).filter(k => !(k in A.PF)).sort(), ['readiness', 'scoreConfig', 'scoreHour', 'scoreRows', 'session', 'userPrefs'], 'only the new score entries were added (1.14.86: + session, the valid-trip rule; 1.14.87: + userPrefs, which user settings the server and watch score with, + readiness, the data meter; none of them scores anything)');
   for (const [lat, lon, tz] of [[34.66, 33.04, 120], [37.94, 23.64, 120], [-33.9, 151.2, 660], [69.6, 18.9, 60]]) for (const d of ['2026-01-10', '2026-06-21', '2026-11-18', '2026-12-25']) {
     assert.equal(JSON.stringify(B.PF.sunMoon(d, lat, lon, tz)), JSON.stringify(A.PF.sunMoon(d, lat, lon, tz)));
     const ms = Date.parse(d + 'T00:00:00Z'); assert.equal(JSON.stringify(B.PF.solunarPeriods(ms, ms + 864e5, lat, lon)), JSON.stringify(A.PF.solunarPeriods(ms, ms + 864e5, lat, lon)));

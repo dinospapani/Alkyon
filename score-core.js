@@ -244,6 +244,11 @@ function evaluate(sm,h,meta,cfg){ cfg=cfg||CFG0; meta=meta||{}; var ctx={sp:meta
    Το σημάδι cond.k που στέλνει η εφαρμογή: 'l' live · 'n' nofish · 'm' manual · 'c' fromCatches · 'x' invalid.
    Ο κανόνας αφορά ΜΟΝΟ την αξιολόγηση. Η μάθηση «πότε τσιμπάνε» και η προσωπική πρόγνωση συνεχίζουν να χρησιμοποιούν όλες τις εξόδους όπως πριν. */
 var SK={l:'live',n:'nofish',m:'manual',c:'fromCatches',x:'invalid'}, SKR={live:'l',nofish:'n',manual:'m',fromCatches:'c',invalid:'x'};
+/* 1.14.87 (P1.3a): ΜΕΤΡΗΤΗΣ ΕΤΟΙΜΟΤΗΤΑΣ. Πόσες έγκυρες έξοδοι / χρήστες / έξοδοι με ψάρια υπάρχουν σε σχέση με τα όρια του evalGate.
+   Καθαρή συνάρτηση, μόνο πληροφορία: το open λέει πότε υπάρχουν αρκετά δεδομένα για να ΑΞΙΟΛΟΓΗΘΕΙ ο βαθμός. Δεν ενεργοποιεί μάθηση, δεν αλλάζει βαθμό. */
+function readiness(c,cfg){ var G=(cfg||CFG0).evalGate, n=function(v){ v=Math.floor(+v); return v>0?v:0; }, t=n(c&&c.trips), u=n(c&&c.users), p=n(c&&c.pos);
+  var miss={trips:Math.max(0,G.minTrips-t),users:Math.max(0,G.minUsers-u),pos:Math.max(0,G.minPos-p)};
+  return {trips:t,users:u,pos:p,need:{trips:G.minTrips,users:G.minUsers,pos:G.minPos},missing:miss,pct:Math.round(Math.min(t/G.minTrips,u/G.minUsers,p/G.minPos,1)*100),open:!miss.trips&&!miss.users&&!miss.pos}; }
 function session(t,cfg){ var S=(cfg||CFG0).session; if(!t) return {kind:'invalid',valid:false,why:'no trip',k:'x'};
   var app=t.startMs!=null||t.endMs!=null, s=+(app?t.startMs:t.ms), e=+(app?t.endMs:t.ms2), k=t.cond&&typeof t.cond.k==='string'?t.cond.k:null, cnt=+(app?t.count:t.cnt)||0;
   var out=function(kind,why){ var v=kind==='live'||kind==='nofish'||kind==='manual'; return {kind:kind,valid:v,why:why||null,k:SKR[kind]||null}; };
@@ -260,6 +265,6 @@ function session(t,cfg){ var S=(cfg||CFG0).session; if(!t) return {kind:'invalid
   if(app) return out('manual');
   return cnt>0?out('unknown','legacy row'):out('nofish'); }
 
-g.AlkyonScore={VERSION:CFG0.version,session:session,config:CFG0,hour:hour,explain:explain,window:windowOf,daylight:daylight,bins:bins,learn:learn,kindOf:kindOf,profOf:profOf,
+g.AlkyonScore={VERSION:CFG0.version,readiness:readiness,session:session,config:CFG0,hour:hour,explain:explain,window:windowOf,daylight:daylight,bins:bins,learn:learn,kindOf:kindOf,profOf:profOf,
   contract:contract,validate:validate,confidence:confidence,evaluate:evaluate,step:step,cls:cls,circDist:circDist,nearMin:nearMin,clamp:clamp};
 })(typeof self!=='undefined'?self:this);
