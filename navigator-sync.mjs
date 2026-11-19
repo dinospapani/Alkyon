@@ -84,35 +84,39 @@ export function compact(p, G) {
 export function makeClient(fetchFn, sleep) {
   let last = 0;
   return async function get(path) {
-    /* 1.14.91: 2.5 s ανάμεσα στα αιτήματα και, αν ο server απαντήσει 429 (όριο ρυθμού), αναμονή 12 s και ξανά, έως 5 φορές. Το ίδιο και σε διακοπή δικτύου.
+    /* 1.14.91: 2.5 s ανάμεσα στα αιτήματα και, αν ο server απαντήσει 429 (όριο ρυθμού), αναμονή 12 s και ξανά, έως 5 φορές. Το ίδιο σε διακοπή δικτύου και σε κομμένη (μη JSON) απάντηση.
        Πριν ένα μόνο 429 σταματούσε όλο τον συγχρονισμό (πλήρης έλεγχος 19/11/2026: σταμάτησε στη σελίδα 9). */
-    let r = null;
     for (let tries = 0; ; tries++) {
       const wait = 2500 - (Date.now() - last); if (wait > 0) await sleep(wait);
       last = Date.now();
+      let r = null, err = null;
       try { r = await fetchFn(BASE + path, { headers: { 'User-Agent': UA, Accept: 'application/json' } }); }
-      catch (e) { if (tries >= 5) throw e; r = { ok: false, status: 429 }; }   /* διακοπή δικτύου: ίδια αναμονή και ξανά */
-      if (r.status !== 429 || tries >= 5) break;
+      catch (e) { err = e; }                                              /* διακοπή δικτύου */
+      if (r && r.ok) { try { return await r.json(); } catch (e) { err = new Error('Μη έγκυρο JSON ' + path); } }   /* κομμένη ή μη JSON απάντηση */
+      else if (r && r.status !== 429) throw new Error('HTTP ' + r.status + ' ' + path);
+      else if (r) err = new Error('HTTP 429 ' + path);
+      if (tries >= 5) throw err;
       await sleep(12000);
     }
-    if (!r.ok) throw new Error('HTTP ' + r.status + ' ' + path);
-    try { return await r.json(); } catch (e) { throw new Error('Μη έγκυρο JSON ' + path); }
   };
 }
 
 const iso = ms => new Date(ms).toISOString().slice(0, 10);
 
-export async function sync({ file, fetchFn = fetch, sleep = ms => new Promise(r => setTimeout(r, ms)), now = Date.now(), log = console.log, since }) {
+export async function sync({ file, fetchFn = fetch, sleep = ms => new Promise(r => setTimeout(r, ms)), now = Date.now(), log = console.log, since, ids }) {
   const doc = JSON.parse(fs.readFileSync(file, 'utf8'));
   const local = doc.f || []; const byId = new Map(local.map(f => [f.i, f]));
   if (local.length < 50) throw new Error('Το τοπικό αρχείο φαίνεται ελλιπές (' + local.length + ')');
-  const startDate = iso(now);
+  const startDate = ids && ids.length ? doc.v : iso(now);
   const from = since || iso(Date.parse(doc.v + 'T00:00:00Z') - 7 * 86400000);
   const get = makeClient(fetchFn, sleep);
 
-  /* 1. λίστα αλλαγών */
+  /* 1. λίστα αλλαγών
+     1.14.91: με ids (NAV_IDS) ελέγχονται μόνο συγκεκριμένες περιοχές, χωρίς τη λίστα αλλαγών: λίγα αιτήματα αντί για ολόκληρο τον κατάλογο.
+     Η ημερομηνία v δεν αλλάζει, γιατί δεν είναι πλήρης συγχρονισμός. */
   const changes = [];
-  for (let page = 1; page <= 200; page++) {
+  if (ids && ids.length) for (const id of ids) changes.push({ ps_id: id });
+  else for (let page = 1; page <= 200; page++) {
     const j = await get('/api/search/?type=sites_updated&changed_since=' + from + '&include_inactive=true&lang=en_EN&limit=' + PAGE + '&page=' + page);
     const arr = j && j.sites;
     if (!Array.isArray(arr)) throw new Error('Η απάντηση δεν έχει πίνακα sites (σελίδα ' + page + ')');
@@ -178,7 +182,7 @@ export async function sync({ file, fetchFn = fetch, sleep = ms => new Promise(r 
 }
 
 if (process.argv[1] && process.argv[1].endsWith('navigator-sync.mjs')) {
-  sync({ file: process.env.NAV_FILE || 'navigator-mpa.json', since: process.env.NAV_SINCE || undefined })
+  sync({ file: process.env.NAV_FILE || 'navigator-mpa.json', since: process.env.NAV_SINCE || undefined, ids: (process.env.NAV_IDS || '').split(/[\s,]+/).filter(x => /^[A-Za-z0-9_-]+$/.test(x)) })
     .then(r => { console.log(JSON.stringify(r)); if (process.env.NAV_CY_OUT && r.cy && r.cy.length) fs.writeFileSync(process.env.NAV_CY_OUT, r.cy.join('\n') + '\n'); })
     .catch(e => { console.error('ΣΦΑΛΜΑ: ' + e.message); process.exit(1); });
 }

@@ -10,6 +10,9 @@ on:
       since:
         description: 'Από ημερομηνία (YYYY-MM-DD), κενό = από την τελευταία ενημέρωση'
         required: false
+      ids:
+        description: 'Μόνο αυτές οι περιοχές (ps_id χωρισμένα με κόμμα), χωρίς πλήρη έλεγχο'
+        required: false
       probe:
         description: 'ps_id για έλεγχο (τυπώνει τα στοιχεία της περιοχής, π.χ. AIGRC277)'
         required: false
@@ -35,6 +38,7 @@ jobs:
         env:
           NAV_CONTACT: ${{ secrets.NAV_CONTACT }}   # 1.14.91: διεύθυνση επικοινωνίας για το User-Agent (όχι μέσα στον κώδικα)
           NAV_CY_OUT: ${{ runner.temp }}/nav-cy.txt
+          NAV_IDS: ${{ github.event.inputs.ids }}
           NAV_SINCE: ${{ github.event.inputs.since || (github.event.schedule == '41 5 10 1,4,7,10 *' && '2000-01-01') || '' }}
       - name: Μόνο θάλασσα (κόβεται η στεριά από τις περιοχές)
         # 1.12.8: tools/nav_clip.py · ακτογραμμή OSM για Κύπρο/Ελλάδα, Natural Earth αλλού

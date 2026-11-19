@@ -46,3 +46,24 @@ test('a dropped connection is retried like a 429', async () => {
   const dead = makeClient(async () => { throw new TypeError('fetch failed'); }, async () => {});
   await assert.rejects(() => dead('/y'), /fetch failed/);
 });
+test('a truncated (non-JSON) answer is retried', async () => {
+  let n = 0; const get = makeClient(async () => { n++; return { ok: true, status: 200, json: async () => { if (n === 1) throw new SyntaxError('x'); return { c: 3 }; } }; }, async () => {});
+  assert.deepEqual(await get('/x'), { c: 3 }); assert.equal(n, 2);
+  const gone = makeClient(async () => ({ ok: false, status: 404 }), async () => {});
+  await assert.rejects(() => gone('/y'), /HTTP 404/, 'other errors are not retried');
+});
+test('ids mode: only the named areas are fetched, the catalogue date stays', async () => {
+  const { sync } = await import('../../navigator-sync.mjs'); const os = await import('node:os');
+  const tmp = path.join(os.tmpdir(), 'nav-' + process.pid + '.json'); fs.copyFileSync(path.join(ROOT, 'navigator-mpa.json'), tmp);
+  const before = JSON.parse(fs.readFileSync(tmp, 'utf8')); const urls = [];
+  const sq = [[[26.70, 38.60], [26.72, 38.60], [26.72, 38.62], [26.70, 38.62], [26.70, 38.60]]];
+  const site = { TESTZ1: { ps_id: 'TESTZ1', site_name: 'Naval zone', country: 'Turkey', category_id: 9, lfp: 5, recreational_fishing: 1, hook_and_line: 1, percent_marine_area: 100, site_boundary: { type: 'Polygon', coordinates: sq } },
+    TESTW1: { ps_id: 'TESTW1', site_name: 'Territorial sea', country: 'Turkey', category_id: 9, lfp: 1, recreational_fishing: 2, site_boundary: { type: 'Polygon', coordinates: sq } } };
+  const fetchFn = async u => { urls.push(u); const id = /ps_id=([^&]+)/.exec(u)[1]; return { ok: true, status: 200, json: async () => site[id] }; };
+  const r = await sync({ file: tmp, fetchFn, sleep: async () => {}, log: () => {}, ids: ['TESTZ1', 'TESTW1'] });
+  const after = JSON.parse(fs.readFileSync(tmp, 'utf8')); fs.unlinkSync(tmp);
+  assert.equal(urls.length, 2); assert.ok(urls.every(u => /\/api\/detail\//.test(u)), 'no catalogue paging');
+  assert.equal(r.add, 1); assert.equal(after.f.length, before.f.length + 1); assert.equal(after.v, before.v);
+  const z = after.f.find(f => f.i === 'TESTZ1'); assert.equal(z.k, 9); assert.equal(z.l, 5); assert.equal(z.rf, 1);
+  assert.ok(!after.f.some(f => f.i === 'TESTW1'), 'national waters stay out');
+});
