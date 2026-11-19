@@ -211,28 +211,32 @@ function satNote(k){ var c=ls.get(SATK,null), d=c&&c.v&&c.v[k]; var day=d&&d.day
   B.toast(k==='chl'?T('Χλωροφύλλη (πλαγκτόν)','Chlorophyll (plankton)')+day+': '+T('ανοιχτό = λίγη τροφή, σκούρο πράσινο = πολλή. Εκεί που αλλάζει απότομα το χρώμα (μέτωπο) μαζεύεται η τροφή και τα ψάρια.','light = little food, dark green = a lot. Where the colour changes sharply (a front), food and fish gather.'):T('Θερμοκρασία νερού από δορυφόρο','Satellite water temperature')+day+': '+T('σκούρο = πιο κρύο, κίτρινο = πιο ζεστό','dark = colder, yellow = warmer')+(d&&d.range?' ('+d.range[0]+'–'+d.range[1]+'°C)':'')+T('. Ψάξε τα σημεία όπου αλλάζει απότομα το χρώμα (θερμικό μέτωπο).','. Look for places where the colour changes sharply (a thermal front).'),7000); }
 /* 1.9.8: ραντάρ βροχής (RainViewer, δωρεάν: οι τελευταίες 2 ώρες ανά 10′, ζουμ έως 7) · παίζει σαν ταινία, μπάρα με ώρα και ▶/❚❚ */
 var rainL=[], rainT=null, rainI=0, rainBar=null, rainPlay=true, rainHost='', rainFr=[];
-function rainStop(){ clearInterval(rainT); rainT=null; rainL.forEach(function(l){ try{ map.removeLayer(l); }catch(e){} }); rainL=[]; if(rainBar){ rainBar.remove(); rainBar=null; } }
+/* 1.14.88: στην αλλαγή πηγής («⇄») η μπάρα μένει στη θέση της μέχρι να έρθει η νέα (keep): αλλιώς για ένα-δυο δευτερόλεπτα δεν υπήρχε μπάρα χρόνου
+   και το κύριο μενού (που μαζεύεται όσο είναι ανοιχτό το ραντάρ) εμφανιζόταν και ξαναμαζευόταν. */
+function rainStop(keep){ clearInterval(rainT); rainT=null; rainL.forEach(function(l){ try{ map.removeLayer(l); }catch(e){} }); rainL=[];
+  if(rainBar){ if(keep){ rainBar.classList.add('rbwait'); rainBar.setAttribute('aria-busy','true'); } else { rainBar.remove(); rainBar=null; } } }
+function rainBarDrop(){ if(rainBar&&!rainL.length){ rainBar.remove(); rainBar=null; } }
 function rainShow(i){ rainI=i; rainL.forEach(function(l,j){ l.setOpacity(j===i?.75:0); }); if(rainBar){ var f=rainFr[i], d=new Date(f.time*1000), ago=Math.round((Date.now()-d)/60000); rainBar.querySelector('b').textContent=B.pad(d.getHours())+':'+B.pad(d.getMinutes()); rainBar.querySelector('small').textContent=ago<=12?T('τώρα','now'):T('πριν ','')+ago+T('′','′ ago'); var r=rainBar.querySelector('input'); if(r) r.value=String(i); } }
 /* 1.9.20: στην Κύπρο πρώτα το ραντάρ του Τμήματος Μετεωρολογίας (2 ραντάρ, ανά ~10′, ανάλυση ~0,6 km· radar_build.py → κλαδί radar-data).
    Αλλού, ή αν δεν είναι φρέσκο (πάνω από 45′), το RainViewer. Στη μπάρα «⇄» αλλάζει πηγή. */
 var DOMR=window.ALKYON_RADAR_URL||'https://raw.githubusercontent.com/dinospapani/alkyon/radar-data/', DOMBOX=[33.6,30.9,36.15,35.25], rainSrc='rv';
 /* 1.13.8: και όταν η Κύπρος απλώς φαίνεται στον χάρτη (π.χ. ζουμ έξω με κέντρο στην Τουρκία), όχι μόνο όταν είναι στο κέντρο */
 function inCyR(){ var c=map.getCenter(); if(c.lat>DOMBOX[0]&&c.lat<DOMBOX[2]&&c.lng>DOMBOX[1]&&c.lng<DOMBOX[3]) return true; try{ return map.getZoom()>=6&&map.getBounds().contains([35.05,33.2]); }catch(e){ return false; } }
-function rainBarMake(){
+function rainBarMake(){ var oldBar=rainBar;
   rainBar=h('div',{class:'rainbar',role:'group','aria-label':T('Ραντάρ βροχής','Rain radar')},
     h('button',{type:'button',class:'rbp','aria-label':T('Αναπαραγωγή/παύση','Play/pause'),text:'❚❚',onclick:function(){ rainPlay=!rainPlay; this.textContent=rainPlay?'❚❚':'▶'; }}),
     h('span',{class:'rbt'},h('i',{text:rainSrc==='dom'?T('Ραντάρ ΤΜ Κύπρου','DoM Cyprus radar'):T('Ραντάρ βροχής','Rain radar')}),h('b',{text:''}),h('small',{text:''})),
     h('input',{type:'range',min:'0',max:String(rainFr.length-1),value:String(rainFr.length-1),'aria-label':T('Ώρα ραντάρ','Radar time'),oninput:function(){ rainPlay=false; rainBar.querySelector('.rbp').textContent='▶'; rainShow(+this.value); }}),
-    inCyR()?h('button',{type:'button',class:'rbs','aria-label':T('Αλλαγή πηγής ραντάρ','Switch radar source'),title:rainSrc==='dom'?T('Πήγαινε στο RainViewer','Switch to RainViewer'):T('Πήγαινε στο ραντάρ ΤΜ Κύπρου','Switch to DoM Cyprus radar'),text:'⇄',onclick:function(){ ls.set('alkyon-v4-rainsrc',rainSrc==='dom'?'rv':'dom'); drawRain(); }}):null,
+    inCyR()?h('button',{type:'button',class:'rbs','aria-label':T('Αλλαγή πηγής ραντάρ','Switch radar source'),title:rainSrc==='dom'?T('Πήγαινε στο RainViewer','Switch to RainViewer'):T('Πήγαινε στο ραντάρ ΤΜ Κύπρου','Switch to DoM Cyprus radar'),text:'⇄',onclick:function(){ ls.set('alkyon-v4-rainsrc',rainSrc==='dom'?'rv':'dom'); drawRain(true); }}):null,
     h('button',{type:'button',class:'rbx','aria-label':T('Κλείσιμο ραντάρ','Close radar'),text:'✕',onclick:function(){ cfg.rain=false; saveCfg(); rainStop(); }}));
-  document.body.append(rainBar); rainShow(rainFr.length-1);
+  document.body.append(rainBar); if(oldBar&&oldBar!==rainBar) oldBar.remove(); rainShow(rainFr.length-1);
   rainT=setInterval(function(){ if(!rainPlay||!rainL.length) return; rainShow((rainI+1)%rainL.length); },700); }
 function rainRV(){ rainSrc='rv';
-  fetch('https://api.rainviewer.com/public/weather-maps.json').then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(j){ if(!cfg.rain||!map) return;
+  fetch('https://api.rainviewer.com/public/weather-maps.json').then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(j){ if(!cfg.rain||!map){ rainBarDrop(); return; }
     rainHost=j.host||'https://tilecache.rainviewer.com'; rainFr=(j.radar&&j.radar.past||[]).slice(-12); if(!rainFr.length) throw 0;
     rainL=rainFr.map(function(f){ return L.tileLayer(rainHost+f.path+'/256/{z}/{x}/{y}/2/1_1.png',{opacity:0,maxZoom:19,maxNativeZoom:7,zIndex:260,className:'raintile',attribution:'RainViewer'}).addTo(map); });
     rainBarMake();
-  }).catch(function(){ B.toast(T('Το ραντάρ βροχής δεν είναι διαθέσιμο τώρα (χρειάζεται σύνδεση).','The rain radar isn’t available right now (needs a connection).')); }); }
+  }).catch(function(){ rainBarDrop(); B.toast(T('Το ραντάρ βροχής δεν είναι διαθέσιμο τώρα (χρειάζεται σύνδεση).','The rain radar isn’t available right now (needs a connection).')); }); }
 function rainDom(force){
   return fetch(DOMR+'radar.json?t='+Math.floor(Date.now()/120000),{cache:'no-store'}).then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(j){
     var fr=(j.frames||[]).slice(-12); if(!fr.length) throw 0;
@@ -241,7 +245,7 @@ function rainDom(force){
     var age=Math.round((Date.now()/1000-tm(fr[fr.length-1].t))/60);
     if(force&&age>360) throw 0;
     if(!force&&age>100){ rainDom.stale=Date.now(); if(!rainDom.told){ rainDom.told=1; B.toast(T('Το ραντάρ ΤΜ Κύπρου δεν έχει πρόσφατη εικόνα (τελευταία πριν ','The DoM Cyprus radar has no recent image (last one ')+(age>=120?Math.floor(age/60)+T(' ώρ.',' h'):age+'′')+T('). Δείχνω RainViewer· με «⇄» βλέπεις την τελευταία του ΤΜ.',' ago). Showing RainViewer; «⇄» shows the latest DoM image.')); } throw 0; } /* 1.9.23: έως 100′ (το ραντάρ Πάφου στέλνει αραιά και το GitHub καθυστερεί) */
-    if(!cfg.rain||!map) return true; rainStop(); rainSrc='dom';
+    if(!cfg.rain||!map){ rainBarDrop(); return true; } rainStop(true); rainSrc='dom';
     rainFr=fr.map(function(f){ return {time:tm(f.t)}; });
     rainL=fr.map(function(f){ return L.imageOverlay(DOMR+f.img,j.bounds,{opacity:0,interactive:false,className:'raintile domradar',attribution:T('Ραντάρ: Τμήμα Μετεωρολογίας Κύπρου','Radar: Cyprus Department of Meteorology')}).addTo(map); });
     rainBarMake(); return true; }); }
@@ -350,8 +354,8 @@ function barOnly(k){ ['rain','rainfc','cloudfc','cloudsat'].forEach(function(x){
 function drawCloudSat(){ if(!cfg.cloudsat||!map){ csatStop(); return; } if((csat.l||csat.nl)&&csat.bar) return; csatMake(); }
 /* 1.12.11: η πηγή ραντάρ αλλάζει όταν μετακινείς τον χάρτη μέσα ή έξω από την Κύπρο (πριν έμενε αυτή που διαλέχτηκε στο άνοιγμα) */
 var rainSrcT=0; function rainAuto(){ if(!cfg.rain||!map) return; clearTimeout(rainSrcT); rainSrcT=setTimeout(function(){ var rs=ls.get('alkyon-v4-rainsrc','auto'), want=(rs!=='rv'&&inCyR())?'dom':'rv'; if(want!==rainSrc&&!(want==='dom'&&rainDom.stale&&Date.now()-rainDom.stale<600000)) drawRain(); },800); }
-function drawRain(){ rainStop(); if(!cfg.rain||!map) return;
-  var rsrc=ls.get('alkyon-v4-rainsrc','auto'); if(rsrc!=='rv'&&inCyR()) rainDom(rsrc==='dom').catch(function(){ rainDom.stale=Date.now(); if(cfg.rain&&map&&!rainL.length) rainRV(); });
+function drawRain(sw){ rainStop(sw===true); if(!cfg.rain||!map){ rainBarDrop(); return; }
+  var rsrc=ls.get('alkyon-v4-rainsrc','auto'); if(rsrc!=='rv'&&inCyR()) rainDom(rsrc==='dom').catch(function(){ rainDom.stale=Date.now(); if(cfg.rain&&map&&!rainL.length) rainRV(); else rainBarDrop(); });
   else rainRV(); }
 function drawOverlays(){
   if(!map) return;

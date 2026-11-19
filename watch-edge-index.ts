@@ -353,7 +353,7 @@ function evaluate(sm,h,meta,cfg){ cfg=cfg||CFG0; meta=meta||{}; var ctx={sp:meta
    Δέχεται έξοδο της εφαρμογής ({startMs, endMs, lat, manual, nothing, fromCatches, sid, track, count}) ή γραμμή του catch_obs ({ms, ms2, lat, cnt, cond:{k}}).
    Το σημάδι cond.k που στέλνει η εφαρμογή: 'l' live · 'n' nofish · 'm' manual · 'c' fromCatches · 'x' invalid.
    Ο κανόνας αφορά ΜΟΝΟ την αξιολόγηση. Η μάθηση «πότε τσιμπάνε» και η προσωπική πρόγνωση συνεχίζουν να χρησιμοποιούν όλες τις εξόδους όπως πριν. */
-var SK={l:'live',n:'nofish',m:'manual',c:'fromCatches',x:'invalid'}, SKR={live:'l',nofish:'n',manual:'m',fromCatches:'c',invalid:'x'};
+var SK={l:'live',n:'nofish',m:'manual',c:'fromCatches',x:'invalid',u:'unlogged'}, SKR={live:'l',nofish:'n',manual:'m',fromCatches:'c',invalid:'x',unlogged:'u'};
 /* 1.14.87 (P1.3a): ΜΕΤΡΗΤΗΣ ΕΤΟΙΜΟΤΗΤΑΣ. Πόσες έγκυρες έξοδοι / χρήστες / έξοδοι με ψάρια υπάρχουν σε σχέση με τα όρια του evalGate.
    Καθαρή συνάρτηση, μόνο πληροφορία: το open λέει πότε υπάρχουν αρκετά δεδομένα για να ΑΞΙΟΛΟΓΗΘΕΙ ο βαθμός. Δεν ενεργοποιεί μάθηση, δεν αλλάζει βαθμό. */
 function readiness(c,cfg){ var G=(cfg||CFG0).evalGate, n=function(v){ v=Math.floor(+v); return v>0?v:0; }, t=n(c&&c.trips), u=n(c&&c.users), p=n(c&&c.pos);
@@ -367,6 +367,8 @@ function session(t,cfg){ var S=(cfg||CFG0).session; if(!t) return {kind:'invalid
   var d=e-s; if(d<S.minMin*60000) return out('invalid','short'); if(d>S.maxHours*3600000) return out('invalid','long');
   if(t.fromCatches||k==='c') return out('fromCatches');
   if(k==='x') return out('invalid','flagged');
+  /* 1.14.88: ο ψαράς είπε ότι έπιασε αλλά δεν τα έγραψε (ή είπε «θα τα γράψω» και δεν γράφτηκε κανένα): το αποτέλεσμα είναι άγνωστο, άρα εκτός ελέγχου */
+  if(k==='u'||t.fish0==='unlogged'||(t.fish0==='log'&&!(cnt>0))) return out('unlogged','catch not logged');
   if(t.nothing||k==='n') return out('nofish');
   if(t.manual||k==='m') return out('manual');
   if(k==='l'||t.sid||(Array.isArray(t.track)&&t.track.length)) return out('live');
@@ -985,6 +987,16 @@ export async function loadPF(F = fetch, now = Date.now()) {
   if (globalThis.__ALKYON_PF) return globalThis.__ALKYON_PF;
   throw new Error('forecast bundle missing (deploy watch-edge-index.ts from build_edge.py)');
 }
+/* 1.14.87 (P1.3a) · 1.14.88: οι ρυθμίσεις του χρήστη (προφίλ ψαρέματος, είδος-στόχος, όρια) με τον ΕΝΑ κανόνα PF.userPrefs. Η ίδια συνάρτηση δίνει
+   το προφίλ και στις καταγραφές που γράφει το ρολόι (έξοδος, ψάρι, εργαλείο), ώστε να μη γράφονται πάντα ως «σκάφος». Αν κάτι αποτύχει: κενά (σκάφος). */
+async function prefsOf(F, us, PF) {
+  let up = { prof: null, sp: null, limits: null };
+  if (!us || !PF || !PF.userPrefs) return up;
+  try { const jj = async (pth) => { const r = await sb(F, pth); return r.ok ? await r.json() : []; };
+    const [st, ps, lr] = await Promise.all([jj('records?user_id=eq.' + us.user_id + '&kind=eq.settings&id=eq.main&select=data&limit=1').catch(() => []), jj('push_subs?user_id=eq.' + us.user_id + '&select=places,updated_at&order=updated_at.desc&limit=1').catch(() => []), jj('records?user_id=eq.' + us.user_id + '&kind=in.(trips,bites)&deleted=eq.false&select=p:data->>prof,s:data->>src&order=updated_at.desc&limit=8').catch(() => [])]);
+    up = PF.userPrefs({ places: (ps && ps[0] && ps[0].places) || [], settings: st && st[0] && st[0].data, lastProf: ((lr || []).find((x) => x && x.p && x.s !== 'watch') || {}).p || null }); } catch (e) {}
+  return up;
+}
 async function sb(F, path, opt = {}) {
   const url = env('SUPABASE_URL'), key = env('SUPABASE_SERVICE_ROLE_KEY');
   if (!url || !key) throw new Error('service key');
@@ -1175,9 +1187,7 @@ export async function handle(req, F = fetch, now = Date.now()) {
       /* 1.14.87 (P1.3a): το ρολόι βαθμολογεί με τις ρυθμίσεις του χρήστη (προφίλ ψαρέματος, είδος-στόχος, όρια), όπως η εφαρμογή του. Ο κανόνας είναι ο PF.userPrefs.
          Χωρίς κωδικό ή αν κάτι αποτύχει: όπως πριν (σκάφος, χωρίς είδος, προεπιλεγμένα όρια). */
       let up = { prof: null, sp: null, limits: null };
-      if (us && PF.userPrefs) { try { const jj = async (pth) => { const r = await sb(F, pth); return r.ok ? await r.json() : []; };
-        const [st, ps, lr] = await Promise.all([jj('records?user_id=eq.' + us.user_id + '&kind=eq.settings&id=eq.main&select=data&limit=1').catch(() => []), jj('push_subs?user_id=eq.' + us.user_id + '&select=places,updated_at&order=updated_at.desc&limit=1').catch(() => []), jj('records?user_id=eq.' + us.user_id + '&kind=in.(trips,bites)&deleted=eq.false&select=p:data->>prof,s:data->>src&order=updated_at.desc&limit=8').catch(() => [])]);
-        up = PF.userPrefs({ places: (ps && ps[0] && ps[0].places) || [], settings: st && st[0] && st[0].data, lastProf: ((lr || []).find((x) => x && x.p && x.s !== 'watch') || {}).p || null }); } catch (e) {} }
+      if (us) up = await prefsOf(F, us, PF);
       lim = up.limits;
       const key = lat.toFixed(2) + ',' + lon.toFixed(2) + (en ? 'e' : 'g') + JSON.stringify(lim || '') + '|' + (up.prof || '') + '|' + (up.sp ? String(up.sp.l || up.sp.n || '') : '');
       const bg = q.get('bg') === '1';   // από το παρασκήνιο του ρολογιού: μόνο οι καμπές πίεσης (λίγη μνήμη)
@@ -1207,6 +1217,8 @@ export async function handle(req, F = fetch, now = Date.now()) {
       let b = {}; try { b = await req.json(); } catch (e) {}
       const us0 = await userOf(F, b.code, now, ip); if (us0 && us0.limited) return J({ ok: 0, err: 'rate' }, 429);
       const us = us0; if (!us) return J({ ok: 0, err: 'code' }, 403);
+      /* 1.14.88: το προφίλ ψαρέματος του χρήστη για ό,τι γράφει το ρολόι (υπολογίζεται μία φορά, μόνο όταν χρειαστεί) */
+      let wp = null; const wprof = async () => { if (wp == null) { let PFw = null; try { PFw = await loadPF(F, now); } catch (e) {} wp = (await prefsOf(F, us, PFw)).prof || 'boat'; } return wp; };
       const t0 = Number.isFinite(+b.t) ? +b.t : Number.isFinite(+b.ts) ? +b.ts * 1000 : NaN;   // το ρολόι στέλνει ts σε δευτερόλεπτα
       const t = t0 > 1.5e12 && t0 < now + 600e3 ? t0 : now;
       const tripId = (v) => String(v || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 24);
@@ -1220,7 +1232,7 @@ export async function handle(req, F = fetch, now = Date.now()) {
         let km = 0; for (let i = 1; i < pts.length; i++) { const [a, c] = [pts[i - 1], pts[i]], R = 6371, dl = (c[0] - a[0]) * Math.PI / 180, dn = (c[1] - a[1]) * Math.PI / 180, x = Math.sin(dl / 2) ** 2 + Math.cos(a[0] * Math.PI / 180) * Math.cos(c[0] * Math.PI / 180) * Math.sin(dn / 2) ** 2; km += 2 * R * Math.asin(Math.sqrt(x)); }
         const lp = localParts(s0, tz != null ? tz : tzOf(s0)), en = us.lang === 'en', tid = tripId(b.tid) || rid(), mid = pts.length ? pts[Math.floor(pts.length / 2)] : null;
         const n = Math.max(0, Math.min(999, Math.floor(+b.n) || 0));
-        const data = { id: tid, sid: tid, date: lp.date, spot: '', tech: '', species: '', count: n, kg: 0, startMs: s0, endMs: e0, km: Math.round(km * 10) / 10, track: pts, lat: mid ? mid[0] : null, lon: mid ? mid[1] : null,
+        const data = { id: tid, sid: tid, prof: await wprof(), date: lp.date, spot: '', tech: '', species: '', count: n, kg: 0, startMs: s0, endMs: e0, km: Math.round(km * 10) / 10, track: pts, lat: mid ? mid[0] : null, lon: mid ? mid[1] : null,
           notes: recNote(en, b.dev), src: 'watch', _u: now };
         const r = await sb(F, 'records', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify([{ user_id: us.user_id, kind: 'trips', id: tid, data, deleted: false, updated_at: new Date(now).toISOString() }]) });
         if (!r.ok && r.status !== 409) return J({ ok: 0, err: 'db ' + r.status, detail: (await r.text()).slice(0, 200) }, 502);
@@ -1242,10 +1254,11 @@ export async function handle(req, F = fetch, now = Date.now()) {
           haul: done ? { a: ha, ta: h0, tb: h1, b: hb, pts: [ha, hb].filter(Boolean) } : null, ...(done ? { done: h1 } : {}), _u: now };
         const rows = [{ user_id: us.user_id, kind: 'gear', id: gid, data: it, deleted: false, updated_at: new Date(now).toISOString() }];
         if (done) {
+          const gprof = await wprof();
           const n = Math.max(0, Math.min(999, Math.floor(+b.n) || 0)), sid = 'g' + gid, tz = Number.isFinite(+b.tz) ? +b.tz : tzOf(h1), hp = localParts(h1, tz), sp0 = localParts(s0 != null ? s0 : h0, tz), pos = hb || ha || sB || sa;
           if (n > 0) rows.push({ user_id: us.user_id, kind: 'bites', id: 'b' + gid, data: { id: 'b' + gid, date: hp.date, time: hp.time, species: '', latin: '', bait: '', tech: TN[type], depth: null, kg: null, len: null, cnt: n, notes: '', place: '',
-            lat: pos ? pos[0] : null, lon: pos ? pos[1] : null, photo: false, src: 'watch', prof: 'boat', gear: gid, gearName: name, trip: sid, _u: now }, deleted: false, updated_at: new Date(now).toISOString() });
-          rows.push({ user_id: us.user_id, kind: 'trips', id: sid, data: { id: sid, sid, date: sp0.date, spot: name, prof: 'boat', tech: TN[type], species: '', count: n, kg: 0, startMs: s0 != null ? s0 : h0, endMs: h1,
+            lat: pos ? pos[0] : null, lon: pos ? pos[1] : null, photo: false, src: 'watch', prof: gprof, gear: gid, gearName: name, trip: sid, _u: now }, deleted: false, updated_at: new Date(now).toISOString() });
+          rows.push({ user_id: us.user_id, kind: 'trips', id: sid, data: { id: sid, sid, date: sp0.date, spot: name, prof: gprof, tech: TN[type], species: '', count: n, kg: 0, startMs: s0 != null ? s0 : h0, endMs: h1,
             lat: pos ? pos[0] : null, lon: pos ? pos[1] : null, notes: recNote(en, b.dev), src: 'watch', manual: true, gear: [it], _u: now }, deleted: false, updated_at: new Date(now).toISOString() });
         }
         const r = await sb(F, 'records', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(rows) });
@@ -1277,7 +1290,7 @@ export async function handle(req, F = fetch, now = Date.now()) {
       const lat = Number.isFinite(+b.lat) && Math.abs(+b.lat) > 0.01 ? Math.round(+b.lat * 1e5) / 1e5 : null, lon = Number.isFinite(+b.lon) && Math.abs(+b.lon) > 0.01 ? Math.round(+b.lon * 1e5) / 1e5 : null;
       const id = tripId(b.cid) || rid();   // 1.9.75: ο κωδικός του ρολογιού, για αναίρεση/αλλαγή αργότερα
       const data = { id, date: lp.date, time: lp.time, species: kind === 'pest' ? (en ? 'Silver-cheeked toadfish' : 'Λαγοκέφαλος') : '', latin: kind === 'pest' ? 'Lagocephalus sceleratus' : '', bait: '', tech: '', depth: null, kg: null, len: null,
-        notes: '', place: '', lat, lon, photo: false, src: 'watch', _u: now, ...(kind === 'miss' ? { miss: true } : {}), ...(kind === 'pest' ? { pest: true } : {}), ...(Math.floor(+b.n) > 1 && Math.floor(+b.n) < 100 ? { cnt: Math.floor(+b.n) } : {}), ...(tripId(b.trip) ? { trip: tripId(b.trip) } : {}), ...(kind === 'fish' && b.tr && typeof b.tr === 'object' ? { wtr: { m: b.tr.m === 'b' ? 'bottom' : 'surface', kn: Number.isFinite(+b.tr.kn) ? Math.round(+b.tr.kn * 10) / 10 : null, hd: Number.isFinite(+b.tr.hd) ? Math.round(+b.tr.hd) : null, n: Number.isFinite(+b.tr.n) && +b.tr.n > 0 && +b.tr.n < 100 ? Math.round(+b.tr.n) : null, ln: Number.isFinite(+b.tr.ln) && +b.tr.ln > 0 && +b.tr.ln < 400 ? Math.round(+b.tr.ln) : null, bd: Number.isFinite(+b.tr.bd) && +b.tr.bd > 0 && +b.tr.bd < 500 ? Math.round(+b.tr.bd * 10) / 10 : null, cl: Number.isFinite(+b.tr.cl) && Math.abs(+b.tr.cl) < 100 ? Math.round(+b.tr.cl * 10) / 10 : null } } : {}) }; /* 1.6.4: συρτή από το ρολόι */
+        notes: '', place: '', lat, lon, photo: false, src: 'watch', prof: await wprof(), _u: now, ...(kind === 'miss' ? { miss: true } : {}), ...(kind === 'pest' ? { pest: true } : {}), ...(Math.floor(+b.n) > 1 && Math.floor(+b.n) < 100 ? { cnt: Math.floor(+b.n) } : {}), ...(tripId(b.trip) ? { trip: tripId(b.trip) } : {}), ...(kind === 'fish' && b.tr && typeof b.tr === 'object' ? { wtr: { m: b.tr.m === 'b' ? 'bottom' : 'surface', kn: Number.isFinite(+b.tr.kn) ? Math.round(+b.tr.kn * 10) / 10 : null, hd: Number.isFinite(+b.tr.hd) ? Math.round(+b.tr.hd) : null, n: Number.isFinite(+b.tr.n) && +b.tr.n > 0 && +b.tr.n < 100 ? Math.round(+b.tr.n) : null, ln: Number.isFinite(+b.tr.ln) && +b.tr.ln > 0 && +b.tr.ln < 400 ? Math.round(+b.tr.ln) : null, bd: Number.isFinite(+b.tr.bd) && +b.tr.bd > 0 && +b.tr.bd < 500 ? Math.round(+b.tr.bd * 10) / 10 : null, cl: Number.isFinite(+b.tr.cl) && Math.abs(+b.tr.cl) < 100 ? Math.round(+b.tr.cl * 10) / 10 : null } } : {}) }; /* 1.6.4: συρτή από το ρολόι */
       const r = await sb(F, 'records', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify([{ user_id: us.user_id, kind: 'bites', id, data, deleted: false, updated_at: new Date(now).toISOString() }]) });
       if (!r.ok && r.status !== 409) return J({ ok: 0, err: 'db ' + r.status, detail: (await r.text()).slice(0, 200) }, 502);   // 409 = το ρολόι το ξανάστειλε
       return J({ ok: 1, id, time: lp.time });

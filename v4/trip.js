@@ -80,11 +80,18 @@ function gpsOn(){ return (ls.raw('alkyon-gps')!=='"0"'&&ls.get('alkyon-gps','1')
 /* 1.9.8: με ανοιχτή συρτή η διαδρομή γράφεται πάντα, ακόμα κι αν το «Καταγραφή διαδρομής GPS» είναι κλειστό */
 function trollOn(){ try{ return !!(B.troll&&B.troll.on&&B.troll.on()); }catch(e){ return false; } }
 function dist(a,b){ var R=6371000, r=Math.PI/180, dLa=(b[0]-a[0])*r, dLo=(b[1]-a[1])*r, x=Math.sin(dLa/2)*Math.sin(dLa/2)+Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin(dLo/2)*Math.sin(dLo/2); return 2*R*Math.asin(Math.min(1,Math.sqrt(x))); }
+/* 1.14.88: διάγνωση διαδρομής. Οι μετρητές των σημείων που απορρίπτονται μένουν στη μνήμη και γράφονται μαζί με το επόμενο σημείο που κρατιέται
+   (όχι αποθήκευση όλης της διαδρομής σε κάθε θέση του GPS). */
+var DGM={};
+function dgm(k){ DGM[k]=(DGM[k]||0)+1; }
+function dgf(t){ t.d=t.d||{}; Object.keys(DGM).forEach(function(k){ t.d[k]=(t.d[k]||0)+DGM[k]; }); DGM={}; return t; }
+/* ελάχιστη απόσταση για νέο σημείο: 12 m, ή όσο η ακρίβεια του GPS όταν είναι χειρότερη, έως 25 m (λιγότερο «τρέμουλο» κοντά σε κτίρια) */
+function need(a,b){ return Math.max(12,Math.min(25,Math.max(+a[3]||0,+b[3]||0))); }
 function track(){ var s=load(); if(!s.active) return null; var t=ls.get('alkyon-track',null); if(!t||!Array.isArray(t.pts)||t.id!==s.id){ t={id:s.id,pts:[],m:0}; ls.set('alkyon-track',t); } return t; }
-function onPos(p){ var c=p.coords; fixP={lat:c.latitude,lon:c.longitude,t:Date.now(),spd:c.speed,hd:c.heading}; /* 1.6.0: ταχύτητα/πορεία για τη συρτή */ onAnchor(c); if(load().active&&!(c.accuracy>60)){ if(B.hazardCheck) try{ B.hazardCheck(fixP); }catch(eh){} else if(B.loadScripts&&!onPos.hl){ onPos.hl=1; B.loadScripts(['shallows.js']).catch(function(){}); } } /* 1.14.9: στεριά/ρηχά/ξέρα μπροστά (φορτώνει το shallows.js και χωρίς χάρτη) */ var t=track(); if(!t) return; if(c.accuracy&&c.accuracy>60) return;
-  var pt=[+c.latitude.toFixed(6),+c.longitude.toFixed(6),Date.now()], last=t.pts[t.pts.length-1];
-  if(last){ var d=dist(last,pt); if(d<12){ B.emit('track'); return; } if(d>2000&&pt[2]-last[2]<20000) return; t.m+=d; }
-  t.pts.push(pt); if(t.pts.length>3000) t.pts=t.pts.filter(function(_,i){ return i%2===0||i===t.pts.length-1; });
+function onPos(p){ var c=p.coords; fixP={lat:c.latitude,lon:c.longitude,t:Date.now(),spd:c.speed,hd:c.heading}; /* 1.6.0: ταχύτητα/πορεία για τη συρτή */ onAnchor(c); if(load().active&&!(c.accuracy>60)){ if(B.hazardCheck) try{ B.hazardCheck(fixP); }catch(eh){} else if(B.loadScripts&&!onPos.hl){ onPos.hl=1; B.loadScripts(['shallows.js']).catch(function(){}); } } /* 1.14.9: στεριά/ρηχά/ξέρα μπροστά (φορτώνει το shallows.js και χωρίς χάρτη) */ var t=track(); if(!t) return; if(c.accuracy&&c.accuracy>60){ dgm('jsAcc'); return; }
+  var pt=[+c.latitude.toFixed(6),+c.longitude.toFixed(6),Date.now(),Math.round(c.accuracy||0)], last=t.pts[t.pts.length-1];
+  if(last){ var d=dist(last,pt); if(d<need(last,pt)){ dgm('jsNear'); B.emit('track'); return; } if(d>2000&&pt[2]-last[2]<20000){ dgm('jsJump'); return; } t.m+=d; }
+  t.pts.push(pt); dgf(t); t.d.js=(t.d.js||0)+1; if(t.pts.length>3000){ t.pts=t.pts.filter(function(_,i){ return i%2===0||i===t.pts.length-1; }); t.d.half=(t.d.half||0)+1; }
   ls.set('alkyon-track',t); B.emit('track'); }
 function watch(){
   var s=load(), need=(s.active&&gpsOn())||!!anc();
@@ -100,9 +107,51 @@ function simplify(pts,eps){ if(pts.length<3) return pts; var r=Math.PI/180, k=11
     for(var i=q[0]+1;i<q[1];i++){ var p=xs[i], u=L2?((p[0]-a[0])*dx+(p[1]-a[1])*dy)/L2:0; u=Math.max(0,Math.min(1,u)); var d=Math.hypot(p[0]-(a[0]+u*dx),p[1]-(a[1]+u*dy)); if(d>mx){ mx=d; mi=i; } }
     if(mx>eps&&mi>0){ keep[mi]=true; stack.push([q[0],mi],[mi,q[1]]); } }
   return pts.filter(function(_,i){ return keep[i]; }); }
+/* 1.14.88: φίλτρο ακινησίας. Όταν μένεις στο ίδιο σημείο (όλα τα σημεία μέσα σε R μέτρα για τουλάχιστον T), το «τρέμουλο» του GPS γίνεται ΕΝΑ σημείο
+   (το κέντρο της στάσης). Γειτονικές στάσεις που τις χωρίζει ένα-δυο σημεία «πετάγματος» ενώνονται. Τα σημεία σε κίνηση μένουν όπως είναι.
+   Επιστρέφει {pts, stops, cut}: νέα σημεία, πόσες στάσεις βρέθηκαν, πόσα σημεία αφαιρέθηκαν. */
+var STOP_R=25, STOP_MS=120000;
+function dwell(pts,R,T){ R=R||STOP_R; T=T||STOP_MS; var n=pts.length, out=[], i=0;
+  while(i<n){ var la=pts[i][0], lo=pts[i][1], j=i;
+    while(j+1<n&&dist([la,lo],pts[j+1])<=R){ j++; var k=j-i+1; la+=(pts[j][0]-la)/k; lo+=(pts[j][1]-lo)/k; }
+    if(j>i&&pts[j][2]-pts[i][2]>=T){ out.push({p:[+la.toFixed(6),+lo.toFixed(6),pts[i][2]],stop:1,t1:pts[j][2]}); i=j+1; } else { out.push({p:pts[i]}); i++; } }
+  /* στάση · έως 3 σημεία πετάγματος (έως 3R) · στάση στο ίδιο μέρος  →  μία στάση */
+  for(var a=0;a<out.length;a++){ if(!out[a].stop) continue; var again=true;
+    while(again){ again=false; for(var b=a+1;b<out.length&&b<=a+4;b++){ if(!out[b].stop){ if(dist(out[a].p,out[b].p)>3*R) break; continue; }
+      if(dist(out[a].p,out[b].p)<=R){ out[a].t1=out[b].t1; out.splice(a+1,b-a); again=true; } break; } } }
+  var stops=out.filter(function(o){ return o.stop; }).length, res=out.map(function(o){ return o.p; });
+  return {pts:res,stops:stops,cut:n-res.length}; }
+function pathM(pts){ var m=0; for(var i=1;i<pts.length;i++) m+=dist(pts[i-1],pts[i]); return m; }
+/* διάγνωση: τι μετρήθηκε σε κάθε στάδιο (μπαίνει στην έξοδο ως «gps», φαίνεται στη Διαχείριση) */
+var endHow='';
+function gpsDiag(t,dw,tr,eps){ var d=(dgf(t).d)||{}, p=t.pts||[], gap=0, g60=0, i;
+  for(i=1;i<p.length;i++){ var dt=p[i][2]-p[i-1][2]; if(dt>gap) gap=dt; if(dt>60000) g60++; }
+  var o={v:1,src:NT()?(/iPad|iPhone|iPod/.test(navigator.userAgent)?'ios':'android'):'web',raw:p.length,stops:dw?dw.stops:0,cut:dw?dw.cut:0,out:tr?tr.length:0,eps:eps?Math.round(eps*10)/10:0,
+    kmRaw:Math.round((t.m||0)/100)/10,gapMax:Math.round(gap/1000),gaps60:g60,js:d.js||0,jsAcc:d.jsAcc||0,jsNear:d.jsNear||0,jsJump:d.jsJump||0,
+    nat:d.nat||0,natAcc:d.natAcc||0,mNear:d.mNear||0,mJump:d.mJump||0,mg:d.mg||0,mgErr:d.mgErr||0,half:d.half||0,end:endHow||''};
+  if(d.n) o.n=d.n; return o; }
+/* συμπέρασμα της διάγνωσης (ένας κανόνας, ίδιος στη Διαχείριση και στα tests):
+   'sampling'  το κινητό έδινε θέση πιο αραιά από όσο ζητήθηκε (κάτω από 60% των αναμενόμενων θέσεων)
+   'recording' η υπηρεσία παρασκηνίου δεν έτρεξε σε όλη την έξοδο (κάλυψε κάτω από 70% της διάρκειας) ή δεν ξεκίνησε
+   'merging'   η υπηρεσία έγραψε σημεία που δεν έφτασαν στη διαδρομή (χάθηκαν πάνω από 5%, ή έληξε ο χρόνος στο τέλος)
+   'accuracy'  πάνω από 30% των θέσεων απορρίφθηκαν για κακή ακρίβεια (> 60 m)
+   'ok'        τίποτα από τα παραπάνω: ό,τι λιγότερα σημεία έχει η αποθηκευμένη γραμμή, είναι από τις στάσεις και την απλοποίηση */
+function gpsVerdict(g,durMs){ if(!g) return null; var n=g.n||null, o={code:'ok',cov:null,span:null,lost:0};
+  if(g.src==='web') return o;
+  if(!n||!(n.raw>=0)||!n.t0){ o.code=(g.nat>0)?'ok':'recording'; return o; }
+  var span=Math.max(0,(n.t1||n.t0)-n.t0), exp=span/((n.every||5)*1000); o.span=durMs>0?Math.min(1,span/durMs):null; o.cov=exp>=12?Math.min(1,n.raw/exp):null;
+  o.lost=(n.half||g.half)?0:Math.max(0,(n.kept||0)-(g.nat||0));
+  if(o.span!=null&&o.span<0.7) o.code='recording';
+  else if(o.cov!=null&&o.cov<0.6) o.code='sampling';
+  else if(g.end==='timeout'||g.end==='err'||g.mgErr>0||o.lost>Math.max(5,0.05*(n.kept||0))) o.code='merging';
+  else if(n.raw>20&&(n.acc||0)/n.raw>0.3) o.code='accuracy';
+  return o; }
+B.gpsVerdict=gpsVerdict; B.gpsTools={dwell:dwell,simplify:simplify,need:need,pathM:pathM};
 function takeTrack(){ var s=load(), t=ls.get('alkyon-track',null), out=null;
-  if(t&&t.id===s.id&&t.pts&&t.pts.length>1&&t.m>=100){ var eps=6, tr=simplify(t.pts.map(function(p){ return [p[0],p[1]]; }),eps); while(tr.length>400&&eps<400){ eps*=1.6; tr=simplify(tr,eps); }
-    out={km:Math.round(t.m/100)/10,moving:(window.PP&&window.PP.movingFrom?window.PP.movingFrom(t.pts):undefined),track:tr.map(function(p){ return [+p[0].toFixed(5),+p[1].toFixed(5)]; })}; }
+  if(t&&t.id===s.id&&Array.isArray(t.pts)){ var dw=null, tr=null, eps=0;
+    if(t.pts.length>1&&t.m>=100){ dw=dwell(t.pts); eps=6; tr=simplify(dw.pts.map(function(p){ return [p[0],p[1]]; }),eps); while(tr.length>400&&eps<400){ eps*=1.6; tr=simplify(tr,eps); }
+      out={km:Math.round(pathM(dw.pts)/100)/10,moving:(window.PP&&window.PP.movingFrom?window.PP.movingFrom(t.pts):undefined),track:tr.map(function(p){ return [+p[0].toFixed(5),+p[1].toFixed(5)]; })}; }
+    out=out||{}; try{ out.gps=gpsDiag(t,dw,tr,eps); if(out.km!=null) out.gps.km=out.km; }catch(e){} }
   ls.set('alkyon-track',null); return out; }
 
 /* ---------- 1.14.83 (P0.7): native GPS με σβηστή οθόνη ---------- */
@@ -116,11 +165,13 @@ function nativeStop(){ var n=NT(); if(n) n.stop().catch(function(){}); }
 function mergeFixes(){ var n=NT(), s=load(); if(!n||!s.active) return Promise.resolve(0);
   var t=track(); if(!t) return Promise.resolve(0); var since=t.nat||s.start||0;
   return n.fixes({id:s.id,since:since}).then(function(r){ var a=(r&&r.fixes)||[]; if(!a.length) return 0; var q=track(); if(!q||q.id!==s.id) return 0;
-    var add=a.filter(function(f){ return f&&f.length>=3&&!(f[3]>60); }).map(function(f){ return [+(+f[0]).toFixed(6),+(+f[1]).toFixed(6),+f[2]]; });
-    if(!add.length) return 0; var all=q.pts.concat(add).sort(function(x,y){ return x[2]-y[2]; }), out=[], m=0;
-    all.forEach(function(p){ var last=out[out.length-1]; if(last){ var d=dist(last,p); if(d<12) return; if(d>2000&&p[2]-last[2]<20000) return; m+=d; } out.push(p); });
-    if(out.length>3000) out=out.filter(function(_,i){ return i%2===0||i===out.length-1; });
-    q.pts=out; q.m=m; q.nat=Math.max(since,add[add.length-1][2]); ls.set('alkyon-track',q); B.emit('track'); return add.length; }).catch(function(){ return 0; }); }
+    var add=a.filter(function(f){ return f&&f.length>=3&&!(f[3]>60); }).map(function(f){ return [+(+f[0]).toFixed(6),+(+f[1]).toFixed(6),+f[2],Math.max(0,Math.round(+f[3]||0))]; });
+    dgf(q); q.d.mg=(q.d.mg||0)+1; q.d.nat=(q.d.nat||0)+a.length; q.d.natAcc=(q.d.natAcc||0)+(a.length-add.length); if(r&&r.diag&&typeof r.diag==='object') q.d.n=r.diag;
+    if(!add.length){ ls.set('alkyon-track',q); return 0; } var all=q.pts.concat(add).sort(function(x,y){ return x[2]-y[2]; }), out=[], m=0, nr=0, jp=0;
+    all.forEach(function(p){ var last=out[out.length-1]; if(last){ var d=dist(last,p); if(d<need(last,p)){ nr++; return; } if(d>2000&&p[2]-last[2]<20000){ jp++; return; } m+=d; } out.push(p); });
+    q.d.mNear=(q.d.mNear||0)+nr; q.d.mJump=(q.d.mJump||0)+jp;
+    if(out.length>3000){ out=out.filter(function(_,i){ return i%2===0||i===out.length-1; }); q.d.half=(q.d.half||0)+1; }
+    q.pts=out; q.m=m; q.nat=Math.max(since,add[add.length-1][2]); ls.set('alkyon-track',q); B.emit('track'); return add.length; }).catch(function(){ dgm('mgErr'); return 0; }); }
 /* ---------- έξοδος ---------- */
 var timer=null, lastTrack=0, contSince=0, lastAct=0;
 function trackPos(){ var s=load(); if(!s.active) return Promise.resolve(); lastTrack=Date.now();
@@ -172,7 +223,9 @@ function gearCompact(tid){ var g=ls.get('alkyon-gear',null); if(!g||!Array.isArr
   if(out.length) ls.set('alkyon-gear',g); return out.length?out:null; }
 function back(endAt,merged){
   /* 1.14.83: πρώτα τα σημεία του native GPS (σβηστή οθόνη), μετά το κλείσιμο της διαδρομής */
-  if(!merged&&NT()&&load().active){ var once=false, go=function(){ if(once) return; once=true; back(endAt,true); }; mergeFixes().then(go,go); setTimeout(go,1500); return; }
+  if(!merged&&NT()&&load().active){ var once=false, go=function(how){ if(once) return; once=true; endHow=how; back(endAt,true); }; endHow='';
+    /* 1.14.88: περιμένει έως 5″ (ήταν 1,5″) τα σημεία του παρασκηνίου και σημειώνει αν ήρθαν («ok») ή αν έληξε ο χρόνος («timeout») */
+    mergeFixes().then(function(){ go('ok'); },function(){ go('err'); }); setTimeout(function(){ go('timeout'); },5000); return; }
   /* 1.14.48: endAt = πότε τελείωσε πραγματικά, όταν η έξοδος είχε μείνει ανοιχτή */
   var NOW=(typeof endAt==='number'&&endAt>0&&endAt<Date.now())?endAt:Date.now();
   var s=load(); if(!s.active) return; if(NOW<=s.start) NOW=Date.now(); var d=NOW-s.start, sm=summary(s), tk=takeTrack();
@@ -180,11 +233,13 @@ function back(endAt,merged){
   if(d>=20*60000||sm.n>0||sm.miss>0){
     var pos=s.last||(s.cond0&&s.cond0.lat!=null?{lat:s.cond0.lat,lon:s.cond0.lon}:null);
     var rec={prof:B.prof?B.prof():'boat',target:s.target||null,targets:s.targets||null,sid:s.id,date:s.startDate||todayStr(),spot:s.route||'',tech:'',species:sm.species,count:sm.n,miss:sm.miss,kg:sm.kg,pn:sm.pn||0,pkg:sm.pkg||0,startMs:s.start,endMs:NOW,cond0:s.cond0||null,lat:pos?pos.lat:null,lon:pos?pos.lon:null,notes:T('Καταγράφηκε από Έναρξη/Τέλος εξόδου','Recorded from Start/End trip')};
-    if(tk){ rec.km=tk.km; rec.track=tk.track; if(tk.moving&&tk.moving.length) rec.moving=tk.moving; }
+    if(tk){ if(tk.track){ rec.km=tk.km; rec.track=tk.track; if(tk.moving&&tk.moving.length) rec.moving=tk.moving; } if(tk.gps) rec.gps=tk.gps; }
     var id=B.store.save('trips',rec), gc=gearCompact(id); if(gc){ var t=B.store.get('trips',id); B.store.save('trips',Object.assign({},t,{gear:gc})); }
     B.toast(T('Η έξοδος καταχωρήθηκε: ','Trip saved: ')+dur(d)+', '+(sm.n?sm.n+' '+T('ψάρια','catches'):T('χωρίς ψάρια (κρατήθηκε: βοηθά την προσωπική πρόγνωση)','no catches (kept: it helps your personal forecast)')));
     /* 1.6.1: πρώτα τα ψάρια χωρίς είδος (ένα πάτημα το καθένα), μετά η ερώτηση για τη θάλασσα */
-    var next=function(){ rateQuestion(id,function(){ seaQuestion(id,pos); }); };
+    var sea=function(){ seaQuestion(id,pos); }, rate=function(){ rateQuestion(id,sea); };
+    /* 1.14.88: έξοδος με 0 ψάρια → πρώτα «έπιασες;», για να ξέρουμε αν το 0 είναι αληθινό */
+    var next=(sm.n>0||(sm.pn||0)>0)?rate:function(){ zeroQuestion(id,s.id,pos,rate,sea); };
     if(B.speciesFill) B.speciesFill(s.id,next); else next();
     B.emit('tripend',{id:id,startMs:s.start,endMs:NOW});
   } else { B.emit('tripend',{id:null,startMs:s.start,endMs:NOW}); B.toast(T('Καλωσόρισες πίσω. Η έξοδος ήταν κάτω από 20 λεπτά χωρίς ψάρια, οπότε δεν καταχωρήθηκε.','Welcome back. The trip was under 20 minutes with no catches, so it was not saved.')); }
@@ -196,6 +251,17 @@ function rateQuestion(id,next){ var body=h('div',{class:'bform rateq'}), sh, don
   RATE.forEach(function(o){ body.append(h('button',{class:'btn full'+(o[0]===2?' pri':''),type:'button',text:o[1],onclick:function(){ var t=B.store.get('trips',id); if(t) B.store.save('trips',Object.assign({},t,{rate:o[0]})); sh.close(); fin(); }})); });
   body.append(h('button',{class:'linkbtn',type:'button',text:T('Παράλειψη','Skip'),onclick:function(){ sh.close(); fin(); }}));
   sh=B.sheet({title:T('Πώς ήταν το ψάρεμα;','How was the fishing?'),body:body,onclose:fin}); }
+/* 1.14.88: έξοδος που τελείωσε με 0 ψάρια. «0 καταγεγραμμένα» μπορεί να σημαίνει «δεν έπιασα» ή «έπιασα και δεν τα έγραψα»: μία ερώτηση το ξεκαθαρίζει.
+   fish0 = 'none' (αληθινό μηδέν, μετρά κανονικά) · 'log' (θα τα γράψει τώρα: ανοίγει η φόρμα, δεμένη με την έξοδο) · 'unlogged' (έπιασε, δεν θα τα γράψει:
+   η έξοδος μένει στο ημερολόγιο αλλά βγαίνει από τον έλεγχο ακρίβειας, AlkyonScore.session → 'unlogged'). Αν κλείσει χωρίς απάντηση, δεν γράφεται τίποτα. */
+function zeroQuestion(id,sid,pos,rate,sea){ var body=h('div',{class:'bform zeroq'}), sh, done=false, fin=function(fn){ if(done) return; done=true; if(fn) setTimeout(fn,250); };
+  var set=function(v,extra){ var t=B.store.get('trips',id); if(t) B.store.save('trips',Object.assign({},t,{fish0:v},extra||null)); };
+  body.append(h('p',{class:'sub',text:T('Η έξοδος έκλεισε χωρίς καταγεγραμμένο ψάρι. Ένα πάτημα, για να ξέρει η πρόγνωση αν όντως δεν έπιασες.','The trip ended with no logged catch. One tap, so the forecast knows whether you really caught nothing.')}));
+  body.append(h('button',{class:'btn pri full',type:'button',text:T('Δεν έπιασα τίποτα','I caught nothing'),onclick:function(){ set('none',{rate:0}); fin(sea); sh.close(); }}),
+    h('button',{class:'btn full',type:'button',text:T('Έπιασα, θα τα γράψω τώρα','I caught, I will log them now'),onclick:function(){ set('log'); fin(function(){ if(B.biteForm) B.biteForm(null,{trip:sid}); }); sh.close(); }}),
+    h('button',{class:'btn full',type:'button',text:T('Έπιασα, αλλά δεν θα τα γράψω','I caught, but I will not log them'),onclick:function(){ set('unlogged'); fin(rate); sh.close(); }}));
+  sh=B.sheet({title:T('Έπιασες κάτι;','Did you catch anything?'),body:body,onclose:function(){ fin(rate); }}); }
+B.tripZero=zeroQuestion;
 B.tripRate=rateQuestion; B.RATE=RATE;
 /* «Πώς ήταν η θάλασσα;» (διορθώνει την πρόγνωση κύματος της περιοχής, alkyon-seaobs) */
 function seaQuestion(id,pos){ if(B.prof()==='lake'||!pos) return; var body=h('div',{class:'bform'}), sh;

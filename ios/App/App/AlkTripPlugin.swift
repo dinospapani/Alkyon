@@ -57,7 +57,7 @@ public class AlkTripPlugin: CAPPlugin, CAPBridgedPlugin, CLLocationManagerDelega
         guard !id.isEmpty, !k.isEmpty else { call.reject("args"); return }
         DispatchQueue.main.async {
             guard self.authorized() else { call.resolve(["ok": false, "err": "perm"]); return }
-            if let prev = self.ud.string(forKey: "alkTrip.id"), prev != id { self.ud.removeObject(forKey: "alkTrip.fixes." + prev) }
+            if let prev = self.ud.string(forKey: "alkTrip.id"), prev != id { self.ud.removeObject(forKey: "alkTrip.fixes." + prev); self.ud.removeObject(forKey: "alkTrip.diag." + prev) }
             self.configure(id: id, key: k, url: call.getString("url") ?? "", apikey: call.getString("apikey") ?? "", interval: Double(call.getInt("interval") ?? 180))
             self.ud.set(id, forKey: "alkTrip.id"); self.ud.set(k, forKey: "alkTrip.key"); self.ud.set(self.url, forKey: "alkTrip.url")
             self.ud.set(self.apikey, forKey: "alkTrip.apikey"); self.ud.set(self.interval, forKey: "alkTrip.interval")
@@ -80,27 +80,39 @@ public class AlkTripPlugin: CAPPlugin, CAPBridgedPlugin, CLLocationManagerDelega
         let since = call.getDouble("since") ?? 0
         let id = call.getString("id") ?? (ud.string(forKey: "alkTrip.id") ?? "")
         let a = (ud.array(forKey: "alkTrip.fixes." + id) as? [[Double]]) ?? []
-        call.resolve(["fixes": a.filter { $0.count >= 3 && $0[2] > since }])
+        // 1.14.88: μαζί και οι μετρητές διάγνωσης (raw / acc / near / kept / gaps60 / gapMax / half / t0 / t1)
+        var d = (ud.dictionary(forKey: "alkTrip.diag." + id) as? [String: Double]) ?? [:]
+        d["every"] = 1
+        call.resolve(["fixes": a.filter { $0.count >= 3 && $0[2] > since }, "diag": d])
     }
 
     @objc func status(_ call: CAPPluginCall) { call.resolve(["running": running]) }
 
     public func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        let dk = "alkTrip.diag." + tripId
+        var d = (ud.dictionary(forKey: dk) as? [String: Double]) ?? [:]
+        let now = (Date().timeIntervalSince1970 * 1000).rounded()
+        if d["t0"] == nil { d["t0"] = now }
         for l in locations {
-            if l.horizontalAccuracy < 0 || l.horizontalAccuracy > 60 { continue }
+            if let t1 = d["t1"], now - t1 > 60000 { d["gaps60"] = (d["gaps60"] ?? 0) + 1; d["gapMax"] = max(d["gapMax"] ?? 0, ((now - t1) / 1000).rounded()) }
+            d["raw"] = (d["raw"] ?? 0) + 1; d["t1"] = now
+            if l.horizontalAccuracy < 0 || l.horizontalAccuracy > 60 { d["acc"] = (d["acc"] ?? 0) + 1; continue }
             let moved = last == nil || l.distance(from: last!) >= 12 || l.timestamp.timeIntervalSince(last!.timestamp) >= 60
-            if moved { addFix(l); last = l }
+            if moved { if addFix(l) { d["half"] = (d["half"] ?? 0) + 1 }; last = l; d["kept"] = (d["kept"] ?? 0) + 1 } else { d["near"] = (d["near"] ?? 0) + 1 }
         }
+        if !tripId.isEmpty { ud.set(d, forKey: dk) }
         if Date().timeIntervalSince1970 - lastHb >= interval { sendHb() }
     }
     public func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) { /* χωρίς σήμα GPS: ξαναδοκιμάζει μόνο του */ }
 
-    private func addFix(_ l: CLLocation) {
+    @discardableResult private func addFix(_ l: CLLocation) -> Bool {
         let k = "alkTrip.fixes." + tripId
         var a = (ud.array(forKey: k) as? [[Double]]) ?? []
         a.append([l.coordinate.latitude, l.coordinate.longitude, (l.timestamp.timeIntervalSince1970 * 1000).rounded(), l.horizontalAccuracy.rounded()])
-        if a.count > maxFixes { a = a.enumerated().filter { $0.offset % 2 == 0 || $0.offset == a.count - 1 }.map { $0.element } }
+        var halved = false
+        if a.count > maxFixes { halved = true; a = a.enumerated().filter { $0.offset % 2 == 0 || $0.offset == a.count - 1 }.map { $0.element } }
         ud.set(a, forKey: k)
+        return halved
     }
 
     private func sendHb() {
