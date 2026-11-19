@@ -33,3 +33,10 @@ test('the contact address comes from the environment, never from the code', asyn
   let ua = null; const get = makeClient(async (u, o) => { ua = o.headers['User-Agent']; return { ok: true, json: async () => ({}) }; }, async () => {});
   await get('/x'); assert.match(ua, /^Alkyon-sync\/1\.0 \(fishing app/); assert.ok(!/@/.test(ua) || !!process.env.NAV_CONTACT);
 });
+test('a 429 answer is retried after a pause, and gives up after five retries', async () => {
+  let n = 0; const naps = [];
+  const get = makeClient(async () => { n++; return n <= 2 ? { ok: false, status: 429 } : { ok: true, status: 200, json: async () => ({ a: 1 }) }; }, async ms => { naps.push(ms); });
+  assert.deepEqual(await get('/x'), { a: 1 }); assert.equal(n, 3); assert.equal(naps.filter(x => x === 12000).length, 2);
+  let m = 0; const bad = makeClient(async () => { m++; return { ok: false, status: 429 }; }, async () => {});
+  await assert.rejects(() => bad('/y'), /HTTP 429/); assert.equal(m, 6);
+});
