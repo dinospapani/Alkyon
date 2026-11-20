@@ -2,10 +2,14 @@ import UIKit
 import Capacitor
 import CoreMotion
 
-/* 1.13.8: δικά μας πρόσθετα Capacitor καταχωρούνται εδώ (το Capacitor δεν τα βρίσκει μόνο του μέσα στο target της εφαρμογής). */
+/* 1.13.8: δικά μας πρόσθετα Capacitor καταχωρούνται εδώ (το Capacitor δεν τα βρίσκει μόνο του μέσα στο target της εφαρμογής).
+   ΑΥΤΗ είναι η οθόνη που δείχνει πραγματικά η εφαρμογή: τη φτιάχνει ο SceneDelegate πιο κάτω (window.rootViewController). Ό,τι πρόσθετο δεν καταχωρηθεί ΕΔΩ δεν υπάρχει για τη σελίδα.
+   1.14.94: το AlkTrip (GPS εξόδου με κλειδωμένη οθόνη) είχε καταχωρηθεί από την 1.14.83 μόνο στο MainViewController, που δεν εμφανίζεται ποτέ. Έτσι στο iPhone η καταγραφή
+   στο παρασκήνιο δεν ξεκινούσε καθόλου: κάθε κλήση start / fixes απέτυχε σιωπηλά (διάγνωση εξόδου 20/11/2026: 0 σημεία παρασκηνίου, 4 σφάλματα ανάγνωσης, κενό 7,5 ωρών). */
 class AlkBridgeViewController: CAPBridgeViewController {
     override open func capacitorDidLoad() {
         bridge?.registerPluginInstance(AlkBaroPlugin())
+        bridge?.registerPluginInstance(AlkTripPlugin())
     }
 }
 

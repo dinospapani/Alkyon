@@ -129,7 +129,7 @@ function gpsDiag(t,dw,tr,eps){ var d=(dgf(t).d)||{}, p=t.pts||[], gap=0, g60=0, 
   var o={v:1,src:NT()?(/iPad|iPhone|iPod/.test(navigator.userAgent)?'ios':'android'):'web',raw:p.length,stops:dw?dw.stops:0,cut:dw?dw.cut:0,out:tr?tr.length:0,eps:eps?Math.round(eps*10)/10:0,
     kmRaw:Math.round((t.m||0)/100)/10,gapMax:Math.round(gap/1000),gaps60:g60,js:d.js||0,jsAcc:d.jsAcc||0,jsNear:d.jsNear||0,jsJump:d.jsJump||0,
     nat:d.nat||0,natAcc:d.natAcc||0,mNear:d.mNear||0,mJump:d.mJump||0,mg:d.mg||0,mgErr:d.mgErr||0,half:d.half||0,end:endHow||''};
-  if(d.n) o.n=d.n; return o; }
+  if(d.n) o.n=d.n; var ns=d.ns||NS0; if(ns) o.ns=ns; if(MGE) o.me=MGE; NS0=''; MGE=''; return o; }
 /* συμπέρασμα της διάγνωσης (ένας κανόνας, ίδιος στη Διαχείριση και στα tests):
    'sampling'  το κινητό έδινε θέση πιο αραιά από όσο ζητήθηκε (κάτω από 60% των αναμενόμενων θέσεων)
    'recording' η υπηρεσία παρασκηνίου δεν έτρεξε σε όλη την έξοδο (κάλυψε κάτω από 70% της διάρκειας) ή δεν ξεκίνησε
@@ -159,7 +159,12 @@ var QP='https://sgfohmqwdwtkhtrebnix.supabase.co/functions/v1/quick-processor', 
 function NT(){ return window.AKN&&window.AKN.trip; }
 function hexKey(){ var b=new Uint8Array(24); try{ crypto.getRandomValues(b); }catch(e){ for(var i=0;i<b.length;i++) b[i]=Math.random()*256; } return Array.prototype.map.call(b,function(x){ return ('0'+x.toString(16)).slice(-2); }).join(''); }
 function nativeStart(s){ var n=NT(); if(!n||!s||!s.active||!s.hbk||!gpsOn()) return;
-  n.start({id:s.id,key:s.hbk,url:QP,apikey:PUBK,interval:180,title:T('Alkyon · έξοδος σε εξέλιξη','Alkyon · trip in progress'),text:T('Καταγραφή διαδρομής και ασφάλεια ενεργά. Τέλος από την εφαρμογή.','Track and safety active. End it in the app.')}).catch(function(){}); }
+  /* 1.14.94: το αποτέλεσμα της εκκίνησης κρατιέται για τη διάγνωση (gps.ns): 'ok' · 'no:perm' (χωρίς άδεια θέσης) · 'err:…' (το πρόσθετο δεν απάντησε, π.χ. δεν είναι καταχωρημένο).
+     Πριν η αποτυχία ήταν σιωπηλή, και στο iPhone δεν φάνηκε ότι το πρόσθετο δεν φορτωνόταν καθόλου. */
+  n.start({id:s.id,key:s.hbk,url:QP,apikey:PUBK,interval:180,title:T('Alkyon · έξοδος σε εξέλιξη','Alkyon · trip in progress'),text:T('Καταγραφή διαδρομής και ασφάλεια ενεργά. Τέλος από την εφαρμογή.','Track and safety active. End it in the app.')})
+    .then(function(r){ natSt(r&&r.ok?'ok':'no:'+String((r&&r.err)||'?').slice(0,20)); },function(e){ natSt('err:'+String((e&&(e.code||e.message))||e||'?').slice(0,40)); }); }
+function natSt(v){ try{ var t=track(); if(t){ t.d=t.d||{}; t.d.ns=v; ls.set('alkyon-track',t); } else NS0=v; }catch(e){} }
+var NS0='', MGE='';
 function nativeStop(){ var n=NT(); if(n) n.stop().catch(function(){}); }
 /* σημεία που κατέγραψε το native GPS όσο η οθόνη ήταν σβηστή: μπαίνουν στη διαδρομή με τη σειρά του χρόνου */
 function mergeFixes(){ var n=NT(), s=load(); if(!n||!s.active) return Promise.resolve(0);
@@ -171,7 +176,7 @@ function mergeFixes(){ var n=NT(), s=load(); if(!n||!s.active) return Promise.re
     all.forEach(function(p){ var last=out[out.length-1]; if(last){ var d=dist(last,p); if(d<need(last,p)){ nr++; return; } if(d>2000&&p[2]-last[2]<20000){ jp++; return; } m+=d; } out.push(p); });
     q.d.mNear=(q.d.mNear||0)+nr; q.d.mJump=(q.d.mJump||0)+jp;
     if(out.length>3000){ out=out.filter(function(_,i){ return i%2===0||i===out.length-1; }); q.d.half=(q.d.half||0)+1; }
-    q.pts=out; q.m=m; q.nat=Math.max(since,add[add.length-1][2]); ls.set('alkyon-track',q); B.emit('track'); return add.length; }).catch(function(){ dgm('mgErr'); return 0; }); }
+    q.pts=out; q.m=m; q.nat=Math.max(since,add[add.length-1][2]); ls.set('alkyon-track',q); B.emit('track'); return add.length; }).catch(function(e){ dgm('mgErr'); MGE=String((e&&(e.code||e.message))||e||'?').slice(0,40); return 0; }); }
 /* ---------- έξοδος ---------- */
 var timer=null, lastTrack=0, contSince=0, lastAct=0;
 function trackPos(){ var s=load(); if(!s.active) return Promise.resolve(); lastTrack=Date.now();
