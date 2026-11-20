@@ -2011,6 +2011,24 @@ with sync_playwright() as p:
     check('Αγγλικά: «General rules: Cyprus Territorial Seas» (1.14.92)', r==[True,True], r)
     check('1.14.92: χωρίς σφάλματα JS', not pg._errs and not pe._errs, [pg._errs,pe._errs]); c.close(); c2.close()
 
+    print('# 1.14.94 καταγραφή παρασκηνίου: το αποτέλεσμα της εκκίνησης φαίνεται στη διάγνωση (iPhone + Android)')
+    def natrun(tripjs):
+        c=ctx(b); c.add_init_script("window.AKN={site:location.origin+'/',platform:'android',openExternal:function(){},trip:"+tripjs+"};"
+          "if(!sessionStorage.__s){sessionStorage.__s=1;localStorage.setItem('alkyon-safe',JSON.stringify({active:true,id:'trip-n1',start:Date.now()-20*60000,due:Date.now()+3*3600000,route:'N',last:{lat:34.7,lon:32.4,t:Date.now()}}));}")
+        pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(6500)
+        r=pg.evaluate("""async()=>{ const W=ms=>new Promise(r=>setTimeout(r,ms)); AK.trip.back(); await W(900); const bt=[...document.querySelectorAll('.sheet.on .zeroq .btn')].find(x=>x.textContent==='Δεν έπιασα τίποτα'); bt&&bt.click(); await W(1500);
+          const t=JSON.parse(localStorage.getItem('alkyon-trips')||'[]').filter(x=>!x.deleted).find(x=>x.sid==='trip-n1'); if(!t||!t.gps) return {err:'no trip/gps',calls:window.__nc};
+          const g=t.gps; return {ns:g.ns||'',me:g.me||'',nat:g.nat,mg:g.mg,mgErr:g.mgErr,end:g.end,code:AK.gpsVerdict(g,t.endMs-t.startMs).code,calls:window.__nc,fish0:t.fish0}; }""")
+        errs=list(pg._errs); c.close(); return r,errs
+    OKJS="{start:function(o){ (window.__nc=window.__nc||[]).push('start'); return Promise.resolve({ok:true}); },stop:function(){ (window.__nc=window.__nc||[]).push('stop'); return Promise.resolve({ok:true}); },fixes:function(o){ (window.__nc=window.__nc||[]).push('fixes'); var t=Date.now(); return Promise.resolve({fixes:[[34.7000,32.4000,t-600000,8],[34.7010,32.4010,t-540000,8],[34.7020,32.4020,t-480000,8]],diag:{raw:240,kept:3,acc:0,near:0,gaps60:0,gapMax:5,half:0,t0:t-1200000,t1:t,every:5}}); },status:function(){ return Promise.resolve({running:true}); }}"
+    r,e=natrun(OKJS)
+    check('υπηρεσία που δουλεύει (Android όπως πριν): ξεκινά, τα σημεία της μπαίνουν στη διαδρομή, η διάγνωση γράφει «ok» και κανένα σφάλμα (1.14.94)', r.get('ns')=='ok' and r.get('me')=='' and r.get('nat',0)>=3 and r.get('mg',0)>=1 and r.get('mgErr')==0 and r.get('end')=='ok' and 'start' in (r.get('calls') or []) and 'stop' in (r.get('calls') or []) and not e, [r,e])
+    r,e=natrun("{start:function(){ (window.__nc=window.__nc||[]).push('start'); return Promise.resolve({ok:false,err:'perm'}); },stop:function(){ return Promise.resolve({ok:true}); },fixes:function(){ return Promise.resolve({fixes:[],diag:{}}); },status:function(){ return Promise.resolve({running:false}); }}")
+    check('χωρίς άδεια θέσης: η διάγνωση γράφει «no:perm», η έξοδος κλείνει κανονικά (1.14.94)', r.get('ns')=='no:perm' and r.get('nat')==0 and r.get('fish0')=='none' and not e, [r,e])
+    NOIMPL="{start:function(){ (window.__nc=window.__nc||[]).push('start'); return Promise.reject({code:'UNIMPLEMENTED',message:'\"AlkTrip\" plugin is not implemented on ios'}); },stop:function(){ return Promise.reject({code:'UNIMPLEMENTED'}); },fixes:function(){ (window.__nc=window.__nc||[]).push('fixes'); return Promise.reject({code:'UNIMPLEMENTED'}); },status:function(){ return Promise.reject({code:'UNIMPLEMENTED'}); }}"
+    r,e=natrun(NOIMPL)
+    check('πρόσθετο που δεν είναι καταχωρημένο (το λάθος του iPhone): φαίνεται πλέον ως «err:UNIMPLEMENTED» στην εκκίνηση και στην ανάγνωση, 0 σημεία παρασκηνίου· η έξοδος κλείνει κανονικά και χωρίς σφάλμα JS (1.14.94)', r.get('ns')=='err:UNIMPLEMENTED' and r.get('me')=='UNIMPLEMENTED' and r.get('nat')==0 and r.get('mgErr',0)>=1 and r.get('code') in ('recording','merging') and r.get('fish0')=='none' and not e, [r,e])
+
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)
     check('Οδηγός χωρίς καρτέλα Κόμποι (αφαιρέθηκε προσωρινά)', not pg.query_selector('#tab-guide .seg button[data-g=knots]') and not pg._errs, pg._errs); c.close()

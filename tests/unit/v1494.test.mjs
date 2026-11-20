@@ -25,6 +25,24 @@ test('iPhone: the screen the app really shows is known, and it registers the tri
   assert.equal(new Set(reg).size, reg.length, 'nothing is registered twice');
 });
 
+test('iPhone: nothing else can put a different screen in front (start-up path)', () => {
+  const plist = rd(IOS + '/Info.plist'), app = rd(IOS + '/AppDelegate.swift');
+  assert.match(plist, /<key>UISceneDelegateClassName<\/key>\s*<string>\$\(PRODUCT_MODULE_NAME\)\.SceneDelegate<\/string>/, 'iOS starts the app through SceneDelegate');
+  assert.equal((scene.match(/rootViewController\s*=/g) || []).length, 1, 'the window gets its screen in exactly one place');
+  assert.match(scene, /window = UIWindow\(windowScene: windowScene\)\s*\n\s*window\?\.rootViewController = AlkBridgeViewController\(\)\s*\n\s*window\?\.makeKeyAndVisible\(\)/, 'a new window replaces whatever the storyboard supplied');
+  assert.ok(!/rootViewController\s*=|UIWindow\(/.test(app), 'AppDelegate builds no window of its own');
+  const other = swift.filter(([f]) => !['SceneDelegate.swift'].includes(f)).filter(([, src]) => /rootViewController\s*=/.test(src)).map(([f]) => f);
+  assert.deepEqual(other, [], 'no other file changes the screen');
+  assert.match(rd(IOS + '/Base.lproj/Main.storyboard'), /customClass="MainViewController"/, 'the storyboard still names the controller that is replaced (documented in MainViewController.swift)');
+});
+
+test('Android is untouched: its four plugins are registered where they always were', () => {
+  const ma = rd('android/app/src/main/java/com/alkyonfishing/app/MainActivity.java');
+  assert.deepEqual((ma.match(/registerPlugin\((\w+)\.class\)/g) || []).map(x => /\((\w+)\./.exec(x)[1]).sort(), ['AlkBaroPlugin', 'AlkNetPlugin', 'AlkTripPlugin', 'AlkWatchPlugin']);
+  const tp = rd('android/app/src/main/java/com/alkyonfishing/app/AlkTripPlugin.java');
+  assert.match(tp, /r\.put\("ok", true\); call\.resolve\(r\);/, 'start answers ok:true → the diagnostic reads «ok»'); assert.match(tp, /r\.put\("ok", false\); r\.put\("err", "perm"\)/);
+});
+
 test('iPhone: every plugin the web code asks for is registered in the shown screen (or is a declared, known gap)', () => {
   assert.deepEqual(Object.keys(plugins).sort(), ['AlkBaroPlugin', 'AlkTripPlugin', 'AlkWatchPlugin'], 'a new plugin must be added to this test on purpose');
   const nat = rd('native.js'), asked = Object.entries(plugins).filter(([, js]) => nat.includes("reg('" + js + "')")).map(([c]) => c), reg = registered(shown);
