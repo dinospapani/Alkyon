@@ -2,6 +2,7 @@
    Με τη συγκατάθεση του χρήστη (alkyon-contrib = true), στέλνει ανώνυμα στον πίνακα catch_obs:
    - κάθε ψάρι / χαμένο ψάρι: είδος, ώρα, περιοχή στρογγυλεμένη στο 0,1° (~10 km), τεχνική, πόσα, συνθήκες (άνεμος, κύμα, πίεση, τάση, νέφωση, θερμοκρασία, νερό, παλίρροια)
    - κάθε έξοδο: αρχή–τέλος, περιοχή, πόσα ψάρια (για να φαίνεται πότε ΔΕΝ τσιμπάνε)
+   - 1.14.93: μαζί με την έξοδο, την πρόγνωση που είχε η εφαρμογή στην αρχή της (καιρός και βαθμός ανά ώρα, εκδόσεις)
    Ποτέ όνομα, σημειώσεις, φωτογραφίες ή ακριβές σημείο. Κλείνοντας τον διακόπτη σβήνονται όλα από τον server.
    Τα συγκεντρωτικά (bite_stats) τα φτιάχνει ο server κάθε βράδυ και τα δείχνει το B.biteStatsCard. */
 (function(){ var B=window.AK, h=B.h, T=B.T, ls=B.ls;
@@ -19,6 +20,9 @@ function rowOf(kind,x){
     /* 1.14.86 (P1.2): τι είδους έξοδος είναι (cond.k), με τον ΕΝΑ κανόνα του AlkyonScore.session: 'l' καταγράφηκε ζωντανά · 'n' «Ψάρεψα, τίποτα» · 'm' με το χέρι ·
        'c' «από τα ψάρια της ημέρας» · 'x' άκυρη. Ο έλεγχος «πόσο έπεσε μέσα» στον server αφήνει έξω τις 'c' (έχουν πάντα ψάρια) και τις 'x'. */
     try{ var se=window.PF&&PF.session?PF.session(x):null; if(se&&se.k){ cd=cd||{}; cd.k=se.k; } }catch(e){}
+    /* 1.14.93 (ML Data Foundation): το στιγμιότυπο της πρόγνωσης στην αρχή της εξόδου (snapshot.js): είσοδοι του βαθμού, ώρα λήψης, εκδόσεις. Χωρίς θέση ή στοιχεία χρήστη.
+       Μπαίνει στο cond.snap· ο server που συμπληρώνει συνθήκες εκ των υστέρων (cond.e) το αφήνει ανέγγιχτο. */
+    try{ var AS2=window.AlkyonSnapshot; if(x.snap&&AS2&&AS2.valid(x.snap)&&JSON.stringify(x.snap).length<=16000){ cd=cd||{}; cd.snap=x.snap; } }catch(e){}
     return {cond:cd,ref:'t:'+x.id,kind:'trip',sp:x.target?String(x.target.latin||x.target.name||'').toLowerCase().slice(0,80)||null:null,day:x.date||new Date(x.startMs).toISOString().slice(0,10),ms:x.startMs,ms2:x.endMs,lat:la,lon:lo,cnt:Math.min(999,(x.count|0)),tech:x.tech?String(x.tech).slice(0,40):null,prof:x.prof||null}; } /* 1.14.28: cond.rt = «Πώς ήταν το ψάρεμα;» */
   if(!x.date) return null; var la2=r1(x.lat), lo2=r1(x.lon); if(la2==null) return null;
   var c={}; CK.forEach(function(k){ var v=x[k]; if(typeof v==='number'&&isFinite(v)) c[k]=Math.round(v*10)/10; else if(typeof v==='string'&&v.length<=12) c[k]=v; });
@@ -50,7 +54,7 @@ function set(v){ ls.set(K,!!v); ls.set(ASKED,1); if(v) sync(); else wipe(); }
 function explain(){ return h('div',null,
   h('p',{text:T('Τα ψάρια σου (και οι έξοδοι χωρίς ψάρι) βοηθούν να μάθει η εφαρμογή πότε τσιμπάνε πραγματικά, ανά είδος και περιοχή. Όσο περισσότεροι συμμετέχουν, τόσο πιο σωστή γίνεται η πρόγνωση για όλους.','Your catches (and trips with no fish) help the app learn when fish really bite, by species and area. The more people take part, the better the forecast gets for everyone.')}),
   h('ul',{class:'sub',style:'margin:6px 0 0;padding-left:18px'},
-    h('li',{text:T('Στέλνεται: είδος, ώρα, καιρός εκείνη την ώρα, τεχνική, πόσα ψάρια, και περιοχή στρογγυλεμένη στα ~10 km.','Sent: species, time, the weather at that time, technique, how many fish, and an area rounded to ~10 km.')}),
+    h('li',{text:T('Στέλνεται: είδος, ώρα, καιρός εκείνη την ώρα, τεχνική, πόσα ψάρια, και περιοχή στρογγυλεμένη στα ~10 km. Για κάθε έξοδο στέλνεται και η πρόγνωση που έδινε η εφαρμογή στην αρχή της (καιρός και βαθμός ανά ώρα), για να ελέγχεται πόσο έπεσε μέσα.','Sent: species, time, the weather at that time, technique, how many fish, and an area rounded to ~10 km. For each trip, the forecast the app was showing when it started (weather and score per hour) is sent too, so its accuracy can be checked.')}),
     h('li',{text:T('Ποτέ: όνομα, ακριβές σημείο, σημειώσεις, φωτογραφίες. Κανείς άλλος δεν βλέπει τα δικά σου.','Never: your name, exact spot, notes or photos. Nobody else sees yours.')}),
     h('li',{text:T('Το κλείνεις όποτε θέλεις από Προφίλ › Ρυθμίσεις· τότε σβήνονται όλα από τον server.','Turn it off any time in Profile › Settings; everything is then deleted from the server.')}))); }
 /* 1.14.29: αν είπες «Όχι τώρα», ξαναρωτά ΜΙΑ φορά, όταν έχεις ≥ 5 ψάρια και έχει περάσει μήνας */

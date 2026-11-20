@@ -20,6 +20,7 @@ function trips(){ return B.store.raw('trips').filter(function(t){ return !t.dele
 function patchTrip(id,o){ var t=B.store.get('trips',id); if(t) B.store.save('trips',Object.assign({},t,o)); }
 
 /* ---------- scoreH: βαθμός ανά ώρα στην αρχή της εξόδου ---------- */
+function platform(){ try{ var c=window.Capacitor; if(c&&typeof c.getPlatform==='function') return String(c.getPlatform()); }catch(e){} return 'web'; }
 function scoreSnap(){
   var s=st(); if(!s.active||!s.id||!window.PF) return; var cur=ls.get('alkyon-tscore',null); if(cur&&cur.id===s.id) return;
   var p=pos(); if(!p) return;
@@ -28,7 +29,10 @@ function scoreSnap(){
        και η έκδοση των βαρών (scoreCfg). Έτσι αργότερα μετριέται αν αυτά προβλέπουν κάτι. Οι δύο πρώτες στήλες μένουν όπως ήταν. */
     try{ if(PF.scoreRows){ var R=PF.scoreRows(fc,+p.lat,+p.lon); out=R.h; cfg=R.cfg; } }catch(e){ out=[]; }
     if(!out.length) fc.days.forEach(function(d){ d.hours.forEach(function(x){ if(x.score==null) return; out.push([Math.floor((Date.parse(x.t+':00Z')-fc.tz*60000)/3600000),x.score]); }); });
-    if(out.length) ls.set('alkyon-tscore',{id:s.id,h:out,sp:ls.get('alkyon-advsp','')||'',cfg:cfg}); }).catch(function(){});
+    /* 1.14.93 (ML Data Foundation): μαζί με τους βαθμούς παγώνουν και οι ΕΙΣΟΔΟΙ τους (snapshot.js): τι ήξερε η εφαρμογή στην αρχή της εξόδου, πότε, με ποια έκδοση.
+       Μόνο αποθήκευση: δεν διαβάζεται από τον βαθμό, τα Best Spots ή την προσωπική πρόγνωση, και δεν εμφανίζεται πουθενά. */
+    var snap=null; try{ if(window.AlkyonSnapshot) snap=window.AlkyonSnapshot.build(fc,+p.lat,+p.lon,PF,{at:Date.now(),app:window.ALKYON_VERSION||null,pf:platform(),prof:B.prof?B.prof():null,sp:ls.get('alkyon-advsp','')||null}); }catch(e){ snap=null; }
+    if(out.length) ls.set('alkyon-tscore',{id:s.id,h:out,sp:ls.get('alkyon-advsp','')||'',cfg:cfg,snap:snap||undefined}); }).catch(function(){});
 }
 /* ---------- condH: πίεση και άνεμος κάθε ώρας της εξόδου ---------- */
 function condH(t){
@@ -46,7 +50,9 @@ function condH(t){
 B.on('tripend',function(e){ var id=e&&e.id; if(!id) { ls.set('alkyon-tscore',null); return; }
   setTimeout(function(){ var t=B.store.get('trips',id), sc=ls.get('alkyon-tscore',null);
     if(t&&sc&&Array.isArray(sc.h)&&(t.sid===sc.id||!t.sid)){ var lo=Math.floor(t.startMs/3600000), hi=Math.floor(t.endMs/3600000), hs=sc.h.filter(function(r){ return r[0]>=lo&&r[0]<=hi; });
-      if(hs.length) patchTrip(id,{scoreH:hs,scoreSp:sc.sp||undefined,scoreCfg:sc.cfg||undefined}); }
+      if(hs.length) patchTrip(id,{scoreH:hs,scoreSp:sc.sp||undefined,scoreCfg:sc.cfg||undefined});
+      /* 1.14.93: το στιγμιότυπο γράφεται ΜΙΑ φορά, μόνο με τις ώρες της εξόδου, και δεν ξαναγράφεται (αν η έξοδος έχει ήδη, μένει αυτό) */
+      try{ if(sc.snap&&window.AlkyonSnapshot&&!t.snap){ var sn=window.AlkyonSnapshot.trim(sc.snap,t.startMs,t.endMs); if(sn) patchTrip(id,{snap:sn}); } }catch(e){} }
     ls.set('alkyon-tscore',null); },2500);
   setTimeout(function(){ condH(B.store.get('trips',id)).catch(function(){}); },5000); });
 /* παλιότερες έξοδοι χωρίς condH: λίγες κάθε φορά, στο παρασκήνιο */

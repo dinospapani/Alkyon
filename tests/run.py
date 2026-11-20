@@ -2011,6 +2011,26 @@ with sync_playwright() as p:
     check('Αγγλικά: «General rules: Cyprus Territorial Seas» (1.14.92)', r==[True,True], r)
     check('1.14.92: χωρίς σφάλματα JS', not pg._errs and not pe._errs, [pg._errs,pe._errs]); c.close(); c2.close()
 
+    print('# 1.14.93 παγωμένο στιγμιότυπο πρόγνωσης (ML Data Foundation)')
+    c=ctx(b); c.add_init_script("if(!sessionStorage.__s){sessionStorage.__s=1;localStorage.setItem('alkyon-safe',JSON.stringify({active:true,id:'trip-s1',start:Date.now()-50*60000,due:Date.now()+3*3600000,route:'S',last:{lat:34.7,lon:32.4,t:Date.now()}}));}")
+    pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(11500)
+    r=pg.evaluate("""async()=>{ const W=ms=>new Promise(r=>setTimeout(r,ms)), o={}, SN=window.AlkyonSnapshot;
+      const sc0=JSON.parse(localStorage.getItem('alkyon-tscore')||'null'); o.held=[!!sc0, sc0&&sc0.id, !!(sc0&&sc0.snap), sc0&&sc0.snap&&SN.valid(sc0.snap), sc0&&sc0.snap&&sc0.snap.app===window.ALKYON_VERSION, sc0&&sc0.snap&&sc0.snap.pf, sc0&&sc0.snap&&sc0.snap.cfg===PF.scoreConfig, sc0&&sc0.snap&&Math.abs(Date.now()-sc0.snap.at)<60000];
+      const score0=[...document.querySelectorAll('.fscore,.score,.dial b')].map(x=>x.textContent).join('|');
+      AK.trip.back(); await W(900); const bt=[...document.querySelectorAll('.sheet.on .zeroq .btn')].find(x=>x.textContent==='Δεν έπιασα τίποτα'); bt&&bt.click(); await W(3600);
+      const tr=()=>JSON.parse(localStorage.getItem('alkyon-trips')||'[]').filter(t=>!t.deleted); let t=tr().find(x=>x.sid==='trip-s1'); if(!t) return {held:o.held,err:'no trip'};
+      const lo=Math.floor(t.startMs/3600000), hi=Math.floor(t.endMs/3600000), sn=t.snap;
+      o.trip=[!!sn, sn&&SN.valid(sn), sn&&sn.h.every(r=>r[0]>=lo&&r[0]<=hi), sn&&sn.h.length, Array.isArray(t.scoreH)&&t.scoreH.length===(sn?sn.h.length:-1), t.scoreCfg===PF.scoreConfig, SN.late(sn,t.startMs)];
+      o.keys=sn?Object.keys(sn).sort().join(','):''; o.size=sn?JSON.stringify(sn).length:0;
+      const row=AK.contrib._rowOf('trip',t); o.sent=[!!(row.cond&&row.cond.snap), JSON.stringify(row.cond&&row.cond.snap)===JSON.stringify(sn), row.cond&&row.cond.k, Math.round(row.lat*10)/10===row.lat&&Math.round(row.lon*10)/10===row.lon, typeof AK.emit==='function', !/34\.7\d|32\.4\d/.test(JSON.stringify(row.cond.snap))];
+      /* δεν ξαναγράφεται */ const at0=sn.at; localStorage.setItem('alkyon-tscore',JSON.stringify({id:'trip-s1',h:t.scoreH,snap:Object.assign({},sn,{at:1})})); AK.emit&&AK.emit('tripend',{id:t.id}); await W(3200); t=tr().find(x=>x.sid==='trip-s1'); o.once=t.snap.at===at0;
+      o.score=score0===[...document.querySelectorAll('.fscore,.score,.dial b')].map(x=>x.textContent).join('|'); return o; }""")
+    check('στιγμιότυπο: παίρνεται στην έξοδο με τις εισόδους του βαθμού, την έκδοση της εφαρμογής, την πλατφόρμα και την έκδοση κανόνων (1.14.93)', r.get('held')==[True,'trip-s1',True,True,True,'web',True,True], r.get('held'))
+    check('στιγμιότυπο: στο τέλος μένει στην έξοδο μόνο για τις ώρες της, δίπλα στο scoreH που γράφεται όπως πριν· πάρθηκε 50′ μετά την έναρξη, άρα σημειώνεται «αργό» (1.14.93)', r.get('trip') and r['trip'][:3]==[True,True,True] and r['trip'][3]>=1 and r['trip'][4:]==[True,True,True] and r.get('keys')=='app,at,cfg,cols,h,pf,prof,sp,src,v' and 0<r.get('size',0)<6000, [r.get('trip'),r.get('keys'),r.get('size'),r.get('err')])
+    check('στιγμιότυπο: πηγαίνει στη συνεισφορά (cond.snap) ίδιο, με περιοχή 0,1° και χωρίς θέση μέσα του (1.14.93)', r.get('sent')==[True,True,'l',True,True,True], r.get('sent'))
+    check('στιγμιότυπο: γράφεται μία φορά και δεν ξαναγράφεται· ο βαθμός στην οθόνη δεν αλλάζει (1.14.93)', r.get('once') is True and r.get('score') is True, [r.get('once'),r.get('score')])
+    check('1.14.93: χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
+
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)
     check('Οδηγός χωρίς καρτέλα Κόμποι (αφαιρέθηκε προσωρινά)', not pg.query_selector('#tab-guide .seg button[data-g=knots]') and not pg._errs, pg._errs); c.close()
