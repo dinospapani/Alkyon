@@ -32,6 +32,7 @@ import androidx.core.app.NotificationCompat;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -47,13 +48,18 @@ public class AlkTripService extends Service implements LocationListener {
     private String tripId = "", key = "", url = "", apikey = "";
     private long intervalMs = 180000, lastHb = 0;
     private Location last = null;
+    /* 1.14.95: το 404 του παλμού σταματά την υπηρεσία μόνο με τον κανόνα του AlkHbRule (ο server γνωρίζει την έξοδο ΚΑΙ 3 συνεχόμενα δικά μας 404).
+       acked / n404 / born κρατιούνται ανά έξοδο στα prefs, γιατί το Android μπορεί να ξαναξεκινήσει την υπηρεσία (START_REDELIVER_INTENT). */
+    private boolean acked = false;
+    private int n404 = 0;
+    private long born = 0, dHb4 = 0;
     /* 1.14.88: διάγνωση διαδρομής. raw = θέσεις που έδωσε το GPS · acc = απορρίφθηκαν (ακρίβεια > 60 m) · near = πολύ κοντά στο προηγούμενο ·
        kept = γράφτηκαν · gaps60 / gapMax = κενά πάνω από 60″ ανάμεσα σε δύο θέσεις του GPS (το GPS ζητείται κάθε 5″, άρα κενό = το κινητό δεν έδινε θέση) */
     private long dRaw = 0, dAcc = 0, dNear = 0, dKept = 0, dGaps = 0, dGapMax = 0, dHalf = 0, dT0 = 0, dT1 = 0;
     private void loadDiag(SharedPreferences p) {
         try { JSONObject d = new JSONObject(p.getString("diag:" + tripId, "{}"));
             dRaw = d.optLong("raw"); dAcc = d.optLong("acc"); dNear = d.optLong("near"); dKept = d.optLong("kept"); dGaps = d.optLong("gaps60");
-            dGapMax = d.optLong("gapMax"); dHalf = d.optLong("half"); dT0 = d.optLong("t0"); dT1 = d.optLong("t1");
+            dGapMax = d.optLong("gapMax"); dHalf = d.optLong("half"); dT0 = d.optLong("t0"); dT1 = d.optLong("t1"); dHb4 = d.optLong("hb4");
         } catch (Exception e) { }
         if (dT0 == 0) dT0 = System.currentTimeMillis();
     }
@@ -61,10 +67,15 @@ public class AlkTripService extends Service implements LocationListener {
         try { JSONObject d = new JSONObject();
             d.put("raw", dRaw); d.put("acc", dAcc); d.put("near", dNear); d.put("kept", dKept); d.put("gaps60", dGaps); d.put("gapMax", dGapMax);
             d.put("half", dHalf); d.put("t0", dT0); d.put("t1", dT1); d.put("every", 5);
+            d.put("ack", acked ? 1 : 0); d.put("hb4", dHb4);   // 1.14.95: ο server γνωρίζει την έξοδο; · πόσα 404 «no active trip» ήρθαν
             getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString("diag:" + tripId, d.toString()).apply();
         } catch (Exception e) { }
     }
-    private final Runnable beat = new Runnable() { @Override public void run() { sendHb(true); hd.postDelayed(this, intervalMs); } };
+    private final Runnable beat = new Runnable() { @Override public void run() {
+        /* 1.14.95: υπηρεσία που ο server δεν αναγνώρισε ποτέ δεν τρέχει πάνω από 24 ώρες (δίχτυ για τη μπαταρία) */
+        if (AlkHbRule.expired(acked, born, System.currentTimeMillis())) { stopSelf(); return; }
+        sendHb(true); hd.postDelayed(this, intervalMs);
+    } };
 
     @Override public IBinder onBind(Intent intent) { return null; }
 
@@ -79,6 +90,8 @@ public class AlkTripService extends Service implements LocationListener {
         tripId = p.getString("id", ""); key = p.getString("key", ""); url = p.getString("url", ""); apikey = p.getString("apikey", "");
         intervalMs = Math.max(60000, Math.min(900000, p.getLong("interval", 180000)));
         if (tripId.isEmpty()) { stopSelf(); return START_NOT_STICKY; }
+        acked = p.getBoolean("ack:" + tripId, false); n404 = p.getInt("n404:" + tripId, 0); born = p.getLong("born:" + tripId, 0);
+        if (born == 0) { born = System.currentTimeMillis(); p.edit().putLong("born:" + tripId, born).apply(); }
         Notification n = note(p.getString("title", "Alkyon"), p.getString("text", ""));
         try {
             if (Build.VERSION.SDK_INT >= 29) startForeground(NOTE_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION);
@@ -149,6 +162,7 @@ public class AlkTripService extends Service implements LocationListener {
         if (timer && now - lastHb < intervalMs - 5000) return;
         lastHb = now;
         final JSONObject b = new JSONObject();
+        final String sent = tripId;
         try {
             b.put("action", "hb"); b.put("id", tripId); b.put("key", key);
             if (last != null && now - last.getTime() < 15 * 60000) { b.put("lat", last.getLatitude()); b.put("lon", last.getLongitude()); }
@@ -162,11 +176,33 @@ public class AlkTripService extends Service implements LocationListener {
                 c.setRequestProperty("Content-Type", "application/json"); c.setRequestProperty("apikey", apikey); c.setRequestProperty("Authorization", "Bearer " + apikey);
                 byte[] out = b.toString().getBytes(StandardCharsets.UTF_8);
                 try (OutputStream os = c.getOutputStream()) { os.write(out); }
-                int code = c.getResponseCode();
-                if (code == 404) hd.post(new Runnable() { @Override public void run() { stopSelf(); } });   // η έξοδος έκλεισε στον server
+                final int code = c.getResponseCode();
+                final String body = code == 404 ? readSmall(c.getErrorStream()) : "";
+                hd.post(new Runnable() { @Override public void run() { onHb(sent, code, body); } });
             } catch (Exception e) { /* χωρίς σήμα: ο επόμενος παλμός θα ξαναδοκιμάσει */ }
             finally { if (c != null) c.disconnect(); }
         } }).start();
+    }
+
+    /* 1.14.95: η απάντηση του server στον παλμό. Πριν, κάθε 404 σταματούσε την υπηρεσία· τώρα αποφασίζει ο AlkHbRule. */
+    private void onHb(String sent, int code, String body) {
+        if (!sent.equals(tripId)) return;   // απάντηση για προηγούμενη έξοδο
+        AlkHbRule.Step s = AlkHbRule.next(acked, n404, code, body);
+        boolean ours = AlkHbRule.ours404(code, body);
+        if (ours) dHb4++;
+        if (s.acked != acked || s.n404 != n404) {
+            acked = s.acked; n404 = s.n404;
+            getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean("ack:" + tripId, acked).putInt("n404:" + tripId, n404).apply();
+        }
+        if (ours || s.stop) saveDiag();
+        if (s.stop) stopSelf();   // η έξοδος έκλεισε στον server
+    }
+
+    private static String readSmall(InputStream in) {
+        if (in == null) return "";
+        try { byte[] buf = new byte[512]; int n = 0, r; while (n < buf.length && (r = in.read(buf, n, buf.length - n)) > 0) n += r; return new String(buf, 0, n, StandardCharsets.UTF_8); }
+        catch (Exception e) { return ""; }
+        finally { try { in.close(); } catch (Exception e) { } }
     }
 
     @Override public void onDestroy() {

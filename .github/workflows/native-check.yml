@@ -33,6 +33,10 @@ jobs:
       - name: Χτίσιμο κινητού (debug)
         working-directory: android
         run: ./gradlew --no-daemon :app:assembleDebug -PalkVersionName=0.0.1 -PalkVersionCode=1
+      # 1.14.95: πραγματικά tests Java (JUnit) για τον κανόνα του παλμού (AlkHbRule): πότε το 404 σταματά την καταγραφή
+      - name: Tests Java (JUnit)
+        working-directory: android
+        run: ./gradlew --no-daemon :app:testDebugUnitTest -PalkVersionName=0.0.1 -PalkVersionCode=1
   ios:
     runs-on: macos-15
     timeout-minutes: 60

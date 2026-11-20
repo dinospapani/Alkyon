@@ -425,6 +425,9 @@ B.mobDel=function(t){ ls.set('alkyon-mob',B.mobs().filter(function(x){ return x.
 
 /* εκκίνηση: αν υπάρχει ενεργή έξοδος ή άγκυρα, συνεχίζει */
 if(load().active){ startTimer(); (function(){ var s0=load(); if(!s0.hbk){ s0.hbk=hexKey(); save(s0); } })(); setTimeout(function(){ mergeFixes(); trackPos().then(function(){ nativeStart(load()); }); },2000); }
+/* 1.14.95: χωρίς ενεργή έξοδο δεν πρέπει να τρέχει υπηρεσία καταγραφής (π.χ. το «Τέλος εξόδου» δεν έφτασε σε αυτήν):
+   κλείνει στο άνοιγμα της εφαρμογής. Ελέγχει ξανά την κατάσταση τη στιγμή που τρέχει, για να μην κλείσει έξοδο που μόλις ξεκίνησε. */
+else setTimeout(function(){ if(!load().active) nativeStop(); },2000);
 if(anc()) lastAn=Date.now();
 setTimeout(function(){ watch(); paintBar(); },300);
 setInterval(function(){ if(load().active) watch(); },10000);

@@ -2029,6 +2029,26 @@ with sync_playwright() as p:
     r,e=natrun(NOIMPL)
     check('πρόσθετο που δεν είναι καταχωρημένο (το λάθος του iPhone): φαίνεται πλέον ως «err:UNIMPLEMENTED» στην εκκίνηση και στην ανάγνωση, 0 σημεία παρασκηνίου· η έξοδος κλείνει κανονικά και χωρίς σφάλμα JS (1.14.94)', r.get('ns')=='err:UNIMPLEMENTED' and r.get('me')=='UNIMPLEMENTED' and r.get('nat')==0 and r.get('mgErr',0)>=1 and r.get('code') in ('recording','merging') and r.get('fish0')=='none' and not e, [r,e])
 
+    print('# 1.14.95 υπηρεσία καταγραφής: ξεκινά και σε έξοδο που ο server δεν γνωρίζει· κλείνει όταν η εφαρμογή ανοίγει χωρίς έξοδο')
+    def nat95(safe):
+        c=ctx(b); c.add_init_script("window.__nc=[];window.AKN={site:location.origin+'/',platform:'android',openExternal:function(){},trip:{start:function(o){ window.__nc.push({k:'start',o:o}); return Promise.resolve({ok:true}); },stop:function(){ window.__nc.push({k:'stop'}); return Promise.resolve({ok:true}); },fixes:function(){ return Promise.resolve({fixes:[],diag:{}}); },status:function(){ return Promise.resolve({running:true}); }}};"
+          +("if(!sessionStorage.__s){sessionStorage.__s=1;localStorage.setItem('alkyon-safe',JSON.stringify("+safe+"));}" if safe else ""))
+        pg=page(c); reqs=[]; pg.on('request', lambda rq: reqs.append(rq.url)); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(6500)
+        r=pg.evaluate("()=>({calls:window.__nc,active:AK.trip.active(),hbk:(AK.trip.state().hbk||'').length})"); errs=list(pg._errs); c.close()
+        return r,[u for u in reqs if 'safety_trips' in u],errs
+    ks=lambda r: [x['k'] for x in (r.get('calls') or [])]
+    TRIPJS="{active:true,id:'trip-n5',start:Date.now()-5*60000,due:Date.now()+3*3600000,route:'N',%slast:{lat:34.7,lon:32.4,t:Date.now()}}"
+    r,sr,e=nat95(TRIPJS % "noAlert:true,")
+    st=[x for x in (r.get('calls') or []) if x['k']=='start']; o=(st[0]['o'] if st else {})
+    check('ειδοποίηση επαφής κλειστή και χωρίς λογαριασμό: καμία γραμμή δεν στέλνεται στον server, και η υπηρεσία ξεκινά κανονικά με το κλειδί και τη διεύθυνση του παλμού· δεν την κλείνει η εφαρμογή (1.14.95)',
+      len(st)==1 and o.get('id')=='trip-n5' and len(o.get('key') or '')>=32 and str(o.get('url') or '').endswith('/functions/v1/quick-processor') and o.get('interval')==180 and 'stop' not in ks(r) and not sr and r.get('active') and not e, [r,sr,e])
+    r,sr,e=nat95(TRIPJS % "")
+    check('έξοδος με ειδοποίηση: η υπηρεσία ξεκινά όπως πριν και δεν κλείνει (1.14.95)', ks(r).count('start')==1 and 'stop' not in ks(r) and r.get('active') and not e, [r,sr,e])
+    r,sr,e=nat95(None)
+    check('η εφαρμογή ανοίγει χωρίς έξοδο: κλείνει υπηρεσία που μπορεί να έμεινε πίσω, και δεν ξεκινά καμία (1.14.95)', ks(r)==['stop'] and not r.get('active') and not e, [r,sr,e])
+    r,sr,e=nat95("{active:false,id:'trip-old',start:Date.now()-9*3600000,due:Date.now()-6*3600000,route:'N'}")
+    check('η εφαρμογή ανοίγει με έξοδο που έχει ήδη κλείσει: κλείνει την υπηρεσία μία φορά (1.14.95)', ks(r)==['stop'] and not e, [r,sr,e])
+
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)
     check('Οδηγός χωρίς καρτέλα Κόμποι (αφαιρέθηκε προσωρινά)', not pg.query_selector('#tab-guide .seg button[data-g=knots]') and not pg._errs, pg._errs); c.close()

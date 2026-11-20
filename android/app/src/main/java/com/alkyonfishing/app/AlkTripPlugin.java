@@ -41,7 +41,7 @@ public class AlkTripPlugin extends Plugin {
         Context c = getContext();
         SharedPreferences p = c.getSharedPreferences(AlkTripService.PREFS, Context.MODE_PRIVATE);
         String prev = p.getString("id", "");
-        if (!prev.isEmpty() && !prev.equals(id)) p.edit().remove("fixes:" + prev).remove("diag:" + prev).apply();   // σημεία προηγούμενης εξόδου
+        if (!prev.isEmpty() && !prev.equals(id)) p.edit().remove("fixes:" + prev).remove("diag:" + prev).remove("ack:" + prev).remove("n404:" + prev).remove("born:" + prev).apply();   // σημεία και κατάσταση παλμού προηγούμενης εξόδου
         Intent i = new Intent(c, AlkTripService.class)
             .putExtra("id", id).putExtra("key", key).putExtra("url", call.getString("url", "")).putExtra("apikey", call.getString("apikey", ""))
             .putExtra("interval", (long) (call.getInt("interval", 180) * 1000)).putExtra("title", call.getString("title", "Alkyon")).putExtra("text", call.getString("text", ""));
