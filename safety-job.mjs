@@ -52,7 +52,7 @@ export async function claimStep(sb, name, periodMs, now = Date.now(), staleMs = 
   const up = await sb(`job_state?name=eq.${encodeURIComponent(name)}&${cond}`, { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ last_try: at }) });
   return Array.isArray(up) && up.length === 1;
 }
-export async function run({ env, fetch: F = fetch, sendMail, log = console.log, PF = null, webpush = null, only = null }) {
+export async function run({ env, fetch: F = fetch, sendMail, log = console.log, PF = null, webpush = null, only = null, learnOpen = false }) {
   const URL_ = env.SUPABASE_URL, KEY = env.SUPABASE_SERVICE_KEY, TG = env.TELEGRAM_BOT_TOKEN;
   if (!URL_ || !KEY) { log('Λείπουν τα SUPABASE_URL / SUPABASE_SERVICE_KEY.'); return { ok: false }; }
   const H = { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' };
@@ -1020,6 +1020,11 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
           if (g !== 'sea' && !catches.length) continue;
           const pre = g === 'sea' ? '' : 'g:' + g + '|';   // θάλασσα: 'all', 'sp:…', 'r:…' (όπως πριν) · αλλιώς 'g:spear', 'g:spear|sp:…'
           const A0 = analyse(catches, trips, 8, ex); const A0wk = A0.data.wk; delete A0.data.wk; try { const bt = backtest(catches, trips, ex, g); A0.data.trips = trips.length; A0.data.ses = sesCount(trips); try { const bv = backtest(catches, trips, ex, g, true); if (bv) A0.data.btv = { n: bv.n, base: bv.base, adj: bv.adj }; } catch (e) { } A0.data.fitMin = FIT_MIN; A0.data.acc = accOf(catches, trips, g); if (g === 'sea') A0.data.qc = QC; if (bt) { A0.data.bt = bt; if (bt.fitOn) { const F = fitPoisson(catches, trips, ex); if (F && F.ins.length) { A0.data.ins = F.ins; A0.data.fitted = true; } } else if (!bt.on) A0.data.learnOff = true; } } catch (e) { log('bite stats: backtest ' + e.message); }
+          /* 1.14.94: Η ΜΑΘΗΣΗ ΕΙΝΑΙ ΚΛΕΙΔΩΜΕΝΗ. Τα ευρήματα συνεχίζουν να υπολογίζονται και να φαίνονται ως πληροφορία, αλλά ΔΕΝ διορθώνουν τον βαθμό (learnOff σε όλα τα κλειδιά),
+             ό,τι κι αν δείξει ο νυχτερινός έλεγχος (bt.on). Γιατί: με λίγες εξόδους ο έλεγχος άνοιγε και έκλεινε τη μάθηση από μέρα σε μέρα για διαφορά μίας μονάδας
+             (19/11: 46% έναντι 50% → κλειστή· 20/11: 53% έναντι 52% → ανοιχτή), άρα ο ίδιος καιρός έπαιρνε άλλο βαθμό. Ανοίγει μόνο με ρητή απόφαση (αλλαγή εδώ και deploy),
+             όταν καλυφθούν οι πύλες του evalGate και η αξιολόγηση δείξει όφελος. Το learnOpen υπάρχει μόνο για τα tests του παλιού κανόνα· η παραγωγή δεν το περνά. */
+          if (!learnOpen) { A0.data.learnOff = true; A0.data.learnLock = true; }
           A0.data.mon = monOf(catches); if (g === 'sea' && READY) A0.data.ready = READY; put(g === 'sea' ? 'all' : 'g:' + g, A0, g);
           /* 1.14.90: ο διακόπτης της μάθησης ισχύει για ΟΛΑ τα στατιστικά της ομάδας. Πριν έκλεινε μόνο στο γενικό («all» / «g:…»)· τα στατιστικά ανά περιοχή, είδος και μέγεθος
              δεν είχαν διακόπτη, οπότε η εφαρμογή συνέχιζε να διορθώνει τον βαθμό (έως ±15%) όποτε διάλεγε αυτά, και δύο κινητά στο ίδιο σημείο έδειχναν άλλο βαθμό. */
