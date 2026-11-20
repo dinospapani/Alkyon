@@ -62,17 +62,20 @@ test('each profile freezes its own inputs (lake has no wave)', async () => {
   for (const prof of ['boat', 'shore', 'lake', 'spear']) { const { U, fc } = await setup(prof), s = SN.build(fc, LAT, LON, U.PF, Object.assign({}, META, { prof })); assert.ok(SN.valid(s), prof); assert.equal(s.prof, prof); }
 });
 
-test('wiring: stored once at trip end, sent with the contribution, never read by the score', () => {
+test('wiring: stored once at trip end in the trip itself, not sent with contributions, never read by the score', () => {
   const R = f => fs.readFileSync(path.join(ROOT, f), 'utf8'), te = R('v4/trip-extra.js'), co = R('v4/contrib.js');
   assert.match(te, /AlkyonSnapshot\.build\(fc,\+p\.lat,\+p\.lon,PF,\{at:Date\.now\(\),app:window\.ALKYON_VERSION/);
   assert.match(te, /if\(sc\.snap&&window\.AlkyonSnapshot&&!t\.snap\)/, 'a trip that already has a snapshot keeps it');
   assert.match(te, /patchTrip\(id,\{scoreH:hs,scoreSp:sc\.sp\|\|undefined,scoreCfg:sc\.cfg\|\|undefined\}\)/, 'scoreH / scoreSp / scoreCfg are written exactly as before');
-  assert.match(co, /cd\.snap=x\.snap/); assert.match(co, /AS2\.valid\(x\.snap\)/);
+  /* η αποστολή στις ανώνυμες συνεισφορές ΔΕΝ είναι μέρος αυτής της έκδοσης (περιμένει την απόφαση για τη συγκατάθεση) */
+  assert.ok(!/snap/i.test(co.replace(/scoreSnap/g, '')), 'contrib.js does not know the snapshot');
+  const users = fs.readdirSync(path.join(ROOT, 'v4')).filter(f => f.endsWith('.js')).filter(f => /AlkyonSnapshot|[.{,]snap\b\s*[:=]|\.snap\b/.test(R('v4/' + f).replace(/s0\.snap|snap:m\.options\.zoomSnap/g, '')));
+  assert.deepEqual(users, ['trip-extra.js'], 'only trip-extra.js touches the snapshot');
   /* ο βαθμός, η πρόγνωση, η προσωπική πρόγνωση, ο server και το ρολόι δεν ξέρουν ότι υπάρχει */
   for (const f of ['score-config.js', 'score-core.js', 'forecast.js', 'personal.js', 'safety-job.mjs', 'watch-index.ts', 'v4/forecast-view.js', 'v4/bestspot.js', 'v4/trip.js']) assert.ok(!/AlkyonSnapshot|\.snap\b/.test(R(f)), f + ' does not read the snapshot');
   assert.match(R('v4/index.html'), /<script src="\.\.\/forecast\.js"><\/script>\n<script src="\.\.\/snapshot\.js"><\/script>/); assert.match(R('v4/sw.js'), /'\.\.\/snapshot\.js'/);
   /* κανένα ML στην εφαρμογή */
-  for (const f of ['snapshot.js', 'v4/trip-extra.js', 'v4/contrib.js']) assert.ok(!/ML_ENABLED|mlEnabled|predict\(|tensorflow|onnx/i.test(R(f)), f);
+  for (const f of ['snapshot.js', 'v4/trip-extra.js']) assert.ok(!/ML_ENABLED|mlEnabled|predict\(|tensorflow|onnx/i.test(R(f)), f);
   const src = SNAP_SRC.replace(/\/\*[\s\S]*?\*\//g, ''); assert.ok(!/localStorage|document\.|window\.|fetch\(/.test(src), 'snapshot.js is pure');
 });
 

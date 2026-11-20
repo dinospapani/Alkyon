@@ -2022,12 +2022,12 @@ with sync_playwright() as p:
       const lo=Math.floor(t.startMs/3600000), hi=Math.floor(t.endMs/3600000), sn=t.snap;
       o.trip=[!!sn, sn&&SN.valid(sn), sn&&sn.h.every(r=>r[0]>=lo&&r[0]<=hi), sn&&sn.h.length, Array.isArray(t.scoreH)&&t.scoreH.length===(sn?sn.h.length:-1), t.scoreCfg===PF.scoreConfig, SN.late(sn,t.startMs)];
       o.keys=sn?Object.keys(sn).sort().join(','):''; o.size=sn?JSON.stringify(sn).length:0;
-      const row=AK.contrib._rowOf('trip',t); o.sent=[!!(row.cond&&row.cond.snap), JSON.stringify(row.cond&&row.cond.snap)===JSON.stringify(sn), row.cond&&row.cond.k, Math.round(row.lat*10)/10===row.lat&&Math.round(row.lon*10)/10===row.lon, typeof AK.emit==='function', !/34\.7\d|32\.4\d/.test(JSON.stringify(row.cond.snap))];
+      const row=AK.contrib._rowOf('trip',t); o.sent=[!(row.cond&&row.cond.snap), !/"snap"|"cols"/.test(JSON.stringify(row)), row.cond&&row.cond.k, Math.round(row.lat*10)/10===row.lat&&Math.round(row.lon*10)/10===row.lon, typeof AK.emit==='function', !/34\.7\d|32\.4\d/.test(JSON.stringify(sn))];
       /* δεν ξαναγράφεται */ const at0=sn.at; localStorage.setItem('alkyon-tscore',JSON.stringify({id:'trip-s1',h:t.scoreH,snap:Object.assign({},sn,{at:1})})); AK.emit&&AK.emit('tripend',{id:t.id}); await W(3200); t=tr().find(x=>x.sid==='trip-s1'); o.once=t.snap.at===at0;
       o.score=score0===[...document.querySelectorAll('.fscore,.score,.dial b')].map(x=>x.textContent).join('|'); return o; }""")
     check('στιγμιότυπο: παίρνεται στην έξοδο με τις εισόδους του βαθμού, την έκδοση της εφαρμογής, την πλατφόρμα και την έκδοση κανόνων (1.14.93)', r.get('held')==[True,'trip-s1',True,True,True,'web',True,True], r.get('held'))
     check('στιγμιότυπο: στο τέλος μένει στην έξοδο μόνο για τις ώρες της, δίπλα στο scoreH που γράφεται όπως πριν· πάρθηκε 50′ μετά την έναρξη, άρα σημειώνεται «αργό» (1.14.93)', r.get('trip') and r['trip'][:3]==[True,True,True] and r['trip'][3]>=1 and r['trip'][4:]==[True,True,True] and r.get('keys')=='app,at,cfg,cols,h,pf,prof,sp,src,v' and 0<r.get('size',0)<6000, [r.get('trip'),r.get('keys'),r.get('size'),r.get('err')])
-    check('στιγμιότυπο: πηγαίνει στη συνεισφορά (cond.snap) ίδιο, με περιοχή 0,1° και χωρίς θέση μέσα του (1.14.93)', r.get('sent')==[True,True,'l',True,True,True], r.get('sent'))
+    check('στιγμιότυπο: ΔΕΝ πηγαίνει στις ανώνυμες συνεισφορές (η γραμμή της εξόδου δεν το περιέχει) και δεν έχει θέση μέσα του (1.14.93)', r.get('sent')==[True,True,'l',True,True,True], r.get('sent'))
     check('στιγμιότυπο: γράφεται μία φορά και δεν ξαναγράφεται· ο βαθμός στην οθόνη δεν αλλάζει (1.14.93)', r.get('once') is True and r.get('score') is True, [r.get('once'),r.get('score')])
     check('1.14.93: χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
 
