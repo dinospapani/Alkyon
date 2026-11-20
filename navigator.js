@@ -31,6 +31,8 @@ function loadWaters(){
     .catch(function(){ watP=null; return []; });
   return watP;
 }
+var WCN={Cyprus:'Κύπρος',Greece:'Ελλάδα',Turkey:'Τουρκία',Egypt:'Αίγυπτος',Libya:'Λιβύη',Lebanon:'Λίβανος',Syria:'Συρία',Israel:'Ισραήλ',Palestine:'Παλαιστίνη'};
+function wname(f){ return EN?title(f):(WCN[f.c]||f.c||'')+' · '+(f.w===1?'χωρικά ύδατα (12 ν.μ.)':'ΑΟΖ'); }
 /* χωρικά ύδατα (w=1) πριν από ΑΟΖ (w=2) */
 function watersAt(lat,lon){
   var best=null; if(!WAT||lat==null||lon==null) return null;
@@ -202,7 +204,7 @@ window.AlkyonNavInfo=function(lat,lon,closeFn){
   /* 1.14.92: γενικοί κανόνες της χώρας (εθνικά ύδατα του Navigator), και σε Κύπρο και Ελλάδα */
   if(wf){
     var wl=el('div','note navln navwat'); wl.style.cssText='font-weight:700;border-left:5px dashed #9aa3ab;padding-left:8px;margin:6px 0';
-    wl.appendChild(document.createTextNode(T('Γενικοί κανόνες: ','General rules: ')+title(wf)));
+    wl.appendChild(document.createTextNode(T('Γενικοί κανόνες: ','General rules: ')+wname(wf)));
     var ws=el('div',null,(hs.length?T('Ισχύουν και οι γενικοί κανόνες αλιείας της χώρας (όρια, εποχές, μεγέθη).','The country’s general fishing rules also apply (bag limits, seasons, sizes).'):T('Δεν υπάρχει ειδική ζώνη σε αυτό το σημείο. Ισχύουν οι γενικοί κανόνες αλιείας της χώρας (όρια, εποχές, μεγέθη).','No special zone at this point. The country’s general fishing rules apply (bag limits, seasons, sizes).')));
     ws.style.cssText='font-weight:500;font-size:12.5px;color:var(--ink-2)'; wl.appendChild(ws);
     var wm=el('button','btn sm ghost',T('Λεπτομέρειες','Details')); wm.type='button'; wm.style.marginLeft='6px'; wm.setAttribute('aria-expanded','false');
