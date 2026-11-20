@@ -181,7 +181,51 @@ export async function sync({ file, fetchFn = fetch, sleep = ms => new Promise(r 
   return { changed, add, upd, light, removed: toRemove.length, total: out.length, from, v: startDate, cy };
 }
 
-if (process.argv[1] && process.argv[1].endsWith('navigator-sync.mjs')) {
+/* ---------- 1.14.92: εθνικά ύδατα (γενικοί κανόνες της χώρας) ----------
+   Το Navigator έχει για κάθε χώρα δύο εγγραφές κατηγορίας 9: χωρικά ύδατα και ΑΟΖ. Δεν είναι ειδικές ζώνες: λένε ποιοι γενικοί κανόνες
+   αλιείας ισχύουν παντού. Δεν μπαίνουν στο navigator-mpa.json (θα έβαφαν όλη τη θάλασσα) αλλά σε ξεχωριστό, μικρό αρχείο
+   navigator-waters.json, που η εφαρμογή δεν σχεδιάζει: το διαβάζει μόνο για να πει «εδώ ισχύουν οι γενικοί κανόνες της χώρας».
+   Κρατάμε μόνο το εξωτερικό όριο κάθε πολυγώνου (οι τρύπες είναι η στεριά), απλοποιημένο στα ~500 m (χωρικά) ή ~1 km (ΑΟΖ). */
+export const WATERS = ['AICYP2', 'AICYP1', 'AIGRC2', 'AIGRC1', 'AITUR2', 'AITUR1', 'AIEGY2', 'AIEGY1', 'AILBY2', 'AILBY1', 'AILBN2', 'AILBN1', 'AISYR2', 'AISYR1', 'AIISR2', 'AIISR1', 'AIPSE2', 'AIPSE1'];
+export function isWaters(p) { return !!p && p.category_id === 9 && KEEP.has(p.country) && typeof p.lfp === 'number' && p.lfp >= 1 && p.lfp <= 3; }
+export function watersKind(p) { return /territorial/i.test(p.site_name || '') ? 1 : 2; }   /* 1 = χωρικά ύδατα, 2 = ΑΟΖ */
+export function outerRings(geom, tol) {
+  if (!geom || !geom.coordinates) return null;
+  const polys = geom.type === 'MultiPolygon' ? geom.coordinates : geom.type === 'Polygon' ? [geom.coordinates] : null;
+  if (!polys) return null;
+  const G = [];
+  for (const poly of polys) {
+    if (!poly || !poly[0] || poly[0].length < 4) continue;
+    let q = dp(poly[0].map(c => [c[0], c[1]]), tol); if (q.length < 4) continue;
+    G.push([q.map(([x, y]) => [Math.round(y * 1e4) / 1e4, Math.round(x * 1e4) / 1e4])]);
+  }
+  return G.length ? G : null;
+}
+export async function waters({ file, fetchFn = fetch, sleep = ms => new Promise(r => setTimeout(r, ms)), now = Date.now(), log = console.log, ids = WATERS }) {
+  const get = makeClient(fetchFn, sleep), out = [];
+  for (const id of ids) {
+    const p = await get('/api/detail/?ps_id=' + encodeURIComponent(id) + '&lang=en_EN&export_boundaries=true');
+    if (!isWaters(p)) { log('Δεν είναι εθνικά ύδατα, παραλείπεται: ' + id); continue; }
+    const w = watersKind(p), G = outerRings(p.site_boundary || p.boundary || null, w === 1 ? 0.005 : 0.01);
+    if (!G) { log('Χωρίς όρια, παραλείπεται: ' + id); continue; }
+    const f = compact(p, G); f.w = w; f.re = trunc(p.restrictions, 1500); f.al = trunc(p.allowed, 400);
+    out.push(f);
+  }
+  /* όλα ή τίποτα: αν λείπουν πολλά, κάτι πήγε στραβά και το αρχείο μένει όπως ήταν */
+  if (out.length < Math.ceil(ids.length * 0.8)) throw new Error('Βρέθηκαν μόνο ' + out.length + ' από ' + ids.length + ' εθνικά ύδατα. Σταματώ χωρίς αλλαγή.');
+  out.sort((a, b) => a.c.localeCompare(b.c) || a.w - b.w);
+  let prev = null; try { prev = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) {}
+  const changed = !prev || JSON.stringify(prev.f) !== JSON.stringify(out);
+  if (changed) fs.writeFileSync(file, JSON.stringify({ v: iso(now), f: out }));
+  log('Εθνικά ύδατα: ' + out.length + (changed ? ' (το αρχείο άλλαξε)' : ' (καμία αλλαγή)'));
+  return { changed, total: out.length };
+}
+
+if (process.argv[1] && process.argv[1].endsWith('navigator-sync.mjs') && process.argv[2] === 'waters') {
+  waters({ file: process.env.NAV_WATERS_FILE || 'navigator-waters.json' })
+    .then(r => console.log(JSON.stringify(r)))
+    .catch(e => { console.error('ΣΦΑΛΜΑ: ' + e.message); process.exit(1); });
+} else if (process.argv[1] && process.argv[1].endsWith('navigator-sync.mjs')) {
   sync({ file: process.env.NAV_FILE || 'navigator-mpa.json', since: process.env.NAV_SINCE || undefined, ids: (process.env.NAV_IDS || '').split(/[\s,]+/).filter(x => /^[A-Za-z0-9_-]+$/.test(x)) })
     .then(r => { console.log(JSON.stringify(r)); if (process.env.NAV_CY_OUT && r.cy && r.cy.length) fs.writeFileSync(process.env.NAV_CY_OUT, r.cy.join('\n') + '\n'); })
     .catch(e => { console.error('ΣΦΑΛΜΑ: ' + e.message); process.exit(1); });

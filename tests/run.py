@@ -1987,6 +1987,30 @@ with sync_playwright() as p:
       return [/Μεγάλα ψάρια/.test(txt), /Άλλα ψάρια/.test(txt), /Μέρες με ψάρια/.test(txt)]; }""")
     check('«Τι κοινό είχαν»: μέρες με ροφό και γόπες δίνουν και «Μεγάλα ψάρια» και «Άλλα ψάρια» (χωρισμός ανά ψάρι) (1.14.81)', cm==[True,True,False] and not pg._errs, [cm,pg._errs]); c.close()
 
+    print('# 1.14.92 γενικοί κανόνες (εθνικά ύδατα του Navigator)')
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(3500)
+    r=pg.evaluate("""()=>{ const bn=document.getElementById('bNav'); if(!bn) return ['nobtn']; if(bn.getAttribute('aria-pressed')!=='true') bn.click();
+      return AlkyonNav.load(34.67,32.52).then(()=>AlkyonNav.loadWaters()).then(()=>{
+        const w=AlkyonNav.waters(34.6658,32.5236), e=AlkyonNav.waters(34.0,33.0), g=AlkyonNav.waters(37.7,23.6), o=AlkyonNav.waters(30,-30);
+        const box=AlkyonNavInfo(34.6658,32.5236), ln=box&&box.querySelector('.navwat'); let det='';
+        if(ln){ ln.querySelector('button').click(); det=box.querySelector('.navwat + .navdet').textContent; }
+        return [w&&w.i, e&&e.i, g&&g.i, o, AlkyonNav.hits(34.6658,32.5236).length, ln?ln.textContent:'', det.includes('LFP 1'), /bag limits/.test(det), det.includes('ProtectedSeas Navigator'), AlkyonNavInfo(30,-30)]; }); }""")
+    check('Εθνικά ύδατα: χωρικά Κύπρου στο σημείο του Ντίνου, ΑΟΖ πιο έξω, Ελλάδα στον Σαρωνικό, τίποτα στον Ατλαντικό (1.14.92)', r[:4]==['AICYP2','AICYP1','AIGRC2',None], r[:4])
+    check('Σημείο χωρίς ειδική ζώνη: γραμμή «Γενικοί κανόνες: Κύπρος · χωρικά ύδατα» που λέει ότι ισχύουν οι γενικοί κανόνες (1.14.92)', r[4]==0 and 'Γενικοί κανόνες: Κύπρος · χωρικά ύδατα (12 ν.μ.)' in r[5] and 'Δεν υπάρχει ειδική ζώνη' in r[5], r[4:6])
+    check('Λεπτομέρειες γενικών κανόνων: το κείμενο του Navigator (LFP 1, όρια/εποχές/μεγέθη, πηγή) (1.14.92)', r[6:9]==[True,True,True], r[6:9])
+    check('Εκτός των χωρών μας: καμία γραμμή, όπως πριν (1.14.92)', r[9] is None, r[9])
+    r=pg.evaluate("""()=>{ const n0=document.querySelectorAll('.leaflet-overlay-pane path').length; const fs=AlkyonNav.data().filter(f=>f.c==='Cyprus'); let hit=null;
+      for(const f of fs){ const la=(f.b[0]+f.b[2])/2, lo=(f.b[1]+f.b[3])/2; if(AlkyonNav.hits(la,lo).length){ hit=[la,lo]; break; } } if(!hit) return ['nohit'];
+      const box=AlkyonNavInfo(hit[0],hit[1]); const ok=AlkyonNav.tap(34.6658,32.5236);
+      return [box.querySelectorAll('.navln:not(.navwat)').length>0, !!box.querySelector('.navwat'), box.querySelector('.navwat').textContent.includes('Ισχύουν και οι γενικοί κανόνες'), ok, document.body.textContent.includes('Κανόνες εδώ'), !!document.querySelector('.navpin'), document.querySelectorAll('.leaflet-overlay-pane path').length===n0]; }""")
+    check('Μέσα σε ειδική ζώνη: πρώτα η ζώνη, μετά «ισχύουν και οι γενικοί κανόνες» (1.14.92)', r[:3]==[True,True,True], r[:3])
+    check('Πάτημα σε ελεύθερη θάλασσα: φύλλο «Κανόνες εδώ» με καρφίτσα, και τίποτα νέο σχεδιασμένο στον χάρτη (1.14.92)', r[3:]==[True,True,True,True], r[3:])
+    c2=ctx(b); pe=page(c2); pe.add_init_script("localStorage.setItem('alkyon-lang','en')"); pe.goto(BASE+'/v4/#map'); pe.wait_for_timeout(3500)
+    r=pe.evaluate("""()=>{ if(window.LANG!=='en') return ['lang',window.LANG]; const bn=document.getElementById('bNav'); if(bn.getAttribute('aria-pressed')!=='true') bn.click();
+      return AlkyonNav.load(34.67,32.52).then(()=>AlkyonNav.loadWaters()).then(()=>{ const ln=AlkyonNavInfo(34.6658,32.5236).querySelector('.navwat'); return [ln.textContent.includes('General rules: Cyprus Territorial Seas'), ln.textContent.includes('No special zone at this point')]; }); }""")
+    check('Αγγλικά: «General rules: Cyprus Territorial Seas» (1.14.92)', r==[True,True], r)
+    check('1.14.92: χωρίς σφάλματα JS', not pg._errs and not pe._errs, [pg._errs,pe._errs]); c.close(); c2.close()
+
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)
     check('Οδηγός χωρίς καρτέλα Κόμποι (αφαιρέθηκε προσωρινά)', not pg.query_selector('#tab-guide .seg button[data-g=knots]') and not pg._errs, pg._errs); c.close()
