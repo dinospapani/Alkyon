@@ -2029,24 +2029,43 @@ with sync_playwright() as p:
     r,e=natrun(NOIMPL)
     check('πρόσθετο που δεν είναι καταχωρημένο (το λάθος του iPhone): φαίνεται πλέον ως «err:UNIMPLEMENTED» στην εκκίνηση και στην ανάγνωση, 0 σημεία παρασκηνίου· η έξοδος κλείνει κανονικά και χωρίς σφάλμα JS (1.14.94)', r.get('ns')=='err:UNIMPLEMENTED' and r.get('me')=='UNIMPLEMENTED' and r.get('nat')==0 and r.get('mgErr',0)>=1 and r.get('code') in ('recording','merging') and r.get('fish0')=='none' and not e, [r,e])
 
-    print('# 1.14.95 υπηρεσία καταγραφής: ξεκινά και σε έξοδο που ο server δεν γνωρίζει· κλείνει όταν η εφαρμογή ανοίγει χωρίς έξοδο')
-    def nat95(safe):
-        c=ctx(b); c.add_init_script("window.__nc=[];window.AKN={site:location.origin+'/',platform:'android',openExternal:function(){},trip:{start:function(o){ window.__nc.push({k:'start',o:o}); return Promise.resolve({ok:true}); },stop:function(){ window.__nc.push({k:'stop'}); return Promise.resolve({ok:true}); },fixes:function(){ return Promise.resolve({fixes:[],diag:{}}); },status:function(){ return Promise.resolve({running:true}); }}};"
+    print('# 1.14.95 υπηρεσία καταγραφής: ξεκινά και σε έξοδο που ο server δεν γνωρίζει, χωρίς να στέλνει τίποτα· κλείνει όταν η εφαρμογή ανοίγει χωρίς έξοδο')
+    def nat95(safe, after=None):
+        c=ctx(b); c.add_init_script("window.__nc=[];window.AKN={site:location.origin+'/',platform:'android',openExternal:function(){},trip:{start:function(o){ window.__nc.push({k:'start',url:o.url,id:o.id,key:(o.key||'').length,interval:o.interval}); return Promise.resolve({ok:true}); },stop:function(){ window.__nc.push({k:'stop'}); return Promise.resolve({ok:true}); },fixes:function(){ return Promise.resolve({fixes:[],diag:{}}); },status:function(){ return Promise.resolve({running:true}); }}};"
           +("if(!sessionStorage.__s){sessionStorage.__s=1;localStorage.setItem('alkyon-safe',JSON.stringify("+safe+"));}" if safe else ""))
         pg=page(c); reqs=[]; pg.on('request', lambda rq: reqs.append(rq.url)); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(6500)
-        r=pg.evaluate("()=>({calls:window.__nc,active:AK.trip.active(),hbk:(AK.trip.state().hbk||'').length})"); errs=list(pg._errs); c.close()
-        return r,[u for u in reqs if 'safety_trips' in u],errs
+        x=pg.evaluate(after) if after else None
+        r=pg.evaluate("()=>({calls:window.__nc,active:AK.trip.active(),hbu:AK.trip.state().hbu||0,rest:window.__rest||[]})"); errs=list(pg._errs); c.close()
+        return r,x,[u for u in reqs if 'safety_trips' in u or 'quick-processor' in u],errs
     ks=lambda r: [x['k'] for x in (r.get('calls') or [])]
-    TRIPJS="{active:true,id:'trip-n5',start:Date.now()-5*60000,due:Date.now()+3*3600000,route:'N',%slast:{lat:34.7,lon:32.4,t:Date.now()}}"
-    r,sr,e=nat95(TRIPJS % "noAlert:true,")
-    st=[x for x in (r.get('calls') or []) if x['k']=='start']; o=(st[0]['o'] if st else {})
-    check('ειδοποίηση επαφής κλειστή και χωρίς λογαριασμό: καμία γραμμή δεν στέλνεται στον server, και η υπηρεσία ξεκινά κανονικά με το κλειδί και τη διεύθυνση του παλμού· δεν την κλείνει η εφαρμογή (1.14.95)',
-      len(st)==1 and o.get('id')=='trip-n5' and len(o.get('key') or '')>=32 and str(o.get('url') or '').endswith('/functions/v1/quick-processor') and o.get('interval')==180 and 'stop' not in ks(r) and not sr and r.get('active') and not e, [r,sr,e])
-    r,sr,e=nat95(TRIPJS % "")
-    check('έξοδος με ειδοποίηση: η υπηρεσία ξεκινά όπως πριν και δεν κλείνει (1.14.95)', ks(r).count('start')==1 and 'stop' not in ks(r) and r.get('active') and not e, [r,sr,e])
-    r,sr,e=nat95(None)
+    starts=lambda r: [x for x in (r.get('calls') or []) if x['k']=='start']
+    QPURL='https://sgfohmqwdwtkhtrebnix.supabase.co/functions/v1/quick-processor'
+    TRIPJS="{active:true,id:'trip-n5',hbk:'%s',start:Date.now()-5*60000,due:Date.now()+3*3600000,route:'N',%slast:{lat:34.7,lon:32.4,t:Date.now()}}" % ('ab'*24,'%s')
+    # ψεύτικος λογαριασμός: ό,τι θα έστελνε η εφαρμογή στον server κρατιέται στο window.__rest (τίποτα δεν φεύγει από το test)
+    ACC="AK.cloud.session=function(){ return {name:'T',token:'t'}; }; AK.cloud.rest=function(p,o){ (window.__rest=window.__rest||[]).push([p,o&&o.body||'']); return Promise.resolve({}); };"
+    W="const W=ms=>new Promise(r=>setTimeout(r,ms));"
+    r,x,sr,e=nat95(TRIPJS % "noAlert:true,")
+    st=starts(r)
+    check('χωρίς λογαριασμό, ειδοποίηση επαφής κλειστή: η υπηρεσία ξεκινά (γράφει διαδρομή) ΧΩΡΙΣ διεύθυνση παλμού, και κανένα αίτημα δεν φεύγει προς τον server (1.14.95)',
+      len(st)==1 and st[0]['id']=='trip-n5' and st[0]['key']==48 and st[0]['url']=='' and 'stop' not in ks(r) and not sr and r.get('active') and not r.get('hbu') and not e, [r,sr,e])
+    r,x,sr,e=nat95(TRIPJS % "")
+    st=starts(r)
+    check('χωρίς λογαριασμό, ειδοποίηση ανοιχτή: και πάλι χωρίς διεύθυνση παλμού και χωρίς αίτημα προς τον server (1.14.95)', len(st)==1 and st[0]['url']=='' and 'stop' not in ks(r) and not sr and not e, [r,sr,e])
+    r,x,sr,e=nat95(TRIPJS % "hbu:1,")
+    st=starts(r)
+    check('η διεύθυνση είχε ήδη δοθεί σε αυτή την έξοδο και μετά έληξε η σύνδεση του λογαριασμού: η υπηρεσία την ξαναπαίρνει, ο παλμός μιας εξόδου που ο server παρακολουθεί δεν σταματά (1.14.95)',
+      len(st)==1 and st[0]['url']==QPURL and st[0]['interval']==180 and 'stop' not in ks(r) and not e, [r,sr,e])
+    r,x,sr,e=nat95(TRIPJS % "", "async()=>{ "+W+ACC+" AK.trip.ext(); await W(1200); return 1; }")
+    st=starts(r); posted=[q for q in (r.get('rest') or []) if q[0]=='safety_trips']
+    check('σύνδεση σε λογαριασμό μέσα στην έξοδο (ειδοποίηση ανοιχτή): μόλις η έξοδος καταχωρηθεί στον server, η υπηρεσία που τρέχει παίρνει τη διεύθυνση του παλμού, μία φορά (1.14.95)',
+      len(st)==2 and st[0]['url']=='' and st[1]['url']==QPURL and st[1]['id']=='trip-n5' and len(posted)>=1 and '"hb_key":"'+('ab'*24)+'"' in posted[0][1] and r.get('hbu')==1 and 'stop' not in ks(r) and not e, [r,sr,e])
+    r,x,sr,e=nat95(TRIPJS % "noAlert:true,", "async()=>{ "+W+ACC+" AK.trip.ext(); await W(1200); const before={n:window.__nc.filter(c=>c.k==='start').length,rest:(window.__rest||[]).filter(q=>q[0]==='safety_trips').length}; AK.trip.sos(); await W(2500); return before; }")
+    st=starts(r); posted=[q for q in (r.get('rest') or []) if q[0]=='safety_trips']
+    check('λογαριασμός, ειδοποίηση κλειστή: τίποτα δεν στέλνεται και η υπηρεσία μένει χωρίς διεύθυνση· μετά το SOS η έξοδος καταχωρείται και η υπηρεσία παίρνει τη διεύθυνση του παλμού (1.14.95)',
+      x=={'n':1,'rest':0} and len(st)==2 and st[0]['url']=='' and st[1]['url']==QPURL and len(posted)>=1 and '"start_sent":true' in posted[0][1] and r.get('hbu')==1 and not e, [r,x,sr,e])
+    r,x,sr,e=nat95(None)
     check('η εφαρμογή ανοίγει χωρίς έξοδο: κλείνει υπηρεσία που μπορεί να έμεινε πίσω, και δεν ξεκινά καμία (1.14.95)', ks(r)==['stop'] and not r.get('active') and not e, [r,sr,e])
-    r,sr,e=nat95("{active:false,id:'trip-old',start:Date.now()-9*3600000,due:Date.now()-6*3600000,route:'N'}")
+    r,x,sr,e=nat95("{active:false,id:'trip-old',start:Date.now()-9*3600000,due:Date.now()-6*3600000,route:'N'}")
     check('η εφαρμογή ανοίγει με έξοδο που έχει ήδη κλείσει: κλείνει την υπηρεσία μία φορά (1.14.95)', ks(r)==['stop'] and not e, [r,sr,e])
 
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')

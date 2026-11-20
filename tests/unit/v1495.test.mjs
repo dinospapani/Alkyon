@@ -154,11 +154,40 @@ test('app: which trips have no row on the server (the cases the phones must surv
   assert.match(p, /if\(s\.noAlert&&!s\.sosAt\)\{ srv=''; return Promise\.resolve\(\); \}/, 'contact alert off → nothing is sent (until SOS)');
   assert.match(TRIP, /pushContact\(\)\.then\(trackPos\)\.then\(pushTrip\)\.then\(function\(\)\{ nativeStart\(load\(\)\); \}\);/, 'the service starts whether or not the registration worked');
 });
-test('app: the service is started with the heartbeat address for every trip — after SOS on a trip without an alert the row appears and the next heartbeat is accepted', () => {
+/* η απόφαση «δίνω στην υπηρεσία τη διεύθυνση του παλμού;» εκτελείται εδώ, με τον πραγματικό κώδικα της εφαρμογής */
+const hbWant = (s, account) => new Function('Cl', 's', fn('hbWant') + '; return hbWant(s);')(() => account ? {} : null, s);
+/* ο όρος του pushTrip, γραμμένος ξανά από τις δύο γραμμές του: στέλνει γραμμή όταν υπάρχει λογαριασμός και όχι (χωρίς ειδοποίηση και χωρίς SOS) */
+const pushes = (s, account) => !!account && !(s.noAlert && !s.sosAt);
+test('app: the service gets the heartbeat address exactly when the app registers the trip on the server — otherwise nothing leaves the phone', () => {
+  for (const account of [false, true]) for (const noAlert of [false, true]) for (const sosAt of [0, 1795200000000]) {
+    const s = { id: 'trip-1', noAlert, sosAt, hbu: 0 };
+    assert.equal(hbWant(s, account), pushes(s, account), `account=${account} noAlert=${noAlert} sos=${!!sosAt}`);
+  }
+  assert.equal(hbWant({ noAlert: true, sosAt: 0 }, false), false, 'no account, alert off: no address');
+  assert.equal(hbWant({ noAlert: false, sosAt: 0 }, false), false, 'no account: no address even with the alert on («your data stays only on your device»)');
+  assert.equal(hbWant({ noAlert: true, sosAt: 0 }, true), false, 'account, alert off: no address');
+  assert.equal(hbWant({ noAlert: true, sosAt: 5 }, true), true, 'account, alert off, SOS pressed: address — the server now follows the trip');
+  assert.equal(hbWant({ noAlert: false, sosAt: 0 }, true), true, 'account, alert on: as before');
+});
+test('app: once given for a trip, the address is never taken back in that trip (an expired login must not silence a trip the server is watching)', () => {
+  for (const noAlert of [false, true]) assert.equal(hbWant({ noAlert, sosAt: 0, hbu: 1 }, false), true);
+  assert.equal(hbWant({ noAlert: false, sosAt: 0, synced: true }, false), true, 'a trip that already reached the server (started on an older app version) keeps its heartbeat');
+  assert.equal(hbWant({ noAlert: false, sosAt: 0, synced: false }, false), false); assert.equal(hbWant({ noAlert: true, sosAt: 0, synced: undefined }, true), false);
   const s = fn('nativeStart');
-  assert.match(s, /n\.start\(\{id:s\.id,key:s\.hbk,url:QP,apikey:PUBK,interval:180,/);
-  assert.ok(!/noAlert/.test(s), 'no special case by alert setting: the rule on the phone handles it');
+  assert.match(s, /var w=hbWant\(s\); NATW=s\.id\+'\|'\+\(w\?1:0\); if\(w&&!s\.hbu\)\{ var z=load\(\); if\(z\.id===s\.id\)\{ z\.hbu=1; save\(z\); \} \}/);
+  assert.match(s, /n\.start\(\{id:s\.id,key:s\.hbk,url:w\?QP:'',apikey:PUBK,interval:180,/, 'no address → the native code sends nothing at all');
+  assert.match(fn('start'), /pgStart:0,pgEnd:0,hbu:0,/, 'a new trip starts without it');
+  /* τα κινητά δεν στέλνουν τίποτα με κενή διεύθυνση — ήδη από την 1.14.83 */
+  assert.match(SVC, /private void sendHb\(boolean timer\) \{\s*if \(url\.isEmpty\(\) \|\| key\.isEmpty\(\)\) return;/);
+  assert.match(SW, /private func sendHb\(\) \{\s*guard !url\.isEmpty, !key\.isEmpty, let u = URL\(string: url\) else \{ return \}/);
+});
+test('app: when the trip gets registered later (SOS on a trip without an alert, or signing in during the trip) the running service is handed the address', () => {
   assert.match(fn('pushTrip'), /if\(s\.noAlert&&s\.sosAt\) base\.start_sent=true;/);
+  assert.match(fn('pushTrip'), /else save\(q\);\s*nativeSync\(\);/, 'right after the row reached the server');
+  assert.match(fn('nativeSync'), /var s=load\(\); if\(s\.active&&NATW===s\.id\+'\|0'&&hbWant\(s\)\) nativeStart\(s,true\);/, 'only an upgrade, only for the trip this page started the service for');
+  assert.match(fn('sos'), /s\.sosAt=Date\.now\(\); save\(s\);/); assert.match(fn('sos'), /trackPos\(\)\.then\(/); assert.match(fn('trackPos'), /return pushTrip\(\);/);
+  /* το αποτέλεσμα της παράδοσης δεν πατά τη διάγνωση της εκκίνησης */
+  assert.match(fn('natSt'), /t\.d\[up\?'nu':'ns'\]=v;/); assert.match(fn('gpsDiag'), /if\(d\.nu\) o\.nu=d\.nu;/);
 });
 test('app: opened without a running trip, it stops a recording service that may have been left behind — and re-checks first', () => {
   assert.match(TRIP, /\nelse setTimeout\(function\(\)\{ if\(!load\(\)\.active\) nativeStop\(\); \},2000\);/);

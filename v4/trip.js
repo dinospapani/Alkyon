@@ -50,7 +50,8 @@ function pushTrip(){
       var q=load(); q.synced=true;
       if(q.active&&!q.pgStart){ q.pgStart=1; save(q); fn('trip',q.id,'start').catch(function(){ var z=load(); if(z.id===q.id){ z.pgStart=0; save(z); } }); }
       else if(!q.active&&q.pgStart&&!q.pgEnd){ q.pgEnd=1; save(q); fn('trip',q.id,'end').catch(function(){ var z=load(); if(z.id===q.id){ z.pgEnd=0; save(z); } }); }
-      else save(q); })
+      else save(q);
+      nativeSync(); /* 1.14.95 */ })
     .catch(function(){ var q=load(); q.synced=false; save(q); srv=T('Δεν έφτασε στον server (έλεγξε τη σύνδεση). Η υπενθύμιση στο κινητό δουλεύει κανονικά.','It did not reach the server (check your internet). The reminder on your phone still works.'); });
 }
 /* άμεση ειδοποίηση επαφής μέσω του quick-processor (αλλιώς τη στέλνει ο server στην επόμενη επανάληψη) */
@@ -129,7 +130,7 @@ function gpsDiag(t,dw,tr,eps){ var d=(dgf(t).d)||{}, p=t.pts||[], gap=0, g60=0, 
   var o={v:1,src:NT()?(/iPad|iPhone|iPod/.test(navigator.userAgent)?'ios':'android'):'web',raw:p.length,stops:dw?dw.stops:0,cut:dw?dw.cut:0,out:tr?tr.length:0,eps:eps?Math.round(eps*10)/10:0,
     kmRaw:Math.round((t.m||0)/100)/10,gapMax:Math.round(gap/1000),gaps60:g60,js:d.js||0,jsAcc:d.jsAcc||0,jsNear:d.jsNear||0,jsJump:d.jsJump||0,
     nat:d.nat||0,natAcc:d.natAcc||0,mNear:d.mNear||0,mJump:d.mJump||0,mg:d.mg||0,mgErr:d.mgErr||0,half:d.half||0,end:endHow||''};
-  if(d.n) o.n=d.n; var ns=d.ns||NS0; if(ns) o.ns=ns; if(MGE) o.me=MGE; NS0=''; MGE=''; return o; }
+  if(d.n) o.n=d.n; var ns=d.ns||NS0; if(ns) o.ns=ns; if(MGE) o.me=MGE; if(d.nu) o.nu=d.nu; NS0=''; MGE=''; return o; }
 /* συμπέρασμα της διάγνωσης (ένας κανόνας, ίδιος στη Διαχείριση και στα tests):
    'sampling'  το κινητό έδινε θέση πιο αραιά από όσο ζητήθηκε (κάτω από 60% των αναμενόμενων θέσεων)
    'recording' η υπηρεσία παρασκηνίου δεν έτρεξε σε όλη την έξοδο (κάλυψε κάτω από 70% της διάρκειας) ή δεν ξεκίνησε
@@ -158,12 +159,23 @@ function takeTrack(){ var s=load(), t=ls.get('alkyon-track',null), out=null;
 var QP='https://sgfohmqwdwtkhtrebnix.supabase.co/functions/v1/quick-processor', PUBK='sb_publishable_LGuwvrvLnAj1CF22Q6g9vg_4OImZYbA';
 function NT(){ return window.AKN&&window.AKN.trip; }
 function hexKey(){ var b=new Uint8Array(24); try{ crypto.getRandomValues(b); }catch(e){ for(var i=0;i<b.length;i++) b[i]=Math.random()*256; } return Array.prototype.map.call(b,function(x){ return ('0'+x.toString(16)).slice(-2); }).join(''); }
-function nativeStart(s){ var n=NT(); if(!n||!s||!s.active||!s.hbk||!gpsOn()) return;
+/* 1.14.95: η υπηρεσία παίρνει τη διεύθυνση του παλμού ΜΟΝΟ όταν η εφαρμογή καταχωρεί την έξοδο στον server — ίδιος όρος με το pushTrip:
+   υπάρχει λογαριασμός ΚΑΙ (ειδοποίηση επαφής ανοιχτή Ή πατήθηκε SOS). Αλλιώς γράφει διαδρομή και δεν στέλνει τίποτα (ούτε θέση, ούτε παλμό).
+   hbu = η διεύθυνση έχει ήδη δοθεί για αυτή την έξοδο: δεν αφαιρείται ποτέ μέσα στην ίδια έξοδο (π.χ. αν λήξει η σύνδεση του λογαριασμού),
+   για να μη σταματήσει ο παλμός μιας εξόδου που ο server παρακολουθεί. Το ίδιο όταν η έξοδος έχει ήδη φτάσει στον server (synced):
+   καλύπτει έξοδο που ξεκίνησε με παλιότερη έκδοση της εφαρμογής και συνεχίζεται μετά την ενημέρωση. */
+function hbWant(s){ return !!s.hbu||s.synced===true||(!!Cl()&&!(s.noAlert&&!s.sosAt)); }
+var NATW='';
+function nativeStart(s,up){ var n=NT(); if(!n||!s||!s.active||!s.hbk||!gpsOn()) return;
+  var w=hbWant(s); NATW=s.id+'|'+(w?1:0); if(w&&!s.hbu){ var z=load(); if(z.id===s.id){ z.hbu=1; save(z); } }
   /* 1.14.94: το αποτέλεσμα της εκκίνησης κρατιέται για τη διάγνωση (gps.ns): 'ok' · 'no:perm' (χωρίς άδεια θέσης) · 'err:…' (το πρόσθετο δεν απάντησε, π.χ. δεν είναι καταχωρημένο).
-     Πριν η αποτυχία ήταν σιωπηλή, και στο iPhone δεν φάνηκε ότι το πρόσθετο δεν φορτωνόταν καθόλου. */
-  n.start({id:s.id,key:s.hbk,url:QP,apikey:PUBK,interval:180,title:T('Alkyon · έξοδος σε εξέλιξη','Alkyon · trip in progress'),text:T('Καταγραφή διαδρομής και ασφάλεια ενεργά. Τέλος από την εφαρμογή.','Track and safety active. End it in the app.')})
-    .then(function(r){ natSt(r&&r.ok?'ok':'no:'+String((r&&r.err)||'?').slice(0,20)); },function(e){ natSt('err:'+String((e&&(e.code||e.message))||e||'?').slice(0,40)); }); }
-function natSt(v){ try{ var t=track(); if(t){ t.d=t.d||{}; t.d.ns=v; ls.set('alkyon-track',t); } else NS0=v; }catch(e){} }
+     Πριν η αποτυχία ήταν σιωπηλή, και στο iPhone δεν φάνηκε ότι το πρόσθετο δεν φορτωνόταν καθόλου.
+     1.14.95: up = η υπηρεσία τρέχει ήδη και της δίνεται η διεύθυνση του παλμού (μετά από SOS ή σύνδεση)· το αποτέλεσμα γράφεται χωριστά (gps.nu) και δεν πατά το gps.ns. */
+  n.start({id:s.id,key:s.hbk,url:w?QP:'',apikey:PUBK,interval:180,title:T('Alkyon · έξοδος σε εξέλιξη','Alkyon · trip in progress'),text:T('Καταγραφή διαδρομής και ασφάλεια ενεργά. Τέλος από την εφαρμογή.','Track and safety active. End it in the app.')})
+    .then(function(r){ natSt(r&&r.ok?'ok':'no:'+String((r&&r.err)||'?').slice(0,20),up); },function(e){ natSt('err:'+String((e&&(e.code||e.message))||e||'?').slice(0,40),up); }); }
+/* 1.14.95: η έξοδος μόλις καταχωρήθηκε στον server ενώ η υπηρεσία τρέχει χωρίς διεύθυνση παλμού (SOS σε έξοδο χωρίς ειδοποίηση, ή σύνδεση σε λογαριασμό μέσα στην έξοδο) */
+function nativeSync(){ var s=load(); if(s.active&&NATW===s.id+'|0'&&hbWant(s)) nativeStart(s,true); }
+function natSt(v,up){ try{ var t=track(); if(t){ t.d=t.d||{}; t.d[up?'nu':'ns']=v; ls.set('alkyon-track',t); } else if(!up) NS0=v; }catch(e){} }
 var NS0='', MGE='';
 function nativeStop(){ var n=NT(); if(n) n.stop().catch(function(){}); }
 /* σημεία που κατέγραψε το native GPS όσο η οθόνη ήταν σβηστή: μπαίνουν στη διαδρομή με τη σειρά του χρόνου */
@@ -192,7 +204,7 @@ function tick(){ var s=load(); if(!s.active){ clearInterval(timer); timer=null; 
 function startTimer(){ clearInterval(timer); timer=setInterval(tick,60000); }
 
 function start(o){
-  var d=load(), s=Object.assign({},d,{active:true,id:'trip-'+Date.now().toString(36),hbk:hexKey(),route:o.route||'',due:o.due,autoExt:0,sosAt:0,pgStart:0,pgEnd:0,last:null,start:Date.now(),startDate:B.store?todayStr():'',cond0:cond0(),sil:o.sil||0,noAlert:!o.notify,target:o.target||null,targets:o.targets||null,synced:undefined});
+  var d=load(), s=Object.assign({},d,{active:true,id:'trip-'+Date.now().toString(36),hbk:hexKey(),route:o.route||'',due:o.due,autoExt:0,sosAt:0,pgStart:0,pgEnd:0,hbu:0,last:null,start:Date.now(),startDate:B.store?todayStr():'',cond0:cond0(),sil:o.sil||0,noAlert:!o.notify,target:o.target||null,targets:o.targets||null,synced:undefined});
   save(s); ls.set('alkyon-track',null); watch(); startTimer();
   /* 1.6.1: με την έναρξη κατεβαίνουν χάρτης και πρόγνωση γύρω από τη θέση σου (αν υπάρχει σήμα και το επιτρέπει η ρύθμιση), για να δουλεύουν χωρίς σήμα */
   try{ var pp=B.lastPos(); if(B.prefetch&&pp){ var pl0={date:s.startDate||new Date().toISOString().slice(0,10),lat:pp.lat,lon:pp.lon};
