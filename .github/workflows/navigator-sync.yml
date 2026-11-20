@@ -13,6 +13,9 @@ on:
       ids:
         description: 'Μόνο αυτές οι περιοχές (ps_id χωρισμένα με κόμμα), χωρίς πλήρη έλεγχο'
         required: false
+      waters:
+        description: 'Γράψε true για να ενημερωθούν ΜΟΝΟ τα εθνικά ύδατα (navigator-waters.json)'
+        required: false
       probe:
         description: 'ps_id για έλεγχο (τυπώνει τα στοιχεία της περιοχής, π.χ. AIGRC277)'
         required: false
@@ -34,7 +37,15 @@ jobs:
         if: ${{ github.event.inputs.probe != '' && github.event.inputs.probe != null }}
         run: |
           curl -s -A "Alkyon-sync/1.0" "https://map.navigatormap.org/api/detail/?ps_id=${{ github.event.inputs.probe }}&lang=en_EN" | python3 -c "import json,sys; d=json.load(sys.stdin); print(json.dumps({k:(v if not isinstance(v,(dict,list)) or k in ('regulations','designations') else '...') for k,v in d.items()}, ensure_ascii=False, indent=1)[:6000])" || true
+      - name: Εθνικά ύδατα (γενικοί κανόνες κάθε χώρας)
+        # 1.14.92: με το χέρι (waters=true) και σε κάθε τριμηνιαίο πλήρη έλεγχο. Αν αποτύχει, το αρχείο μένει όπως ήταν και ο υπόλοιπος συγχρονισμός συνεχίζει.
+        if: ${{ github.event.inputs.waters == 'true' || github.event.schedule == '41 5 10 1,4,7,10 *' }}
+        continue-on-error: true
+        env:
+          NAV_CONTACT: ${{ secrets.NAV_CONTACT }}
+        run: node navigator-sync.mjs waters
       - run: node navigator-sync.mjs
+        if: ${{ github.event.inputs.waters != 'true' }}
         env:
           NAV_CONTACT: ${{ secrets.NAV_CONTACT }}   # 1.14.91: διεύθυνση επικοινωνίας για το User-Agent (όχι μέσα στον κώδικα)
           NAV_CY_OUT: ${{ runner.temp }}/nav-cy.txt
@@ -51,10 +62,12 @@ jobs:
           git checkout -- nav/ 2>/dev/null || true
       - name: Commit αν άλλαξε
         run: |
-          if git diff --quiet -- navigator-mpa.json; then echo "Καμία αλλαγή"; exit 0; fi
+          git add -N navigator-waters.json 2>/dev/null || true
+          if git diff --quiet -- navigator-mpa.json navigator-waters.json; then echo "Καμία αλλαγή"; exit 0; fi
           git config user.name "alkyon-bot"
           git config user.email "actions@users.noreply.github.com"
           git add navigator-mpa.json
+          [ -f navigator-waters.json ] && git add navigator-waters.json
           git commit -m "Navigator: ενημέρωση περιοχών"
           git pull --rebase --autostash
           git push

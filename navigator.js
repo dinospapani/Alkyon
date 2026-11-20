@@ -22,11 +22,30 @@ function loadMed(){
     .catch(function(e){ medP=null; throw e; });
   return medP;
 }
+/* 1.14.92: εθνικά ύδατα (χωρικά, ΑΟΖ) από το navigator-waters.json. Δεν σχεδιάζονται: χρησιμεύουν μόνο για να πούμε, σε σημείο χωρίς ειδική ζώνη,
+   ότι ισχύουν οι γενικοί κανόνες αλιείας της χώρας (το Navigator τα βάφει γκρι σε όλη τη θάλασσα). Αν το αρχείο λείπει, απλώς δεν φαίνεται η γραμμή. */
+var WFILE='navigator-waters.json', WAT=null, watP=null;
+function loadWaters(){
+  if(watP) return watP;
+  watP=fetch((window.ALKYON_BASE||'')+WFILE).then(function(r){ if(!r.ok) throw new Error('http'); return r.json(); }).then(function(j){ WAT=(j&&j.f)||[]; return WAT; })
+    .catch(function(){ watP=null; return []; });
+  return watP;
+}
+/* χωρικά ύδατα (w=1) πριν από ΑΟΖ (w=2) */
+function watersAt(lat,lon){
+  var best=null; if(!WAT||lat==null||lon==null) return null;
+  for(var i=0;i<WAT.length;i++){
+    var f=WAT[i], b=f.b; if(lat<b[0]||lat>b[2]||lon<b[1]||lon>b[3]) continue;
+    for(var p=0;p<f.g.length;p++){ if(inPoly(lat,lon,f.g[p])){ if(!best||(f.w||9)<(best.w||9)) best=f; break; } }
+  }
+  return best;
+}
 function center(){ try{ var c=map.getCenter(); return [c.lat,c.lng]; }catch(e){ return [null,null]; } }
 function load(lat,lon){
   if(!DATA) DATA=[];
   if(lat==null){ var c=center(); lat=c[0]; lon=c[1]; }
   var A=window.AK, jobs=[];
+  loadWaters();
   if(inMed(lat,lon)) jobs.push(loadMed());
   if(A&&A.navTiles&&lat!=null) jobs.push(A.navTiles(lat,lon,0.5).then(add).catch(function(){}));
   if(!jobs.length) return Promise.resolve(DATA);
@@ -107,6 +126,7 @@ function details(f){
   if(f.en===1||f.en===2) d.appendChild(row(T('Είσοδος','Entry'),lv(f.en),lvCol(f.en)));
   if(f.dv===1||f.dv===2) d.appendChild(row(T('Κατάδυση','Diving'),lv(f.dv),lvCol(f.dv)));
   if(f.se&&f.se!=='Year-round') d.appendChild(row(T('Περίοδος','Season'),f.se));
+  if(f.w&&f.al) d.appendChild(el('div','meta',f.al));
   if(f.re&&FISHTXT.test(f.re)) d.appendChild(el('div','meta',f.re));
   else if(f.pu&&FISHTXT.test(f.pu)) d.appendChild(el('div','meta',f.pu));
   if(f.ma) d.appendChild(el('div','meta',T('Αρχή: ','Authority: ')+f.ma));
@@ -161,7 +181,7 @@ function known3(n){ return n===0||n===1||n===2; }
 /* ---------- πληροφορίες στο popup του χάρτη ---------- */
 window.AlkyonNavInfo=function(lat,lon,closeFn){
   if(!on||!DATA) return null;
-  var hs=hits(lat,lon).filter(function(f){ return true; }); if(!hs.length) return null;
+  var hs=hits(lat,lon).filter(function(f){ return true; }), wf=watersAt(lat,lon); if(!hs.length&&!wf) return null;
   hs.sort(function(a,c){ return (c.l||0)-(a.l||0)||c._s-a._s; });
   var box=el('div','navbox'); box.style.margin='2px 0 6px';
   /* 1.12.8: στην Κύπρο πρώτα το επίσημο κείμενο του Τμήματος Αλιείας (Cy-FIS), με την ΚΔΠ */
@@ -179,6 +199,17 @@ window.AlkyonNavInfo=function(lat,lon,closeFn){
     more.addEventListener('click',function(e){ e.stopPropagation(); var open=det.hidden; if(open&&!det.firstChild){ var c=details(f); if(typeof c==='string') det.innerHTML=c; else det.appendChild(c); } det.hidden=!open; more.textContent=open?T('Απόκρυψη','Hide'):T('Λεπτομέρειες','Details'); more.setAttribute('aria-expanded',String(open)); });
     line.appendChild(more); box.appendChild(line); box.appendChild(det);
   });
+  /* 1.14.92: γενικοί κανόνες της χώρας (εθνικά ύδατα του Navigator), και σε Κύπρο και Ελλάδα */
+  if(wf){
+    var wl=el('div','note navln navwat'); wl.style.cssText='font-weight:700;border-left:5px dashed #9aa3ab;padding-left:8px;margin:6px 0';
+    wl.appendChild(document.createTextNode(T('Γενικοί κανόνες: ','General rules: ')+title(wf)));
+    var ws=el('div',null,(hs.length?T('Ισχύουν και οι γενικοί κανόνες αλιείας της χώρας (όρια, εποχές, μεγέθη).','The country’s general fishing rules also apply (bag limits, seasons, sizes).'):T('Δεν υπάρχει ειδική ζώνη σε αυτό το σημείο. Ισχύουν οι γενικοί κανόνες αλιείας της χώρας (όρια, εποχές, μεγέθη).','No special zone at this point. The country’s general fishing rules apply (bag limits, seasons, sizes).')));
+    ws.style.cssText='font-weight:500;font-size:12.5px;color:var(--ink-2)'; wl.appendChild(ws);
+    var wm=el('button','btn sm ghost',T('Λεπτομέρειες','Details')); wm.type='button'; wm.style.marginLeft='6px'; wm.setAttribute('aria-expanded','false');
+    var wd=el('div','navdet'); wd.hidden=true; wd.style.cssText='margin:8px 0 4px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);font-weight:400;color:var(--ink);font-size:13px;line-height:1.45';
+    wm.addEventListener('click',function(e){ e.stopPropagation(); var open=wd.hidden; if(open&&!wd.firstChild) wd.appendChild(details(wf)); wd.hidden=!open; wm.textContent=open?T('Απόκρυψη','Hide'):T('Λεπτομέρειες','Details'); wm.setAttribute('aria-expanded',String(open)); });
+    wl.appendChild(wm); box.appendChild(wl); box.appendChild(wd);
+  }
   return box;
 };
 
@@ -191,10 +222,10 @@ function pinAt(lat,lon,col){ if(tapPin){ try{ map.removeLayer(tapPin); }catch(e)
     html:'<svg viewBox="0 0 30 40" width="30" height="40"><path d="M15 39C15 39 28 24 28 14A13 13 0 0 0 2 14C2 24 15 39 15 39Z" fill="'+col+'" stroke="#1d1d1d" stroke-opacity=".55" stroke-width="1.5"/><circle cx="15" cy="14" r="5" fill="#fff" fill-opacity=".9"/></svg>'})}).addTo(map); }
 function tapSheet(lat,lon){
   var box=window.AlkyonNavInfo(lat,lon); if(!box) return false;
-  var top=hits(lat,lon).sort(function(a,c){ return (c.l||0)-(a.l||0); })[0]; pinAt(lat,lon,top?lfpCol(top.l):null);
+  var top=hits(lat,lon).sort(function(a,c){ return (c.l||0)-(a.l||0); })[0]; pinAt(lat,lon,top?lfpCol(top.l):'#9aa3ab');
   var A=window.AK; box.appendChild(el('p','note',LEGEND));
   /* 1.14.35: κανόνες ψαρέματος στον Οδηγό */ if(A&&A.guideGo){ var gl=el('button','linkbtn','📖 '+T('Κανόνες ψαρέματος στον Οδηγό ›','Fishing rules in the Guide ›')); gl.type='button'; gl.addEventListener('click',function(){ if(shN&&shN.close) shN.close(true); A.guideGo('law'); }); box.appendChild(gl); }
-  var shN=null; if(A&&A.sheet) shN=A.sheet({title:T('Προστατευμένη περιοχή','Protected area'),body:box,onclose:function(){ pinAt(); }});
+  var shN=null; if(A&&A.sheet) shN=A.sheet({title:top?T('Προστατευμένη περιοχή','Protected area'):T('Κανόνες εδώ','Rules here'),body:box,onclose:function(){ pinAt(); }});
   else L.popup({maxWidth:300}).setLatLng([lat,lon]).setContent(box).openOn(map);
   return true;
 }
@@ -229,5 +260,5 @@ function onPos(lat,lon){
   }).catch(function(){});
 }
 window.addEventListener('alkyon-pos',function(e){ var d=e&&e.detail; if(d) onPos(d.lat,d.lon); });
-window.AlkyonNav={hits:hits,load:load,tap:tapSheet,on:function(){ return on; },data:function(){ return DATA; }};
+window.AlkyonNav={hits:hits,load:load,tap:tapSheet,waters:watersAt,loadWaters:loadWaters,on:function(){ return on; },data:function(){ return DATA; }};
 })();
