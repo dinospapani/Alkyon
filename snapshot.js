@@ -40,5 +40,18 @@ function row(s,i){ var r=s&&s.h&&s.h[i]; if(!r) return null; var o={hour:r[0]}, 
 function valid(s){ if(!s||s.v!==V||!Array.isArray(s.cols)||!Array.isArray(s.h)||!s.h.length) return false;
   for(var i=0;i<s.h.length;i++){ var r=s.h[i]; if(!Array.isArray(r)||r.length!==s.cols.length+2||typeof r[0]!=='number'||typeof r[r.length-1]!=='string'||r[r.length-1].length!==s.cols.length) return false; }
   return true; }
-g.AlkyonSnapshot={VERSION:V,LATE_MIN:LATE_MIN,build:build,trim:trim,late:late,row:row,valid:valid};
+/* ---------- ουρά ανεβάσματος (καθαρές συναρτήσεις· την αποθήκευση και το δίκτυο τα κάνει το v4/trip-extra.js) ----------
+   Το στιγμιότυπο ΔΕΝ μπαίνει στην έξοδο: η έξοδος μοιράζεται με φίλους. Ανεβαίνει σε δικό του πίνακα (trip_snaps), που τον διαβάζει μόνο ο ιδιοκτήτης.
+   Στοιχείο ουράς: {id:<κωδικός εξόδου>, snap, uid:<λογαριασμός τη στιγμή που μπήκε ή null>, n:<αποτυχημένες προσπάθειες>}. */
+var QMAX=40, QTRIES=8;
+function qAdd(q,item,max){ q=Array.isArray(q)?q.slice():[]; if(!item||item.id==null||!valid(item.snap)) return q;
+  for(var i=0;i<q.length;i++) if(q[i]&&q[i].id===item.id) return q;                     /* γράφεται μία φορά: δεύτερο στιγμιότυπο για την ίδια έξοδο αγνοείται */
+  q.push({id:String(item.id).slice(0,80),snap:item.snap,uid:item.uid||null,n:0}); var m=max||QMAX; while(q.length>m) q.shift(); return q; }
+/* τι ανεβαίνει τώρα για αυτόν τον λογαριασμό· ό,τι μπήκε από ΑΛΛΟΝ λογαριασμό δεν ανεβαίνει ποτέ */
+function qPick(q,uid){ if(!uid||!Array.isArray(q)) return []; return q.filter(function(x){ return x&&x.id!=null&&valid(x.snap)&&(x.uid==null||x.uid===uid); }); }
+/* μετά από προσπάθεια: ok → φεύγουν· αποτυχία → μετρά, και μετά από QTRIES φεύγουν για να μη μένουν για πάντα· ξένου λογαριασμού → φεύγουν */
+function qAfter(q,uid,ids,ok){ if(!Array.isArray(q)) return []; var S={}; (ids||[]).forEach(function(i){ S[i]=1; });
+  return q.filter(function(x){ return x&&x.id!=null&&(x.uid==null||!uid||x.uid===uid); }).map(function(x){ if(!S[x.id]) return x; if(ok) return null; var y={id:x.id,snap:x.snap,uid:x.uid,n:(x.n||0)+1}; return y.n>=QTRIES?null:y; }).filter(Boolean); }
+function qRows(items,uid){ return (items||[]).map(function(x){ return {user_id:uid,trip_id:x.id,snap:x.snap}; }); }
+g.AlkyonSnapshot={VERSION:V,LATE_MIN:LATE_MIN,QMAX:QMAX,QTRIES:QTRIES,build:build,trim:trim,late:late,row:row,valid:valid,qAdd:qAdd,qPick:qPick,qAfter:qAfter,qRows:qRows};
 })(typeof self!=='undefined'?self:this);

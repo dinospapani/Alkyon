@@ -20,6 +20,17 @@ function trips(){ return B.store.raw('trips').filter(function(t){ return !t.dele
 function patchTrip(id,o){ var t=B.store.get('trips',id); if(t) B.store.save('trips',Object.assign({},t,o)); }
 
 /* ---------- scoreH: βαθμός ανά ώρα στην αρχή της εξόδου ---------- */
+/* ---------- 1.14.93: ανέβασμα του στιγμιότυπου στον προσωπικό πίνακα trip_snaps (μία κατεύθυνση, εκτός συγχρονισμού) ---------- */
+var SNQ='alkyon-snapq', snBusy=false;
+function snapSess(){ try{ return B.cloud&&B.cloud.session&&B.cloud.session(); }catch(e){ return null; } }
+function snapUp(){ var SN=window.AlkyonSnapshot, s=snapSess(); if(snBusy||!SN||!s||!s.uid||!B.cloud||!B.cloud.rest) return Promise.resolve(false);
+  var q=ls.get(SNQ,[])||[], items=SN.qPick(q,s.uid).slice(0,20); if(!items.length){ var c=SN.qAfter(q,s.uid,[],true); if(c.length!==q.length) ls.set(SNQ,c); return Promise.resolve(false); }
+  snBusy=true; var ids=items.map(function(x){ return x.id; }), fin=function(ok){ try{ ls.set(SNQ,SN.qAfter(ls.get(SNQ,[])||[],s.uid,ids,ok)); }catch(e){} snBusy=false; return ok; };
+  /* ignore-duplicates: αν υπάρχει ήδη στιγμιότυπο για την έξοδο, μένει το πρώτο (ο πίνακας δεν επιτρέπει ενημέρωση) */
+  return B.cloud.rest('trip_snaps?on_conflict=user_id,trip_id',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'resolution=ignore-duplicates,return=minimal'},body:JSON.stringify(SN.qRows(items,s.uid))})
+    .then(function(r){ return fin(!!(r&&r.ok)); },function(){ snBusy=false; return false; }); }
+B.snapUp=snapUp;
+setTimeout(function(){ snapUp(); },15000); try{ window.addEventListener('online',function(){ setTimeout(snapUp,3000); }); }catch(e){}
 function platform(){ try{ var c=window.Capacitor; if(c&&typeof c.getPlatform==='function') return String(c.getPlatform()); }catch(e){} return 'web'; }
 function scoreSnap(){
   var s=st(); if(!s.active||!s.id||!window.PF) return; var cur=ls.get('alkyon-tscore',null); if(cur&&cur.id===s.id) return;
@@ -51,8 +62,9 @@ B.on('tripend',function(e){ var id=e&&e.id; if(!id) { ls.set('alkyon-tscore',nul
   setTimeout(function(){ var t=B.store.get('trips',id), sc=ls.get('alkyon-tscore',null);
     if(t&&sc&&Array.isArray(sc.h)&&(t.sid===sc.id||!t.sid)){ var lo=Math.floor(t.startMs/3600000), hi=Math.floor(t.endMs/3600000), hs=sc.h.filter(function(r){ return r[0]>=lo&&r[0]<=hi; });
       if(hs.length) patchTrip(id,{scoreH:hs,scoreSp:sc.sp||undefined,scoreCfg:sc.cfg||undefined});
-      /* 1.14.93: το στιγμιότυπο γράφεται ΜΙΑ φορά, μόνο με τις ώρες της εξόδου, και δεν ξαναγράφεται (αν η έξοδος έχει ήδη, μένει αυτό) */
-      try{ if(sc.snap&&window.AlkyonSnapshot&&!t.snap){ var sn=window.AlkyonSnapshot.trim(sc.snap,t.startMs,t.endMs); if(sn) patchTrip(id,{snap:sn}); } }catch(e){} }
+      /* 1.14.93: το στιγμιότυπο ΔΕΝ μπαίνει στην έξοδο (η έξοδος μοιράζεται με φίλους). Μόνο οι ώρες της εξόδου, σε ουρά, και από εκεί στον πίνακα trip_snaps
+         που διαβάζει μόνο ο ιδιοκτήτης. Γράφεται μία φορά ανά έξοδο. */
+      try{ if(sc.snap&&window.AlkyonSnapshot){ var sn=window.AlkyonSnapshot.trim(sc.snap,t.startMs,t.endMs); if(sn){ var se0=snapSess(); ls.set(SNQ,window.AlkyonSnapshot.qAdd(ls.get(SNQ,[]),{id:t.id,snap:sn,uid:se0?se0.uid:null})); setTimeout(snapUp,4000); } } }catch(e){} }
     ls.set('alkyon-tscore',null); },2500);
   setTimeout(function(){ condH(B.store.get('trips',id)).catch(function(){}); },5000); });
 /* παλιότερες έξοδοι χωρίς condH: λίγες κάθε φορά, στο παρασκήνιο */

@@ -62,10 +62,16 @@ test('each profile freezes its own inputs (lake has no wave)', async () => {
   for (const prof of ['boat', 'shore', 'lake', 'spear']) { const { U, fc } = await setup(prof), s = SN.build(fc, LAT, LON, U.PF, Object.assign({}, META, { prof })); assert.ok(SN.valid(s), prof); assert.equal(s.prof, prof); }
 });
 
-test('wiring: stored once at trip end in the trip itself, not sent with contributions, never read by the score', () => {
+test('wiring: queued once at trip end for the private table, not stored in the trip, not sent with contributions, never read by the score', () => {
   const R = f => fs.readFileSync(path.join(ROOT, f), 'utf8'), te = R('v4/trip-extra.js'), co = R('v4/contrib.js');
   assert.match(te, /AlkyonSnapshot\.build\(fc,\+p\.lat,\+p\.lon,PF,\{at:Date\.now\(\),app:window\.ALKYON_VERSION/);
-  assert.match(te, /if\(sc\.snap&&window\.AlkyonSnapshot&&!t\.snap\)/, 'a trip that already has a snapshot keeps it');
+  /* το στιγμιότυπο ΔΕΝ γράφεται μέσα στην έξοδο (η έξοδος μοιράζεται με φίλους): πηγαίνει σε ουρά και από εκεί στον πίνακα trip_snaps */
+  assert.ok(!/patchTrip\(id,\{snap/.test(te) && !/\bt\.snap\b/.test(te), 'the trip record never gets a snap field');
+  assert.match(te, /qAdd\(ls\.get\(SNQ,\[\]\),\{id:t\.id,snap:sn,uid:se0\?se0\.uid:null\}\)/);
+  assert.match(te, /B\.cloud\.rest\('trip_snaps\?on_conflict=user_id,trip_id',\{method:'POST',headers:\{'Content-Type':'application\/json',Prefer:'resolution=ignore-duplicates,return=minimal'\}/);
+  assert.equal((te.match(/trip_snaps/g) || []).length >= 1 && fs.readdirSync(path.join(ROOT, 'v4')).filter(f => f.endsWith('.js') && /trip_snaps/.test(R('v4/' + f))).join(','), 'trip-extra.js', 'one place talks to the table');
+  /* ο συγχρονισμός και η προβολή φίλων δεν ξέρουν τίποτα για το στιγμιότυπο */
+  for (const f of ['v4/store.js', 'v4/syncmerge.js', 'v4/friends-view.js', 'v4/community-view.js', 'v4/live.js', 'v4/datatools.js', 'v4/backup.js']) assert.ok(!/trip_snaps|AlkyonSnapshot|snapq/.test(R(f)), f + ' is untouched by the snapshot');
   assert.match(te, /patchTrip\(id,\{scoreH:hs,scoreSp:sc\.sp\|\|undefined,scoreCfg:sc\.cfg\|\|undefined\}\)/, 'scoreH / scoreSp / scoreCfg are written exactly as before');
   /* η αποστολή στις ανώνυμες συνεισφορές ΔΕΝ είναι μέρος αυτής της έκδοσης (περιμένει την απόφαση για τη συγκατάθεση) */
   assert.ok(!/snap/i.test(co.replace(/scoreSnap/g, '')), 'contrib.js does not know the snapshot');
@@ -79,9 +85,30 @@ test('wiring: stored once at trip end in the trip itself, not sent with contribu
   const src = SNAP_SRC.replace(/\/\*[\s\S]*?\*\//g, ''); assert.ok(!/localStorage|document\.|window\.|fetch\(/.test(src), 'snapshot.js is pure');
 });
 
+test('upload queue: once per trip, capped, only for the account that made it, gives up after repeated failures', () => {
+  const S1 = { v: 1, cols: ['wind'], h: [[1, 5, 'o']] }, it = (id, uid) => ({ id, snap: S1, uid });
+  let q = SN.qAdd([], it('t1', 'u1')); q = SN.qAdd(q, it('t1', 'u1')); assert.equal(q.length, 1, 'a second snapshot for the same trip is ignored');
+  q = SN.qAdd(q, { id: 't2', snap: { v: 1 }, uid: 'u1' }); assert.equal(q.length, 1, 'an invalid snapshot is not queued');
+  q = SN.qAdd(q, it('t3', null)); q = SN.qAdd(q, it('t4', 'u2'));
+  assert.deepEqual(plain(SN.qPick(q, 'u1').map(x => x.id)), ['t1', 't3'], 'own and signed-out items; never another account’s'); assert.deepEqual(plain(SN.qPick(q, null)), [], 'signed out → nothing is uploaded');
+  assert.deepEqual(plain(SN.qRows(SN.qPick(q, 'u1'), 'u1')), [{ user_id: 'u1', trip_id: 't1', snap: S1 }, { user_id: 'u1', trip_id: 't3', snap: S1 }]);
+  const ok = SN.qAfter(q, 'u1', ['t1', 't3'], true); assert.deepEqual(plain(ok.map(x => x.id)), [], 'uploaded items leave; the other account’s item is dropped, not uploaded');
+  let f = SN.qAfter(q, 'u1', ['t1'], false); assert.equal(f.find(x => x.id === 't1').n, 1); assert.equal(f.find(x => x.id === 't3').n, 0);
+  for (let i = 0; i < SN.QTRIES; i++) f = SN.qAfter(f, 'u1', ['t1'], false); assert.ok(!f.some(x => x.id === 't1'), 'after ' + SN.QTRIES + ' failures it is dropped'); assert.ok(f.some(x => x.id === 't3'));
+  let big = []; for (let i = 0; i < 60; i++) big = SN.qAdd(big, it('b' + i, null)); assert.equal(big.length, SN.QMAX); assert.equal(big[0].id, 'b20', 'the oldest are dropped first'); assert.equal(SN.QMAX, 40);
+  assert.deepEqual(plain(SN.qAfter(null, 'u1', [], true)), []); assert.deepEqual(plain(SN.qAdd(null, null)), []);
+  const signedOut = SN.qAfter(q, null, [], true); assert.equal(signedOut.length, q.length, 'signing out does not throw the queue away');
+});
+
 test('migration file: adds created_at, set by the server, and has a rollback', () => {
   const up = fs.readFileSync(path.join(ROOT, 'sql/2026-11-20-ml-data.sql'), 'utf8'), down = fs.readFileSync(path.join(ROOT, 'sql/2026-11-20-ml-data-rollback.sql'), 'utf8');
   for (const t of ['records', 'catch_obs']) { assert.match(up, new RegExp('alter table public\\.' + t + '\\s+add column if not exists created_at timestamptz')); assert.match(down, new RegExp('alter table public\\.' + t + '\\s+drop column if exists created_at')); }
   assert.match(up, /new\.created_at := now\(\)/); assert.match(up, /new\.created_at := old\.created_at/); assert.match(up, /set search_path = ''/);
-  assert.ok(!/\bupdate\s+public\.|delete\s+from|drop\s+table|truncate/i.test(up.replace(/--.*$/gm, '')), 'the migration rewrites and deletes no existing data');
+  assert.ok(!/\bupdate\s+public\.|drop\s+table|truncate/i.test(up.replace(/--.*$/gm, '')), 'the migration rewrites no existing data and drops nothing');
+  assert.deepEqual((up.replace(/--.*$/gm, '').match(/delete\s+from\s+public\.(\w+)/gi) || []).map(x => x.split('.').pop()), ['trip_snaps', 'trip_snaps'], 'the only deletes are of a trip’s own snapshot, inside the cleanup trigger');
+  /* trip_snaps: ένας πίνακας, μόνο ο ιδιοκτήτης, χωρίς ενημέρωση */
+  assert.match(up, /create table if not exists public\.trip_snaps/); assert.match(up, /references auth\.users\(id\) on delete cascade/); assert.match(up, /alter table public\.trip_snaps enable row level security/);
+  assert.match(up, /grant select, insert, delete on public\.trip_snaps to authenticated/); assert.ok(!/grant[^;]*update[^;]*trip_snaps/i.test(up));
+  const pol = up.match(/create policy [^;]+on public\.trip_snaps[^;]+;/g) || []; assert.equal(pol.length, 3); for (const x of pol) { assert.match(x, /user_id = auth\.uid\(\)/); assert.ok(!/friends|anon|for update|for all/i.test(x), x); }
+  assert.match(down, /drop table if exists public\.trip_snaps/);
 });
