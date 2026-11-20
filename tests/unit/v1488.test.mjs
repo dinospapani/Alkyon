@@ -212,12 +212,12 @@ test('1.14.90 server stats: when learning is switched off for a group, it is off
     const g = {}; for (const f of ['score-config.js', 'score-core.js', 'forecast.js']) new Function('self', rd(f))(g);
     const { run } = await import(pathToFileURL(path.join(ROOT, 'safety-job.mjs')).href + '?v1490');
     /* 80 έξοδοι σε δύο περιοχές, δύο είδη· τα ψάρια δεν ακολουθούν τις συνθήκες (τυχαία). Ανάλογα με τον σπόρο, ο έλεγχος βγάζει ότι η μάθηση βοηθά ή όχι. */
-    const stats = async (seed, open = true) => { let s = seed; const rnd = () => (s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff; const rows = [], D0 = RealDate.parse('2026-08-01T00:00:00Z'); let id = 1;
+    const stats = async (seed, open = true, prof = 'boat', spp = ['pagrus pagrus', 'dentex dentex']) => { let s = seed; const rnd = () => (s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff; const rows = [], D0 = RealDate.parse('2026-08-01T00:00:00Z'); let id = 1;
       for (let i = 0; i < 80; i++) { const u = 'u' + (i % 6), st = D0 + i * 30 * HR + 5 * HR + 1234 + i * 77, dur = 4 * HR + 4321, good = i % 2 === 0, east = i % 4 < 2, e = [];
         for (let t = st; t < st + dur; t += HR) e.push({ t, wind: good ? 6 : 16, gust: good ? 9 : 22, wave: good ? 0.3 : 1.1, press: good ? 1012 : 1021, pt: good ? -1.5 : 0.5, rain: 0, cloud: 30, temp: 24, sst: 23, tide: 0 });
         const fish = rnd() < 0.5 ? 1 + Math.floor(rnd() * 3) : 0, day = new RealDate(st).toISOString().slice(0, 10), lat = 34.7, lon = east ? 34.2 : 32.4;
-        rows.push({ id: id++, user_id: u, kind: 'trip', sp: null, day, ms: st, ms2: st + dur, lat, lon, cnt: fish, tech: null, prof: 'boat', cond: { e, k: 'l' } });
-        for (let k = 0; k < fish; k++) rows.push({ id: id++, user_id: u, kind: 'catch', sp: ['pagrus pagrus', 'dentex dentex'][k % 2], day, ms: st + Math.floor(rnd() * dur), ms2: null, lat, lon, cnt: 1, tech: 'jig', prof: 'boat', cond: { wind: good ? 6 : 16, wave: good ? 0.3 : 1.1, pres: good ? 1012 : 1021, pt: good ? -1.5 : 0.5, hr: 9, sm: { rise: 6, set: 18 } } }); }
+        rows.push({ id: id++, user_id: u, kind: 'trip', sp: null, day, ms: st, ms2: st + dur, lat, lon, cnt: fish, tech: null, prof, cond: { e, k: 'l' } });
+        for (let k = 0; k < fish; k++) rows.push({ id: id++, user_id: u, kind: 'catch', sp: spp[k % 2], day, ms: st + Math.floor(rnd() * dur), ms2: null, lat, lon, cnt: 1, tech: 'jig', prof, cond: { wind: good ? 6 : 16, wave: good ? 0.3 : 1.1, pres: good ? 1012 : 1021, pt: good ? -1.5 : 0.5, hr: 9, sm: { rise: 6, set: 18 } } }); }
       const posts = {}, res = (o, stc = 200) => ({ ok: stc < 400, status: stc, json: async () => o, text: async () => (o == null ? '' : JSON.stringify(o)), headers: new Map() });
       const F = async (url, opt = {}) => { url = String(url); const m = (opt.method || 'GET').toUpperCase();
         if (url.includes('/rest/v1/catch_obs') && m === 'GET') { const off = +(/offset=(\d+)/.exec(url) || [0, 0])[1]; return res(rows.slice(off, off + 1000)); }
@@ -246,6 +246,14 @@ test('1.14.90 server stats: when learning is switched off for a group, it is off
     assert.deepEqual(Object.keys(lock).sort(), Object.keys(on).sort(), 'the same statistics are still published');
     for (const k of Object.keys(on)) assert.deepEqual(lock[k].data.ins, on[k].data.ins, k + ': the findings themselves are unchanged (still shown as information)');
     assert.equal(lock.all.n, on.all.n); assert.deepEqual(lock.all.data.ready, on.all.data.ready, 'the readiness meter is untouched');
+    /* δ) 1.14.94: το ίδιο και για τις άλλες τρεις ομάδες (ψαροντούφεκο, λίμνη, κεφαλόποδα), με και χωρίς «επιτυχή» έλεγχο */
+    for (const [grp, prof, spp] of [['spear', 'spear'], ['lake', 'lake'], ['ceph', 'boat', ['sepia officinalis', 'loligo vulgaris']]]) for (const seed of [31676, 63352]) {
+      const L = await stats(seed, false, prof, spp), O = await stats(seed, true, prof, spp), top = 'g:' + grp, mine = Object.keys(L).filter(k => L[k].data.grp === grp);
+      assert.ok(L[top] && mine.length >= 1, grp + ' statistics exist: ' + Object.keys(L).join(', ')); assert.equal(L[top].data.learnLock, true, grp);
+      assert.deepEqual(mine.filter(k => L[k].data.learnOff !== true), [], grp + ' ' + seed + ': every key of the group is closed');
+      assert.deepEqual(Object.keys(L).filter(k => L[k].data.learnOff !== true), [], grp + ' ' + seed + ': no key of any group is left open'); assert.deepEqual(used(L), [], grp);
+      assert.deepEqual(Object.keys(L).sort(), Object.keys(O).sort(), grp + ': same statistics published'); for (const k of Object.keys(O)) assert.deepEqual(L[k].data.ins, O[k].data.ins, k);
+    }
   } finally { globalThis.Date = RealDate; }
 });
 
