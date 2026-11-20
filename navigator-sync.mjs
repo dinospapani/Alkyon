@@ -10,7 +10,7 @@ import fs from 'node:fs';
 
 export const BASE = 'https://map.navigatormap.org';
 export const KEEP = new Set(['Cyprus', 'Greece', 'Turkey', 'Israel', 'Lebanon', 'Egypt', 'Syria', 'Libya', 'Palestine']);
-const UA = 'Alkyon-sync/1.0 (fishing app, contact: dinospapanicolaou@gmail.com)';
+const UA = 'Alkyon-sync/1.0 (fishing app' + (process.env.NAV_CONTACT ? ', contact: ' + process.env.NAV_CONTACT : '') + ')';   /* 1.14.91: η διεύθυνση επικοινωνίας έρχεται από το περιβάλλον (GitHub secret), όχι από τον κώδικα */
 const PAGE = 200;
 const MAX_REMOVE_FRAC = 0.1;   /* πάνω από 10% διαγραφές: σταμάτα */
 const MAX_SHRINK_FRAC = 0.1;
@@ -62,9 +62,12 @@ function trunc(s, n) {
   s = s.split(/\s+/).filter(Boolean).join(' ');
   return s.length <= n ? s : s.slice(0, n - 1).replace(/\s+$/, '') + '…';
 }
-/* Κρατάμε ό,τι κρατούσε το reduce.py. */
+/* Κρατάμε ό,τι κρατούσε το reduce.py.
+   1.14.91: η κατηγορία 9 («Jurisdictional Authority Area») έχει δύο είδη. Τα εθνικά ύδατα (ΑΟΖ, χωρικά ύδατα, LFP 1–3) μένουν έξω:
+   καλύπτουν όλη τη θάλασσα της χώρας με τους γενικούς κανόνες. Οι ειδικές ζώνες (στρατιωτικές, ασφαλείας λιμανιών) με LFP 4–5
+   απαγορεύουν το ψάρεμα και πρέπει να φαίνονται (πριν κόβονταν μαζί με τα εθνικά ύδατα). */
 export function wanted(p) {
-  return p && KEEP.has(p.country) && p.category_id !== 9 && p.lfp != null && p.lfp !== 0;
+  return !!p && KEEP.has(p.country) && p.lfp != null && p.lfp !== 0 && (p.category_id !== 9 || p.lfp >= 4);
 }
 export function compact(p, G) {
   return {
@@ -81,27 +84,39 @@ export function compact(p, G) {
 export function makeClient(fetchFn, sleep) {
   let last = 0;
   return async function get(path) {
-    const wait = 2200 - (Date.now() - last); if (wait > 0) await sleep(wait);
-    last = Date.now();
-    const r = await fetchFn(BASE + path, { headers: { 'User-Agent': UA, Accept: 'application/json' } });
-    if (!r.ok) throw new Error('HTTP ' + r.status + ' ' + path);
-    try { return await r.json(); } catch (e) { throw new Error('Μη έγκυρο JSON ' + path); }
+    /* 1.14.91: 2.5 s ανάμεσα στα αιτήματα και, αν ο server απαντήσει 429 (όριο ρυθμού), αναμονή 12 s και ξανά, έως 5 φορές. Το ίδιο σε διακοπή δικτύου και σε κομμένη (μη JSON) απάντηση.
+       Πριν ένα μόνο 429 σταματούσε όλο τον συγχρονισμό (πλήρης έλεγχος 19/11/2026: σταμάτησε στη σελίδα 9). */
+    for (let tries = 0; ; tries++) {
+      const wait = 2500 - (Date.now() - last); if (wait > 0) await sleep(wait);
+      last = Date.now();
+      let r = null, err = null;
+      try { r = await fetchFn(BASE + path, { headers: { 'User-Agent': UA, Accept: 'application/json' } }); }
+      catch (e) { err = e; }                                              /* διακοπή δικτύου */
+      if (r && r.ok) { try { return await r.json(); } catch (e) { err = new Error('Μη έγκυρο JSON ' + path); } }   /* κομμένη ή μη JSON απάντηση */
+      else if (r && r.status !== 429) throw new Error('HTTP ' + r.status + ' ' + path);
+      else if (r) err = new Error('HTTP 429 ' + path);
+      if (tries >= 5) throw err;
+      await sleep(12000);
+    }
   };
 }
 
 const iso = ms => new Date(ms).toISOString().slice(0, 10);
 
-export async function sync({ file, fetchFn = fetch, sleep = ms => new Promise(r => setTimeout(r, ms)), now = Date.now(), log = console.log, since }) {
+export async function sync({ file, fetchFn = fetch, sleep = ms => new Promise(r => setTimeout(r, ms)), now = Date.now(), log = console.log, since, ids }) {
   const doc = JSON.parse(fs.readFileSync(file, 'utf8'));
   const local = doc.f || []; const byId = new Map(local.map(f => [f.i, f]));
   if (local.length < 50) throw new Error('Το τοπικό αρχείο φαίνεται ελλιπές (' + local.length + ')');
-  const startDate = iso(now);
+  const startDate = ids && ids.length ? doc.v : iso(now);
   const from = since || iso(Date.parse(doc.v + 'T00:00:00Z') - 7 * 86400000);
   const get = makeClient(fetchFn, sleep);
 
-  /* 1. λίστα αλλαγών */
+  /* 1. λίστα αλλαγών
+     1.14.91: με ids (NAV_IDS) ελέγχονται μόνο συγκεκριμένες περιοχές, χωρίς τη λίστα αλλαγών: λίγα αιτήματα αντί για ολόκληρο τον κατάλογο.
+     Η ημερομηνία v δεν αλλάζει, γιατί δεν είναι πλήρης συγχρονισμός. */
   const changes = [];
-  for (let page = 1; page <= 200; page++) {
+  if (ids && ids.length) for (const id of ids) changes.push({ ps_id: id });
+  else for (let page = 1; page <= 200; page++) {
     const j = await get('/api/search/?type=sites_updated&changed_since=' + from + '&include_inactive=true&lang=en_EN&limit=' + PAGE + '&page=' + page);
     const arr = j && j.sites;
     if (!Array.isArray(arr)) throw new Error('Η απάντηση δεν έχει πίνακα sites (σελίδα ' + page + ')');
@@ -167,7 +182,7 @@ export async function sync({ file, fetchFn = fetch, sleep = ms => new Promise(r 
 }
 
 if (process.argv[1] && process.argv[1].endsWith('navigator-sync.mjs')) {
-  sync({ file: process.env.NAV_FILE || 'navigator-mpa.json', since: process.env.NAV_SINCE || undefined })
+  sync({ file: process.env.NAV_FILE || 'navigator-mpa.json', since: process.env.NAV_SINCE || undefined, ids: (process.env.NAV_IDS || '').split(/[\s,]+/).filter(x => /^[A-Za-z0-9_-]+$/.test(x)) })
     .then(r => { console.log(JSON.stringify(r)); if (process.env.NAV_CY_OUT && r.cy && r.cy.length) fs.writeFileSync(process.env.NAV_CY_OUT, r.cy.join('\n') + '\n'); })
     .catch(e => { console.error('ΣΦΑΛΜΑ: ' + e.message); process.exit(1); });
 }
