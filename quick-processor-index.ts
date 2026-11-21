@@ -982,8 +982,13 @@ export async function heartbeat({ env, fetch: F = fetch, now = Date.now() }, b) 
   const hasPos = Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180 && !(lat === 0 && lon === 0);
   const H = { apikey: env.SUPABASE_SERVICE_KEY, Authorization: 'Bearer ' + env.SUPABASE_SERVICE_KEY };
   const r = await F(env.SUPABASE_URL + '/rest/v1/safety_trips?id=eq.' + encodeURIComponent(id) + '&hb_key=eq.' + key + '&status=in.(active,alerted)&select=id,hb_at', { headers: H });
-  const a = r.ok ? await r.json() : [];
-  if (!Array.isArray(a) || !a.length) return { status: 404, body: { ok: false, error: 'no active trip' } };
+  /* 21/11/2026: σφάλμα ανάγνωσης της βάσης → 503, όχι 404. Πριν απαντούσε 404 «no active trip» και για έξοδο που τρέχει κανονικά.
+     Τα κινητά (AlkHbRule, 1.14.95) ούτε μετρούν ούτε σταματούν σε 5xx· τα παλιότερα σταματούσαν σε κάθε 404. 404 μένει ΜΟΝΟ όταν η βάση απάντησε ότι δεν υπάρχει. */
+  if (!r.ok) return { status: 503, body: { ok: false, error: 'read ' + r.status } };
+  let a;
+  try { a = await r.json(); } catch (e) { return { status: 502, body: { ok: false, error: 'read json' } }; }
+  if (!Array.isArray(a)) return { status: 502, body: { ok: false, error: 'read shape' } };
+  if (!a.length) return { status: 404, body: { ok: false, error: 'no active trip' } };
   const last = a[0].hb_at ? Date.parse(a[0].hb_at) : 0;
   if (now - last < 20e3) return { status: 200, body: { ok: true, skipped: 'rate' } };
   const at = new Date(now).toISOString(), o = { hb_at: at, hb_src: 'native' };
