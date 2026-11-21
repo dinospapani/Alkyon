@@ -45,7 +45,13 @@ function pushTrip(){
   /* 1.14.83 (P0.7): και το κλειδί του παλμού (native GPS)· αν ο server δεν έχει ακόμα τη στήλη, όπως πριν */
   var extK=s.hbk?Object.assign({},ext,{hb_key:s.hbk}):null;
   var post=function(o){ return cl.rest('safety_trips',{method:'POST',headers:H,body:JSON.stringify(o)}); };
-  return (extK&&hbkOK?post(extK):Promise.reject()).catch(function(e){ if(extK&&/hb_key|PGRST204|42703/.test(String(e&&e.message||e))) hbkOK=false; /* μόνο αν λείπει η στήλη· όχι σε σφάλμα δικτύου */ return extOK?post(ext):Promise.reject(); }).catch(function(){ extOK=false; return post(base); })
+  /* 21/11/2026: πιο απλή μορφή ΜΟΝΟ όταν ο server απαντά ότι λείπει στήλη (PGRST204 / 42703). Πριν, ένα σφάλμα δικτύου έστελνε την έξοδο ΧΩΡΙΣ το κλειδί
+     του παλμού (ο server απέρριπτε μετά τον παλμό του κινητού → πιθανή ψεύτικη ειδοποίηση σιωπής, με κλειδωμένη οθόνη δεν ξαναστελνόταν) και
+     έκλεινε για όλη τη συνεδρία την αποστολή μπαταρίας/παλμού/σιωπής (extOK). Τώρα ένα σφάλμα δικτύου ή server αφήνει την έξοδο «μη συγχρονισμένη»
+     και ξαναστέλνεται ολόκληρη (tick / online). */
+  var SKIP={}, schema=function(e){ return /PGRST204|42703/.test(String(e&&e.message||e)); };
+  return (extK&&hbkOK?post(extK):Promise.reject(SKIP)).catch(function(e){ if(e!==SKIP){ if(!schema(e)) throw e; if(/hb_key/.test(String(e&&e.message||e))) hbkOK=false; } return extOK?post(ext):Promise.reject(SKIP); })
+    .catch(function(e){ if(e!==SKIP){ if(!schema(e)) throw e; extOK=false; } return post(base); })
     .then(function(){ srv=s.active?T('Η δήλωση έφτασε στον server: η επαφή θα ειδοποιηθεί αυτόματα αν κάτι δεν πάει καλά.','The plan reached the server: your contact will be alerted automatically if something goes wrong.'):'';
       var q=load(); q.synced=true;
       if(q.active&&!q.pgStart){ q.pgStart=1; save(q); fn('trip',q.id,'start').catch(function(){ var z=load(); if(z.id===q.id){ z.pgStart=0; save(z); } }); }
