@@ -184,6 +184,10 @@ function natSt(v,up){ try{ var t=track(); if(t){ t.d=t.d||{}; t.d[up?'nu':'ns']=
 var NS0='', MGE='';
 function nativeStop(){ var n=NT(); if(n) n.stop().catch(function(){}); }
 /* σημεία που κατέγραψε το native GPS όσο η οθόνη ήταν σβηστή: μπαίνουν στη διαδρομή με τη σειρά του χρόνου */
+/* 21/11/2026: τα mergeFixes τρέχουν ΕΝΑ-ΕΝΑ. Πριν, άνοιγμα της εφαρμογής (visibilitychange) και «Τέλος» μαζί έκαναν δύο ταυτόχρονες αναγνώσεις από
+   το ίδιο σημείο (Galaxy 1.14.95, 21/11: nat 612 = 2 × 306)· η διαδρομή έμενε σωστή (οι διπλές πετιούνται ως «κοντινές»), αλλά οι μετρητές διπλασιάζονταν. */
+var mfQ=Promise.resolve();
+function mergeQ(){ var p=mfQ.then(function(){ return mergeFixes(); },function(){ return mergeFixes(); }); mfQ=p.catch(function(){}); return p; }
 function mergeFixes(){ var n=NT(), s=load(); if(!n||!s.active) return Promise.resolve(0);
   var t=track(); if(!t) return Promise.resolve(0); var since=t.nat||s.start||0;
   return n.fixes({id:s.id,since:since}).then(function(r){ var a=(r&&r.fixes)||[], q=track(); if(!q||q.id!==s.id) return 0;
@@ -249,7 +253,7 @@ function back(endAt,merged){
   /* 1.14.83: πρώτα τα σημεία του native GPS (σβηστή οθόνη), μετά το κλείσιμο της διαδρομής */
   if(!merged&&NT()&&load().active){ var once=false, go=function(how){ if(once) return; once=true; endHow=how; back(endAt,true); }; endHow='';
     /* 1.14.88: περιμένει έως 5″ (ήταν 1,5″) τα σημεία του παρασκηνίου και σημειώνει αν ήρθαν («ok») ή αν έληξε ο χρόνος («timeout») */
-    mergeFixes().then(function(){ go('ok'); },function(){ go('err'); }); setTimeout(function(){ go('timeout'); },5000); return; }
+    mergeQ().then(function(){ go('ok'); },function(){ go('err'); }); setTimeout(function(){ go('timeout'); },5000); return; }
   /* 1.14.48: endAt = πότε τελείωσε πραγματικά, όταν η έξοδος είχε μείνει ανοιχτή */
   var NOW=(typeof endAt==='number'&&endAt>0&&endAt<Date.now())?endAt:Date.now();
   var s=load(); if(!s.active) return; if(NOW<=s.start) NOW=Date.now(); var d=NOW-s.start, sm=summary(s), tk=takeTrack(NOW);
@@ -392,7 +396,7 @@ function paintBar(){
   bar.textContent=(lt?T('Πέρασε η ώρα επιστροφής ','Past return time ')+hm(s.due)+T(' · πάτα εδώ',' · tap here'):T('Σε έξοδο · επιστροφή ','On a trip · back at ')+hm(s.due)+' ('+dur(s.due-Date.now())+')');
 }
 B.on('trip',paintBar);
-document.addEventListener('visibilitychange',function(){ if(!document.hidden){ paintBar(); watch(); if(load().active){ mergeFixes(); trackPos(); } } });
+document.addEventListener('visibilitychange',function(){ if(!document.hidden){ paintBar(); watch(); if(load().active){ mergeQ(); trackPos(); } } });
 window.addEventListener('online',function(){ if(load().active) pushTrip(); });
 
 /* ---------- επαφή ασφαλείας (Προφίλ) ---------- */
@@ -443,7 +447,7 @@ B.mob=function(){ vib([200,100,200]); getPos().then(function(p){ var m=B.mobs();
 B.mobDel=function(t){ ls.set('alkyon-mob',B.mobs().filter(function(x){ return x.t!==t; })); B.emit('mob'); };
 
 /* εκκίνηση: αν υπάρχει ενεργή έξοδος ή άγκυρα, συνεχίζει */
-if(load().active){ startTimer(); (function(){ var s0=load(); if(!s0.hbk){ s0.hbk=hexKey(); save(s0); } })(); setTimeout(function(){ mergeFixes(); trackPos().then(function(){ nativeStart(load()); }); },2000); }
+if(load().active){ startTimer(); (function(){ var s0=load(); if(!s0.hbk){ s0.hbk=hexKey(); save(s0); } })(); setTimeout(function(){ mergeQ(); trackPos().then(function(){ nativeStart(load()); }); },2000); }
 /* 1.14.95: χωρίς ενεργή έξοδο δεν πρέπει να τρέχει υπηρεσία καταγραφής (π.χ. το «Τέλος εξόδου» δεν έφτασε σε αυτήν):
    κλείνει στο άνοιγμα της εφαρμογής. Ελέγχει ξανά την κατάσταση τη στιγμή που τρέχει, για να μην κλείσει έξοδο που μόλις ξεκίνησε. */
 else setTimeout(function(){ if(!load().active) nativeStop(); },2000);

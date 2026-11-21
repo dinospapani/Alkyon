@@ -19,6 +19,14 @@ function create(){ var cl=C(); if(!cl) return Promise.reject(new Error('nosess')
 function W(){ return window.AKN&&window.AKN.watch; }
 function push(code){ var w=W(); if(!w||!code) return Promise.resolve(null); return w.link({code:code,lang:B.LANG}).then(function(r){ return r&&r.ok; },function(){ return null; }); }
 function wstat(){ var w=W(); if(!w) return Promise.resolve(null); return w.status().catch(function(){ return null; }); }
+/* 21/11/2026: «Στείλε στο ρολόι»: πρώτα ποιο ρολόι υπάρχει, μετά το μήνυμα. Στο Android το link() απαντά ok όταν ο κωδικός γραφτεί στο ΚΙΝΗΤΟ
+   (Wearable Data Layer), όχι όταν φτάσει στο ρολόι· έτσι έγραφε «Στάλθηκε στο ρολόι» και χωρίς ρολόι. */
+function sendMsg(r,ok){ if(r&&r.app>0) return ok!==true?T('Βρέθηκε ρολόι με το Alkyon, αλλά ο κωδικός δεν στάλθηκε. Γράψε τον στο ρολόι: Μενού (≡) › Ρυθμίσεις.','A watch with Alkyon was found, but the code was not sent. Type it on the watch: Menu (≡) › Settings.'):T('Στάλθηκε στο ρολόι.','Sent to the watch.');
+  if(r&&r.watches>0) return T('Βρέθηκε ρολόι, αλλά χωρίς το Alkyon. Εγκατέστησέ το και πάτα ξανά «Στείλε στο ρολόι».','A watch was found, but without Alkyon. Install it and tap «Send to watch» again.');
+  if(r) return T('Δεν βρέθηκε ρολόι με το Alkyon. Όταν συνδεθεί, πάτα ξανά «Στείλε στο ρολόι» ή γράψε τον κωδικό στο ρολόι.','No watch with Alkyon found. When it is connected, tap «Send to watch» again or type the code on the watch.');
+  return ok?T('Στάλθηκε στο ρολόι.','Sent to the watch.'):T('Δεν μπόρεσα να ελέγξω για ρολόι. Γράψε τον κωδικό στο ρολόι: Μενού (≡) › Ρυθμίσεις.','Could not check for a watch. Type the code on the watch: Menu (≡) › Settings.'); }
+function sendNow(code){ return wstat().then(function(r){ return push(code).then(function(ok){ var m=sendMsg(r,ok); B.toast(m); return m; }); }); }
+B.garminSendMsg=sendMsg;
 function disconnect(code){ var cl=C(); if(!cl||!code) return Promise.reject(new Error('nosess')); return cl.rest('watch_links?code=eq.'+encodeURIComponent(code),{method:'DELETE'}).then(function(r){ if(r&&r.ok===false) throw new Error('http '+r.status); }); }
 function drop(code){ var cl=C(); if(!cl||!code) return Promise.resolve(); return cl.rest('watch_links?code=eq.'+code,{method:'DELETE'}).catch(function(){}); }
 function sheet(){ var body=h('div',{class:'bform gmn'}), sh=B.sheet({title:T('Ρολόι','Watch'),body:body});
@@ -40,7 +48,7 @@ function sheet(){ var body=h('div',{class:'bform gmn'}), sh=B.sheet({title:T('Ρ
           h('li',{text:W()?T('Ο κωδικός πηγαίνει μόνος του στο ρολόι όταν ανοίγεις αυτή την οθόνη στην εφαρμογή Alkyon του κινητού.','The code goes to the watch by itself when you open this screen in the Alkyon phone app.'):T('Στο ρολόι: Μενού (≡) › Ρυθμίσεις › Γράψε τον κωδικό. Με την εφαρμογή Alkyon στο κινητό ο κωδικός πηγαίνει μόνος του.','On the watch: Menu (≡) › Settings › Type the code. With the Alkyon phone app the code is sent by itself.')})),
         W()?h('p',{class:'note',id:'gmwst',text:T('Ψάχνω ρολόι…','Looking for a watch…')}):null,
         h('div',{class:'acts'},h('button',{class:'btn',type:'button',text:T('Αντιγραφή','Copy'),onclick:function(){ try{ navigator.clipboard.writeText(st.code).then(function(){ B.toast(T('Αντιγράφηκε.','Copied.')); }); }catch(e){} }}),
-          W()?h('button',{class:'btn',type:'button',text:T('Στείλε στο ρολόι','Send to watch'),onclick:function(){ push(st.code).then(function(ok){ B.toast(ok?T('Στάλθηκε στο ρολόι.','Sent to the watch.'):T('Δεν βρέθηκε ρολόι με το Alkyon.','No watch with Alkyon found.')); }); }}):null,
+          W()?h('button',{class:'btn',type:'button',text:T('Στείλε στο ρολόι','Send to watch'),onclick:function(){ sendNow(st.code); }}):null,
           h('button',{class:'btn',type:'button',text:T('Νέος κωδικός','New code'),onclick:function(){ B.ask(T('Ο παλιός κωδικός θα σταματήσει να δουλεύει. Συνέχεια;','The old code will stop working. Continue?'),T('Νέος κωδικός','New code')).then(function(y){ if(!y) return; drop(st.code).then(create).then(function(){ paint(); },function(e){ paint(String(e.message)); }); }); }}),
           /* 1.14.83 (P0.5): αποσύνδεση ρολογιού: ο κωδικός σβήνει από τον server και το ρολόι σταματά να γράφει στο ημερολόγιο (μέσα σε ~1 λεπτό) */
           h('button',{class:'btn',type:'button',text:T('Αποσύνδεση ρολογιού','Disconnect watch'),onclick:function(){ B.ask(T('Το ρολόι θα σταματήσει να στέλνει ψάρια και να παίρνει πρόγνωση από τον λογαριασμό σου. Συνέχεια;','The watch will stop sending catches and getting the forecast from your account. Continue?'),T('Αποσύνδεση','Disconnect')).then(function(y){ if(!y) return;
