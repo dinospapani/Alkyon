@@ -16,6 +16,13 @@ B.tackleKind=function(k){ return kname(k)||k; }; B.tackleW=function(g){ return W
 /* ---------- αντίγραφο ασφαλείας (ίδια μορφή αρχείου με την κλασική) ---------- */
 function b2u(bl){ return new Promise(function(res){ var r=new FileReader(); r.onload=function(){ res(r.result); }; r.readAsDataURL(bl); }); }
 /* v31z550: και οι ρυθμίσεις (σκάφος, όρια, πλάνα, στόχοι, συντήρηση, τοποθεσίες, ειδοποιήσεις, ασφάλεια) */
+/* 21/11/2026: το «alkyon-safe» κρατά ΚΑΙ την επαφή ασφαλείας ΚΑΙ την τρέχουσα έξοδο (active, id, κλειδί παλμού, ώρα επιστροφής…).
+   Η επαναφορά αντιγράφου έγραφε όλο το αντικείμενο από πάνω: χανόταν η έξοδος που έτρεχε, ή ξαναζωντάνευε μια παλιά έξοδος του αντιγράφου.
+   Τώρα επανέρχονται ΜΟΝΟ τα στοιχεία της επαφής (όσα γράφει η οθόνη «Επαφή ασφαλείας» στο trip.js)· η κατάσταση της εξόδου μένει όπως είναι. */
+var SAFE_KEEP=['name','phone','email','tgCode','tgLinked','tgName','selfCode','selfLinked'];
+function safeMerge(bk){ if(!bk||typeof bk!=='object') return false; var cur=ls.get('alkyon-safe',null)||{}, out=Object.assign({},cur), ch=false;
+  SAFE_KEEP.forEach(function(f){ if(bk[f]!==undefined&&bk[f]!==null&&bk[f]!==''){ out[f]=bk[f]; ch=true; } }); if(ch) ls.set('alkyon-safe',out); return ch; }
+B.backupSafeMerge=safeMerge;
 var SETK=['alkyon-boat','alkyon-smart','alkyon-maint','alkyon-limits','alkyon-v4-plans','alkyon-v4-goals','alkyon-places','alkyon-notify','alkyon-safe','alkyon-units','alkyon-fprof','alkyon-lang','alkyon-v4-autostart','alkyon-v4-night','alkyon-mapwx-items','alkyon-gear'];
 function settingsOf(){ var o={}; SETK.forEach(function(k){ var v=ls.get(k,undefined); if(v!==undefined&&v!==null) o[k]=v; }); return o; }
 B.backup={
@@ -38,7 +45,7 @@ B.backup={
       if(Array.isArray(d.gear)&&d.gear.length){ var g=ls.get('alkyon-gear',{})||{}, ex={}; g.items=Array.isArray(g.items)?g.items:[]; g.items.forEach(function(x){ ex[x.id]=1; }); d.gear.forEach(function(x){ if(x&&x.id&&!ex[x.id]){ g.items.push(x); n++; } }); ls.set('alkyon-gear',g); }
       if(d.boat&&typeof d.boat==='object'){ ls.set('alkyon-boat',d.boat); n++; }
       /* v31z550: ρυθμίσεις (αν υπάρχουν στο αντίγραφο) */
-      if(d.settings&&typeof d.settings==='object') Object.keys(d.settings).forEach(function(k0){ var k=k0.replace(/^psaro-/,'alkyon-'); d.settings[k]=d.settings[k0]; if(SETK.indexOf(k)>=0&&k!=='alkyon-gear'&&k!=='alkyon-boat'){ ls.set(k,d.settings[k]); n++; } });
+      if(d.settings&&typeof d.settings==='object') Object.keys(d.settings).forEach(function(k0){ var k=k0.replace(/^psaro-/,'alkyon-'); d.settings[k]=d.settings[k0]; if(SETK.indexOf(k)>=0&&k!=='alkyon-gear'&&k!=='alkyon-boat'){ if(k==='alkyon-safe'){ if(safeMerge(d.settings[k])) n++; return; } ls.set(k,d.settings[k]); n++; } });
       var ph=d.photos&&typeof d.photos==='object'?d.photos:{}, p=Promise.resolve();
       var pup=ls.get('alkyon-pup',{})||{};
       Object.keys(ph).forEach(function(id){ var base=id.replace(/^tk-/,'').replace(/~\d+$/,''); if(!keep[base]) return; delete pup[id];
