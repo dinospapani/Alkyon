@@ -41,9 +41,11 @@ test('server: an overdue trip (alerted) still accepts heartbeats; a closed one (
   assert.equal((await hb([{ id: 'trip-1', hb_key: KEY, status: 'alerted' }])).status, 200);
   assert.equal((await hb([{ id: 'trip-1', hb_key: KEY, status: 'done' }])).status, 404);
 });
-test('server, known issue: a failed database read is also answered 404 for a trip that is running — why one 404 must never be enough', async () => {
+/* 21/11/2026: ΑΛΛΑΓΗ TEST (δηλωμένη). Ήταν «known issue: σφάλμα ανάγνωσης της βάσης → 404». Ο server διορθώθηκε (branch server-hb-5xx):
+   σφάλμα ανάγνωσης → 503. Το ίδιο το test έγραφε: «if this changes to a 5xx the server was fixed: update this test and the report, the phones need no change». */
+test('server: a failed database read is answered 503, not 404 «no active trip» — a running trip is never told it does not exist', async () => {
   const r = await hb([{ id: 'trip-1', hb_key: KEY, status: 'active' }], 'trip-1', false);
-  assert.equal(r.status, 404, 'if this changes to a 5xx the server was fixed: update this test and the report, the phones need no change');
+  assert.equal(r.status, 503); assert.notEqual(r.body.error, 'no active trip');
 });
 
 /* ---------- ο κανόνας: ίδιος σε Java και Swift ---------- */
