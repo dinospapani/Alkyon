@@ -1,12 +1,11 @@
-// Alkyon: η οθόνη του Capacitor, με τα δικά μας πρόσθετα (ρολόι Apple Watch).
+// Alkyon: οθόνη του Capacitor που δηλώνει το Main.storyboard. ΔΕΝ εμφανίζεται: δεν καταχωρεί κανένα πρόσθετο.
 import UIKit
 import Capacitor
 
-// ΠΡΟΣΟΧΗ (1.14.94): αυτή η οθόνη ΔΕΝ εμφανίζεται. Το Main.storyboard τη δηλώνει, αλλά ο SceneDelegate αντικαθιστά το παράθυρο με AlkBridgeViewController
-// (SceneDelegate.swift) πριν φορτωθεί. Ό,τι καταχωρείται εδώ δεν φτάνει στη σελίδα. Το AlkTrip μεταφέρθηκε εκεί. Το AlkWatch (αυτόματη αποστολή του κωδικού
-// σύνδεσης στο Apple Watch) μένει εδώ, δηλαδή ΑΝΕΝΕΡΓΟ όπως ήταν, μέχρι να αποφασιστεί ξεχωριστά: η ενεργοποίησή του είναι αλλαγή συμπεριφοράς που δεν έχει δοκιμαστεί.
+// ΠΡΟΣΟΧΗ (1.14.94): αυτή η οθόνη ΔΕΝ εμφανίζεται. Το Main.storyboard τη δηλώνει, αλλά ο SceneDelegate φτιάχνει νέο παράθυρο με
+// AlkBridgeViewController (SceneDelegate.swift). Ό,τι καταχωρείται εδώ δεν φτάνει στη σελίδα.
+// 1.14.94: το AlkTrip μεταφέρθηκε εκεί. 1.14.96: και το AlkWatch. Μην καταχωρείτε πρόσθετα σε αυτή την οθόνη.
 class MainViewController: CAPBridgeViewController {
     override open func capacitorDidLoad() {
-        bridge?.registerPluginInstance(AlkWatchPlugin())
     }
 }

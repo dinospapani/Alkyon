@@ -15,7 +15,8 @@ const registered = cls => ((bodyOf(cls) || '').match(/registerPluginInstance\((\
 const plugins = {}; for (const [, src] of swift) for (const m of src.matchAll(/public class (\w+)\s*:\s*CAPPlugin[\s\S]*?public let jsName = "(\w+)"/g)) plugins[m[1]] = m[2];
 /* ΓΝΩΣΤΗ ΕΚΚΡΕΜΟΤΗΤΑ: το AlkWatch (αυτόματη αποστολή κωδικού στο Apple Watch) είναι ανενεργό στο iPhone για τον ίδιο λόγο. Η ενεργοποίησή του θέλει ξεχωριστή απόφαση και δοκιμή σε συσκευή.
    Όταν αποφασιστεί, φεύγει από εδώ και καταχωρείται στην οθόνη που εμφανίζεται. */
-const PENDING = ['AlkWatchPlugin'];
+/* 1.14.96: το AlkWatch καταχωρήθηκε στην οθόνη που εμφανίζεται· η εξαίρεση έφυγε (το test έγινε αυστηρότερο). */
+const PENDING = [];
 
 test('iPhone: the screen the app really shows is known, and it registers the trip GPS plugin', () => {
   assert.equal(shown, 'AlkBridgeViewController', 'SceneDelegate builds the window with this controller');
