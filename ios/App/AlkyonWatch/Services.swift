@@ -195,12 +195,18 @@ final class Link: NSObject, WCSessionDelegate {
         guard WCSession.isSupported() else { return }
         let s = WCSession.default; s.delegate = self; s.activate()
     }
+    /* 21/11/2026: ο ίδιος κωδικός φτάνει από τρεις δρόμους (applicationContext, transferUserInfo, sendMessage) και το transferUserInfo είναι ΟΥΡΑ:
+       μετά από δύο-τρία «Νέος κωδικός» στο iPhone, ένας παλιός κωδικός (ήδη σβησμένος στον server) μπορούσε να φτάσει τελευταίος και να γραφτεί από πάνω
+       (Apple Watch, 21/11 21:09). Κάθε αλλαγή κωδικού ξαναφόρτωνε και την οθόνη. Τώρα μετρά η ώρα δημιουργίας ("at" από το iPhone): γράφεται μόνο νεότερος. */
+    static func isNewer(_ at: Double, than last: Double?) -> Bool { at <= 0 || last == nil || at > last! }
     func apply(_ d: [String: Any]) {
         guard let c = d["code"] as? String else { return }
         let clean = P.clean(c)
-        guard clean.count >= 6, clean != P.code else { return }
+        let at = (d["at"] as? NSNumber)?.doubleValue ?? 0
+        guard clean.count >= 6 else { return }
         DispatchQueue.main.async {
-            P.code = clean; P.setB("wel", true)
+            guard clean != P.code, Link.isNewer(at, than: P.dn("codeAt")) else { return }
+            P.code = clean; P.setB("wel", true); if at > 0 { P.setD("codeAt", at) }
             let e = Engine.shared
             e.welcome = false; e.fc?["got"] = nil
             e.sayK(L.t("LinkedMsg"), "check", 2, 3.5)

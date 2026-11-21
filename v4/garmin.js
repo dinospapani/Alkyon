@@ -27,6 +27,8 @@ function sendMsg(r,ok){ if(r&&r.app>0) return ok!==true?T('Βρέθηκε ρολ
   return ok?T('Στάλθηκε στο ρολόι.','Sent to the watch.'):T('Δεν μπόρεσα να ελέγξω για ρολόι. Γράψε τον κωδικό στο ρολόι: Μενού (≡) › Ρυθμίσεις.','Could not check for a watch. Type the code on the watch: Menu (≡) › Settings.'); }
 function sendNow(code){ return wstat().then(function(r){ return push(code).then(function(ok){ var m=sendMsg(r,ok); B.toast(m); return m; }); }); }
 B.garminSendMsg=sendMsg;
+/* 21/11/2026: «Νέος κωδικός» δεν ξαναπατιέται όσο φτιάχνεται ο προηγούμενος (διπλό πάτημα = δύο κωδικοί, ο πρώτος σβήνεται αμέσως). */
+var newBusy=false;
 function disconnect(code){ var cl=C(); if(!cl||!code) return Promise.reject(new Error('nosess')); return cl.rest('watch_links?code=eq.'+encodeURIComponent(code),{method:'DELETE'}).then(function(r){ if(r&&r.ok===false) throw new Error('http '+r.status); }); }
 function drop(code){ var cl=C(); if(!cl||!code) return Promise.resolve(); return cl.rest('watch_links?code=eq.'+code,{method:'DELETE'}).catch(function(){}); }
 function sheet(){ var body=h('div',{class:'bform gmn'}), sh=B.sheet({title:T('Ρολόι','Watch'),body:body});
@@ -49,7 +51,8 @@ function sheet(){ var body=h('div',{class:'bform gmn'}), sh=B.sheet({title:T('Ρ
         W()?h('p',{class:'note',id:'gmwst',text:T('Ψάχνω ρολόι…','Looking for a watch…')}):null,
         h('div',{class:'acts'},h('button',{class:'btn',type:'button',text:T('Αντιγραφή','Copy'),onclick:function(){ try{ navigator.clipboard.writeText(st.code).then(function(){ B.toast(T('Αντιγράφηκε.','Copied.')); }); }catch(e){} }}),
           W()?h('button',{class:'btn',type:'button',text:T('Στείλε στο ρολόι','Send to watch'),onclick:function(){ sendNow(st.code); }}):null,
-          h('button',{class:'btn',type:'button',text:T('Νέος κωδικός','New code'),onclick:function(){ B.ask(T('Ο παλιός κωδικός θα σταματήσει να δουλεύει. Συνέχεια;','The old code will stop working. Continue?'),T('Νέος κωδικός','New code')).then(function(y){ if(!y) return; drop(st.code).then(create).then(function(){ paint(); },function(e){ paint(String(e.message)); }); }); }}),
+          h('button',{class:'btn',type:'button',text:T('Νέος κωδικός','New code'),onclick:function(ev){ var btn=ev&&ev.currentTarget; if(newBusy) return; newBusy=true; if(btn) btn.disabled=true; var done=function(){ newBusy=false; if(btn) btn.disabled=false; };
+            B.ask(T('Ο παλιός κωδικός θα σταματήσει να δουλεύει. Συνέχεια;','The old code will stop working. Continue?'),T('Νέος κωδικός','New code')).then(function(y){ if(!y){ done(); return; } drop(st.code).then(create).then(function(){ done(); paint(); },function(e){ done(); paint(String(e.message)); }); },done); }}),
           /* 1.14.83 (P0.5): αποσύνδεση ρολογιού: ο κωδικός σβήνει από τον server και το ρολόι σταματά να γράφει στο ημερολόγιο (μέσα σε ~1 λεπτό) */
           h('button',{class:'btn',type:'button',text:T('Αποσύνδεση ρολογιού','Disconnect watch'),onclick:function(){ B.ask(T('Το ρολόι θα σταματήσει να στέλνει ψάρια και να παίρνει πρόγνωση από τον λογαριασμό σου. Συνέχεια;','The watch will stop sending catches and getting the forecast from your account. Continue?'),T('Αποσύνδεση','Disconnect')).then(function(y){ if(!y) return;
             disconnect(st.code).then(function(){ ls.set(K,null); B.toast(T('Το ρολόι αποσυνδέθηκε.','The watch was disconnected.')); paint(); },function(){ paint('net'); }); }); }})));
