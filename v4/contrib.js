@@ -31,7 +31,11 @@ function rowOf(kind,x){
   if(x.pb&&typeof x.pb.hpa==='number'){ c.pb=x.pb.hpa; if(typeof x.pb.d3==='number') c.pbd3=Math.round(x.pb.d3*10)/10; }
   var sp=String(x.latin||x.species||'').trim().toLowerCase().slice(0,80)||null;
   if(!x.miss&&!sp) return null;
-  return {ref:'b:'+x.id,kind:x.miss?'miss':'catch',sp:sp,day:x.date,ms:msOf(x.date,x.time,x.tz),ms2:null,lat:la2,lon:lo2,cnt:x.miss?0:Math.min(999,x.cnt>1?x.cnt:1),tech:x.tech?String(x.tech).slice(0,40):null,prof:x.prof||null,cond:Object.keys(c).length?c:null}; }
+  /* 21/11/2026 (φάση 1β): ψάρι από ανέβασμα εργαλείου → ως τεχνική το είδος του εργαλείου (δίχτυ / παραγάδι / ζεμπίλι), όχι ό,τι έγραψε ο χρήστης.
+     Η ώρα του είναι η ώρα ανάσυρσης· ο server το αναγνωρίζει από την τεχνική και το κρατά έξω από τα «πότε τσιμπάνε». Η εγγραφή του χρήστη δεν αλλάζει. */
+  var tech=x.tech?String(x.tech).slice(0,40):null;
+  try{ var gt=B.gearTypeOf&&B.gearTypeOf(x), gn=gt&&B.gearTn&&B.gearTn(gt); if(gn) tech=gn; }catch(e){}
+  return {ref:'b:'+x.id,kind:x.miss?'miss':'catch',sp:sp,day:x.date,ms:msOf(x.date,x.time,x.tz),ms2:null,lat:la2,lon:lo2,cnt:x.miss?0:Math.min(999,x.cnt>1?x.cnt:1),tech:tech,prof:x.prof||null,cond:Object.keys(c).length?c:null}; }
 function sig(r){ return JSON.stringify(r); }
 var busy=false;
 function sync(){ if(busy||!on()) return Promise.resolve(); var s=sess(); if(!s) return Promise.resolve(); busy=true;
@@ -124,10 +128,12 @@ var MY=null, myAt=0;
 function mine(){ if(MY&&Date.now()-myAt<6*3600e3) return Promise.resolve(MY); var se=sess(); if(!se) return Promise.resolve(null);
   return C().rest('user_bite_stats?select=n,data,updated_at&user_id=eq.'+encodeURIComponent(se.uid)).then(function(r){ return r.ok?r.json():[]; }).then(function(a){ MY=a[0]||null; myAt=Date.now(); return MY; }).catch(function(){ return null; }); }
 function cellKey(){ var p=B.lastPos&&B.lastPos(); if(!p) return null; return 'r:'+(Math.floor(p.lat/2)*2)+'_'+(Math.floor(p.lon/2)*2); }
+/* 21/11/2026 (φάση 1β): οι ίδιες τεχνικές παθητικών εργαλείων με το PASSIVE του server (safety-job.mjs). Πριν έλειπαν «Ζεμπίλι / παγίδα» και «Trap / pot». */
+var PASSIVE_RE=/^(δίχτυ|παραγάδι|ζεμπίλι \/ παγίδα|κλουβί|net|longline|trap \/ pot|trap|pot)$/i;
 function insList(ins){ var ul=h('ul',{class:'bsins'}); (ins||[]).forEach(function(x){ var L=FL[x.f]; if(!L) return; var up=x.lift>=1;
     var src=x.src==='fit'?(x.n+T(' ώρες εξόδων (μοντέλο από τα στοιχεία)',' trip hours (model fitted from the data)')):x.src==='blend'?(Math.round(x.n)+T(' τσιμπήματα του είδους + ευρήματα της ομάδας του',' bites of the species + findings of its group')):x.src==='both'?T('ψάρια και ώρες εξόδων','catches and trip hours'):x.src==='trip'?(x.h?x.h+T(' ώρες εξόδων',' trip hours'):T('ώρες εξόδων','trip hours')):Math.round(x.n)+T(' τσιμπήματα, σε σύγκριση με τις ώρες της ίδιας μέρας',' bites vs the hours of the same day');
     var li=h('li',{class:(up?'up':'down')+(x.src==='both'?' strong':'')},h('b',{text:(up?'▲ ':'▼ ')+L[0]+': '+L[1][x.b]}),h('span',{text:' · ×'+fx(x.lift,1)+(up?T(' πιο συχνά ψάρια',' more fish'):T(' (λιγότερα)',' (fewer)'))}),h('small',{class:'bssrc',text:(x.src==='both'?'✓✓ ':'')+T('από ','from ')+src}));
-    if(x.w){ var wk=[].concat(x.w.lure||[],(x.w.tech||[]).filter(function(t){ return !/^(δίχτυ|παραγάδι|κλουβί|net|longline|pot)$/i.test(String(t).trim()); }),x.w.bait||[],x.w.dep||[]);   /* 1.14.44: δίχτυ και παραγάδι δεν είναι τεχνική καλαμιού */ if(wk.length) li.append(h('small',{class:'bswk',text:T('Δούλεψε: ','Worked: ')+wk.join(' · ')})); }
+    if(x.w){ var wk=[].concat(x.w.lure||[],(x.w.tech||[]).filter(function(t){ return !PASSIVE_RE.test(String(t).trim()); }),x.w.bait||[],x.w.dep||[]);   /* 1.14.44: δίχτυ και παραγάδι δεν είναι τεχνική καλαμιού· 21/11/2026: και το ζεμπίλι (PASSIVE_RE) */ if(wk.length) li.append(h('small',{class:'bswk',text:T('Δούλεψε: ','Worked: ')+wk.join(' · ')})); }
     ul.append(li); }); return ul; }
 function card(sp0){ var box=h('section',{class:'card bscard'},h('h3',{text:T('Πότε τσιμπάνε','When they bite')})), who=h('div',{class:'seg bswho'}), chips=h('div',{class:'chips bschips'}), body=h('div',null,h('p',{class:'sub',text:T('Φόρτωση…','Loading…')}));
   box.append(who,chips,body);
