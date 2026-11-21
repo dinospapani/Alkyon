@@ -10,6 +10,9 @@ class AlkBridgeViewController: CAPBridgeViewController {
     override open func capacitorDidLoad() {
         bridge?.registerPluginInstance(AlkBaroPlugin())
         bridge?.registerPluginInstance(AlkTripPlugin())
+        /* 1.14.96: και το AlkWatch (αυτόματη αποστολή του κωδικού σύνδεσης στο Apple Watch). Ήταν στο MainViewController, που δεν εμφανίζεται,
+           και η οθόνη «Ρολόι» έμενε στο «Ψάχνω ρολόι…» ενώ ο κωδικός δεν έφευγε ποτέ (ίδιο λάθος με το AlkTrip πριν την 1.14.94). */
+        bridge?.registerPluginInstance(AlkWatchPlugin())
     }
 }
 

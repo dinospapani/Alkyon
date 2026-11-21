@@ -2068,6 +2068,23 @@ with sync_playwright() as p:
     r,x,sr,e=nat95("{active:false,id:'trip-old',start:Date.now()-9*3600000,due:Date.now()-6*3600000,route:'N'}")
     check('η εφαρμογή ανοίγει με έξοδο που έχει ήδη κλείσει: κλείνει την υπηρεσία μία φορά (1.14.95)', ks(r)==['stop'] and not e, [r,sr,e])
 
+    print('# 1.14.96 οθόνη Ρολόι: σύνδεση iPhone → Apple Watch')
+    def watch96(link, status):
+        c=ctx(b); c.add_init_script("window.__wl=[];window.AKN={site:location.origin+'/',platform:'ios',openExternal:function(){},watch:{link:function(o){ window.__wl.push(o.code); return "+link+"; },status:function(){ return "+status+"; }}};"
+          +"if(!sessionStorage.__s){sessionStorage.__s=1;localStorage.setItem('alkyon-v4-watch',JSON.stringify({code:'ABCD2345',at:Date.now()}));}")
+        pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(3500)
+        pg.evaluate("()=>{ AK.cloud.session=function(){ return {name:'T',token:'t',uid:'u'}; }; AK.garmin.sheet(); }"); pg.wait_for_timeout(1500)
+        st=pg.evaluate("()=>{ const e=document.getElementById('gmwst'); return e?e.textContent:null; }")
+        btn=pg.locator('button', has_text='Στείλε στο ρολόι'); toast=None
+        if btn.count(): btn.first.click(); pg.wait_for_timeout(900); toast=pg.evaluate("()=>{ const t=[...document.querySelectorAll('.toast,#toast,[class*=toast]')].map(x=>x.textContent).join(' | '); return t; }")
+        r=pg.evaluate("()=>window.__wl"); errs=list(pg._errs); c.close(); return st,toast,r,errs
+    st,toast,r,e=watch96("Promise.resolve({ok:true})","Promise.resolve({watches:1,app:1})")
+    check('ρολόι με το Alkyon: ο κωδικός στέλνεται μόλις ανοίξει η οθόνη, «Βρέθηκε ρολόι με το Alkyon ✓», και το κουμπί λέει «Στάλθηκε» (1.14.96)', r and r[0]=='ABCD2345' and st and 'Βρέθηκε ρολόι με το Alkyon' in st and toast and 'Στάλθηκε στο ρολόι' in toast and not e, [st,toast,r,e])
+    st,toast,r,e=watch96("Promise.resolve({ok:false,err:'nowatch'})","Promise.resolve({watches:0,app:0})")
+    check('χωρίς ρολόι: η οθόνη λέει ότι δεν βρέθηκε, και το κουμπί ΔΕΝ λέει «Στάλθηκε» (1.14.96)', st and 'Δεν βρέθηκε Apple Watch' in st and toast and 'Δεν βρέθηκε ρολόι με το Alkyon' in toast and 'Στάλθηκε' not in toast and not e, [st,toast,r,e])
+    st,toast,r,e=watch96("Promise.reject(new Error('UNIMPLEMENTED'))","Promise.reject(new Error('UNIMPLEMENTED'))")
+    check('η σύνδεση με το ρολόι δεν απαντά (το λάθος πριν την 1.14.96): η οθόνη δεν μένει στο «Ψάχνω ρολόι…», δείχνει πώς γράφεται ο κωδικός (1.14.96)', st and 'Ψάχνω' not in st and 'Γράψε τον κωδικό στο ρολόι' in st and not e, [st,toast,r,e])
+
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)
     check('Οδηγός χωρίς καρτέλα Κόμποι (αφαιρέθηκε προσωρινά)', not pg.query_selector('#tab-guide .seg button[data-g=knots]') and not pg._errs, pg._errs); c.close()
