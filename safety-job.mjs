@@ -1007,6 +1007,14 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
         if (Object.values(QC).some(x => x)) log('bite stats: qc ' + JSON.stringify(QC));
         const catchesAll = rowsQ.filter(r => r.kind === 'catch' && r.ms != null && r.lat != null);
         const tripsAll = rowsQ.filter(r => r.kind === 'trip' && r.cond && Array.isArray(r.cond.e) && r.cond.e.length);
+        /* 21/11/2026 (gear-findings): ψάρια από ΠΑΘΗΤΙΚΑ εργαλεία (δίχτυ, παραγάδι, ζεμπίλι/παγίδα) ΔΕΝ μπαίνουν στα «πότε τσιμπάνε».
+           Η ώρα τους είναι η ώρα ανάσυρσης, όχι η ώρα που πιάστηκαν (στις 21/11 τα 5 από τα 8 ήταν την αυγή, όπου κάθεται το κορυφαίο εύρημα «αυγή ×2,72»).
+           Η εφαρμογή γράφει την τεχνική από τον Εξοπλισμό (gear-view.js, TYPES: el/en). Μένουν στο «Τι πιάνεται τώρα» (είδη ανά περιοχή), στο «Τι δούλεψε»
+           ανά περιοχή και στον μετρητή ετοιμότητας, όπως πριν. Ο βαθμός δεν αλλάζει (η μάθηση είναι κλειδωμένη). */
+        const PASSIVE = new Set(['δίχτυ', 'παραγάδι', 'ζεμπίλι / παγίδα', 'κλουβί', 'net', 'longline', 'trap / pot', 'trap', 'pot']);
+        const passive = r => !!r.tech && PASSIVE.has(String(r.tech).trim().toLowerCase());
+        const catchesBite = catchesAll.filter(r => !passive(r)), tripsBite = tripsAll.filter(t => !passive(t));
+        stats.bgear = catchesAll.length - catchesBite.length;
         // 1.14.87 (P1.3a): μετρητής ετοιμότητας (μόνο πληροφορία): έγκυρες έξοδοι όλων των ειδών ψαρέματος, πόσοι χρήστες, πόσες είχαν ψάρια, σε σχέση με τα όρια του score-config (evalGate)
         let READY = null; try { if (PF.readiness) { const VS = tripsAll.filter(evalOK); READY = PF.readiness({ trips: VS.length, users: new Set(VS.map(t => t.user_id)).size,
           pos: VS.filter(t => catchesAll.some(r => r.user_id === t.user_id && +r.ms >= +t.ms - 15 * 60000 && +r.ms <= +t.ms2 + 15 * 60000)).length }); } } catch (e) { }
@@ -1016,7 +1024,7 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
         const monOf = cs => { const m = new Array(12).fill(0); for (const r of cs) { const mo = new Date(+r.ms).getUTCMonth(); m[mo] += 1 + Math.log2(Math.max(1, Math.min(64, r.cnt || 1))); } return m.map(v => Math.round(v * 10) / 10); };
         const put = (k, a, g) => { a.data.grp = g; out.push({ key: k, n: a.n, users: a.users, data: a.data, updated_at: now }); };
         for (const g of ['sea', 'spear', 'lake', 'ceph']) {
-          const catches = catchesAll.filter(r => grpOf(r) === g), trips = tripsAll.filter(t => grpOf(t) === g), ex = EXG[g];
+          const catches = catchesBite.filter(r => grpOf(r) === g), trips = tripsBite.filter(t => grpOf(t) === g), ex = EXG[g];
           if (g !== 'sea' && !catches.length) continue;
           const pre = g === 'sea' ? '' : 'g:' + g + '|';   // θάλασσα: 'all', 'sp:…', 'r:…' (όπως πριν) · αλλιώς 'g:spear', 'g:spear|sp:…'
           const A0 = analyse(catches, trips, 8, ex); const A0wk = A0.data.wk; delete A0.data.wk; try { const bt = backtest(catches, trips, ex, g); A0.data.trips = trips.length; A0.data.ses = sesCount(trips); try { const bv = backtest(catches, trips, ex, g, true); if (bv) A0.data.btv = { n: bv.n, base: bv.base, adj: bv.adj }; } catch (e) { } A0.data.fitMin = FIT_MIN; A0.data.acc = accOf(catches, trips, g); if (g === 'sea') A0.data.qc = QC; if (bt) { A0.data.bt = bt; if (bt.fitOn) { const F = fitPoisson(catches, trips, ex); if (F && F.ins.length) { A0.data.ins = F.ins; A0.data.fitted = true; } } else if (!bt.on) A0.data.learnOff = true; } } catch (e) { log('bite stats: backtest ' + e.message); }
@@ -1025,6 +1033,7 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
              (19/11: 46% έναντι 50% → κλειστή· 20/11: 53% έναντι 52% → ανοιχτή), άρα ο ίδιος καιρός έπαιρνε άλλο βαθμό. Ανοίγει μόνο με ρητή απόφαση (αλλαγή εδώ και deploy),
              όταν καλυφθούν οι πύλες του evalGate και η αξιολόγηση δείξει όφελος. Το learnOpen υπάρχει μόνο για τα tests του παλιού κανόνα· η παραγωγή δεν το περνά. */
           if (!learnOpen) { A0.data.learnOff = true; A0.data.learnLock = true; }
+          A0.data.gearOut = catchesAll.filter(r => grpOf(r) === g && passive(r)).length;   // 21/11/2026: πόσα ψάρια παθητικών εργαλείων έμειναν έξω
           A0.data.mon = monOf(catches); if (g === 'sea' && READY) A0.data.ready = READY; put(g === 'sea' ? 'all' : 'g:' + g, A0, g);
           /* 1.14.90: ο διακόπτης της μάθησης ισχύει για ΟΛΑ τα στατιστικά της ομάδας. Πριν έκλεινε μόνο στο γενικό («all» / «g:…»)· τα στατιστικά ανά περιοχή, είδος και μέγεθος
              δεν είχαν διακόπτη, οπότε η εφαρμογή συνέχιζε να διορθώνει τον βαθμό (έως ±15%) όποτε διάλεγε αυτά, και δύο κινητά στο ίδιο σημείο έδειχναν άλλο βαθμό. */
@@ -1057,19 +1066,19 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
         } catch (e) { log('bite stats: trend ' + e.message); }
         if (out.length) await sb('bite_stats?on_conflict=key', { method: 'POST', headers: { 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(out) });
         // προσωπικά (μόνο ο ίδιος τα διαβάζει): data = το είδος ψαρέματος που κάνει πιο συχνά, data.by = όλα όσα έχουν ≥ 10 ψάρια
-        const byU = {}; for (const r of catchesAll) (byU[r.user_id] = byU[r.user_id] || []).push(r);
+        const byU = {}; for (const r of catchesBite) (byU[r.user_id] = byU[r.user_id] || []).push(r);
         const pers = [];
         for (const [u, cs0] of Object.entries(byU)) {
           const by = {}; let main = null, mainN = 0, tot = 0;
           for (const g of ['sea', 'spear', 'lake', 'ceph']) { const cs = cs0.filter(r => grpOf(r) === g), n = cs.reduce((a, r) => a + Math.max(1, Math.min(20, r.cnt || 1)), 0); tot += n; if (n < 10) continue;
-            const a = analyse(cs, tripsAll.filter(t => t.user_id === u && grpOf(t) === g), 4, EXG[g]); const sp = {}; cs.forEach(r => { if (r.sp) sp[r.sp] = (sp[r.sp] || 0) + 1; });
-            a.data.top = Object.entries(sp).sort((x, y) => y[1] - x[1]).slice(0, 3).map(x => x[0]); a.data.grp = g; try { a.data.acc = accOf(cs, tripsAll.filter(t => t.user_id === u && grpOf(t) === g), g); } catch (e) { } delete a.data.wk; by[g] = { n: a.n, data: a.data }; if (n > mainN) { mainN = n; main = g; } }
+            const a = analyse(cs, tripsBite.filter(t => t.user_id === u && grpOf(t) === g), 4, EXG[g]); const sp = {}; cs.forEach(r => { if (r.sp) sp[r.sp] = (sp[r.sp] || 0) + 1; });
+            a.data.top = Object.entries(sp).sort((x, y) => y[1] - x[1]).slice(0, 3).map(x => x[0]); a.data.grp = g; try { a.data.acc = accOf(cs, tripsBite.filter(t => t.user_id === u && grpOf(t) === g), g); } catch (e) { } delete a.data.wk; by[g] = { n: a.n, data: a.data }; if (n > mainN) { mainN = n; main = g; } }
           if (!main) continue;
           const data = Object.assign({}, by[main].data, { by });
           // «Η παρέα μου»: εσύ + όσοι φίλοι μοιράζονται τα ψάρια τους μαζί σου (και συμμετέχουν)
           try { const fr = new Set(((await sb(`friends?viewer=eq.${encodeURIComponent(u)}&select=owner,share`)) || []).filter(x => x.share !== false).map(x => x.owner)); fr.delete(u);
-            const crewC = catchesAll.filter(r => grpOf(r) === main && (r.user_id === u || fr.has(r.user_id))), cu = new Set(crewC.map(r => r.user_id));
-            if (cu.size >= 2 && crewC.length >= 20) { const a = analyse(crewC, tripsAll.filter(t => grpOf(t) === main && (t.user_id === u || fr.has(t.user_id))), 5, EXG[main]); delete a.data.wk; data.crew = { n: a.n, users: cu.size, data: a.data }; } } catch (e) { }
+            const crewC = catchesBite.filter(r => grpOf(r) === main && (r.user_id === u || fr.has(r.user_id))), cu = new Set(crewC.map(r => r.user_id));
+            if (cu.size >= 2 && crewC.length >= 20) { const a = analyse(crewC, tripsBite.filter(t => grpOf(t) === main && (t.user_id === u || fr.has(t.user_id))), 5, EXG[main]); delete a.data.wk; data.crew = { n: a.n, users: cu.size, data: a.data }; } } catch (e) { }
           pers.push({ user_id: u, n: tot, data, updated_at: now }); }
         if (pers.length) await sb('user_bite_stats?on_conflict=user_id', { method: 'POST', headers: { 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(pers) }).catch(e => log('bite stats: user ' + e.message));
         const rows_ = rows;
