@@ -137,12 +137,36 @@ public class AlkTripPlugin: CAPPlugin, CAPBridgedPlugin, CLLocationManagerDelega
             if moved { if addFix(l) { d["half"] = (d["half"] ?? 0) + 1 }; last = l; d["kept"] = (d["kept"] ?? 0) + 1 } else { d["near"] = (d["near"] ?? 0) + 1 }
         }
         d["ack"] = acked ? 1 : 0   // 1.14.95: ο server γνωρίζει την έξοδο;
+        perm(&d)
         if !tripId.isEmpty { ud.set(d, forKey: dk) }
         // 1.14.95: καταγραφή που ο server δεν αναγνώρισε ποτέ δεν τρέχει πάνω από 24 ώρες (δίχτυ για τη μπαταρία)
         if AlkHbRule.expired(acked: acked, born: born, now: Date().timeIntervalSince1970) { halt(); return }
         if Date().timeIntervalSince1970 - lastHb >= interval { sendHb() }
     }
-    public func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) { /* χωρίς σήμα GPS: ξαναδοκιμάζει μόνο του */ }
+    /* 1.14.95 · διάγνωση (τρία πεδία στο λεξικό της εξόδου, ταξιδεύουν στο gps.n):
+       auth   = CLAuthorizationStatus.rawValue τη στιγμή της εγγραφής: 0 χωρίς απάντηση · 1 περιορισμένη · 2 άρνηση · 3 Πάντα · 4 Κατά τη χρήση
+       prec   = 1 «Ακριβής τοποθεσία» ανοιχτή · 0 κατά προσέγγιση
+       lmErr  = πόσες φορές το iOS ανέφερε σφάλμα θέσης (didFailWithError)
+       Δεν αλλάζουν τίποτα στη συμπεριφορά της καταγραφής. */
+    private func perm(_ d: inout [String: Double]) {
+        d["auth"] = Double(lm.authorizationStatus.rawValue)
+        d["prec"] = lm.accuracyAuthorization == .fullAccuracy ? 1 : 0
+    }
+    private func noteDiag(_ f: (inout [String: Double]) -> Void) {
+        guard !tripId.isEmpty else { return }
+        let dk = "alkTrip.diag." + tripId
+        var d = (ud.dictionary(forKey: dk) as? [String: Double]) ?? [:]
+        f(&d); perm(&d)
+        ud.set(d, forKey: dk)
+    }
+    public func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        /* χωρίς σήμα GPS: ξαναδοκιμάζει μόνο του · 1.14.95: μετριέται για τη διάγνωση */
+        noteDiag { d in d["lmErr"] = (d["lmErr"] ?? 0) + 1 }
+    }
+    /* 1.14.95: αν ο χρήστης αλλάξει την άδεια θέσης μέσα στην έξοδο, φαίνεται στη διάγνωση ακόμη κι αν δεν έρθει άλλη θέση */
+    public func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        if running { noteDiag { _ in } }
+    }
 
     @discardableResult private func addFix(_ l: CLLocation) -> Bool {
         let k = "alkTrip.fixes." + tripId

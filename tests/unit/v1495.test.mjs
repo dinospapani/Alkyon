@@ -199,3 +199,21 @@ test('diagnostic: the service reports whether the server knew the trip and how m
   assert.ok(SW.includes('d["ack"] = acked ? 1 : 0') && SW.includes('d["hb4"] = (d["hb4"] ?? 0) + 1'));
   assert.match(fn('mergeFixes'), /q\.d\.n=r\.diag;/, 'they travel with the trip, inside gps.n');
 });
+test('iPhone diagnostic (approved 21/11): permission kind, precise location and location errors are written into the trip diagnostic — without touching the recording', () => {
+  const perm = /private func perm\(_ d: inout \[String: Double\]\) \{([\s\S]*?)\n    \}/.exec(SW); assert.ok(perm, 'perm()');
+  assert.match(perm[1], /d\["auth"\] = Double\(lm\.authorizationStatus\.rawValue\)/);
+  assert.match(perm[1], /d\["prec"\] = lm\.accuracyAuthorization == \.fullAccuracy \? 1 : 0/);
+  const upd = /public func locationManager\(_ manager: CLLocationManager, didUpdateLocations locations: \[CLLocation\]\) \{([\s\S]*?)\n    \}/.exec(SW)[1];
+  assert.match(upd, /perm\(&d\)\s*\n\s*if !tripId\.isEmpty \{ ud\.set\(d, forKey: dk\) \}/, 'every saved fix records the permission state');
+  const fail = /didFailWithError error: Error\) \{([\s\S]*?)\n    \}/.exec(SW)[1];
+  assert.match(fail, /noteDiag \{ d in d\["lmErr"\] = \(d\["lmErr"\] \?\? 0\) \+ 1 \}/);
+  assert.match(SW, /public func locationManagerDidChangeAuthorization\(_ manager: CLLocationManager\) \{\s*if running \{ noteDiag \{ _ in \} \}/);
+  const note = /private func noteDiag\([\s\S]*?\n    \}/.exec(SW)[0];
+  assert.match(note, /guard !tripId\.isEmpty else \{ return \}/);
+  /* καμία από τις τρεις προσθήκες δεν σταματά, ξεκινά ή αλλάζει την καταγραφή ή τον παλμό */
+  for (const src of [perm[0], note, fail, /locationManagerDidChangeAuthorization[\s\S]*?\n    \}/.exec(SW)[0]]) assert.ok(!/halt\(|stopUpdating|startUpdating|sendHb|allowsBackground|lastHb/.test(src), src.slice(0, 60));
+  /* ταξιδεύουν με την έξοδο όπως όλο το λεξικό (gps.n) */
+  assert.match(fn('mergeFixes'), /q\.d\.n=r\.diag;/);
+  assert.match(SW, /call\.resolve\(\["fixes": a\.filter \{ \$0\.count >= 3 && \$0\[2\] > since \}, "diag": d\]\)/);
+});
+
