@@ -26,6 +26,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.os.SystemClock;
 
 import androidx.core.app.NotificationCompat;
 
@@ -165,7 +166,11 @@ public class AlkTripService extends Service implements LocationListener {
         final String sent = tripId;
         try {
             b.put("action", "hb"); b.put("id", tripId); b.put("key", key);
-            if (last != null && now - last.getTime() < 15 * 60000) { b.put("lat", last.getLatitude()); b.put("lon", last.getLongitude()); }
+            if (last != null && now - last.getTime() < 15 * 60000) { b.put("lat", last.getLatitude()); b.put("lon", last.getLongitude());
+                /* 1.14.98: πόσα δευτερόλεπτα πριν πάρθηκε η θέση (μονότονο ρολόι, ανεξάρτητο από την ώρα της συσκευής)· ο server γράφει
+                   ως ώρα θέσης την ώρα λήψης, όχι την ώρα του παλμού. Χωρίς σήμα (κτίριο, καμπίνα) η παλιά θέση δεν φαίνεται πια φρέσκια. */
+                long ageMs = (SystemClock.elapsedRealtimeNanos() - last.getElapsedRealtimeNanos()) / 1000000L;
+                if (ageMs >= 0) b.put("age", Math.round(ageMs / 1000.0)); }
             int bat = battery(); if (bat >= 0) b.put("battery", bat);
         } catch (Exception e) { return; }
         new Thread(new Runnable() { @Override public void run() {

@@ -182,7 +182,11 @@ public class AlkTripPlugin: CAPPlugin, CAPBridgedPlugin, CLLocationManagerDelega
         guard !url.isEmpty, !key.isEmpty, let u = URL(string: url) else { return }
         lastHb = Date().timeIntervalSince1970
         var b: [String: Any] = ["action": "hb", "id": tripId, "key": key]
-        if let l = last, Date().timeIntervalSince(l.timestamp) < 900 { b["lat"] = l.coordinate.latitude; b["lon"] = l.coordinate.longitude }
+        if let l = last, Date().timeIntervalSince(l.timestamp) < 900 {
+            b["lat"] = l.coordinate.latitude; b["lon"] = l.coordinate.longitude
+            // 1.14.98: πόσα δευτερόλεπτα πριν πάρθηκε η θέση· ο server γράφει την ώρα λήψης, όχι την ώρα του παλμού
+            b["age"] = max(0, Int(Date().timeIntervalSince(l.timestamp).rounded()))
+        }
         UIDevice.current.isBatteryMonitoringEnabled = true
         let lvl = UIDevice.current.batteryLevel
         if lvl >= 0 { b["battery"] = Int((lvl * 100).rounded()) }
