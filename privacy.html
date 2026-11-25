@@ -18,39 +18,55 @@ hr{border:0;border-top:1px solid #23365f;margin:36px 0}
 <body><main>
 <img src="icon-192.png" width="64" height="64" alt="" style="border-radius:14px">
 <h1>Alkyon · Privacy Policy</h1>
-<p class="mut">Last updated: 15 November 2026 · Applies to the Alkyon web app (alkyonfishing.com, previously dinospapani.github.io/Alkyon), the Alkyon app for Android and the Alkyon app for Garmin watches.</p>
+<p class="mut">Last updated: 25 November 2026 · Applies to the Alkyon web app (alkyonfishing.com, previously dinospapani.github.io/Alkyon), the Alkyon apps for Android and for iPhone/iPad, and the Alkyon apps for Apple Watch, Wear OS and Garmin watches.</p>
 
-<div class="card">In short: Alkyon only stores what you log, so it can show it back to you and sync it between your devices. Nothing is sold, and nothing is used for advertising.</div>
+<div class="card">In short: Alkyon only stores what you log, so it can show it back to you and sync it between your devices. Nothing is sold, and nothing is used for advertising. Other people see something of yours only when you choose it: friends you add, community posts you publish, a safety contact you set, or an SOS you send.</div>
 
 <h2>What is collected</h2>
 <ul>
-<li><b>Your account:</b> email address and an optional display name, if you create an account. If you choose <b>Continue with Google</b>, Alkyon receives only your name and email address from Google (no contacts, files or other Google data), and uses them only to create and identify your account.</li>
-<li><b>What you log:</b> catches, trips, fishing spots, gear, boat details and photos, including the time and the GPS position you saved with them.</li>
-<li><b>From the Garmin watch:</b> when you log a catch on the watch, it sends the time, the GPS position and the type of entry (fish / lost / toadfish), together with your link code, so the catch can be added to your logbook. To show the forecast, the watch sends its approximate position. Barometer readings stay on the watch.</li>
-<li><b>Alerts (optional):</b> if you turn on notifications, a push subscription and the places you chose to watch, so the server can send forecast and safety alerts. In the Android app the push subscription is a Firebase Cloud Messaging token (Google), used only to deliver these notifications.</li>
-<li><b>Safety features (optional):</b> the safety contact and Telegram link you set up, and your trip plan (return time, route) while a trip is active.</li>
-<li><b>Android app permissions:</b> location (forecast for where you are, the map and trips), camera (photos of a catch, only when you take one), and microphone (voice notes, only while you record). Each one is asked for when you first use the feature, and you can refuse or remove it in the phone settings.</li>
+<li><b>Your account:</b> email address and an optional display name, if you create an account. If you choose <b>Continue with Google</b> or <b>Continue with Apple</b>, Alkyon receives only your name and email address (with Apple, possibly a private relay address), and uses them only to create and identify your account. No contacts, files or other data from those accounts.</li>
+<li><b>What you log:</b> catches, lost fish, trips (including the GPS track of a trip), fishing spots, gear and tackle, boat details, notes and photos, with the time and the GPS position you saved with them. If you are signed in, they are synced to your account; photos are kept in private storage that only you (and friends you share with, see below) can open. Cloud backups you make are stored in your own private folder.</li>
+<li><b>Location during a trip:</b> when you start a trip, the app records your GPS track on the phone, also while the screen is locked, until you end the trip. On Android this runs as a foreground service with a visible notification; on iPhone the location indicator is shown. The app does not use your location in the background when no trip is running. The track is saved with the trip.</li>
+<li><b>Safety features (optional):</b> the safety contact you enter (name, phone, email) and the Telegram link you set up, and your trip plan (return time, route). If you turn on alerts to your safety contact for a trip, your phone also sends your position, battery level and time to the server about every 3 minutes while the trip is active, so the server can tell your contact if you are overdue or stop responding. Automatic alerts to your contact are sent through Telegram. Messages you choose to send yourself by SMS or WhatsApp go from your own phone.</li>
+<li><b>SOS (when you press it):</b> your name and position are shown to your friends and to Alkyon users whose position in the last hour is within about 20 nautical miles, for up to 6 hours or until you mark yourself safe, and nearby boats and friends get a notification.</li>
+<li><b>Live trip (optional):</b> if you turn it on when you start a trip, your position and number of fish are sent about every 2 minutes and shown to friends who share with you. Your last live position stays visible to them until your next live trip replaces it, or for up to 90 days.</li>
+<li><b>Watches:</b> when you log a catch on the Apple Watch, Wear OS or Garmin watch, it sends the time, the GPS position and the type of entry (fish / lost / toadfish), together with your link code, so the catch can be added to your logbook. To show the forecast, the watch sends its approximate position. Barometer readings stay on the watch.</li>
+<li><b>Notifications (optional):</b> if you turn them on, a push subscription and the places you chose to watch, so the server can send forecast and safety alerts. Notifications are delivered through Firebase Cloud Messaging (Google) on Android, Apple Push Notification service on iPhone, and the browser's push service on the web.</li>
+<li><b>Sea reports and port notes (optional):</b> a sea report you send (position, sea state, wind, short note) is shown to signed-in users for 6 hours, without your name, and is deleted after 7 days. A port or ramp note you send is shown with your name after it is approved.</li>
+<li><b>Community (optional):</b> posts you publish (species, weight, length, bait, technique, day, the weather if you include it, and the photo), comments, likes, and your community name and picture are <b>public</b>: anyone can see them, even without an account. Posts do not include your position. Photos are re-encoded before upload, which removes the location data stored inside them.</li>
 <li><b>Help the forecast (optional, off unless you agree):</b> if you turn on <b>Profile › Settings › Help the forecast</b>, for each catch, lost fish and trip the app sends: species, time, the weather at that time (wind, waves, pressure, cloud, air and water temperature, tide), technique, bait, the lure you picked from your tackle (its colour and size), depth, the target species of a trip (if you pick one), the species name you typed, your «How was the fishing?» rating of a trip, how many fish, and an area rounded to about 10 km. The server adds the hourly weather for those hours from Open-Meteo's public history. It also adds the satellite water chlorophyll for that day and area from Copernicus Marine (only the rounded area and the date are used). Never your name, exact spot, notes or photos. Only the server reads these rows, to build anonymous totals of when fish bite (shown only when at least 20 catches exist), and a weekly list of species being caught in each area of about 100 km (shown, and notified to people with a saved spot there, only when at least 3 anglers reported them). From your own rows it also builds personal findings («For you») that only you can read, and combined findings for you and the friends who already share their catches with you («Crew»), and may send you a notification when tomorrow's forecast matches the conditions you catch most in. Turning it off deletes all of your rows from the server.</li>
+<li><b>Fish identification with AI (optional):</b> only if you enter your own Anthropic API key. The photo is then sent directly from your device to Anthropic to suggest the species. Alkyon's server does not receive it, and the key stays on your device.</li>
 <li><b>Feedback (optional):</b> when you use <b>Share feedback</b>, your message, the email you choose to add, the app version, the page and the phone type. If you are signed in, it is linked to your account so it is deleted with it.</li>
 <li><b>Error reports:</b> short technical error messages (app version, page, error text). These do not include your position or your catches. If you are signed in, they are linked to your account so they are deleted with it.</li>
 </ul>
 
+<h2>Permissions on the phone</h2>
+<p>Location (forecast for where you are, the map, catches and trips), camera (photos of a catch, only when you take one), photos (to pick or save a photo), microphone (voice notes and voice logging, only while you record), and on iPhone the barometer (air pressure saved with your trips and catches). Voice recordings stay on your device. Turning speech into text uses your phone's speech recognition service (Google or Apple). Each permission is asked for when you first use the feature, and you can refuse or remove it in the phone settings.</p>
+
 <h2>How it is used</h2>
-<p>Only to provide the features of the app: your logbook, sync between your phone and your watch, forecasts, alerts, safety messages, and sharing with friends you choose.</p>
+<p>Only to provide the features of the app: your logbook, sync between your devices and your watch, forecasts, alerts, safety messages, SOS, and sharing with the people you choose.</p>
 
-<h2>Where it is stored</h2>
-<p>Data is stored in the app's database and file storage (Supabase) and on your own device. The app itself is served by Cloudflare. Android notifications are delivered through Firebase Cloud Messaging (Google). Weather and sea forecasts are requested from Open-Meteo using a position only. No account details are sent with that request.</p>
+<h2>Friends</h2>
+<p>You connect with a friend by exchanging a one-time code. Connecting turns sharing on in both directions. A friend who shares with you can see your catches, spots and trips that are not marked private, including the exact position, the GPS track, notes and photos, and your live position when you turn it on for a trip. You can stop sharing with any friend at any time in <b>Profile › Friends</b>, and mark any catch, spot or trip as private.</p>
 
-<h2>Sharing</h2>
-<p>Your data is not sold or shared with advertisers. It is only shown to other people when you choose to: friends you add, community posts you publish, or a safety contact you set.</p>
+<h2>Where it is stored and who processes it</h2>
+<p>Data is stored in the app's database and file storage (Supabase) and on your own device. The app itself is served by Cloudflare. Notifications go through Google (Firebase Cloud Messaging), Apple (Apple Push Notification service) or your browser's push service; safety alerts through Telegram. Weather, sea, seabed and map data are requested from Open-Meteo, Copernicus Marine, EMODnet, EUMETSAT, RainViewer and map tile services (such as Esri, OpenStreetMap and OpenSeaMap) using a position or map area only; no account details are sent with those requests, but like any website they see your device's IP address.</p>
+
+<h2>How long it is kept</h2>
+<ul>
+<li>What you log and your account: until you delete it or delete your account.</li>
+<li>Completed safety trips (plan, last position, battery) and live trip positions: 90 days.</li>
+<li>Notification history and error reports: 30 days. Feedback messages: until we delete them, and always together with your account.</li>
+<li>Sea reports: 7 days.</li>
+</ul>
 
 <h2>Your choices</h2>
 <ul>
 <li>You can use most of the app without an account. Your data then stays only on your device.</li>
-<li>You can delete any catch, spot or trip in the app at any time.</li>
-<li>You can stop taking part in <b>Help the forecast</b> at any time; your rows are then deleted from the server.</li>
+<li>You can delete any catch, spot or trip in the app at any time, and mark any of them as private.</li>
+<li>You can stop sharing with a friend, and stop taking part in <b>Help the forecast</b>, at any time; your Help the forecast rows are then deleted from the server.</li>
 <li>You can delete your account and all of its data from <b>Profile › Account</b>, or ask us by email (see <a href="delete-account">alkyonfishing.com/delete-account</a>). Requests by email are completed within 30 days.</li>
-<li>To stop the watch from sending data, remove the link code from the watch app settings, or create a new code in <b>Profile › Garmin watch</b>. The old code then stops working.</li>
+<li>To stop a watch from sending data, remove the link code from the watch app, or create a new code in the watch settings in <b>Profile</b>. The old code then stops working.</li>
 </ul>
 
 <h2>Contact</h2>
@@ -60,16 +76,50 @@ hr{border:0;border-top:1px solid #23365f;margin:36px 0}
 
 <h1 lang="el">Πολιτική απορρήτου</h1>
 <div lang="el">
-<p>Με λίγα λόγια: το Alkyon κρατά μόνο όσα καταγράφεις εσύ, για να σου τα δείχνει και να τα συγχρονίζει ανάμεσα στις συσκευές σου. Δεν πουλιέται τίποτα και δεν χρησιμοποιείται τίποτα για διαφημίσεις.</p>
+<p class="mut">Τελευταία ενημέρωση: 25 Νοεμβρίου 2026 · Ισχύει για την εφαρμογή web (alkyonfishing.com), τις εφαρμογές για Android και iPhone/iPad, και τις εφαρμογές για Apple Watch, Wear OS και ρολόγια Garmin.</p>
+<div class="card">Με λίγα λόγια: το Alkyon κρατά μόνο όσα καταγράφεις εσύ, για να σου τα δείχνει και να τα συγχρονίζει ανάμεσα στις συσκευές σου. Δεν πουλιέται τίποτα και δεν χρησιμοποιείται τίποτα για διαφημίσεις. Άλλοι βλέπουν κάτι δικό σου μόνο όταν το επιλέγεις: φίλοι που προσθέτεις, αναρτήσεις στην κοινότητα, επαφή ασφαλείας, ή ένα SOS που στέλνεις.</div>
+<h2>Τι συλλέγεται</h2>
 <ul>
-<li><b>Λογαριασμός:</b> email και όνομα (προαιρετικά). Με «Συνέχεια με Google» η εφαρμογή παίρνει από τη Google μόνο το όνομα και το email σου (όχι επαφές, αρχεία ή άλλα δεδομένα Google), μόνο για να φτιάξει και να αναγνωρίζει τον λογαριασμό σου.</li>
-<li><b>Καταγραφές:</b> ψάρια, έξοδοι, σημεία, εξοπλισμός, σκάφος και φωτογραφίες, μαζί με την ώρα και τη θέση GPS που αποθηκεύεις.</li>
-<li><b>Ρολόι Garmin:</b> για κάθε ψάρι που γράφεις στο ρολόι στέλνονται η ώρα, η θέση GPS, το είδος της καταγραφής και ο κωδικός σύνδεσης. Για την πρόγνωση στέλνεται η κατά προσέγγιση θέση. Οι μετρήσεις του βαρόμετρου μένουν στο ρολόι.</li>
-<li><b>Ειδοποιήσεις και ασφάλεια (προαιρετικά):</b> η συνδρομή ειδοποιήσεων (στο Android, κωδικός Firebase Cloud Messaging της Google, μόνο για να έρχονται οι ειδοποιήσεις), τα μέρη που παρακολουθείς, η επαφή ασφαλείας και το πλάνο της εξόδου.</li>
-<li><b>Σχόλια (προαιρετικά):</b> με το «Πες μας τη γνώμη σου» στέλνονται το μήνυμα, το email που θα γράψεις, η έκδοση, η σελίδα και ο τύπος του κινητού· αν είσαι συνδεδεμένος, συνδέονται με τον λογαριασμό σου ώστε να διαγράφονται μαζί του.</li>
-<li><b>Αναφορές σφαλμάτων:</b> σύντομα τεχνικά μηνύματα, χωρίς θέση και χωρίς ψάρια· αν είσαι συνδεδεμένος, συνδέονται με τον λογαριασμό σου ώστε να σβήνονται μαζί του.</li>
+<li><b>Λογαριασμός:</b> email και όνομα (προαιρετικά). Με «Συνέχεια με Google» ή «Συνέχεια με Apple» η εφαρμογή παίρνει μόνο το όνομα και το email σου (με την Apple, ίσως μια ιδιωτική διεύθυνση προώθησης), μόνο για να φτιάξει και να αναγνωρίζει τον λογαριασμό σου. Όχι επαφές, αρχεία ή άλλα δεδομένα.</li>
+<li><b>Καταγραφές:</b> ψάρια, χαμένα ψάρια, έξοδοι (με τη διαδρομή GPS της εξόδου), σημεία, εξοπλισμός, σκάφος, σημειώσεις και φωτογραφίες, μαζί με την ώρα και τη θέση GPS που αποθηκεύεις. Αν είσαι συνδεδεμένος, συγχρονίζονται στον λογαριασμό σου· οι φωτογραφίες μένουν σε ιδιωτικό χώρο που ανοίγεις μόνο εσύ (και οι φίλοι με τους οποίους μοιράζεσαι, βλ. παρακάτω). Τα αντίγραφα ασφαλείας που κάνεις μένουν στον δικό σου ιδιωτικό φάκελο.</li>
+<li><b>Θέση κατά την έξοδο:</b> όταν ξεκινάς έξοδο, η εφαρμογή καταγράφει τη διαδρομή GPS στο κινητό, και με κλειδωμένη οθόνη, μέχρι να τελειώσεις την έξοδο. Στο Android τρέχει ως υπηρεσία με ορατή ειδοποίηση· στο iPhone φαίνεται η ένδειξη θέσης. Χωρίς ενεργή έξοδο η εφαρμογή δεν χρησιμοποιεί τη θέση σου στο παρασκήνιο. Η διαδρομή αποθηκεύεται με την έξοδο.</li>
+<li><b>Ασφάλεια (προαιρετικά):</b> η επαφή ασφαλείας που γράφεις (όνομα, τηλέφωνο, email), η σύνδεση Telegram και το πλάνο της εξόδου (ώρα επιστροφής, διαδρομή). Αν ανοίξεις την ειδοποίηση της επαφής σου για μια έξοδο, το κινητό στέλνει επίσης στον server θέση, μπαταρία και ώρα περίπου κάθε 3 λεπτά όσο η έξοδος είναι ενεργή, ώστε ο server να ειδοποιήσει την επαφή αν αργήσεις ή χαθεί η επικοινωνία. Οι αυτόματες ειδοποιήσεις στην επαφή πηγαίνουν μέσω Telegram. Τα μηνύματα που στέλνεις εσύ με SMS ή WhatsApp φεύγουν από το δικό σου κινητό.</li>
+<li><b>SOS (όταν το πατάς):</b> το όνομα και η θέση σου φαίνονται στους φίλους σου και σε χρήστες του Alkyon που η θέση τους την τελευταία ώρα είναι σε απόσταση έως περίπου 20 ναυτικά μίλια, για έως 6 ώρες ή μέχρι να δηλώσεις ότι είσαι καλά, και τα κοντινά σκάφη και οι φίλοι παίρνουν ειδοποίηση.</li>
+<li><b>Ζωντανή έξοδος (προαιρετικά):</b> αν την ανοίξεις στην έναρξη εξόδου, η θέση σου και πόσα ψάρια έπιασες στέλνονται περίπου κάθε 2 λεπτά και φαίνονται στους φίλους που μοιράζονται μαζί σου. Η τελευταία ζωντανή θέση μένει ορατή σε αυτούς μέχρι να την αντικαταστήσει η επόμενη ζωντανή έξοδος, ή έως 90 μέρες.</li>
+<li><b>Ρολόγια:</b> για κάθε ψάρι που γράφεις σε Apple Watch, Wear OS ή Garmin στέλνονται η ώρα, η θέση GPS, το είδος της καταγραφής (ψάρι / χαμένο / λαγοκέφαλος) και ο κωδικός σύνδεσης, ώστε να μπει στο ημερολόγιό σου. Για την πρόγνωση στέλνεται η κατά προσέγγιση θέση. Οι μετρήσεις του βαρόμετρου μένουν στο ρολόι.</li>
+<li><b>Ειδοποιήσεις (προαιρετικά):</b> αν τις ανοίξεις, η συνδρομή ειδοποιήσεων και τα μέρη που παρακολουθείς, ώστε ο server να στέλνει ειδοποιήσεις πρόγνωσης και ασφάλειας. Παραδίδονται μέσω Firebase Cloud Messaging (Google) στο Android, Apple Push Notification service στο iPhone και της υπηρεσίας push του browser στο web.</li>
+<li><b>Αναφορές θάλασσας και σημειώσεις λιμανιών (προαιρετικά):</b> μια αναφορά θάλασσας (θέση, κατάσταση, άνεμος, σύντομη σημείωση) φαίνεται στους συνδεδεμένους χρήστες για 6 ώρες, χωρίς το όνομά σου, και σβήνεται μετά από 7 μέρες. Μια σημείωση λιμανιού ή ράμπας φαίνεται με το όνομά σου αφού εγκριθεί.</li>
+<li><b>Κοινότητα (προαιρετικά):</b> οι αναρτήσεις σου (είδος, βάρος, μήκος, δόλωμα, τεχνική, μέρα, ο καιρός αν τον προσθέσεις, και η φωτογραφία), τα σχόλια, τα «μου αρέσει», και το όνομα και η εικόνα σου στην κοινότητα είναι <b>δημόσια</b>: τα βλέπει οποιοσδήποτε, και χωρίς λογαριασμό. Οι αναρτήσεις δεν έχουν τη θέση σου. Οι φωτογραφίες ξαναγράφονται πριν ανέβουν, και έτσι χάνονται τα στοιχεία θέσης που έχουν μέσα τους.</li>
+<li><b>Βοήθησε την πρόγνωση (προαιρετικά, κλειστό αν δεν συμφωνήσεις):</b> αν το ανοίξεις στο <b>Προφίλ › Ρυθμίσεις › Βοήθησε την πρόγνωση</b>, για κάθε ψάρι, χαμένο ψάρι και έξοδο στέλνονται: είδος, ώρα, ο καιρός εκείνη την ώρα (άνεμος, κύμα, πίεση, νέφωση, θερμοκρασία αέρα και νερού, παλίρροια), τεχνική, δόλωμα, το τεχνητό που διάλεξες από τον εξοπλισμό σου (χρώμα και μέγεθος), βάθος, το είδος-στόχος της εξόδου (αν το διαλέξεις), το όνομα είδους που έγραψες, η βαθμολογία «Πώς ήταν το ψάρεμα;», πόσα ψάρια, και μια περιοχή στρογγυλεμένη στα περίπου 10 km. Ο server προσθέτει τον ωριαίο καιρό από το δημόσιο αρχείο του Open-Meteo και τη χλωροφύλλη του νερού εκείνης της μέρας και περιοχής από το Copernicus Marine (μόνο η στρογγυλεμένη περιοχή και η μέρα). Ποτέ το όνομά σου, το ακριβές σημείο, οι σημειώσεις ή οι φωτογραφίες. Μόνο ο server διαβάζει αυτές τις γραμμές, για ανώνυμα σύνολα για το πότε τσιμπάνε (φαίνονται μόνο όταν υπάρχουν τουλάχιστον 20 ψάρια) και μια εβδομαδιαία λίστα ειδών που πιάνονται σε κάθε περιοχή περίπου 100 km (φαίνεται, και ειδοποιούνται όσοι έχουν σημείο εκεί, μόνο όταν τα ανέφεραν τουλάχιστον 3 ψαράδες). Από τις δικές σου γραμμές φτιάχνει και προσωπικά ευρήματα («Για σένα») που διαβάζεις μόνο εσύ, και κοινά ευρήματα για σένα και τους φίλους που ήδη σου δείχνουν τα ψάρια τους («Παρέα»), και μπορεί να σε ειδοποιήσει όταν η πρόγνωση της επόμενης μέρας μοιάζει με τις συνθήκες που πιάνεις συχνότερα. Αν το κλείσεις, σβήνονται όλες οι γραμμές σου από τον server.</li>
+<li><b>Αναγνώριση ψαριού με AI (προαιρετικά):</b> μόνο αν βάλεις δικό σου κλειδί Anthropic API. Τότε η φωτογραφία στέλνεται κατευθείαν από τη συσκευή σου στην Anthropic για να προτείνει το είδος. Ο server του Alkyon δεν τη λαμβάνει, και το κλειδί μένει στη συσκευή σου.</li>
+<li><b>Σχόλια (προαιρετικά):</b> με το «Πες μας τη γνώμη σου» στέλνονται το μήνυμα, το email που θα γράψεις, η έκδοση, η σελίδα και ο τύπος του κινητού. Αν είσαι συνδεδεμένος, συνδέονται με τον λογαριασμό σου ώστε να σβήνονται μαζί του.</li>
+<li><b>Αναφορές σφαλμάτων:</b> σύντομα τεχνικά μηνύματα (έκδοση, σελίδα, σφάλμα), χωρίς θέση και χωρίς ψάρια. Αν είσαι συνδεδεμένος, συνδέονται με τον λογαριασμό σου ώστε να σβήνονται μαζί του.</li>
 </ul>
-<p>Τα δεδομένα χρησιμοποιούνται μόνο για τις λειτουργίες της εφαρμογής. Βλέπουν κάτι άλλοι μόνο όταν το επιλέγεις εσύ: φίλοι, αναρτήσεις στην κοινότητα, επαφή ασφαλείας. Μπορείς να σβήσεις οποιαδήποτε καταγραφή, ή ολόκληρο τον λογαριασμό από το <b>Προφίλ › Λογαριασμός</b> ή με email (<a href="delete-account">alkyonfishing.com/delete-account</a>, μέσα σε 30 ημέρες). Αποθήκευση: Supabase και η συσκευή σου· η εφαρμογή φιλοξενείται στο Cloudflare. Επικοινωνία: <a href="mailto:alkyonfishingapp@gmail.com">alkyonfishingapp@gmail.com</a></p>
+<h2>Άδειες στο κινητό</h2>
+<p>Θέση (πρόγνωση εκεί που είσαι, χάρτης, ψάρια και έξοδοι), κάμερα (φωτογραφία ψαριού, μόνο όταν τραβάς), φωτογραφίες (για να διαλέξεις ή να αποθηκεύσεις φωτογραφία), μικρόφωνο (φωνητικές σημειώσεις και καταγραφή με φωνή, μόνο όσο ηχογραφείς), και στο iPhone το βαρόμετρο (η πίεση αποθηκεύεται με τις εξόδους και τα ψάρια). Οι ηχογραφήσεις μένουν στη συσκευή σου. Η μετατροπή φωνής σε κείμενο γίνεται από την υπηρεσία αναγνώρισης φωνής του κινητού σου (Google ή Apple). Κάθε άδεια ζητείται την πρώτη φορά που χρησιμοποιείς τη λειτουργία, και μπορείς να την αρνηθείς ή να την αφαιρέσεις από τις ρυθμίσεις του κινητού.</p>
+<h2>Πώς χρησιμοποιούνται</h2>
+<p>Μόνο για τις λειτουργίες της εφαρμογής: ημερολόγιο, συγχρονισμός ανάμεσα στις συσκευές και στο ρολόι σου, πρόγνωση, ειδοποιήσεις, μηνύματα ασφαλείας, SOS, και κοινή χρήση με όποιους επιλέγεις.</p>
+<h2>Φίλοι</h2>
+<p>Συνδέεσαι με έναν φίλο ανταλλάσσοντας έναν κωδικό μιας χρήσης. Με τη σύνδεση η κοινή χρήση ανοίγει και από τις δύο μεριές. Ένας φίλος που μοιράζεται μαζί σου βλέπει τα ψάρια, τα σημεία και τις εξόδους σου που δεν είναι ιδιωτικά, με την ακριβή θέση, τη διαδρομή GPS, τις σημειώσεις και τις φωτογραφίες, και τη ζωντανή θέση σου όταν την ανοίγεις σε μια έξοδο. Μπορείς να σταματήσεις την κοινή χρήση με οποιονδήποτε φίλο, όποτε θέλεις, στο <b>Προφίλ › Φίλοι</b>, και να σημειώσεις οποιοδήποτε ψάρι, σημείο ή έξοδο ως ιδιωτικό.</p>
+<h2>Πού αποθηκεύονται και ποιοι τα επεξεργάζονται</h2>
+<p>Τα δεδομένα αποθηκεύονται στη βάση και στον χώρο αρχείων της εφαρμογής (Supabase) και στη δική σου συσκευή. Η εφαρμογή φιλοξενείται στο Cloudflare. Οι ειδοποιήσεις περνούν από τη Google (Firebase Cloud Messaging), την Apple (Apple Push Notification service) ή την υπηρεσία push του browser σου· οι ειδοποιήσεις ασφαλείας από το Telegram. Τα δεδομένα καιρού, θάλασσας, βυθού και χάρτη ζητούνται από Open-Meteo, Copernicus Marine, EMODnet, EUMETSAT, RainViewer και υπηρεσίες χαρτών (όπως Esri, OpenStreetMap και OpenSeaMap) μόνο με μια θέση ή περιοχή χάρτη· δεν στέλνονται στοιχεία λογαριασμού, αλλά, όπως κάθε ιστότοπος, βλέπουν τη διεύθυνση IP της συσκευής σου.</p>
+<h2>Πόσο καιρό κρατιούνται</h2>
+<ul>
+<li>Οι καταγραφές και ο λογαριασμός σου: μέχρι να τα σβήσεις ή να σβήσεις τον λογαριασμό σου.</li>
+<li>Ολοκληρωμένες έξοδοι ασφαλείας (πλάνο, τελευταία θέση, μπαταρία) και θέσεις ζωντανής εξόδου: 90 μέρες.</li>
+<li>Ιστορικό ειδοποιήσεων και αναφορές σφαλμάτων: 30 μέρες. Μηνύματα σχολίων: μέχρι να τα σβήσουμε, και πάντα μαζί με τον λογαριασμό σου.</li>
+<li>Αναφορές θάλασσας: 7 μέρες.</li>
+</ul>
+<h2>Οι επιλογές σου</h2>
+<ul>
+<li>Μπορείς να χρησιμοποιήσεις το μεγαλύτερο μέρος της εφαρμογής χωρίς λογαριασμό. Τότε τα δεδομένα σου μένουν μόνο στη συσκευή σου.</li>
+<li>Μπορείς να σβήσεις οποιοδήποτε ψάρι, σημείο ή έξοδο όποτε θέλεις, και να τα σημειώσεις ως ιδιωτικά.</li>
+<li>Μπορείς να σταματήσεις την κοινή χρήση με έναν φίλο και τη συμμετοχή στο <b>Βοήθησε την πρόγνωση</b> όποτε θέλεις· οι γραμμές σου στο «Βοήθησε την πρόγνωση» σβήνονται τότε από τον server.</li>
+<li>Μπορείς να σβήσεις τον λογαριασμό σου και όλα του τα δεδομένα από το <b>Προφίλ › Λογαριασμός</b>, ή να μας το ζητήσεις με email (<a href="delete-account">alkyonfishing.com/delete-account</a>). Τα αιτήματα με email ολοκληρώνονται μέσα σε 30 μέρες.</li>
+<li>Για να σταματήσει ένα ρολόι να στέλνει δεδομένα, αφαίρεσε τον κωδικό σύνδεσης από την εφαρμογή του ρολογιού ή φτιάξε νέο κωδικό στις ρυθμίσεις ρολογιού στο <b>Προφίλ</b>. Ο παλιός κωδικός σταματά τότε να ισχύει.</li>
+</ul>
+<h2>Επικοινωνία</h2>
+<p>Ερωτήσεις ή αιτήματα διαγραφής: <a href="mailto:alkyonfishingapp@gmail.com">alkyonfishingapp@gmail.com</a> · Δες και τους <a href="terms">Όρους Χρήσης</a>.</p>
 </div>
 </main></body>
 </html>
