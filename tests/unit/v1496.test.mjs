@@ -35,9 +35,14 @@ test('link() answers ok only when the code was actually handed to WatchConnectiv
   assert.match(body(WP, /private func finishPending\(err: String\?\) \{/), /answer\(c, err\); bridge\?\.releaseCall\(c\)/);
 });
 
-test('the watch screen already shows the right message for each answer — no JS change needed for the new ok:false', () => {
+/* 21/11/2026 (1.14.97): ΑΛΛΑΓΗ TEST (δηλωμένη). Το κουμπί «Στείλε στο ρολόι» δεν δείχνει πια το μήνυμα με ένα τριαδικό πάνω στο ok,
+   αλλά ελέγχει πρώτα ποιο ρολόι υπάρχει (sendNow/sendMsg, εύρημα C: στο Android το link() απαντά ok και χωρίς ρολόι). Το test έλεγχε
+   κατά λέξη την παλιά γραμμή· τώρα ελέγχει ότι τα ίδια δύο μηνύματα υπάρχουν και ότι το «Στάλθηκε» απαιτεί ok. Η συμπεριφορά ελέγχεται στο merge-watch-msg.test.mjs. */
+test('the watch screen shows the right message for each answer (push() result + which watch is there)', () => {
   assert.match(GJ, /function push\(code\)\{[^\n]*return r&&r\.ok; \},function\(\)\{ return null; \}\); \}/);
-  assert.ok(GJ.includes("B.toast(ok?T('Στάλθηκε στο ρολόι.','Sent to the watch.'):T('Δεν βρέθηκε ρολόι με το Alkyon.','No watch with Alkyon found.'))"));
+  assert.ok(GJ.includes("T('Στάλθηκε στο ρολόι.','Sent to the watch.')"));
+  assert.ok(GJ.includes("T('Δεν βρέθηκε ρολόι με το Alkyon."));
+  assert.match(GJ, /return ok\?T\('Στάλθηκε στο ρολόι\.','Sent to the watch\.'\):T\('Δεν μπόρεσα να ελέγξω για ρολόι/, 'without status, «Sent» only when the send succeeded');
 });
 
 test('the watch screen never stays on «Looking for a watch…» when the status check fails', () => {

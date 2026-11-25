@@ -73,7 +73,11 @@ function endHaul(id){ here().then(function(p){ var g=G(), it=g.items.filter(func
   it.haul.tb=Date.now(); it.state='done'; it.done=Date.now(); put(g); var f=fishOf(it); B.toast(nm(it)+': '+f.n+' '+T('ψάρια','catches')+(f.kg?', '+B.num(f.kg,1)+' kg':'')); }); }
 
 /* για τη φόρμα ψαριού: σύνδεση με το εργαλείο που ανεβαίνει τώρα */
-B.gearTag=function(rec){ var it=hauling(); if(!it||rec.miss||rec.gear) return rec; rec.gear=it.id; rec.gearName=nm(it); if(!rec.tech) rec.tech=tn(it.type); return rec; };
+B.gearTag=function(rec){ var it=hauling(); if(!it||rec.miss||rec.gear) return rec; rec.gear=it.id; rec.gt=it.type; rec.gearName=nm(it); if(!rec.tech) rec.tech=tn(it.type); return rec; };
+/* 21/11/2026 (φάση 1β): ρητό είδος εργαλείου (rec.gt) σε κάθε ψάρι από ανέβασμα· για παλιά ψάρια χωρίς gt, από το ίδιο το εργαλείο.
+   Το «Βοήθησε την πρόγνωση» στέλνει ως τεχνική το είδος του εργαλείου, ώστε ο server να το κρατά έξω από τα «πότε τσιμπάνε» ακόμα κι αν ο χρήστης έγραψε άλλη τεχνική. */
+B.gearTypeOf=function(rec){ if(!rec||!rec.gear) return null; if(rec.gt&&TYPES[rec.gt]) return rec.gt; var g=B.gearFind&&B.gearFind(rec.gear); return g&&TYPES[g.type]?g.type:null; };
+B.gearTn=function(type){ return TYPES[type]?tn(type):null; };
 B.gearOf=function(id){ return G().items.filter(function(x){ return x.id===id; })[0]||null; };
 /* v31z549: εργαλείο και από παλιές εξόδους (αρχείο), για «Στον χάρτη» */
 B.gearFind=function(id){ var g=B.gearOf(id); if(g) return g; var f=null; B.store.raw('trips').forEach(function(t){ if(f||t.deleted) return; (t.gear||[]).forEach(function(x){ if(!f&&x&&x.id===id) f=x; }); }); return f; };

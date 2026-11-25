@@ -242,11 +242,11 @@ struct SettingsV: View {
                 if !P.linked { Tx(L.t("LinkAuto"), 10, pc(6), lines: 4) }
                 TextField(L.t("EnterCode"), text: $codeIn).textContentType(.oneTimeCode)
                     .onSubmit {
-                        P.code = codeIn; codeIn = ""; P.setB("wel", true); e.welcome = false
+                        P.code = codeIn; codeIn = ""; P.setB("wel", true); P.setD("codeAt", Date().timeIntervalSince1970); e.welcome = false /* 21/11/2026: κωδικός γραμμένος στο ρολόι· παλιότεροι από το iPhone που φτάνουν αργότερα δεν τον αλλάζουν */
                         if P.linked { e.sayK(L.t("LinkedMsg"), "check", 2); e.load(true); Sender.flushBg() }
                         e.bump()
                     }
-                if P.linked { ItemV(label: L.t("Unlink"), ic: "x", col: hx(0xE0583A)) { P.code = ""; e.bump() } }
+                if P.linked { ItemV(label: L.t("Unlink"), ic: "x", col: hx(0xE0583A)) { P.code = ""; P.setD("codeAt", Date().timeIntervalSince1970); e.bump() } }
             }
             Section(header: Tx(L.t("Alerts"), 11, pc(0), b: true)) {
                 tg(L.t("SetTurn"), "turnAlert"); tg(L.t("SetBest"), "bestAlert"); tg(L.t("SetPress"), "pressAlert")
