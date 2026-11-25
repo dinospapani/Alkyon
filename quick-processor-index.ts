@@ -1992,6 +1992,11 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
         const now = new Date().toISOString(), out = [];
         // 1.14.29: ημερολόγιο εποχής: τσιμπήματα ανά μήνα (βάρος 1+log2 πλήθους, ώρα Κύπρου ≈ UTC μήνας)
         const monOf = cs => { const m = new Array(12).fill(0); for (const r of cs) { const mo = new Date(+r.ms).getUTCMonth(); m[mo] += 1 + Math.log2(Math.max(1, Math.min(64, r.cnt || 1))); } return m.map(v => Math.round(v * 10) / 10); };
+        const prune = async (table, col, keep) => { if (rows.length < 20 || !keep.length) return 0; const K = new Set(keep);
+          const have = (((await sb(`${table}?select=${col}`)) || []).map(x => x[col])), gone = have.filter(k => !K.has(k));
+          if (!gone.length) return 0; if (gone.length > Math.floor(have.length / 2)) { log(`bite stats: ${table} prune skipped ${gone.length}/${have.length}`); return -gone.length; }
+          for (let i = 0; i < gone.length; i += 50) await sb(`${table}?${col}=in.(${encodeURIComponent(gone.slice(i, i + 50).map(k => '"' + String(k).replace(/["\\]/g, m => '\\' + m) + '"').join(','))})`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
+          return gone.length; };
         const put = (k, a, g) => { a.data.grp = g; out.push({ key: k, n: a.n, users: a.users, data: a.data, updated_at: now }); };
         for (const g of ['sea', 'spear', 'lake', 'ceph']) {
           const catches = catchesBite.filter(r => grpOf(r) === g), trips = tripsBite.filter(t => grpOf(t) === g), ex = EXG[g];
@@ -2035,6 +2040,10 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
           for (const [cl, items] of Object.entries(byCell)) out.push({ key: 'trend:' + cl, n: items.reduce((a, x) => a + x.n7, 0), users: Math.max(works[cl] ? works[cl].users : 0, ...items.map(x => x.users)), data: { items: items.sort((a, b) => b.n7 - a.n7).slice(0, 8), works: works[cl] || null, day: todayD }, updated_at: now });
         } catch (e) { log('bite stats: trend ' + e.message); }
         if (out.length) await sb('bite_stats?on_conflict=key', { method: 'POST', headers: { 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(out) });
+        /* 25/11/2026: σβήνονται τα κλειδιά που ΔΕΝ ξαναγράφτηκαν απόψε. Πριν έμεναν για πάντα με τα παλιά ευρήματα: π.χ. ο λούτσος μετά τη 21/11
+           (έπεσε κάτω από 5 εγγραφές χωρίς τα δίχτυα) κρατούσε το «αυγή ×3,05» των ανασύρσεων. Ασφάλειες στο prune(): μόνο μετά από επιτυχή εγγραφή,
+           μόνο με ≥ 20 παρατηρήσεις, και ποτέ πάνω από τα μισά κλειδιά σε ένα βράδυ (ένα άδειο ή μισό διάβασμα της βάσης δεν σβήνει τα ευρήματα). */
+        stats.bgone = await prune('bite_stats', 'key', out.map(o => o.key));
         // προσωπικά (μόνο ο ίδιος τα διαβάζει): data = το είδος ψαρέματος που κάνει πιο συχνά, data.by = όλα όσα έχουν ≥ 10 ψάρια
         const byU = {}; for (const r of catchesBite) (byU[r.user_id] = byU[r.user_id] || []).push(r);
         const pers = [];
@@ -2050,7 +2059,8 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
             const crewC = catchesBite.filter(r => grpOf(r) === main && (r.user_id === u || fr.has(r.user_id))), cu = new Set(crewC.map(r => r.user_id));
             if (cu.size >= 2 && crewC.length >= 20) { const a = analyse(crewC, tripsBite.filter(t => grpOf(t) === main && (t.user_id === u || fr.has(t.user_id))), 5, EXG[main]); delete a.data.wk; data.crew = { n: a.n, users: cu.size, data: a.data }; } } catch (e) { }
           pers.push({ user_id: u, n: tot, data, updated_at: now }); }
-        if (pers.length) await sb('user_bite_stats?on_conflict=user_id', { method: 'POST', headers: { 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(pers) }).catch(e => log('bite stats: user ' + e.message));
+        let persOk = !pers.length; if (pers.length) await sb('user_bite_stats?on_conflict=user_id', { method: 'POST', headers: { 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(pers) }).then(() => { persOk = true; }).catch(e => log('bite stats: user ' + e.message));
+        if (persOk) stats.bpgone = await prune('user_bite_stats', 'user_id', pers.map(p => p.user_id));   // 25/11/2026: προσωπικά ευρήματα χρηστών που δεν πληρούν πια τα όρια
         const rows_ = rows;
         stats.bstats = out.length; stats.bobs = rows_.length; stats.bpers = pers.length;
       }
