@@ -16,7 +16,7 @@ export async function heartbeat({ env, fetch: F = fetch, now = Date.now() }, b) 
   if (!/^[\w.-]{3,80}$/.test(id) || !/^[a-f0-9]{32,128}$/.test(key)) return { status: 400, body: { ok: false, error: 'bad request' } };
   const hasPos = Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180 && !(lat === 0 && lon === 0);
   const H = { apikey: env.SUPABASE_SERVICE_KEY, Authorization: 'Bearer ' + env.SUPABASE_SERVICE_KEY };
-  const r = await F(env.SUPABASE_URL + '/rest/v1/safety_trips?id=eq.' + encodeURIComponent(id) + '&hb_key=eq.' + key + '&status=in.(active,alerted)&select=id,hb_at', { headers: H });
+  const r = await F(env.SUPABASE_URL + '/rest/v1/safety_trips?id=eq.' + encodeURIComponent(id) + '&hb_key=eq.' + key + '&status=in.(active,alerted)&select=id,hb_at,last_at', { headers: H });
   /* 21/11/2026: σφάλμα ανάγνωσης της βάσης → 503, όχι 404. Πριν απαντούσε 404 «no active trip» και για έξοδο που τρέχει κανονικά.
      Τα κινητά (AlkHbRule, 1.14.95) ούτε μετρούν ούτε σταματούν σε 5xx· τα παλιότερα σταματούσαν σε κάθε 404. 404 μένει ΜΟΝΟ όταν η βάση απάντησε ότι δεν υπάρχει. */
   if (!r.ok) return { status: 503, body: { ok: false, error: 'read ' + r.status } };
@@ -27,7 +27,16 @@ export async function heartbeat({ env, fetch: F = fetch, now = Date.now() }, b) 
   const last = a[0].hb_at ? Date.parse(a[0].hb_at) : 0;
   if (now - last < 20e3) return { status: 200, body: { ok: true, skipped: 'rate' } };
   const at = new Date(now).toISOString(), o = { hb_at: at, hb_src: 'native' };
-  if (hasPos) { o.last_lat = Math.round(lat * 1e5) / 1e5; o.last_lon = Math.round(lon * 1e5) / 1e5; o.last_at = at; }
+  /* 25/11/2026: ώρα ΤΗΣ ΘΕΣΗΣ, όχι του παλμού. Χωρίς σήμα GPS (κτίριο, καμπίνα) το κινητό ξαναστέλνει την τελευταία θέση έως 15′·
+     πριν γραφόταν με last_at = τώρα και φαινόταν φρέσκια στην επαφή και στο SOS (Galaxy 25/11: θέση 14:48 ως 15:01).
+     Τα κινητά από 1.14.98 στέλνουν age = δευτερόλεπτα από τη λήψη της θέσης. Χωρίς age (παλιές εκδόσεις): όπως πριν.
+     age > 15′: η θέση δεν γράφεται (μόνο ο παλμός). Ποτέ δεν αντικαθίσταται νεότερη θέση με παλιότερη. */
+  const ageRaw = b && b.age, age = ageRaw == null || ageRaw === '' ? null : +ageRaw;
+  const ageOk = age != null && Number.isFinite(age) && age >= 0;
+  const fixMs = ageOk ? now - Math.round(Math.min(age, 86400) * 1000) : now;
+  const prevMs = a[0].last_at ? Date.parse(a[0].last_at) : NaN;
+  const posOk = hasPos && !(ageOk && age > 900) && !(Number.isFinite(prevMs) && prevMs <= now + 60e3 && fixMs < prevMs);   /* last_at στο μέλλον (ρολόι συσκευής μπροστά): αγνοείται */
+  if (posOk) { o.last_lat = Math.round(lat * 1e5) / 1e5; o.last_lon = Math.round(lon * 1e5) / 1e5; o.last_at = new Date(fixMs).toISOString(); }
   const bat = Math.round(+(b && b.battery)); if (Number.isFinite(bat) && bat >= 0 && bat <= 100) o.battery = bat;
   const u = await F(env.SUPABASE_URL + '/rest/v1/safety_trips?id=eq.' + encodeURIComponent(id) + '&hb_key=eq.' + key, { method: 'PATCH', headers: { ...H, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify(o) });
   return u.ok ? { status: 200, body: { ok: true } } : { status: 502, body: { ok: false, error: 'update ' + u.status } };
