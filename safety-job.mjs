@@ -8,6 +8,22 @@ const hm = iso => new Intl.DateTimeFormat('el-GR', { timeZone: TZ, hour: '2-digi
 const hash32 = s => { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); };
 const mapLink = (la, lo) => (la != null && lo != null) ? `https://maps.google.com/?q=${(+la).toFixed(5)},${(+lo).toFixed(5)}` : '';
 
+/* 25/11/2026 (A1 · S1): όρια χρόνου. Η Edge Function έχει όριο 150″ ανά εκτέλεση· μία κολλημένη κλήση (25/11 04:00 UTC: HTTP 546 στα 150″,
+   χωρίς καμία γραμμή log) έκοβε ολόκληρο τον κύκλο, και μαζί τον έλεγχο ασφαλείας. Τώρα:
+   - κάθε αίτημα δικτύου του run() κόβεται στα NET_MS (και η ανάγνωση της απάντησης),
+   - κάθε αποστολή push / email κόβεται στα SEND_MS (η αποτυχία πιάνεται από τα υπάρχοντα try/catch· δεν σβήνει συνδρομή),
+   - τα βήματα που ΔΕΝ είναι ασφάλεια (πρόγνωση, κοινότητα, καλαμάρια, «πότε τσιμπάνε») δεν ξεκινούν αν έχουν περάσει BUDGET_MS·
+     τρέχουν στην επόμενη εκτέλεση. Τα βήματα ασφαλείας (1–5), η πτώση πίεσης (7), ο καιρός εξόδου (8) και η υγεία (9) τρέχουν πάντα.
+   - stats.ms: πόσο κράτησε κάθε ομάδα βημάτων, για να φαίνεται στα logs τι αργεί. */
+export const NET_MS = 20000, SEND_MS = 15000, BUDGET_MS = 100000;
+export function timedFetch(F0, ms = NET_MS) {
+  return (u, o) => (o && o.signal) ? F0(u, o) : F0(u, { ...(o || {}), signal: AbortSignal.timeout(ms) });
+}
+export function timedSend(fn, ms = SEND_MS, what = 'send') {
+  return (...a) => { let t; const to = new Promise((_, rej) => { t = setTimeout(() => rej(new Error(what + ' timeout ' + ms + 'ms')), ms); });
+    return Promise.race([Promise.resolve().then(() => fn(...a)), to]).finally(() => clearTimeout(t)); };   /* το race «πιάνει» και ένα σφάλμα που έρχεται αργότερα */
+}
+
 /* 1.14.83 (P0.7): παλμός από το native GPS του κινητού (Android foreground service / iOS background location), με σβηστή οθόνη.
    Δεν έχει token χρήστη: αποδεικνύει ποια έξοδο ενημερώνει με το κλειδί hb_key που έγραψε η εφαρμογή στο safety_trips όταν ξεκίνησε η έξοδος.
    Ενημερώνει μόνο θέση/ώρα/μπαταρία ενεργής εξόδου· τίποτα άλλο. Αγνοεί παλμούς πιο πυκνούς από 20″. */
@@ -57,7 +73,10 @@ export async function claimStep(sb, name, periodMs, now = Date.now(), staleMs = 
   const up = await sb(`job_state?name=eq.${encodeURIComponent(name)}&${cond}`, { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ last_try: at }) });
   return Array.isArray(up) && up.length === 1;
 }
-export async function run({ env, fetch: F = fetch, sendMail, log = console.log, PF = null, webpush = null, only = null, learnOpen = false }) {
+export async function run({ env, fetch: F0 = fetch, sendMail, log = console.log, PF = null, webpush = null, budgetMs = BUDGET_MS, netMs = NET_MS, sendMs = SEND_MS, only = null, learnOpen = false }) {
+  const T0 = Date.now(), F = timedFetch(F0, netMs);
+  if (webpush && typeof webpush.sendNotification === 'function') { const wp0 = webpush; webpush = Object.assign(Object.create(wp0), { sendNotification: timedSend((s, p, o) => wp0.sendNotification(s, p, o), sendMs, 'push') }); }
+  if (typeof sendMail === 'function') sendMail = timedSend(sendMail, sendMs, 'email');
   const URL_ = env.SUPABASE_URL, KEY = env.SUPABASE_SERVICE_KEY, TG = env.TELEGRAM_BOT_TOKEN;
   if (!URL_ || !KEY) { log('Λείπουν τα SUPABASE_URL / SUPABASE_SERVICE_KEY.'); return { ok: false }; }
   const H = { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' };
@@ -81,6 +100,11 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
     const j = await r.json().catch(() => ({})); if (!j.ok) throw new Error('Telegram ' + (j.description || r.status)); return j.result;
   };
   const stats = { linked: 0, start: 0, alert: 0, clear: 0, ping: 0, silence: 0, lowbat: 0, ok: 0, fc: 0, pa: 0, squid: 0 };
+  /* 25/11/2026 (A1 · S1): χρόνοι ανά ομάδα βημάτων και προϋπολογισμός χρόνου (βλ. BUDGET_MS) */
+  const TM = {}; let tPrev = T0;
+  const mark = k => { const n = Date.now(); TM[k] = n - tPrev; tPrev = n; };
+  const late = () => Date.now() - T0 > budgetMs;
+  const skip = k => { (stats.skip = stats.skip || []).push(k); log0('budget: ' + k + ' παραλείφθηκε στα ' + (Date.now() - T0) + ' ms (τρέχει στην επόμενη εκτέλεση)'); };
   const PING_WAIT_MIN = 15, LOWBAT = 10;
   // 1.9.50: τα σφάλματα των βημάτων μαζεύονται (για ειδοποίηση στους διαχειριστές στο τέλος· βλ. βήμα 9)
   const ERRS = [], log0 = log;
@@ -448,8 +472,10 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
     } catch (e) { if (!/relation|does not exist|404/i.test(e.message)) log('port notes: ' + e.message); }
   }
 
+  mark('safety');
   // 6) Πρόγνωση: ειδοποιήσεις push για καλές μέρες ψαρέματος στις τοποθεσίες κάθε χρήστη (έλεγχος κάθε ~3 ώρες)
-  if (PF && webpush) {
+  if (PF && webpush && late()) skip('fc');
+  else if (PF && webpush) {
     const stale = new Date(Date.now() - 3 * 3600e3).toISOString();
     let rows = [];
     const stale1 = new Date(Date.now() - 14 * 60e3).toISOString(); // v31z355: καμπές πίεσης κάθε ~15 λεπτά
@@ -586,6 +612,7 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
       } catch (e) { log('Forecast job: ' + e.message); try { await upd({ checked_at: new Date().toISOString() }); } catch (e2) { /* τίποτα */ } }
     }
   }
+  mark('fc');
   // 7) Πτώση πίεσης κατά τη διάρκεια έξοδου: push και/ή Telegram στον ίδιο τον ψαρά (ενδεικτικό, από μοντέλο Open-Meteo)
   try {
     const PA_DROP = 3.0, PA_COOL = 3 * 3600e3;
@@ -615,13 +642,16 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
       if (sent) stats.pa++;
     }
   } catch (e) { log('Πίεση: ' + e.message); }
+  mark('press');
   // 7β) Κοινότητα (βλ. commStep πιο πάνω· 1.9.61: καλείται και αμέσως από την εφαρμογή με action 'comm')
-  await commStep();
+  if (late()) skip('comm'); else await commStep();
+  mark('comm');
 
   // 7γ) 1.9.44 (1.9.47: καλύτερη ώρα, μόνο βράδια ±3 μέρες από τη νέα σελήνη): καλαμάρια γύρω από τη νέα σελήνη (μόνο όσοι το άνοιξαν: places[].squid === 'on').
   //   Οκτώβριος–Απρίλιος, 09:00–10:00 Κύπρου, από 3 μέρες πριν έως 2 μέρες μετά τη νέα σελήνη.
   //   Η καλύτερη ώρα κάθε βραδιού (δύση ±90′, άνεμος <8 kn, κύμα ≤0,6 m, PF.squidEves), πρώτο το καλύτερο. Μία ειδοποίηση ανά σελήνη ανά χρήστη (notif_log).
-  if (webpush) {
+  if (webpush && late()) skip('squid');
+  else if (webpush) {
     try {
       const nowD = new Date(), cyHs = +nowD.toLocaleString('en-GB', { timeZone: 'Asia/Nicosia', hour: '2-digit', hour12: false }).slice(0, 2), mon = +nowD.toLocaleString('en-GB', { timeZone: 'Asia/Nicosia', month: 'numeric' });
       const nm = PF.nextMoon(Date.now() - 2 * 86400000); /* η νέα σελήνη που δεν έχει περάσει πάνω από 2 μέρες */
@@ -667,6 +697,7 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
     } catch (e) { log('squid: ' + e.message); }
   }
 
+  mark('squid');
   // 8) v31z543: κατά την έξοδο, και με κλειστό κινητό: (α) καιρός που χαλάει τις επόμενες 3 ώρες στη θέση της εξόδου (καταιγίδα, άνεμος/ριπές/κύμα πάνω από τα όριά σου),
   //    (β) «ώρα να γυρίσεις»: απόσταση από το λιμάνι σου και ταχύτητα επιστροφής σε σχέση με τη δύση και την ώρα επιστροφής που δήλωσες. Έλεγχος ανά ~15 λεπτά.
   try {
@@ -715,6 +746,7 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
       await stepOk('trip_wx');
     }
   } catch (e) { log('Καιρός εξόδου: ' + e.message); }
+  mark('tripwx');
   // 8β) 1.14.21–1.14.23: «Πότε τσιμπάνε» από τον catch_obs (ανώνυμα, με συγκατάθεση).
   //  (α) Συμπλήρωση καιρού (κάθε εκτέλεση, λίγα κελιά) από το ιστορικό του Open-Meteo, ίδια πηγή για όλους:
   //      ψάρι/χαμένο → cond.e (η ώρα του) + cond.d (όλες οι ώρες φωτός της ίδιας μέρας, για σύγκριση)· έξοδος → cond.e (κάθε ώρα της). cond.enr=2.
@@ -725,7 +757,8 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
   //      Ευρήματα (ins) με «both» όταν συμφωνούν και οι δύο, και «τι δούλεψε» (τεχνική, δόλωμα, βάθος) στις καλές συνθήκες.
   //      Κλειδιά bite_stats: 'all', 'sp:<είδος>', 'r:<κελί 2°>'· προσωπικά στον user_bite_stats (μόνο ο ίδιος τα διαβάζει).
   //  (γ) 1.14.23: κάθε απόγευμα (17–19 Κύπρου) ειδοποίηση «🎯 Αύριο … μοιάζει με τις καλύτερες ώρες σου» όταν η πρόγνωση ταιριάζει με τα προσωπικά ευρήματα.
-  if (PF) {
+  if (PF && late()) skip('bstats');
+  else if (PF) {
     const HR = 3600000, DAY = 86400000, isoD = ms => new Date(ms).toISOString().slice(0, 10), nz = v => (typeof v === 'number' && isFinite(v)) ? v : null;
     const tzOf = lon => Math.round((+lon || 0) / 15) * 60, SMC = {}, SOL = {};
     const sunOf = (ms, la, lo) => { const tz = tzOf(lo), d = isoD(ms + tz * 60000), ck = d + ',' + la + ',' + lo; return { sm: SMC[ck] || (SMC[ck] = PF.sunMoon(d, +la, +lo, tz)), tz, d }; };
@@ -1188,6 +1221,7 @@ export async function run({ env, fetch: F = fetch, sendMail, log = console.log, 
       }
     } catch (e) { log('bite stats: week ' + e.message); }
   }
+  mark('bstats'); stats.ms = { ...TM, total: Date.now() - T0 };
   log('Safety job: ' + JSON.stringify(stats));
   // 9) 1.9.50: υγεία του server. Σε κάθε εκτέλεση γράφεται «heartbeat» (backups/_system/heartbeat.json, το διαβάζει το watchdog του GitHub).
   //    Αν ένα βήμα αποτύχει σε 2 συνεχόμενες εκτελέσεις (όχι ένα στιγμιαίο σφάλμα δικτύου), μήνυμα Telegram στους διαχειριστές, το πολύ μία φορά ανά 6 ώρες ανά βήμα.
