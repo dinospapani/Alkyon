@@ -2114,6 +2114,17 @@ with sync_playwright() as p:
     pg.evaluate("()=>{ document.documentElement.style.removeProperty('--safe-area-inset-top'); window.scrollTo(0,901); }"); pg.wait_for_timeout(600)
     r2=pg.evaluate("()=>Math.round(document.querySelector('.dstrip').getBoundingClientRect().top)")
     check('Πρόγνωση: χωρίς γραμμή κατάστασης (υπολογιστής) η μπάρα κολλά στο 0 όπως πριν (1.14.99)', r2==0, r2); c.close()
+    print('# 1.14.99 φόντο κάτω από τη γραμμή κατάστασης σε όλες τις οθόνες')
+    c=ctx(b); pg=page(c); res={}
+    for hsh in ['log','profile','forecast','map']:
+        pg.goto(BASE+'/v4/#'+hsh); pg.wait_for_timeout(2500)
+        res[hsh]=pg.evaluate("""()=>{ const e=document.querySelector('.sbbg'); if(!e) return null; const h0=e.getBoundingClientRect().height;
+          document.documentElement.style.setProperty('--safe-area-inset-top','30px'); window.scrollTo(0,600);
+          const cs=getComputedStyle(e), r=e.getBoundingClientRect(); const out=[h0, Math.round(r.top), Math.round(r.height), +cs.zIndex, cs.position, cs.pointerEvents, document.body.classList.contains('mapon'), cs.backgroundImage!=='none'];
+          document.documentElement.style.removeProperty('--safe-area-inset-top'); return out; }""")
+    ok=all(v and v[0]==0 and v[1]==0 and v[2]==30 and v[3]>=70 and v[4]=='fixed' and v[5]=='none' for v in res.values())
+    check('γραμμή κατάστασης: σε Ημερολόγιο, Προφίλ, Πρόγνωση και Χάρτη υπάρχει φόντο 30px στην κορυφή (0px σε υπολογιστή), πάνω από το περιεχόμενο, χωρίς να πιάνει αγγίγματα (1.14.99)', ok and not pg._errs, [res,pg._errs])
+    check('γραμμή κατάστασης: στον Χάρτη το φόντο είναι ημιδιάφανο (διαβάθμιση), στις άλλες οθόνες συμπαγές (1.14.99)', res.get('map') and res['map'][6] and res['map'][7] and not res['log'][7], res); c.close()
 
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)
