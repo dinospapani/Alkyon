@@ -1,0 +1,50 @@
+/* Alkyon · Φ1 βάση σχεδίου (26/11/2026) — ΠΡΟΤΑΣΗ ΓΙΑ ΕΓΚΡΙΣΗ, δύο εκδοχές:
+   html.dsA = ήπια (μόνο αντίθεση, μεγέθη, ησυχότερα chips, κάτω μπάρα)
+   html.dsB = πιο έντονη (Α + «όργανο»: λεπτά περιγράμματα αντί για σκιές, λιγότερα κουτιά μέσα σε κουτιά, μεγαλύτεροι αριθμοί)
+   Χωρίς class δεν αλλάζει τίποτα. Μετά την επιλογή του Dinos μένει μόνο η εκδοχή που διάλεξε. */
+
+/* ---------- Α και Β: χρώματα με καλύτερη αντίθεση (στόχος WCAG AA για μικρό κείμενο) ---------- */
+html.dsA,html.dsB{--ink-3:#5E7680;--line:#CFDCDA;--r-lg:20px;--r-md:14px;--r-sm:10px}
+@media (prefers-color-scheme:dark){
+  html.dsA:not([data-theme=light]),html.dsB:not([data-theme=light]){--bg:#051219;--surface:#0D2A36;--surface-2:#133747;--ink-2:#AFC6CE;--ink-3:#87A2AC;--line:#21495B}
+}
+html.dsA[data-theme=dark],html.dsB[data-theme=dark]{--bg:#051219;--surface:#0D2A36;--surface-2:#133747;--ink-2:#AFC6CE;--ink-3:#87A2AC;--line:#21495B}
+
+/* τίτλοι: λίγο πιο σφιχτοί */
+html.dsA h1,html.dsB h1{letter-spacing:-.02em}
+
+/* τα πολύ μικρά γράμματα (11–11,5 px) ανεβαίνουν στα 12 px */
+html.dsA .hero .nwc span,html.dsB .hero .nwc span,
+html.dsA .hero .nwc b small,html.dsB .hero .nwc b small,
+html.dsA .hring small,html.dsB .hring small{font-size:12px}
+
+/* «Γιατί αυτός ο βαθμός»: ήσυχα chips (ουδέτερο φόντο, χρώμα μόνο στο περίγραμμα) αντί για πράσινο φόντο */
+html.dsA .hero .hwhy2 .hz.up,html.dsB .hero .hwhy2 .hz.up{background:var(--surface-2);color:var(--ink);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--good) 45%,transparent)}
+html.dsA .hero .hwhy2 .hz.down,html.dsB .hero .hwhy2 .hz.down{background:var(--surface-2);color:var(--ink);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--poor) 45%,transparent)}
+
+/* κάτω μπάρα: πιο ευανάγνωστες ετικέτες, «χάπι» πίσω από την ενεργή σελίδα */
+html.dsA .nav a,html.dsB .nav a{color:var(--ink-2);font-size:12px}
+html.dsA .nav a[aria-current=page],html.dsB .nav a[aria-current=page]{color:var(--accent)}
+html.dsA .nav a[aria-current=page] svg,html.dsB .nav a[aria-current=page] svg{background:color-mix(in srgb,var(--accent) 16%,transparent);border-radius:12px;padding:3px 12px;width:auto;height:29px;box-sizing:content-box;margin:-3px 0}
+
+/* ---------- μόνο Β: «όργανο ψαρέματος» ---------- */
+/* κάρτες: λεπτό περίγραμμα αντί για σκιά */
+html.dsB .card,html.dsB .list,html.dsB .hero{box-shadow:none;border:1px solid var(--line)}
+/* μέσα στην κάρτα: χωρίς γεμάτα κουτάκια, μόνο περίγραμμα (λιγότερα «κουτιά μέσα σε κουτιά») */
+html.dsB .hero .hsb{background:transparent;border:1px solid var(--line)}
+html.dsB .hero .hsb.lv-good,html.dsB .hero .hsb.sea-good{border-color:color-mix(in srgb,var(--good) 55%,var(--line))}
+html.dsB .hero .hsb.lv-fair,html.dsB .hero .hsb.sea-fair{border-color:color-mix(in srgb,var(--fair) 55%,var(--line))}
+html.dsB .hero .hsb.lv-poor,html.dsB .hero .hsb.sea-poor{border-color:color-mix(in srgb,var(--poor) 55%,var(--line))}
+html.dsB .hero .nwc:not(.gw){background:transparent;border:1px solid var(--line)}
+/* οι ειδοποιήσεις χρώματος (π.χ. δυνατές ριπές) κρατούν το φόντο τους: έχουν νόημα */
+/* μεγαλύτεροι αριθμοί, μικρότερες μονάδες: διαβάζονται με μια ματιά */
+html.dsB .hero .nwc b{font-size:21px;letter-spacing:-.01em}
+html.dsB .hero .hsb b{font-size:18px}
+html.dsB .hero2 .hpw{font-size:30px}
+/* λωρίδα ημερών και καρτέλες: περίγραμμα αντί για σκιά */
+html.dsB .dtile{box-shadow:none;border-color:var(--line)}
+html.dsB .dtile.on{border-color:var(--accent)}
+html.dsB .seg{background:transparent;box-shadow:inset 0 0 0 1px var(--line)}
+html.dsB .seg button[aria-pressed=true]{background:var(--surface-2);box-shadow:none}
+/* κάτω μπάρα: λεπτό περίγραμμα */
+html.dsB .nav>div{box-shadow:0 8px 24px -14px rgba(0,0,0,.6);outline:1px solid var(--line)}
