@@ -813,10 +813,16 @@ export async function run({ env, fetch: F0 = fetch, sendMail, log = console.log,
       if (!best || best.g < 0.05 || P[0].t - P[P.length - 1].t < 1) return null; let a = best.i; while (a > 0 && gr(a - 1) >= best.g * 0.5) a--; return { top: P[a].d }; };
     const dayHours = (ms, la, lo) => { const { sm, tz, d } = sunOf(ms, la, lo); if (!sm || sm.rise == null) return []; const d0 = Date.parse(d + 'T00:00:00Z') - tz * 60000, out = [];
       for (let m = Math.ceil((sm.rise - 60) / 60) * 60; m <= sm.set + 60; m += 60) out.push(d0 + m * 60000); return out; };
+    /* 26/11/2026: όριο χρόνου μέσα στη συμπλήρωση (καιρός, χλωροφύλλη, θερμοκλινές): νέα εγγραφή ξεκινά μόνο ως το μισό του προϋπολογισμού·
+       οι υπόλοιπες μένουν για την επόμενη εκτέλεση. Μέρα χωρίς δορυφορική τιμή/προφίλ ακόμα: νέα προσπάθεια το νωρίτερο σε 3 ώρες
+       (cond.cht / cond.tht = πότε δοκιμάστηκε), όχι σε κάθε εκτέλεση των 5′. */
+    const enrLate = () => Date.now() - T0 > budgetMs * 0.5, RETRY = 3 * HR;
+    const patchCond = (id, cond) => sb(`catch_obs?id=eq.${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify({ cond }) });
     try {
       const todo = (await sb(`catch_obs?select=id,kind,day,ms,ms2,lat,lon,cond&cond->>enr=is.null&ms=lt.${Date.now() - 2 * HR}&lat=not.is.null&order=id.asc&limit=60`)) || [];
       let cells = 0, done = 0;
       for (const r of todo) {
+        if (enrLate()) { skip('benr'); break; }
         if (r.kind === 'trip' && !(r.ms2 && r.ms2 < Date.now() - HR)) continue;
         const t0 = +r.ms - 80 * HR, t1 = (r.kind === 'trip' ? +r.ms2 : +r.ms) + 30 * HR;
         const ck = r.lat + ',' + r.lon + ',' + isoD(t0) + ',' + isoD(t1); if (!(ck in wxCache)) { if (cells >= 10) continue; cells++; }
@@ -833,7 +839,7 @@ export async function run({ env, fetch: F0 = fetch, sendMail, log = console.log,
     } catch (e) { log('bite stats: enrich ' + e.message); }
     // 1.14.29: χλωροφύλλη (Copernicus Μεσογείου, δορυφόρος L4 χωρίς κενά από σύννεφα) τη μέρα του ψαριού/της εξόδου → f.chl σε κάθε ώρα (cond.chv = 1 όταν ελέγχθηκε)
     try {
-      const todoC = (await sb(`catch_obs?select=id,day,lat,lon,cond&cond->>enr=eq.2&or=(cond->>chv.is.null,cond->>chv.eq.1)&lat=gt.30&lat=lt.46.5&lon=gt.-6&lon=lt.37&order=id.asc&limit=12`)) || [];
+      const todoC = (await sb(`catch_obs?select=id,day,lat,lon,cond&cond->>enr=eq.2&and=(or(cond->>chv.is.null,cond->>chv.eq.1),or(cond->>cht.is.null,cond->>cht.lt.${Date.now() - RETRY}))&lat=gt.30&lat=lt.46.5&lon=gt.-6&lon=lt.37&order=id.asc&limit=12`)) || [];
       if (todoC.length) {
         const lr = await F(env.SUPABASE_URL + '/functions/v1/water-clarity?mode=layers').then(r => r.ok ? r.json() : null).catch(() => null), L = lr && lr.chl && lr.chl.layer;
         // παλιότερες μέρες: το αρχείο (MY L4) του ίδιου δορυφορικού προϊόντος· το NRT κρατά μόνο τους τελευταίους μήνες
@@ -844,14 +850,15 @@ export async function run({ env, fetch: F0 = fetch, sendMail, log = console.log,
           const one = async (la, lo, day, ly) => { const t = tile(la, lo); try { const r = await F('https://wmts.marine.copernicus.eu/teroWmts/?service=WMTS&version=1.0.0&request=GetFeatureInfo&layer=' + encodeURIComponent(ly || L) + '&tilematrixset=EPSG:3857&tilematrix=10&tilerow=' + t.row + '&tilecol=' + t.col + '&i=' + t.i + '&j=' + t.j + '&INFOFORMAT=application/json&time=' + day + 'T00:00:00.000Z'); return r.ok ? num(await r.json()) : null; } catch (e) { return null; } };
           let nC = 0;
           for (const r of todoC) {
+            if (enrLate()) { skip('bchl'); break; }
             const la = +r.lat, lo = +r.lon, day = r.day; if (!day) continue; const d = 0.04, dl = d / Math.cos(la * Math.PI / 180);
             const pts = [[la, lo], [la + d, lo], [la - d, lo], [la, lo + dl], [la, lo - dl], [la + d, lo + dl], [la - d, lo - dl], [la + d, lo - dl], [la - d, lo + dl]];
             let v = (await Promise.all(pts.map(p => one(p[0], p[1], day)))).filter(x => x != null);
             if (!v.length) { const my = await myLayer(); if (my) v = (await Promise.all(pts.map(p => one(p[0], p[1], day, my)))).filter(x => x != null); }
             if (!v.length) { const pts2 = pts.slice(1).map(p => [la + (p[0] - la) * 2.2, lo + (p[1] - lo) * 2.2]); v = (await Promise.all(pts2.map(p => one(p[0], p[1], day)))).filter(x => x != null); }   // κοντά στην ακτή: ~9 km γύρω
             v.sort((a, b) => a - b); const chl = v.length ? Math.round(v[v.length >> 1] * 1000) / 1000 : null;
-            if (chl == null && day >= isoD(Date.now() - 4 * DAY)) continue;   // ο δορυφόρος βγάζει τη μέρα με 1–3 μέρες καθυστέρηση: ξαναδοκιμάζει αργότερα
-            const cond = Object.assign({}, r.cond || {}); cond.chv = 2; if (chl != null) { cond.chl = chl; const put = o => { if (Array.isArray(o)) o.forEach(x => { if (x) x.chl = chl; }); else if (o) o.chl = chl; }; put(cond.e); put(cond.d); }
+            if (chl == null && day >= isoD(Date.now() - 4 * DAY)) { await patchCond(r.id, Object.assign({}, r.cond || {}, { cht: Date.now() })); continue; }   // ο δορυφόρος βγάζει τη μέρα με 1–3 μέρες καθυστέρηση: ξαναδοκιμάζει σε 3 ώρες
+            const cond = Object.assign({}, r.cond || {}); delete cond.cht; cond.chv = 2; if (chl != null) { cond.chl = chl; const put = o => { if (Array.isArray(o)) o.forEach(x => { if (x) x.chl = chl; }); else if (o) o.chl = chl; }; put(cond.e); put(cond.d); }
             await sb(`catch_obs?id=eq.${r.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify({ cond }) }); nC++; }
           if (nC) stats.bchl = nC;
         }
@@ -859,14 +866,15 @@ export async function run({ env, fetch: F0 = fetch, sendMail, log = console.log,
     } catch (e) { log('bite stats: chl ' + e.message); }
     // 1.14.30: θερμοκλινές τη μέρα του ψαριού (μοντέλο Copernicus Μεσογείου, μέσω water-clarity ?mode=profile&day=) → f.thd σε κάθε ώρα: 0 = ανακατεμένο νερό, αλλιώς βάθος (m) που αρχίζει
     try {
-      const todoT = (await sb(`catch_obs?select=id,day,lat,lon,cond&cond->>enr=eq.2&cond->>thv=is.null&lat=gt.30&lat=lt.46.5&lon=gt.-6&lon=lt.37&order=id.asc&limit=6`)) || [];
+      const todoT = (await sb(`catch_obs?select=id,day,lat,lon,cond&cond->>enr=eq.2&cond->>thv=is.null&or=(cond->>tht.is.null,cond->>tht.lt.${Date.now() - RETRY})&lat=gt.30&lat=lt.46.5&lon=gt.-6&lon=lt.37&order=id.asc&limit=6`)) || [];
       let nT = 0;
       for (const r of todoT) {
+        if (enrLate()) { skip('bthd'); break; }
         if (!r.day) continue; let v = null;
         try { const q = await F(env.SUPABASE_URL + '/functions/v1/water-clarity?mode=profile&lat=' + (+r.lat).toFixed(2) + '&lon=' + (+r.lon).toFixed(2) + '&day=' + r.day); v = await q.json().catch(() => null); } catch (e) { v = null; }
         const P = v && Array.isArray(v.prof) ? v.prof.filter(x => typeof x.d === 'number' && typeof x.t === 'number').sort((a, b) => a.d - b.d) : null;
-        if (!v || ((!P || P.length < 3) && r.day >= isoD(Date.now() - 4 * DAY))) continue;   // χωρίς απάντηση ή πολύ πρόσφατη μέρα: ξανά αργότερα
-        const cond = Object.assign({}, r.cond || {}); cond.thv = 1;
+        if (!v || ((!P || P.length < 3) && r.day >= isoD(Date.now() - 4 * DAY))) { await patchCond(r.id, Object.assign({}, r.cond || {}, { tht: Date.now() })); continue; }   // χωρίς απάντηση ή πολύ πρόσφατη μέρα: ξανά σε 3 ώρες
+        const cond = Object.assign({}, r.cond || {}); delete cond.tht; cond.thv = 1;
         if (P && P.length >= 3) { const th = thermoOf(P), thd = th ? th.top : 0; cond.thd = thd; const put = o => { if (Array.isArray(o)) o.forEach(x => { if (x) x.thd = thd; }); else if (o) o.thd = thd; }; put(cond.e); put(cond.d); }
         await sb(`catch_obs?id=eq.${r.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify({ cond }) }); nT++; }
       if (nT) stats.bthd = nT;

@@ -2085,6 +2085,36 @@ with sync_playwright() as p:
     st,toast,r,e=watch96("Promise.reject(new Error('UNIMPLEMENTED'))","Promise.reject(new Error('UNIMPLEMENTED'))")
     check('η σύνδεση με το ρολόι δεν απαντά (το λάθος πριν την 1.14.96): η οθόνη δεν μένει στο «Ψάχνω ρολόι…», δείχνει πώς γράφεται ο κωδικός (1.14.96)', st and 'Ψάχνω' not in st and 'Γράψε τον κωδικό στο ρολόι' in st and not e, [st,toast,r,e])
 
+    print('# 1.14.99 οθόνη Ρολόι: χωρά χωρίς κύλιση, κουμπιά κάτω από τον κωδικό')
+    def watch99(akn):
+        c=ctx(b); c.add_init_script(akn+"if(!sessionStorage.__s){sessionStorage.__s=1;localStorage.setItem('alkyon-v4-watch',JSON.stringify({code:'ABCD2345',at:Date.now()}));}")
+        pg=page(c); pg.set_viewport_size({'width':393,'height':802}); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(3500)   # Galaxy (1080×2340) ως εφαρμογή: 393×802
+        pg.evaluate("()=>{ AK.cloud.session=function(){ return {name:'T',token:'t',uid:'u'}; }; AK.garmin.sheet(); }"); pg.wait_for_timeout(1500)
+        r=pg.evaluate("""()=>{ const sh=document.querySelector('.sheet.on')||document.querySelector('.sheet'), g=sh&&sh.querySelector('.gmn'); if(!g) return null;
+          const code=g.querySelector('.gmcode'), man=g.querySelector('.gmman');
+          const scrollers=[sh,...sh.querySelectorAll('*')].filter(e=>{ const o=getComputedStyle(e).overflowY; return (o==='auto'||o==='scroll')&&e.scrollHeight>e.clientHeight+2; });
+          const btns=man?[...man.querySelectorAll('button')].map(x=>x.textContent):[];
+          const bot=man?man.getBoundingClientRect().bottom:9999;
+          const more=g.querySelector('details.gmmore');
+          return {more:!!(more&&!more.open&&/μέσω του κινητού/.test(more.textContent)), next:!!(code&&code.nextElementSibling===man), noManage:![...g.querySelectorAll('h3')].some(h=>/Διαχείριση/.test(h.textContent)), btns, scroll:scrollers.length, bot, vh:innerHeight}; }""")
+        errs=list(pg._errs); c.close(); return r,errs
+    r,e=watch99("")
+    check('Ρολόι (web, 3 καρτέλες): «Νέος κωδικός» και «Αποσύνδεση» αμέσως κάτω από τον κωδικό, χωρίς «Διαχείριση» (1.14.99)', r and r['next'] and r['noManage'] and r['btns']==['Νέος κωδικός','Αποσύνδεση ρολογιού'] and not e, [r,e])
+    check('Ρολόι (web): όλη η οθόνη χωρά σε κινητό 393×802 χωρίς κύλιση· οι σημειώσεις στο κλειστό «Περισσότερα» (1.14.99)', r and r['scroll']==0 and r['bot']<r['vh'] and r['more'], r)
+    r,e=watch99("window.AKN={site:location.origin+'/',platform:'android',openExternal:function(){},watch:{link:function(){ return Promise.resolve({ok:true}); },status:function(){ return Promise.resolve({watches:1,app:1}); }}};")
+    check('Ρολόι (Android με εφαρμογή ρολογιού, και κουτί κατάστασης): χωρά χωρίς κύλιση, κουμπιά κάτω από τον κωδικό (1.14.99)', r and r['next'] and r['scroll']==0 and r['bot']<r['vh'] and not e, [r,e])
+    r,e=watch99("window.AKN={site:location.origin+'/',platform:'ios',openExternal:function(){},watch:{link:function(){ return Promise.resolve({ok:false,err:'nowatch'}); },status:function(){ return Promise.resolve({watches:1,app:0}); }}};")
+    check('Ρολόι (iPhone, ρολόι χωρίς Alkyon: το μεγαλύτερο κείμενο κατάστασης): χωρά χωρίς κύλιση (1.14.99)', r and r['next'] and r['scroll']==0 and not e, [r,e])
+
+    print('# 1.14.99 Πρόγνωση: η μπάρα ημερών κάτω από τη γραμμή κατάστασης')
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(5000)
+    pg.evaluate("()=>{ document.documentElement.style.setProperty('--safe-area-inset-top','30px'); document.querySelectorAll('main details').forEach(d=>d.open=true); window.scrollTo(0,900); }"); pg.wait_for_timeout(1200)
+    r=pg.evaluate("()=>{ const d=document.querySelector('.dstrip'); return [Math.round(d.getBoundingClientRect().top), d.classList.contains('stuck'), getComputedStyle(d).boxShadow]; }")
+    check('Πρόγνωση: με γραμμή κατάστασης 30px η μπάρα κολλά στα 30px (όχι στο 0) και το φόντο καλύπτει τη ζώνη από πάνω (1.14.99)', r[0]==30 and r[1] and '-30px' in r[2] and not pg._errs, [r,pg._errs])
+    pg.evaluate("()=>{ document.documentElement.style.removeProperty('--safe-area-inset-top'); window.scrollTo(0,901); }"); pg.wait_for_timeout(600)
+    r2=pg.evaluate("()=>Math.round(document.querySelector('.dstrip').getBoundingClientRect().top)")
+    check('Πρόγνωση: χωρίς γραμμή κατάστασης (υπολογιστής) η μπάρα κολλά στο 0 όπως πριν (1.14.99)', r2==0, r2); c.close()
+
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)
     check('Οδηγός χωρίς καρτέλα Κόμποι (αφαιρέθηκε προσωρινά)', not pg.query_selector('#tab-guide .seg button[data-g=knots]') and not pg._errs, pg._errs); c.close()

@@ -517,6 +517,23 @@ html.nightred .mobbtn{background:#1a0000!important;color:#fff!important;box-shad
 .gmstl{display:flex;gap:10px;align-items:flex-start}.gmstl .sdot{flex:none;margin-top:6px}.gmstl .note{margin:0}
 .gmcode .btn.sm{margin-top:6px}
 .gmman{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+/* 26/11/2026: οθόνη Ρολόι χωρίς κύλιση: κωδικός και «Αντιγραφή» σε μία γραμμή, κουμπιά αμέσως κάτω, πιο σφιχτά βήματα/σημειώσεις */
+.gmn .gmcode{display:grid;grid-template-columns:1fr auto;align-items:center;column-gap:10px;row-gap:0;margin:8px 0 8px;padding:10px 14px}
+.gmn .gmcode small{grid-column:1/-1}
+.gmn .gmcode b{font-size:28px;justify-self:start}
+.gmn .gmcode .btn.sm{margin-top:0}
+.gmn .gmman{margin:0 0 10px}
+.gmn .gmman .btn{min-height:44px}
+.gmn h3{margin:8px 0 4px;font-size:16px}
+.gmn .gmsteps{margin:0 0 6px;gap:3px;font-size:13.5px;line-height:1.35}
+.gmn>.note{margin:4px 0;font-size:12.5px;line-height:1.35;color:var(--ink-2)}
+.gmn .gmst{gap:8px;margin:0 0 8px;padding:10px 12px}
+.gmn .gmst .note{font-size:13px;line-height:1.35}
+.gmn .gmst .btn{min-height:40px;padding-top:8px;padding-bottom:8px}
+.gmn .gmmore{margin:2px 0 0;font-size:12.5px;color:var(--ink-2)}
+.gmn .gmmore summary{cursor:pointer;padding:6px 0;font-weight:650}
+.gmn .gmmore .note{margin:2px 0 4px;font-size:12.5px;line-height:1.35}
+.gmn .seg{margin-bottom:0}
 
 /* 1.1.0: ενέργειες ανοιχτής ειδοποίησης */
 .list .ibacts{display:flex;flex-direction:row;gap:8px;padding:0 16px 14px 68px;flex-wrap:wrap}.list .li.ibrow:has(+ .ibacts){border-bottom:0}.list .ibacts:not(:last-child){border-bottom:1px solid var(--line)}/* 1.10.6: όχι γραμμή ανάμεσα στο κείμενο και στα κουμπιά */
