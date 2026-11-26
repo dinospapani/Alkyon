@@ -12,17 +12,19 @@
   --surface-3:#DCE7E5;           /* επιλεγμένη επιφάνεια (φωτεινό) */
   --ink-3:#56707A;               /* ήσυχο κείμενο */
   --line:#C9D8D6;
+  --line-strong:#74898F;         /* όριο στοιχείου που πατιέται (≥ 3:1 πάνω στη σελίδα) */
+  --poor-ink:#B23A26;            /* κόκκινο κείμενο (≥ 4,5:1) */
   --bar-good:#5FBF93; --bar-fair:#D9B467; --bar-past:#D3DEDC; --bar-bad:#F3DEDB;
 }
 @media (prefers-color-scheme:dark){ :root:not([data-theme=light]){
   --bg:#041219; --surface:#0D2A36; --surface-2:#143848; --surface-3:#1D4A5D;
-  --ink:#EAF3F4; --ink-2:#B6CCD4; --ink-3:#8DA8B2; --line:#234B5C;
+  --ink:#EAF3F4; --ink-2:#B6CCD4; --ink-3:#8DA8B2; --line:#234B5C; --line-strong:#55808F; --poor-ink:#F07A6C;
   --good:#3CCB8A; --fair:#E9B949; --poor:#E2625A;
   --bar-good:#2E9C6E; --bar-fair:#B48E3C; --bar-past:#21404C; --bar-bad:#3A2A30;
 }}
 :root[data-theme=dark]{
   --bg:#041219; --surface:#0D2A36; --surface-2:#143848; --surface-3:#1D4A5D;
-  --ink:#EAF3F4; --ink-2:#B6CCD4; --ink-3:#8DA8B2; --line:#234B5C;
+  --ink:#EAF3F4; --ink-2:#B6CCD4; --ink-3:#8DA8B2; --line:#234B5C; --line-strong:#55808F; --poor-ink:#F07A6C;
   --good:#3CCB8A; --fair:#E9B949; --poor:#E2625A;
   --bar-good:#2E9C6E; --bar-fair:#B48E3C; --bar-past:#21404C; --bar-bad:#3A2A30;
 }
@@ -157,6 +159,48 @@ h1{letter-spacing:-.02em}
 
 /* μικρά γράμματα της Πρόγνωσης: τουλάχιστον 12 px */
 .hring small,.hcard .hleg,.hcard .hcap,.dtile .dw{font-size:12px!important}
+
+/* ---------- 5. Γ+ βήμα 2: Ημερολόγιο, Προφίλ, φύλλα, κουμπιά, λίστες (26/11/2026) ---------- */
+/* ετικέτες ενοτήτων: ένα στυλ σε όλη την εφαρμογή, όπως το «ΚΑΛΥΤΕΡΗ ΩΡΑ» */
+.pgsec,.pgrp>.listh,.sheet .bform>h3.h3{font:700 12px/1.2 var(--font);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}   /* μόνο σύντομες ετικέτες· οι μεγάλες επικεφαλίδες (.listh αλλού) μένουν ως έχουν */
+.pgrp>.listh{margin:22px 4px 8px}
+
+/* φίλτρα διαστήματος: ίδια λογική με τις καρτέλες (ανοιχτότερη επιφάνεια, όχι λευκό κουτί) */
+.chips.rng .chip{min-height:var(--tab-h);border:0;box-shadow:inset 0 0 0 1px var(--line-strong);background:transparent;color:var(--ink-2);font:600 13px var(--font)}
+.chips.rng .chip[aria-pressed=true]{background:var(--surface-3);color:var(--ink);box-shadow:inset 0 0 0 1px var(--surface-3);font-weight:750}
+
+/* αναζήτηση και μικρά κουμπιά-εικονίδια: ίδια επιφάνεια με λεπτό όριο, χωρίς σκιά */
+.search{box-shadow:inset 0 0 0 1px var(--line-strong);border-radius:var(--r-md)}
+body:not(.mapon) .iconbtn:not(.addfish),.sheet .iconbtn{box-shadow:inset 0 0 0 1px var(--line-strong)}   /* ο Χάρτης μένει ως έχει μέχρι τη φάση C */
+
+/* λίστες: δευτερεύον κείμενο ήσυχο, ημερομηνίες με σταθερό πλάτος ψηφίων */
+.li .tx b{font-weight:650}
+.li .tx small{color:var(--ink-3)}
+.li.fishrow .tx small,.li.fishrow time,.li.fishrow .dt,.rec span,.rec small{font-variant-numeric:tabular-nums}
+p.sum{font:600 13px/1.3 var(--font);color:var(--ink-3);letter-spacing:.02em}
+.li.tcard .tc small{font-size:12px}
+
+/* σύνοψη (Στατιστικά): τηλεμετρία όπως η Πρόγνωση, όχι τρία κουτιά */
+.kpis{gap:0;background:var(--surface);border:1px solid color-mix(in srgb,var(--line) 75%,transparent);border-radius:var(--r-lg);overflow:hidden}
+.kpi{background:transparent;box-shadow:none;border-radius:0;border-right:1px solid var(--line);padding:12px 14px}
+.kpis .kpi:last-child,.kpis.k3 .kpi:nth-child(3n),.kpis:not(.k3):not(.k6) .kpi:nth-child(2n),.kpis.k6 .kpi:nth-child(3n){border-right:0}
+.kpis:not(.k3):not(.k6) .kpi:nth-child(n+3),.kpis.k6 .kpi:nth-child(n+4){border-top:1px solid var(--line)}
+.kpi b{font-variant-numeric:tabular-nums}
+.kpi span{font:700 12px/1.2 var(--font);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.wcols .wc span,.wcols.w12 .wc span{font-size:12px;letter-spacing:0}
+
+/* κουμπιά: μία κύρια κίνηση πορτοκαλί, οι δευτερεύουσες ήσυχες με λεπτό όριο */
+body:not(.mapon) .btn,.sheet .btn{border-radius:var(--r-md);min-height:var(--ctl-h)}
+body:not(.mapon) .btn:not(.pri):not(.del):not(.endtrip),.sheet .btn:not(.pri):not(.del):not(.endtrip){box-shadow:inset 0 0 0 1px var(--line-strong)}
+
+/* φύλλα: λαβή, τίτλος, λεπτομέρειες σαν τηλεμετρία, ενέργειες με σαφή ιεραρχία */
+.sheet{box-shadow:0 -18px 40px -20px rgba(0,0,0,.7);border-top:1px solid var(--line)}
+.sheet .grab{background:var(--ink-3);opacity:.6}
+.sheet header h2{letter-spacing:-.015em}
+.sheet .det .rows.one .row>span{font:700 12px/1.2 var(--font);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.sheet .det .rows.one .row b{font-variant-numeric:tabular-nums}
+.sheet .acts .btn:not(.pri):not(.del){background:transparent}
+.sheet .acts .btn.del{background:transparent;box-shadow:none;color:var(--poor-ink);font-weight:700}
 
 /* ---------- 4. ειδικές λειτουργίες ---------- */
 @media (prefers-reduced-motion:reduce){.hring{transform:none}}

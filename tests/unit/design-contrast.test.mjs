@@ -35,6 +35,15 @@ for (const [name, t] of Object.entries(THEMES)) {
   });
 }
 
+for (const [name, t] of Object.entries(THEMES)) {
+  test(`${name} (Γ+ βήμα 2): όριο στοιχείων που πατιούνται (line-strong) ≥ 3:1 και κόκκινο κείμενο (poor-ink) ≥ 4,5:1 πάνω σε σελίδα και κάρτα`, () => {
+    for (const bg of ['bg', 'surface']) {
+      assert.ok(ratio(t['line-strong'], t[bg]) >= 3, `${name} line-strong/${bg} ${ratio(t['line-strong'], t[bg]).toFixed(2)}`);
+      assert.ok(ratio(t['poor-ink'], t[bg]) >= 4.5, `${name} poor-ink/${bg} ${ratio(t['poor-ink'], t[bg]).toFixed(2)}`);
+    }
+  });
+}
+
 test('Γ+: κανένα μέγεθος γραμμάτων κάτω από 12 px στο refine.css', () => {
   const small = [...ref.matchAll(/font(?:-size)?:[^;}]*?\b(\d+(?:\.\d+)?)px/g)].map(m => +m[1]).filter(n => n < 12);
   assert.deepEqual(small, []);
