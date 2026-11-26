@@ -498,7 +498,7 @@ function dayView(page,fc,d){
   var part=function(sh){ return sh<5?T('τα ξημερώματα','before dawn'):sh<12?T('το πρωί','morning'):sh<17?T('το απόγευμα','afternoon'):T('το βράδυ','evening'); };
   var ptitle=pday?(B.dayName(pday.date,td)+' '+part(pday.win.s)):(nbt?T('Απόψε','Tonight'):''), plv=psc!=null?lvl(psc):'poor';
   hero.classList.add('hero2'); if(nxt) hero.className='hero hero2 isnext lv-'+plv; /* το χρώμα ακολουθεί το παράθυρο που δείχνει */
-  hero.append(h('div',{class:'htop'},h('div',{class:'hring lv-'+plv,title:T('Δείκτης ψαρέματος: τσίμπημα και θάλασσα μαζί','Fishing index: bite and sea together'),html:gaugeSvg(psc)+'<div><b>'+(psc!=null?psc:'—')+'</b><small>/100</small></div>'}),
+  hero.append(h('div',{class:'htop'},h('div',{class:'hring lv-'+plv,title:T('Δείκτης ψαρέματος: τσίμπημα και θάλασσα μαζί','Fishing index: bite and sea together'),html:gaugeSvg(psc)+'<div><b>'+(psc!=null?psc:'—')+'</b><small>/100</small>'+(pday&&pday.date!==d.date&&pday.win?'<i class="hday">'+B.dayName(pday.date,td)+'</i>':'')+'</div>'}),
     h('div',{class:'htx'},(pwin&&!nxt)?h('span',{class:'hk',text:T('Καλύτερη ώρα','Best time')}):null,h('div',{class:'hv'},h('h2',{text:nxt?T('Επόμενη καλή ώρα','Next good time'):(tn?tn[1]:verdict(d))})),ptitle?h('div',{class:'hpt',text:ptitle}):null,pwin?h('b',{class:'hpw',text:pwin}):null)));
   var sec=nxt&&tn?(tn[1]+(tn[2]?' · '+tn[2]:'')):(nxt&&wpast?T('Σήμερα ήταν ','Today was ')+win(d)+' ('+T('δείκτης ','index ')+d.best+')':(tn&&tn[2]?tn[2]:''));
   if(sec) hero.append(h('p',{class:'hwhy hsec',text:sec.charAt(0).toUpperCase()+sec.slice(1).toLowerCase().replace(/bft/g,'Bft')}));
