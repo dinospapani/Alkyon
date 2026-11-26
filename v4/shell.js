@@ -11,7 +11,7 @@ var LZ={};
 B.loadScripts=function(files){ return Promise.all(files.map(function(f){ if(LZ[f]) return LZ[f]; LZ[f]=new Promise(function(res,rej){ var s=document.createElement('script'); s.async=false; s.src=f; s.onload=function(){ res(); }; s.onerror=function(){ delete LZ[f]; s.remove(); rej(new Error('load '+f)); }; document.head.appendChild(s); }); return LZ[f]; })).then(function(){}); };
 B.lazyView=function(name,title,files){ if(VIEWS[name]) return; var stub={title:title,mount:function(el){ el.append(h('div',{class:'card empty lzload'},h('p',{class:'sub',text:T('Φόρτωση…','Loading…')})));
     B.loadScripts(files).then(function(){ if(cur!==name||VIEWS[name]===stub) return; el.replaceChildren(); VIEWS[name].mount(el); document.title=(VIEWS[name].title||'Alkyon')+' · Alkyon'; })
-    .catch(function(){ if(cur!==name) return; el.replaceChildren(h('div',{class:'card empty'},h('p',{text:T('Δεν φορτώθηκε. Έλεγξε τη σύνδεση και ξαναδοκίμασε.','Could not load. Check your connection and try again.')}),h('button',{class:'btn',type:'button',text:T('Ξανά','Retry'),onclick:function(){ el.replaceChildren(); stub.mount(el); }}))); }); }};
+    .catch(function(){ if(cur!==name) return; el.replaceChildren(h('div',{class:'card empty iserr'},h('p',{text:T('Δεν φορτώθηκε. Έλεγξε τη σύνδεση και ξαναδοκίμασε.','Could not load. Check your connection and try again.')}),h('button',{class:'btn',type:'button',text:T('Ξανά','Retry'),onclick:function(){ el.replaceChildren(); stub.mount(el); }}))); }); }};
   VIEWS[name]=stub; };
 B.lazyView('guide',T('Οδηγός','Guide'),['guide-core.js','guide-view.js']);
 /* σύγκριση χρονιών: κάρτα που φορτώνει το years.js όταν φανεί */

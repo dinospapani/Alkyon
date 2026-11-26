@@ -94,13 +94,23 @@ function detail(b){
     if(b.pb&&b.pb.hpa){ var UP=window.AlkyonUnits, pf=function(v){ return UP&&UP.press?UP.press(v):B.num(v,1)+' hPa'; } /* 1.14.9: όχι «var U» εδώ· έκρυβε το U της αρχής και τα ψάρια με καιρό δεν άνοιγαν */, sg=function(v){ return (v>0?'+':v<0?'−':'±')+B.num(Math.abs(v),1); };
       wx.append(h('p',{class:'foot pbline',text:'📱 '+T('Βαρόμετρο κινητού: ','Phone barometer: ')+pf(b.pb.hpa)+(b.pb.d1!=null?' · '+sg(b.pb.d1)+T(' την 1η ώρα',' in 1 h'):'')+(b.pb.d3!=null?' · '+sg(b.pb.d3)+T(' στις 3 ώρες',' in 3 h'):'')})); } }
   var acts=h('div',{class:'acts'},h('button',{class:'btn pri',type:'button',text:T('Επεξεργασία','Edit'),onclick:function(){ sh.close(true); B.biteForm(b); }}));
-  if(typeof b.lat==='number') acts.append(h('button',{class:'btn',type:'button',text:T('Στον χάρτη','On the map'),onclick:function(){ sh.close(true); B.mapGo(b.lat,b.lon,15); }}));
+  /* Γ+ (26/11/2026): «Στον χάρτη» ανοίγει τις τρεις κινήσεις της θέσης (Δες στον χάρτη, Πήγαινε εκεί, Διόρθωση σημείου)· λιγότερα κουμπιά στο φύλλο, καμία λειτουργία δεν χάνεται */
+  var goMap=function(){ sh.close(true); B.mapGo(b.lat,b.lon,15); };
   /* 1.6.1: διόρθωση του σημείου στον χάρτη· στη συρτή η εφαρμογή μαθαίνει πόσο πίσω πάει το δόλωμα */
-  if(typeof b.lat==='number'&&B.mapPick) acts.append(h('button',{class:'btn',type:'button',text:T('Διόρθωση σημείου','Fix position'),onclick:function(){ sh.close(true); var back=location.hash||'#log';
+  var fixPos=function(){ sh.close(true); var back=location.hash||'#log';
     B.mapPick({lat:b.lat,lon:b.lon,z:16,back:back,title:T('Πού ήταν το ψάρι;','Where was the catch?'),saveLabel:T('Αποθήκευση','Save'),onPick:function(la,lo){ var cur=S().get('bites',b.id); if(!cur) return;
       var msg=B.troll&&B.troll.calibrate?B.troll.calibrate(cur,la,lo):null; S().save('bites',Object.assign({},cur,{lat:+la.toFixed(5),lon:+lo.toFixed(5)},cur.troll&&typeof cur.boatLat==='number'?{troll:Object.assign({},cur.troll,{fixed:1})}:{})); B.emit('store','alkyon-bites');
-      B.toast(msg||T('Το σημείο διορθώθηκε.','Position fixed.')); }}); }}));
-  if(typeof b.lat==='number'&&B.goTo) acts.append(h('button',{class:'btn',type:'button',text:T('Πήγαινε εκεί','Go there'),onclick:function(){ sh.close(true); B.goTo(b.lat,b.lon,b.species||b.place||''); }}));
+      B.toast(msg||T('Το σημείο διορθώθηκε.','Position fixed.')); }}); };
+  var goThere=function(){ sh.close(true); B.goTo(b.lat,b.lon,b.species||b.place||''); };
+  if(typeof b.lat==='number'){
+    var subs=[[T('Δες στον χάρτη','Show on the map'),goMap]];
+    if(B.goTo) subs.push([T('Πήγαινε εκεί','Go there'),goThere]);
+    if(B.mapPick) subs.push([T('Διόρθωση σημείου','Fix position'),fixPos]);
+    if(subs.length<2) acts.append(h('button',{class:'btn',type:'button',text:T('Στον χάρτη','On the map'),onclick:goMap}));
+    else { var msub=h('div',{class:'mapsub',role:'group','aria-label':T('Θέση του ψαριού','Catch position'),hidden:true},subs.map(function(x){ return h('button',{class:'btn',type:'button',text:x[0],onclick:x[1]}); }));
+      var mbtn=h('button',{class:'btn mapmore',type:'button','aria-expanded':'false',text:T('Στον χάρτη','On the map'),onclick:function(){ var op=msub.hidden; msub.hidden=!op; mbtn.setAttribute('aria-expanded',String(op)); }});
+      acts.append(mbtn,msub); }
+  }
   /* 1.14.35: το είδος στον Οδηγό (μέγεθος, νόμοι, πού και πώς) */ if(!b.miss&&b.species&&B.guideGo) acts.append(h('button',{class:'btn',type:'button',text:'📖 '+T('Στον Οδηγό','In the Guide'),onclick:function(){ sh.close(true); B.guideGo('species',DN(b.species)||b.species); }}));
   if(!b.miss&&B.cards) acts.append(h('button',{class:'btn',type:'button',text:T('Κάρτα','Card'),onclick:function(){ B.cards.fish(b); }}));
   if(!b.miss&&B.commShare) acts.append(h('button',{class:'btn',type:'button',disabled:B.commShared(b.id),text:B.commShared(b.id)?T('✓ Στην κοινότητα','✓ Shared'):T('Κοινότητα','Community'),onclick:function(){ sh.close(true); B.commShare(b); }}));

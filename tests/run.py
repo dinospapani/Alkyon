@@ -766,7 +766,7 @@ with sync_playwright() as p:
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_selector('.dstrip .dtile:not(.past)'); pg.wait_for_timeout(1000)
     # 1.9.58: αύριο, όχι σήμερα: μετά τη δύση η σημερινή μέρα δεν έχει άλλες ώρες φωτός και η κάρτα δεν βγαίνει (το test αποτύγχανε μόνο το βράδυ)
     pg.evaluate("()=>document.querySelectorAll('.dstrip .dtile:not(.past)')[1].click()"); pg.wait_for_timeout(1200)
-    r=pg.evaluate("()=>{const x=document.querySelector('.hero .hsplit'); const fc=JSON.parse(localStorage.getItem('alkyon-fc')||'null'); return {box:!!x, n:x?x.querySelectorAll('.hsb').length:0, txt:x?x.innerText:''}}")
+    r=pg.evaluate("()=>{const x=document.querySelector('.hero .hsplit'); const fc=JSON.parse(localStorage.getItem('alkyon-fc')||'null'); return {box:!!x, n:x?x.querySelectorAll('.hsb').length:0, txt:x?x.textContent:''}}")
     r2=pg.evaluate("()=>{const sm={f:0.25,rise:360,set:1080,maj:[],min:[]}; const w={wind:30,wave:2.2,gust:40,ptrend:'stable',cloud:'part'}; return [PF.hourScore(sm,9,w), PF.hourScore(sm,9,Object.assign({bite:true},w))]}")
     check('Τσίμπημα και Θάλασσα χωριστά (1.9.32)', r['box'] and r['n']==2 and 'Τσίμπημα' in r['txt'] and r2[1]>r2[0]+20 and not pg._errs, [r,r2,pg._errs]); c.close()
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(3000)
