@@ -813,6 +813,13 @@ with sync_playwright() as p:
     a=pg.evaluate("()=>!!document.querySelector('.srow .addfish')"); pg.evaluate("()=>document.querySelector('.srow .addfish').click()"); pg.wait_for_timeout(800)
     f=pg.evaluate("()=>!!document.querySelector('.bf2, .bform, form')")
     check('Ημερολόγιο: κουμπί «+ Ψάρι» (1.9.41)', a and f and not pg._errs, [a,f,pg._errs]); c.close()
+    # 26/11/2026: νέα καταγραφή ή συγχρονισμός ξαναζωγραφίζει το Ημερολόγιο και το Προφίλ χωρίς «αναβόσβημα» (η κίνηση εισόδου μόνο στο άνοιγμα της σελίδας)
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(2500)
+    blink="""ev=>new Promise(res=>{ let mn=1; const t0=performance.now(); AK.emit('store',ev);
+      const f=()=>{ const p=document.querySelector('#main .page'); if(p) mn=Math.min(mn,+getComputedStyle(p).opacity); if(performance.now()-t0<350) requestAnimationFrame(f); else res(mn); }; requestAnimationFrame(f); })"""
+    r=[pg.evaluate(blink,'alkyon-bites'), pg.evaluate(blink,'alkyon-sess')]
+    pg.evaluate("h=>location.hash=h",'#profile'); pg.wait_for_timeout(1500); r.append(pg.evaluate(blink,'alkyon-sess'))
+    check('Ημερολόγιο/Προφίλ: χωρίς αναβόσβημα σε νέα καταγραφή και συγχρονισμό (26/11/2026)', min(r)>=0.99 and not pg._errs, [r,pg._errs]); c.close()
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(2500)
     pg.evaluate("()=>{const t=[...document.querySelectorAll('.seg button,.lseg button')].find(x=>/^Έξοδοι/.test(x.textContent.trim())); t&&t.click()}"); pg.wait_for_timeout(600)
     pg.evaluate("()=>document.querySelector('.addrow .addbtn').click()"); pg.wait_for_timeout(600)

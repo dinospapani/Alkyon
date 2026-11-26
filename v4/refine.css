@@ -248,5 +248,8 @@ body:not(.mapon) .btn:not(.pri):not(.del):not(.endtrip),.sheet .btn:not(.pri):no
 :root[data-theme=dark] .hero .hsun1 .mj{color:#9A93EC}
 html.nightred .hero .hsun1 .mj{color:inherit}
 
+/* ξαναζωγράφισμα της ίδιας σελίδας (νέα καταγραφή, συγχρονισμός): χωρίς την κίνηση εισόδου, που έκανε την οθόνη να «αναβοσβήνει» */
+.page.quiet,.page.quiet .card,.page.quiet .hero{animation:none!important}
+
 /* ---------- 4. ειδικές λειτουργίες ---------- */
 @media (prefers-reduced-motion:reduce){.hring{transform:none}}
