@@ -636,6 +636,46 @@ NOW = RealDate.parse('2026-11-09T07:00:00Z');
   check('υγεία: όταν περάσει το σφάλμα, μηδενίζεται ο μετρητής', !(store['backups/_system/heartbeat.json'].fails || {})['squid fc'], store['backups/_system/heartbeat.json']);
 }
 
+/* ---------- 26/11/2026: συμπλήρωση catch_obs (χλωροφύλλη/θερμοκλινές): επανάληψη ανά 3 ώρες και όριο χρόνου ---------- */
+{
+  const HR = 3600000;
+  const rowsOf = n => Array.from({ length: n }, (_, i) => ({ id: 900 + i, day: '2026-11-25', lat: 34.6, lon: 32.9, cond: { enr: 2, wind: 5 } }));
+  const mk = ({ n = 3, tick = 0, chlVal = null, prof = [] } = {}) => {
+    const w = world(), base = w.fetch, patches = [], q = {}, rows = rowsOf(n);
+    w.fetch = async (url, opt = {}) => {
+      const u = String(url), res = (o, st = 200) => ({ ok: st < 400, status: st, json: async () => o, text: async () => JSON.stringify(o) });
+      if (u.includes('water-clarity?mode=layers')) return res({ chl: { layer: 'CHL/L' } });
+      if (u.includes('water-clarity?mode=profile')) return res({ prof });
+      if (u.includes('copernicus.eu')) { NOW += tick; return u.includes('GetCapabilities') ? res('') : res({ features: chlVal == null ? [] : [{ properties: { value: chlVal } }] }); }
+      const m = u.match(/\/rest\/v1\/(catch_obs\?.+)$/);
+      if (m) { const p = decodeURIComponent(m[1]), method = opt.method || 'GET';
+        if (method === 'PATCH') { patches.push({ id: +p.match(/id=eq\.(\d+)/)[1], cond: JSON.parse(opt.body).cond }); return res(null, 204); }
+        if (p.includes('cond->>chv')) { q.chl = p; return res(rows); }
+        if (p.includes('cond->>thv')) { q.thd = p; return res(rows); }
+        return res([]); }
+      return base(url, opt);
+    };
+    return { w, patches, q };
+  };
+  NOW = RealDate.parse('2026-11-26T03:00:00Z');
+  { const t = mk(), r = await go(t.w);
+    check('συμπλήρωση: το ερώτημα χλωροφύλλης αφήνει έξω όσα δοκιμάστηκαν τις τελευταίες 3 ώρες', t.q.chl && t.q.chl.includes('cond->>cht.lt.' + (NOW - 3 * HR)) && t.q.chl.includes('cond->>cht.is.null'), t.q.chl);
+    check('συμπλήρωση: το ερώτημα θερμοκλινούς αφήνει έξω όσα δοκιμάστηκαν τις τελευταίες 3 ώρες', t.q.thd && t.q.thd.includes('cond->>tht.lt.' + (NOW - 3 * HR)), t.q.thd);
+    const ch = t.patches.filter(x => x.cond.cht != null), th = t.patches.filter(x => x.cond.tht != null);
+    check('συμπλήρωση: πρόσφατη μέρα χωρίς χλωροφύλλη → γράφεται μόνο η ώρα προσπάθειας (cht), όχι chv', ch.length === 3 && ch.every(x => x.cond.cht === NOW && x.cond.chv == null && x.cond.enr === 2 && x.cond.wind === 5), t.patches);
+    check('συμπλήρωση: πρόσφατη μέρα χωρίς προφίλ → γράφεται μόνο η ώρα προσπάθειας (tht), όχι thv', th.length === 3 && th.every(x => x.cond.tht === NOW && x.cond.thv == null), t.patches);
+    check('συμπλήρωση: χωρίς παράλειψη όταν υπάρχει χρόνος', !(r.stats.skip || []).length, r.stats.skip); }
+  NOW = RealDate.parse('2026-11-26T03:00:00Z');
+  { const t = mk({ chlVal: 0.12 }), r = await go(t.w);
+    const ok2 = t.patches.filter(x => x.cond.chv === 2);
+    check('συμπλήρωση: όταν βγει η χλωροφύλλη → chv=2, chl, και σβήνει το cht', ok2.length === 3 && ok2.every(x => x.cond.chl === 0.12 && x.cond.cht == null), t.patches); }
+  NOW = RealDate.parse('2026-11-26T03:00:00Z');
+  { const t = mk({ n: 5, tick: 1000 }), r = await go(t.w);   // κάθε αίτημα στο Copernicus «κοστίζει» 1″ → ~27″ ανά εγγραφή
+    const ch = t.patches.filter(x => x.cond.cht != null).length;
+    check('συμπλήρωση: όριο χρόνου: σταματά πριν το μισό του προϋπολογισμού (50″) και αφήνει τις υπόλοιπες', ch >= 1 && ch < 5 && (r.stats.skip || []).includes('bchl'), { ch, skip: r.stats.skip });
+    check('συμπλήρωση: όριο χρόνου: το θερμοκλινές δεν ξεκινά αφού πέρασε το όριο', !t.patches.some(x => x.cond.tht != null) && (r.stats.skip || []).includes('bthd'), r.stats.skip); }
+}
+
 /* ---------- ο server τρέχει τον ίδιο υπολογισμό με την εφαρμογή ---------- */
 {
   const ts = fs.readFileSync(path.join(ROOT, 'quick-processor-index.ts'), 'utf8');

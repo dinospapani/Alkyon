@@ -191,7 +191,8 @@ svg.pwc{width:100%;height:auto}
 #fcExposure .exmore p{font-size:13.5px;line-height:1.5;color:var(--ink-2)}
 #fcExposure .exmore button{border-radius:12px}
 /* ===== λωρίδα 7 ημερών (μένει πάνω όσο κυλάς) ===== */
-.dstrip{position:sticky;top:0;z-index:15;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -16px 14px;padding:8px 16px 10px;background:var(--bg);scroll-snap-type:x proximity}
+/* 26/11/2026: κολλά κάτω από τη γραμμή κατάστασης του κινητού (ώρα, μπαταρία), όχι πάνω της. --st = ύψος γραμμής: env() στο Chrome/iOS, ή η μεταβλητή του Capacitor στο Android */
+.dstrip{--st:max(var(--safe-t,0px),var(--safe-area-inset-top,0px));position:sticky;top:var(--st);z-index:15;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -16px 14px;padding:8px 16px 10px;background:var(--bg);scroll-snap-type:x proximity}
 .dstrip::-webkit-scrollbar{display:none}
 .dtile{flex:1 0 62px;max-width:86px;scroll-snap-align:center;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 4px 9px;border-radius:16px;border:2px solid transparent;background:var(--surface);color:var(--ink);box-shadow:var(--shadow);font-family:var(--font);transition:transform .12s,border-color .15s}
 .dtile:active{transform:scale(.96)}
@@ -506,7 +507,8 @@ html.nightred .calmr .exwc{background:#000!important;outline:1px solid currentCo
 .hb.s-fair{background:color-mix(in srgb,var(--fair) 60%,transparent)}
 .hb.s-poor{background:color-mix(in srgb,var(--ink-3) 40%,transparent)}
 .dstrip{transition:padding .15s}
-.dstrip.stuck{padding:6px 16px 7px;box-shadow:0 6px 14px -8px rgba(0,0,0,.35)}
+/* 26/11/2026: όταν κολλήσει, το χρώμα του φόντου καλύπτει και τη ζώνη της γραμμής κατάστασης, ώστε να μη φαίνεται περιεχόμενο πίσω από την ώρα */
+.dstrip.stuck{padding:6px 16px 7px;box-shadow:0 calc(-1 * var(--st)) 0 0 var(--bg),0 6px 14px -8px rgba(0,0,0,.35)}
 .dstrip.stuck .dtile{flex-direction:row;gap:6px;padding:6px 9px;border-radius:12px;flex:0 0 auto;max-width:none}
 .dstrip.stuck .dtile .dd,.dstrip.stuck .dtile .dw,.dstrip.stuck .dtile .dwx{display:none}
 .dstrip.stuck .dtile .dsc{margin:0;min-width:32px;padding:3px 0;font-size:14px}
