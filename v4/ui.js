@@ -160,7 +160,8 @@ function longPress(el,fn){ var t=0; function st(){ t=setTimeout(function(){ t=0;
   el.addEventListener('click',function(e){ if(el.dataset.lp){ e.stopImmediatePropagation(); e.preventDefault(); delete el.dataset.lp; } },true); }
 
 /* επιβεβαίωση (μικρό φύλλο) */
-function ask(q,okText,danger){ return new Promise(function(res){ var done=false;
+/* 26/11/2026: stack: η επιβεβαίωση ανοίγει ΠΑΝΩ από το τρέχον φύλλο, που μένει ανοιχτό μετά (πριν το «OK» έκλεινε και το φύλλο από κάτω) */
+function ask(q,okText,danger,stack){ return new Promise(function(res){ var done=false;
   var ok=h('button',{class:'btn full'+(danger?'':' pri'),type:'button',text:okText||T('Εντάξει','OK'),style:danger?{color:'var(--poor)'}:null});
   var no=h('button',{class:'btn full',type:'button',text:T('Άκυρο','Cancel')});
   /* μεγάλη ερώτηση: ο τίτλος κρατά μόνο την ερώτηση, η εξήγηση πάει από κάτω σε κανονικά γράμματα */
@@ -168,7 +169,7 @@ function ask(q,okText,danger){ return new Promise(function(res){ var done=false;
   if(title.length>64){ var qs=title.match(/[^.!;?\n]*[;?]/g), lq=qs&&qs[qs.length-1].trim();
     if(lq&&lq.length>=8&&lq.length<=80){ var at=title.lastIndexOf(lq); sub=(title.slice(0,at)+' '+title.slice(at+lq.length)).replace(/[ \t]+/g,' ').trim(); title=lq; if(!sub) sub=null; }
     else { sub=title; title=T('Επιβεβαίωση','Confirm'); } }
-  var sh=sheet({title:title,body:h('div',{style:{display:'grid',gap:'10px',paddingTop:'4px'}},sub?h('p',{class:'sub asksub',text:sub}):null,ok,no),onclose:function(){ if(!done) res(false); }});
+  var sh=sheet({stack:!!stack,title:title,body:h('div',{style:{display:'grid',gap:'10px',paddingTop:'4px'}},sub?h('p',{class:'sub asksub',text:sub}):null,ok,no),onclose:function(){ if(!done) res(false); }});
   ok.addEventListener('click',function(){ done=true; sh.close(); res(true); }); no.addEventListener('click',function(){ sh.close(); });
 }); }
 

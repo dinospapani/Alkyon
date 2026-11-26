@@ -512,6 +512,11 @@ html.nightred .mobbtn{background:#1a0000!important;color:#fff!important;box-shad
 .gmcode{display:flex;flex-direction:column;align-items:center;gap:4px;margin:14px 0;padding:16px;border-radius:16px;background:var(--surface-2,rgba(127,127,127,.08))}
 .gmcode b{font:800 34px/1.1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.12em}
 .gmsteps{margin:0 0 12px;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:14px}
+/* 26/11/2026 οθόνη Ρολόι */
+.gmst{display:flex;flex-direction:column;gap:10px;margin:0 0 14px;padding:14px;border-radius:16px;background:var(--surface-2,rgba(127,127,127,.08))}
+.gmstl{display:flex;gap:10px;align-items:flex-start}.gmstl .sdot{flex:none;margin-top:6px}.gmstl .note{margin:0}
+.gmcode .btn.sm{margin-top:6px}
+.gmman{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 
 /* 1.1.0: ενέργειες ανοιχτής ειδοποίησης */
 .list .ibacts{display:flex;flex-direction:row;gap:8px;padding:0 16px 14px 68px;flex-wrap:wrap}.list .li.ibrow:has(+ .ibacts){border-bottom:0}.list .ibacts:not(:last-child){border-bottom:1px solid var(--line)}/* 1.10.6: όχι γραμμή ανάμεσα στο κείμενο και στα κουμπιά */
