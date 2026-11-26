@@ -45,6 +45,9 @@ h1{letter-spacing:-.02em}
 .nav a{position:relative;color:var(--ink-2);font-size:12px;min-height:var(--ctl-h)}
 .nav a[aria-current=page]{color:var(--accent)}
 .nav a[aria-current=page]::before{content:'';position:absolute;top:0;left:50%;width:22px;height:3px;margin-left:-11px;border-radius:0 0 3px 3px;background:var(--accent)}
+/* 26/11/2026: κάτω από την μπάρα (ως τη μέση της και ως κάτω, όπου και τα κουμπιά του συστήματος) συμπαγές φόντο· πριν φαινόταν μισό κείμενο της σελίδας που περνούσε από πίσω */
+.nav::after{content:'';position:absolute;left:0;right:0;bottom:0;height:calc(var(--safe-b) + 8px + var(--nav-h) / 2);background:var(--bg);pointer-events:none;z-index:-1}
+html[data-view=map] .nav::after,html.nightred .nav::after,body.ontrip .nav::after,body.mapon.navslid .nav::after{display:none}
 
 /* ---------- 3. Πρόγνωση (οθόνη αναφοράς) ---------- */
 /* λωρίδα ημερών: η επιλεγμένη μέρα γεμάτη πορτοκαλί (επιλογή), οι άλλες ήσυχες με λεπτό όριο */

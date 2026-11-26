@@ -820,6 +820,13 @@ with sync_playwright() as p:
     r=[pg.evaluate(blink,'alkyon-bites'), pg.evaluate(blink,'alkyon-sess')]
     pg.evaluate("h=>location.hash=h",'#profile'); pg.wait_for_timeout(1500); r.append(pg.evaluate(blink,'alkyon-sess'))
     check('Ημερολόγιο/Προφίλ: χωρίς αναβόσβημα σε νέα καταγραφή και συγχρονισμό (26/11/2026)', min(r)>=0.99 and not pg._errs, [r,pg._errs]); c.close()
+    # 26/11/2026: το «Τώρα» της Πρόγνωσης προχωρά με το ρολόι (πριν έμενε στην ώρα λήψης, π.χ. «Τώρα, 17:00» στις 21:00) και μετά τα μεσάνυχτα το «Σήμερα» πάει στη νέα μέρα
+    c=ctx(b); c.add_init_script("(function(){var n=Date.now.bind(Date);window.__off=0;Date.now=function(){return n()+window.__off;};})()"); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(3500)
+    gnow="()=>{const n=document.querySelector('.nowcard b');return n?+((n.textContent.match(/(\\d\\d):00/)||[])[1]):null}"
+    h0=pg.evaluate(gnow); pg.evaluate("()=>{window.__off=(65-(new Date()).getMinutes())*60e3; AK.emit('fc-redraw');}"); pg.wait_for_timeout(400); h1=pg.evaluate(gnow)
+    pg.evaluate("h=>{window.__off=((24-h)%24||24)*3600e3+10*60e3-((new Date()).getMinutes()*60e3); AK.emit('fc-redraw');}",h0 if h0 is not None else 0); pg.wait_for_timeout(400); h2=pg.evaluate(gnow)
+    nav=pg.evaluate("()=>{const s=getComputedStyle(document.querySelector('.nav'),'::after');return [s.content,parseFloat(s.height),s.backgroundColor===getComputedStyle(document.body).backgroundColor||s.backgroundColor]}")
+    check('Πρόγνωση: «Τώρα» με το ρολόι, νέα μέρα μετά τα μεσάνυχτα· συμπαγές φόντο κάτω από την μπάρα (26/11/2026)', h0 is not None and h1==(h0+1)%24 and h2==0 and nav[1]>=40 and nav[2] is True and not pg._errs, [h0,h1,h2,nav,pg._errs]); c.close()
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(2500)
     pg.evaluate("()=>{const t=[...document.querySelectorAll('.seg button,.lseg button')].find(x=>/^Έξοδοι/.test(x.textContent.trim())); t&&t.click()}"); pg.wait_for_timeout(600)
     pg.evaluate("()=>document.querySelector('.addrow .addbtn').click()"); pg.wait_for_timeout(600)
