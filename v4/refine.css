@@ -1,92 +1,92 @@
-/* Alkyon · Φ1 βάση σχεδίου (26/11/2026) — ΠΡΟΤΑΣΗ ΓΙΑ ΕΓΚΡΙΣΗ, δύο εκδοχές:
-   html.dsA = ήπια (μόνο αντίθεση, μεγέθη, ησυχότερα chips, κάτω μπάρα)
-   html.dsB = πιο έντονη (Α + «όργανο»: λεπτά περιγράμματα αντί για σκιές, λιγότερα κουτιά μέσα σε κουτιά, μεγαλύτεροι αριθμοί)
-   Χωρίς class δεν αλλάζει τίποτα. Μετά την επιλογή του Dinos μένει μόνο η εκδοχή που διάλεξε. */
+/* Alkyon · Γ+ σύστημα σχεδίου (26/11/2026) — βήμα 1: μεταβλητές + Πρόγνωση
+   Αρχή: ίδια εφαρμογή, ίδιες πληροφορίες, καθαρότερη ιεραρχία. «Όργανο ψαρέματος», όχι πίνακας με κάρτες.
+   Πορτοκαλί = ενέργεια / επιλογή / κύρια κίνηση, ποτέ διακόσμηση. Πράσινο / κίτρινο / κόκκινο = μόνο κατάσταση.
+   Στόχοι (ελέγχονται με test): κείμενο ≥ 4,5:1, μεγάλα γράμματα / εικονίδια / όρια ≥ 3:1, γράμματα ≥ 12 px, αφή ≥ 44 px.
+   Φορτώνεται τελευταίο (μετά το polish.css). Το νυχτερινό κόκκινο (night.js) μένει πάνω από όλα. */
 
-/* ---------- Α και Β: χρώματα με καλύτερη αντίθεση (στόχος WCAG AA για μικρό κείμενο) ---------- */
-html.dsA,html.dsB{--ink-3:#5E7680;--line:#CFDCDA;--r-lg:20px;--r-md:14px;--r-sm:10px}
-@media (prefers-color-scheme:dark){
-  html.dsA:not([data-theme=light]),html.dsB:not([data-theme=light]){--bg:#051219;--surface:#0D2A36;--surface-2:#133747;--ink-2:#AFC6CE;--ink-3:#87A2AC;--line:#21495B}
+/* ---------- 1. μεταβλητές ---------- */
+:root{
+  --r-lg:20px; --r-md:14px; --r-sm:10px;
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px; --sp-6:24px;
+  --ctl-h:44px; --tab-h:40px; --ic-sm:18px; --ic-md:22px;
+  --surface-3:#DCE7E5;           /* επιλεγμένη επιφάνεια (φωτεινό) */
+  --ink-3:#56707A;               /* ήσυχο κείμενο */
+  --line:#C9D8D6;
 }
-html.dsA[data-theme=dark],html.dsB[data-theme=dark]{--bg:#051219;--surface:#0D2A36;--surface-2:#133747;--ink-2:#AFC6CE;--ink-3:#87A2AC;--line:#21495B}
+@media (prefers-color-scheme:dark){ :root:not([data-theme=light]){
+  --bg:#041219; --surface:#0D2A36; --surface-2:#143848; --surface-3:#1D4A5D;
+  --ink:#EAF3F4; --ink-2:#B6CCD4; --ink-3:#8DA8B2; --line:#234B5C;
+}}
+:root[data-theme=dark]{
+  --bg:#041219; --surface:#0D2A36; --surface-2:#143848; --surface-3:#1D4A5D;
+  --ink:#EAF3F4; --ink-2:#B6CCD4; --ink-3:#8DA8B2; --line:#234B5C;
+}
 
-/* τίτλοι: λίγο πιο σφιχτοί */
-html.dsA h1,html.dsB h1{letter-spacing:-.02em}
+/* ---------- 2. γενικά: επιφάνειες, τίτλοι, καρτέλες, κάτω μπάρα ---------- */
+.card,.list,.hero{box-shadow:0 10px 28px -22px rgba(0,0,0,.55);border:1px solid color-mix(in srgb,var(--line) 75%,transparent)}
+h1{letter-spacing:-.02em}
 
-/* τα πολύ μικρά γράμματα (11–11,5 px) ανεβαίνουν στα 12 px */
-html.dsA .hero .nwc span,html.dsB .hero .nwc span,
-html.dsA .hero .nwc b small,html.dsB .hero .nwc b small,
-html.dsA .hring small,html.dsB .hring small{font-size:12px}
+/* καρτέλες: η ενεργή ξεχωρίζει με ανοιχτότερη επιφάνεια και φωτεινό κείμενο (όχι λευκό κουτί) */
+.seg{background:transparent;box-shadow:inset 0 0 0 1px var(--line)}
+.seg button{min-height:var(--tab-h);color:var(--ink-2)}
+.seg button[aria-pressed=true]{background:var(--surface-3);color:var(--ink);box-shadow:none;font-weight:700}
 
-/* «Γιατί αυτός ο βαθμός»: ήσυχα chips (ουδέτερο φόντο, χρώμα μόνο στο περίγραμμα) αντί για πράσινο φόντο */
-html.dsA .hero .hwhy2 .hz.up,html.dsB .hero .hwhy2 .hz.up{background:var(--surface-2);color:var(--ink);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--good) 45%,transparent)}
-html.dsA .hero .hwhy2 .hz.down,html.dsB .hero .hwhy2 .hz.down{background:var(--surface-2);color:var(--ink);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--poor) 45%,transparent)}
+/* κάτω μπάρα: συμπαγής και ήσυχη· η ενεργή σελίδα με πορτοκαλί και λεπτή γραμμή από πάνω.
+   Το κεντρικό κουμπί μένει το μόνο κυρίαρχο στοιχείο. */
+.nav>div{background:var(--surface);box-shadow:0 10px 30px -14px rgba(0,0,0,.6);outline:1px solid var(--line)}
+.nav a{position:relative;color:var(--ink-2);font-size:12px;min-height:var(--ctl-h)}
+.nav a[aria-current=page]{color:var(--accent)}
+.nav a[aria-current=page]::before{content:'';position:absolute;top:0;left:50%;width:22px;height:3px;margin-left:-11px;border-radius:0 0 3px 3px;background:var(--accent)}
 
-/* κάτω μπάρα: πιο ευανάγνωστες ετικέτες, «χάπι» πίσω από την ενεργή σελίδα */
-html.dsA .nav a,html.dsB .nav a{color:var(--ink-2);font-size:12px}
-html.dsA .nav a[aria-current=page],html.dsB .nav a[aria-current=page]{color:var(--accent)}
-html.dsA .nav a[aria-current=page] svg,html.dsB .nav a[aria-current=page] svg{background:color-mix(in srgb,var(--accent) 16%,transparent);border-radius:12px;padding:3px 12px;width:auto;height:29px;box-sizing:content-box;margin:-3px 0}
+/* ---------- 3. Πρόγνωση (οθόνη αναφοράς) ---------- */
+/* λωρίδα ημερών: η επιλεγμένη μέρα γεμάτη πορτοκαλί (επιλογή), οι άλλες ήσυχες με λεπτό όριο */
+.dtile{box-shadow:none;border:1px solid var(--line);background:var(--surface)}
+.dtile.on{background:var(--accent);border-color:var(--accent);box-shadow:none}
+.dtile.on .dn,.dtile.on .dw,.dtile.on .dd{color:var(--accent-ink)}
 
-/* ---------- μόνο Β: «όργανο ψαρέματος» ---------- */
-/* κάρτες: λεπτό περίγραμμα αντί για σκιά */
-html.dsB .card,html.dsB .list,html.dsB .hero{box-shadow:none;border:1px solid var(--line)}
-/* μέσα στην κάρτα: χωρίς γεμάτα κουτάκια, μόνο περίγραμμα (λιγότερα «κουτιά μέσα σε κουτιά») */
-html.dsB .hero .hsb{background:transparent;border:1px solid var(--line)}
-html.dsB .hero .hsb.lv-good,html.dsB .hero .hsb.sea-good{border-color:color-mix(in srgb,var(--good) 55%,var(--line))}
-html.dsB .hero .hsb.lv-fair,html.dsB .hero .hsb.sea-fair{border-color:color-mix(in srgb,var(--fair) 55%,var(--line))}
-html.dsB .hero .hsb.lv-poor,html.dsB .hero .hsb.sea-poor{border-color:color-mix(in srgb,var(--poor) 55%,var(--line))}
-html.dsB .hero .nwc:not(.gw){background:transparent;border:1px solid var(--line)}
-/* οι ειδοποιήσεις χρώματος (π.χ. δυνατές ριπές) κρατούν το φόντο τους: έχουν νόημα */
-/* μεγαλύτεροι αριθμοί, μικρότερες μονάδες: διαβάζονται με μια ματιά */
-html.dsB .hero .nwc b{font-size:21px;letter-spacing:-.01em}
-html.dsB .hero .hsb b{font-size:18px}
-html.dsB .hero2 .hpw{font-size:30px}
-/* λωρίδα ημερών και καρτέλες: περίγραμμα αντί για σκιά */
-html.dsB .dtile{box-shadow:none;border-color:var(--line)}
-html.dsB .dtile.on{border-color:var(--accent)}
-html.dsB .seg{background:transparent;box-shadow:inset 0 0 0 1px var(--line)}
-html.dsB .seg button[aria-pressed=true]{background:var(--surface-2);box-shadow:none}
-/* κάτω μπάρα: λεπτό περίγραμμα */
-html.dsB .nav>div{box-shadow:0 8px 24px -14px rgba(0,0,0,.6);outline:1px solid var(--line)}
+/* κάρτα ημέρας: σειρά ανάγνωσης βαθμός → καλύτερη ώρα → ετυμηγορία → γιατί → συνθήκες */
+.hero .hv h2{font:750 12px/1.2 var(--font);letter-spacing:.07em}
+.hero2 .hpt{font:600 16px/1.25 var(--font);color:var(--ink-2);margin:8px 0 2px}
+.hero2 .hpw{font:850 clamp(26px,calc(7.4vw + 2px),34px)/1.02 var(--font);letter-spacing:-.025em}   /* 393 px → 31 px, 360 px → 28,6 px: χωρά και στα αγγλικά */
+.hero2 .htop{gap:18px}
+.hring{transform:scale(1.1);transform-origin:left center;margin-right:6px}
 
-/* ---------- Γ · τολμηρή (26/11 08:30): εμφανείς αλλαγές, ίδια διάταξη και ίδια χρώματα βαθμού ---------- */
-/* βαθύτερο φόντο, κάρτες που ξεχωρίζουν καθαρά */
-@media (prefers-color-scheme:dark){ html.dsC:not([data-theme=light]){--bg:#020B10;--surface:#0E2A36;--surface-2:#16394A;--ink-2:#B4CBD3;--ink-3:#8AA5AF;--line:#24505F} }
-html.dsC{--r-lg:22px;--r-md:16px;--r-sm:12px}
-html.dsC h1{font-size:30px;letter-spacing:-.025em}
-html.dsC .card,html.dsC .list,html.dsC .hero{box-shadow:0 1px 0 rgba(255,255,255,.04) inset,0 12px 30px -20px rgba(0,0,0,.9);border:1px solid color-mix(in srgb,var(--line) 70%,transparent)}
-/* κάρτα ημέρας: ο βαθμός και η ώρα κυριαρχούν, η ετικέτα «ΚΑΛΗ ΜΕΡΑ…» γίνεται μικρό χάπι */
-html.dsC .hero .hv h2{display:inline-block;font:750 12px/1 var(--font);letter-spacing:.06em;padding:6px 10px;border-radius:999px;background:color-mix(in srgb,var(--lv) 18%,transparent);color:var(--lv)}
-html.dsC .hero2 .hpt{font:650 17px/1.2 var(--font);color:var(--ink-2);margin:10px 0 2px}
-html.dsC .hero2 .hpw{font:850 34px/1 var(--font);letter-spacing:-.02em}
-html.dsC .hring{transform:scale(1.12);transform-origin:left center;margin-right:10px}
-/* Τσίμπημα / Θάλασσα: διάφανα με χρωματιστή γραμμή αριστερά */
-html.dsC .hero .hsb{background:var(--surface-2);border:0;border-left:4px solid var(--line);border-radius:12px}
-html.dsC .hero .hsb.lv-good,html.dsC .hero .hsb.sea-good{border-left-color:var(--good)}
-html.dsC .hero .hsb.lv-fair,html.dsC .hero .hsb.sea-fair{border-left-color:var(--fair)}
-html.dsC .hero .hsb.lv-poor,html.dsC .hero .hsb.sea-poor{border-left-color:var(--poor)}
-html.dsC .hero .hsb b{font-size:20px}
-/* «Γιατί»: ήσυχα chips */
-html.dsC .hero .hwhy2 .hz.up{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--good) 50%,transparent)}
-/* συνθήκες τώρα: μεγάλοι αριθμοί σαν όργανο, χωρίς κουτάκια, με διαχωριστικές γραμμές */
-html.dsC .hero .nwg{gap:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:6px 0}
-html.dsC .hero .nwc{background:transparent;border-radius:0;border-right:1px solid var(--line);padding:10px 2px}
-html.dsC .hero .nwc:last-child{border-right:0}
-html.dsC .hero .nwc.gw{background:color-mix(in srgb,var(--fair) 16%,transparent);border-radius:10px}
-html.dsC .hero .nwc b{font-size:24px;letter-spacing:-.02em}
-html.dsC .hero .nwc span{font-size:12px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.05em}
-/* λωρίδα ημερών: η επιλεγμένη μέρα γεμάτη πορτοκαλί */
-html.dsC .dtile{box-shadow:none;border:1px solid var(--line);background:var(--surface)}
-html.dsC .dtile.on{background:var(--accent);border-color:var(--accent);box-shadow:0 8px 20px -10px var(--accent)}
-html.dsC .dtile.on .dn,html.dsC .dtile.on .dw{color:var(--accent-ink)}
-/* καρτέλες (Ημέρες/Είδη…): γεμάτη η ενεργή */
-html.dsC .seg{background:transparent;box-shadow:inset 0 0 0 1px var(--line)}
-html.dsC .seg button[aria-pressed=true]{background:var(--ink);color:var(--bg);box-shadow:none}
-/* λίστες (Προφίλ κ.λπ.): εικονίδια σε χρωματιστό κύκλο, μεγαλύτερα */
-html.dsC .li .ic:not(:has(img)):not(:has(svg[viewBox="0 0 48 48"])):not(:has(svg[viewBox="0 0 64 64"])){width:40px;height:40px;border-radius:50%;background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent)}
-html.dsC .li{min-height:62px}
-/* κάτω μπάρα: «γυαλί» και γεμάτο χάπι στην ενεργή σελίδα */
-html.dsC .nav>div{background:color-mix(in srgb,var(--surface) 72%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);outline:1px solid var(--line)}
-html.dsC .nav a{color:var(--ink-2);font-size:12px}
-html.dsC .nav a[aria-current=page]{color:var(--accent)}
-html.dsC .nav a[aria-current=page] svg{background:var(--accent);color:var(--accent-ink);stroke:var(--accent-ink);border-radius:14px;padding:4px 14px;width:auto;height:27px;box-sizing:content-box;margin:-4px 0}
+/* Τσίμπημα / Θάλασσα: ήσυχη επιφάνεια, κατάσταση με λεπτή χρωματιστή γραμμή αριστερά */
+.hero .hsb{background:var(--surface-2);border:0;border-left:3px solid var(--line);border-radius:var(--r-sm)}
+.hero .hsb.lv-good,.hero .hsb.sea-good{border-left-color:var(--good)}
+.hero .hsb.lv-fair,.hero .hsb.sea-fair{border-left-color:var(--fair)}
+.hero .hsb.lv-poor,.hero .hsb.sea-poor{border-left-color:var(--poor)}
+.hero .hsb b{font-size:19px}
+.hero .hsb small,.hero .hsb span{font-size:12px}
+
+/* «Γιατί»: αναλυτικό, όχι διακοσμητικό· διάφανα chips, χρώμα μόνο στο λεπτό όριο */
+.hero .hwhy2 .hz{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+.hero .hwhy2 .hz.up{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--good) 55%,transparent)}
+.hero .hwhy2 .hz.down{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--poor) 55%,transparent)}
+
+/* συνθήκες τώρα: τηλεμετρία, δυνατός αριθμός, μικρή μονάδα, σύντομη ετικέτα, χωρίς κουτάκια */
+.hero .nwg{gap:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:4px 0}
+.hero .nwc{background:transparent;border-radius:0;border-right:1px solid var(--line);padding:10px 2px}
+.hero .nwc:last-child{border-right:0}
+.hero .nwc.gw{background:color-mix(in srgb,var(--fair) 15%,transparent);border-radius:var(--r-sm);border-right-color:transparent}
+.hero .nwc b{font-size:23px;letter-spacing:-.02em}
+.hero .nwc b small{font-size:12px;font-weight:600;color:var(--ink-2)}
+.hero .nwc span{font-size:12px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.05em}
+.hero .nwc.gw span{color:var(--fair-ink)}
+
+/* ανά ώρα: ίδια τηλεμετρία για τις συνθήκες της επιλεγμένης ώρας */
+.hcard .rows{gap:0;border-top:1px solid var(--line)}
+.hcard .rows .row{background:transparent;border-radius:0;padding:10px 2px;border:0!important;border-bottom:1px solid var(--line)!important}
+.hcard .rows .row:not(:nth-child(4n)){border-right:1px solid var(--line)!important}
+.hcard .rows .row b{font-size:17px}
+.hcard .rows .row b small{font-size:12px;color:var(--ink-2)}
+.hcard .rows .row span{font-size:12px;color:var(--ink-3)}
+.hcard .rows .row b small.wsub{font-size:12px}
+.hsel b{font-size:24px;letter-spacing:-.02em}
+@media (max-width:340px){.hcard .rows .row:not(:nth-child(4n)){border-right:0!important}.hcard .rows .row:nth-child(odd){border-right:1px solid var(--line)!important}}
+
+/* μικρά γράμματα της Πρόγνωσης: τουλάχιστον 12 px */
+.hring small,.hcard .hleg,.hcard .hcap,.dtile .dw{font-size:12px!important}
+
+/* ---------- 4. ειδικές λειτουργίες ---------- */
+@media (prefers-reduced-motion:reduce){.hring{transform:none}}
