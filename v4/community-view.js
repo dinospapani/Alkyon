@@ -69,7 +69,7 @@ function load(reset){
   if(F.user) q+='&user_id=eq.'+esc(F.user.u);
   if(F.sp) q+='&species=eq.'+esc(F.sp);
   if(F.tech) q+='&tech=eq.'+esc(F.tech);
-  F.loading=true; F.err=''; draw();
+  F.loading=true; F.err=''; F.errSoon=false; draw();
   rest(q).then(function(r){ return r.json(); }).then(function(arr){
     if(keep){ F.items=[]; F.cached=false; } if(arr.length<PAGE) F.end=true; F.offset+=arr.length; F.items=F.items.concat(arr); var ids=arr.map(function(p){ return p.id; });
     if(plain) try{ ls.set('alkyon-comm-cache',{t:Date.now(),items:arr.slice(0,PAGE).map(function(p){ var o=Object.assign({},p); delete o._c; return o; })}); }catch(e){}
@@ -79,7 +79,7 @@ function load(reset){
     var qi=arr.filter(function(p){ return p.cond&&p.cond.k==='id'; }).map(function(p){ return p.id; });
     var pa=qi.length?rest('community_comments?select=post_id,user_id,body&post_id=in.('+qi.join(',')+')&body=like.'+esc('✓*')+'&order=created_at.asc').then(function(r){ return r.json(); }).then(function(c){ c.forEach(function(x){ var p=arr.filter(function(y){ return y.id===x.post_id; })[0]; if(p&&x.user_id===p.user_id) F.ans[p.id]=String(x.body).replace(/^✓\s*/,'').slice(0,60); }); }).catch(function(){}):null;
     return Promise.all([pa,rest('community_likes?select=post_id&user_id=eq.'+esc(uid())+'&post_id=in.('+ids.join(',')+')').then(function(r){ return r.json(); }).then(function(l){ l.forEach(function(x){ F.liked[x.post_id]=1; }); }).catch(function(){})]); })
-    .catch(function(e){ F.err=/HTTP 404|relation|does not exist/i.test(String(e&&e.message))?T('Η Κοινότητα ανοίγει σύντομα. Μέχρι τότε μοιράσου ψάρια και σημεία με τους Φίλους σου.','Community is opening soon. Until then, share catches and spots with your Friends.'):T('Δεν φόρτωσαν οι αναρτήσεις. Έλεγξε τη σύνδεση.','Posts did not load. Check your connection.'); })
+    .catch(function(e){ F.errSoon=/HTTP 404|relation|does not exist/i.test(String(e&&e.message)); F.err=F.errSoon?T('Η Κοινότητα ανοίγει σύντομα. Μέχρι τότε μοιράσου ψάρια και σημεία με τους Φίλους σου.','Community is opening soon. Until then, share catches and spots with your Friends.'):T('Δεν φόρτωσαν οι αναρτήσεις. Έλεγξε τη σύνδεση.','Posts did not load. Check your connection.'); })
     .then(function(){ F.loading=false; draw(); });
 }
 function cnt(p,k){ return (p[k]&&p[k][0]&&p[k][0].count)||0; }
@@ -398,7 +398,8 @@ function draw(){
   page.append(h('p',{class:'sub',style:{margin:'10px 4px'},text:T('Οι αναρτήσεις δεν δείχνουν ποτέ θέση ή όνομα σημείου. Μοιράζεσαι ένα ψάρι από το Ημερολόγιο: πάτα το ψάρι › Κοινότητα.','Posts never show a location or spot name. Share a catch from the Log: tap the catch › Community.')}));
   var bl=blocked(), shown=F.items.filter(function(p){ return bl.indexOf(p.user_id)<0; });
   shown.forEach(function(p){ page.append(post(p)); });
-  if(F.err) page.append(h('div',{class:'card empty'},h('p',{text:F.err})));
+  if(F.err) page.append(h('div',{class:'card empty'+(F.errSoon?'':' iserr')},h('p',{text:F.err})));
+  else if(F.loading&&!shown.length) page.append(h('div',{role:'status','aria-label':T('Φόρτωση αναρτήσεων','Loading posts')},[0,1].map(function(){ return h('div',{class:'card cmsk'},h('div',{class:'sk',style:{height:'16px',width:'45%',marginBottom:'10px'}}),h('div',{class:'sk',style:{height:'150px',marginBottom:'10px'}}),h('div',{class:'sk',style:{height:'14px',width:'70%'}})); })));   /* Γ+ βήμα 3: φόρτωση αντί για κενή σελίδα */
   else if(!shown.length&&!F.loading&&!(F.mode==='follow'&&!follows().length)&&!(F.mode==='saved'&&!saved().length)) page.append(h('div',{class:'card empty'},h('p',{text:F.mode==='mine'?T('Δεν έχεις μοιραστεί ακόμη κάτι.','You have not shared anything yet.'):(F.sp||F.tech||F.user)?T('Δεν υπάρχουν αναρτήσεις με αυτό το φίλτρο.','No posts match this filter.'):T('Δεν υπάρχουν αναρτήσεις ακόμη. Ανέβασε το πρώτο ψάρι!','No posts yet. Share the first catch!')})));
   if(F.loading) page.append(h('div',{class:'sk',style:{height:'220px',marginTop:'12px'}}));
   else if(!F.end&&shown.length) page.append(h('button',{class:'btn full',type:'button',text:T('Περισσότερα','More'),onclick:function(){ load(false); }}));

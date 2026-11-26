@@ -242,18 +242,19 @@ function draw(){
   page.append(B.seg([['today',T('Ημέρες','Days')],['adv',T('Είδη','Species')],['mine',T('Δικά μου','Mine')]],st.view,function(v){ st.view=v; st.day=null; st.hour=null; draw(); },T('Όψη πρόγνωσης','Forecast view')));
 
   if(!fc){
-    if(st.err==='nopos') page.append(emptyBox(T('Χρειάζεται τοποθεσία','A location is needed'),T('Επίτρεψε την πρόσβαση στη θέση σου ή διάλεξε μια τοποθεσία.','Allow location access or choose a place.'),T('Διάλεξε τοποθεσία','Choose a place'),placeSheet));
-    else if(st.err==='net') page.append(emptyBox(T('Η πρόγνωση δεν φορτώθηκε','The forecast did not load'),T('Έλεγξε τη σύνδεση και δοκίμασε ξανά.','Check your connection and try again.'),T('Δοκίμασε ξανά','Try again'),function(){ load(true); }));
+    if(st.err==='nopos') page.append(stCls('isloc',emptyBox(T('Χρειάζεται τοποθεσία','A location is needed'),T('Επίτρεψε την πρόσβαση στη θέση σου ή διάλεξε μια τοποθεσία.','Allow location access or choose a place.'),T('Διάλεξε τοποθεσία','Choose a place'),placeSheet)));
+    else if(st.err==='net') page.append(stCls('iserr',emptyBox(T('Η πρόγνωση δεν φορτώθηκε','The forecast did not load'),T('Έλεγξε τη σύνδεση και δοκίμασε ξανά.','Check your connection and try again.'),T('Δοκίμασε ξανά','Try again'),function(){ load(true); })));
     else page.append(skeleton());
   } else if(st.view==='week') week(page,fc);
   else if(st.view==='adv'){ B.fcAdv(page,fc,{place:p,today:td,open:openDay,reload:function(){ load(false); }}); page.append(seasonCard()); }
   else if(st.view==='mine'){ if(B.oppsCard) page.append(B.oppsCard(5)); B.fcMine(page,fc,{place:p,today:td}); }
   else { if(!st.day||(st.day<td&&!pastOk(st.day))||(st.day>=td&&!(fc.days||[]).some(function(x){ return x.date===st.day; }))) st.day=td; if(st.day>=td&&!(fc.days||[]).some(function(x){ return x.date===st.day; })){ var fd=(fc.days||[]).filter(function(x){ return x.date>=td; })[0]||(fc.days||[])[fc.days.length-1]; if(fd) st.day=fd.date; } page.append(dayStrip(fc)); var dw=h('div',{class:'dwrap'}); dayBody(dw,fc,st.day); page.append(dw); }
 
-  if(st.note) page.append(h('p',{class:'foot',text:st.note}));
+  if(st.note) page.append(h('p',{class:'foot stalenote',role:'status',text:st.note}));
   if(fc) page.append(h('p',{class:'foot'},T('Ενημέρωση ','Updated ')+ago(st.t)+'. '+T('Καιρός και κύμα από ','Weather and waves from '),h('a',{href:'https://open-meteo.com',target:'_blank',rel:'noopener',text:'Open-Meteo'}),T('. Ενδεικτική πρόγνωση, όχι επίσημη.','. Indicative, not an official forecast.')));
   root.replaceChildren(page);
 }
+function stCls(c,el){ el.classList.add(c); return el; }   /* Γ+ βήμα 3: είδος κατάστασης (iserr σφάλμα, isloc χρειάζεται θέση) */
 function emptyBox(t,p,btn,fn){ return h('div',{class:'card empty'},h('h3',{text:t}),h('p',{text:p}),h('button',{class:'btn pri',type:'button',text:btn,onclick:fn})); }
 function skeleton(){ return h('div',{role:'status','aria-label':T('Φόρτωση πρόγνωσης','Loading forecast')},
   h('div',{class:'hero'},h('div',{class:'sk',style:{height:'22px',width:'60%',marginBottom:'12px'}}),h('div',{class:'sk',style:{height:'44px',width:'45%',marginBottom:'18px'}}),h('div',{class:'sk',style:{height:'120px'}})),
