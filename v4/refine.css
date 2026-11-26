@@ -8,23 +8,24 @@
 :root{
   --r-lg:20px; --r-md:14px; --r-sm:10px;
   --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px; --sp-6:24px;
-  --ctl-h:44px; --tab-h:40px; --ic-sm:18px; --ic-md:22px;
+  --ctl-h:44px; --tab-h:44px; --ic-sm:18px; --ic-md:22px;
   --surface-3:#DCE7E5;           /* επιλεγμένη επιφάνεια (φωτεινό) */
   --ink-3:#56707A;               /* ήσυχο κείμενο */
   --line:#C9D8D6;
   --line-strong:#74898F;         /* όριο στοιχείου που πατιέται (≥ 3:1 πάνω στη σελίδα) */
   --poor-ink:#B23A26;            /* κόκκινο κείμενο (≥ 4,5:1) */
-  --bar-good:#5FBF93; --bar-fair:#D9B467; --bar-past:#D3DEDC; --bar-bad:#F3DEDB;
+  --fair-mark:#B07A0E;           /* κίτρινο για σημάδια κατάστασης (όργανο, κουκκίδες, γραμμές) ≥ 3:1 */
+  --bar-good:#2A9467; --bar-fair:#B07A0E; --bar-past:#D3DEDC; --bar-bad:#F3DEDB;
 }
 @media (prefers-color-scheme:dark){ :root:not([data-theme=light]){
   --bg:#041219; --surface:#0D2A36; --surface-2:#143848; --surface-3:#1D4A5D;
-  --ink:#EAF3F4; --ink-2:#B6CCD4; --ink-3:#8DA8B2; --line:#234B5C; --line-strong:#55808F; --poor-ink:#F07A6C;
+  --ink:#EAF3F4; --ink-2:#B6CCD4; --ink-3:#8DA8B2; --line:#234B5C; --line-strong:#55808F; --poor-ink:#F07A6C; --fair-mark:#E9B949;
   --good:#3CCB8A; --fair:#E9B949; --poor:#E2625A;
   --bar-good:#2E9C6E; --bar-fair:#B48E3C; --bar-past:#21404C; --bar-bad:#3A2A30;
 }}
 :root[data-theme=dark]{
   --bg:#041219; --surface:#0D2A36; --surface-2:#143848; --surface-3:#1D4A5D;
-  --ink:#EAF3F4; --ink-2:#B6CCD4; --ink-3:#8DA8B2; --line:#234B5C; --line-strong:#55808F; --poor-ink:#F07A6C;
+  --ink:#EAF3F4; --ink-2:#B6CCD4; --ink-3:#8DA8B2; --line:#234B5C; --line-strong:#55808F; --poor-ink:#F07A6C; --fair-mark:#E9B949;
   --good:#3CCB8A; --fair:#E9B949; --poor:#E2625A;
   --bar-good:#2E9C6E; --bar-fair:#B48E3C; --bar-past:#21404C; --bar-bad:#3A2A30;
 }
@@ -34,7 +35,7 @@
 h1{letter-spacing:-.02em}
 
 /* καρτέλες: η ενεργή ξεχωρίζει με ανοιχτότερη επιφάνεια και φωτεινό κείμενο (όχι λευκό κουτί) */
-.seg{background:transparent;box-shadow:inset 0 0 0 1px var(--line)}
+.seg{background:transparent;box-shadow:inset 0 0 0 1px var(--line-strong);padding:2px;gap:2px}   /* 2 + 44 + 2 = 48 px, όσο πριν (4 + 40 + 4) */
 .seg button{min-height:var(--tab-h);color:var(--ink-2)}
 .seg button[aria-pressed=true]{background:var(--surface-3);color:var(--ink);box-shadow:none;font-weight:700}
 
@@ -61,7 +62,7 @@ h1{letter-spacing:-.02em}
 /* Τσίμπημα / Θάλασσα: ήσυχη επιφάνεια, κατάσταση με λεπτή χρωματιστή γραμμή αριστερά */
 .hero .hsb{background:var(--surface-2);border:0;border-left:3px solid var(--line);border-radius:var(--r-sm)}
 .hero .hsb.lv-good,.hero .hsb.sea-good{border-left-color:var(--good)}
-.hero .hsb.lv-fair,.hero .hsb.sea-fair{border-left-color:var(--fair)}
+.hero .hsb.lv-fair,.hero .hsb.sea-fair{border-left-color:var(--fair-mark)}
 .hero .hsb.lv-poor,.hero .hsb.sea-poor{border-left-color:var(--poor)}
 .hero .hsb b{font-size:19px}
 .hero .hsb small,.hero .hsb span{font-size:12px}
@@ -105,7 +106,7 @@ h1{letter-spacing:-.02em}
 .hring .gk.mj{stroke-width:1.8}
 .hring .gk.on{stroke:var(--ink-3)}
 .hring .gm{fill:var(--surface);stroke:currentColor;stroke-width:3}
-.hring.lv-good{color:var(--good)} .hring.lv-fair{color:var(--fair)} .hring.lv-poor{color:var(--poor)}
+.hring.lv-good{color:var(--good)} .hring.lv-fair{color:var(--fair-mark)} .hring.lv-poor{color:var(--poor)}
 .hring>div{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-top:4px}
 .hring>div b{font:850 42px/1 var(--font);letter-spacing:-.03em;color:var(--ink);font-variant-numeric:tabular-nums}
 .hring>div small{display:none}
@@ -128,7 +129,7 @@ h1{letter-spacing:-.02em}
 .hero .hsb small svg,.hero .hsb small .ik{display:none}
 .hero .hsb small::before{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px;vertical-align:1px;background:var(--ink-3)}
 .hero .hsb.lv-good small::before,.hero .hsb.sea-good small::before{background:var(--good)}
-.hero .hsb.lv-fair small::before,.hero .hsb.sea-fair small::before{background:var(--fair)}
+.hero .hsb.lv-fair small::before,.hero .hsb.sea-fair small::before{background:var(--fair-mark)}
 .hero .hsb.lv-poor small::before,.hero .hsb.sea-poor small::before{background:var(--poor)}
 .hero .hsb b{font-size:22px!important;font-variant-numeric:tabular-nums}
 /* «Γιατί»: λίστα σαν ανάλυση */
@@ -143,8 +144,8 @@ h1{letter-spacing:-.02em}
 /* τηλεμετρία τώρα: ετικέτες σε ένα στυλ, ριπές με κίτρινη γραμμή αριστερά (όχι λαδί φόντο) */
 .hero .nwc span{font:700 12px/1 var(--font)!important;letter-spacing:.1em}
 .hero .nwc b{font-variant-numeric:tabular-nums}
-.hero .nwc.gw{background:transparent!important;box-shadow:inset 3px 0 0 var(--fair);border-radius:0}
-.hero .nwc.gw span{color:var(--fair)!important;text-transform:none;letter-spacing:0!important;font-size:12px!important}
+.hero .nwc.gw{background:transparent!important;box-shadow:inset 3px 0 0 var(--fair-mark);border-radius:0}
+.hero .nwc.gw span{color:var(--fair-ink)!important;text-transform:none;letter-spacing:0!important;font-size:12px!important}
 /* ανά ώρα: συμπαγή χρώματα (όχι διαφάνεια), περασμένες ουδέτερες, «εκτός ορίων» με διαγράμμιση, η καλύτερη η μόνη πορτοκαλί */
 .hb.s-good{background:var(--bar-good)}
 .hb.s-fair{background:var(--bar-fair)}
@@ -201,6 +202,23 @@ body:not(.mapon) .btn:not(.pri):not(.del):not(.endtrip),.sheet .btn:not(.pri):no
 .sheet .det .rows.one .row b{font-variant-numeric:tabular-nums}
 .sheet .acts .btn:not(.pri):not(.del){background:transparent}
 .sheet .acts .btn.del{background:transparent;box-shadow:none;color:var(--poor-ink);font-weight:700}
+
+/* ---------- 6. Γ+ βήμα 2β (26/11/2026) ---------- */
+/* καρτέλες Ημερολογίου (5 καρτέλες): 1 + 44 + 1 = 46 px, όσο πριν (3 + 40 + 3) */
+.seg.lseg.lseg.lseg{padding:1px}
+/* φίλτρα διαστήματος: ίδιο ύψος στην οθόνη (40 px), περιοχή αφής 44 px */
+.chips.rng .chip{min-height:40px;position:relative}
+.chips.rng{padding-top:2px;padding-bottom:2px}
+.chips.rng .chip::after{content:'';position:absolute;left:0;right:0;top:-2px;bottom:-2px}
+/* «Διαγραφή» με σύρσιμο: λευκό σε κόκκινο ≥ 4,5:1 (ήταν 4,4) */
+.swp .swbg{background:#C8402D}
+/* φύλλο ψαριού: «Στον χάρτη» ανοίγει τις κινήσεις της θέσης */
+.acts .mapmore::after{content:'';width:7px;height:7px;margin:-3px 0 0 4px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);transition:transform .15s}
+.acts .mapmore[aria-expanded=true]{background:var(--surface-3);box-shadow:inset 0 0 0 1px var(--surface-3)}
+.acts .mapmore[aria-expanded=true]::after{transform:rotate(-135deg);margin-top:3px}
+.acts .mapsub:not([hidden]){flex:1 0 100%;display:flex;flex-direction:column;gap:0;border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden}
+.acts .mapsub .btn{flex:none;justify-content:flex-start;border-radius:0;background:transparent!important;box-shadow:none!important;border-bottom:1px solid var(--line);padding:0 16px}
+.acts .mapsub .btn:last-child{border-bottom:0}
 
 /* ---------- 4. ειδικές λειτουργίες ---------- */
 @media (prefers-reduced-motion:reduce){.hring{transform:none}}

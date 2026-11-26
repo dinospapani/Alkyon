@@ -44,6 +44,15 @@ for (const [name, t] of Object.entries(THEMES)) {
   });
 }
 
+for (const [name, t] of Object.entries(THEMES)) {
+  test(`${name} (Γ+ 2β): κίτρινο σημάδι κατάστασης (fair-mark) και μπάρες καλή/μέτρια ≥ 3:1 πάνω στην κάρτα· κίτρινο κείμενο (fair-ink) ≥ 4,5:1`, () => {
+    for (const fg of ['fair-mark', ...(name === 'light' ? ['bar-good', 'bar-fair'] : [])]) {
+      assert.ok(ratio(t[fg], t.surface) >= 3, `${name} ${fg}/surface ${ratio(t[fg], t.surface).toFixed(2)}`);
+    }
+    assert.ok(ratio(t['fair-ink'], t.surface) >= 4.5, `${name} fair-ink/surface ${ratio(t['fair-ink'], t.surface).toFixed(2)}`);
+  });
+}
+
 test('Γ+: κανένα μέγεθος γραμμάτων κάτω από 12 px στο refine.css', () => {
   const small = [...ref.matchAll(/font(?:-size)?:[^;}]*?\b(\d+(?:\.\d+)?)px/g)].map(m => +m[1]).filter(n => n < 12);
   assert.deepEqual(small, []);
