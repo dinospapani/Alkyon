@@ -382,6 +382,8 @@ B.biteForm=function(edit,opt){
     var name=sp.value.trim(); if(!name&&!miss.checked){ err.textContent=T('Γράψε το είδος.','Enter the species.'); sp.focus(); return; }
     if(many.checked&&!(Math.floor(+cnt.value)>=2)){ err.textContent=T('Γράψε πόσα ψάρια (2 ή περισσότερα).','Enter how many fish (2 or more).'); cnt.focus(); return; }
     var dt=when.value||nowLocal(), date=dt.slice(0,10), time=dt.slice(11,16);
+    /* 27/11/2026: όπως οι άλλες φόρμες, ψάρι με ώρα στο μέλλον δεν αποθηκεύεται (π.χ. λάθος μήνας στο ημερολόγιο του κινητού) */
+    var dtMs=new Date(dt).getTime(); if(!isNaN(dtMs)&&dtMs>Date.now()+60000){ err.textContent=T('Η ώρα είναι στο μέλλον.','The time is in the future.'); try{ when.focus(); }catch(x){} return; }
     var lat=null, lon=null, place='', w=where.value;
     if(w==='gps'&&pos){ lat=pos.lat; lon=pos.lon; var ns=nearSpot(lat,lon); if(ns){ lat=ns.lat; lon=ns.lon; place=ns.name||''; } }
     else if(w==='at'&&opt&&opt.at){ lat=+opt.at.lat.toFixed(5); lon=+opt.at.lon.toFixed(5); var ns2=nearSpot(lat,lon); if(ns2){ lat=ns2.lat; lon=ns2.lon; place=ns2.name||''; } }
