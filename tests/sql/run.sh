@@ -34,3 +34,12 @@ $P -f "$ROOT/sql/2026-11-26-catch-obs-keep-server-rollback.sql" >/dev/null   # i
 $P -t -A -c "update public.catch_obs set cond = '{\"wind\":9}' where ref = 'b:1'; select case when (select count(*) from pg_trigger where tgname = 'catch_obs_keep_srv') = 0 and (select cond = '{\"wind\":9}'::jsonb from public.catch_obs where ref = 'b:1') then 'ok   keep-srv rollback restores the old behaviour (cond replaced whole)' else 'FAIL: keep-srv rollback' end" | tail -1 | tee /dev/stderr | grep -q '^ok'
 $P -f "$ROOT/sql/2026-11-26-catch-obs-keep-server.sql" >/dev/null
 $P -t -A -c "select case when (select count(*) from pg_trigger where tgname = 'catch_obs_keep_srv') = 1 then 'ok   keep-srv migration re-applies after a rollback' else 'FAIL: keep-srv re-apply' end" | tee /dev/stderr | grep -q '^ok'
+# 27/11/2026: λίστα «Ειδοποίησέ με» του website (public.waitlist)
+$P -f "$ROOT/sql/2026-11-27-waitlist.sql" >/dev/null
+$P -f "$ROOT/sql/2026-11-27-waitlist.sql" >/dev/null   # idempotent
+$P -t -A -f "$ROOT/tests/sql/waitlist.test.sql" 2>&1 | grep -v "^$" | sed -e 's/^psql:[^ ]* NOTICE:  //' -e 's/^NOTICE:  //' | tee /dev/stderr | grep -q FAIL && exit 1 || true
+$P -f "$ROOT/sql/2026-11-27-waitlist-rollback.sql" >/dev/null
+$P -f "$ROOT/sql/2026-11-27-waitlist-rollback.sql" >/dev/null   # idempotent
+$P -t -A -c "select case when to_regclass('public.waitlist') is null then 'ok   waitlist rollback removes the table' else 'FAIL: waitlist rollback' end" | tee /dev/stderr | grep -q '^ok'
+$P -f "$ROOT/sql/2026-11-27-waitlist.sql" >/dev/null
+$P -t -A -c "select case when to_regclass('public.waitlist') is not null then 'ok   waitlist migration re-applies after a rollback' else 'FAIL: waitlist re-apply' end" | tee /dev/stderr | grep -q '^ok'

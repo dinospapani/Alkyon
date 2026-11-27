@@ -1,0 +1,24 @@
+-- Έλεγχοι της λίστας αναμονής: ο επισκέπτης γράφει, δεν διαβάζει/αλλάζει/σβήνει, και δεν γράφει σκουπίδια.
+set role anon;
+insert into public.waitlist (email, lang) values ('a@b.co','el');
+select 'ok   anon can add an email';
+do $$ begin insert into public.waitlist (email) values ('A@B.CO'); raise notice 'FAIL: duplicate (case-insensitive) accepted';
+exception when unique_violation then raise notice 'ok   duplicate email (any case) rejected'; end $$;
+do $$ begin insert into public.waitlist (email) values ('not-an-email'); raise notice 'FAIL: bad email accepted';
+exception when check_violation then raise notice 'ok   invalid email rejected'; end $$;
+do $$ begin insert into public.waitlist (email, lang) values ('c@d.co','fr'); raise notice 'FAIL: bad lang accepted';
+exception when check_violation then raise notice 'ok   unknown language rejected'; end $$;
+do $$ begin perform 1 from public.waitlist; raise notice 'FAIL: anon can read';
+exception when insufficient_privilege then raise notice 'ok   anon cannot read the list'; end $$;
+do $$ begin update public.waitlist set lang='en'; raise notice 'FAIL: anon can update';
+exception when insufficient_privilege then raise notice 'ok   anon cannot update'; end $$;
+do $$ begin delete from public.waitlist; raise notice 'FAIL: anon can delete';
+exception when insufficient_privilege then raise notice 'ok   anon cannot delete'; end $$;
+do $$ begin insert into public.waitlist (email, created_at) values ('e@f.co','2000-01-01'); raise notice 'FAIL: anon can set created_at';
+exception when insufficient_privilege then raise notice 'ok   anon cannot set created_at'; end $$;
+reset role;
+set role authenticated;
+do $$ begin perform 1 from public.waitlist; raise notice 'FAIL: signed-in user can read';
+exception when insufficient_privilege then raise notice 'ok   signed-in users cannot read the list'; end $$;
+reset role;
+select case when (select count(*) from public.waitlist)=1 then 'ok   exactly one row stored' else 'FAIL: row count' end;
