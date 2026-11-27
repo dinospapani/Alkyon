@@ -41,7 +41,8 @@ h1{letter-spacing:-.02em}
 
 /* κάτω μπάρα: συμπαγής και ήσυχη· η ενεργή σελίδα με πορτοκαλί και λεπτή γραμμή από πάνω.
    Το κεντρικό κουμπί μένει το μόνο κυρίαρχο στοιχείο. */
-.nav>div{background:var(--surface);box-shadow:0 10px 30px -14px rgba(0,0,0,.6);outline:1px solid var(--line)}
+/* 27/11/2026: το περίγραμμα ως σκιά (όχι outline)· το outline ζωγραφιζόταν πάνω από το πορτοκαλί κουμπί που εξέχει, σαν γραμμή που το κόβει */
+.nav>div{background:var(--surface);box-shadow:0 0 0 1px var(--line),0 10px 30px -14px rgba(0,0,0,.6)}
 .nav a{position:relative;color:var(--ink-2);font-size:12px;min-height:var(--ctl-h)}
 .nav a[aria-current=page]{color:var(--accent)}
 .nav a[aria-current=page]::before{content:'';position:absolute;top:0;left:50%;width:22px;height:3px;margin-left:-11px;border-radius:0 0 3px 3px;background:var(--accent)}

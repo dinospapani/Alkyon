@@ -846,6 +846,14 @@ with sync_playwright() as p:
     pg.evaluate("()=>AK.toast('Η πίεση είναι σταθερή. Τώρα 1008,8 hPa · τελευταίες 3 ώρες −0,4 hPa · επόμενες 3 ώρες −0,4 hPa. Χωρίς στροφή ανέμου.')"); pg.wait_for_timeout(600)
     fb=pg.evaluate("()=>{const btn=[...document.querySelectorAll('button')].find(e=>/Έπιασα ψάρι|Caught a fish/.test(e.getAttribute('aria-label')||'')); if(!btn) return null; const r=btn.getBoundingClientRect(), t=document.querySelector('.toast.on').getBoundingClientRect(); const e=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2); return [btn.contains(e), t.bottom<=r.top]}")
     check('Λειτουργία ψαρέματος: το μακρύ μήνυμα μπαίνει πάνω από το πράσινο κουμπί, που πατιέται (27/11/2026)', fb==[True,True] and not pg._errs, [fb,pg._errs]); c.close()
+    # 27/11/2026: το περίγραμμα της κάτω μπάρας δεν περνά σαν γραμμή πάνω από το πορτοκαλί κουμπί έναρξης εξόδου
+    c=ctx(b); c.add_init_script("localStorage.removeItem('alkyon-v4-mapui-test');localStorage.setItem('alkyon-v4-mapui',JSON.stringify('clean'));")
+    pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(4000)
+    g=pg.evaluate("()=>{const f=document.querySelector('.nav .fab').getBoundingClientRect(), n=document.querySelector('.nav>div').getBoundingClientRect(); return [f.x+f.width/2, f.y, n.y]}")
+    import io as _io; from PIL import Image as _I
+    im=_I.open(_io.BytesIO(pg.screenshot())).convert('RGB'); cx,fy,ny=round(g[0]),g[1],round(g[2])
+    ref=im.getpixel((cx,round(fy)+5)); bad=[(dx,dy) for dy in (-1,0,1) for dx in range(-10,11,2) if max(abs(a-b2) for a,b2 in zip(im.getpixel((cx+dx,ny+dy)),ref))>14]
+    check('Κάτω μπάρα: η γραμμή του περιγράμματος δεν κόβει το πορτοκαλί κουμπί έναρξης εξόδου (27/11/2026)', ny>fy+4 and not bad and not pg._errs, [g,ref,bad[:4],pg._errs]); c.close()
     # 27/11/2026: ψάρι με ώρα στο μέλλον δεν αποθηκεύεται (υπήρχαν 2 καταγραφές με λάθος μήνα)
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3000)
     pg.evaluate("()=>AK.biteForm()"); pg.wait_for_timeout(1200); pg.fill('.bform .spwrap input','Μαγιάτικο')
