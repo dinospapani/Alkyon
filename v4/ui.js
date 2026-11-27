@@ -38,6 +38,9 @@ function toast(msg,ms,act){
   tEl.replaceChildren(h('span',{text:msg})); tEl.classList.toggle('act',!!act); tEl.classList.remove('full'); tEl.classList.toggle('long',String(msg||'').length>90);
   if(String(msg||'').length>90&&!act) tEl.append(h('small',{class:'tmore',text:T('▾ Πάτα για ολόκληρο','▾ Tap to read all')})); /* 1.14.13 */
   if(act) tEl.append(h('button',{type:'button',class:'tact',text:act.label,onclick:function(){ clearTimeout(tT); tEl.classList.remove('on'); act.fn(); }}));
+  /* 27/11/2026: στη Λειτουργία ψαρέματος το μήνυμα μπαίνει πάνω από τα στρογγυλά κουμπιά (πράσινο ψάρι κ.λπ.), όπου κι αν τα έχει σύρει ο χρήστης· πριν το μακρύ μήνυμα τα σκέπαζε και έπιανε το πάτημα */
+  try{ var fbx=document.body.classList.contains('maptrip')&&!document.querySelector('.sheet.on')?document.querySelector('.fishbtns'):null, fr=fbx&&getComputedStyle(fbx).display!=='none'?fbx.getBoundingClientRect():null;
+    tEl.style.bottom=fr&&fr.height?Math.round(window.innerHeight-fr.top+12)+'px':''; }catch(e){ tEl.style.bottom=''; }
   clearTimeout(tT); requestAnimationFrame(function(){ tEl.classList.add('on'); });
   tT=setTimeout(function(){ tEl.classList.remove('on'); },ms||Math.min(9000,Math.max(act?5000:2600,String(msg||'').length*60)));
 }

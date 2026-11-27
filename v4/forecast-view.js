@@ -115,7 +115,9 @@ function seaTag(hr){
   return w<=0.3?['good',T('Ήρεμη θάλασσα','Calm sea')]:w<=0.6?['good',T('Ήπια θάλασσα','Slight sea')]:w<=1?['fair',T('Λίγο κύμα','Some waves')]:w<=1.5?['poor',T('Κυματισμός','Rough')]:['poor',T('Ταραγμένη θάλασσα','Very rough')];
 }
 var DIRS=EN?['N','NE','E','SE','S','SW','W','NW']:['Β','ΒΑ','Α','ΝΑ','Ν','ΝΔ','Δ','ΒΔ'];
-function dirTxt(d){ return d==null?'':DIRS[Math.round(d/45)%8]; }
+/* 27/11/2026: 16 κατευθύνσεις, ίδιες με την «Έκθεση ακτής» (πριν: 8 εδώ, 16 εκεί, π.χ. «ΝΑ» και «ΝΝΑ» για τον ίδιο άνεμο) */
+var DIRS16=EN?['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW']:['Β','ΒΒΑ','ΒΑ','ΑΒΑ','Α','ΑΝΑ','ΝΑ','ΝΝΑ','Ν','ΝΝΔ','ΝΔ','ΔΝΔ','Δ','ΔΒΔ','ΒΔ','ΒΒΔ'];
+function dirTxt(d){ return d==null?'':DIRS16[Math.round(((d%360)+360)%360/22.5)%16]; }
 function wxIco(c){ if(c==null) return ''; return c>=95?'⛈️':c>=80?'🌦️':c>=71&&c<80?'❄️':c>=51?'🌧️':c>=45?'🌫️':c>=3?'☁️':c>=2?'⛅':c>=1?'🌤️':'☀️'; } /* 1.8.6 */
 function sky(c){ if(c==null) return ''; return c>=95?T('Καταιγίδα','Thunderstorm'):c>=80?T('Μπόρες','Showers'):c>=61?T('Βροχή','Rain'):c>=51?T('Ψιχάλα','Drizzle'):c>=45?T('Ομίχλη','Fog'):c>=3?T('Συννεφιά','Overcast'):c>=1?T('Λίγα σύννεφα','Partly cloudy'):T('Καθαρός','Clear'); }
 function trendTxt(t){ return {fast:T('πέφτει απότομα','falling fast'),slow:T('πέφτει αργά','falling'),rise:T('ανεβαίνει','rising'),stable:T('σταθερή','steady')}[t]||''; }
@@ -256,7 +258,7 @@ function draw(){
   } else if(st.view==='week') week(page,fc);
   else if(st.view==='adv'){ B.fcAdv(page,fc,{place:p,today:td,open:openDay,reload:function(){ load(false); }}); page.append(seasonCard()); }
   else if(st.view==='mine'){ if(B.oppsCard) page.append(B.oppsCard(5)); B.fcMine(page,fc,{place:p,today:td}); }
-  else { if(!st.day||(st.day<td&&!pastOk(st.day))||(st.day>=td&&!(fc.days||[]).some(function(x){ return x.date===st.day; }))) st.day=td; if(st.day>=td&&!(fc.days||[]).some(function(x){ return x.date===st.day; })){ var fd=(fc.days||[]).filter(function(x){ return x.date>=td; })[0]||(fc.days||[])[fc.days.length-1]; if(fd) st.day=fd.date; } page.append(dayStrip(fc)); var dw=h('div',{class:'dwrap'}); dayBody(dw,fc,st.day); page.append(dw); }
+  else { if(!st.day||(st.day<td&&!pastOk(st.day))||(st.day>=td&&!(fc.days||[]).some(function(x){ return x.date===st.day; }))){ st.day=td; st.hour=null; st.pwT=null; }   /* 27/11/2026: όταν η μέρα αλλάζει μόνη της (π.χ. το πρωί), και η ώρα ξεκινά από την αρχή */ if(st.day>=td&&!(fc.days||[]).some(function(x){ return x.date===st.day; })){ var fd=(fc.days||[]).filter(function(x){ return x.date>=td; })[0]||(fc.days||[])[fc.days.length-1]; if(fd) st.day=fd.date; } page.append(dayStrip(fc)); var dw=h('div',{class:'dwrap'}); dayBody(dw,fc,st.day); page.append(dw); }
 
   if(st.note) page.append(h('p',{class:'foot stalenote',role:'status',text:st.note}));
   if(fc) page.append(h('p',{class:'foot'},T('Ενημέρωση ','Updated ')+ago(st.t)+'. '+T('Καιρός και κύμα από ','Weather and waves from '),h('a',{href:'https://open-meteo.com',target:'_blank',rel:'noopener',text:'Open-Meteo'}),T('. Ενδεικτική πρόγνωση, όχι επίσημη.','. Indicative, not an official forecast.')));
@@ -611,7 +613,7 @@ function hourRows(hr){
   return [
     [T('Άνεμος','Wind'),hr.wind!=null?[U.windP(hr.wind)[0]+' ',h('small',{text:U.windP(hr.wind)[1]+' '+dirTxt(hr.dir)})]:'–'],
     [T('Ριπές','Gusts'),val(U.windP(hr.gust))],
-    lake?null:[T('Κύμα','Waves'),hr.wave!=null?[U.waveP(hr.wave)[0],h('small',{text:U.waveP(hr.wave)[1]}),(hr.period||hr.waveOff!=null)?h('small',{class:'wsub',text:[hr.period?T('κάθε ','every ')+Math.round(hr.period)+' s':'',hr.waveOff!=null?T('ανοιχτά ','offshore ')+U.wave(hr.waveOff):''].filter(Boolean).join(' · '),title:hr.waveOff!=null?T('Ο άνεμος έρχεται από τη στεριά: εδώ το κύμα είναι μικρότερο απ’ ό,τι ανοιχτά','Wind from land: smaller waves here than offshore'):''}):null]:'–'],
+    lake?null:[T('Κύμα (σύνολο)','Waves (total)'),hr.wave!=null?[U.waveP(hr.wave)[0],h('small',{text:U.waveP(hr.wave)[1]}),(hr.period||hr.waveOff!=null)?h('small',{class:'wsub',text:[hr.period?T('κάθε ','every ')+Math.round(hr.period)+' s':'',hr.waveOff!=null?T('ανοιχτά ','offshore ')+U.wave(hr.waveOff):''].filter(Boolean).join(' · '),title:hr.waveOff!=null?T('Ο άνεμος έρχεται από τη στεριά: εδώ το κύμα είναι μικρότερο απ’ ό,τι ανοιχτά','Wind from land: smaller waves here than offshore'):''}):null]:'–'],
     lake?null:[T('Θάλασσα','Sea temp'),val(U.tempP(hr.sst))],
     [T('Πίεση','Pressure'),P?[(P[1]==='hPa'?String(Math.round(hr.pres)):P[0]),h('small',{text:(P[1]==='hPa'?'':P[1]+' ')+({fast:'↓↓',slow:'↘',rise:'↗',stable:'→'}[hr.ptrend]||''),title:trendTxt(hr.ptrend)})]:'–'],
     [T('Αέρας','Air temp'),val(U.tempP(hr.temp))],
@@ -633,8 +635,8 @@ function hourCard(fc,d,selH,nh){
     box.append(b); return b;
   });
   var head=h('div',{class:'hsel'}), huLine=h('p',{class:'hover',hidden:true}), rows=h('div',{class:'rows'}), cur=-1;
-  function set(i,quiet){
-    i=Math.max(0,Math.min(hs.length-1,i)); if(i===cur) return; cur=i; var q=hs[i]; st.hour=q.hr;
+  function set(i,quiet,init){
+    i=Math.max(0,Math.min(hs.length-1,i)); if(i===cur) return; cur=i; var q=hs[i]; if(!init) st.hour=q.hr;   /* 27/11/2026: η αυτόματη αρχική επιλογή δεν «κολλάει»· κρατιέται μόνο η ώρα που διαλέγει ο χρήστης */
     /* 1.14.79: η «Έκθεση ακτής» πηγαίνει στην ίδια ώρα (και αντίστροφα) */ if(!quiet){ try{ window.dispatchEvent(new CustomEvent('alkyon-fchour',{detail:{date:d.date,hr:q.hr,src:'hourly'}})); }catch(e){} }
     bars.forEach(function(b,j){ b.classList.toggle('sel',j===i); b.setAttribute('aria-selected',String(j===i)); });
     head.className='hsel lv-'+(q.safe?lvl(q.score):'poor');
@@ -645,7 +647,7 @@ function hourCard(fc,d,selH,nh){
   }
   scrub(box,function(fx){ set(Math.floor(fx*hs.length)); });
   box.addEventListener('keydown',function(e){ if(e.key==='ArrowLeft'){ set(cur-1); e.preventDefault(); } else if(e.key==='ArrowRight'){ set(cur+1); e.preventDefault(); } });
-  var si=0; hs.forEach(function(q,j){ if(q.hr===selH) si=j; }); set(si,true);
+  var si=0; hs.forEach(function(q,j){ if(q.hr===selH) si=j; }); set(si,true,true);
   hourSync={date:d.date,box:box,go:function(hr){ for(var j=0;j<hs.length;j++) if(hs[j].hr===hr){ set(j,true); return; } }};
   /* 1.9.17: νύχτα σκιασμένη πίσω από τις μπάρες, λωρίδα με τις ώρες σελήνης, εξήγηση του ύψους */
   var pc=function(min){ return Math.max(0,Math.min(100,min/1440*100)); };
@@ -806,7 +808,7 @@ function moonResearch(){
 }
 function pwCard(fc,d){
   var rk=pwKey(), p=st.place||current(), c=h('section',{class:'card pw'});
-  c.append(h('div',{class:'pwh'},h('h2',{text:T('Πίεση, άνεμος, σελήνη','Pressure, wind, moon')}),B.seg(Object.keys(PRG).map(function(k){ return [k,PRG[k].l]; }),rk,function(v){ ls.set('alkyon-pwrange',v); st.pwi=null; draw(); },T('Εύρος','Range'))));
+  c.append(h('div',{class:'pwh'},h('h2',{text:T('Πίεση, άνεμος, σελήνη','Pressure, wind, moon')}),B.seg(Object.keys(PRG).map(function(k){ return [k,PRG[k].l]; }),rk,function(v){ ls.set('alkyon-pwrange',v); st.pwT=null; draw(); },T('Εύρος','Range'))));
   var body=h('div',null,h('div',{class:'sk',style:{height:'200px'}})); c.append(body);
   if(p.lat==null) return c;
   pwSeries(p,rk).then(function(v){ if(body.isConnected||!root) pwFill(body,v,p,fc,rk); else setTimeout(function(){ pwFill(body,v,p,fc,rk); },0); var mn=v&&v.pts&&v.now!=null&&v.pts[v.now]?v.pts[v.now].p:null; measured(c,p,mn); })
@@ -819,8 +821,10 @@ function pwFill(body,v,p,fc,rk){
   var tz=fc.tz||0, loc=function(ms){ return new Date(ms+tz*60000).toISOString(); }, td=today();
   /* 1.12.19: το γράφημα είναι κοινό με την κάρτα του ψαριού (pwchart.js) και έχει και την παλίρροια */
   var LL=LIM(), n=N;
-  var C=B.pwChart(pts,{lat:+p.lat,lon:+p.lon,tz:tz,rk:rk,nowI:nowI,sel:st.pwi,dayLabel:function(ds){ return rk==='d3'?B.dayName(ds,td):B.DAYS3[new Date(ds+'T12:00:00Z').getUTCDay()]; },
-    onSel:function(ri){ st.pwi=ri; },
+  /* 27/11/2026: η επιλογή κρατιέται ως ώρα (όχι θέση στη λίστα), ώστε μετά από ανανέωση ή αλλαγή εύρους να μη δείχνει άλλη ώρα· αλλιώς «τώρα» */
+  var pwi=null; if(st.pwT!=null&&pts.length&&st.pwT>=pts[0].t&&st.pwT<=pts[N-1].t){ var bd=1/0; pts.forEach(function(q,i){ var dd=Math.abs(q.t-st.pwT); if(dd<bd){ bd=dd; pwi=i; } }); }
+  var C=B.pwChart(pts,{lat:+p.lat,lon:+p.lon,tz:tz,rk:rk,nowI:nowI,sel:pwi,dayLabel:function(ds){ return rk==='d3'?B.dayName(ds,td):B.DAYS3[new Date(ds+'T12:00:00Z').getUTCDay()]; },
+    onSel:function(ri){ st.pwT=pts[ri]&&pts[ri].t; },
     timeLabel:function(ms,ri,nI){ var lt=loc(ms); return (lt.slice(0,10)!==td?B.dayName(lt.slice(0,10),td)+' ':'')+lt.slice(11,16)+(ri>nI?' ('+T('πρόγνωση','forecast')+')':ri<nI?' ('+T('πριν','past')+')':' ('+T('τώρα','now')+')'); },
     good:function(q,mid,i){ var w=pts[i].w, d3=i>=3?pts[i].p-pts[i-3].p:null;
       /* 1.9.26/1.9.28: «καλή» = ήπιος άνεμος, πίεση που δεν πέφτει γρήγορα, ριπές/καταιγίδα μέσα στα όρια· το κύμα μόνο σημειώνεται */

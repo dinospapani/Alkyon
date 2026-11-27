@@ -23,7 +23,7 @@ B.fcAdv=function(page,fc,ctx){
 
   var c=card(T('Τι να ψαρέψω','What to fish for'));
   /* επιλογή ημέρας και ώρας */
-  var chips=h('div',{class:'chips',role:'group','aria-label':T('Ημέρα','Day')});
+  var chips=h('div',{class:'chips spdays',role:'group','aria-label':T('Ημέρα','Day')});
   days.forEach(function(x,i){ chips.append(h('button',{type:'button',class:'chip','aria-pressed':String(i===sel.di),text:B.dayName(x.date,ctx.today),onclick:function(){ sel.di=i; sel.hr=null; rerender(); }})); });
   var step=function(dv){ return function(){ sel.hr=(sel.hr+dv+24)%24; rerender(); }; };
   var hp=h('div',{class:'hrpick'},h('button',{type:'button',class:'iconbtn sm','aria-label':T('Μία ώρα νωρίτερα','One hour earlier'),text:'−',onclick:step(-1)}),h('b',{'aria-live':'polite',text:B.pad(sel.hr)+':00'}),h('button',{type:'button',class:'iconbtn sm','aria-label':T('Μία ώρα αργότερα','One hour later'),text:'+',onclick:step(1)}));
@@ -39,7 +39,8 @@ B.fcAdv=function(page,fc,ctx){
       var bj=(r.bait||[]).join(' ').toLowerCase(), oth=/καλαμαρι[έε]ρ|squid jig|egi/.test(bj)?T('Καλαμαριέρα (eging)','Squid jigging (eging)'):/σαμπ[ίι]κι|sabiki/.test(bj)?'Sabiki':null;
       var tk=r.tech.map(function(x){ return (x==='Άλλο'||x==='Other')&&oth?oth:x; });
       var det=[tk.length?T('Τεχνική: ','Technique: ')+tk.join(', '):'',r.bait.length?T('Δόλωμα: ','Bait: ')+r.bait.join(', '):'',r.depth?T('Βάθος: ','Depth: ')+r.depth:''].filter(Boolean);
-      l.append(h('div',{class:'sp'},h('div',{class:'sph'},h('b',{text:r.name}),h('span',{class:'splv lv'+(r.p/mx>=0.75?'2':r.p/mx>=0.45?'1':'0'),text:lvlTxt(r.p/mx)})),h('span',{class:'bt lv'+(r.p/mx>=0.75?'2':r.p/mx>=0.45?'1':'0')},h('i',{style:{width:Math.max(3,Math.round(r.p/mx*100))+'%'}})),
+      /* 27/11/2026: η γραμμή τεχνικής/δολώματος/βάθους ανοίγει με πάτημα (λιγότερο κείμενο με την πρώτη ματιά)· οι προειδοποιήσεις μένουν πάντα ορατές */
+      l.append(h('div',{class:'sp spx',role:'button',tabindex:'0','aria-expanded':'false',onclick:function(){ var o=this.classList.toggle('open'); this.setAttribute('aria-expanded',String(o)); },onkeydown:function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); this.click(); } }},h('div',{class:'sph'},h('b',{text:r.name}),h('span',{class:'splv lv'+(r.p/mx>=0.75?'2':r.p/mx>=0.45?'1':'0'),text:lvlTxt(r.p/mx)})),h('span',{class:'bt lv'+(r.p/mx>=0.75?'2':r.p/mx>=0.45?'1':'0')},h('i',{style:{width:Math.max(3,Math.round(r.p/mx*100))+'%'}})),
         h('p',{class:'spd',text:det.join('. ')+(det.length?'. ':'')+(r.n?T('Από ','From ')+r.n+T(' δικά σου ψάρια.',' of your catches.'):T('Από γενική γνώση.','From general knowledge.'))}),
         r.warn?h('p',{class:'spw',text:r.warn}):null));
     });
@@ -94,7 +95,9 @@ B.fcMine=function(page,fc,ctx){
   /* 1.14.37: «52 ✓» όταν έχει συμπληρωθεί, αλλιώς «3 από 15» */
   var need=function(v,n,dec){ var x=B.num(Math.min(v,999),dec||0); return v>=n?x+' ✓':x+T(' από ',' of ')+n; };
   /* 1.14.56: η γραμμή «Χρειάζονται τουλάχιστον…» έφυγε· οι μπάρες δείχνουν ήδη «5 από 10» */
-  c.append(bar(T('Ώρες','Hours'),Math.min(p.hours,N.hours),N.hours,need(p.hours,N.hours,p.hours<10?1:0),p.hours>=N.hours?'up':''),bar(T('Έξοδοι','Trips'),Math.min(p.sessions,N.sessions),N.sessions,need(p.sessions,N.sessions),p.sessions>=N.sessions?'up':''),bar(T('Ψάρια','Catches'),Math.min(p.catches,N.catches),N.catches,need(p.catches,N.catches),p.catches>=N.catches?'up':''));
+  /* 27/11/2026: χωρίς καθόλου δεδομένα, μία πρόταση αντί για τρεις μπάρες με «0 από …» */
+  if(!p.hours&&!p.sessions&&!p.catches) c.append(h('p',{class:'p',style:{margin:'8px 0 0'},text:T('Δεν έχει ακόμα δεδομένα. Χρειάζονται ','No data yet. It needs ')+N.hours+T(' ώρες ψαρέματος, ',' fishing hours, ')+N.sessions+T(' έξοδοι και ',' trips and ')+N.catches+T(' ψάρια.',' catches.')}));
+  else c.append(bar(T('Ώρες','Hours'),Math.min(p.hours,N.hours),N.hours,need(p.hours,N.hours,p.hours<10?1:0),p.hours>=N.hours?'up':''),bar(T('Έξοδοι','Trips'),Math.min(p.sessions,N.sessions),N.sessions,need(p.sessions,N.sessions),p.sessions>=N.sessions?'up':''),bar(T('Ψάρια','Catches'),Math.min(p.catches,N.catches),N.catches,need(p.catches,N.catches),p.catches>=N.catches?'up':''));
   var v=m.valid, msg=!m.ready?T('Ανοίγει όταν γεμίσουν και οι τρεις.','Unlocks when all three are full.')
     :!v?T('Έτοιμη. Για να ελεγχθεί αν προβλέπει καλύτερα από τον μέσο όρο σου χρειάζονται 10 έξοδοι.','Ready. To check whether it predicts better than your average, 10 trips are needed.')
     :v.gain>0?T('Ελέγχθηκε σε ','Checked on ')+v.n+T(' εξόδους που δεν είδε: προβλέπει ',' trips it had not seen: it predicts ')+Math.round(v.gain*100)+T('% καλύτερα από τον μέσο όρο σου.','% better than your average.')
@@ -172,7 +175,7 @@ B.fcMine=function(page,fc,ctx){
       :vG!=null&&vN!=null?(vG-vN>=5?T('Η πρόγνωση συμφωνεί: οι καλές σου έξοδοι είχαν υψηλότερο βαθμό.','The forecast agrees: your good trips had a higher score.'):vN-vG>=5?T('Η πρόγνωση δεν συμφωνεί ακόμα: οι έξοδοι χωρίς ψάρι είχαν υψηλότερο βαθμό.','The forecast does not agree yet: trips with nothing had a higher score.'):T('Μέχρι τώρα δεν φαίνεται διαφορά.','No clear difference so far.'))
       :T('Χρειάζονται έξοδοι και «Καλό» και «Τίποτα» για σύγκριση.','Needs both “Good” and “Nothing” trips to compare.')}));
     if(tr.length>=5) page.append(c8); else pend.push([T('Με «Πώς ήταν;»','With «How was it?»'),tr.length,5]); })();
-  if(pend.length){ var cp=card(T('Έλεγχος της πρόγνωσης','Checking the forecast'),T('Όταν μαζευτούν αρκετές έξοδοι, εδώ θα φαίνεται πόσο έπεσε μέσα η πρόγνωση στα δικά σου νερά: ψάρια ανά ώρα ανάλογα με τον βαθμό, Alkyon ή μόνο σελήνη, και πρόγνωση σε σχέση με το «Πώς ήταν».','Once there are enough trips, this shows how right the forecast was in your waters: fish per hour by score, Alkyon vs moon only, and forecast vs «How was it».'));
+  if(pend.length&&pend.some(function(x){ return x[1]>0; })){ var cp=card(T('Έλεγχος της πρόγνωσης','Checking the forecast'),T('Όταν μαζευτούν αρκετές έξοδοι, εδώ θα φαίνεται πόσο έπεσε μέσα η πρόγνωση στα δικά σου νερά: ψάρια ανά ώρα ανάλογα με τον βαθμό, Alkyon ή μόνο σελήνη, και πρόγνωση σε σχέση με το «Πώς ήταν».','Once there are enough trips, this shows how right the forecast was in your waters: fish per hour by score, Alkyon vs moon only, and forecast vs «How was it».'));
     cp.append(h('p',{class:'patl',text:T('Έξοδοι που μετράνε ως τώρα:','Trips that count so far:')}));
     pend.forEach(function(x){ cp.append(bar(x[0],Math.min(x[1],x[2]),x[2],x[1]+T(' από ',' of ')+x[2])); });
     cp.append(h('p',{class:'sub',style:{margin:'8px 0 0'},text:T('Πάτα Έναρξη και Τέλος σε κάθε έξοδο και απάντα στο «Πώς ήταν;».','Tap Start and End on each trip and answer «How was it?».')})); page.append(cp); }
