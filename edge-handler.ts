@@ -81,6 +81,7 @@ Deno.serve(async (req) => {
     SUPABASE_URL: E('SUPABASE_URL'),
     SUPABASE_SERVICE_KEY: E('SERVICE_KEY') || E('SUPABASE_SERVICE_ROLE_KEY'),
     TELEGRAM_BOT_TOKEN: TGT(),
+    RESEND_API_KEY: E('RESEND_API_KEY').trim(),   // 28/11/2026: emails της λίστας «Ειδοποίησέ με» (waitlistStep)
   };
   const isCron = !!secret && req.headers.get('x-cron-secret') === secret;
   if (!isCron) {

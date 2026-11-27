@@ -1047,6 +1047,51 @@ export async function claimStep(sb, name, periodMs, now = Date.now(), staleMs = 
   const up = await sb(`job_state?name=eq.${encodeURIComponent(name)}&${cond}`, { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ last_try: at }) });
   return Array.isArray(up) && up.length === 1;
 }
+/* 28/11/2026: λίστα «Ειδοποίησέ με» του website (public.waitlist). Για κάθε νέα εγγραφή: email καλωσορίσματος στον επισκέπτη (EN/EL)
+   και email στον διαχειριστή (alkyonfishingapp@gmail.com), μέσω Resend από hello@alkyonfishing.com. Τρέχει μόνο αν υπάρχει RESEND_API_KEY.
+   Κάθε γραμμή «κλειδώνεται» πρώτα (welcomed_at, μόνο αν ήταν κενό) ώστε να μη σταλεί δύο φορές· αν η αποστολή αποτύχει, ξεκλειδώνεται
+   και μετριέται (mail_tries)· μετά από 3 αποτυχίες σταματά και ο διαχειριστής ενημερώνεται μία φορά. */
+export const WL_FROM = 'Alkyon <hello@alkyonfishing.com>', WL_ADMIN = 'alkyonfishingapp@gmail.com', WL_MAX_TRIES = 3;
+const WL_T = {
+  en: { subject: 'You’re on the Alkyon list',
+        text: 'Hi,\n\nThanks for your interest in Alkyon — the fishing forecast with one 0–100 score from sun, moon, pressure, wind and waves, plus a live sea map, your own logbook and safety at sea.\n\nWe’ll email you when Alkyon launches on Google Play and the App Store, and send occasional news.\n\nDon’t want these emails? Just reply to this message or write to alkyonfishingapp@gmail.com and we’ll remove you.\n\n— Alkyon\nhttps://alkyonfishing.com' },
+  el: { subject: 'Είσαι στη λίστα του Alkyon',
+        text: 'Γεια σου,\n\nΕυχαριστούμε για το ενδιαφέρον σου για το Alkyon — την πρόγνωση ψαρέματος με έναν βαθμό 0–100 από ήλιο, φεγγάρι, πίεση, άνεμο και κύμα, μαζί με ζωντανό χάρτη θάλασσας, το δικό σου ημερολόγιο και ασφάλεια στη θάλασσα.\n\nΘα σου στείλουμε email όταν το Alkyon κυκλοφορήσει στο Google Play και στο App Store, και περιστασιακά νέα.\n\nΔεν θέλεις αυτά τα emails; Απάντησε σε αυτό το μήνυμα ή γράψε στο alkyonfishingapp@gmail.com και θα σε διαγράψουμε.\n\n— Alkyon\nhttps://alkyonfishing.com' } };
+const wlEsc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const wlHtml = t => '<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:#0b2230">' + t.split('\n\n').map(p => '<p>' + wlEsc(p).replace(/\n/g, '<br>').replace(/https:\/\/alkyonfishing\.com/, '<a href="https://alkyonfishing.com">alkyonfishing.com</a>') + '</p>').join('') + '</div>';
+export function waitlistMails(row, n = {}) {
+  const L = row.lang === 'el' ? 'el' : 'en', t = WL_T[L];
+  const welcome = { from: WL_FROM, to: [row.email], reply_to: WL_ADMIN, subject: t.subject, text: t.text, html: wlHtml(t.text),
+    headers: { 'List-Unsubscribe': '<mailto:' + WL_ADMIN + '?subject=unsubscribe>' } };
+  const when = new Intl.DateTimeFormat('el-GR', { timeZone: TZ, dateStyle: 'short', timeStyle: 'short' }).format(new Date(row.created_at || Date.now()));
+  const fail = n.failed ? '\n\n⚠ Το email καλωσορίσματος ΔΕΝ στάλθηκε μετά από ' + WL_MAX_TRIES + ' προσπάθειες (' + String(n.err || '').slice(0, 200) + ').' : '';
+  const admin = { from: WL_FROM, to: [WL_ADMIN], subject: 'Alkyon · νέα εγγραφή στη λίστα' + (n.failed ? ' (χωρίς καλωσόρισμα)' : ''),
+    text: 'Νέα εγγραφή στη λίστα «Ειδοποίησέ με» του alkyonfishing.com:\n\nEmail: ' + row.email + '\nΓλώσσα: ' + (L === 'el' ? 'Ελληνικά' : 'English') + '\nΏρα: ' + when + fail + '\n\nΌλη η λίστα: Supabase › Table Editor › waitlist' };
+  return { welcome, admin };
+}
+export async function waitlistStep({ sb, F, key, log = () => {}, now = () => new Date().toISOString(), limit = 10 }) {
+  const send = async m => { const r = await F('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify(m) });
+    if (!r.ok) throw new Error('Resend ' + r.status + ' ' + (await r.text()).slice(0, 160)); return r.json().catch(() => ({})); };
+  const rows = (await sb(`waitlist?welcomed_at=is.null&mail_tries=lt.${WL_MAX_TRIES}&select=id,email,lang,created_at,mail_tries&order=id.asc&limit=${limit}`)) || [];
+  const out = { sent: 0, failed: 0, admin: 0 };
+  for (const r of rows) {
+    const got = (await sb(`waitlist?id=eq.${r.id}&welcomed_at=is.null`, { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ welcomed_at: now() }) })) || [];
+    if (!got.length) continue;   // την πήρε ήδη άλλη εκτέλεση
+    const m = waitlistMails(r);
+    try { await send(m.welcome); out.sent++; }
+    catch (e) {
+      out.failed++; const tries = (r.mail_tries || 0) + 1;
+      log('waitlist: ' + e.message);
+      await sb(`waitlist?id=eq.${r.id}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(tries >= WL_MAX_TRIES ? { mail_tries: tries } : { welcomed_at: null, mail_tries: tries }) }).catch(() => {});
+      if (tries < WL_MAX_TRIES) continue;
+      try { await send(waitlistMails(r, { failed: true, err: e.message }).admin); out.admin++; } catch (e2) { log('waitlist: admin ' + e2.message); }
+      continue;
+    }
+    try { await send(m.admin); out.admin++; } catch (e) { log('waitlist: admin ' + e.message); }
+  }
+  return out;
+}
+
 export async function run({ env, fetch: F0 = fetch, sendMail, log = console.log, PF = null, webpush = null, budgetMs = BUDGET_MS, netMs = NET_MS, sendMs = SEND_MS, only = null, learnOpen = false }) {
   const T0 = Date.now(), F = timedFetch(F0, netMs);
   if (webpush && typeof webpush.sendNotification === 'function') { const wp0 = webpush; webpush = Object.assign(Object.create(wp0), { sendNotification: timedSend((s, p, o) => wp0.sendNotification(s, p, o), sendMs, 'push') }); }
@@ -1082,7 +1127,7 @@ export async function run({ env, fetch: F0 = fetch, sendMail, log = console.log,
   const PING_WAIT_MIN = 15, LOWBAT = 10;
   // 1.9.50: τα σφάλματα των βημάτων μαζεύονται (για ειδοποίηση στους διαχειριστές στο τέλος· βλ. βήμα 9)
   const ERRS = [], log0 = log;
-  const STEP_ERR = /^(Telegram updates|Telegram send|Email send|Telegram ping|port note decide|port notes|weekly|morning|Forecast job|Πίεση|Πίεση Telegram|Πίεση \(Open-Meteo\)|community push|squid|squid fc|squid notif_log|Καιρός εξόδου|bite stats)$/;
+  const STEP_ERR = /^(Telegram updates|Telegram send|Email send|Telegram ping|port note decide|port notes|weekly|morning|Forecast job|Πίεση|Πίεση Telegram|Πίεση \(Open-Meteo\)|community push|squid|squid fc|squid notif_log|Καιρός εξόδου|bite stats|waitlist)$/;
   log = m => { log0(m); const t = String(m), k = t.split(':')[0].trim(); if (STEP_ERR.test(k)) ERRS.push({ k, m: t.slice(0, 300) }); };
   /* 1.14.83 (P0.6): βήματα που τρέχουν «κάθε ~15′» δεν εξαρτώνται από το ακριβές λεπτό του cron: κρατιέται πότε έτρεξαν τελευταία φορά
      με επιτυχία (job_state). Αν ο cron αργήσει ή χάσει μια εκτέλεση, το βήμα τρέχει στην επόμενη. Χωρίς τον πίνακα (παλιό σχήμα): όπως πριν. */
@@ -2203,7 +2248,13 @@ export async function run({ env, fetch: F0 = fetch, sendMail, log = console.log,
       }
     } catch (e) { log('bite stats: week ' + e.message); }
   }
-  mark('bstats'); stats.ms = { ...TM, total: Date.now() - T0 };
+  mark('bstats');
+  // 28/11/2026: λίστα «Ειδοποίησέ με» (website) → email καλωσορίσματος + email στον διαχειριστή (Resend). Χωρίς RESEND_API_KEY δεν κάνει τίποτα.
+  if (env.RESEND_API_KEY && !late()) {
+    try { const w = await waitlistStep({ sb, F, key: env.RESEND_API_KEY, log }); if (w.sent || w.failed) stats.wl = w; }
+    catch (e) { log('waitlist: ' + e.message); }
+  }
+  mark('wl'); stats.ms = { ...TM, total: Date.now() - T0 };
   log('Safety job: ' + JSON.stringify(stats));
   // 9) 1.9.50: υγεία του server. Σε κάθε εκτέλεση γράφεται «heartbeat» (backups/_system/heartbeat.json, το διαβάζει το watchdog του GitHub).
   //    Αν ένα βήμα αποτύχει σε 2 συνεχόμενες εκτελέσεις (όχι ένα στιγμιαίο σφάλμα δικτύου), μήνυμα Telegram στους διαχειριστές, το πολύ μία φορά ανά 6 ώρες ανά βήμα.
@@ -2311,6 +2362,7 @@ Deno.serve(async (req) => {
     SUPABASE_URL: E('SUPABASE_URL'),
     SUPABASE_SERVICE_KEY: E('SERVICE_KEY') || E('SUPABASE_SERVICE_ROLE_KEY'),
     TELEGRAM_BOT_TOKEN: TGT(),
+    RESEND_API_KEY: E('RESEND_API_KEY').trim(),   // 28/11/2026: emails της λίστας «Ειδοποίησέ με» (waitlistStep)
   };
   const isCron = !!secret && req.headers.get('x-cron-secret') === secret;
   if (!isCron) {
