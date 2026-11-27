@@ -86,18 +86,18 @@ export async function claimStep(sb, name, periodMs, now = Date.now(), staleMs = 
    και email στον διαχειριστή (alkyonfishingapp@gmail.com), μέσω Resend από hello@alkyonfishing.com. Τρέχει μόνο αν υπάρχει RESEND_API_KEY.
    Κάθε γραμμή «κλειδώνεται» πρώτα (welcomed_at, μόνο αν ήταν κενό) ώστε να μη σταλεί δύο φορές· αν η αποστολή αποτύχει, ξεκλειδώνεται
    και μετριέται (mail_tries)· μετά από 3 αποτυχίες σταματά και ο διαχειριστής ενημερώνεται μία φορά. */
-export const WL_FROM = 'Alkyon <hello@alkyonfishing.com>', WL_ADMIN = 'alkyonfishingapp@gmail.com', WL_MAX_TRIES = 3;
+export const WL_FROM = 'Alkyon <hello@alkyonfishing.com>', WL_REPLY = 'hello@alkyonfishing.com', WL_ADMIN = 'alkyonfishingapp@gmail.com', WL_MAX_TRIES = 3;   // απαντήσεις/διαγραφές → hello@ (Cloudflare Email Routing → Gmail)· ειδοποίηση διαχειριστή κατευθείαν στο Gmail
 const WL_T = {
   en: { subject: 'You’re on the Alkyon list',
-        text: 'Hi,\n\nThanks for your interest in Alkyon — the fishing forecast with one 0–100 score from sun, moon, pressure, wind and waves, plus a live sea map, your own logbook and safety at sea.\n\nWe’ll email you when Alkyon launches on Google Play and the App Store, and send occasional news.\n\nDon’t want these emails? Just reply to this message or write to alkyonfishingapp@gmail.com and we’ll remove you.\n\n— Alkyon\nhttps://alkyonfishing.com' },
+        text: 'Hi,\n\nThanks for your interest in Alkyon — the fishing forecast with one 0–100 score from sun, moon, pressure, wind and waves, plus a live sea map, your own logbook and safety at sea.\n\nWe’ll email you when Alkyon launches on Google Play and the App Store, and send occasional news.\n\nDon’t want these emails? Just reply to this message or write to hello@alkyonfishing.com and we’ll remove you.\n\n— Alkyon\nhttps://alkyonfishing.com' },
   el: { subject: 'Είσαι στη λίστα του Alkyon',
-        text: 'Γεια σου,\n\nΕυχαριστούμε για το ενδιαφέρον σου για το Alkyon — την πρόγνωση ψαρέματος με έναν βαθμό 0–100 από ήλιο, φεγγάρι, πίεση, άνεμο και κύμα, μαζί με ζωντανό χάρτη θάλασσας, το δικό σου ημερολόγιο και ασφάλεια στη θάλασσα.\n\nΘα σου στείλουμε email όταν το Alkyon κυκλοφορήσει στο Google Play και στο App Store, και περιστασιακά νέα.\n\nΔεν θέλεις αυτά τα emails; Απάντησε σε αυτό το μήνυμα ή γράψε στο alkyonfishingapp@gmail.com και θα σε διαγράψουμε.\n\n— Alkyon\nhttps://alkyonfishing.com' } };
+        text: 'Γεια σου,\n\nΕυχαριστούμε για το ενδιαφέρον σου για το Alkyon — την πρόγνωση ψαρέματος με έναν βαθμό 0–100 από ήλιο, φεγγάρι, πίεση, άνεμο και κύμα, μαζί με ζωντανό χάρτη θάλασσας, το δικό σου ημερολόγιο και ασφάλεια στη θάλασσα.\n\nΘα σου στείλουμε email όταν το Alkyon κυκλοφορήσει στο Google Play και στο App Store, και περιστασιακά νέα.\n\nΔεν θέλεις αυτά τα emails; Απάντησε σε αυτό το μήνυμα ή γράψε στο hello@alkyonfishing.com και θα σε διαγράψουμε.\n\n— Alkyon\nhttps://alkyonfishing.com' } };
 const wlEsc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const wlHtml = t => '<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:#0b2230">' + t.split('\n\n').map(p => '<p>' + wlEsc(p).replace(/\n/g, '<br>').replace(/https:\/\/alkyonfishing\.com/, '<a href="https://alkyonfishing.com">alkyonfishing.com</a>') + '</p>').join('') + '</div>';
 export function waitlistMails(row, n = {}) {
   const L = row.lang === 'el' ? 'el' : 'en', t = WL_T[L];
-  const welcome = { from: WL_FROM, to: [row.email], reply_to: WL_ADMIN, subject: t.subject, text: t.text, html: wlHtml(t.text),
-    headers: { 'List-Unsubscribe': '<mailto:' + WL_ADMIN + '?subject=unsubscribe>' } };
+  const welcome = { from: WL_FROM, to: [row.email], reply_to: WL_REPLY, subject: t.subject, text: t.text, html: wlHtml(t.text),
+    headers: { 'List-Unsubscribe': '<mailto:' + WL_REPLY + '?subject=unsubscribe>' } };
   const when = new Intl.DateTimeFormat('el-GR', { timeZone: TZ, dateStyle: 'short', timeStyle: 'short' }).format(new Date(row.created_at || Date.now()));
   const fail = n.failed ? '\n\n⚠ Το email καλωσορίσματος ΔΕΝ στάλθηκε μετά από ' + WL_MAX_TRIES + ' προσπάθειες (' + String(n.err || '').slice(0, 200) + ').' : '';
   const admin = { from: WL_FROM, to: [WL_ADMIN], subject: 'Alkyon · νέα εγγραφή στη λίστα' + (n.failed ? ' (χωρίς καλωσόρισμα)' : ''),

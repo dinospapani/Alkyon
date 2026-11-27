@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { ROOT } from './harness.mjs';
-const { waitlistStep, waitlistMails, WL_ADMIN, WL_FROM } = await import(pathToFileURL(path.join(ROOT, 'safety-job.mjs')).href);
+const { waitlistStep, waitlistMails, WL_ADMIN, WL_FROM, WL_REPLY } = await import(pathToFileURL(path.join(ROOT, 'safety-job.mjs')).href);
 
 function world(rows, failFor = new Set()) {
   const db = rows.map(r => ({ welcomed_at: null, mail_tries: 0, ...r })), sent = [];
@@ -24,7 +24,7 @@ test('νέα εγγραφή → καλωσόρισμα (στη γλώσσα τη
   const r = await waitlistStep({ sb: w.sb, F: w.F, key: 'k' });
   assert.deepEqual(r, { sent: 1, failed: 0, admin: 1 });
   assert.equal(w.sent[0].to[0], 'a@b.co'); assert.match(w.sent[0].subject, /Είσαι στη λίστα/); assert.equal(w.sent[0].from, WL_FROM);
-  assert.equal(w.sent[0].reply_to, WL_ADMIN); assert.ok(w.sent[0].headers['List-Unsubscribe']);
+  assert.equal(w.sent[0].reply_to, WL_REPLY); assert.ok(!w.sent[0].text.includes('gmail')); assert.ok(w.sent[0].headers['List-Unsubscribe']);
   assert.equal(w.sent[1].to[0], WL_ADMIN); assert.match(w.sent[1].text, /a@b\.co/);
   assert.ok(w.db[0].welcomed_at);
   const again = await waitlistStep({ sb: w.sb, F: w.F, key: 'k' });
