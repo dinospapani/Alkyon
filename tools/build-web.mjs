@@ -26,7 +26,7 @@ async function copyDir(src, dst) {
   for (const e of await fs.readdir(src, { withFileTypes: true })) {
     const s = path.join(src, e.name), d = path.join(dst, e.name);
     /* social/: εικόνες και βίντεο για Instagram/Facebook/TikTok (τα παίρνει το Buffer από το alkyonfishing.com) — μόνο στην ιστοσελίδα, όχι μέσα στις εφαρμογές */
-    if (e.isDirectory()) { if (!SKIP_DIRS.has(e.name) && !(NATIVE && src === ROOT && e.name === 'social')) n += await copyDir(s, d); continue; }
+    if (e.isDirectory()) { if (!SKIP_DIRS.has(e.name) && !(NATIVE && src === ROOT && (e.name === 'social' || e.name === 'site'))) n += await copyDir(s, d); continue; }
     if (SKIP_FILES.has(e.name) || SKIP_EXT.has(path.extname(e.name))) continue;
     await fs.copyFile(s, d); n++;
   }
@@ -36,6 +36,11 @@ async function copyDir(src, dst) {
 if (OUT === ROOT || !OUT.startsWith(ROOT + path.sep)) { console.error('Λάθος φάκελος εξόδου: ' + OUT); process.exit(1); }
 await fs.rm(OUT, { recursive: true, force: true });
 let n = await copyDir(ROOT, OUT);
+
+/* Αρχική σελίδα: στην ιστοσελίδα το index.html είναι το website (νέοι επισκέπτες) + είσοδος στην εφαρμογή (launch.js).
+   Στις εφαρμογές Android/iOS το index.html είναι ο απλός launcher (launcher.html), όπως πριν: δεν δείχνουν ποτέ το website. */
+if (NATIVE) await fs.copyFile(path.join(ROOT, 'launcher.html'), path.join(OUT, 'index.html'));
+await fs.rm(path.join(OUT, 'launcher.html'), { force: true });
 
 /* .well-known: για το Cloudflare μόνο (η εφαρμογή δεν το χρειάζεται μέσα της) */
 if (!NATIVE) {

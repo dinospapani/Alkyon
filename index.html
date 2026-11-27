@@ -1,32 +1,197 @@
 <!doctype html>
-<html lang="el">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#06171F">
-<title>Alkyon</title>
+<title>Alkyon — Know the moment to fish</title>
+<meta name="description" content="Alkyon: a fishing forecast with one 0–100 score from sun, moon, pressure, wind and waves, plus a live sea map, your logbook and safety at sea. Phone and watch.">
+<meta property="og:title" content="Alkyon — Know the moment to fish">
+<meta property="og:description" content="Fishing forecast · Sea map · Logbook · Safety at sea">
+<meta property="og:image" content="https://alkyonfishing.com/social/alkyon-first-post.jpg">
+<meta property="og:url" content="https://alkyonfishing.com/">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<style>html,body{margin:0;height:100%;background:#06171F;color:#E6F1F2;font:16px system-ui,sans-serif}body{display:grid;place-items:center}a{color:#FF7A4D}</style>
-<script src="migrate.js"></script>
 <script>
-/* Alkyon: η εφαρμογή είναι στο v4/. Η κλασική έκδοση αποσύρθηκε στην 1.4.0 και το classic.html αφαιρέθηκε στην 1.10.11
-   (οι παλιοί σύνδεσμοι classic.html περνούν από το 404.html εδώ). Οι συντομεύσεις (?a=bite|trip|fc|map) περνούν στη νέα
-   εφαρμογή. Ο service worker της ρίζας μένει για τις ειδοποιήσεις. */
+/* Alkyon · αρχική σελίδα (website) + είσοδος στην εφαρμογή.
+   Η ρίζα δείχνει τη σελίδα παρουσίασης ΜΟΝΟ σε νέους επισκέπτες χωρίς τίποτα στη διεύθυνση. Όλοι οι άλλοι πάνε στην εφαρμογή
+   ακριβώς όπως πριν (launch.js = ο παλιός κώδικας της ρίζας): σύνδεσμοι με ?… ή #… (προσκλήσεις ?join=1, συντομεύσεις ?a=,
+   email επιβεβαίωσης/κωδικού, ?from=gh), εγκατεστημένη εφαρμογή (PWA) και όποιος έχει ήδη δεδομένα του Alkyon σε αυτόν τον browser.
+   Οι εφαρμογές Android/iOS δεν βλέπουν ποτέ αυτή τη σελίδα: παίρνουν το launcher.html ως index.html (tools/build-web.mjs). */
 (function(){
-  var q={}; try{ new URLSearchParams(location.search).forEach(function(v,k){ q[k]=v; }); }catch(e){}
-  var fq=q.from==='gh'?'?from=gh'+(q.hl?'&hl='+encodeURIComponent(q.hl):''):''; /* 1.12.6: από την παλιά διεύθυνση (github.io) → κρατά το σημάδι για την πρόταση «Μεταφορά» */
-  if(q.join==='1') fq+=(fq?'&':'?')+'join=1'; /* 1.14.60: πρόσκληση → «Βοήθησε την πρόγνωση» */
-  var a=q.a||'', M={bite:'#new',trip:'#trip',fc:'#forecast',log:'#log',map:'#map',prof:'#profile'};
-  if(a==='map'&&q.lat&&q.lon&&isFinite(+q.lat)&&isFinite(+q.lon)){ location.replace('v4/'+fq+'#share='+(+q.lat).toFixed(5)+','+(+q.lon).toFixed(5)); return; }
-  /* 1.4.0: σύνδεσμοι από email (επιβεβαίωση, νέος κωδικός): τους χειρίζεται πλέον η νέα εφαρμογή (v4/account.js) */
-  if(/access_token|type=recovery|error_description/.test(location.hash)){ location.replace('v4/'+location.search+location.hash); return; }
-  if(/^#inbox/.test(location.hash)){ location.replace('v4/'+fq+'#inbox'); return; }
-  try{ if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){}); }catch(e){}
-  location.replace('v4/'+fq+(M[a]||location.hash||''));
+  var go=!!(location.search||location.hash);
+  try{ if(window.matchMedia&&matchMedia('(display-mode: standalone)').matches) go=true; }catch(e){}
+  try{ if(navigator.standalone) go=true; }catch(e){}
+  try{ var L=localStorage, skip={'alkyon-lang':1,'alkyon-migrated':1,'alkyon-idbmig':1};
+    for(var i=0;i<L.length&&!go;i++){ var k=L.key(i)||''; if(/^(alkyon|alk-|psaro|bc4|sb-)/.test(k)&&!skip[k]) go=true; } }catch(e){}
+  window.AK_SITE=!go;
+  if(go){ document.documentElement.className='go'; document.write('<script src="migrate.js"><\/script><script src="launch.js"><\/script>'); }
+  else { var el=/^el\b/i.test(navigator.language||''); if(el) document.documentElement.lang='el'; }
 })();
 </script>
+<style>
+@font-face{font-family:'Commissioner';font-weight:100 900;font-display:swap;src:url(v4/fonts/commissioner-greek.woff2) format('woff2');unicode-range:U+0370-03FF,U+1F00-1FFF}
+@font-face{font-family:'Commissioner';font-weight:100 900;font-display:swap;src:url(v4/fonts/commissioner-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+2000-206F,U+20AC,U+2122,U+2212}
+html.go body{display:none}
+html[lang=en] .el,html[lang=el] .en{display:none!important}
+*{box-sizing:border-box}
+body{margin:0;background:#06171F;color:#E6F1F2;font:400 17px/1.55 Commissioner,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#FF7A4D;text-decoration:none}a:hover{color:#FF9B77}
+img{max-width:100%;display:block}
+.wrap{max-width:1200px;margin:0 auto;padding:0 24px}
+h1,h2,h3{font-weight:800;letter-spacing:-.01em;margin:0}
+.kick{margin:0 0 12px;color:#4FB3D9;font-weight:600;letter-spacing:.08em;text-transform:uppercase;font-size:14px}
+.kick.o{color:#FF7A4D}
+h2{font-size:clamp(30px,4vw,46px);line-height:1.1;max-width:780px}
+.sub{color:#C9DADF;font-size:18px}
+.mut{color:#9BB5BE}
+header{position:sticky;top:0;z-index:5;background:rgba(6,23,31,.92);backdrop-filter:blur(8px);border-bottom:1px solid #1C4253}
+nav{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding-top:12px;padding-bottom:12px}
+.brand{display:flex;align-items:center;gap:12px;color:#E6F1F2;font-weight:800;font-size:22px}
+.brand img{width:38px;height:38px;border-radius:10px}
+.links{display:flex;flex-wrap:wrap;align-items:center;gap:22px;font-size:15px;font-weight:500}
+.links a{color:#9BB5BE}
+.lang[hidden]{display:none}.lang{background:none;border:1px solid #1C4253;color:#C9DADF;border-radius:999px;padding:8px 14px;font:inherit;font-size:14px;cursor:pointer;min-height:40px}
+.btn{display:inline-flex;align-items:center;gap:10px;border-radius:14px;padding:14px 22px;font-weight:700;min-height:48px}
+.btn.pri{background:#FF7A4D;color:#1A0A04}.btn.pri:hover{background:#FF9B77;color:#1A0A04}
+.btn.sec{background:#E6F1F2;color:#06171F}
+.btn small{display:block;font-size:12px;font-weight:500}
+.hero{position:relative;overflow:hidden}
+.hero>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 30%;opacity:.42}
+.hero:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#06171F 30%,rgba(6,23,31,.55) 70%,rgba(6,23,31,.2))}
+.hero .wrap{position:relative;z-index:1;display:flex;flex-wrap:wrap;align-items:center;gap:48px;padding-top:88px;padding-bottom:88px}
+.hero h1{font-size:clamp(42px,6vw,74px);line-height:1.03}
+.hero .txt{flex:1 1 460px;min-width:0}
+.phone{border-radius:34px;border:8px solid #123545;box-shadow:0 40px 80px -30px rgba(0,0,0,.8)}
+.cta{display:flex;flex-wrap:wrap;gap:14px;margin-top:34px}
+.modes{padding:48px 0;background:#0A2230;border-top:1px solid #1C4253;border-bottom:1px solid #1C4253}
+.g4{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px}
+.g3{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:20px}
+.mode{display:flex;align-items:center;gap:14px}.mode img{width:62px;height:62px;border-radius:14px;object-fit:cover}
+.mode b{font-size:18px}
+section.pad{padding:96px 0}
+.card{background:#0D2A36;border:1px solid #1C4253;border-radius:20px;padding:26px}
+.card h3{margin:16px 0 8px;font-size:21px}.card p{margin:0;color:#9BB5BE}
+.ico{width:32px;height:32px;fill:none;stroke:#FF7A4D;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.shots{display:flex;gap:22px;overflow-x:auto;padding:8px 0 12px;scroll-snap-type:x mandatory}
+.shots figure{margin:0;flex:0 0 230px;scroll-snap-align:start}.shots img{border-radius:22px;border:1px solid #1C4253}
+.shots figcaption{margin-top:10px;font-size:14px;color:#9BB5BE}
+.alt{background:#0A2230;border-top:1px solid #1C4253;border-bottom:1px solid #1C4253}
+.split{display:flex;flex-wrap:wrap;gap:52px;align-items:flex-start}.split>div{flex:1 1 380px;min-width:0}
+.list{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.list li{background:#0D2A36;border:1px solid #1C4253;border-radius:16px;padding:16px 20px}.list b{display:block}.list span{color:#9BB5BE}
+.pills{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:30px}
+.pills span{border:1px solid #1C4253;border-radius:999px;padding:11px 22px;font-weight:600}
+details{background:#0D2A36;border:1px solid #1C4253;border-radius:16px;padding:18px 22px}
+summary{font-weight:700;font-size:18px;cursor:pointer}details p{margin:12px 0 0;color:#9BB5BE}
+footer{padding:40px 0;border-top:1px solid #1C4253;font-size:14px;color:#9BB5BE}
+footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:18px}footer a{color:#9BB5BE}
+@media (max-width:640px){.links a.nav{display:none}.hero .wrap{padding-top:56px;padding-bottom:56px}section.pad{padding:68px 0}}
+</style>
 </head>
-<body><p>Alkyon… <a href="v4/">Άνοιγμα</a></p></body>
+<body>
+<header><nav class="wrap">
+  <a class="brand" href="./"><img src="icon-192.png" alt="">Alkyon</a>
+  <div class="links">
+    <a class="nav" href="#features"><span class="en">Features</span><span class="el">Λειτουργίες</span></a>
+    <a class="nav" href="#safety"><span class="en">Safety</span><span class="el">Ασφάλεια</span></a>
+    <a class="nav" href="#faq"><span class="en">FAQ</span><span class="el">Ερωτήσεις</span></a>
+    <button class="lang" type="button" id="lang"><span class="en">Ελληνικά</span><span class="el">English</span></button>
+    <a class="btn pri" href="v4/"><span class="en">Open the app</span><span class="el">Άνοιξε την εφαρμογή</span></a>
+  </div>
+</nav></header>
+
+<section class="hero">
+  <img src="site/boat.jpg" alt="">
+  <div class="wrap">
+    <div class="txt">
+      <p class="kick"><span class="en">Fishing forecast · Sea map · Logbook · Safety</span><span class="el">Πρόγνωση ψαρέματος · Χάρτης · Ημερολόγιο · Ασφάλεια</span></p>
+      <h1><span class="en">Know the moment<br>to fish.</span><span class="el">Η σωστή στιγμή<br>για ψάρεμα.</span></h1>
+      <p class="sub" style="max-width:560px;margin:22px 0 0"><span class="en">Sun, moon, pressure, wind and waves in one 0–100 score, with the best hours of the day. Plus a live sea map, your own logbook and safety at sea — on your phone and your watch.</span><span class="el">Ήλιος, φεγγάρι, πίεση, άνεμος και κύμα σε έναν βαθμό 0–100, με τις καλύτερες ώρες της μέρας. Μαζί ζωντανός χάρτης θάλασσας, το δικό σου ημερολόγιο και ασφάλεια στη θάλασσα — στο κινητό και στο ρολόι σου.</span></p>
+      <div class="cta">
+        <a class="btn pri" href="v4/"><span class="en">Try it in your browser</span><span class="el">Δοκίμασέ το στον browser</span></a>
+        <span class="btn sec"><span><small class="en">Coming soon</small><small class="el">Σύντομα</small>Google Play · App Store</span></span>
+      </div>
+      <p class="mut" style="margin:16px 0 0;font-size:14px">Android · iPhone · iPad · Apple Watch · Wear OS · Garmin</p>
+    </div>
+    <img class="phone" src="site/forecast.jpg" width="300" height="533" alt="Alkyon forecast screen" style="flex:0 1 300px;margin:0 auto">
+  </div>
+</section>
+
+<section class="modes"><div class="wrap g4">
+  <div class="mode"><img src="site/boat.jpg" alt=""><div><b><span class="en">Boat</span><span class="el">Σκάφος</span></b><div class="mut"><span class="en">Rod, jigging, trolling</span><span class="el">Καλάμι, jigging, συρτή</span></div></div></div>
+  <div class="mode"><img src="v4/alk-card-shore.jpg" alt=""><div><b><span class="en">Shore</span><span class="el">Ακτή</span></b><div class="mut"><span class="en">Coast, harbours, lakes</span><span class="el">Ακτές, λιμάνια, λίμνες</span></div></div></div>
+  <div class="mode"><img src="v4/alk-hero-spear.jpg" alt=""><div><b><span class="en">Spearfishing</span><span class="el">Ψαροντούφεκο</span></b><div class="mut"><span class="en">Visibility, thermocline</span><span class="el">Ορατότητα, θερμοκλινές</span></div></div></div>
+  <div class="mode"><img src="v4/alk-hero.jpg" alt="" style="object-position:top"><div><b><span class="en">Day &amp; night</span><span class="el">Μέρα &amp; νύχτα</span></b><div class="mut"><span class="en">Solunar times, moonlight</span><span class="el">Σεληνιακές ώρες, φεγγαρόφωτο</span></div></div></div>
+</div></section>
+
+<section class="pad" id="features"><div class="wrap">
+  <p class="kick o"><span class="en">What Alkyon does</span><span class="el">Τι κάνει το Alkyon</span></p>
+  <h2 style="margin-bottom:44px"><span class="en">Everything you check before a trip — in one answer.</span><span class="el">Ό,τι ελέγχεις πριν από κάθε έξοδο — σε μία απάντηση.</span></h2>
+  <div class="g3">
+    <div class="card"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18a8 8 0 0 1 16 0"/><path d="M12 18l4-5"/></svg><h3><span class="en">Fishing score 0–100</span><span class="el">Βαθμός ψαρέματος 0–100</span></h3><p><span class="en">Every day and every hour scored from sun, moon (solunar), pressure, wind and waves — with the best time, the reasons, and tides.</span><span class="el">Κάθε μέρα και κάθε ώρα βαθμολογείται από ήλιο, φεγγάρι, πίεση, άνεμο και κύμα — με την καλύτερη ώρα, τους λόγους και την παλίρροια.</span></p></div>
+    <div class="card"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg><h3><span class="en">Live sea map</span><span class="el">Ζωντανός χάρτης θάλασσας</span></h3><p><span class="en">Wind, waves, currents, sea temperature, chlorophyll fronts and depths. Tap the sea for conditions at that point. Works offline.</span><span class="el">Άνεμος, κύμα, ρεύματα, θερμοκρασία νερού, μέτωπα χλωροφύλλης και βάθη. Πάτα στη θάλασσα για τις συνθήκες εκεί. Δουλεύει και χωρίς σήμα.</span></p></div>
+    <div class="card"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h11l3 3v15H5z"/><path d="M9 9h6M9 13h6M9 17h4"/></svg><h3><span class="en">Logbook &amp; stats</span><span class="el">Ημερολόγιο &amp; στατιστικά</span></h3><p><span class="en">Trips, catches, spots and gear, with the weather at every catch saved. Records by species, best hours, best months. Export to GPX or KML.</span><span class="el">Έξοδοι, ψάρια, σημεία και εξοπλισμός, με τον καιρό κάθε ψαριάς αποθηκευμένο. Ρεκόρ ανά είδος, καλύτερες ώρες και μήνες. Εξαγωγή σε GPX ή KML.</span></p></div>
+    <div class="card"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg><h3><span class="en">Learns from your trips</span><span class="el">Μαθαίνει από τις εξόδους σου</span></h3><p><span class="en">“What worked on similar days”: bait, technique, depth and time from your own catches in similar conditions.</span><span class="el">«Τι δούλεψε σε παρόμοιες μέρες»: δόλωμα, τεχνική, βάθος και ώρα από τις δικές σου ψαριές σε παρόμοιες συνθήκες.</span></p></div>
+    <div class="card"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12c3-4 7-5 11-3l4-3v12l-4-3c-4 2-8 1-11-3z"/></svg><h3><span class="en">Species &amp; local rules</span><span class="el">Είδη &amp; τοπικοί κανόνες</span></h3><p><span class="en">Which fish suit which day, seasons, minimum sizes and fishing rules country by country — always with a pointer to the official regulations.</span><span class="el">Ποιο ψάρι ταιριάζει σε ποια μέρα, εποχές, ελάχιστα μεγέθη και κανόνες αλιείας ανά χώρα — πάντα με παραπομπή στους επίσημους κανονισμούς.</span></p></div>
+    <div class="card"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="4"/></svg><h3><span class="en">Best spots near you</span><span class="el">Τα καλύτερα σημεία κοντά σου</span></h3><p><span class="en">Scores sea points around you by calm sea within your limits, food (chlorophyll), water temperature and depth.</span><span class="el">Βαθμολογεί σημεία γύρω σου με βάση ήρεμη θάλασσα μέσα στα όριά σου, τροφή (χλωροφύλλη), θερμοκρασία νερού και βάθος.</span></p></div>
+  </div>
+  <div class="shots" style="margin-top:56px">
+    <figure><img src="site/hourly.jpg" width="230" height="409" alt="" loading="lazy"><figcaption><span class="en">Hour by hour, with solunar times</span><span class="el">Ώρα με ώρα, με σεληνιακές ώρες</span></figcaption></figure>
+    <figure><img src="site/wind.jpg" width="230" height="409" alt="" loading="lazy"><figcaption><span class="en">Animated wind and waves</span><span class="el">Κινούμενος άνεμος και κύμα</span></figcaption></figure>
+    <figure><img src="site/logbook.jpg" width="230" height="409" alt="" loading="lazy"><figcaption><span class="en">Your catches, searchable</span><span class="el">Τα ψάρια σου, με αναζήτηση</span></figcaption></figure>
+    <figure><img src="site/catch.jpg" width="230" height="409" alt="" loading="lazy"><figcaption><span class="en">The weather around every catch</span><span class="el">Ο καιρός γύρω από κάθε ψαριά</span></figcaption></figure>
+  </div>
+</div></section>
+
+<section class="pad alt" id="safety"><div class="wrap split">
+  <div>
+    <p class="kick o"><span class="en">Safety at sea</span><span class="el">Ασφάλεια στη θάλασσα</span></p>
+    <h2 style="margin-bottom:18px"><span class="en">Someone knows when you should be back.</span><span class="el">Κάποιος ξέρει πότε πρέπει να γυρίσεις.</span></h2>
+    <p class="sub" style="margin:0"><span class="en">Set a return time when you leave. If you are not back, your safety contact is alerted. With the phone locked, Alkyon still warns you about storms, weather over your limits, sunset and when to head home.</span><span class="el">Βάζεις ώρα επιστροφής όταν φεύγεις. Αν δεν γυρίσεις, ειδοποιείται η επαφή ασφαλείας σου. Και με κλειδωμένο κινητό, το Alkyon σε προειδοποιεί για καταιγίδες, καιρό πάνω από τα όριά σου, τη δύση και πότε να γυρίσεις.</span></p>
+  </div>
+  <ul class="list">
+    <li><b><span class="en">Fishing mode for the boat</span><span class="el">Λειτουργία ψαρέματος για το σκάφος</span></b><span><span class="en">Big buttons for wet hands and waves. Night mode turns on after sunset.</span><span class="el">Μεγάλα κουμπιά για βρεγμένα χέρια και κύμα. Νυχτερινή οθόνη μετά τη δύση.</span></span></li>
+    <li><b><span class="en">MOB and SOS</span><span class="el">MOB και SOS</span></b><span><span class="en">Man-overboard with a long press; SOS seen by your friends and nearby vessels.</span><span class="el">Άνθρωπος στη θάλασσα με παρατεταμένο πάτημα· SOS που βλέπουν οι φίλοι σου και τα κοντινά σκάφη.</span></span></li>
+    <li><b><span class="en">Log by voice</span><span class="el">Καταγραφή με φωνή</span></b><span><span class="en">“Three sea bass, one and a half kilos, with shrimp.” Hands stay on the rod.</span><span class="el">«Τρία λαβράκια ενάμισι κιλό με γαρίδα.» Τα χέρια μένουν στο καλάμι.</span></span></li>
+    <li><b><span class="en">No signal? No problem</span><span class="el">Χωρίς σήμα; Κανένα πρόβλημα</span></b><span><span class="en">Tap “I’ll go out” and the map and forecast for your area download in advance.</span><span class="el">Πατάς «Θα βγω» και ο χάρτης και η πρόγνωση της περιοχής σου κατεβαίνουν από πριν.</span></span></li>
+  </ul>
+</div></section>
+
+<section class="pad" id="watch"><div class="wrap" style="text-align:center">
+  <p class="kick o"><span class="en">On your wrist</span><span class="el">Στον καρπό σου</span></p>
+  <h2 style="margin:0 auto 18px"><span class="en">Log a fish without taking out your phone.</span><span class="el">Γράψε ψάρι χωρίς να βγάλεις το κινητό.</span></h2>
+  <p class="sub" style="max-width:680px;margin:0 auto"><span class="en">Today’s score and best time, pressure alerts, trip time left, an anchor alarm and one-press catch logging — on Garmin, Apple Watch and Wear OS. Everything lands in the same trip.</span><span class="el">Ο σημερινός βαθμός και η καλύτερη ώρα, ειδοποιήσεις πίεσης, χρόνος που απομένει, συναγερμός άγκυρας και ψάρι με ένα πάτημα — σε Garmin, Apple Watch και Wear OS. Όλα μπαίνουν στην ίδια έξοδο.</span></p>
+  <div class="pills"><span>Garmin</span><span>Apple Watch</span><span>Wear OS</span></div>
+</div></section>
+
+<section class="pad alt" id="faq"><div class="wrap" style="max-width:860px">
+  <h2 style="margin-bottom:28px"><span class="en">Questions</span><span class="el">Ερωτήσεις</span></h2>
+  <div style="display:grid;gap:12px">
+    <details open><summary><span class="en">Where does Alkyon work?</span><span class="el">Πού δουλεύει το Alkyon;</span></summary><p><span class="en">Worldwide. The forecast and sea map cover every coast. Fishing rules are added country by country — always check the official regulations where you fish.</span><span class="el">Σε όλο τον κόσμο. Η πρόγνωση και ο χάρτης καλύπτουν κάθε ακτή. Οι κανόνες αλιείας προστίθενται χώρα με χώρα — έλεγχε πάντα τους επίσημους κανονισμούς εκεί που ψαρεύεις.</span></p></details>
+    <details><summary><span class="en">Are my spots private?</span><span class="el">Τα σημεία μου μένουν δικά μου;</span></summary><p><span class="en">Yes. Your spots and catches are yours. You choose what to share with friends or the community.</span><span class="el">Ναι. Τα σημεία και τα ψάρια σου είναι δικά σου. Εσύ διαλέγεις τι μοιράζεσαι με φίλους ή με την κοινότητα.</span></p></details>
+    <details><summary><span class="en">Where does the data come from?</span><span class="el">Από πού έρχονται τα δεδομένα;</span></summary><p><span class="en">Weather and marine models (Open-Meteo, Copernicus), satellite sea temperature and chlorophyll, EMODnet depths — plus your own sounder readings.</span><span class="el">Μοντέλα καιρού και θάλασσας (Open-Meteo, Copernicus), δορυφορική θερμοκρασία νερού και χλωροφύλλη, βάθη EMODnet — και τα δικά σου βάθη από το βυθόμετρο.</span></p></details>
+    <details><summary><span class="en">Can I use it now?</span><span class="el">Μπορώ να το χρησιμοποιήσω τώρα;</span></summary><p><span class="en">Yes — open it in your browser with “Open the app” and add it to your home screen. The Google Play and App Store versions are coming soon.</span><span class="el">Ναι — άνοιξέ το στον browser με το «Άνοιξε την εφαρμογή» και πρόσθεσέ το στην αρχική οθόνη. Οι εκδόσεις για Google Play και App Store έρχονται σύντομα.</span></p></details>
+  </div>
+</div></section>
+
+<footer><div class="wrap">
+  <div style="display:flex;align-items:center;gap:10px"><img src="icon-192.png" alt="" style="width:26px;height:26px;border-radius:7px">© 2026 Alkyon</div>
+  <div style="display:flex;flex-wrap:wrap;gap:22px">
+    <a href="privacy"><span class="en">Privacy</span><span class="el">Απόρρητο</span></a>
+    <a href="terms"><span class="en">Terms</span><span class="el">Όροι</span></a>
+    <a href="https://www.instagram.com/alkyonfishingapp/">Instagram</a>
+    <a href="https://www.tiktok.com/@alkyonfishingapp">TikTok</a>
+    <a href="mailto:alkyonfishingapp@gmail.com">alkyonfishingapp@gmail.com</a>
+  </div>
+</div></footer>
+<script>
+if(window.AK_SITE){ var lb=document.getElementById('lang'), tz='';
+  try{ tz=Intl.DateTimeFormat().resolvedOptions().timeZone||''; }catch(e){}
+  /* όπως στην εφαρμογή: η επιλογή Ελληνικά/English φαίνεται μόνο σε Κύπρο/Ελλάδα (ή σε browser στα ελληνικά) */
+  if(!(document.documentElement.lang==='el'||/^(Asia\/Nicosia|Asia\/Famagusta|Europe\/Athens)$/.test(tz))) lb.hidden=true;
+  lb.onclick=function(){ var h=document.documentElement; h.lang=h.lang==='el'?'en':'el'; }; }
+</script>
+</body>
 </html>
