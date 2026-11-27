@@ -84,6 +84,8 @@ function add(p){
   m.bindPopup(function(){ return pop(p); }); m.addTo(layer); shown[id]=m;
 }
 function note(nIn,bad){
+  /* 26/11/2026: τα μηνύματα των λιμανιών μόνο όταν φαίνεται ο Χάρτης (έβγαιναν και πάνω στην Πρόγνωση)· όσα δεν ειπώθηκαν λέγονται στην επόμενη ενημέρωση πάνω στον Χάρτη */
+  if(!document.body.classList.contains('mapon')) return;
   var now=Date.now();
   if(bad&&nIn===0){ if(now-warned>60000){ warned=now; C.toast(T('Δεν φορτώθηκαν λιμάνια. Χρειάζεται σύνδεση.','Ports did not load. Needs a connection.')); } }
   else if(!bad&&nIn===0){ if(!note.emptySaid&&!document.body.classList.contains('ontrip')&&now-warned>60000){ note.emptySaid=1; warned=now; C.toast(T('Δεν υπάρχουν καταχωρισμένα λιμάνια ή ράμπες εδώ στο OpenStreetMap.','No ports or ramps are recorded here in OpenStreetMap.')); } }

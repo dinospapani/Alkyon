@@ -45,6 +45,9 @@ h1{letter-spacing:-.02em}
 .nav a{position:relative;color:var(--ink-2);font-size:12px;min-height:var(--ctl-h)}
 .nav a[aria-current=page]{color:var(--accent)}
 .nav a[aria-current=page]::before{content:'';position:absolute;top:0;left:50%;width:22px;height:3px;margin-left:-11px;border-radius:0 0 3px 3px;background:var(--accent)}
+/* 26/11/2026: κάτω από την μπάρα (ως τη μέση της και ως κάτω, όπου και τα κουμπιά του συστήματος) συμπαγές φόντο· πριν φαινόταν μισό κείμενο της σελίδας που περνούσε από πίσω */
+.nav::after{content:'';position:absolute;left:0;right:0;bottom:0;height:calc(var(--safe-b) + 8px + var(--nav-h) / 2);background:var(--bg);pointer-events:none;z-index:-1}
+html[data-view=map] .nav::after,html.nightred .nav::after,body.ontrip .nav::after,body.mapon.navslid .nav::after{display:none}
 
 /* ---------- 3. Πρόγνωση (οθόνη αναφοράς) ---------- */
 /* λωρίδα ημερών: η επιλεγμένη μέρα γεμάτη πορτοκαλί (επιλογή), οι άλλες ήσυχες με λεπτό όριο */
@@ -94,8 +97,7 @@ h1{letter-spacing:-.02em}
 @media (max-width:340px){.hcard .rows .row:not(:nth-child(4n)){border-right:0!important}.hcard .rows .row:nth-child(odd){border-right:1px solid var(--line)!important}}
 
 /* ---------- Γ+ v3: Πρόγνωση όπως το σχέδιο (26/11/2026) ---------- */
-/* ισοβαθείς στο φόντο της κάρτας: ναυτική ταυτότητα, πολύ αχνά */
-.hero.hero2{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 260' fill='none' stroke='%2388A8B4' stroke-width='1.2' opacity='.18'%3E%3Cpath d='M40 210c30-40 20-90 70-110s110 10 140-30 40-60 30-80'/%3E%3Cpath d='M60 236c34-46 30-104 86-126s96 4 128-34 46-70 36-90'/%3E%3Cpath d='M84 258c38-52 40-118 102-142s82-2 116-38 52-80 42-100'/%3E%3Cpath d='M20 182c26-34 10-76 54-94s124 16 152-22 34-50 24-70'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right -40px top -30px;background-size:300px 260px}
+.hero.hero2{background-image:none}   /* 27/11/2026: χωρίς τις διακοσμητικές ισοβαθείς (λιγότερος θόρυβος) */
 /* όργανο βαθμού */
 .hero2 .htop{align-items:center}
 .hring{transform:none!important;width:118px;height:110px;margin-right:4px;position:relative}
@@ -112,20 +114,20 @@ h1{letter-spacing:-.02em}
 .hring>div small{display:none}
 /* καλύτερη ώρα: ετικέτα → ώρα → πότε → ετυμηγορία με κουκκίδα */
 .hero2 .htx{display:flex;flex-direction:column;min-width:0}
-.hero2 .hk{order:0;font:700 12px/1 var(--font);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-bottom:7px}
+.hero2 .hk{order:0;font:650 13px/1.2 var(--font);letter-spacing:0;text-transform:none;color:var(--ink-3);margin-bottom:6px}
 .hero2 .hpw{order:1;font-variant-numeric:tabular-nums}
 .hero2 .hpt{order:2;margin:6px 0 0}
 .hero2 .hv{order:3;margin-top:9px}
 .hero2 .hv h2{display:flex;align-items:center;gap:7px;text-transform:none;letter-spacing:0;font:650 13.5px/1.25 var(--font)}
 .hero2 .hv h2::before{content:'';flex:0 0 7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 0 3px color-mix(in srgb,currentColor 25%,transparent)}
 .hero2.isnext .hv{order:0;margin:0 0 7px}
-.hero2.isnext .hv h2{font:700 12px/1 var(--font);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.hero2.isnext .hv h2{font:650 13px/1.2 var(--font);letter-spacing:0;text-transform:none;color:var(--ink-3)}
 .hero2.isnext .hv h2::before{display:none}
 /* Τσίμπημα / Θάλασσα: δύο στήλες με διαχωριστικά, κουκκίδα κατάστασης, χωρίς κουτιά */
 .hero .hsplit{gap:0;margin:16px -16px 0;border-top:1px solid var(--line)}
 .hero .hsb{background:transparent!important;border:0!important;border-radius:0;padding:12px 16px}
 .hero .hsb+.hsb{border-left:1px solid var(--line)!important}
-.hero .hsb small{font:700 12px/1 var(--font)!important;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.hero .hsb small{font:650 13px/1.2 var(--font)!important;letter-spacing:0;text-transform:none;color:var(--ink-3)}
 .hero .hsb small svg,.hero .hsb small .ik{display:none}
 .hero .hsb small::before{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px;vertical-align:1px;background:var(--ink-3)}
 .hero .hsb.lv-good small::before,.hero .hsb.sea-good small::before{background:var(--good)}
@@ -163,7 +165,7 @@ h1{letter-spacing:-.02em}
 
 /* ---------- 5. Γ+ βήμα 2: Ημερολόγιο, Προφίλ, φύλλα, κουμπιά, λίστες (26/11/2026) ---------- */
 /* ετικέτες ενοτήτων: ένα στυλ σε όλη την εφαρμογή, όπως το «ΚΑΛΥΤΕΡΗ ΩΡΑ» */
-.pgsec,.pgrp>.listh,.sheet .bform>h3.h3{font:700 12px/1.2 var(--font);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}   /* μόνο σύντομες ετικέτες· οι μεγάλες επικεφαλίδες (.listh αλλού) μένουν ως έχουν */
+.pgsec,.pgrp>.listh,.sheet .bform>h3.h3{font:700 14px/1.25 var(--font);letter-spacing:0;text-transform:none;color:var(--ink-2)}   /* μόνο σύντομες ετικέτες· οι μεγάλες επικεφαλίδες (.listh αλλού) μένουν ως έχουν */
 .pgrp>.listh{margin:22px 4px 8px}
 
 /* φίλτρα διαστήματος: ίδια λογική με τις καρτέλες (ανοιχτότερη επιφάνεια, όχι λευκό κουτί) */
@@ -198,7 +200,7 @@ body:not(.mapon) .btn:not(.pri):not(.del):not(.endtrip),.sheet .btn:not(.pri):no
 .sheet{box-shadow:0 -18px 40px -20px rgba(0,0,0,.7);border-top:1px solid var(--line)}
 .sheet .grab{background:var(--ink-3);opacity:.6}
 .sheet header h2{letter-spacing:-.015em}
-.sheet .det .rows.one .row>span{font:700 12px/1.2 var(--font);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.sheet .det .rows.one .row>span{font:650 13px/1.2 var(--font);letter-spacing:0;text-transform:none;color:var(--ink-3)}
 .sheet .det .rows.one .row b{font-variant-numeric:tabular-nums}
 .sheet .acts .btn:not(.pri):not(.del){background:transparent}
 .sheet .acts .btn.del{background:transparent;box-shadow:none;color:var(--poor-ink);font-weight:700}
@@ -247,6 +249,27 @@ body:not(.mapon) .btn:not(.pri):not(.del):not(.endtrip),.sheet .btn:not(.pri):no
 @media (prefers-color-scheme:dark){ :root:not([data-theme=light]) .hero .hsun .mj,:root:not([data-theme=light]) .hero .hsun1 .mj{color:#9A93EC} }
 :root[data-theme=dark] .hero .hsun1 .mj{color:#9A93EC}
 html.nightred .hero .hsun1 .mj{color:inherit}
+
+/* ξαναζωγράφισμα της ίδιας σελίδας (νέα καταγραφή, συγχρονισμός): χωρίς την κίνηση εισόδου, που έκανε την οθόνη να «αναβοσβήνει» */
+.page.quiet,.page.quiet .card,.page.quiet .hero{animation:none!important}
+
+/* ---------- 8. Γ+ 27/11/2026: διορθώσεις από τις εικόνες του Galaxy ---------- */
+/* μέρα που έχεις διαλέξει: ουδέτερο κουτάκι βαθμού με χρωματιστό δαχτυλίδι (όχι κίτρινο/πράσινο πάνω στο πορτοκαλί) */
+.dtile.on .dsc{background:var(--bg)!important;color:var(--ink)!important;box-shadow:inset 0 0 0 2px var(--ink-3)}
+.dtile.on.lv-good .dsc{box-shadow:inset 0 0 0 2px var(--good)} .dtile.on.lv-fair .dsc{box-shadow:inset 0 0 0 2px var(--fair-mark)} .dtile.on.lv-poor .dsc{box-shadow:inset 0 0 0 2px var(--poor)}
+.dtile.on .dsc.no{box-shadow:none}
+/* όργανο: ποια μέρα δείχνει, όταν δεν είναι η μέρα που έχεις διαλέξει */
+.hring>div .hday{font:650 12px/1.1 var(--font);font-style:normal;color:var(--ink-2);margin-top:3px;white-space:nowrap}
+/* ένας τόνος για κάθε κατάσταση στο Τσίμπημα / Θάλασσα (κείμενο ≥ 4,5:1) */
+.hero .hsb.lv-good b,.hero .hsb.sea-good b{color:var(--good-ink)!important}
+.hero .hsb.lv-fair b,.hero .hsb.sea-mid b{color:var(--fair-ink)!important}
+.hero .hsb.lv-poor b,.hero .hsb.sea-bad b{color:var(--poor-ink)!important}
+/* Σύγκριση χρονιών: τα κουμπιά Νερό / Κύμα… όπως οι άλλες καρτέλες, όχι λευκό κουτί· γράμματα ≥ 12 px */
+.chips.yrchips .chip{min-height:40px;border:0;box-shadow:inset 0 0 0 1px var(--line-strong);background:transparent;color:var(--ink-2);font:600 13px var(--font)}
+.chips.yrchips .chip[aria-pressed=true]{background:var(--surface-3);color:var(--ink);box-shadow:inset 0 0 0 1px var(--surface-3);font-weight:750}
+.yrb small,.yrb.cur small{font-size:12px}
+/* χρειάζεται λογαριασμός: εικονίδιο ατόμου αντί για ψάρι */
+.card.empty.isacct::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237a8a94' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='8' r='3.6'/%3E%3Cpath d='M4.5 20c1.2-3.6 4-5.4 7.5-5.4s6.3 1.8 7.5 5.4'/%3E%3C/svg%3E")}
 
 /* ---------- 4. ειδικές λειτουργίες ---------- */
 @media (prefers-reduced-motion:reduce){.hring{transform:none}}

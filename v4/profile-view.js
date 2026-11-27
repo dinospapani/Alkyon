@@ -64,7 +64,7 @@ function head(s){ var st=C().state(), nm=s?((s.name||'').trim()||s.email||''):''
   return c; }
 function draw(){
   if(!root) return;
-  var s=C().session(), page=h('div',{class:'page'}), y=window.scrollY;
+  var s=C().session(), page=h('div',{class:'page'+(quiet?' quiet':'')}), y=window.scrollY;
   page.append(h('div',{class:'top'},h('h1',{class:'lt',text:T('Προφίλ','Profile')})));
   page.append(head(s));
   /* 1.4.0: χωρίς λογαριασμό και με 3+ ψάρια ή εξόδους: μικρή υπενθύμιση, μέχρι να την κλείσεις */
@@ -362,5 +362,5 @@ B.view('profile',{title:T('Προφίλ','Profile'),mount:function(el){ root=el;
 B.on('sync',function(){ if(!root) return; var st=C().state(), busy=/…$/.test(st.msg||''), m=root.querySelector('.syncmsg');
   if(m){ m.hidden=!(busy||st.err); m.textContent=(busy||st.err)?st.msg:''; m.classList.toggle('bad',!!st.err); }
   if(!busy){ var hd=root.querySelector('.phead'); if(hd) try{ hd.replaceWith(head(C().session())); }catch(e){} } });
-B.on('store',function(k){ if(root&&k==='alkyon-sess') draw(); });
+var quiet=0; B.on('store',function(k){ if(root&&k==='alkyon-sess'){ quiet=1; try{ draw(); } finally{ quiet=0; } } });   /* 26/11/2026: χωρίς «σβήσιμο-άναμμα» στον συγχρονισμό */
 })();

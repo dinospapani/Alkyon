@@ -23,12 +23,13 @@ function thumb(b){ var w=h('span',{class:'th'}), k=b.id+':'+(b._u||0);
   (S().Photos.thumb||S().Photos.get)(b.id).then(function(bl){ if(TH[b.id]&&TH[b.id].u) try{ URL.revokeObjectURL(TH[b.id].u); }catch(e){} var u=bl?URL.createObjectURL(bl):null; TH[b.id]={k:k,u:u}; w.replaceChildren(u?h('img',{src:u,alt:''}):B.icon('fish')); }).catch(function(){ w.replaceChildren(B.icon('fish')); });
   return w; }
 /* πολλές αλλαγές μαζί (διαγραφή + ενημέρωση εξόδου + συγχρονισμός) → μία ζωγραφική, χωρίς να χάνεται η θέση της λίστας */
-var rdF=0; function redraw(){ if(rdF) return; rdF=requestAnimationFrame(function(){ rdF=0; var y=window.scrollY; draw(); if(Math.abs(window.scrollY-y)>2) window.scrollTo(0,y); }); }
+/* 26/11/2026: ξαναζωγράφισμα (νέα καταγραφή, συγχρονισμός, καρτέλα) χωρίς το «σβήσιμο-άναμμα» της είσοδου σελίδας */
+var quiet=0, rdF=0; function redraw(){ if(rdF) return; rdF=requestAnimationFrame(function(){ rdF=0; var y=window.scrollY; quiet=1; try{ draw(); } finally{ quiet=0; } if(Math.abs(window.scrollY-y)>2) window.scrollTo(0,y); }); }
 function sizeTxt(b){ var n=bc(b), a=[]; if(+b.kg) a.push(B.num(b.kg,+b.kg<10?2:1).replace(/([.,]\d)0$/,'$1')+' kg'+(n>1?T(' σύνολο',' total'):'')); if(+b.len) a.push(b.len+' cm'); return a.join(', '); }
 
 function draw(){
   if(!root) return;
-  var page=h('div',{class:'page'});
+  var page=h('div',{class:'page'+(quiet?' quiet':'')});
   page.append(h('div',{class:'top'},h('h1',{class:'lt',text:T('Ημερολόγιο','Logbook')}),h('div',{class:'topacts'},h('a',{class:'iconbtn',href:'#guide','aria-label':T('Οδηγός: είδη, μεγέθη, νόμοι','Guide: species, sizes, laws'),title:T('Οδηγός','Guide'),html:B.iconSvg('book')}),syncBtn()))); /* 1.14.35: ο Οδηγός εδώ, όπου γράφεις ψάρια */
   page.append(B.seg([['trips',T('Έξοδοι','Trips')],['spots',T('Σημεία','Spots')],['fish',T('Ψάρια','Catches')],['gear',T('Εργαλεία','Gear')],['stats',T('Στατιστικά','Stats')]],st.tab,function(v){ st.tab=v; ls.set('alkyon-v4-logtab',v); draw(); },T('Όψη ημερολογίου','Logbook view'))); page.lastChild.classList.add('lseg'); /* 1.9.15: χωράνε και οι 5 */
   var chips=h('div',{class:'chips rng',role:'group','aria-label':T('Διάστημα','Period')});
