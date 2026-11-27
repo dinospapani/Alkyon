@@ -756,7 +756,7 @@ with sync_playwright() as p:
         check('ραντάρ ΤΜ: εικόνα %d′ → %s (1.9.23)'%(_mins,'ΤΜ' if _want else 'RainViewer'), n==_want and not pg._errs, [n,pg._errs]); c.close()
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#profile'); pg.wait_for_timeout(2500)
     pg.evaluate("()=>[...document.querySelectorAll('main .seg button')].find(x=>/Ρυθμίσεις/.test(x.textContent)).click()"); pg.wait_for_timeout(600)
-    r=pg.evaluate("()=>{const a=[...document.querySelectorAll('a.li')].find(x=>/mailto:alkyonfishingapp@gmail.com/.test(x.href)); return a?a.textContent:null}")
+    r=pg.evaluate("()=>{const a=[...document.querySelectorAll('a.li')].find(x=>/mailto:info@alkyonfishing.com/.test(x.href)); return a?a.textContent:null}")
     check('προφίλ: «Επικοινωνία» με email της εφαρμογής (1.9.24)', r and 'Επικοινωνία' in r and not pg._errs, [r,pg._errs]); c.close()
     c=ctx(b); c.add_init_script("if(!sessionStorage.cs){sessionStorage.cs=1;localStorage.setItem('alkyon-sess',JSON.stringify({access_token:'AT',refresh_token:'RT',exp:Date.now()+9e6,uid:'u1',email:'d+test@x.com'}));}")
     c.route('**/*supabase.co/**',lambda r: r.fulfill(json=[])); pg=page(c); pg.goto(BASE+'/v4/#alerts'); pg.wait_for_timeout(2500)

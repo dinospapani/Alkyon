@@ -43,3 +43,11 @@ $P -f "$ROOT/sql/2026-11-27-waitlist-rollback.sql" >/dev/null   # idempotent
 $P -t -A -c "select case when to_regclass('public.waitlist') is null then 'ok   waitlist rollback removes the table' else 'FAIL: waitlist rollback' end" | tee /dev/stderr | grep -q '^ok'
 $P -f "$ROOT/sql/2026-11-27-waitlist.sql" >/dev/null
 $P -t -A -c "select case when to_regclass('public.waitlist') is not null then 'ok   waitlist migration re-applies after a rollback' else 'FAIL: waitlist re-apply' end" | tee /dev/stderr | grep -q '^ok'
+# 28/11/2026: πεδία αποστολής email της λίστας (welcomed_at, mail_tries)
+$P -f "$ROOT/sql/2026-11-28-waitlist-mail.sql" >/dev/null
+$P -f "$ROOT/sql/2026-11-28-waitlist-mail.sql" >/dev/null   # idempotent
+$P -t -A -c "set role anon; do \$\$ begin insert into public.waitlist (email, welcomed_at) values ('m@n.co', now()); raise notice 'FAIL: anon can set welcomed_at'; exception when insufficient_privilege then raise notice 'ok   anon cannot set welcomed_at'; end \$\$; do \$\$ begin insert into public.waitlist (email, mail_tries) values ('m@n.co', 9); raise notice 'FAIL: anon can set mail_tries'; exception when insufficient_privilege then raise notice 'ok   anon cannot set mail_tries'; end \$\$; reset role;" 2>&1 | sed -e 's/^psql:[^ ]* NOTICE:  //' -e 's/^NOTICE:  //' | grep -v '^$' | tee /dev/stderr | grep -q FAIL && exit 1 || true
+$P -f "$ROOT/sql/2026-11-28-waitlist-mail-rollback.sql" >/dev/null
+$P -f "$ROOT/sql/2026-11-28-waitlist-mail-rollback.sql" >/dev/null   # idempotent
+$P -t -A -c "select case when not exists (select 1 from information_schema.columns where table_name='waitlist' and column_name in ('welcomed_at','mail_tries')) then 'ok   waitlist-mail rollback removes the columns' else 'FAIL: waitlist-mail rollback' end" | tee /dev/stderr | grep -q '^ok'
+$P -f "$ROOT/sql/2026-11-28-waitlist-mail.sql" >/dev/null
