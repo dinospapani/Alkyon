@@ -1807,6 +1807,26 @@ with sync_playwright() as p:
     r=pg.evaluate("()=>{ const p=document.querySelector('.sppage'), a=p&&p.querySelector('.spask'), g=p&&p.querySelector('.spgo'); if(!a||!g) return null; const ra=a.getBoundingClientRect(), rg=g.getBoundingClientRect(); return [ra.bottom<=rg.top+1, rg.bottom<=innerHeight+1, getComputedStyle(p).backgroundColor===getComputedStyle(document.body).backgroundColor||true]; }")
     check('Είσοδος (ακτή, 3 τρόποι, μικρή οθόνη): το «Να μη ρωτάει» φαίνεται πάνω από το «Συνέχεια» (1.14.43)', r and r[0] and r[1] and not pg._errs, [r,pg._errs]); c.close()
 
+    # 28/11/2026: Αρχική «Πού ψαρεύεις σήμερα;»: τίποτα πίσω από το «Συνέχεια»/μπάρα, σειρά χαιρετισμός → βαθμός → ερώτηση, πορτοκαλί μόνο σε κάρτα/σημάδι/Συνέχεια
+    _fch=_jj.dumps(_jj.dumps({'id':'p1','t':int(_tt.time()*1000),'fc':{'days':[{'date':_dt.date.today().isoformat(),'best':72,'safe':True,'win':{'s':16,'e':16},'avgWind':2,'avgWave':0.3}]}}))
+    hp=[]
+    for (vw,vh) in [(360,640),(390,844),(412,915)]:
+      for sd in ['shore','boat']:
+        c=ctx(b,lang='en'); c.add_init_script("if(!sessionStorage.hp){sessionStorage.hp=1;localStorage.removeItem('alkyon-fprof-done');localStorage.setItem('alkyon-askfp','1');localStorage.setItem('alkyon-fprof','%s');localStorage.setItem('alkyon-fside','%s');localStorage.setItem('alkyon-fc7',%s);}"%(sd,sd,_fch))
+        pg=page(c); pg.set_viewport_size({'width':vw,'height':vh}); pg.goto(BASE+'/v4/'); pg.wait_for_timeout(2500)
+        hp.append(pg.evaluate("""()=>{ const p=document.querySelector('.sppage'); if(!p) return null; const bar=p.querySelector('.spbar'), ask=p.querySelector('.spask'), go=p.querySelector('.spgo'); if(!bar||!ask||!go) return null;
+          const kids=[...p.querySelectorAll('.sptitle > *')].map(e=>e.classList.contains('sptoday')?'score':e.tagName==='H1'?'q':e.classList.contains('sphi')?'hi':'?');
+          p.scrollTop=p.scrollHeight; const rb=bar.getBoundingClientRect(), ra=ask.getBoundingClientRect(), rg=go.getBoundingClientRect(), bg=getComputedStyle(bar).backgroundColor;
+          ask.querySelector('input').checked=true; const box=getComputedStyle(ask.querySelector('.spbox')).backgroundColor, acc=getComputedStyle(go).backgroundColor;
+          const th=p.querySelector('.sprow.on .spmi'), thb=th?getComputedStyle(th).boxShadow:'';
+          const names=[...p.querySelectorAll('.sprow .tx b')].map(e=>e.textContent), caps=[...p.querySelectorAll('.spcap small')].map(e=>e.textContent);
+          return {end: ra.bottom<=rb.top+1 && rg.top>=rb.top && rb.bottom<=innerHeight+1, solid: bg!=='rgba(0, 0, 0, 0)', order: kids.join('>'), lab: (p.querySelector('.sptoday .stlab')||{}).textContent||'',
+            neutralBox: box!==acc, thumbNoAccent: thb.indexOf(acc)<0, askH: Math.round(ask.getBoundingClientRect().height), names, caps}; }"""))
+        c.close()
+    ok=all(r and r['end'] and r['solid'] and r['order']=='hi>score>q' and r['lab']=='Fishing score' and r['neutralBox'] and r['thumbNoAccent'] and r['askH']>=44 for r in hp)
+    ok=ok and all(hp[i]['names']==['Rod','Spearfishing','Dam or lake'] for i in (0,2,4)) and all(hp[i]['names']==['Rod','Spearfishing'] for i in (1,3,5)) and hp[3]['caps']==['Beach · Rocks · Pier','Open sea · Boat']
+    check('Αρχική: στο τέλος της κύλισης τίποτα πίσω από το «Συνέχεια» (360×640, 390×844, 412×915, ακτή/σκάφος)· σειρά χαιρετισμός → βαθμός → ερώτηση· «Fishing score»· ουδέτερο κουτάκι· νέα κείμενα (28/11/2026)', ok, hp)
+
     print('# 1.14.45 όψη')
     c=ctx(b,lang='en'); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(3500)
     r=pg.evaluate("()=>{ const n=document.querySelector('.nav'), cs=getComputedStyle(n,'::before'); const t=document.createElement('p'); t.textContent='\U0001F313 x \u2605 y \U0001F991'; document.querySelector('main').append(t); return new Promise(res=>setTimeout(()=>res([cs.content!=='none'&&cs.display!=='none', document.documentElement.getAttribute('data-view'), t.querySelectorAll('i.pik').length, [...t.textContent].some(ch=>ch.codePointAt(0)>0x1F000||ch.codePointAt(0)===0x2605)]),600)); }")

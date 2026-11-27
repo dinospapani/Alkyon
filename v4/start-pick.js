@@ -6,8 +6,8 @@
 var B=window.AK, h=B.h, T=B.T, ls=B.ls;
 function raw(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
 function put(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
-var SIDE={shore:{n:T('Ακτή','Shore'),d:T('Μόλος · Βράχια · Λίμνη','Beach · Rocks · Dam'),img:'alk-card-shore.jpg'},
-  boat:{n:T('Σκάφος','Offshore'),d:T('Ανοιχτή θάλασσα · Κουμπιά ασφαλείας','Open sea · Safety buttons'),img:'alk-card-boat.jpg'}};
+var SIDE={shore:{n:T('Ακτή','Shore'),d:T('Παραλία · Βράχια · Μόλος','Beach · Rocks · Pier'),img:'alk-card-shore.jpg'},
+  boat:{n:T('Σκάφος','Offshore'),d:T('Ανοιχτή θάλασσα · Βάρκα','Open sea · Boat'),img:'alk-card-boat.jpg'}};
 /* εικονίδια γραμμής (ίδιο στυλ με την υπόλοιπη εφαρμογή) */
 var IC={rod:'<path d="M4 20L18.5 5.5"/><path d="M18.5 5.5c1.2-1.2 2.5-.4 2.5 1v5"/><circle cx="7.5" cy="16.5" r="2.2"/><path d="M21 11.5v2.5a1.5 1.5 0 0 1-3 0"/>',
   spear:'<path d="M2 14h13"/><path d="M15 12.5h3l4 1.5-4 1.5h-3z"/><path d="M5 14v3.5M8 14v2"/><path d="M2 11.5l2.5 2.5L2 16.5"/>',
@@ -15,8 +15,8 @@ var IC={rod:'<path d="M4 20L18.5 5.5"/><path d="M18.5 5.5c1.2-1.2 2.5-.4 2.5 1v5
   shore:'<path d="M3 17c2.2 0 2.2-1.5 4.5-1.5S9.8 17 12 17s2.2-1.5 4.5-1.5S19 17 21 17"/><path d="M5 13l5-8"/><path d="M10 5l8 4"/>',
   boat:'<path d="M3 15h18l-2.5 4.5h-13z"/><path d="M7 15V9h7l3 6"/><path d="M10 9V5"/>'};
 function svg(k){ return '<svg viewBox="0 0 24 24" aria-hidden="true">'+(IC[k]||'')+'</svg>'; }
-var METH={shore:[{p:'shore',n:T('Καλάμι από την ακτή','Rod from the shore'),d:T('Βυθός · Spinning · Surfcasting','Bottom · Spinning · Surfcasting'),i:'rod',th:'alk-th-shorerod.jpg'},{p:'spear',n:T('Ψαροντούφεκο από την ακτή','Spearfishing from the shore'),d:T('Βουτιά · Σημαδούρα · Ασφάλεια','Dive · Float · Safety'),i:'spear',th:'alk-th-spear.jpg'},{p:'lake',n:T('Φράγμα ή λίμνη','Dam or lake'),d:T('Γλυκό νερό · Χωρίς κύμα','Fresh water · No waves'),i:'lake',th:'alk-th-lake.jpg'}],
-  boat:[{p:'boat',n:T('Καλάμι','Rod'),d:T('Βυθός · Συρτή · Jigging · Casting','Bottom · Trolling · Jigging · Casting'),i:'rod',th:'alk-th-boatrod.jpg'},{p:'spear',n:T('Ψαροντούφεκο από σκάφος','Spearfishing from a boat'),d:T('Βουτιά · Ψαροντούφεκο · Σημαδούρα','Dive · Speargun · Float · Safety'),i:'spear',th:'alk-th-spear.jpg'}]};
+var METH={shore:[{p:'shore',n:T('Καλάμι','Rod'),d:T('Βυθός · Spinning · Surfcasting','Bottom · Spinning · Surfcasting'),i:'rod',th:'alk-th-shorerod.jpg'},{p:'spear',n:T('Ψαροντούφεκο','Spearfishing'),d:T('Βουτιά · Σημαδούρα · Ασφάλεια','Dive · Float · Safety'),i:'spear',th:'alk-th-spear.jpg'},{p:'lake',n:T('Φράγμα ή λίμνη','Dam or lake'),d:T('Γλυκό νερό · Χωρίς κύμα','Fresh water · No waves'),i:'lake',th:'alk-th-lake.jpg'}],
+  boat:[{p:'boat',n:T('Καλάμι','Rod'),d:T('Βυθός · Συρτή · Jigging · Casting','Bottom · Trolling · Jigging · Casting'),i:'rod',th:'alk-th-boatrod.jpg'},{p:'spear',n:T('Ψαροντούφεκο','Spearfishing'),d:T('Βουτιά · Ψαροντούφεκο · Σημαδούρα','Dive · Speargun · Float · Safety'),i:'spear',th:'alk-th-spear.jpg'}]};
 function cur(){ return B.prof(); }
 function side(){ var p=cur(), s=raw('alkyon-fside'); if(p==='boat') return 'boat'; if(p==='shore'||p==='lake') return 'shore'; return s==='boat'?'boat':'shore'; }
 function label(p,s){ return s==='boat'?(p==='boat'?T('Σκάφος, καλάμι','Offshore, rod'):T('Σκάφος, ψαροντούφεκο','Offshore, spearfishing')):(p==='lake'?T('Φράγμα ή λίμνη','Dam or lake'):p==='spear'?T('Ακτή, ψαροντούφεκο','Shore, spearfishing'):T('Ακτή, καλάμι','Shore, rod')); }
@@ -60,10 +60,11 @@ B.startPick=function(){ try{ sessionStorage.setItem('alkyon-sp-seen','1'); }catc
   var pg=h('div',{class:'sppage',role:'dialog','aria-modal':'true','aria-label':T('Πού ψαρεύεις σήμερα;','Where are you fishing today?')},
     h('div',{class:'sphero',style:{backgroundImage:'url('+heroImg()+')'}},h('span',{class:'spheroshade'}),
       h('button',{class:'spskip',type:'button',text:T('Παράλειψη','Skip'),title:T('Κλείσιμο χωρίς αλλαγή: θα ξαναρωτήσει την επόμενη φορά','Close without changes: it will ask again next time'),onclick:close}),brand(),
-      h('div',{class:'sptitle'},h('p',{class:'sphi',text:hello()}),h('h1',{text:T('Πού ψαρεύεις σήμερα;','Where are you fishing today?')}),todayChip()||h('p',{text:T('Διάλεξε πού και πώς ψαρεύεις','Choose where and how you fish')}))),
+      h('div',{class:'sptitle'},h('p',{class:'sphi',text:hello()}),(function(){ var c=todayChip(); return c?[c,h('h1',{text:T('Πού ψαρεύεις σήμερα;','Where are you fishing today?')})]:[h('h1',{text:T('Πού ψαρεύεις σήμερα;','Where are you fishing today?')}),h('p',{text:T('Διάλεξε πού και πώς ψαρεύεις','Choose where and how you fish')})]; })())),
     h('div',{class:'spbody'},picker(st,lab),
       h('label',{class:'spask'},ask,h('span',{class:'spbox',html:CHK}),h('span',{text:T('Να μη ρωτάει κάθε φορά','Don’t ask every time')})),
-      go,h('p',{class:'spfoot',text:T('Αλλαγή αργότερα: Προφίλ › Τύπος ψαρέματος','Change later: Profile › Fishing type')})));
+      /* 28/11/2026: «Συνέχεια» και «Αλλαγή αργότερα» σε μία κάτω μπάρα με φόντο, μέσα στην ασφαλή ζώνη· τίποτα δεν κρύβεται πίσω από το κουμπί */
+      h('div',{class:'spbar'},go,h('p',{class:'spfoot',text:T('Αλλαγή αργότερα: Προφίλ › Τύπος ψαρέματος','Change later: Profile › Fishing type')}))));
   /* 1.12.20: με φωτεινό θέμα η είσοδος ταιριάζει με την εφαρμογή: η φωτογραφία μένει πάνω, από κάτω ανοιχτό φόντο και λευκές κάρτες */
   if(isLight()){ pg.classList.add('splight'); var ttl=pg.querySelector('.sptitle'), bd=pg.querySelector('.spbody'); if(ttl&&bd) bd.insertBefore(ttl,bd.firstChild); }
   lab(); cover(true); document.body.append(pg); document.addEventListener('keydown',key);
@@ -85,7 +86,7 @@ function todayChip(){ try{ var c=ls.get('alkyon-fc7',null); if(!c||!c.fc||!c.fc.
   var wx=[d.avgWind!=null?(U&&U.windP?U.windP(d.avgWind).join(' '):Math.round(d.avgWind)+' kn'):'',d.avgWave!=null?B.num(d.avgWave,1)+' m':''].filter(Boolean).join(' · ');
   var past=lab===T('Σήμερα','Today')&&d.win&&d.win.e<d0.getHours(), ch=h('div',{class:'sptoday'+(d.safe?'':' bad')},
     h('span',{class:'stsc',text:d.safe&&d.best!=null?String(d.best):'!'}),
-    h('span',{class:'sttx'},h('b',{text:lab+(nm?' · '+nm:'')}),h('small',{text:d.safe&&d.win?(past?T('η καλύτερη ώρα πέρασε','the best time has passed'):T('καλύτερη ώρα ','best time ')+B.pad(d.win.s)+':00–'+B.pad((d.win.e+1)%24)+':00')+(wx?' · '+wx:''):T('εκτός ορίων ασφαλείας σου','outside your safety limits')+(wx?' · '+wx:'')})));
+    h('span',{class:'sttx'},h('i',{class:'stlab',text:T('Βαθμός ψαρέματος','Fishing score')}),h('b',{text:lab+(nm?' · '+nm:'')}),h('small',{text:d.safe&&d.win?(past?T('η καλύτερη ώρα πέρασε','the best time has passed'):T('καλύτερη ώρα ','best time ')+B.pad(d.win.s)+':00–'+B.pad((d.win.e+1)%24)+':00')+(wx?' · '+wx:''):T('εκτός ορίων ασφαλείας σου','outside your safety limits')+(wx?' · '+wx:'')})));
   return ch; }catch(e){ return null; } }
 function wanted(){ if(!raw('alkyon-onboard')) return false; try{ if(sessionStorage.getItem('alkyon-sp-seen')) return false; }catch(e){} /* 1.14.17: όχι ξανά στην ίδια καρτέλα (π.χ. όταν η κάμερα του κινητού ξαναφόρτωσε τη σελίδα) */ if(raw('alkyon-askfp')==='0'&&raw('alkyon-fprof-done')) return false; var s=ls.get('alkyon-safe',null); if(s&&s.active) return false; if(/#(new|trip|addfriend)/.test(location.hash)) return false; return true; }
 

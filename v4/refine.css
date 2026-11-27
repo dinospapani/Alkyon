@@ -300,3 +300,44 @@ html.nightred .hero .hsun1 .mj{color:inherit}
 
 /* ---------- 4. ειδικές λειτουργίες ---------- */
 @media (prefers-reduced-motion:reduce){.hring{transform:none}}
+
+/* ===== §10 Αρχική «Πού ψαρεύεις σήμερα;» (28/11/2026): ΠΟΥ → ΠΩΣ → ΣΥΝΕΧΕΙΑ. Μόνο εμφάνιση· ίδια λογική, ίδια κλειδιά ===== */
+/* 1/8: «Συνέχεια» + «Αλλαγή αργότερα» σε κοινή κάτω μπάρα με φόντο, μέσα στην ασφαλή ζώνη (και στο Android, όπου το env() μπορεί να είναι 0) */
+.sppage:not(.tour) .spbody{padding-bottom:0}
+.sppage:not(.tour) .spbar{position:sticky;bottom:0;z-index:2;margin:0 -18px;padding:10px 18px calc(max(var(--safe-b,0px),var(--safe-area-inset-bottom,0px)) + 10px);background:#061420}
+.sppage.splight:not(.tour) .spbar{background:var(--bg)}
+.sppage:not(.tour) .spbar .spgo{position:static}
+.sppage:not(.tour) .spbar .spfoot{margin:8px 0 0}
+/* 9: λίγο χαμηλότερη φωτογραφία· πιο σκούρο «Παράλειψη» στις φωτεινές εικόνες */
+.sppage.splight:not(.tour) .sphero{min-height:clamp(132px,19dvh,200px)}
+.sppage:not(.tour):not(.splight) .sphero{min-height:clamp(176px,26dvh,290px)}
+.sppage .spskip{background:rgba(6,20,32,.58);border-color:rgba(255,255,255,.28)}
+/* 4: χαιρετισμός δευτερεύων· η ερώτηση μένει το πιο έντονο κείμενο */
+.sptitle .sphi{font-weight:500}
+.sppage.splight .sptitle .sphi{color:var(--ink-2)}
+/* 2: η ερώτηση ακριβώς πάνω από τις κάρτες (ο βαθμός πάει πάνω της) */
+.sptitle .sptoday{margin:6px 0 12px}
+.sppage.splight .sptitle{margin-bottom:12px}
+/* 3: ένας αριθμός-ήρωας, ήσυχες λεπτομέρειες */
+.sptoday .sttx .stlab{font:500 12px var(--font);font-style:normal;letter-spacing:.2px;color:rgba(255,255,255,.72)}
+.sptoday .sttx b{font-weight:500;color:rgba(255,255,255,.86)}
+.sppage.splight .sptoday .sttx .stlab,.sppage.splight .sptoday .sttx b,.sppage.splight .sptoday .sttx small{color:var(--ink-2)}
+.sptoday .sttx small{font-weight:400}
+/* 5: τρόποι: επιλεγμένο = πορτοκαλί σημάδι + ουδέτερο απαλό φόντο· χωρίς πορτοκαλί περίγραμμα στη μικρογραφία */
+.sprow.on{background:rgba(255,255,255,.07)}
+.sppage.splight .sprow.on{background:var(--surface-2)}
+.sprow.on .spmi.sph{box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+.sppage.splight .sprow.on .spmi.sph{box-shadow:none}
+.sprow.on .spmi:not(.sph){background-color:rgba(255,255,255,.12)}
+.sppage.splight .sprow.on .spmi:not(.sph){background-color:var(--surface-2)}
+.sprow .tx b{font-weight:600}
+.sprow .tx small{font-weight:400}
+/* 7: «Να μη ρωτάει κάθε φορά»: ουδέτερο κουτάκι, κανονικό κείμενο, στόχος αφής ≥ 44 px */
+.spask{min-height:44px;font-weight:400;margin:10px 4px}
+.spask input:checked+.spbox{background:rgba(255,255,255,.88);border-color:rgba(255,255,255,.88)}
+.spask input:checked+.spbox svg{stroke:#061420}
+.sppage.splight .spask input:checked+.spbox{background:var(--ink-2);border-color:var(--ink-2)}
+.sppage.splight .spask input:checked+.spbox svg{stroke:var(--surface)}
+/* 8: «Αλλαγή αργότερα»: μικρό, δευτερεύον, με αναγνώσιμη αντίθεση */
+.sppage .spbar .spfoot{color:rgba(255,255,255,.7)}
+.sppage.splight .spbar .spfoot{color:var(--ink-2)}
