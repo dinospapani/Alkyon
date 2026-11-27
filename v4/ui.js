@@ -165,8 +165,10 @@ function longPress(el,fn){ var t=0; function st(){ t=setTimeout(function(){ t=0;
 /* επιβεβαίωση (μικρό φύλλο) */
 /* 26/11/2026: stack: η επιβεβαίωση ανοίγει ΠΑΝΩ από το τρέχον φύλλο, που μένει ανοιχτό μετά (πριν το «OK» έκλεινε και το φύλλο από κάτω) */
 function ask(q,okText,danger,stack){ return new Promise(function(res){ var done=false;
+  /* 27/11/2026: okText μπορεί να είναι [ναι, όχι] για δικό του κείμενο και στο δεύτερο κουμπί */
+  var noText=null; if(Array.isArray(okText)){ noText=okText[1]; okText=okText[0]; }
   var ok=h('button',{class:'btn full'+(danger?'':' pri'),type:'button',text:okText||T('Εντάξει','OK'),style:danger?{color:'var(--poor)'}:null});
-  var no=h('button',{class:'btn full',type:'button',text:T('Άκυρο','Cancel')});
+  var no=h('button',{class:'btn full',type:'button',text:noText||T('Άκυρο','Cancel')});
   /* μεγάλη ερώτηση: ο τίτλος κρατά μόνο την ερώτηση, η εξήγηση πάει από κάτω σε κανονικά γράμματα */
   var title=String(q||'').trim(), sub=null;
   if(title.length>64){ var qs=title.match(/[^.!;?\n]*[;?]/g), lq=qs&&qs[qs.length-1].trim();

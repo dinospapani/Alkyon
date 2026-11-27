@@ -40,6 +40,26 @@ for d in (ROOT, os.path.join(ROOT,'v4')):
             if r.returncode: bad.append(f+': '+r.stderr.strip().splitlines()[-1][:120])
 check('node --check (όλα τα .js)', not bad, '; '.join(bad))
 
+def png_px(data):
+    """Μικρός αποκωδικοποιητής PNG (8 bit RGB/RGBA, χωρίς interlace) για έλεγχο pixels χωρίς PIL. Επιστρέφει px(x,y) → (r,g,b)."""
+    import zlib, struct
+    i=8; idat=b''; w=h=ct=0
+    while i<len(data):
+        n,typ=struct.unpack('>I4s',data[i:i+8]); ch=data[i+8:i+8+n]; i+=12+n
+        if typ==b'IHDR': w,h,_bd,ct=struct.unpack('>IIBB',ch[:10])
+        elif typ==b'IDAT': idat+=ch
+    bpp=4 if ct==6 else 3; raw=zlib.decompress(idat); st=w*bpp; rows=[]; prev=bytearray(st); o=0
+    for _ in range(h):
+        f=raw[o]; line=bytearray(raw[o+1:o+1+st]); o+=1+st
+        for k in range(st):
+            a=line[k-bpp] if k>=bpp else 0; b=prev[k]; c=prev[k-bpp] if k>=bpp else 0
+            if f==1: line[k]=(line[k]+a)&255
+            elif f==2: line[k]=(line[k]+b)&255
+            elif f==3: line[k]=(line[k]+(a+b)//2)&255
+            elif f==4:
+                p=a+b-c; pa,pb,pc=abs(p-a),abs(p-b),abs(p-c); line[k]=(line[k]+(a if pa<=pb and pa<=pc else b if pb<=pc else c))&255
+        rows.append(line); prev=line
+    return lambda x,y: tuple(rows[y][x*bpp:x*bpp+3])
 def init(lang='el', news=None, prof='boat'):
     return ("if(!sessionStorage.__t){sessionStorage.__t=1;localStorage.clear();"
       "localStorage.setItem('alkyon-lang',%s);localStorage.setItem('alkyon-onboard','1');localStorage.setItem('alkyon-contrib-asked','1');localStorage.setItem('alkyon-askfp','0');"
@@ -831,7 +851,12 @@ with sync_playwright() as p:
     # 27/11/2026: Τσίμπημα/Θάλασσα ομοιόμορφα· η ώρα του «Ανά ώρα» δεν «κολλάει» σε νέα μέρα· Είδη με λεπτομέρεια στο πάτημα
     # 27/11/2026: το ρολόι «παγώνει» στις 10:00 της ίδιας μέρας: το βράδυ η κορυφή δείχνει την επόμενη μέρα (isnext) χωρίς κουτάκια Τσίμπημα/Θάλασσα και ο έλεγχος αποτύγχανε ανάλογα με την ώρα
     c=ctx(b); c.add_init_script("(function(){var n=Date.now.bind(Date);window.__off=(10-(new Date()).getHours())*3600e3-(new Date()).getMinutes()*60e3;Date.now=function(){return n()+window.__off;};})()"); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(3500)
+    # 27/11/2026 βράδυ (αλλαγή test, δηλωμένη): όταν η επόμενη καλή ώρα είναι αύριο, η κάρτα του «Σήμερα» είναι η μορφή «Επόμενη καλή ώρα» χωρίς γραμμές Τσίμπημα/Θάλασσα·
+    # τότε η διάταξη μετριέται σε επόμενη μέρα και μετά επιστρέφουμε στο «Σήμερα». Ο έλεγχος δεν άλλαξε· πριν το test περνούσε μόνο τη μέρα.
+    if not pg.evaluate("()=>document.querySelectorAll('.hero .hsb').length"):
+        pg.evaluate("()=>{const bs=[...document.querySelectorAll('#main button')].filter(b=>/^(Σάβ|Κυρ|Δευ|Τρί|Τετ|Πέμ|Παρ)/.test(b.textContent.trim())&&/\\d\\d–\\d\\d/.test(b.textContent)); bs[0]&&bs[0].click();}"); pg.wait_for_timeout(600)
     hs=pg.evaluate("()=>[...document.querySelectorAll('.hero .hsb')].map(e=>{const s=e.querySelector('span'),l=e.querySelector('small'),v=e.querySelector('b'); return [!!s&&getComputedStyle(s).display!=='none'&&s.textContent.length>0, Math.round(l.getBoundingClientRect().top), Math.round(v.getBoundingClientRect().top)]})")
+    pg.evaluate("()=>{const b=[...document.querySelectorAll('#main button')].find(b=>/^Σήμερα/.test(b.textContent.trim())); b&&b.click();}"); pg.wait_for_timeout(600)
     sel0=pg.evaluate("()=>{const b=document.querySelector('.hb.sel'); return b?b.getAttribute('aria-label').slice(0,5):null}")
     pg.evaluate("()=>{const b=[...document.querySelectorAll('.hb')].find(x=>/^22:00/.test(x.getAttribute('aria-label'))); const r=b.getBoundingClientRect(); ['pointerdown','pointerup'].forEach(t=>b.dispatchEvent(new PointerEvent(t,{bubbles:true,clientX:r.left+r.width/2,clientY:r.top+5}))); b.click();}"); pg.wait_for_timeout(300)
     pg.evaluate("()=>AK.emit('fc-redraw')"); pg.wait_for_timeout(300); same=pg.evaluate("()=>document.querySelector('.hb.sel').getAttribute('aria-label').slice(0,5)")
@@ -847,6 +872,24 @@ with sync_playwright() as p:
     pg.evaluate("()=>AK.toast('Η πίεση είναι σταθερή. Τώρα 1008,8 hPa · τελευταίες 3 ώρες −0,4 hPa · επόμενες 3 ώρες −0,4 hPa. Χωρίς στροφή ανέμου.')"); pg.wait_for_timeout(600)
     fb=pg.evaluate("()=>{const btn=[...document.querySelectorAll('button')].find(e=>/Έπιασα ψάρι|Caught a fish/.test(e.getAttribute('aria-label')||'')); if(!btn) return null; const r=btn.getBoundingClientRect(), t=document.querySelector('.toast.on').getBoundingClientRect(); const e=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2); return [btn.contains(e), t.bottom<=r.top]}")
     check('Λειτουργία ψαρέματος: το μακρύ μήνυμα μπαίνει πάνω από το πράσινο κουμπί, που πατιέται (27/11/2026)', fb==[True,True] and not pg._errs, [fb,pg._errs]); c.close()
+    # 27/11/2026: το περίγραμμα της κάτω μπάρας δεν περνά σαν γραμμή πάνω από το πορτοκαλί κουμπί έναρξης εξόδου
+    c=ctx(b); c.add_init_script("localStorage.removeItem('alkyon-v4-mapui-test');localStorage.setItem('alkyon-v4-mapui',JSON.stringify('clean'));")
+    pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(4000)
+    g=pg.evaluate("()=>{const f=document.querySelector('.nav .fab').getBoundingClientRect(), n=document.querySelector('.nav>div').getBoundingClientRect(); return [f.x+f.width/2, f.y, n.y]}")
+    cx,fy,ny=round(g[0]),g[1],round(g[2]); x0,y0=cx-12,round(fy)
+    px=png_px(pg.screenshot(clip={'x':x0,'y':y0,'width':25,'height':ny-y0+3}))   # χωρίς PIL (δεν υπάρχει στο GitHub)
+    ref=px(cx-x0,5); bad=[(dx,dy) for dy in (-1,0,1) for dx in range(-10,11,2) if max(abs(a-b2) for a,b2 in zip(px(cx+dx-x0,ny+dy-y0),ref))>14]
+    check('Κάτω μπάρα: η γραμμή του περιγράμματος δεν κόβει το πορτοκαλί κουμπί έναρξης εξόδου (27/11/2026)', ny>fy+4 and not bad and not pg._errs, [g,ref,bad[:4],pg._errs]); c.close()
+    # 27/11/2026: έξοδος κάτω από 20′ χωρίς ψάρια → ερώτηση «Να κρατηθεί;» (πριν χανόταν σιωπηλά)
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3000)
+    sh=pg.evaluate("""async()=>{ const W=ms=>new Promise(r=>setTimeout(r,ms)), n=()=>AK.store.raw('trips').filter(t=>!t.deleted).length, out={n0:n()};
+      const go=async(id)=>{ localStorage.setItem('alkyon-safe',JSON.stringify({active:true,id,start:Date.now()-10*60000,due:Date.now()+3*3600000,route:'Σύντομη',last:{lat:34.7,lon:32.4,t:Date.now()}})); AK.trip.back(); await W(1500);
+        const s=document.querySelector('.sheet.on'); return s?[s.textContent.replace(/\s+/g,' ').slice(0,160),[...s.querySelectorAll('button')].map(b=>b.textContent.trim())]:null; };
+      out.a=await go('trip-s1'); const no=[...document.querySelectorAll('.sheet.on button')].find(b=>/δοκιμή/.test(b.textContent)); no&&no.click(); await W(900); out.n1=n();
+      out.b=await go('trip-s2'); const yes=[...document.querySelectorAll('.sheet.on button')].find(b=>/Κράτησέ την/.test(b.textContent)); yes&&yes.click(); await W(1200);
+      const t=AK.store.raw('trips').filter(t=>!t.deleted&&t.sid==='trip-s2')[0]; out.n2=n(); out.kept=t?[t.spot,Math.round((t.endMs-t.startMs)/60000)]:null; return out; }""")
+    check('Έξοδος κάτω από 20′ χωρίς ψάρια: ρωτά «Να κρατηθεί;»· «Όχι» δεν την κρατά, «Κράτησέ την» την καταχωρεί (27/11/2026)',
+          bool(sh['a']) and 'Να κρατηθεί' in sh['a'][0] and sh['n1']==sh['n0'] and sh['n2']==sh['n0']+1 and sh['kept']==['Σύντομη',10] and not pg._errs, [sh,pg._errs]); c.close()
     # 27/11/2026: ψάρι με ώρα στο μέλλον δεν αποθηκεύεται (υπήρχαν 2 καταγραφές με λάθος μήνα)
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(3000)
     pg.evaluate("()=>AK.biteForm()"); pg.wait_for_timeout(1200); pg.fill('.bform .spwrap input','Μαγιάτικο')

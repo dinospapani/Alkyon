@@ -1027,7 +1027,64 @@ export async function userOf(F, code, now = Date.now(), ip = '') {
   if (!(now - lu < 3600e3)) sb(F, 'watch_links?code=eq.' + code, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ last_used_at: nowIso, expires_at: new Date(now + WATCH_TTL_DAYS * 864e5).toISOString() }) }).catch(() => {});
   return v;
 }
-const ipOf = (req) => String(req.headers.get('cf-connecting-ip') || (req.headers.get('x-forwarded-for') || '').split(',')[0] || '').trim().slice(0, 64);
+/* 27/11/2026: κλήσεις στο Open-Meteo με όριο 5″ ανά προσπάθεια και μία ξαναδοκιμή (νέα σύνδεση). Όταν η function τρέχει στις ΗΠΑ (us-west-2),
+   η κλήση καιρού κάποιες φορές κολλούσε ως το όριο των 12″ του forecast.js → 502. Το εξωτερικό όριο (12″) του forecast.js μένει και ισχύει πάντα.
+   Μόνο για open-meteo.com· όλες οι άλλες κλήσεις (βάση, EMODnet) περνούν όπως πριν. */
+export const OM_TRY_MS = [5000, 5000];
+export function omFetch(F, log = null) {
+  return async (url, opt = {}) => {
+    if (!/open-meteo\.com/.test(String(url))) return F(url, opt);
+    const outer = opt && opt.signal; let last = null;
+    for (let i = 0; i < OM_TRY_MS.length; i++) {
+      if (outer && outer.aborted) break;
+      const ac = new AbortController(), t0 = Date.now(), stop = () => ac.abort();
+      if (outer) outer.addEventListener('abort', stop, { once: true });
+      const tm = setTimeout(stop, OM_TRY_MS[i]);
+      try { const r = await F(url, { ...opt, signal: ac.signal }); clearTimeout(tm); if (outer) outer.removeEventListener('abort', stop); return r; }
+      catch (e) { clearTimeout(tm); if (outer) outer.removeEventListener('abort', stop); last = e; if (log) log(i + 1, Date.now() - t0, e); }
+    }
+    throw last || new Error('aborted');
+  };
+}
+/* 27/11/2026: τελευταία καλή πρόγνωση ανά θέση (έως 6 ώρες), για όταν αποτύχει η κλήση καιρού: το ρολόι παίρνει αυτήν (st: 1) αντί για σφάλμα. */
+export const STALE_MS = 6 * 3600e3;
+/* 27/11/2026: η function τρέχει πάντα δίπλα στη βάση (eu-west-1). Το Supabase την εκτελεί στην περιοχή πιο κοντά στο ρολόι· από τις δυτικές ΗΠΑ
+   η κλήση καιρού κολλούσε (51 σφάλματα σε 84 αιτήματα), από την Ευρώπη 0 σε 221. Όταν ένα αίτημα φτάνει σε άλλη περιοχή, προωθείται στην eu-west-1
+   (Regional Invocations: forceFunctionRegion + x-region). Αν η προώθηση αποτύχει γρήγορα (ή είναι GET), εξυπηρετείται τοπικά όπως πριν.
+   Η διεύθυνση του ρολογιού περνά με υπογραφή (x-alk-ip + x-alk-fwd), ώστε το όριο λάθος κωδικών να μετρά το ρολόι και όχι τον server. */
+export const HOME_REGION = 'eu-west-1';
+async function fwdKey() {
+  const k = env('SUPABASE_SERVICE_ROLE_KEY'); if (!k) return '';
+  const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('alk-watch-fwd:' + k));
+  return Array.from(new Uint8Array(h)).slice(0, 16).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+const rawIp = (req) => String(req.headers.get('cf-connecting-ip') || (req.headers.get('x-forwarded-for') || '').split(',')[0] || '').trim().slice(0, 64);
+export async function ipOfReq(req) {
+  const f = req.headers.get('x-alk-fwd'), k = f ? await fwdKey() : '';
+  if (f && k && f === k && req.headers.get('x-alk-ip')) return String(req.headers.get('x-alk-ip')).trim().slice(0, 64);
+  return rawIp(req);
+}
+export async function regionProxy(req, F, region = env('SB_REGION'), now = Date.now) {
+  if (!region || region === HOME_REGION || req.method === 'OPTIONS' || req.headers.get('x-alk-fwd')) return null;
+  const base = env('SUPABASE_URL'), key = await fwdKey(); if (!base || !key) return null;
+  const u = new URL(req.url), t = new URL(base.replace(/\/$/, '') + '/functions/v1/watch' + u.search); t.searchParams.set('forceFunctionRegion', HOME_REGION);
+  const h = { 'x-region': HOME_REGION, 'x-alk-fwd': key, 'x-alk-ip': rawIp(req) };
+  for (const k of ['content-type', 'apikey', 'authorization']) { const v = req.headers.get(k); if (v) h[k] = v; }
+  const body = req.method === 'POST' ? await req.clone().text() : undefined;
+  const t0 = now();
+  try {
+    const r = await F(t.toString(), { method: req.method, headers: h, body, signal: tmo(11000) });
+    if (r.status >= 500 && req.method === 'GET') { try { console.log('watch fwd ' + region + ' → ' + r.status + ', local'); } catch (x) {} return null; }
+    const out = { ...CORS, 'Content-Type': r.headers.get('content-type') || 'application/json', 'x-alk-via': region };
+    const cc = r.headers.get('cache-control'); if (cc) out['Cache-Control'] = cc;
+    return new Response(await r.arrayBuffer(), { status: r.status, headers: out });
+  } catch (e) {
+    try { console.log('watch fwd fail ' + region + ' ' + (now() - t0) + 'ms ' + String(e && e.message || e).slice(0, 60)); } catch (x) {}
+    /* GET: πάντα τοπικά. POST: τοπικά μόνο αν απέτυχε γρήγορα (δεν έφτασε), αλλιώς 504 ώστε να μη γραφτεί δύο φορές */
+    if (req.method === 'GET' || now() - t0 < 2500) return null;
+    return J({ ok: 0, err: 'fwd' }, 504);
+  }
+}
 const DAYS_EL = ['Κυρ', 'Δευ', 'Τρι', 'Τετ', 'Πεμ', 'Παρ', 'Σαβ'], DAYS_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const bft = (kn) => kn == null ? null : [1, 4, 7, 11, 17, 22, 28, 34, 41, 48, 56, 64].findIndex(x => kn < x) === -1 ? 12 : [1, 4, 7, 11, 17, 22, 28, 34, 41, 48, 56, 64].findIndex(x => kn < x);
 const r1 = (x) => x == null ? null : Math.round(x * 10) / 10;
@@ -1165,7 +1222,8 @@ export function trollSpots(rows, lat, lon) {
 }
 export async function handle(req, F = fetch, now = Date.now()) {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
-  const u = new URL(req.url), q = u.searchParams, ip = ipOf(req);
+  const via = await regionProxy(req, F); if (via) return via;
+  const u = new URL(req.url), q = u.searchParams, ip = await ipOfReq(req);
   const user = async (code) => { const v = await userOf(F, code, now, ip).catch(() => null); return v && v.limited ? null : v; };
   try {
     if (req.method === 'GET') {
@@ -1209,8 +1267,17 @@ export async function handle(req, F = fetch, now = Date.now()) {
           const tc = trollSpots(a || [], lat, lon); if (tc.length) o = { ...o, tc }; } catch (e) {}
         return o; };
       const hit = mem.fc.get(key); if (hit && now - hit.at < 30 * 60e3) return J(small(await withDue(hit.v)), 200, 'private, max-age=300');
-      const fc = await PF.getForecast(lat, lon, F, { days: 6, prof: up.prof, sp: up.sp, limits: up.limits });
-      const v = compact(PF, fc, en, lat, lon); mem.fc.set(key, { at: now, v }); if (mem.fc.size > 300) mem.fc.clear();
+      const reg = env('SB_REGION') || '';
+      const omLog = (n, ms, e) => { try { console.log('watch om: try ' + n + ' ' + ms + 'ms ' + (reg || '?') + ' ' + String(e && e.message || e).slice(0, 80)); } catch (x) {} };
+      let fc;
+      try { fc = await PF.getForecast(lat, lon, omFetch(F, omLog), { days: 6, prof: up.prof, sp: up.sp, limits: up.limits }); }
+      catch (e) {
+        const old = mem.fc.get('s:' + key);
+        try { console.log('watch fc fail ' + (reg || '?') + ' ' + lat.toFixed(1) + ',' + lon.toFixed(1) + ' stale=' + (old && now - old.at < STALE_MS ? 1 : 0)); } catch (x) {}
+        if (old && now - old.at < STALE_MS) return J(small(await withDue({ ...old.v, st: 1 })), 200, 'private, max-age=120');
+        throw e;
+      }
+      const v = compact(PF, fc, en, lat, lon); if (mem.fc.size > 300) mem.fc.clear(); mem.fc.set(key, { at: now, v }); mem.fc.set('s:' + key, { at: now, v });
       return J(small(await withDue(v)), 200, 'private, max-age=300');
     }
     if (req.method === 'POST') {
