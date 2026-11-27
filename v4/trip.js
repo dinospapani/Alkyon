@@ -264,7 +264,8 @@ function back(endAt,merged){
   var NOW=(typeof endAt==='number'&&endAt>0&&endAt<Date.now())?endAt:Date.now();
   var s=load(); if(!s.active) return; if(NOW<=s.start) NOW=Date.now(); var d=NOW-s.start, sm=summary(s), tk=takeTrack(NOW);
   s.active=false; save(s); pushTrip(); clearInterval(timer); timer=null; watch(); nativeStop();
-  if(d>=20*60000||sm.n>0||sm.miss>0){
+  /* 27/11/2026: έξοδος κάτω από 20′ χωρίς ψάρια → ερώτηση «Να κρατηθεί;» (πριν πεταγόταν σιωπηλά, μόνο με μήνυμα) */
+  var keep=function(){
     var pos=s.last||(s.cond0&&s.cond0.lat!=null?{lat:s.cond0.lat,lon:s.cond0.lon}:null);
     var rec={prof:B.prof?B.prof():'boat',target:s.target||null,targets:s.targets||null,sid:s.id,date:s.startDate||todayStr(),spot:s.route||'',tech:'',species:sm.species,count:sm.n,miss:sm.miss,kg:sm.kg,pn:sm.pn||0,pkg:sm.pkg||0,startMs:s.start,endMs:NOW,cond0:s.cond0||null,lat:pos?pos.lat:null,lon:pos?pos.lon:null,notes:T('Καταγράφηκε από Έναρξη/Τέλος εξόδου','Recorded from Start/End trip')};
     if(tk){ if(tk.track){ rec.km=tk.km; rec.track=tk.track; if(tk.moving&&tk.moving.length) rec.moving=tk.moving; } if(tk.gps) rec.gps=tk.gps; }
@@ -276,7 +277,11 @@ function back(endAt,merged){
     var next=(sm.n>0||(sm.pn||0)>0)?rate:function(){ zeroQuestion(id,s.id,pos,rate,sea); };
     if(B.speciesFill) B.speciesFill(s.id,next); else next();
     B.emit('tripend',{id:id,startMs:s.start,endMs:NOW});
-  } else { B.emit('tripend',{id:null,startMs:s.start,endMs:NOW}); B.toast(T('Καλωσόρισες πίσω. Η έξοδος ήταν κάτω από 20 λεπτά χωρίς ψάρια, οπότε δεν καταχωρήθηκε.','Welcome back. The trip was under 20 minutes with no catches, so it was not saved.')); }
+  };
+  if(d>=20*60000||sm.n>0||sm.miss>0){ keep(); return; }
+  var drop=function(){ B.emit('tripend',{id:null,startMs:s.start,endMs:NOW}); B.toast(T('Καλωσόρισες πίσω. Η έξοδος δεν καταχωρήθηκε.','Welcome back. The trip was not saved.')); };
+  if(!B.ask){ drop(); return; }
+  B.ask(T('Καλωσόρισες πίσω. Η έξοδος κράτησε '+dur(d)+' χωρίς ψάρια. Να κρατηθεί στο Ημερολόγιο;','Welcome back. The trip lasted '+dur(d)+' with no catches. Keep it in your Logbook?'),[T('Κράτησέ την','Keep it'),T('Όχι, δοκιμή ήταν','No, it was a test')],false,false).then(function(y){ if(y) keep(); else drop(); },drop);
 }
 /* 1.9.50: «Πώς ήταν το ψάρεμα;» (καλό / μέτριο / τίποτα): μετρά και τις εξόδους χωρίς ψάρι και δείχνει αν ο βαθμός της πρόγνωσης συμφωνεί με τη θάλασσα */
 var RATE=[[2,T('Καλό','Good')],[1,T('Μέτριο','So-so')],[0,T('Τίποτα','Nothing')]];
