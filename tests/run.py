@@ -1791,7 +1791,10 @@ with sync_playwright() as p:
     r=[pg.evaluate("()=>[...document.querySelectorAll('.pgsec')].map(e=>e.textContent+'>'+((e.nextElementSibling.querySelector('h2,summary b')||{}).textContent||'').slice(0,14)).join('|')")]
     pg.evaluate("()=>{[...document.querySelectorAll('main .seg button')].find(x=>/Mine/.test(x.textContent)).click()}"); pg.wait_for_timeout(2500)
     r.append(pg.evaluate("()=>[[...document.querySelectorAll('.pgsec')].map(e=>e.textContent).join('|'), [...document.querySelectorAll('.pgsec')].every(e=>e.nextElementSibling&&/card|sfold/.test(e.nextElementSibling.className))]"))
-    check('Ενότητες: «Conditions» πριν από την Έκθεση ακτής· στα «Δικά μου» κάθε επικεφαλίδα πριν από κάρτα (1.14.55)', r[0].startswith('Conditions>') and 'Checks and history' in r[1][0] and 'Conditions' not in r[1][0] and r[1][1] and not pg._errs, [r,pg._errs]); c.close()
+    # 27/11/2026 (αλλαγή test, δηλωμένη): χωρίς δεδομένα η κάρτα «Έλεγχος της πρόγνωσης» δεν εμφανίζεται, άρα ούτε η επικεφαλίδα «Checks and history»· πριν το test την απαιτούσε.
+    # Ελέγχεται ότι υπάρχει μόνο αν υπάρχει και η κάρτα (Checking the forecast), και ότι κάθε επικεφαλίδα μένει πριν από κάρτα.
+    hasChk=pg.evaluate("()=>/Checking the forecast/.test(document.getElementById('main').innerText)")
+    check('Ενότητες: «Conditions» πριν από την Έκθεση ακτής· στα «Δικά μου» κάθε επικεφαλίδα πριν από κάρτα (1.14.55, 27/11/2026)', r[0].startswith('Conditions>') and ('Checks and history' in r[1][0])==hasChk and 'Personal forecast' in r[1][0] and 'Conditions' not in r[1][0] and r[1][1] and not pg._errs, [r,hasChk,pg._errs]); c.close()
 
     print('# 1.14.57 φωτογραφίες, φύλλα')
     c=ctx(b,lang='en'); pg=page(c); pg.goto(BASE+'/v4/#profile'); pg.wait_for_timeout(3000)
