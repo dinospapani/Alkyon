@@ -1027,6 +1027,27 @@ export async function userOf(F, code, now = Date.now(), ip = '') {
   if (!(now - lu < 3600e3)) sb(F, 'watch_links?code=eq.' + code, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ last_used_at: nowIso, expires_at: new Date(now + WATCH_TTL_DAYS * 864e5).toISOString() }) }).catch(() => {});
   return v;
 }
+/* 27/11/2026: κλήσεις στο Open-Meteo με όριο 5″ ανά προσπάθεια και μία ξαναδοκιμή (νέα σύνδεση). Όταν η function τρέχει στις ΗΠΑ (us-west-2),
+   η κλήση καιρού κάποιες φορές κολλούσε ως το όριο των 12″ του forecast.js → 502. Το εξωτερικό όριο (12″) του forecast.js μένει και ισχύει πάντα.
+   Μόνο για open-meteo.com· όλες οι άλλες κλήσεις (βάση, EMODnet) περνούν όπως πριν. */
+export const OM_TRY_MS = [5000, 5000];
+export function omFetch(F, log = null) {
+  return async (url, opt = {}) => {
+    if (!/open-meteo\.com/.test(String(url))) return F(url, opt);
+    const outer = opt && opt.signal; let last = null;
+    for (let i = 0; i < OM_TRY_MS.length; i++) {
+      if (outer && outer.aborted) break;
+      const ac = new AbortController(), t0 = Date.now(), stop = () => ac.abort();
+      if (outer) outer.addEventListener('abort', stop, { once: true });
+      const tm = setTimeout(stop, OM_TRY_MS[i]);
+      try { const r = await F(url, { ...opt, signal: ac.signal }); clearTimeout(tm); if (outer) outer.removeEventListener('abort', stop); return r; }
+      catch (e) { clearTimeout(tm); if (outer) outer.removeEventListener('abort', stop); last = e; if (log) log(i + 1, Date.now() - t0, e); }
+    }
+    throw last || new Error('aborted');
+  };
+}
+/* 27/11/2026: τελευταία καλή πρόγνωση ανά θέση (έως 6 ώρες), για όταν αποτύχει η κλήση καιρού: το ρολόι παίρνει αυτήν (st: 1) αντί για σφάλμα. */
+export const STALE_MS = 6 * 3600e3;
 const ipOf = (req) => String(req.headers.get('cf-connecting-ip') || (req.headers.get('x-forwarded-for') || '').split(',')[0] || '').trim().slice(0, 64);
 const DAYS_EL = ['Κυρ', 'Δευ', 'Τρι', 'Τετ', 'Πεμ', 'Παρ', 'Σαβ'], DAYS_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const bft = (kn) => kn == null ? null : [1, 4, 7, 11, 17, 22, 28, 34, 41, 48, 56, 64].findIndex(x => kn < x) === -1 ? 12 : [1, 4, 7, 11, 17, 22, 28, 34, 41, 48, 56, 64].findIndex(x => kn < x);
@@ -1209,8 +1230,17 @@ export async function handle(req, F = fetch, now = Date.now()) {
           const tc = trollSpots(a || [], lat, lon); if (tc.length) o = { ...o, tc }; } catch (e) {}
         return o; };
       const hit = mem.fc.get(key); if (hit && now - hit.at < 30 * 60e3) return J(small(await withDue(hit.v)), 200, 'private, max-age=300');
-      const fc = await PF.getForecast(lat, lon, F, { days: 6, prof: up.prof, sp: up.sp, limits: up.limits });
-      const v = compact(PF, fc, en, lat, lon); mem.fc.set(key, { at: now, v }); if (mem.fc.size > 300) mem.fc.clear();
+      const reg = env('SB_REGION') || '';
+      const omLog = (n, ms, e) => { try { console.log('watch om: try ' + n + ' ' + ms + 'ms ' + (reg || '?') + ' ' + String(e && e.message || e).slice(0, 80)); } catch (x) {} };
+      let fc;
+      try { fc = await PF.getForecast(lat, lon, omFetch(F, omLog), { days: 6, prof: up.prof, sp: up.sp, limits: up.limits }); }
+      catch (e) {
+        const old = mem.fc.get('s:' + key);
+        try { console.log('watch fc fail ' + (reg || '?') + ' ' + lat.toFixed(1) + ',' + lon.toFixed(1) + ' stale=' + (old && now - old.at < STALE_MS ? 1 : 0)); } catch (x) {}
+        if (old && now - old.at < STALE_MS) return J(small(await withDue({ ...old.v, st: 1 })), 200, 'private, max-age=120');
+        throw e;
+      }
+      const v = compact(PF, fc, en, lat, lon); if (mem.fc.size > 300) mem.fc.clear(); mem.fc.set(key, { at: now, v }); mem.fc.set('s:' + key, { at: now, v });
       return J(small(await withDue(v)), 200, 'private, max-age=300');
     }
     if (req.method === 'POST') {
