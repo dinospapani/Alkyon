@@ -828,6 +828,24 @@ with sync_playwright() as p:
     pg.evaluate("h=>{window.__off=((24-h)%24||24)*3600e3+10*60e3-((new Date()).getMinutes()*60e3); AK.emit('fc-redraw');}",h0 if h0 is not None else 0); pg.wait_for_timeout(400); h2=pg.evaluate(gnow)
     nav=pg.evaluate("()=>{const s=getComputedStyle(document.querySelector('.nav'),'::after');return [s.content,parseFloat(s.height),s.backgroundColor===getComputedStyle(document.body).backgroundColor||s.backgroundColor]}")
     check('Πρόγνωση: «Τώρα» με το ρολόι, νέα μέρα μετά τα μεσάνυχτα· συμπαγές φόντο κάτω από την μπάρα (26/11/2026)', hd and h0 is not None and h1==(h0+1)%24 and h2==0 and nav[1]>=40 and nav[2] is True and not pg._errs, [hd,h0,h1,h2,nav,pg._errs]); c.close()
+    # 27/11/2026: Τσίμπημα/Θάλασσα ομοιόμορφα· η ώρα του «Ανά ώρα» δεν «κολλάει» σε νέα μέρα· Είδη με λεπτομέρεια στο πάτημα
+    c=ctx(b); c.add_init_script("(function(){var n=Date.now.bind(Date);window.__off=0;Date.now=function(){return n()+window.__off;};})()"); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(3500)
+    hs=pg.evaluate("()=>[...document.querySelectorAll('.hero .hsb')].map(e=>{const s=e.querySelector('span'),l=e.querySelector('small'),v=e.querySelector('b'); return [!!s&&getComputedStyle(s).display!=='none'&&s.textContent.length>0, Math.round(l.getBoundingClientRect().top), Math.round(v.getBoundingClientRect().top)]})")
+    sel0=pg.evaluate("()=>{const b=document.querySelector('.hb.sel'); return b?b.getAttribute('aria-label').slice(0,5):null}")
+    pg.evaluate("()=>{const b=[...document.querySelectorAll('.hb')].find(x=>/^22:00/.test(x.getAttribute('aria-label'))); const r=b.getBoundingClientRect(); ['pointerdown','pointerup'].forEach(t=>b.dispatchEvent(new PointerEvent(t,{bubbles:true,clientX:r.left+r.width/2,clientY:r.top+5}))); b.click();}"); pg.wait_for_timeout(300)
+    pg.evaluate("()=>AK.emit('fc-redraw')"); pg.wait_for_timeout(300); same=pg.evaluate("()=>document.querySelector('.hb.sel').getAttribute('aria-label').slice(0,5)")
+    pg.evaluate("()=>{const now=new Date(); window.__off=((24-now.getHours())+9)*3600e3-now.getMinutes()*60e3; AK.emit('fc-redraw');}"); pg.wait_for_timeout(500)
+    nxt=pg.evaluate("()=>{const b=document.querySelector('.hb.sel'); return b?b.getAttribute('aria-label').slice(0,5):null}")
+    pg.evaluate("()=>{window.__off=0; [...document.querySelectorAll('main .seg button')].find(x=>/Είδη/.test(x.textContent)).click()}"); pg.wait_for_timeout(1500)
+    spx=pg.evaluate("()=>{const e=document.querySelector('.sp.spx'); if(!e) return null; const d=e.querySelector('.spd'); const a=getComputedStyle(d).display; e.click(); return [a, getComputedStyle(d).display, e.getAttribute('aria-expanded')]}")
+    check('Τσίμπημα/Θάλασσα ίδια διάταξη· η ώρα που διάλεξες μένει την ίδια μέρα και μηδενίζεται την επόμενη· Είδη: λεπτομέρεια με πάτημα (27/11/2026)',
+          len(hs)==2 and hs[0][0] and hs[1][0] and hs[0][1]==hs[1][1] and same=='22:00' and nxt is not None and nxt!='22:00' and spx==['none','block','true'] and not pg._errs, [hs,sel0,same,nxt,spx,pg._errs]); c.close()
+    # 27/11/2026: στη Λειτουργία ψαρέματος το μήνυμα δεν σκεπάζει το πράσινο κουμπί ψαριού
+    now=int(time.time()*1000); c=ctx(b); c.add_init_script("if(!sessionStorage.fm27){sessionStorage.fm27=1;localStorage.setItem('alkyon-smart',JSON.stringify({weekly:Date.now()+9e9}));localStorage.removeItem('alkyon-v4-mapui-test');localStorage.setItem('alkyon-v4-mapui',JSON.stringify('clean'));localStorage.setItem('alkyon-safe',JSON.stringify({active:true,id:'T9',start:%d,due:%d}));}"%(now-600000,now+3*3600000))
+    pg=page(c); pg.goto(BASE+'/v4/#map'); pg.wait_for_timeout(8000)
+    pg.evaluate("()=>AK.toast('Η πίεση είναι σταθερή. Τώρα 1008,8 hPa · τελευταίες 3 ώρες −0,4 hPa · επόμενες 3 ώρες −0,4 hPa. Χωρίς στροφή ανέμου.')"); pg.wait_for_timeout(600)
+    fb=pg.evaluate("()=>{const btn=[...document.querySelectorAll('button')].find(e=>/Έπιασα ψάρι|Caught a fish/.test(e.getAttribute('aria-label')||'')); if(!btn) return null; const r=btn.getBoundingClientRect(), t=document.querySelector('.toast.on').getBoundingClientRect(); const e=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2); return [btn.contains(e), t.bottom<=r.top]}")
+    check('Λειτουργία ψαρέματος: το μακρύ μήνυμα μπαίνει πάνω από το πράσινο κουμπί, που πατιέται (27/11/2026)', fb==[True,True] and not pg._errs, [fb,pg._errs]); c.close()
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#log'); pg.wait_for_timeout(2500)
     pg.evaluate("()=>{const t=[...document.querySelectorAll('.seg button,.lseg button')].find(x=>/^Έξοδοι/.test(x.textContent.trim())); t&&t.click()}"); pg.wait_for_timeout(600)
     pg.evaluate("()=>document.querySelector('.addrow .addbtn').click()"); pg.wait_for_timeout(600)
@@ -1696,8 +1714,10 @@ with sync_playwright() as p:
     pg.evaluate("()=>[...document.querySelectorAll('main .seg button')].find(x=>/Είδη/.test(x.textContent)).click()"); pg.wait_for_timeout(2500)
     sp=pg.evaluate("()=>[document.querySelectorAll('main .splv').length, /\\d%/.test((document.querySelector('main .spl')||{}).textContent||''), !document.querySelector('main .extcard')]")
     pg.evaluate("()=>[...document.querySelectorAll('main .seg button')].find(x=>/Δικά μου/.test(x.textContent)).click()"); pg.wait_for_timeout(2500)
-    mn=pg.evaluate("()=>{ const t=document.getElementById('main').innerText; return [/Έλεγχος της πρόγνωσης/.test(t), !/Ο βαθμός στην πράξη/.test(t), / από 15/.test(t)]; }")
-    check('Πρόγνωση: (i) ανοίγει εξήγηση, χωρίς διπλές «Ευκαιρίες» στις Μέρες· Είδη με «Καλές/Μέτριες» όχι %· μία κάρτα «Έλεγχος της πρόγνωσης» (1.14.37)', r[0] and r[1] and r[3]==0 and sp[0]>0 and not sp[1] and sp[2] and mn==[True,True,True], [r,sp,mn])
+    # 27/11/2026 (αλλαγή test, εγκεκριμένη από τον Dinos): χωρίς καθόλου δεδομένα, η κάρτα «Έλεγχος της πρόγνωσης» με μηδενικά δεν εμφανίζεται
+    # και η προσωπική πρόγνωση γράφει μία πρόταση αντί για «0 από 15»· πριν το test απαιτούσε την κάρτα και το «από 15»
+    mn=pg.evaluate("()=>{ const t=document.getElementById('main').innerText; return [!/Έλεγχος της πρόγνωσης/.test(t), !/Ο βαθμός στην πράξη/.test(t), /Δεν έχει ακόμα δεδομένα\. Χρειάζονται 15 ώρες/.test(t), !/ από 15/.test(t)]; }")
+    check('Πρόγνωση: (i) ανοίγει εξήγηση, χωρίς διπλές «Ευκαιρίες» στις Μέρες· Είδη με «Καλές/Μέτριες» όχι %· Δικά μου χωρίς δεδομένα: μία πρόταση, χωρίς κάρτες με μηδενικά (1.14.37, 27/11/2026)', r[0] and r[1] and r[3]==0 and sp[0]>0 and not sp[1] and sp[2] and mn==[True,True,True,True], [r,sp,mn])
     check('1.14.37: χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
 
     print('# 1.14.39 Πρόγνωση: μικρή μπάρα ημερών στο κύλισμα, ετικέτες στο γράφημα')

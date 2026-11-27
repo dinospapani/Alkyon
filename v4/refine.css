@@ -265,11 +265,37 @@ html.nightred .hero .hsun1 .mj{color:inherit}
 .hero .hsb.lv-fair b,.hero .hsb.sea-mid b{color:var(--fair-ink)!important}
 .hero .hsb.lv-poor b,.hero .hsb.sea-bad b{color:var(--poor-ink)!important}
 /* Σύγκριση χρονιών: τα κουμπιά Νερό / Κύμα… όπως οι άλλες καρτέλες, όχι λευκό κουτί· γράμματα ≥ 12 px */
-.chips.yrchips .chip{min-height:40px;border:0;box-shadow:inset 0 0 0 1px var(--line-strong);background:transparent;color:var(--ink-2);font:600 13px var(--font)}
-.chips.yrchips .chip[aria-pressed=true]{background:var(--surface-3);color:var(--ink);box-shadow:inset 0 0 0 1px var(--surface-3);font-weight:750}
+.chips.spdays .chip,.chips.yrchips .chip{min-height:40px;border:0;box-shadow:inset 0 0 0 1px var(--line-strong);background:transparent;color:var(--ink-2);font:600 13px var(--font)}
+.chips.spdays .chip[aria-pressed=true],.chips.yrchips .chip[aria-pressed=true]{background:var(--surface-3);color:var(--ink);box-shadow:inset 0 0 0 1px var(--surface-3);font-weight:750}
 .yrb small,.yrb.cur small{font-size:12px}
 /* χρειάζεται λογαριασμός: εικονίδιο ατόμου αντί για ψάρι */
 .card.empty.isacct::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237a8a94' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='8' r='3.6'/%3E%3Cpath d='M4.5 20c1.2-3.6 4-5.4 7.5-5.4s6.3 1.8 7.5 5.4'/%3E%3C/svg%3E")}
+
+/* ---------- 9. 27/11/2026: Τσίμπημα / Θάλασσα ομοιόμορφα ---------- */
+/* ίδια διάταξη και στα δύο: ετικέτα + τιμή στην ίδια γραμμή (ίδια βάση), από κάτω μία γραμμή λεπτομέρειας (ώρα / άνεμος · κύμα), στοίχιση επάνω */
+.hero2 .hsb{display:grid!important;grid-template-columns:auto minmax(0,1fr);align-items:baseline;align-content:start;column-gap:10px;row-gap:5px}
+.hero2 .hsb small{grid-column:1;align-self:baseline}
+.hero2 .hsb b{grid-column:2;font-size:22px!important;line-height:1.1}
+.hero2 .hsb span,.hero2 .hsb.lv-good span,.hero2 .hsb.lv-fair span,.hero2 .hsb.lv-poor span,.hero2 .hsb.sea-good span,.hero2 .hsb.sea-mid span,.hero2 .hsb.sea-bad span{display:block!important;grid-column:1/-1;font:600 13px/1.35 var(--font)!important;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.hero2 .hsb span:empty{display:none!important}
+
+/* σύγκριση με τις καλές μέρες: χαμηλή ομοιότητα σε ουδέτερο χρώμα, όχι κόκκινο (δεν είναι κίνδυνος) */
+.simcard .simhead.lo b{color:var(--ink)!important}
+.simcard .simhead.mid b{color:var(--fair-ink)!important}
+.simcard .simhead.hi b{color:var(--good-ink)!important}
+.simcard .simbar i.lo{background:var(--ink-3)!important}
+
+/* «Τι δούλεψε» και παρόμοιες κάρτες: ετικέτες με πεζά, ≥ 12 px (ήταν κεφαλαία 11,5 px) */
+.cmfact i{font:650 13px/1.25 var(--font)!important;letter-spacing:0!important;text-transform:none!important;color:var(--ink-3)}
+
+/* Είδη: η λεπτομέρεια (τεχνική, δόλωμα, βάθος) ανοίγει με πάτημα */
+.sp.spx{cursor:pointer}
+.sp.spx .sph{justify-content:flex-start}
+.sp.spx .sph .splv{margin-left:auto}
+.sp.spx .spd{display:none;margin-top:6px}
+.sp.spx.open .spd{display:block}
+.sp.spx .sph::after{content:'';flex:none;width:7px;height:7px;margin-left:10px;border-right:2px solid var(--ink-3);border-bottom:2px solid var(--ink-3);transform:rotate(45deg) translateY(-2px);transition:transform .15s}
+.sp.spx.open .sph::after{transform:rotate(-135deg) translateY(-1px)}
 
 /* ---------- 4. ειδικές λειτουργίες ---------- */
 @media (prefers-reduced-motion:reduce){.hring{transform:none}}
