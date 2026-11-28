@@ -1047,6 +1047,91 @@ export async function claimStep(sb, name, periodMs, now = Date.now(), staleMs = 
   const up = await sb(`job_state?name=eq.${encodeURIComponent(name)}&${cond}`, { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ last_try: at }) });
   return Array.isArray(up) && up.length === 1;
 }
+/* 28/11/2026: λίστα «Ειδοποίησέ με» του website (public.waitlist). Για κάθε νέα εγγραφή: email καλωσορίσματος στον επισκέπτη (EN/EL)
+   και email στον διαχειριστή (alkyonfishingapp@gmail.com), μέσω Resend από hello@alkyonfishing.com. Τρέχει μόνο αν υπάρχει RESEND_API_KEY.
+   Κάθε γραμμή «κλειδώνεται» πρώτα (welcomed_at, μόνο αν ήταν κενό) ώστε να μη σταλεί δύο φορές· αν η αποστολή αποτύχει, ξεκλειδώνεται
+   και μετριέται (mail_tries)· μετά από 3 αποτυχίες σταματά και ο διαχειριστής ενημερώνεται μία φορά. */
+export const WL_FROM = 'Alkyon <hello@alkyonfishing.com>', WL_REPLY = 'info@alkyonfishing.com', WL_ADMIN = 'alkyonfishingapp@gmail.com', WL_MAX_TRIES = 3;   // αποστολέας hello@· απαντήσεις/διαγραφές → info@ (επίσημο· Cloudflare Email Routing → Gmail)· ειδοποίηση διαχειριστή κατευθείαν στο Gmail
+const WL_T = {
+  en: { subject: 'You’re on the Alkyon list', pre: 'We’ll let you know the day Alkyon launches.',
+        h: 'You’re on the list.', intro: 'Thanks for signing up. We’ll email you the day Alkyon launches on Google Play and the App Store — and now and then with news worth reading.',
+        what: 'What’s coming',
+        f: [['Fishing score 0–100', 'Sun, moon, pressure, wind and waves in one score, with the best hours of each day.'],
+            ['Live sea map', 'Wind, waves, currents, sea temperature and depths — even without signal.'],
+            ['Logbook and safety', 'Your catches and spots, a return-time alert for your safety contact, MOB and SOS.']],
+        follow: 'Follow along until launch:',
+        foot: 'You’re receiving this because you signed up at alkyonfishing.com. Don’t want these emails? Reply to this message or write to info@alkyonfishing.com and we’ll remove you.' },
+  el: { subject: 'Είσαι στη λίστα του Alkyon', pre: 'Θα σε ειδοποιήσουμε τη μέρα που θα κυκλοφορήσει το Alkyon.',
+        h: 'Είσαι στη λίστα.', intro: 'Ευχαριστούμε για την εγγραφή. Θα σου στείλουμε email τη μέρα που το Alkyon θα κυκλοφορήσει στο Google Play και στο App Store — και πού και πού νέα που αξίζει να διαβάσεις.',
+        what: 'Τι έρχεται',
+        f: [['Βαθμός ψαρέματος 0–100', 'Ήλιος, φεγγάρι, πίεση, άνεμος και κύμα σε έναν βαθμό, με τις καλύτερες ώρες κάθε μέρας.'],
+            ['Ζωντανός χάρτης θάλασσας', 'Άνεμος, κύμα, ρεύματα, θερμοκρασία νερού και βάθη — και χωρίς σήμα.'],
+            ['Ημερολόγιο και ασφάλεια', 'Τα ψάρια και τα σημεία σου, ειδοποίηση ώρας επιστροφής στην επαφή ασφαλείας, MOB και SOS.']],
+        follow: 'Ακολούθησέ μας μέχρι την κυκλοφορία:',
+        foot: 'Λαμβάνεις αυτό το email επειδή γράφτηκες στο alkyonfishing.com. Δεν θέλεις αυτά τα emails; Απάντησε σε αυτό το μήνυμα ή γράψε στο info@alkyonfishing.com και θα σε διαγράψουμε.' } };
+const wlEsc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const WL_IG = 'https://www.instagram.com/alkyonfishingapp/', WL_TT = 'https://www.tiktok.com/@alkyonfishingapp', WL_LOGO = 'https://alkyonfishing.com/icon-192.png';
+/* Κείμενο (για προγράμματα χωρίς HTML) και HTML με πίνακες/inline CSS, ώστε να εμφανίζεται σωστά σε Gmail, Outlook, Apple Mail. */
+const wlText = t => [t.h, t.intro, t.what + ':\n' + t.f.map(x => '• ' + x[0] + ' — ' + x[1]).join('\n'), t.follow + '\nInstagram: ' + WL_IG + '\nTikTok: ' + WL_TT, '— Alkyon · https://alkyonfishing.com', t.foot].join('\n\n');
+const wlHtml = (t, L) => {
+  const E = wlEsc, F = 'font-family:Helvetica,Arial,sans-serif;';
+  const row = x => '<tr><td style="padding:0 0 14px 0;' + F + '"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'
+    + '<td valign="top" style="padding:7px 12px 0 0"><div style="width:8px;height:8px;border-radius:4px;background:#FF7A4D;font-size:0;line-height:0">&nbsp;</div></td>'
+    + '<td style="' + F + 'font-size:15px;line-height:22px;color:#33505C"><b style="color:#0B2230">' + E(x[0]) + '</b><br>' + E(x[1]) + '</td></tr></table></td></tr>';
+  const btn = (href, label) => '<a href="' + href + '" style="display:inline-block;margin:0 6px 8px 0;padding:11px 18px;border-radius:10px;background:#0D2A36;color:#ffffff;text-decoration:none;' + F + 'font-size:14px;font-weight:bold">' + label + '</a>';
+  return '<!DOCTYPE html><html lang="' + L + '"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>' + E(t.subject) + '</title></head>'
+    + '<body style="margin:0;padding:0;background:#EEF3F5">'
+    + '<div style="display:none;max-height:0;overflow:hidden;opacity:0">' + E(t.pre) + '</div>'
+    + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#EEF3F5"><tr><td align="center" style="padding:24px 12px">'
+    + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden">'
+    + '<tr><td style="background:#06171F;padding:22px 28px"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'
+    + '<td style="padding-right:12px"><img src="' + WL_LOGO + '" width="40" height="40" alt="" style="display:block;border-radius:10px;border:0"></td>'
+    + '<td style="' + F + 'font-size:22px;font-weight:bold;color:#E6F1F2">Alkyon</td></tr></table></td></tr>'
+    + '<tr><td style="padding:30px 28px 8px 28px;' + F + '"><h1 style="margin:0 0 12px 0;' + F + 'font-size:26px;line-height:32px;color:#0B2230">' + E(t.h) + '</h1>'
+    + '<p style="margin:0;' + F + 'font-size:16px;line-height:24px;color:#33505C">' + E(t.intro) + '</p></td></tr>'
+    + '<tr><td style="padding:18px 28px 0 28px"><div style="height:1px;background:#E3EBEE;font-size:0;line-height:0">&nbsp;</div></td></tr>'
+    + '<tr><td style="padding:20px 28px 4px 28px;' + F + 'font-size:13px;font-weight:bold;color:#FF7A4D">' + E(t.what) + '</td></tr>'
+    + '<tr><td style="padding:6px 28px 6px 28px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">' + t.f.map(row).join('') + '</table></td></tr>'
+    + '<tr><td style="padding:4px 28px 26px 28px;' + F + '"><p style="margin:0 0 12px 0;' + F + 'font-size:15px;line-height:22px;color:#33505C">' + E(t.follow) + '</p>'
+    + btn(WL_IG, 'Instagram') + btn(WL_TT, 'TikTok') + '</td></tr>'
+    + '<tr><td style="background:#F5F8F9;padding:18px 28px;' + F + 'font-size:12px;line-height:18px;color:#6B8590">'
+    + '<a href="https://alkyonfishing.com" style="color:#0B2230;font-weight:bold;text-decoration:none">alkyonfishing.com</a><br>'
+    + E(t.foot).replace('info@alkyonfishing.com', '<a href="mailto:info@alkyonfishing.com" style="color:#6B8590">info@alkyonfishing.com</a>')
+    + '</td></tr></table></td></tr></table></body></html>';
+};
+export function waitlistMails(row, n = {}) {
+  const L = row.lang === 'el' ? 'el' : 'en', t = WL_T[L];
+  const welcome = { from: WL_FROM, to: [row.email], reply_to: WL_REPLY, subject: t.subject, text: wlText(t), html: wlHtml(t, L),
+    headers: { 'List-Unsubscribe': '<mailto:' + WL_REPLY + '?subject=unsubscribe>' } };
+  const when = new Intl.DateTimeFormat('el-GR', { timeZone: TZ, dateStyle: 'short', timeStyle: 'short' }).format(new Date(row.created_at || Date.now()));
+  const fail = n.failed ? '\n\n⚠ Το email καλωσορίσματος ΔΕΝ στάλθηκε μετά από ' + WL_MAX_TRIES + ' προσπάθειες (' + String(n.err || '').slice(0, 200) + ').' : '';
+  const admin = { from: WL_FROM, to: [WL_ADMIN], subject: 'Alkyon · νέα εγγραφή στη λίστα' + (n.failed ? ' (χωρίς καλωσόρισμα)' : ''),
+    text: 'Νέα εγγραφή στη λίστα «Ειδοποίησέ με» του alkyonfishing.com:\n\nEmail: ' + row.email + '\nΓλώσσα: ' + (L === 'el' ? 'Ελληνικά' : 'English') + '\nΏρα: ' + when + fail + '\n\nΌλη η λίστα: Supabase › Table Editor › waitlist' };
+  return { welcome, admin };
+}
+export async function waitlistStep({ sb, F, key, log = () => {}, now = () => new Date().toISOString(), limit = 10 }) {
+  const send = async m => { const r = await F('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify(m) });
+    if (!r.ok) throw new Error('Resend ' + r.status + ' ' + (await r.text()).slice(0, 160)); return r.json().catch(() => ({})); };
+  const rows = (await sb(`waitlist?welcomed_at=is.null&mail_tries=lt.${WL_MAX_TRIES}&select=id,email,lang,created_at,mail_tries&order=id.asc&limit=${limit}`)) || [];
+  const out = { sent: 0, failed: 0, admin: 0 };
+  for (const r of rows) {
+    const got = (await sb(`waitlist?id=eq.${r.id}&welcomed_at=is.null`, { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ welcomed_at: now() }) })) || [];
+    if (!got.length) continue;   // την πήρε ήδη άλλη εκτέλεση
+    const m = waitlistMails(r);
+    try { await send(m.welcome); out.sent++; }
+    catch (e) {
+      out.failed++; const tries = (r.mail_tries || 0) + 1;
+      log('waitlist: ' + e.message);
+      await sb(`waitlist?id=eq.${r.id}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(tries >= WL_MAX_TRIES ? { mail_tries: tries } : { welcomed_at: null, mail_tries: tries }) }).catch(() => {});
+      if (tries < WL_MAX_TRIES) continue;
+      try { await send(waitlistMails(r, { failed: true, err: e.message }).admin); out.admin++; } catch (e2) { log('waitlist: admin ' + e2.message); }
+      continue;
+    }
+    try { await send(m.admin); out.admin++; } catch (e) { log('waitlist: admin ' + e.message); }
+  }
+  return out;
+}
+
 export async function run({ env, fetch: F0 = fetch, sendMail, log = console.log, PF = null, webpush = null, budgetMs = BUDGET_MS, netMs = NET_MS, sendMs = SEND_MS, only = null, learnOpen = false }) {
   const T0 = Date.now(), F = timedFetch(F0, netMs);
   if (webpush && typeof webpush.sendNotification === 'function') { const wp0 = webpush; webpush = Object.assign(Object.create(wp0), { sendNotification: timedSend((s, p, o) => wp0.sendNotification(s, p, o), sendMs, 'push') }); }
@@ -1082,7 +1167,7 @@ export async function run({ env, fetch: F0 = fetch, sendMail, log = console.log,
   const PING_WAIT_MIN = 15, LOWBAT = 10;
   // 1.9.50: τα σφάλματα των βημάτων μαζεύονται (για ειδοποίηση στους διαχειριστές στο τέλος· βλ. βήμα 9)
   const ERRS = [], log0 = log;
-  const STEP_ERR = /^(Telegram updates|Telegram send|Email send|Telegram ping|port note decide|port notes|weekly|morning|Forecast job|Πίεση|Πίεση Telegram|Πίεση \(Open-Meteo\)|community push|squid|squid fc|squid notif_log|Καιρός εξόδου|bite stats)$/;
+  const STEP_ERR = /^(Telegram updates|Telegram send|Email send|Telegram ping|port note decide|port notes|weekly|morning|Forecast job|Πίεση|Πίεση Telegram|Πίεση \(Open-Meteo\)|community push|squid|squid fc|squid notif_log|Καιρός εξόδου|bite stats|waitlist)$/;
   log = m => { log0(m); const t = String(m), k = t.split(':')[0].trim(); if (STEP_ERR.test(k)) ERRS.push({ k, m: t.slice(0, 300) }); };
   /* 1.14.83 (P0.6): βήματα που τρέχουν «κάθε ~15′» δεν εξαρτώνται από το ακριβές λεπτό του cron: κρατιέται πότε έτρεξαν τελευταία φορά
      με επιτυχία (job_state). Αν ο cron αργήσει ή χάσει μια εκτέλεση, το βήμα τρέχει στην επόμενη. Χωρίς τον πίνακα (παλιό σχήμα): όπως πριν. */
@@ -2203,7 +2288,13 @@ export async function run({ env, fetch: F0 = fetch, sendMail, log = console.log,
       }
     } catch (e) { log('bite stats: week ' + e.message); }
   }
-  mark('bstats'); stats.ms = { ...TM, total: Date.now() - T0 };
+  mark('bstats');
+  // 28/11/2026: λίστα «Ειδοποίησέ με» (website) → email καλωσορίσματος + email στον διαχειριστή (Resend). Χωρίς RESEND_API_KEY δεν κάνει τίποτα.
+  if (env.RESEND_API_KEY && !late()) {
+    try { const w = await waitlistStep({ sb, F, key: env.RESEND_API_KEY, log }); if (w.sent || w.failed) stats.wl = w; }
+    catch (e) { log('waitlist: ' + e.message); }
+  }
+  mark('wl'); stats.ms = { ...TM, total: Date.now() - T0 };
   log('Safety job: ' + JSON.stringify(stats));
   // 9) 1.9.50: υγεία του server. Σε κάθε εκτέλεση γράφεται «heartbeat» (backups/_system/heartbeat.json, το διαβάζει το watchdog του GitHub).
   //    Αν ένα βήμα αποτύχει σε 2 συνεχόμενες εκτελέσεις (όχι ένα στιγμιαίο σφάλμα δικτύου), μήνυμα Telegram στους διαχειριστές, το πολύ μία φορά ανά 6 ώρες ανά βήμα.
@@ -2311,6 +2402,7 @@ Deno.serve(async (req) => {
     SUPABASE_URL: E('SUPABASE_URL'),
     SUPABASE_SERVICE_KEY: E('SERVICE_KEY') || E('SUPABASE_SERVICE_ROLE_KEY'),
     TELEGRAM_BOT_TOKEN: TGT(),
+    RESEND_API_KEY: E('RESEND_API_KEY').trim(),   // 28/11/2026: emails της λίστας «Ειδοποίησέ με» (waitlistStep)
   };
   const isCron = !!secret && req.headers.get('x-cron-secret') === secret;
   if (!isCron) {

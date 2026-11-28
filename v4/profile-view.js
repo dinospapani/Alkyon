@@ -121,7 +121,7 @@ function helpGroup(page){
     row('bulb',T('Πες μας τη γνώμη σου','Share feedback'),T('Πρόταση, πρόβλημα ή κάτι που σου άρεσε','An idea, a problem, or something you liked'),null,feedbackSheet),
     /* 1.14.13 */ (C()&&C().session&&C().session())?(function(){ var rw=row('reply',T('Μηνύματα με την Alkyon','Messages with Alkyon'),T('Οι απαντήσεις μας στα μηνύματά σου','Our replies to your messages'),null,function(){ msgThread({uid:C().session().uid,admin:false,onclose:function(){ draw(); }}); });
       msgUnread().then(function(n){ if(!n) return; var ic=rw.firstElementChild; if(!ic) return; ic.classList.add('hasbadge'); ic.append(h('i',{class:'icbadge','aria-label':n+T(' νέα',' new'),text:String(n)})); }); return rw; })():null,
-    row('mail',T('Επικοινωνία','Contact'),'alkyonfishingapp@gmail.com','mailto:alkyonfishingapp@gmail.com?subject='+encodeURIComponent('Alkyon '+(window.ALKYON_VERSION||''))), /* 1.9.24 */
+    row('mail',T('Επικοινωνία','Contact'),'info@alkyonfishing.com','mailto:info@alkyonfishing.com?subject='+encodeURIComponent('Alkyon '+(window.ALKYON_VERSION||''))), /* 1.9.24 */
     row('safety',T('Έλεγχος συστήματος','System check'),T('Δουλεύουν όλα; Καιρός, δορυφόρος, ειδοποιήσεις, αντίγραφο','Is everything working? Weather, satellite, alerts, backup'),'#check'),
     row('info',T('Σχετικά','About'),'Alkyon '+(window.ALKYON_VERSION||'')+' · '+T('Απόρρητο, όροι','Privacy, terms'),null,aboutSheet)]));
 }
@@ -143,14 +143,14 @@ function feedbackSheet(){ var sh, s=C()&&C().session&&C().session(), topic='idea
   var em=h('input',{type:'email',autocomplete:'email',placeholder:T('Email για απάντηση (προαιρετικό)','Email for a reply (optional)'),value:s&&s.email||''});
   var seg=B.seg([['idea',T('Ιδέα','Idea')],['bug',T('Πρόβλημα','Problem')],['like',T('Μου αρέσει','I like it')]],topic,function(v){ topic=v; },T('Θέμα','Topic'));
   var go=h('button',{class:'btn pri full',type:'button',text:T('Αποστολή','Send'),onclick:function(){ var t=ta.value.trim(); if(t.length<3){ msg.textContent=T('Γράψε λίγα λόγια πρώτα.','Write a few words first.'); ta.focus(); return; }
-    if(!window.AlkyonErr||!window.AlkyonErr.feedback){ location.href='mailto:alkyonfishingapp@gmail.com?subject='+encodeURIComponent('Alkyon '+(window.ALKYON_VERSION||''))+'&body='+encodeURIComponent(t); return; }
+    if(!window.AlkyonErr||!window.AlkyonErr.feedback){ location.href='mailto:info@alkyonfishing.com?subject='+encodeURIComponent('Alkyon '+(window.ALKYON_VERSION||''))+'&body='+encodeURIComponent(t); return; }
     go.disabled=true; msg.textContent=T('Αποστολή…','Sending…');
     window.AlkyonErr.feedback(t,em.value.trim(),topic).then(function(){ sh.close(); B.toast(T('Ευχαριστούμε! Το μήνυμα στάλθηκε.','Thank you! Your message was sent.'),5000); })
       .catch(function(e){ go.disabled=false; var why=String(e&&e.message||''), off=navigator.onLine===false, code=(/HTTP \d+/.exec(why)||[''])[0];
         /* 1.14.70: λέει τον λόγο και δίνει κουμπί email με το μήνυμα έτοιμο, για να μη χαθεί */
         msg.textContent=off?T('Δεν στάλθηκε: δεν υπάρχει σύνδεση.','Not sent: no connection.'):code?T('Δεν στάλθηκε (','Not sent (')+code+T('). Στείλ’ το με email.','). Send it by email.'):T('Δεν στάλθηκε: ο server δεν απάντησε. Δοκίμασε ξανά ή στείλ’ το με email.','Not sent: the server did not answer. Try again or send it by email.');
         if(!ml.isConnected) go.after(ml); }); }});
-  var ml=h('button',{class:'btn full',type:'button',text:T('Αποστολή με email','Send by email'),onclick:function(){ location.href='mailto:alkyonfishingapp@gmail.com?subject='+encodeURIComponent('Alkyon '+(window.ALKYON_VERSION||''))+'&body='+encodeURIComponent(ta.value.trim()); }});
+  var ml=h('button',{class:'btn full',type:'button',text:T('Αποστολή με email','Send by email'),onclick:function(){ location.href='mailto:info@alkyonfishing.com?subject='+encodeURIComponent('Alkyon '+(window.ALKYON_VERSION||''))+'&body='+encodeURIComponent(ta.value.trim()); }});
   sh=B.sheet({title:T('Πες μας τη γνώμη σου','Share feedback'),body:h('div',{class:'bform'},seg,ta,em,
     h('p',{class:'foot',text:T('Μαζί με το μήνυμα στέλνονται η έκδοση, η σελίδα και ο τύπος του κινητού. Όχι θέση, ψάρια ή σημεία.','The app version, the page and the phone type are sent with your message. No location, catches or spots.')}),msg,go)}); }
 /* 1.13.8: μόνο για διαχειριστές: τα μηνύματα «Πες μας τη γνώμη σου» (πολιτική ae_admin_read_feedback) */
