@@ -105,16 +105,17 @@ function dayData(){ var c=ls.get('alkyon-fc7',null); if(!c||!c.fc||!c.fc.days||D
 /* ένα στοιχείο της μέρας για κάθε τρόπο ψαρέματος (από την πρόγνωση στο κινητό· τίποτα αν λείπει) */
 function fact(p,side){ try{ var dd=dayData(); if(!dd) return null; var d=dd.d, U=window.AlkyonUnits, now=new Date(), nh=dd.tom?(d.win?d.win.s:10):now.getHours();
   var wind=d.avgWind!=null?(U&&U.windP?U.windP(d.avgWind).join(' '):Math.round(d.avgWind)+' kn'):null, wave=d.avgWave!=null?B.num(d.avgWave,1)+' m':null;
-  var L=B.limits?B.limits():null, over=L&&d.hours.some(function(q){ return q.hr>=nh&&((q.wave!=null&&q.wave>L.wave)||(q.wind!=null&&q.wind>L.wind)); });
+  var L=B.limits?B.limits():null, ow=false, oi=false; if(L) d.hours.forEach(function(q){ if(q.hr<nh) return; if(q.wave!=null&&q.wave>L.wave) ow=true; if(q.wind!=null&&q.wind>L.wind) oi=true; });
+  var over=ow||oi, overT=(ow&&oi?T('Κύμα και άνεμος','Waves and wind'):ow?T('Κύμα','Waves'):T('Άνεμος','Wind'))+T(' πάνω από τα όριά σου',' above your limits')+(dd.tom?T(' αύριο',' tomorrow'):'');
   var when=dd.tom?T('αύριο ','tomorrow '):'';
   if(p==='lake') return wind?{t:T('Άνεμος ','Wind ')+wind+(dd.tom?T(' αύριο',' tomorrow'):T(' σήμερα',' today'))}:null;
   if(p==='spear'){ var pl=null; try{ var c=ls.get('alkyon-fc7',null); pl=(ls.get('alkyon-places',[])||[]).filter(function(x){ return x&&x.id===c.id; })[0]; }catch(e){}
     var v=pl&&B.clarityEst?B.clarityEst(pl.lat,pl.lon,d.date,B.pad(nh)+':00'):null;
     var lv=v==null?null:v>=15?T('πολύ καλή','very good'):v>=10?T('καλή','good'):v>=6?T('μέτρια','fair'):T('κακή','poor'), /* ίδια όρια με την κάρτα διαύγειας (clarity.js) */ t=[lv?T('Διαύγεια ','Visibility ')+lv:null,wave?T('κύμα ','waves ')+wave:null].filter(Boolean).join(' · '); if(!t) return null; t=t.charAt(0).toUpperCase()+t.slice(1);
-    return {t:t+(over?T(' · πάνω από τα όριά σου',' · above your limits'):''),bad:over}; }
+    return over?{t:overT,bad:true}:{t:t}; }
   if(!d.safe||!d.win) return {t:when+T('εκτός ορίων ασφαλείας σου','outside your safety limits'),bad:true};
-  var past=!dd.tom&&d.win.e<now.getHours(), t2=past?T('Η καλύτερη ώρα πέρασε','Best time has passed'):(dd.tom?T('Αύριο καλύτερη ','Tomorrow best '):T('Καλύτερη ώρα ','Best time '))+B.pad(d.win.s)+':00–'+B.pad((d.win.e+1)%24)+':00';
-  if(side==='boat') return {t:t2+(wave?T(' · κύμα ',' · waves ')+wave:'')+(over?T(' · προσοχή στα όρια',' · check your limits'):''),bad:over};
+  var past=!dd.tom&&d.win.e<now.getHours(), t2=past?T('Η καλύτερη ώρα πέρασε','Best time has passed'):(dd.tom?T('Αύριο: καλύτερη ώρα ','Tomorrow: best time '):T('Καλύτερη ώρα ','Best time '))+B.pad(d.win.s)+':00–'+B.pad((d.win.e+1)%24)+':00';
+  if(side==='boat') return over?{t:overT,bad:true}:{t:t2+(wave?T(' · κύμα ',' · waves ')+wave:'')};
   return {t:t2}; }catch(e){ return null; } }
 function dayHero(){ var dd=dayData(); if(!dd) return null; var d=dd.d, hs=d.hours, W=400, H=100;
   /* κλίμακα από τη μέρα (όχι 0–100), για να φαίνεται πού ανεβαίνει· όπως η καμπύλη της Πρόγνωσης */
