@@ -133,7 +133,7 @@ jobs:
       # APK για δοκιμή στο κινητό με έναν σύνδεσμο (χωρίς zip, χωρίς λογαριασμό GitHub):
       # https://github.com/dinospapani/Alkyon/releases/download/android-test/alkyon.apk
       - name: APK δοκιμής → release «android-test»
-        if: steps.ks.outputs.signed == '1'
+        if: steps.ks.outputs.signed == '1' && github.ref == 'refs/heads/main'   # 28/11/2026: χτίσιμο από άλλο κλαδί (δοκιμή μόνο για τον Dinos) δεν αλλάζει το δημόσιο APK δοκιμής
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
