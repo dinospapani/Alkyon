@@ -2,27 +2,81 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#06171F">
 <title>Alkyon · Privacy Policy</title>
 <link rel="icon" href="icon-192.png">
+<link rel="preload" href="v4/fonts/commissioner-latin.woff2" as="font" type="font/woff2" crossorigin>
+<script>
+(function(){ var h=document.documentElement, l='';
+  if(/^#(el|en)$/.test(location.hash)) l=location.hash.slice(1);
+  if(!l){ try{ var s=localStorage.getItem('alkyon-lang'); if(s==='el'||s==='en') l=s; }catch(e){} }
+  if(!l) l=/^el\b/i.test(navigator.language||'')?'el':'en';
+  h.lang=l; h.className='js';
+})();
+</script>
 <style>
-:root{--bg:#071431;--fg:#e6eef8;--mut:#a9b7cc;--acc:#f6b744;--card:#0d1f45}
-html,body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-main{max-width:760px;margin:0 auto;padding:28px 16px 60px}
-h1{font-size:28px;margin:0 0 4px}h2{font-size:19px;margin:28px 0 6px;color:var(--acc)}
-p,li{color:var(--fg)}small,.mut{color:var(--mut)}a{color:var(--acc)}
-.card{background:var(--card);border-radius:14px;padding:16px 18px;margin:18px 0}
-hr{border:0;border-top:1px solid #23365f;margin:36px 0}
+/* Ίδια χρώματα, γραμματοσειρά, header και footer με την αρχική (index.html). */
+@font-face{font-family:'Commissioner';font-weight:100 900;font-display:swap;src:url(v4/fonts/commissioner-greek.woff2) format('woff2');unicode-range:U+0370-03FF,U+1F00-1FFF}
+@font-face{font-family:'Commissioner';font-weight:100 900;font-display:swap;src:url(v4/fonts/commissioner-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+2000-206F,U+20AC,U+2122,U+2212}
+:root{--bg:#06171F;--bg2:#0A2230;--panel:#0D2A36;--line:#1C4253;--ink:#E6F1F2;--ink2:#C9DADF;--mut:#9BB5BE;--coral:#FF7A4D;--coral2:#FF9B77;--sea:#4FB3D9}
+*{box-sizing:border-box;min-width:0}
+html{scroll-behavior:smooth;scroll-padding-top:84px}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16.5px/1.65 Commissioner,system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:clip}
+/* γλώσσα: με JS φαίνεται μόνο η μία· χωρίς JS φαίνονται και οι δύο */
+html.js[lang=en] .el,html.js[lang=el] .en{display:none!important}
+a{color:var(--coral);text-decoration:none}a:hover{color:var(--coral2);text-decoration:underline}
+a:focus-visible,button:focus-visible{outline:2px solid var(--sea);outline-offset:3px;border-radius:8px}
+.skip{position:absolute;left:-9999px;top:8px;background:var(--coral);color:#1A0A04;padding:10px 16px;border-radius:10px;z-index:20}.skip:focus{left:12px}
+.wrap{max-width:1200px;margin:0 auto;padding:0 max(24px,env(safe-area-inset-left))}
+header{position:sticky;top:0;z-index:10;background:rgba(6,23,31,.86);backdrop-filter:saturate(1.4) blur(12px);-webkit-backdrop-filter:saturate(1.4) blur(12px);border-bottom:1px solid rgba(28,66,83,.7);padding-top:env(safe-area-inset-top)}
+header nav{display:flex;align-items:center;justify-content:space-between;gap:16px;height:68px}
+.brand{display:flex;align-items:center;gap:11px;color:var(--ink);font-weight:800;font-size:21px;letter-spacing:-.01em}.brand:hover{color:var(--ink);text-decoration:none}
+.brand img{width:36px;height:36px;border-radius:10px}
+.seg{display:none;border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:3px}
+html.js .seg{display:inline-flex}
+.seg button{border:0;background:transparent;color:var(--mut);font:inherit;font-size:14px;font-weight:700;min-width:46px;min-height:36px;border-radius:9px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--coral);color:#1A0A04}
+.doc{max-width:780px;margin:0 auto;padding:clamp(36px,6vw,64px) max(24px,env(safe-area-inset-left)) 72px}
+.lbl{display:inline-flex;align-items:flex-start;gap:8px;margin:0 0 12px;color:var(--coral);font-weight:700;font-size:15px}
+.lbl:before{content:"";flex:none;width:18px;height:2px;margin-top:.72em;border-radius:2px;background:currentColor}
+h1,h2{font-weight:800;letter-spacing:-.02em;text-wrap:balance}
+h1{font-size:clamp(32px,5vw,46px);line-height:1.08;margin:0 0 14px}
+h2{font-size:21px;line-height:1.3;margin:44px 0 10px;padding-top:24px;border-top:1px solid var(--line)}
+p,li{color:var(--ink2)}b{color:var(--ink);font-weight:700}
+ul{padding-left:22px}li{margin:0 0 10px}li::marker{color:var(--coral)}
+.mut{color:var(--mut);font-size:15px}
+.card{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--coral);border-radius:18px;padding:20px 22px;margin:26px 0;color:var(--ink)}
+.toc{background:var(--bg2);border:1px solid var(--line);border-radius:18px;padding:18px 22px;margin:0 0 8px}
+.toc b{display:block;font-size:14px;color:var(--mut);font-weight:700;margin-bottom:8px}
+.toc ol{margin:0;padding-left:20px;columns:2;column-gap:28px}.toc li{margin:0 0 6px;break-inside:avoid}.toc li::marker{color:var(--mut)}
+.toc a{color:var(--ink2)}.toc a:hover{color:var(--coral2)}
+.top{display:inline-block;margin-top:40px;font-weight:700}
+footer{padding:44px 0 calc(36px + env(safe-area-inset-bottom));border-top:1px solid var(--line);font-size:14px;color:var(--mut)}
+footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:20px}
+footer .fb{display:flex;align-items:center;gap:10px}footer .fb img{width:28px;height:28px;border-radius:8px}
+footer .fl{display:flex;flex-wrap:wrap;align-items:center;gap:8px 24px}footer a{color:var(--mut)}footer a:hover{color:var(--ink)}footer a[aria-current]{color:var(--ink)}
+@media (max-width:600px){.toc ol{columns:1}footer .wrap{flex-direction:column;align-items:flex-start}h2{margin-top:36px}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 </style>
 </head>
-<body><main>
-<img src="icon-192.png" width="64" height="64" alt="" style="border-radius:14px">
-<h1>Alkyon · Privacy Policy</h1>
-<p class="mut">Last updated: 27 November 2026 · Applies to the Alkyon web app (alkyonfishing.com, previously dinospapani.github.io/Alkyon), the Alkyon apps for Android and for iPhone/iPad, and the Alkyon apps for Apple Watch, Wear OS and Garmin watches.</p>
+<body>
+<a class="skip" href="#main"><span class="en">Skip to content</span><span class="el">Μετάβαση στο περιεχόμενο</span></a>
+<header><nav class="wrap" aria-label="Main">
+  <a class="brand" href="./"><img src="icon-192.png" alt="">Alkyon</a>
+  <div class="seg" role="group" aria-label="Language / Γλώσσα"><button type="button" data-l="en" lang="en" aria-pressed="true">EN</button><button type="button" data-l="el" lang="el" aria-pressed="false">ΕΛ</button></div>
+</nav></header>
+
+<main id="main" class="doc">
+<article class="en" lang="en">
+<p class="lbl">Legal</p>
+<h1>Privacy Policy</h1>
+<p class="mut">Last updated: 27 November 2026 · Applies to the Alkyon web app (alkyonfishing.com), the Alkyon apps for Android and for iPhone/iPad, and the Alkyon apps for Apple Watch, Wear OS and Garmin watches.</p>
 
 <div class="card">In short: Alkyon only stores what you log, so it can show it back to you and sync it between your devices. Nothing is sold, and nothing is used for advertising. Other people see something of yours only when you choose it: friends you add, community posts you publish, a safety contact you set, or an SOS you send.</div>
+<nav class="toc" aria-label="On this page"><b>On this page</b><ol><li><a href="#what-is-collected">What is collected</a></li><li><a href="#permissions-on-the-phone">Permissions on the phone</a></li><li><a href="#how-it-is-used">How it is used</a></li><li><a href="#friends">Friends</a></li><li><a href="#where-it-is-stored-and-who-processes-it">Where it is stored and who processes it</a></li><li><a href="#how-long-it-is-kept">How long it is kept</a></li><li><a href="#your-choices">Your choices</a></li><li><a href="#contact">Contact</a></li></ol></nav>
 
-<h2>What is collected</h2>
+<h2 id="what-is-collected">What is collected</h2>
 <ul>
 <li><b>Your account:</b> email address and an optional display name, if you create an account. If you choose <b>Continue with Google</b> or <b>Continue with Apple</b>, Alkyon receives only your name and email address (with Apple, possibly a private relay address), and uses them only to create and identify your account. No contacts, files or other data from those accounts.</li>
 <li><b>What you log:</b> catches, lost fish, trips (including the GPS track of a trip), fishing spots, gear and tackle, boat details, notes and photos, with the time and the GPS position you saved with them. If you are signed in, they are synced to your account; photos are kept in private storage that only you (and friends you share with, see below) can open. Cloud backups you make are stored in your own private folder.</li>
@@ -41,19 +95,19 @@ hr{border:0;border-top:1px solid #23365f;margin:36px 0}
 <li><b>Error reports:</b> short technical error messages (app version, page, error text). These do not include your position or your catches. If you are signed in, they are linked to your account so they are deleted with it.</li>
 </ul>
 
-<h2>Permissions on the phone</h2>
+<h2 id="permissions-on-the-phone">Permissions on the phone</h2>
 <p>Location (forecast for where you are, the map, catches and trips), camera (photos of a catch, only when you take one), photos (to pick or save a photo), microphone (voice notes and voice logging, only while you record), and on iPhone the barometer (air pressure saved with your trips and catches). Voice recordings stay on your device. Turning speech into text uses your phone's speech recognition service (Google or Apple). Each permission is asked for when you first use the feature, and you can refuse or remove it in the phone settings.</p>
 
-<h2>How it is used</h2>
+<h2 id="how-it-is-used">How it is used</h2>
 <p>Only to provide the features of the app: your logbook, sync between your devices and your watch, forecasts, alerts, safety messages, SOS, and sharing with the people you choose.</p>
 
-<h2>Friends</h2>
+<h2 id="friends">Friends</h2>
 <p>You connect with a friend by exchanging a one-time code. Connecting turns sharing on in both directions. A friend who shares with you can see your catches, spots and trips that are not marked private, including the exact position, the GPS track, notes and photos, and your live position when you turn it on for a trip. You can stop sharing with any friend at any time in <b>Profile › Friends</b>, and mark any catch, spot or trip as private.</p>
 
-<h2>Where it is stored and who processes it</h2>
+<h2 id="where-it-is-stored-and-who-processes-it">Where it is stored and who processes it</h2>
 <p>Data is stored in the app's database and file storage (Supabase) and on your own device. The app itself is served by Cloudflare. Notifications go through Google (Firebase Cloud Messaging), Apple (Apple Push Notification service) or your browser's push service; safety alerts through Telegram. Weather, sea, seabed and map data are requested from Open-Meteo, Copernicus Marine, EMODnet, EUMETSAT, RainViewer and map tile services (such as Esri, OpenStreetMap and OpenSeaMap) using a position or map area only; no account details are sent with those requests, but like any website they see your device's IP address.</p>
 
-<h2>How long it is kept</h2>
+<h2 id="how-long-it-is-kept">How long it is kept</h2>
 <ul>
 <li>What you log and your account: until you delete it or delete your account.</li>
 <li>Completed safety trips (plan, last position, battery) and live trip positions: 90 days.</li>
@@ -61,7 +115,7 @@ hr{border:0;border-top:1px solid #23365f;margin:36px 0}
 <li>Sea reports: 7 days.</li>
 </ul>
 
-<h2>Your choices</h2>
+<h2 id="your-choices">Your choices</h2>
 <ul>
 <li>You can use most of the app without an account. Your data then stays only on your device.</li>
 <li>You can delete any catch, spot or trip in the app at any time, and mark any of them as private.</li>
@@ -70,16 +124,18 @@ hr{border:0;border-top:1px solid #23365f;margin:36px 0}
 <li>To stop a watch from sending data, remove the link code from the watch app, or create a new code in the watch settings in <b>Profile</b>. The old code then stops working.</li>
 </ul>
 
-<h2>Contact</h2>
+<h2 id="contact">Contact</h2>
 <p>Questions or deletion requests: <a href="mailto:info@alkyonfishing.com">info@alkyonfishing.com</a> · See also the <a href="terms">Terms of Use</a>.</p>
+<a class="top" href="#main">↑ Back to top</a>
+</article>
 
-<hr>
-
-<h1 lang="el">Πολιτική απορρήτου</h1>
-<div lang="el">
+<article class="el" lang="el">
+<p class="lbl">Νομικά</p>
+<h1>Πολιτική απορρήτου</h1>
 <p class="mut">Τελευταία ενημέρωση: 27 Νοεμβρίου 2026 · Ισχύει για την εφαρμογή web (alkyonfishing.com), τις εφαρμογές για Android και iPhone/iPad, και τις εφαρμογές για Apple Watch, Wear OS και ρολόγια Garmin.</p>
 <div class="card">Με λίγα λόγια: το Alkyon κρατά μόνο όσα καταγράφεις εσύ, για να σου τα δείχνει και να τα συγχρονίζει ανάμεσα στις συσκευές σου. Δεν πουλιέται τίποτα και δεν χρησιμοποιείται τίποτα για διαφημίσεις. Άλλοι βλέπουν κάτι δικό σου μόνο όταν το επιλέγεις: φίλοι που προσθέτεις, αναρτήσεις στην κοινότητα, επαφή ασφαλείας, ή ένα SOS που στέλνεις.</div>
-<h2>Τι συλλέγεται</h2>
+<nav class="toc" aria-label="Σε αυτή τη σελίδα"><b>Σε αυτή τη σελίδα</b><ol><li><a href="#el-1">Τι συλλέγεται</a></li><li><a href="#el-2">Άδειες στο κινητό</a></li><li><a href="#el-3">Πώς χρησιμοποιούνται</a></li><li><a href="#el-4">Φίλοι</a></li><li><a href="#el-5">Πού αποθηκεύονται και ποιοι τα επεξεργάζονται</a></li><li><a href="#el-6">Πόσο καιρό κρατιούνται</a></li><li><a href="#el-7">Οι επιλογές σου</a></li><li><a href="#el-8">Επικοινωνία</a></li></ol></nav>
+<h2 id="el-1">Τι συλλέγεται</h2>
 <ul>
 <li><b>Λογαριασμός:</b> email και όνομα (προαιρετικά). Με «Συνέχεια με Google» ή «Συνέχεια με Apple» η εφαρμογή παίρνει μόνο το όνομα και το email σου (με την Apple, ίσως μια ιδιωτική διεύθυνση προώθησης), μόνο για να φτιάξει και να αναγνωρίζει τον λογαριασμό σου. Όχι επαφές, αρχεία ή άλλα δεδομένα.</li>
 <li><b>Καταγραφές:</b> ψάρια, χαμένα ψάρια, έξοδοι (με τη διαδρομή GPS της εξόδου), σημεία, εξοπλισμός, σκάφος, σημειώσεις και φωτογραφίες, μαζί με την ώρα και τη θέση GPS που αποθηκεύεις. Αν είσαι συνδεδεμένος, συγχρονίζονται στον λογαριασμό σου· οι φωτογραφίες μένουν σε ιδιωτικό χώρο που ανοίγεις μόνο εσύ (και οι φίλοι με τους οποίους μοιράζεσαι, βλ. παρακάτω). Τα αντίγραφα ασφαλείας που κάνεις μένουν στον δικό σου ιδιωτικό φάκελο.</li>
@@ -97,22 +153,22 @@ hr{border:0;border-top:1px solid #23365f;margin:36px 0}
 <li><b>Λίστα κυκλοφορίας (προαιρετικά, website):</b> αν αφήσεις το email σου στο alkyonfishing.com για να μάθεις πότε κυκλοφορεί το Alkyon, κρατάμε μόνο το email, τη γλώσσα της σελίδας και την ημερομηνία. Χρησιμοποιείται μόνο για να σε ενημερώσουμε για την κυκλοφορία και για περιστασιακά νέα του Alkyon, και δεν δίνεται ούτε πουλιέται σε κανέναν. Μπορείς να ζητήσεις διαγραφή όποτε θέλεις με email στο info@alkyonfishing.com· σβήνεται μέσα σε 30 μέρες.</li>
 <li><b>Αναφορές σφαλμάτων:</b> σύντομα τεχνικά μηνύματα (έκδοση, σελίδα, σφάλμα), χωρίς θέση και χωρίς ψάρια. Αν είσαι συνδεδεμένος, συνδέονται με τον λογαριασμό σου ώστε να σβήνονται μαζί του.</li>
 </ul>
-<h2>Άδειες στο κινητό</h2>
+<h2 id="el-2">Άδειες στο κινητό</h2>
 <p>Θέση (πρόγνωση εκεί που είσαι, χάρτης, ψάρια και έξοδοι), κάμερα (φωτογραφία ψαριού, μόνο όταν τραβάς), φωτογραφίες (για να διαλέξεις ή να αποθηκεύσεις φωτογραφία), μικρόφωνο (φωνητικές σημειώσεις και καταγραφή με φωνή, μόνο όσο ηχογραφείς), και στο iPhone το βαρόμετρο (η πίεση αποθηκεύεται με τις εξόδους και τα ψάρια). Οι ηχογραφήσεις μένουν στη συσκευή σου. Η μετατροπή φωνής σε κείμενο γίνεται από την υπηρεσία αναγνώρισης φωνής του κινητού σου (Google ή Apple). Κάθε άδεια ζητείται την πρώτη φορά που χρησιμοποιείς τη λειτουργία, και μπορείς να την αρνηθείς ή να την αφαιρέσεις από τις ρυθμίσεις του κινητού.</p>
-<h2>Πώς χρησιμοποιούνται</h2>
+<h2 id="el-3">Πώς χρησιμοποιούνται</h2>
 <p>Μόνο για τις λειτουργίες της εφαρμογής: ημερολόγιο, συγχρονισμός ανάμεσα στις συσκευές και στο ρολόι σου, πρόγνωση, ειδοποιήσεις, μηνύματα ασφαλείας, SOS, και κοινή χρήση με όποιους επιλέγεις.</p>
-<h2>Φίλοι</h2>
+<h2 id="el-4">Φίλοι</h2>
 <p>Συνδέεσαι με έναν φίλο ανταλλάσσοντας έναν κωδικό μιας χρήσης. Με τη σύνδεση η κοινή χρήση ανοίγει και από τις δύο μεριές. Ένας φίλος που μοιράζεται μαζί σου βλέπει τα ψάρια, τα σημεία και τις εξόδους σου που δεν είναι ιδιωτικά, με την ακριβή θέση, τη διαδρομή GPS, τις σημειώσεις και τις φωτογραφίες, και τη ζωντανή θέση σου όταν την ανοίγεις σε μια έξοδο. Μπορείς να σταματήσεις την κοινή χρήση με οποιονδήποτε φίλο, όποτε θέλεις, στο <b>Προφίλ › Φίλοι</b>, και να σημειώσεις οποιοδήποτε ψάρι, σημείο ή έξοδο ως ιδιωτικό.</p>
-<h2>Πού αποθηκεύονται και ποιοι τα επεξεργάζονται</h2>
+<h2 id="el-5">Πού αποθηκεύονται και ποιοι τα επεξεργάζονται</h2>
 <p>Τα δεδομένα αποθηκεύονται στη βάση και στον χώρο αρχείων της εφαρμογής (Supabase) και στη δική σου συσκευή. Η εφαρμογή φιλοξενείται στο Cloudflare. Οι ειδοποιήσεις περνούν από τη Google (Firebase Cloud Messaging), την Apple (Apple Push Notification service) ή την υπηρεσία push του browser σου· οι ειδοποιήσεις ασφαλείας από το Telegram. Τα δεδομένα καιρού, θάλασσας, βυθού και χάρτη ζητούνται από Open-Meteo, Copernicus Marine, EMODnet, EUMETSAT, RainViewer και υπηρεσίες χαρτών (όπως Esri, OpenStreetMap και OpenSeaMap) μόνο με μια θέση ή περιοχή χάρτη· δεν στέλνονται στοιχεία λογαριασμού, αλλά, όπως κάθε ιστότοπος, βλέπουν τη διεύθυνση IP της συσκευής σου.</p>
-<h2>Πόσο καιρό κρατιούνται</h2>
+<h2 id="el-6">Πόσο καιρό κρατιούνται</h2>
 <ul>
 <li>Οι καταγραφές και ο λογαριασμός σου: μέχρι να τα σβήσεις ή να σβήσεις τον λογαριασμό σου.</li>
 <li>Ολοκληρωμένες έξοδοι ασφαλείας (πλάνο, τελευταία θέση, μπαταρία) και θέσεις ζωντανής εξόδου: 90 μέρες.</li>
 <li>Ιστορικό ειδοποιήσεων και αναφορές σφαλμάτων: 30 μέρες. Μηνύματα σχολίων: μέχρι να τα σβήσουμε, και πάντα μαζί με τον λογαριασμό σου.</li>
 <li>Αναφορές θάλασσας: 7 μέρες.</li>
 </ul>
-<h2>Οι επιλογές σου</h2>
+<h2 id="el-7">Οι επιλογές σου</h2>
 <ul>
 <li>Μπορείς να χρησιμοποιήσεις το μεγαλύτερο μέρος της εφαρμογής χωρίς λογαριασμό. Τότε τα δεδομένα σου μένουν μόνο στη συσκευή σου.</li>
 <li>Μπορείς να σβήσεις οποιοδήποτε ψάρι, σημείο ή έξοδο όποτε θέλεις, και να τα σημειώσεις ως ιδιωτικά.</li>
@@ -120,8 +176,31 @@ hr{border:0;border-top:1px solid #23365f;margin:36px 0}
 <li>Μπορείς να σβήσεις τον λογαριασμό σου και όλα του τα δεδομένα από το <b>Προφίλ › Λογαριασμός</b>, ή να μας το ζητήσεις με email (<a href="delete-account">alkyonfishing.com/delete-account</a>). Τα αιτήματα με email ολοκληρώνονται μέσα σε 30 μέρες.</li>
 <li>Για να σταματήσει ένα ρολόι να στέλνει δεδομένα, αφαίρεσε τον κωδικό σύνδεσης από την εφαρμογή του ρολογιού ή φτιάξε νέο κωδικό στις ρυθμίσεις ρολογιού στο <b>Προφίλ</b>. Ο παλιός κωδικός σταματά τότε να ισχύει.</li>
 </ul>
-<h2>Επικοινωνία</h2>
+<h2 id="el-8">Επικοινωνία</h2>
 <p>Ερωτήσεις ή αιτήματα διαγραφής: <a href="mailto:info@alkyonfishing.com">info@alkyonfishing.com</a> · Δες και τους <a href="terms">Όρους Χρήσης</a>.</p>
-</div>
-</main></body>
+<a class="top" href="#main">↑ Επιστροφή στην αρχή</a>
+</article>
+</main>
+
+<footer><div class="wrap">
+  <div class="fb"><img src="icon-192.png" alt=""><span>© 2026 Alkyon · <span class="en">Know the moment to fish</span><span class="el">Η σωστή στιγμή για ψάρεμα</span></span></div>
+  <div class="fl">
+    <a href="./"><span class="en">Home</span><span class="el">Αρχική</span></a>
+    <a href="privacy" aria-current="page"><span class="en">Privacy</span><span class="el">Απόρρητο</span></a>
+    <a href="terms"><span class="en">Terms</span><span class="el">Όροι</span></a>
+    <a href="https://www.instagram.com/alkyonfishingapp/">Instagram</a>
+    <a href="https://www.tiktok.com/@alkyonfishingapp">TikTok</a>
+    <a href="mailto:info@alkyonfishing.com">info@alkyonfishing.com</a>
+  </div>
+</div></footer>
+<script>
+(function(){ var h=document.documentElement, bs=document.querySelectorAll('.seg button'), T={en:'Alkyon · Privacy Policy',el:'Alkyon · Πολιτική απορρήτου'};
+  function set(l,push){ h.lang=l; document.title=T[l];
+    for(var i=0;i<bs.length;i++) bs[i].setAttribute('aria-pressed',String(bs[i].getAttribute('data-l')===l));
+    if(push){ try{ history.replaceState(null,'',location.pathname+location.search+'#'+l); }catch(e){} window.scrollTo(0,0); } }
+  for(var i=0;i<bs.length;i++) bs[i].onclick=function(){ set(this.getAttribute('data-l'),true); };
+  set(h.lang==='el'?'el':'en',false);
+})();
+</script>
+</body>
 </html>
