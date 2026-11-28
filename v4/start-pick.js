@@ -64,6 +64,7 @@ B.startPick=function(){ try{ sessionStorage.setItem('alkyon-sp-seen','1'); }catc
   function lab(){ go.replaceChildren(h('span',{text:T('Συνέχεια · ','Continue · ')+label(st.p,st.s)}),h('i',{html:CHEV})); try{ var hi=pg&&pg.querySelector('.sphero'); if(hi&&!hi.classList.contains('day')) hi.style.backgroundImage='url('+heroImg()+')'; }catch(e){} }
   /* 1.12.22: το «πίσω» του κινητού κλείνει τη σελίδα χωρίς αλλαγή (όπως το «Παράλειψη»), αντί να βγάζει από την εφαρμογή ή τη σελίδα.
      Μπαίνει μία εγγραφή στο ιστορικό· αν κλείσει με κουμπί, την αφαιρούμε εμείς (δεν αλλάζει η διεύθυνση, άρα δεν μπλέκει με την πλοήγηση). */
+  function title(){ return h('div',{class:'sptitle'},h('p',{class:'sphi',text:hello()}),(function(){ var c=todayChip(); return c?[c,h('h1',{text:T('Πού ψαρεύεις σήμερα;','Where are you fishing today?')})]:[h('h1',{text:T('Πού ψαρεύεις σήμερα;','Where are you fishing today?')}),h('p',{text:T('Διάλεξε πού και πώς ψαρεύεις','Choose where and how you fish')})]; })()); }
   var hist=false, gone=false;
   function onPop(){ if(!hist) return; hist=false; close(true); }
   function close(fromPop){ if(gone) return; gone=true; pg.classList.add('out'); cover(false); document.removeEventListener('keydown',key); setTimeout(function(){ pg.remove(); window.removeEventListener('popstate',onPop); },260); try{ prev&&prev.focus&&prev.focus(); }catch(e){}
@@ -73,17 +74,21 @@ B.startPick=function(){ try{ sessionStorage.setItem('alkyon-sp-seen','1'); }catc
   var pg=h('div',{class:'sppage',role:'dialog','aria-modal':'true','aria-label':T('Πού ψαρεύεις σήμερα;','Where are you fishing today?')},
     h('div',{class:'sphero',style:{backgroundImage:'url('+heroImg()+')'}},h('span',{class:'spheroshade'}),
       h('button',{class:'spskip',type:'button',text:T('Παράλειψη','Skip'),title:T('Κλείσιμο χωρίς αλλαγή: θα ξαναρωτήσει την επόμενη φορά','Close without changes: it will ask again next time'),onclick:close}),brand(),
-      h('div',{class:'sptitle'},h('p',{class:'sphi',text:hello()}),(function(){ var c=todayChip(); return c?[c,h('h1',{text:T('Πού ψαρεύεις σήμερα;','Where are you fishing today?')})]:[h('h1',{text:T('Πού ψαρεύεις σήμερα;','Where are you fishing today?')}),h('p',{text:T('Διάλεξε πού και πώς ψαρεύεις','Choose where and how you fish')})]; })())),
-    h('div',{class:'spbody'},picker(st,lab,!!dayData()),
+      title()),
+    h('div',{class:'spbody'},picker(st,lab,false),
       h('label',{class:'spask'},ask,h('span',{class:'spbox',html:CHK}),h('span',{text:T('Να μη ρωτάει κάθε φορά','Don’t ask every time')})),
       /* 28/11/2026: «Συνέχεια» και «Αλλαγή αργότερα» σε μία κάτω μπάρα με φόντο, μέσα στην ασφαλή ζώνη· τίποτα δεν κρύβεται πίσω από το κουμπί */
       h('div',{class:'spbar'},go,h('p',{class:'spfoot',text:T('Αλλαγή αργότερα: Προφίλ › Τύπος ψαρέματος','Change later: Profile › Fishing type')}))));
   /* 1.12.20: με φωτεινό θέμα η είσοδος ταιριάζει με την εφαρμογή: η φωτογραφία μένει πάνω, από κάτω ανοιχτό φόντο και λευκές κάρτες */
-  try{ var dh=dayHero(); if(dh){ var he=pg.querySelector('.sphero'); he.classList.add('day'); he.style.backgroundImage='none'; he.insertBefore(dh,he.firstChild); } }catch(e){}
   if(isLight()) pg.classList.add('splight');
-  /* με τη «μέρα σου» πάνω, ο τίτλος πάει κάτω και στο σκοτεινό θέμα (αλλιώς θα έπεφτε πάνω στο γράφημα) */
-  if(pg.querySelector('.sphero.day')) pg.classList.add('spdayon');
-  if(isLight()||pg.querySelector('.sphero.day')){ var ttl=pg.querySelector('.sptitle'), bd=pg.querySelector('.spbody'); if(ttl&&bd) bd.insertBefore(ttl,bd.firstChild); }
+  /* «η μέρα σου» πάνω (αν υπάρχει πρόγνωση): ο τίτλος πάει κάτω και στο σκοτεινό θέμα, η επιλογή χωρίς φωτογραφίες */
+  function upgrade(){ try{ if(pg.classList.contains('spdayon')) return true; var dh=dayHero(); if(!dh) return false;
+      var he=pg.querySelector('.sphero'), body=pg.querySelector('.spbody'), old=pg.querySelector('.sptitle'), k=pg.querySelector('.spk');
+      he.classList.add('day'); he.style.backgroundImage='none'; he.insertBefore(dh,he.firstChild); pg.classList.add('spdayon');
+      if(old) old.remove(); body.insertBefore(title(),body.firstChild); if(k) k.replaceWith(picker(st,lab,true)); return true; }catch(e){ return false; } }
+  if(isLight()){ var ttl=pg.querySelector('.sptitle'), bd=pg.querySelector('.spbody'); if(ttl&&bd) bd.insertBefore(ttl,bd.firstChild); }
+  if(!upgrade()&&B.fcBg){ /* παλιά ή καθόλου πρόγνωση: φέρνει νέα στο παρασκήνιο· όταν έρθει, η σελίδα γίνεται «η μέρα σου» */
+    B.fcBg().then(function(c){ if(c&&!gone) upgrade(); }); }
   lab(); cover(true); document.body.append(pg); document.addEventListener('keydown',key);
   /* 1.12.28: η εγγραφή στο ιστορικό μπαίνει στο πρώτο άγγιγμα της σελίδας, όχι με το άνοιγμα.
      Το Chrome σημαδεύει ως «παρακάμψιμη» μια σελίδα που προσθέτει εγγραφή χωρίς άγγιγμα του χρήστη, και το history.back()
@@ -98,7 +103,11 @@ function hello(){ var hr=new Date().getHours(), g=hr<5?T('Καλή νύχτα','
 /* 28/11/2026 (πρωτότυπο): η πάνω εικόνα = η μέρα σου. Ο βαθμός ψαρέματος ώρα-ώρα για το σημείο της πρόγνωσης, με τη νύχτα,
    την καλύτερη ώρα (πορτοκαλί), τις ώρες εκτός ορίων ασφαλείας (κόκκινη βάση) και το «τώρα». Από την πρόγνωση που είναι ήδη στο κινητό:
    χωρίς δίκτυο, παντού (ακτή ή ανοιχτά). Χωρίς πρόσφατη πρόγνωση (12 ώρες): μένει η φωτογραφία. */
-function dayData(){ var c=ls.get('alkyon-fc7',null); if(!c||!c.fc||!c.fc.days||Date.now()-(c.t||0)>12*3600e3) return null;
+/* 28/11/2026: πρόγνωση έως 24 ωρών (ήταν 12)· έχει 7 μέρες, άρα και η χθεσινή έχει τη σημερινή μέρα ώρα-ώρα */
+var FC_MAX=24*3600e3;
+function fcPt(c){ try{ if(!c) return null; if(c.id==='gps'){ var q=B.lastPos&&B.lastPos(); return q&&typeof q.lat==='number'?{lat:q.lat,lon:q.lon,name:''}:null; }
+  var pl=(ls.get('alkyon-places',[])||[]).filter(function(x){ return x&&x.id===c.id; })[0]; return pl&&typeof pl.lat==='number'?pl:null; }catch(e){ return null; } }
+function dayData(){ var c=ls.get('alkyon-fc7',null); if(!c||!c.fc||!c.fc.days||Date.now()-(c.t||0)>FC_MAX) return null;
   var d0=new Date(), td=d0.getFullYear()+'-'+B.pad(d0.getMonth()+1)+'-'+B.pad(d0.getDate()), d=c.fc.days.filter(function(x){ return x.date===td; })[0], tom=false; if(!d) return null;
   if(!d.safe&&d.why==='night'){ var d2=c.fc.days[c.fc.days.indexOf(d)+1]; if(!d2) return null; d=d2; tom=true; }
   if(!d.hours||d.hours.length<12) return null; return {d:d,tom:tom}; }
@@ -109,7 +118,7 @@ function fact(p,side){ try{ var dd=dayData(); if(!dd) return null; var d=dd.d, U
   var over=ow||oi, overT=(ow&&oi?T('Κύμα και άνεμος','Waves and wind'):ow?T('Κύμα','Waves'):T('Άνεμος','Wind'))+T(' πάνω από τα όριά σου',' above your limits')+(dd.tom?T(' αύριο',' tomorrow'):'');
   var when=dd.tom?T('αύριο ','tomorrow '):'';
   if(p==='lake') return wind?{t:T('Άνεμος ','Wind ')+wind+(dd.tom?T(' αύριο',' tomorrow'):T(' σήμερα',' today'))}:null;
-  if(p==='spear'){ var pl=null; try{ var c=ls.get('alkyon-fc7',null); pl=(ls.get('alkyon-places',[])||[]).filter(function(x){ return x&&x.id===c.id; })[0]; }catch(e){}
+  if(p==='spear'){ var pl=fcPt(ls.get('alkyon-fc7',null));
     var v=pl&&B.clarityEst?B.clarityEst(pl.lat,pl.lon,d.date,B.pad(nh)+':00'):null;
     var lv=v==null?null:v>=15?T('πολύ καλή','very good'):v>=10?T('καλή','good'):v>=6?T('μέτρια','fair'):T('κακή','poor'), /* ίδια όρια με την κάρτα διαύγειας (clarity.js) */ t=[lv?T('Διαύγεια ','Visibility ')+lv:null,wave?T('κύμα ','waves ')+wave:null].filter(Boolean).join(' · '); if(!t) return null; t=t.charAt(0).toUpperCase()+t.slice(1);
     return over?{t:overT,bad:true}:{t:t}; }
@@ -137,7 +146,7 @@ function dayHero(){ var dd=dayData(); if(!dd) return null; var d=dd.d, hs=d.hour
     if(q0){ box.append(h('span',{class:'spdayn',style:{left:pc(nh/24)}}),h('span',{class:'spdayd',style:{left:pc(nh/24),top:pc(y(q0.score)/H)}}),h('span',{class:'spdaynl'+(nh>19?' r':''),style:{left:pc(nh/24),top:pc(y(q0.score)/H)},text:T('τώρα ','now ')+(q0.safe===false?'!':Math.round(q0.score||0))})); } }
   else box.appendChild(h('span',{class:'spdaytag',text:T('Αύριο','Tomorrow')}));
   return box; }
-function todayChip(){ try{ var c=ls.get('alkyon-fc7',null); if(!c||!c.fc||!c.fc.days||Date.now()-(c.t||0)>12*3600e3) return null;
+function todayChip(){ try{ var c=ls.get('alkyon-fc7',null); if(!c||!c.fc||!c.fc.days||Date.now()-(c.t||0)>FC_MAX) return null;
   var d0=new Date(), td=d0.getFullYear()+'-'+B.pad(d0.getMonth()+1)+'-'+B.pad(d0.getDate()), d=c.fc.days.filter(function(x){ return x.date===td; })[0]; if(!d) return null;
   /* 1.14.19: το βράδυ δεν μένουν ώρες φωτός σήμερα (why='night'): δεν είναι «εκτός ορίων», δείχνει το αύριο */
   var lab=T('Σήμερα','Today'); if(!d.safe&&d.why==='night'){ var i0=c.fc.days.indexOf(d), d2=c.fc.days[i0+1]; if(!d2) return null; d=d2; lab=T('Αύριο','Tomorrow'); }

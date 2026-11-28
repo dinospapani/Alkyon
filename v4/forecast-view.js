@@ -200,6 +200,25 @@ function hourOf(d,hr){ return (d.hours||[]).filter(function(x){ return x.hr===hr
 function val(p){ return p?[p[0],h('small',{text:p[1]})]:'–'; }
 function ago(t){ var m=Math.round((Date.now()-t)/60000); return m<2?T('μόλις τώρα','just now'):m<60?T('πριν ','')+m+T(' λεπτά',' min ago'):T('πριν ','')+Math.round(m/60)+T(' ώρες',' h ago'); }
 
+/* 28/11/2026: πρόγνωση στο παρασκήνιο για την Αρχική («η μέρα σου»), για το ίδιο σημείο που δείχνει η Πρόγνωση.
+   Μόνο με σήμα, μόνο αν η αποθηκευμένη είναι παλιότερη από μία ώρα (όπως η σελίδα), χωρίς αίτημα θέσης (αν δεν υπάρχει θέση, τίποτα).
+   Ίδια κλήση και ίδια αποθήκευση με τη σελίδα (alkyon-fc7, ιστορικό), άρα η Πρόγνωση ανοίγει μετά αμέσως. */
+var bgBusy=null;
+B.fcBg=function(){ try{
+  if(navigator.onLine===false) return Promise.resolve(null);
+  var p=current(); if(!p||p.lat==null) return Promise.resolve(null);
+  var sp=spCfg(), spk=sp?sp.n:'', cache=ls.get('alkyon-fc7',null);
+  if(cache&&cache.id===p.id&&(cache.sp||'')===spk&&cache.fc&&Date.now()-cache.t<3600e3) return Promise.resolve(cache);
+  if(st.loading) return Promise.resolve(null);   /* η σελίδα Πρόγνωση φορτώνει ήδη */
+  if(bgBusy) return bgBusy;
+  var f=waveFactor(p.lat,p.lon), ff=Math.abs(f-1)<0.03?null:function(url,o){ return fetch(url,o).then(function(r){
+    if(!/marine-api/.test(url)||!r.ok) return r;
+    return r.json().then(function(j){ try{ j.hourly.wave_height=j.hourly.wave_height.map(function(v){ return typeof v==='number'?Math.round(v*f*100)/100:v; }); }catch(e){} return {ok:true,status:200,json:function(){ return Promise.resolve(j); }}; }); }); };
+  bgBusy=PF.getForecast(p.lat,p.lon,ff,{days:7,sp:sp,ens:true,chl:chlNow(p),thd:thdNow(p)}).then(function(fc){
+    var c={id:p.id,sp:spk,t:Date.now(),fc:fc}; ls.set('alkyon-fc7',c); saveHist(p,fc); bgBusy=null; try{ B.emit('store','alkyon-fc7'); }catch(e){} return c;
+  }).catch(function(){ bgBusy=null; return null; });
+  return bgBusy; }catch(e){ return Promise.resolve(null); } };
+
 /* ---------- καμπύλη ημέρας (το κεντρικό στοιχείο) ---------- */
 function curve(d,opt){
   opt=opt||{}; var W=opt.w||340, H=opt.h||120, hs=d.hours||[], pad=opt.mini?2:8;
