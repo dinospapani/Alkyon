@@ -2153,9 +2153,10 @@ with sync_playwright() as p:
       const x=document.querySelector('#fcExposure'); if(!x||x.hidden) return ['noexpo']; const rg=x.querySelector('.exbar input'), tl=x.querySelector('.extime'); if(!rg) return ['nobar', x.innerHTML.length];
       const t0=tl.textContent, v0=+rg.value, nv=v0>3?v0-3:v0+3; rg.value=String(nv); rg.dispatchEvent(new Event('input',{bubbles:true})); await W(300);
       const t1=tl.textContent, txt=(x.querySelector('.exv')||{}).textContent||'', hsel=(document.querySelector('.hcard .hsel b')||{}).textContent||'';
-      const bars=[...document.querySelectorAll('.hcard .hbars .hb')]; const bi=Math.min(bars.length-1,nv+2), r=bars[bi].getBoundingClientRect(); bars[bi].dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,clientX:r.left+r.width/2,clientY:r.top+3,pointerId:3})); bars[bi].dispatchEvent(new PointerEvent('pointerup',{bubbles:true,clientX:r.left+r.width/2,clientY:r.top+3,pointerId:3})); await W(300);
+      const bars=[...document.querySelectorAll('.hcard .hbars .hb')]; const bi=nv+2<=bars.length-4?nv+2:nv-2, r=bars[bi].getBoundingClientRect(); bars[bi].dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,clientX:r.left+r.width/2,clientY:r.top+3,pointerId:3})); bars[bi].dispatchEvent(new PointerEvent('pointerup',{bubbles:true,clientX:r.left+r.width/2,clientY:r.top+3,pointerId:3})); await W(300);
       const t2=tl.textContent, hsel2=(document.querySelector('.hcard .hsel b')||{}).textContent||''; x.querySelector('.explay').click(); await W(1700); const t3=tl.textContent, pt=x.querySelector('.explay').textContent; x.querySelector('.explay').click();
       return [t0,t1,/At \d\d:00 wind from|Now wind from/.test(txt),hsel,t2,hsel2,t3,pt]; }""")
+    # 28/11/2026: το ▶ ξεκινά από ώρα με τουλάχιστον 3 ώρες μετά μέσα στη μέρα (η μπάρα δείχνει μόνο την επιλεγμένη μέρα)· πριν, στις 23:xx UTC ξεκινούσε 22:00 και σταματούσε σωστά στις 23:00, και ο έλεγχος αποτύγχανε
     ok=len(ex)==8 and ex[0]!=ex[1] and ex[2] and ex[1][-5:-3]==ex[3][-11:-9] and ex[4]!=ex[1] and ex[4].split(' ')[1][:2]==ex[5].replace('Now, ','')[:2] and ex[6]!=ex[4] and ex[7]=='❚❚'
     check('Έκθεση ακτής: μπάρα χρόνου με ▶, η ώρα γράφεται στον χάρτη, αλλάζει το κείμενο του ανέμου, και συγχρονίζεται με το «Ανά ώρα» προς τις δύο κατευθύνσεις (1.14.79)', ok and not pg._errs, [ex,pg._errs]); c.close()
 
