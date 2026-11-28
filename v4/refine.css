@@ -410,5 +410,5 @@ html.nightred .hero .hsun1 .mj{color:inherit}
 .splive2 .sprow.on .spmi{background:color-mix(in srgb,var(--accent) 16%,transparent)}
 .splive2 .sprow.on .spmi svg{stroke:var(--accent)}
 .splive2 .spfact{color:var(--ink-2)}
-.splive2 .spfact.bad{color:var(--poor-ink,var(--poor))}
+.sppage .spk.splive2 .sprow .tx small.spfact.bad{color:var(--poor-ink,var(--poor));font-weight:600}
 .sppage:not(.splight) .splive2 .sprow{color:var(--ink)}
