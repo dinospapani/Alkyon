@@ -2313,6 +2313,34 @@ with sync_playwright() as p:
     ok=all(v and v[0]==0 and v[1]==0 and v[2]==30 and v[3]>=70 and v[4]=='fixed' and v[5]=='none' for v in res.values())
     check('γραμμή κατάστασης: σε Ημερολόγιο, Προφίλ, Πρόγνωση και Χάρτη υπάρχει φόντο 30px στην κορυφή (0px σε υπολογιστή), πάνω από το περιεχόμενο, χωρίς να πιάνει αγγίγματα (1.14.99)', ok and not pg._errs, [res,pg._errs])
     check('γραμμή κατάστασης: στον Χάρτη το φόντο είναι ημιδιάφανο (διαβάθμιση), στις άλλες οθόνες συμπαγές (1.14.99)', res.get('map') and res['map'][6] and res['map'][7] and not res['log'][7], res); c.close()
+    print('# 1.14.93 παγωμένο στιγμιότυπο πρόγνωσης (ML Data Foundation)')
+    c=ctx(b); c.add_init_script("if(!sessionStorage.__s){sessionStorage.__s=1;localStorage.setItem('alkyon-safe',JSON.stringify({active:true,id:'trip-s1',start:Date.now()-50*60000,due:Date.now()+3*3600000,route:'S',last:{lat:34.7,lon:32.4,t:Date.now()}}));}")
+    pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(11500)
+    r=pg.evaluate("""async()=>{ const W=ms=>new Promise(r=>setTimeout(r,ms)), o={}, SN=window.AlkyonSnapshot;
+      const sc0=JSON.parse(localStorage.getItem('alkyon-tscore')||'null'); o.held=[!!sc0, sc0&&sc0.id, !!(sc0&&sc0.snap), sc0&&sc0.snap&&SN.valid(sc0.snap), sc0&&sc0.snap&&sc0.snap.app===window.ALKYON_VERSION, sc0&&sc0.snap&&sc0.snap.pf, sc0&&sc0.snap&&sc0.snap.cfg===PF.scoreConfig, sc0&&sc0.snap&&Math.abs(Date.now()-sc0.snap.at)<60000];
+      const score0=[...document.querySelectorAll('.fscore,.score,.dial b')].map(x=>x.textContent).join('|');
+      AK.trip.back(); await W(900); const bt=[...document.querySelectorAll('.sheet.on .zeroq .btn')].find(x=>x.textContent==='Δεν έπιασα τίποτα'); bt&&bt.click(); await W(3600);
+      const tr=()=>JSON.parse(localStorage.getItem('alkyon-trips')||'[]').filter(t=>!t.deleted); let t=tr().find(x=>x.sid==='trip-s1'); if(!t) return {held:o.held,err:'no trip'};
+      const lo=Math.floor(t.startMs/3600000), hi=Math.floor(t.endMs/3600000), Q=()=>JSON.parse(localStorage.getItem('alkyon-snapq')||'[]'), q0=Q(), it=q0.find(x=>x.id===t.id), sn=it&&it.snap;
+      o.trip=[!('snap' in t), !/"cols"/.test(JSON.stringify(t)), q0.length, !!sn, sn&&SN.valid(sn), sn&&sn.h.every(r=>r[0]>=lo&&r[0]<=hi), Array.isArray(t.scoreH)&&t.scoreH.length===(sn?sn.h.length:-1), t.scoreCfg===PF.scoreConfig, SN.late(sn,t.startMs)];
+      o.keys=sn?Object.keys(sn).sort().join(','):''; o.size=sn?JSON.stringify(sn).length:0;
+      const row=AK.contrib._rowOf('trip',t); o.sent=[!(row.cond&&row.cond.snap), !/"snap"|"cols"/.test(JSON.stringify(row)), row.cond&&row.cond.k, !/34\\.7\\d|32\\.4\\d/.test(JSON.stringify(sn))];
+      /* δεν ξαναγράφεται: δεύτερο τέλος της ίδιας εξόδου με άλλο στιγμιότυπο δεν αλλάζει την ουρά */
+      localStorage.setItem('alkyon-tscore',JSON.stringify({id:'trip-s1',h:t.scoreH,snap:Object.assign({},sn,{at:1})})); AK.emit('tripend',{id:t.id}); await W(3200); o.once=[Q().length===1, Q()[0].snap.at===sn.at];
+      /* ανέβασμα: χωρίς λογαριασμό τίποτα· με λογαριασμό ένα POST στον trip_snaps και η ουρά αδειάζει· σε αποτυχία μένει */
+      const calls=[], C0=AK.cloud.session, R0=AK.cloud.rest; let uid=null, okNext=false;
+      AK.cloud.session=()=>uid?{uid:uid}:null; AK.cloud.rest=(p,opt)=>{ calls.push([p,opt.method,opt.headers.Prefer,JSON.parse(opt.body)]); return Promise.resolve({ok:okNext,status:okNext?201:500}); };
+      await AK.snapUp(); o.up0=[calls.length, Q().length];
+      uid='user-1'; okNext=false; await AK.snapUp(); o.up1=[calls.length, Q().length, Q()[0].n];
+      okNext=true; await AK.snapUp(); const c=calls[calls.length-1]; o.up2=[calls.length, Q().length, c[0], c[1], c[2], c[3].length, c[3][0].user_id, c[3][0].trip_id===t.id, JSON.stringify(c[3][0].snap)===JSON.stringify(sn), Object.keys(c[3][0]).sort().join(',')];
+      await AK.snapUp(); o.up3=calls.length; AK.cloud.session=C0; AK.cloud.rest=R0;
+      o.score=score0===[...document.querySelectorAll('.fscore,.score,.dial b')].map(x=>x.textContent).join('|'); return o; }""")
+    check('στιγμιότυπο: παίρνεται στην έξοδο με τις εισόδους του βαθμού, την έκδοση της εφαρμογής, την πλατφόρμα και την έκδοση κανόνων (1.14.93)', r.get('held')==[True,'trip-s1',True,True,True,'web',True,True], r.get('held'))
+    check('στιγμιότυπο: ΔΕΝ γράφεται μέσα στην έξοδο (που μοιράζεται με φίλους)· μπαίνει σε ουρά, μόνο για τις ώρες της εξόδου· το scoreH γράφεται όπως πριν· 50′ μετά την έναρξη = «αργό» (1.14.93)', r.get('trip')==[True,True,1,True,True,True,True,True,True] and r.get('keys')=='app,at,cfg,cols,h,pf,prof,sp,src,v' and 0<r.get('size',0)<6000, [r.get('trip'),r.get('keys'),r.get('size'),r.get('err')])
+    check('στιγμιότυπο: ΔΕΝ πηγαίνει στις ανώνυμες συνεισφορές και δεν έχει θέση μέσα του (1.14.93)', r.get('sent')==[True,True,'l',True], r.get('sent'))
+    check('στιγμιότυπο: μία φορά ανά έξοδο (δεύτερο τέλος δεν το αλλάζει)· ο βαθμός στην οθόνη δεν αλλάζει (1.14.93)', r.get('once')==[True,True] and r.get('score') is True, [r.get('once'),r.get('score')])
+    check('ανέβασμα: χωρίς λογαριασμό δεν φεύγει τίποτα· σε αποτυχία μένει στην ουρά· σε επιτυχία ένα POST στον trip_snaps (ignore-duplicates) με user_id, trip_id, snap και η ουρά αδειάζει (1.14.93)', r.get('up0')==[0,1] and r.get('up1')==[1,1,1] and r.get('up2')==[2,0,'trip_snaps?on_conflict=user_id,trip_id','POST','resolution=ignore-duplicates,return=minimal',1,'user-1',True,True,'snap,trip_id,user_id'] and r.get('up3')==2, [r.get('up0'),r.get('up1'),r.get('up2'),r.get('up3')])
+    check('1.14.93: χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
 
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)

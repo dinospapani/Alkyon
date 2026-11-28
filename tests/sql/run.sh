@@ -51,3 +51,14 @@ $P -f "$ROOT/sql/2026-11-28-waitlist-mail-rollback.sql" >/dev/null
 $P -f "$ROOT/sql/2026-11-28-waitlist-mail-rollback.sql" >/dev/null   # idempotent
 $P -t -A -c "select case when not exists (select 1 from information_schema.columns where table_name='waitlist' and column_name in ('welcomed_at','mail_tries')) then 'ok   waitlist-mail rollback removes the columns' else 'FAIL: waitlist-mail rollback' end" | tee /dev/stderr | grep -q '^ok'
 $P -f "$ROOT/sql/2026-11-28-waitlist-mail.sql" >/dev/null
+# 1.14.93 · sql/2026-11-20-ml-data.sql: created_at στους records και catch_obs
+$P -c "create table if not exists public.catch_obs (id bigserial primary key, user_id uuid not null, ref text not null, kind text, sp text, day date, ms bigint, ms2 bigint, lat numeric, lon numeric, cnt smallint, tech text, prof text, cond jsonb, updated_at timestamptz not null default now(), unique (user_id, ref))" >/dev/null
+$P -c "insert into auth.users (id) values ('00000000-0000-0000-0000-0000000000aa'), ('00000000-0000-0000-0000-0000000000a1'), ('00000000-0000-0000-0000-0000000000b2') on conflict do nothing; insert into public.records (user_id, kind, id, data) values ('00000000-0000-0000-0000-0000000000aa','trips','old','{}'::jsonb); insert into public.catch_obs (user_id, ref, kind, ms, day) values ('00000000-0000-0000-0000-0000000000aa','t:old','trip',1,'2026-11-20')" >/dev/null
+$P -f "$ROOT/sql/2026-11-20-ml-data.sql" >/dev/null
+$P -f "$ROOT/sql/2026-11-20-ml-data.sql" >/dev/null   # idempotent
+$P -t -A -f "$ROOT/tests/sql/ml-data.test.sql" 2>&1 | grep -v "^$" | sed -e 's/^psql:[^ ]* NOTICE:  //' -e 's/^NOTICE:  //'
+$P -f "$ROOT/sql/2026-11-20-ml-data-rollback.sql" >/dev/null
+$P -f "$ROOT/sql/2026-11-20-ml-data-rollback.sql" >/dev/null   # idempotent
+$P -t -A -c "select case when (select count(*) from pg_trigger where tgname in ('records_created_at','catch_obs_created_at')) = 0 and not exists (select 1 from information_schema.columns where table_schema='public' and column_name='created_at' and table_name in ('records','catch_obs')) and to_regprocedure('public.alk_created_at()') is null and to_regclass('public.trip_snaps') is null and to_regprocedure('public.alk_trip_snap_cleanup()') is null then 'ok   ml-data rollback removes the column, triggers, functions and the trip_snaps table' else 'FAIL: ml-data rollback' end" | tee /dev/stderr | grep -q '^ok'
+$P -f "$ROOT/sql/2026-11-20-ml-data.sql" >/dev/null
+$P -t -A -c "select case when (select count(*) from pg_trigger where tgname in ('records_created_at','catch_obs_created_at','trip_snaps_created_at','records_trip_snap_cleanup')) = 4 and to_regclass('public.trip_snaps') is not null then 'ok   ml-data migration re-applies after a rollback' else 'FAIL: ml-data re-apply' end" | tee /dev/stderr | grep -q '^ok'
