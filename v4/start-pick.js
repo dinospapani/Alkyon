@@ -87,7 +87,9 @@ function dayData(){ var c=ls.get('alkyon-fc7',null); if(!c||!c.fc||!c.fc.days||D
   if(!d.safe&&d.why==='night'){ var d2=c.fc.days[c.fc.days.indexOf(d)+1]; if(!d2) return null; d=d2; tom=true; }
   if(!d.hours||d.hours.length<12) return null; return {d:d,tom:tom}; }
 function dayHero(){ var dd=dayData(); if(!dd) return null; var d=dd.d, hs=d.hours, W=400, H=100;
-  var x=function(hr){ return W*(hr+0.5)/24; }, y=function(sc){ return H-4-(H-14)*Math.max(0,Math.min(1,(sc||0)/100)); };
+  /* κλίμακα από τη μέρα (όχι 0–100), για να φαίνεται πού ανεβαίνει· όπως η καμπύλη της Πρόγνωσης */
+  var sc=hs.map(function(q){ return q.score||0; }), lo=Math.max(0,Math.min.apply(null,sc)-10), hi=Math.min(100,Math.max.apply(null,sc)+6); if(hi-lo<30) hi=Math.min(100,lo+30);
+  var x=function(hr){ return W*(hr+0.5)/24; }, y=function(v){ return H-6-(H-30)*Math.max(0,Math.min(1,((v||0)-lo)/(hi-lo))); };
   var pts=hs.map(function(q){ return [x(q.hr),y(q.score)]; }), p='M0,'+pts[0][1]+' L'+pts[0][0]+','+pts[0][1];
   for(var i=0;i<pts.length-1;i++){ var a=pts[i-1]||pts[i], b=pts[i], c=pts[i+1], e=pts[i+2]||c;
     p+=' C'+(b[0]+(c[0]-a[0])/6).toFixed(1)+','+(b[1]+(c[1]-a[1])/6).toFixed(1)+' '+(c[0]-(e[0]-b[0])/6).toFixed(1)+','+(c[1]-(e[1]-b[1])/6).toFixed(1)+' '+c[0].toFixed(1)+','+c[1].toFixed(1); }
@@ -101,7 +103,7 @@ function dayHero(){ var dd=dayData(); if(!dd) return null; var d=dd.d, hs=d.hour
   [6,12,18].forEach(function(t){ box.appendChild(h('span',{class:'spdayt',style:{left:pc(t/24)},text:B.pad(t)})); });
   if(d.safe&&d.win) box.appendChild(h('span',{class:'spdayw',style:{left:pc((d.win.s+d.win.e+1)/48)},text:B.pad(d.win.s)+':00–'+B.pad((d.win.e+1)%24)+':00'}));
   if(!dd.tom){ var n=new Date(), nh=n.getHours()+n.getMinutes()/60, q0=hs.filter(function(q){ return q.hr===n.getHours(); })[0];
-    if(q0){ box.append(h('span',{class:'spdayn',style:{left:pc(nh/24)}}),h('span',{class:'spdayd',style:{left:pc(nh/24),top:pc(y(q0.score)/H)}})); } }
+    if(q0){ box.append(h('span',{class:'spdayn',style:{left:pc(nh/24)}}),h('span',{class:'spdayd',style:{left:pc(nh/24),top:pc(y(q0.score)/H)}}),h('span',{class:'spdaynl'+(nh>19?' r':''),style:{left:pc(nh/24),top:pc(y(q0.score)/H)},text:T('τώρα ','now ')+(q0.safe===false?'!':Math.round(q0.score||0))})); } }
   else box.appendChild(h('span',{class:'spdaytag',text:T('Αύριο','Tomorrow')}));
   return box; }
 function todayChip(){ try{ var c=ls.get('alkyon-fc7',null); if(!c||!c.fc||!c.fc.days||Date.now()-(c.t||0)>12*3600e3) return null;
