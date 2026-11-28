@@ -367,7 +367,7 @@ html.nightred .hero .hsun1 .mj{color:inherit}
 @media (max-height:740px){.sppage:not(.tour) .sphero.day{height:150px}}
 /* μικρές οθόνες (π.χ. 360×640): όλα σε μία οθόνη χωρίς κύλιση */
 @media (max-height:700px){
-  .sppage:not(.tour) .sphero.day{height:124px}
+  .sppage:not(.tour) .sphero.day{height:116px}
   .sppage.spdayon .spday{top:calc(var(--safe-t) + 64px);bottom:20px}
   .sppage.spdayon .sptitle .sphi{display:none}
   .sppage.spdayon .sptitle .sptoday{margin:0 0 10px}
