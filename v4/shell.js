@@ -155,25 +155,54 @@ B.start=start;
 })();
 /* «Νέα έκδοση διαθέσιμη» (όπως η κλασική): ελέγχει το ../version.js και ανανεώνει όταν το πατήσεις, ποτέ μέσα σε έξοδο */
 (function(){ var B=window.AK, T=B.T, bar=null, dis='';
-  function num(v){ var s=/^v?(\d+)\.(\d+)(?:\.(\d+))?$/.exec(v||''); if(s) return 1e7+(+s[1])*1e4+(+s[2])*100+(+(s[3]||0)); var m=/v(\d+)z(\d+)/.exec(v||''); return m?+m[1]*1000+(+m[2]):0; }
+  /* 1.14.102: major·1.000.000 + minor·1.000 + patch (όπως το versionCode του Android). Πριν: minor·100 + patch, οπότε το 1.14.101 μετρούσε
+     μεγαλύτερο από το 1.15.0 και η μπάρα δεν θα έβγαινε ποτέ για την 1.15.x. */
+  function num(v){ var s=/^v?(\d+)\.(\d+)(?:\.(\d+))?$/.exec(v||''); if(s) return 1e7+(+s[1])*1e6+(+s[2])*1e3+(+(s[3]||0)); var m=/v(\d+)z(\d+)/.exec(v||''); return m?+m[1]*1000+(+m[2]):0; }
+  /* versionCode του Play → όνομα έκδοσης (1014101 → 1.14.101) */
+  function vname(c){ c=+c||0; return Math.floor(c/1e6)+'.'+Math.floor(c%1e6/1e3)+'.'+(c%1e3); }
   /* 1.14.10: μέσα στην εφαρμογή Android/iPhone τα αρχεία είναι μέσα στο κινητό· η νέα έκδοση έρχεται μόνο από το store.
-     Το https://alkyonfishing.com/app-version.json λέει ποια έκδοση υπάρχει στο Play / TestFlight (ενημερώνεται όταν εγκριθεί)·
-     αν είναι νεότερη, η μπάρα ανοίγει το store. «Αργότερα»: δεν ξαναρωτά για την ίδια έκδοση για 3 μέρες. */
-  var NK='alkyon-store-upd';
+     Το https://alkyonfishing.com/app-version.json λέει ποια έκδοση υπάρχει στο store (ενημερώνεται ΜΟΝΟ όταν εγκριθεί)·
+     αν είναι νεότερη, η μπάρα ανοίγει το store. «Αργότερα»: δεν ξαναρωτά για την ίδια έκδοση για 3 μέρες.
+     1.14.102:
+     - «min» (προαιρετικό) ανά πλατφόρμα: κάτω από αυτή την έκδοση η μπάρα λέει «Απαιτείται ενημέρωση» και δεν κλείνει (χωρίς ✕, χωρίς «Αργότερα»).
+       Δεν μπλοκάρει την εφαρμογή και, όπως όλες οι μπάρες ενημέρωσης, δεν εμφανίζεται ποτέ μέσα σε έξοδο.
+     - Android: πρώτα ρωτά το ίδιο το Google Play (AlkUpdate, Play In-App Updates). Το Play ξέρει ποια έκδοση δικαιούται ο συγκεκριμένος χρήστης
+       (internal / closed / production), άρα ο tester δεν βλέπει μπάρα για έκδοση που δεν μπορεί να πάρει. Το «Ενημέρωση» ανοίγει την οθόνη
+       ενημέρωσης του Play μέσα στην εφαρμογή. Αν το Play δεν απαντά (π.χ. APK δοκιμής, παλιό build χωρίς AlkUpdate), ισχύει το app-version.json. */
+  var NK='alkyon-store-upd', PLAY='market://details?id=com.alkyonfishing.app';
   function nat(){ return window.AKN&&window.AKN.site; }
-  function showStore(v,url,notes){ if(bar) return; try{ var d=B.ls.get(NK,null); if(d&&d.v===v&&Date.now()-d.t<3*86400000) return; }catch(e){}
-    bar=B.h('div',{class:'updbar',role:'status'},B.h('span',null,B.h('b',{text:T('Νέα έκδοση ','New version ')+v}),notes?B.h('small',{text:' · '+notes}):null),
-      B.h('button',{type:'button',class:'btn sm pri',text:T('Ενημέρωση','Update'),onclick:function(){ if(!/^https?:/.test(url)){ location.href=url; return; } try{ window.AKN.openExternal(url); }catch(e){ location.href=url; } } /* market:// και itms-beta:// ανοίγουν κατευθείαν το Play / TestFlight */}),
-      B.h('button',{type:'button',class:'x','aria-label':T('Αργότερα','Later'),text:'✕',onclick:function(){ B.ls.set(NK,{v:v,t:Date.now()}); bar.remove(); bar=null; }}));
+  function cur(){ return num(window.ALKYON_VERSION); }
+  function openUrl(url){ if(!/^https?:/.test(url)){ location.href=url; return; } try{ window.AKN.openExternal(url); }catch(e){ location.href=url; } } /* market:// και itms-beta:// / itms-apps:// ανοίγουν κατευθείαν το store */
+  function showStore(v,url,notes,forced,play){ if(bar) return;
+    if(!forced){ try{ var d=B.ls.get(NK,null); if(d&&d.v===v&&Date.now()-d.t<3*86400000) return; }catch(e){} }
+    bar=B.h('div',{class:'updbar'+(forced?' must':''),role:'status'},B.h('span',null,B.h('b',{text:(forced?T('Απαιτείται ενημέρωση · ','Update required · '):T('Νέα έκδοση ','New version '))+v}),notes?B.h('small',{text:' · '+notes}):null),
+      B.h('button',{type:'button',class:'btn sm pri',text:T('Ενημέρωση','Update'),onclick:function(){
+        if(play&&window.AKN.upd){ window.AKN.upd.start().catch(function(){ openUrl(url||PLAY); }); return; }
+        openUrl(url||PLAY); }}),
+      forced?null:B.h('button',{type:'button',class:'x','aria-label':T('Αργότερα','Later'),text:'✕',onclick:function(){ B.ls.set(NK,{v:v,t:Date.now()}); bar.remove(); bar=null; }}));
     document.body.append(bar); }
+  function fromJson(p){ if(!p||!p.v||!p.url) return; var forced=!!(p.min&&num(p.min)>cur());
+    if(num(p.v)>cur()) showStore(p.v,p.url,(window.LANG==='en'?p.en:p.el)||'',forced,false); }
+  function checkNative(){ var plat=window.AKN.platform, U=window.AKN.upd;
+    fetch(nat()+'app-version.json?_='+Date.now(),{cache:'no-store'}).then(function(r){ return r.ok?r.json():null; }).catch(function(){ return null; }).then(function(j){
+      var p=j&&j[plat]||null;
+      if(plat!=='android'||!U||typeof U.info!=='function'){ fromJson(p); return; }
+      return U.info().then(function(i){ i=i||{};
+        if(i.inProgress){ U.start().catch(function(){}); return; }          /* ενημέρωση που είχε ξεκινήσει και διακόπηκε: τη συνεχίζει το Play */
+        if(!i.available||!i.code) return;                                   /* το Play λέει «τίποτα νεότερο για σένα»: καμία μπάρα */
+        var v=vname(i.code); if(num(v)<=cur()) return;
+        showStore(v,(p&&p.url)||PLAY,(p&&(window.LANG==='en'?p.en:p.el))||T('από το Google Play','from Google Play'),!!(p&&p.min&&num(p.min)>cur()),true);
+      },function(){ fromJson(p); });
+    }).catch(function(){}); }
   function show(v){ if(bar||dis===v) return; bar=B.h('div',{class:'updbar',role:'status'},B.h('span',{text:T('Νέα έκδοση διαθέσιμη','A new version is available')}),
       B.h('button',{type:'button',class:'btn sm pri',text:T('Ανανέωση','Update'),onclick:function(){ var go=function(){ location.reload(); };
         try{ navigator.serviceWorker.getRegistration().then(function(r){ return r?r.update():0; }).catch(function(){}).then(go); }catch(e){ go(); } }}),
       B.h('button',{type:'button',class:'x','aria-label':T('Κλείσιμο','Close'),text:'✕',onclick:function(){ dis=v; bar.remove(); bar=null; }}));
     document.body.append(bar); }
   function check(){ if(navigator.onLine===false||!window.ALKYON_VERSION||document.body.classList.contains('ontrip')) return;
-    if(nat()){ fetch(nat()+'app-version.json?_='+Date.now(),{cache:'no-store'}).then(function(r){ return r.ok?r.json():null; }).then(function(j){ var p=j&&j[window.AKN.platform]; if(p&&p.v&&p.url&&num(p.v)>num(window.ALKYON_VERSION)) showStore(p.v,p.url,(window.LANG==='en'?p.en:p.el)||''); }).catch(function(){}); return; }
+    if(nat()){ checkNative(); return; }
     fetch('../version.js?_='+Date.now(),{cache:'no-store'}).then(function(r){ return r.ok?r.text():''; }).then(function(t){ var m=/ALKYON_VERSION\s*=\s*'([^']+)'/.exec(t||''); if(m&&num(m[1])>num(window.ALKYON_VERSION)) show(m[1]); }).catch(function(){}); }
   document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible') check(); });
   setTimeout(check,8000); setInterval(check,15*60000); B.on('tripend',function(){ setTimeout(check,3000); });
+  B._updNum=num; /* για τα tests */
 })();
