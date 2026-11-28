@@ -8,3 +8,13 @@
   Cache-Control: no-cache
 /v4/sw.js
   Cache-Control: no-cache
+# 28/11/2026 (S4 του A1 audit): βασικές κεφαλίδες ασφαλείας σε όλες τις σελίδες.
+# HSTS χωρίς includeSubDomains/preload (μόνο το alkyonfishing.com). Το frame-ancestors απαγορεύει την ενσωμάτωση σε iframe άλλου site
+# (η εφαρμογή δεν ενσωματώνεται πουθενά· τα Capacitor builds φορτώνουν τοπικά αρχεία και δεν επηρεάζονται).
+# Πλήρες CSP όχι ακόμα: θέλει πρώτα μεταφορά των inline scripts.
+/*
+  Strict-Transport-Security: max-age=31536000
+  X-Content-Type-Options: nosniff
+  Content-Security-Policy: frame-ancestors 'self'
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: strict-origin-when-cross-origin
