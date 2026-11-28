@@ -88,15 +88,55 @@ export async function claimStep(sb, name, periodMs, now = Date.now(), staleMs = 
    και μετριέται (mail_tries)· μετά από 3 αποτυχίες σταματά και ο διαχειριστής ενημερώνεται μία φορά. */
 export const WL_FROM = 'Alkyon <hello@alkyonfishing.com>', WL_REPLY = 'info@alkyonfishing.com', WL_ADMIN = 'alkyonfishingapp@gmail.com', WL_MAX_TRIES = 3;   // αποστολέας hello@· απαντήσεις/διαγραφές → info@ (επίσημο· Cloudflare Email Routing → Gmail)· ειδοποίηση διαχειριστή κατευθείαν στο Gmail
 const WL_T = {
-  en: { subject: 'You’re on the Alkyon list',
-        text: 'Hi,\n\nThanks for your interest in Alkyon — the fishing forecast with one 0–100 score from sun, moon, pressure, wind and waves, plus a live sea map, your own logbook and safety at sea.\n\nWe’ll email you when Alkyon launches on Google Play and the App Store, and send occasional news.\n\nDon’t want these emails? Just reply to this message or write to info@alkyonfishing.com and we’ll remove you.\n\n— Alkyon\nhttps://alkyonfishing.com' },
-  el: { subject: 'Είσαι στη λίστα του Alkyon',
-        text: 'Γεια σου,\n\nΕυχαριστούμε για το ενδιαφέρον σου για το Alkyon — την πρόγνωση ψαρέματος με έναν βαθμό 0–100 από ήλιο, φεγγάρι, πίεση, άνεμο και κύμα, μαζί με ζωντανό χάρτη θάλασσας, το δικό σου ημερολόγιο και ασφάλεια στη θάλασσα.\n\nΘα σου στείλουμε email όταν το Alkyon κυκλοφορήσει στο Google Play και στο App Store, και περιστασιακά νέα.\n\nΔεν θέλεις αυτά τα emails; Απάντησε σε αυτό το μήνυμα ή γράψε στο info@alkyonfishing.com και θα σε διαγράψουμε.\n\n— Alkyon\nhttps://alkyonfishing.com' } };
+  en: { subject: 'You’re on the Alkyon list', pre: 'We’ll let you know the day Alkyon launches.',
+        h: 'You’re on the list.', intro: 'Thanks for signing up. We’ll email you the day Alkyon launches on Google Play and the App Store — and now and then with news worth reading.',
+        what: 'What’s coming',
+        f: [['Fishing score 0–100', 'Sun, moon, pressure, wind and waves in one score, with the best hours of each day.'],
+            ['Live sea map', 'Wind, waves, currents, sea temperature and depths — even without signal.'],
+            ['Logbook and safety', 'Your catches and spots, a return-time alert for your safety contact, MOB and SOS.']],
+        follow: 'Follow along until launch:',
+        foot: 'You’re receiving this because you signed up at alkyonfishing.com. Don’t want these emails? Reply to this message or write to info@alkyonfishing.com and we’ll remove you.' },
+  el: { subject: 'Είσαι στη λίστα του Alkyon', pre: 'Θα σε ειδοποιήσουμε τη μέρα που θα κυκλοφορήσει το Alkyon.',
+        h: 'Είσαι στη λίστα.', intro: 'Ευχαριστούμε για την εγγραφή. Θα σου στείλουμε email τη μέρα που το Alkyon θα κυκλοφορήσει στο Google Play και στο App Store — και πού και πού νέα που αξίζει να διαβάσεις.',
+        what: 'Τι έρχεται',
+        f: [['Βαθμός ψαρέματος 0–100', 'Ήλιος, φεγγάρι, πίεση, άνεμος και κύμα σε έναν βαθμό, με τις καλύτερες ώρες κάθε μέρας.'],
+            ['Ζωντανός χάρτης θάλασσας', 'Άνεμος, κύμα, ρεύματα, θερμοκρασία νερού και βάθη — και χωρίς σήμα.'],
+            ['Ημερολόγιο και ασφάλεια', 'Τα ψάρια και τα σημεία σου, ειδοποίηση ώρας επιστροφής στην επαφή ασφαλείας, MOB και SOS.']],
+        follow: 'Ακολούθησέ μας μέχρι την κυκλοφορία:',
+        foot: 'Λαμβάνεις αυτό το email επειδή γράφτηκες στο alkyonfishing.com. Δεν θέλεις αυτά τα emails; Απάντησε σε αυτό το μήνυμα ή γράψε στο info@alkyonfishing.com και θα σε διαγράψουμε.' } };
 const wlEsc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const wlHtml = t => '<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:#0b2230">' + t.split('\n\n').map(p => '<p>' + wlEsc(p).replace(/\n/g, '<br>').replace(/https:\/\/alkyonfishing\.com/, '<a href="https://alkyonfishing.com">alkyonfishing.com</a>') + '</p>').join('') + '</div>';
+const WL_IG = 'https://www.instagram.com/alkyonfishingapp/', WL_TT = 'https://www.tiktok.com/@alkyonfishingapp', WL_LOGO = 'https://alkyonfishing.com/icon-192.png';
+/* Κείμενο (για προγράμματα χωρίς HTML) και HTML με πίνακες/inline CSS, ώστε να εμφανίζεται σωστά σε Gmail, Outlook, Apple Mail. */
+const wlText = t => [t.h, t.intro, t.what + ':\n' + t.f.map(x => '• ' + x[0] + ' — ' + x[1]).join('\n'), t.follow + '\nInstagram: ' + WL_IG + '\nTikTok: ' + WL_TT, '— Alkyon · https://alkyonfishing.com', t.foot].join('\n\n');
+const wlHtml = (t, L) => {
+  const E = wlEsc, F = 'font-family:Helvetica,Arial,sans-serif;';
+  const row = x => '<tr><td style="padding:0 0 14px 0;' + F + '"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'
+    + '<td valign="top" style="padding:7px 12px 0 0"><div style="width:8px;height:8px;border-radius:4px;background:#FF7A4D;font-size:0;line-height:0">&nbsp;</div></td>'
+    + '<td style="' + F + 'font-size:15px;line-height:22px;color:#33505C"><b style="color:#0B2230">' + E(x[0]) + '</b><br>' + E(x[1]) + '</td></tr></table></td></tr>';
+  const btn = (href, label) => '<a href="' + href + '" style="display:inline-block;margin:0 6px 8px 0;padding:11px 18px;border-radius:10px;background:#0D2A36;color:#ffffff;text-decoration:none;' + F + 'font-size:14px;font-weight:bold">' + label + '</a>';
+  return '<!DOCTYPE html><html lang="' + L + '"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>' + E(t.subject) + '</title></head>'
+    + '<body style="margin:0;padding:0;background:#EEF3F5">'
+    + '<div style="display:none;max-height:0;overflow:hidden;opacity:0">' + E(t.pre) + '</div>'
+    + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#EEF3F5"><tr><td align="center" style="padding:24px 12px">'
+    + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden">'
+    + '<tr><td style="background:#06171F;padding:22px 28px"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'
+    + '<td style="padding-right:12px"><img src="' + WL_LOGO + '" width="40" height="40" alt="" style="display:block;border-radius:10px;border:0"></td>'
+    + '<td style="' + F + 'font-size:22px;font-weight:bold;color:#E6F1F2">Alkyon</td></tr></table></td></tr>'
+    + '<tr><td style="padding:30px 28px 8px 28px;' + F + '"><h1 style="margin:0 0 12px 0;' + F + 'font-size:26px;line-height:32px;color:#0B2230">' + E(t.h) + '</h1>'
+    + '<p style="margin:0;' + F + 'font-size:16px;line-height:24px;color:#33505C">' + E(t.intro) + '</p></td></tr>'
+    + '<tr><td style="padding:18px 28px 0 28px"><div style="height:1px;background:#E3EBEE;font-size:0;line-height:0">&nbsp;</div></td></tr>'
+    + '<tr><td style="padding:20px 28px 4px 28px;' + F + 'font-size:13px;font-weight:bold;color:#FF7A4D">' + E(t.what) + '</td></tr>'
+    + '<tr><td style="padding:6px 28px 6px 28px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">' + t.f.map(row).join('') + '</table></td></tr>'
+    + '<tr><td style="padding:4px 28px 26px 28px;' + F + '"><p style="margin:0 0 12px 0;' + F + 'font-size:15px;line-height:22px;color:#33505C">' + E(t.follow) + '</p>'
+    + btn(WL_IG, 'Instagram') + btn(WL_TT, 'TikTok') + '</td></tr>'
+    + '<tr><td style="background:#F5F8F9;padding:18px 28px;' + F + 'font-size:12px;line-height:18px;color:#6B8590">'
+    + '<a href="https://alkyonfishing.com" style="color:#0B2230;font-weight:bold;text-decoration:none">alkyonfishing.com</a><br>'
+    + E(t.foot).replace('info@alkyonfishing.com', '<a href="mailto:info@alkyonfishing.com" style="color:#6B8590">info@alkyonfishing.com</a>')
+    + '</td></tr></table></td></tr></table></body></html>';
+};
 export function waitlistMails(row, n = {}) {
   const L = row.lang === 'el' ? 'el' : 'en', t = WL_T[L];
-  const welcome = { from: WL_FROM, to: [row.email], reply_to: WL_REPLY, subject: t.subject, text: t.text, html: wlHtml(t.text),
+  const welcome = { from: WL_FROM, to: [row.email], reply_to: WL_REPLY, subject: t.subject, text: wlText(t), html: wlHtml(t, L),
     headers: { 'List-Unsubscribe': '<mailto:' + WL_REPLY + '?subject=unsubscribe>' } };
   const when = new Intl.DateTimeFormat('el-GR', { timeZone: TZ, dateStyle: 'short', timeStyle: 'short' }).format(new Date(row.created_at || Date.now()));
   const fail = n.failed ? '\n\n⚠ Το email καλωσορίσματος ΔΕΝ στάλθηκε μετά από ' + WL_MAX_TRIES + ' προσπάθειες (' + String(n.err || '').slice(0, 200) + ').' : '';
