@@ -67,7 +67,9 @@ B.startPick=function(){ try{ sessionStorage.setItem('alkyon-sp-seen','1'); }catc
       h('div',{class:'spbar'},go,h('p',{class:'spfoot',text:T('Αλλαγή αργότερα: Προφίλ › Τύπος ψαρέματος','Change later: Profile › Fishing type')}))));
   /* 1.12.20: με φωτεινό θέμα η είσοδος ταιριάζει με την εφαρμογή: η φωτογραφία μένει πάνω, από κάτω ανοιχτό φόντο και λευκές κάρτες */
   try{ var dh=dayHero(); if(dh){ var he=pg.querySelector('.sphero'); he.classList.add('day'); he.style.backgroundImage='none'; he.insertBefore(dh,he.firstChild); } }catch(e){}
-  if(isLight()){ pg.classList.add('splight'); var ttl=pg.querySelector('.sptitle'), bd=pg.querySelector('.spbody'); if(ttl&&bd) bd.insertBefore(ttl,bd.firstChild); }
+  if(isLight()) pg.classList.add('splight');
+  /* με τη «μέρα σου» πάνω, ο τίτλος πάει κάτω και στο σκοτεινό θέμα (αλλιώς θα έπεφτε πάνω στο γράφημα) */
+  if(isLight()||pg.querySelector('.sphero.day')){ var ttl=pg.querySelector('.sptitle'), bd=pg.querySelector('.spbody'); if(ttl&&bd) bd.insertBefore(ttl,bd.firstChild); }
   lab(); cover(true); document.body.append(pg); document.addEventListener('keydown',key);
   /* 1.12.28: η εγγραφή στο ιστορικό μπαίνει στο πρώτο άγγιγμα της σελίδας, όχι με το άνοιγμα.
      Το Chrome σημαδεύει ως «παρακάμψιμη» μια σελίδα που προσθέτει εγγραφή χωρίς άγγιγμα του χρήστη, και το history.back()
