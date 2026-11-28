@@ -117,7 +117,7 @@ function fact(p,side){ try{ var dd=dayData(); if(!dd) return null; var d=dd.d, U
   var L=B.limits?B.limits():null, ow=false, oi=false; if(L) d.hours.forEach(function(q){ if(q.hr<nh) return; if(q.wave!=null&&q.wave>L.wave) ow=true; if(q.wind!=null&&q.wind>L.wind) oi=true; });
   var over=ow||oi, overT=(ow&&oi?T('Κύμα και άνεμος','Waves and wind'):ow?T('Κύμα','Waves'):T('Άνεμος','Wind'))+T(' πάνω από τα όριά σου',' above your limits')+(dd.tom?T(' αύριο',' tomorrow'):'');
   /* 28/11/2026: ο άνεμος είναι του σημείου της πρόγνωσης (συνήθως θάλασσα), όχι της λίμνης· το γράφει ρητά */
-  if(p==='lake') return wind?{t:T('Άνεμος στο σημείο πρόγνωσης ','Wind at forecast point ')+wind+(dd.tom?T(' αύριο',' tomorrow'):T(' σήμερα',' today'))}:null;
+  if(p==='lake') return wind?{t:T('Άνεμος σημείου πρόγνωσης ','Wind at forecast point ')+wind+(dd.tom?T(' αύριο',' tomorrow'):'')}:null;
   if(p==='spear'){ var pl=fcPt(ls.get('alkyon-fc7',null));
     var v=pl&&B.clarityEst?B.clarityEst(pl.lat,pl.lon,d.date,B.pad(nh)+':00'):null;
     var lv=v==null?null:v>=15?T('πολύ καλή','very good'):v>=10?T('καλή','good'):v>=6?T('μέτρια','fair'):T('κακή','poor'), /* ίδια όρια με την κάρτα διαύγειας (clarity.js) */ t=[lv?T('Διαύγεια ','Visibility ')+lv:null,wave?T('κύμα ','waves ')+wave:null].filter(Boolean).join(' · '); if(!t) return null; t=t.charAt(0).toUpperCase()+t.slice(1);
@@ -169,7 +169,7 @@ function todayChip(){ try{ var c=ls.get('alkyon-fc7',null); if(!c||!c.fc||!c.fc.
   var wx=[d.avgWind!=null?(U&&U.windP?U.windP(d.avgWind).join(' '):Math.round(d.avgWind)+' kn'):'',d.avgWave!=null?B.num(d.avgWave,1)+' m':''].filter(Boolean).join(' · ');
   var past=lab===T('Σήμερα','Today')&&d.win&&d.win.e<d0.getHours(), ch=h('div',{class:'sptoday'+(d.safe?'':' bad')},
     h('span',{class:'stsc',text:d.safe&&d.best!=null?String(d.best):'!'}),
-    h('span',{class:'sttx'},h('i',{class:'stlab',text:T('Βαθμός ψαρέματος','Fishing score')}),h('b',{text:(d.safe&&d.best!=null?lab2:lab)+(nm?' · '+nm:'')}),h('small',{text:d.safe&&d.win?(past?T('η καλύτερη ώρα πέρασε','the best time has passed'):T('καλύτερη ώρα ','best time ')+B.pad(d.win.s)+':00–'+B.pad((d.win.e+1)%24)+':00')+(wx?' · '+wx:''):T('εκτός ορίων ασφαλείας σου','outside your safety limits')+(wx?' · '+wx:'')})));
+    h('span',{class:'sttx'},h('i',{class:'stlab',text:T('Βαθμός','Fishing score')}) /* 28/11/2026: «Βαθμός» στα ελληνικά, για να χωρά «Καλύτερο σήμερα · σημείο» σε μία γραμμή */,h('b',{text:(d.safe&&d.best!=null?lab2:lab)+(nm?' · '+nm:'')}),h('small',{text:d.safe&&d.win?(past?T('η καλύτερη ώρα πέρασε','the best time has passed'):T('καλύτερη ώρα ','best time ')+B.pad(d.win.s)+':00–'+B.pad((d.win.e+1)%24)+':00')+(wx?' · '+wx:''):T('εκτός ορίων ασφαλείας σου','outside your safety limits')+(wx?' · '+wx:'')})));
   return ch; }catch(e){ return null; } }
 function wanted(){ if(!raw('alkyon-onboard')) return false; try{ if(sessionStorage.getItem('alkyon-sp-seen')) return false; }catch(e){} /* 1.14.17: όχι ξανά στην ίδια καρτέλα (π.χ. όταν η κάμερα του κινητού ξαναφόρτωσε τη σελίδα) */ if(raw('alkyon-askfp')==='0'&&raw('alkyon-fprof-done')) return false; var s=ls.get('alkyon-safe',null); if(s&&s.active) return false; if(/#(new|trip|addfriend)/.test(location.hash)) return false; return true; }
 
