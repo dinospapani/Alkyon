@@ -127,10 +127,12 @@ function fact(p,side){ try{ var dd=dayData(); if(!dd) return null; var d=dd.d, U
   if(side==='boat') return over?{t:overT,bad:true}:{t:t2+(wave?T(' · κύμα ',' · waves ')+wave:'')};
   return {t:t2+(wave?T(' · κύμα ',' · waves '):'')+(wave||'')}; }catch(e){ return null; } } /* 28/11/2026: και στην ακτή το κύμα (όπως στο σκάφος), χωρίς σήμανση ορίων σκάφους */
 /* διάρκεια πολιτικού λυκόφωτος σε λεπτά (από την ανατολή/δύση του ηλίου, 90,833°, ως τις 96°)· ίδιοι τύποι με το sunMoon του forecast.js */
-function civilMin(date,lat){ try{ var a=date.split('-').map(Number), n=Math.floor((Date.UTC(a[0],a[1]-1,a[2],12)-Date.UTC(a[0],0,0))/864e5), g=2*Math.PI/365*(n-1), la=lat*Math.PI/180;
+function civilMin(date,lat){ return sunMin(date,lat,96); }
+/* λεπτά από την ανατολή/δύση (90,833°) ως το ύψος z (96 = −6° λυκόφως, 84 = +6° τέλος χρυσής ώρας) */
+function sunMin(date,lat,z0){ try{ var a=date.split('-').map(Number), n=Math.floor((Date.UTC(a[0],a[1]-1,a[2],12)-Date.UTC(a[0],0,0))/864e5), g=2*Math.PI/365*(n-1), la=lat*Math.PI/180;
   var dec=0.006918-0.399912*Math.cos(g)+0.070257*Math.sin(g)-0.006758*Math.cos(2*g)+0.000907*Math.sin(2*g)-0.002697*Math.cos(3*g)+0.00148*Math.sin(3*g);
   var Hh=function(z){ var c=Math.cos(z*Math.PI/180)/(Math.cos(la)*Math.cos(dec))-Math.tan(la)*Math.tan(dec); return Math.acos(Math.max(-1,Math.min(1,c)))*180/Math.PI; };
-  var v=4*(Hh(96)-Hh(90.833)); return isFinite(v)&&v>0&&v<120?v:0; }catch(e){ return 0; } }
+  var v=4*Math.abs(Hh(z0)-Hh(90.833)); return isFinite(v)&&v>0&&v<120?v:0; }catch(e){ return 0; } }
 var SUNI={rise:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18h18M6.3 14.5a5.8 5.8 0 0 1 11.4 0"/><path d="M12 3v5M9.5 5.5 12 3l2.5 2.5"/></svg>',
   set:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18h18M6.3 14.5a5.8 5.8 0 0 1 11.4 0"/><path d="M12 8V3M9.5 5.5 12 8l2.5-2.5"/></svg>'};
 function dayHero(){ var dd=dayData(); if(!dd) return null; var d=dd.d, hs=d.hours, W=400, H=100;
@@ -145,8 +147,17 @@ function dayHero(){ var dd=dayData(); if(!dd) return null; var d=dd.d, hs=d.hour
   /* 28/11/2026: πολιτικό λυκόφως (ήλιος 6° κάτω από τον ορίζοντα) πριν την ανατολή και μετά τη δύση, ως πιο ανοιχτή ζώνη· χωρίς γεωγρ. πλάτος μόνο νύχτα όπως πριν */
   var pt=fcPt(ls.get('alkyon-fc7',null)), tw=pt&&d.rise!=null&&d.set!=null?civilMin(d.date,pt.lat)/60:0, r0=Math.max(0,r-tw), s1=Math.min(24,sn+tw);
   svg.append(S('rect',{x:0,y:0,width:W*r0/24,height:H,class:'n'}),S('rect',{x:W*s1/24,y:0,width:W*(24-s1)/24,height:H,class:'n'}));
-  if(tw>0) svg.append(S('rect',{x:W*r0/24,y:0,width:W*(r-r0)/24,height:H,class:'tw'}),S('rect',{x:W*sn/24,y:0,width:W*(s1-sn)/24,height:H,class:'tw'}));
-  if(d.safe&&d.win) svg.appendChild(S('rect',{x:W*d.win.s/24,y:0,width:W*(d.win.e-d.win.s+1)/24,height:H,class:'w'}));
+  /* πρωτότυπο: χρώματα αυγής/σούρουπου. «Μπλε ώρα» = πολιτικό λυκόφως (−6° ως ανατολή/δύση), «χρυσή ώρα» = ήλιος ως +6°.
+     Το πλάτος κάθε χρώματος = πόση ώρα κρατά εκείνη τη μέρα σε εκείνο το σημείο */
+  var gd=pt&&tw>0?sunMin(d.date,pt.lat,84)/60:0;
+  if(tw>0){ var gid='spg'+Math.random().toString(36).slice(2,7), tot=tw+gd, f=tw/tot;
+    var mk=function(id,rev){ var g=S('linearGradient',{id:id,x1:rev?1:0,y1:0,x2:rev?0:1,y2:0});
+      [[0,'#1b1d4a',.0],[f*.45,'#4a3f8f',.42],[f*.85,'#c85a86',.5],[f,'#ff7a50',.55],[f+(1-f)*.45,'#ffab4a',.42],[1,'#ffd27a',0]].forEach(function(q){ g.appendChild(S('stop',{offset:q[0].toFixed(3),'stop-color':q[1],'stop-opacity':q[2]})); }); return g; };
+    svg.append(S('defs',null,mk(gid+'a',false),mk(gid+'b',true)),
+      S('rect',{x:W*r0/24,y:0,width:W*tot/24,height:H,fill:'url(#'+gid+'a)'}),
+      S('rect',{x:W*(sn-gd)/24,y:0,width:W*tot/24,height:H,fill:'url(#'+gid+'b)'})); }
+  /* καλύτερη ώρα: πράσινη ζώνη με έντονο περίγραμμα (όχι πορτοκαλί γέμισμα), ώστε να μη μπερδεύεται με τα χρώματα του σούρουπου */
+  if(d.safe&&d.win){ var wx0=W*d.win.s/24, ww=W*(d.win.e-d.win.s+1)/24; svg.append(S('rect',{x:wx0,y:0,width:ww,height:H,class:'w'}),S('rect',{x:wx0,y:0,width:ww,height:H,class:'wo'})); }
   svg.append(S('path',{d:p+' L'+W+','+H+' L0,'+H+' Z',class:'a'}),S('path',{d:p,class:'l'}));
   hs.forEach(function(q){ if(q.safe===false) svg.appendChild(S('rect',{x:W*q.hr/24,y:H-3,width:W/24,height:3,class:'u'})); });
   var box=h('div',{class:'spday','aria-hidden':'true'},svg), pc=function(v){ return (v*100).toFixed(2)+'%'; };
