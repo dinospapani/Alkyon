@@ -110,13 +110,14 @@ function fcPt(c){ try{ if(!c) return null; if(c.id==='gps'){ var q=B.lastPos&&B.
 function dayData(){ var c=ls.get('alkyon-fc7',null); if(!c||!c.fc||!c.fc.days||Date.now()-(c.t||0)>FC_MAX) return null;
   var d0=new Date(), td=d0.getFullYear()+'-'+B.pad(d0.getMonth()+1)+'-'+B.pad(d0.getDate()), d=c.fc.days.filter(function(x){ return x.date===td; })[0], tom=false; if(!d) return null;
   if(!d.safe&&d.why==='night'){ var d2=c.fc.days[c.fc.days.indexOf(d)+1]; if(!d2) return null; d=d2; tom=true; }
-  if(!d.hours||d.hours.length<12) return null; return {d:d,tom:tom}; }
+  if(!d.hours||d.hours.length<12) return null; return {d:d,tom:tom,t:c.t||0}; }
 /* ένα στοιχείο της μέρας για κάθε τρόπο ψαρέματος (από την πρόγνωση στο κινητό· τίποτα αν λείπει) */
 function fact(p,side){ try{ var dd=dayData(); if(!dd) return null; var d=dd.d, U=window.AlkyonUnits, now=new Date(), nh=dd.tom?(d.win?d.win.s:10):now.getHours();
   var wind=d.avgWind!=null?(U&&U.windP?U.windP(d.avgWind).join(' '):Math.round(d.avgWind)+' kn'):null, wave=d.avgWave!=null?B.num(d.avgWave,1)+' m':null;
   var L=B.limits?B.limits():null, ow=false, oi=false; if(L) d.hours.forEach(function(q){ if(q.hr<nh) return; if(q.wave!=null&&q.wave>L.wave) ow=true; if(q.wind!=null&&q.wind>L.wind) oi=true; });
   var over=ow||oi, overT=(ow&&oi?T('Κύμα και άνεμος','Waves and wind'):ow?T('Κύμα','Waves'):T('Άνεμος','Wind'))+T(' πάνω από τα όριά σου',' above your limits')+(dd.tom?T(' αύριο',' tomorrow'):'');
-  if(p==='lake') return wind?{t:T('Άνεμος ','Wind ')+wind+(dd.tom?T(' αύριο',' tomorrow'):T(' σήμερα',' today'))}:null;
+  /* 28/11/2026: ο άνεμος είναι του σημείου της πρόγνωσης (συνήθως θάλασσα), όχι της λίμνης· το γράφει ρητά */
+  if(p==='lake') return wind?{t:T('Άνεμος σημείου πρόγνωσης ','Wind at forecast point ')+wind+(dd.tom?T(' αύριο',' tomorrow'):'')}:null;
   if(p==='spear'){ var pl=fcPt(ls.get('alkyon-fc7',null));
     var v=pl&&B.clarityEst?B.clarityEst(pl.lat,pl.lon,d.date,B.pad(nh)+':00'):null;
     var lv=v==null?null:v>=15?T('πολύ καλή','very good'):v>=10?T('καλή','good'):v>=6?T('μέτρια','fair'):T('κακή','poor'), /* ίδια όρια με την κάρτα διαύγειας (clarity.js) */ t=[lv?T('Διαύγεια ','Visibility ')+lv:null,wave?T('κύμα ','waves ')+wave:null].filter(Boolean).join(' · '); if(!t) return null; t=t.charAt(0).toUpperCase()+t.slice(1);
@@ -124,7 +125,16 @@ function fact(p,side){ try{ var dd=dayData(); if(!dd) return null; var d=dd.d, U
   if(!d.safe||!d.win) return {t:dd.tom?T('Αύριο εκτός ορίων ασφαλείας σου','Tomorrow outside your safety limits'):T('Εκτός ορίων ασφαλείας σου','Outside your safety limits'),bad:true};
   var past=!dd.tom&&d.win.e<now.getHours(), t2=past?T('Η καλύτερη ώρα πέρασε','Best time has passed'):(dd.tom?T('Αύριο: καλύτερη ώρα ','Tomorrow: best time '):T('Καλύτερη ώρα ','Best time '))+B.pad(d.win.s)+':00–'+B.pad((d.win.e+1)%24)+':00';
   if(side==='boat') return over?{t:overT,bad:true}:{t:t2+(wave?T(' · κύμα ',' · waves ')+wave:'')};
-  return {t:t2}; }catch(e){ return null; } }
+  return {t:t2+(wave?T(' · κύμα ',' · waves '):'')+(wave||'')}; }catch(e){ return null; } } /* 28/11/2026: και στην ακτή το κύμα (όπως στο σκάφος), χωρίς σήμανση ορίων σκάφους */
+/* διάρκεια πολιτικού λυκόφωτος σε λεπτά (από την ανατολή/δύση του ηλίου, 90,833°, ως τις 96°)· ίδιοι τύποι με το sunMoon του forecast.js */
+function civilMin(date,lat){ return sunMin(date,lat,96); }
+/* λεπτά από την ανατολή/δύση (90,833°) ως το ύψος z (96 = −6° λυκόφως, 84 = +6° τέλος χρυσής ώρας) */
+function sunMin(date,lat,z0){ try{ var a=date.split('-').map(Number), n=Math.floor((Date.UTC(a[0],a[1]-1,a[2],12)-Date.UTC(a[0],0,0))/864e5), g=2*Math.PI/365*(n-1), la=lat*Math.PI/180;
+  var dec=0.006918-0.399912*Math.cos(g)+0.070257*Math.sin(g)-0.006758*Math.cos(2*g)+0.000907*Math.sin(2*g)-0.002697*Math.cos(3*g)+0.00148*Math.sin(3*g);
+  var Hh=function(z){ var c=Math.cos(z*Math.PI/180)/(Math.cos(la)*Math.cos(dec))-Math.tan(la)*Math.tan(dec); return Math.acos(Math.max(-1,Math.min(1,c)))*180/Math.PI; };
+  var v=4*Math.abs(Hh(z0)-Hh(90.833)); return isFinite(v)&&v>0&&v<120?v:0; }catch(e){ return 0; } }
+var SUNI={rise:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18h18M6.3 14.5a5.8 5.8 0 0 1 11.4 0"/><path d="M12 3v5M9.5 5.5 12 3l2.5 2.5"/></svg>',
+  set:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18h18M6.3 14.5a5.8 5.8 0 0 1 11.4 0"/><path d="M12 8V3M9.5 5.5 12 8l2.5-2.5"/></svg>'};
 function dayHero(){ var dd=dayData(); if(!dd) return null; var d=dd.d, hs=d.hours, W=400, H=100;
   /* κλίμακα από τη μέρα (όχι 0–100), για να φαίνεται πού ανεβαίνει· όπως η καμπύλη της Πρόγνωσης */
   var sc=hs.map(function(q){ return q.score||0; }), lo=Math.max(0,Math.min.apply(null,sc)-10), hi=Math.min(100,Math.max.apply(null,sc)+6); if(hi-lo<30) hi=Math.min(100,lo+30);
@@ -134,13 +144,43 @@ function dayHero(){ var dd=dayData(); if(!dd) return null; var d=dd.d, hs=d.hour
     p+=' C'+(b[0]+(c[0]-a[0])/6).toFixed(1)+','+(b[1]+(c[1]-a[1])/6).toFixed(1)+' '+(c[0]-(e[0]-b[0])/6).toFixed(1)+','+(c[1]-(e[1]-b[1])/6).toFixed(1)+' '+c[0].toFixed(1)+','+c[1].toFixed(1); }
   p+=' L'+W+','+pts[pts.length-1][1];
   var svg=S('svg',{viewBox:'0 0 '+W+' '+H,preserveAspectRatio:'none',class:'spdayc'}), r=(d.rise||360)/60, sn=(d.set||1080)/60;
-  svg.append(S('rect',{x:0,y:0,width:W*r/24,height:H,class:'n'}),S('rect',{x:W*sn/24,y:0,width:W*(24-sn)/24,height:H,class:'n'}));
-  if(d.safe&&d.win) svg.appendChild(S('rect',{x:W*d.win.s/24,y:0,width:W*(d.win.e-d.win.s+1)/24,height:H,class:'w'}));
+  /* 28/11/2026: πολιτικό λυκόφως (ήλιος 6° κάτω από τον ορίζοντα) πριν την ανατολή και μετά τη δύση, ως πιο ανοιχτή ζώνη· χωρίς γεωγρ. πλάτος μόνο νύχτα όπως πριν */
+  var pt=fcPt(ls.get('alkyon-fc7',null)), tw=pt&&d.rise!=null&&d.set!=null?civilMin(d.date,pt.lat)/60:0, r0=Math.max(0,r-tw), s1=Math.min(24,sn+tw);
+  svg.append(S('rect',{x:0,y:0,width:W*r0/24,height:H,class:'n'}),S('rect',{x:W*s1/24,y:0,width:W*(24-s1)/24,height:H,class:'n'}));
+  /* πρωτότυπο: χρώματα αυγής/σούρουπου. «Μπλε ώρα» = πολιτικό λυκόφως (−6° ως ανατολή/δύση), «χρυσή ώρα» = ήλιος ως +6°.
+     Το πλάτος κάθε χρώματος = πόση ώρα κρατά εκείνη τη μέρα σε εκείνο το σημείο */
+  var gd=pt&&tw>0?sunMin(d.date,pt.lat,84)/60:0;
+  if(tw>0){ var gid='spg'+Math.random().toString(36).slice(2,7), tot=tw+gd, f=tw/tot;
+    var mk=function(id,rev){ var g=S('linearGradient',{id:id,x1:rev?1:0,y1:0,x2:rev?0:1,y2:0});
+      [[0,'#1b1d4a',.0],[f*.45,'#4a3f8f',.42],[f*.85,'#c85a86',.5],[f,'#ff7a50',.55],[f+(1-f)*.45,'#ffab4a',.42],[1,'#ffd27a',0]].forEach(function(q){ g.appendChild(S('stop',{offset:q[0].toFixed(3),'stop-color':q[1],'stop-opacity':q[2]})); }); return g; };
+    svg.append(S('defs',null,mk(gid+'a',false),mk(gid+'b',true)),
+      S('rect',{x:W*r0/24,y:0,width:W*tot/24,height:H,fill:'url(#'+gid+'a)'}),
+      S('rect',{x:W*(sn-gd)/24,y:0,width:W*tot/24,height:H,fill:'url(#'+gid+'b)'})); }
+  /* καλύτερη ώρα: πράσινη ζώνη με έντονο περίγραμμα (όχι πορτοκαλί γέμισμα), ώστε να μη μπερδεύεται με τα χρώματα του σούρουπου */
   svg.append(S('path',{d:p+' L'+W+','+H+' L0,'+H+' Z',class:'a'}),S('path',{d:p,class:'l'}));
-  hs.forEach(function(q){ if(q.safe===false) svg.appendChild(S('rect',{x:W*q.hr/24,y:H-3,width:W/24,height:3,class:'u'})); });
-  var box=h('div',{class:'spday','aria-hidden':'true'},svg), pc=function(v){ return (v*100).toFixed(2)+'%'; };
-  [6,12,18].forEach(function(t){ box.appendChild(h('span',{class:'spdayt',style:{left:pc(t/24)},text:B.pad(t)})); });
-  if(d.safe&&d.win) box.appendChild(h('span',{class:'spdayw',style:{left:pc((d.win.s+d.win.e+1)/48)},text:B.pad(d.win.s)+':00–'+B.pad((d.win.e+1)%24)+':00'}));
+  /* 28/11/2026: ώρες εκτός ορίων ασφαλείας: αχνή κόκκινη σκίαση σε όλο το ύψος + η κόκκινη βάση */
+  var ru=[]; hs.forEach(function(q){ if(q.safe!==false) return; var l=ru[ru.length-1]; if(l&&l[1]===q.hr) l[1]=q.hr+1; else ru.push([q.hr,q.hr+1]); }); /* συνεχόμενες ώρες = ένα κομμάτι (χωρίς γραμμές ανάμεσα) */
+  ru.forEach(function(g){ svg.append(S('rect',{x:W*g[0]/24,y:0,width:W*(g[1]-g[0])/24,height:H,class:'ub'}),S('rect',{x:W*g[0]/24,y:H-3,width:W*(g[1]-g[0])/24,height:3,class:'u'})); });
+  /* 28/11/2026: οι ώρες που πέρασαν πιο αχνές (σήμερα), για να πηγαίνει το μάτι σε όσα έρχονται */
+  if(!dd.tom){ var n0=new Date(), nx=W*(n0.getHours()+n0.getMinutes()/60)/24; if(nx>0) svg.appendChild(S('rect',{x:0,y:0,width:nx,height:H,class:'past'})); }
+  /* 28/11/2026: για αναγνώστη οθόνης το γράφημα είναι μία εικόνα με περίληψη (αντί για κρυφό) */
+  var hm=function(v){ var m=Math.round(v*60); return B.pad(Math.floor(m/60)%24)+':'+B.pad(m%60); }, nq=dd.tom?null:hs.filter(function(q){ return q.hr===new Date().getHours(); })[0];
+  var sum=[(dd.tom?T('Βαθμός ψαρέματος ώρα-ώρα, αύριο','Hourly fishing score, tomorrow'):T('Βαθμός ψαρέματος ώρα-ώρα, σήμερα','Hourly fishing score, today')),
+    d.safe&&d.win?T('καλύτερη ώρα ','best time ')+B.pad(d.win.s)+':00–'+B.pad((d.win.e+1)%24)+':00'+(d.best!=null?T(', βαθμός ',', score ')+d.best:''):null,
+    nq?(nq.safe===false?T('τώρα εκτός ορίων ασφαλείας','now outside safety limits'):T('τώρα ','now ')+Math.round(nq.score||0)):null,
+    d.rise!=null&&d.set!=null?T('ανατολή ','sunrise ')+hm(r)+T(', δύση ',', sunset ')+hm(sn):null].filter(Boolean).join('. ')+'.';
+  var box=h('div',{class:'spday',role:'img','aria-label':sum},svg), pc=function(v){ return (v*100).toFixed(2)+'%'; };
+  /* 28/11/2026: πότε ήρθε η πρόγνωση, πάνω αριστερά· πορτοκαλί όταν είναι πάνω από 6 ώρες παλιά (η Αρχική τη δέχεται έως 24 ώρες) */
+  if(dd.t){ var ag=(Date.now()-dd.t)/36e5, tt=new Date(dd.t), old=ag>6;
+    box.appendChild(h('span',{class:'spdayage'+(old?' old':''),text:old?T('Πρόγνωση πριν ','Forecast ')+Math.floor(ag)+T(' ώρες',' h ago'):T('Πρόγνωση ','Forecast ')+B.pad(tt.getHours())+':'+B.pad(tt.getMinutes())})); }
+  /* 28/11/2026: στον άξονα η ώρα ανατολής και δύσης (με εικονίδιο)· οι 06/18 φεύγουν όταν είναι κοντά τους (< 2,5 ώρες) */
+  var sunT=d.rise!=null&&d.set!=null?[[r,'rise'],[sn,'set']]:[];
+  [6,12,18].forEach(function(t){ if(sunT.some(function(q){ return Math.abs(q[0]-t)<2.5; })) return; box.appendChild(h('span',{class:'spdayt',style:{left:pc(t/24)},text:B.pad(t)})); });
+  sunT.forEach(function(q){ var m=Math.round(q[0]*60); box.appendChild(h('span',{class:'spdayt sun '+q[1],style:{left:pc(q[0]/24)}},h('i',{html:SUNI[q[1]]}),h('span',{text:B.pad(Math.floor(m/60)%24)+':'+B.pad(m%60)}))); });
+  /* 28/11/2026: χωρίς ετικέτα ωρών στο γράφημα: η καλύτερη ώρα γράφεται ακριβώς από κάτω (βαθμός, τρόποι) */
+  /* 28/11/2026: καλύτερη ώρα = πράσινη κουκκίδα πάνω στην κορυφή της καμπύλης (χωρίς ζώνη) */
+  if(d.safe&&d.win){ var qb=null; hs.forEach(function(q){ if(q.hr>=d.win.s&&q.hr<=d.win.e&&(!qb||(q.score||0)>(qb.score||0))) qb=q; });
+    if(qb) box.appendChild(h('span',{class:'spdayb',style:{left:pc((qb.hr+0.5)/24),top:pc(y(qb.score)/H)}})); }
   if(!dd.tom){ var n=new Date(), nh=n.getHours()+n.getMinutes()/60, q0=hs.filter(function(q){ return q.hr===n.getHours(); })[0];
     if(q0){ box.append(h('span',{class:'spdayn',style:{left:pc(nh/24)}}),h('span',{class:'spdayd',style:{left:pc(nh/24),top:pc(y(q0.score)/H)}}),h('span',{class:'spdaynl'+(nh>19?' r':''),style:{left:pc(nh/24),top:pc(y(q0.score)/H)},text:q0.safe===false?T('τώρα · εκτός ορίων','now · outside limits'):T('τώρα ','now ')+Math.round(q0.score||0)})); } }
   else box.appendChild(h('span',{class:'spdaytag',text:T('Αύριο','Tomorrow')}));
@@ -149,11 +189,13 @@ function todayChip(){ try{ var c=ls.get('alkyon-fc7',null); if(!c||!c.fc||!c.fc.
   var d0=new Date(), td=d0.getFullYear()+'-'+B.pad(d0.getMonth()+1)+'-'+B.pad(d0.getDate()), d=c.fc.days.filter(function(x){ return x.date===td; })[0]; if(!d) return null;
   /* 1.14.19: το βράδυ δεν μένουν ώρες φωτός σήμερα (why='night'): δεν είναι «εκτός ορίων», δείχνει το αύριο */
   var lab=T('Σήμερα','Today'); if(!d.safe&&d.why==='night'){ var i0=c.fc.days.indexOf(d), d2=c.fc.days[i0+1]; if(!d2) return null; d=d2; lab=T('Αύριο','Tomorrow'); }
+  /* 28/11/2026: ο αριθμός είναι ο καλύτερος βαθμός της μέρας (το «τώρα» είναι στο γράφημα): το λέει ρητά */
+  var lab2=lab===T('Σήμερα','Today')?T('Καλύτερο σήμερα','Today’s best'):T('Αύριο: καλύτερο','Tomorrow’s best');
   var pl=(ls.get('alkyon-places',[])||[]).filter(function(x){ return x&&x.id===c.id; })[0], nm=pl&&pl.name?pl.name:'', U=window.AlkyonUnits; if(B.EN){ nm=({'Σημείο χάρτη':'Map point','Η θέση μου':'My location','Έξοδος τώρα':'Trip now'})[nm]||nm; } /* 1.14.17: όχι «Spot χάρτη» */
   var wx=[d.avgWind!=null?(U&&U.windP?U.windP(d.avgWind).join(' '):Math.round(d.avgWind)+' kn'):'',d.avgWave!=null?B.num(d.avgWave,1)+' m':''].filter(Boolean).join(' · ');
   var past=lab===T('Σήμερα','Today')&&d.win&&d.win.e<d0.getHours(), ch=h('div',{class:'sptoday'+(d.safe?'':' bad')},
     h('span',{class:'stsc',text:d.safe&&d.best!=null?String(d.best):'!'}),
-    h('span',{class:'sttx'},h('i',{class:'stlab',text:T('Βαθμός ψαρέματος','Fishing score')}),h('b',{text:lab+(nm?' · '+nm:'')}),h('small',{text:d.safe&&d.win?(past?T('η καλύτερη ώρα πέρασε','the best time has passed'):T('καλύτερη ώρα ','best time ')+B.pad(d.win.s)+':00–'+B.pad((d.win.e+1)%24)+':00')+(wx?' · '+wx:''):T('εκτός ορίων ασφαλείας σου','outside your safety limits')+(wx?' · '+wx:'')})));
+    h('span',{class:'sttx'},h('i',{class:'stlab',text:T('Βαθμός','Fishing score')}) /* 28/11/2026: «Βαθμός» στα ελληνικά, για να χωρά «Καλύτερο σήμερα · σημείο» σε μία γραμμή */,h('b',{text:(d.safe&&d.best!=null?lab2:lab)+(nm?' · '+nm:'')}),h('small',{text:d.safe&&d.win?(past?T('η καλύτερη ώρα πέρασε','the best time has passed'):T('καλύτερη ώρα ','best time ')+B.pad(d.win.s)+':00–'+B.pad((d.win.e+1)%24)+':00')+(wx?' · '+wx:''):T('εκτός ορίων ασφαλείας σου','outside your safety limits')+(wx?' · '+wx:'')})));
   return ch; }catch(e){ return null; } }
 function wanted(){ if(!raw('alkyon-onboard')) return false; try{ if(sessionStorage.getItem('alkyon-sp-seen')) return false; }catch(e){} /* 1.14.17: όχι ξανά στην ίδια καρτέλα (π.χ. όταν η κάμερα του κινητού ξαναφόρτωσε τη σελίδα) */ if(raw('alkyon-askfp')==='0'&&raw('alkyon-fprof-done')) return false; var s=ls.get('alkyon-safe',null); if(s&&s.active) return false; if(/#(new|trip|addfriend)/.test(location.hash)) return false; return true; }
 
