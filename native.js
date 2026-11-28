@@ -36,7 +36,9 @@ window.AKN={
   /* ρολόι Apple Watch / Wear OS: στέλνει τον κωδικό σύνδεσης στο ρολόι (v4/garmin.js) */
   watch:reg('AlkWatch'),
   /* 1.14.83 (P0.7): GPS εξόδου με σβηστή/κλειδωμένη οθόνη (Android foreground service, iOS background location) + παλμός στον server */
-  trip:reg('AlkTrip')
+  trip:reg('AlkTrip'),
+  /* 1.14.102: Google Play In-App Updates (μόνο Android): info() → {available, code, inProgress}, start() → οθόνη ενημέρωσης του Play */
+  upd:IOS?null:reg('AlkUpdate')
 };
 try{ document.documentElement.classList.add('native','native-'+window.AKN.platform); }catch(e){}
 

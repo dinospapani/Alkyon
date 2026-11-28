@@ -37,9 +37,10 @@ test('iPhone: nothing else can put a different screen in front (start-up path)',
   assert.match(rd(IOS + '/Base.lproj/Main.storyboard'), /customClass="MainViewController"/, 'the storyboard still names the controller that is replaced (documented in MainViewController.swift)');
 });
 
-test('Android is untouched: its four plugins are registered where they always were', () => {
+/* 1.14.102: + AlkUpdatePlugin (Google Play In-App Updates), προστέθηκε σκόπιμα */
+test('Android is untouched: its five plugins are registered where they always were', () => {
   const ma = rd('android/app/src/main/java/com/alkyonfishing/app/MainActivity.java');
-  assert.deepEqual((ma.match(/registerPlugin\((\w+)\.class\)/g) || []).map(x => /\((\w+)\./.exec(x)[1]).sort(), ['AlkBaroPlugin', 'AlkNetPlugin', 'AlkTripPlugin', 'AlkWatchPlugin']);
+  assert.deepEqual((ma.match(/registerPlugin\((\w+)\.class\)/g) || []).map(x => /\((\w+)\./.exec(x)[1]).sort(), ['AlkBaroPlugin', 'AlkNetPlugin', 'AlkTripPlugin', 'AlkUpdatePlugin', 'AlkWatchPlugin']);
   const tp = rd('android/app/src/main/java/com/alkyonfishing/app/AlkTripPlugin.java');
   assert.match(tp, /r\.put\("ok", true\); call\.resolve\(r\);/, 'start answers ok:true → the diagnostic reads «ok»'); assert.match(tp, /r\.put\("ok", false\); r\.put\("err", "perm"\)/);
 });

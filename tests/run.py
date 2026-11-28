@@ -302,6 +302,46 @@ with sync_playwright() as p:
     j=json.load(open(os.path.join(ROOT,'app-version.json'),encoding='utf-8'))
     check('app-version.json: έκδοση και σύνδεσμος για android και ios (1.14.10)', all(j.get(k,{}).get('v') and j.get(k,{}).get('url') for k in ('android','ios')), j); c.close()
 
+    print('# 1.14.102 νέα έκδοση: σειρά εκδόσεων, «Απαιτείται ενημέρωση», Google Play μέσα στην εφαρμογή')
+    def vnum(v):
+        m=v.split('.'); return int(m[0])*10**6+int(m[1])*1000+int(m[2])
+    check('app-version.json: το min (αν υπάρχει) δεν ξεπερνά την έκδοση στο store (1.14.102)', all(not j[k].get('min') or vnum(j[k]['min'])<=vnum(j[k]['v']) for k in ('android','ios')), j)
+    def upd_ctx(json_body, upd_js=None, pre=''):
+        c=ctx(b); pg=page(c)
+        pg.add_init_script(pre+"window.AKN={site:location.origin+'/',platform:'android',openExternal:function(u){ window.__opened=u; }"+(','+upd_js if upd_js else '')+"};")
+        pg.route('**/app-version.json*', lambda r: r.fulfill(status=200, content_type='application/json', body=json_body))
+        pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(10500); return c,pg
+    # σειρά εκδόσεων: 1.15.0 > 1.14.101 (πριν: minor·100 + patch έβγαζε το 1.14.101 μεγαλύτερο)
+    c,pg=upd_ctx('{"android":{"v":"1.15.0","url":"https://example.com/play","el":"από το Google Play"}}')
+    r=pg.evaluate("()=>[AK._updNum('1.15.0')>AK._updNum('1.14.101'), AK._updNum('1.14.101')>AK._updNum('1.14.99'), AK._updNum('2.0.0')>AK._updNum('1.999.999'), AK._updNum('1.14.101')>AK._updNum('v31z530'), window.ALKYON_VERSION]")
+    bar=pg.evaluate("()=>{ const b=document.querySelector('.updbar'); return b?[b.textContent, !!b.querySelector('.x'), b.classList.contains('must')]:null; }")
+    check('Σειρά εκδόσεων: 1.15.0 > 1.14.101 > 1.14.99, 2.0.0 > 1.999.999· μπάρα «Νέα έκδοση 1.15.0» με ✕ (1.14.102)', r[:4]==[True,True,True,True] and bool(bar) and '1.15.0' in bar[0] and bar[1] and not bar[2], [r,bar]); c.close()
+    # min μεγαλύτερο από την έκδοση στο κινητό: «Απαιτείται ενημέρωση», χωρίς ✕, βγαίνει ακόμα κι αν ο χρήστης είχε πατήσει «Αργότερα» γι' αυτή την έκδοση
+    snooze="try{ localStorage.setItem('alkyon-store-upd', JSON.stringify({v:'9.0.0',t:Date.now()})); }catch(e){}"
+    c,pg=upd_ctx('{"android":{"v":"9.0.0","min":"9.0.0","url":"https://example.com/play","el":"από το Google Play"}}', pre=snooze)
+    bar=pg.evaluate("()=>{ const b=document.querySelector('.updbar'); return b?[b.textContent, !!b.querySelector('.x'), b.classList.contains('must')]:null; }")
+    pg.evaluate("()=>document.body.classList.add('ontrip')"); hid=pg.evaluate("()=>{ const b=document.querySelector('.updbar'); return b?getComputedStyle(b).display:null; }")
+    check('min: «Απαιτείται ενημέρωση · 9.0.0» χωρίς ✕, παρά το «Αργότερα», κρυφή μέσα σε έξοδο (1.14.102)', bool(bar) and 'Απαιτείται ενημέρωση' in bar[0] and not bar[1] and bar[2] and hid=='none', [bar,hid]); c.close()
+    # χωρίς min, το «Αργότερα» της ίδιας έκδοσης ισχύει όπως πριν (3 μέρες)
+    c,pg=upd_ctx('{"android":{"v":"9.0.0","url":"https://example.com/play","el":"από το Google Play"}}', pre=snooze)
+    r=pg.evaluate("()=>!!document.querySelector('.updbar')")
+    check('Χωρίς min: το «Αργότερα» για την ίδια έκδοση κρατά τη μπάρα κρυφή (όπως 1.14.10)', r is False, r); c.close()
+    # Google Play λέει «υπάρχει 1.15.0 για σένα»: μπάρα από το Play και το «Ενημέρωση» ανοίγει την οθόνη ενημέρωσης του Play
+    c,pg=upd_ctx('{"android":{"v":"1.14.9","url":"market://details?id=com.alkyonfishing.app","el":"από το Google Play"}}',
+        "upd:{info:function(){ return Promise.resolve({available:true,code:1015000}); },start:function(){ window.__play=(window.__play||0)+1; return Promise.resolve({result:-1}); }}")
+    r=pg.evaluate("()=>{ const b=document.querySelector('.updbar'); if(!b) return null; const t=b.textContent; b.querySelector('.btn').click(); return [t, window.__play||0, window.__opened||null]; }")
+    check('Android: το Play λέει 1015000 → μπάρα «Νέα έκδοση 1.15.0», το «Ενημέρωση» ανοίγει το Play μέσα στην εφαρμογή, όχι το json (1.14.102)', bool(r) and '1.15.0' in r[0] and r[1]==1 and r[2] is None, r); c.close()
+    # Google Play λέει «τίποτα νεότερο για σένα» (π.χ. tester σε άλλο track): καμία μπάρα, ακόμα κι αν το json γράφει νεότερη
+    c,pg=upd_ctx('{"android":{"v":"9.0.0","url":"https://example.com/play","el":"από το Google Play"}}',
+        "upd:{info:function(){ return Promise.resolve({available:false,code:0}); },start:function(){ return Promise.reject('x'); }}")
+    r=pg.evaluate("()=>!!document.querySelector('.updbar')")
+    check('Android: το Play λέει «τίποτα νεότερο» → καμία μπάρα, παρότι το json γράφει 9.0.0 (1.14.102)', r is False, r); c.close()
+    # Google Play δεν απαντά (APK δοκιμής / παλιό build): ισχύει το app-version.json
+    c,pg=upd_ctx('{"android":{"v":"9.0.0","url":"https://example.com/play","el":"από το Google Play"}}',
+        "upd:{info:function(){ return Promise.reject(new Error('not implemented')); },start:function(){ return Promise.reject('x'); }}")
+    r=pg.evaluate("()=>{ const b=document.querySelector('.updbar'); if(!b) return null; const t=b.textContent; b.querySelector('.btn').click(); return [t, window.__opened]; }")
+    check('Android: το Play δεν απαντά → μπάρα από το app-version.json (9.0.0) που ανοίγει το url του (1.14.102)', bool(r) and '9.0.0' in r[0] and r[1]=='https://example.com/play', r); c.close()
+
     print('# backup (export → καθάρισμα → επαναφορά)')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#profile'); pg.wait_for_timeout(2000)
     pg.evaluate("()=>{AK.store.save('spots',{id:'s1',name:'Βράχος',lat:35,lon:33.3}); AK.store.save('tackle',{id:'k1',type:'lure',kind:'jig',name:'Ζόκα'});}")

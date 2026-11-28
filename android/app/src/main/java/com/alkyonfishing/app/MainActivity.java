@@ -11,6 +11,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(AlkNetPlugin.class); /* 1.13.1: «Δίκτυο σκάφους» (NMEA μέσω WiFi) */
         registerPlugin(AlkWatchPlugin.class); /* ρολόι Wear OS: κωδικός σύνδεσης */
         registerPlugin(AlkTripPlugin.class); /* 1.14.83: GPS εξόδου με σβηστή οθόνη */
+        registerPlugin(AlkUpdatePlugin.class); /* 1.14.102: νέα έκδοση από το Google Play μέσα στην εφαρμογή */
         super.onCreate(savedInstanceState);
     }
 }
