@@ -382,7 +382,7 @@ html.nightred .hero .hsun1 .mj{color:inherit}
 .sppage.spdayon:not(.splight) .sptitle{position:static;margin:0 2px 16px}
 .sppage.spdayon:not(.splight) .sptitle h1,.sppage.spdayon:not(.splight) .sptitle .sphi{text-shadow:none}
 .sppage.spdayon:not(.splight) .sptitle .sphi{color:var(--ink-2)}
-.sppage.spdayon:not(.splight) .sptoday{background:none;border:0;box-shadow:none;padding:0;border-radius:0;gap:12px;-webkit-backdrop-filter:none;backdrop-filter:none}
+.sppage.spdayon:not(.splight) .sptoday{background:none;border:0;box-shadow:none;padding:0;border-radius:0;gap:12px}
 .sppage.spdayon:not(.splight) .sptoday .stsc{min-width:44px;height:40px;border-radius:12px;font-size:19px}
 .sppage.spdayon:not(.splight) .spbody{padding-top:16px}
 .sppage.spdayon:not(.splight) .sphero.day{background:#0b2a3a;box-shadow:inset 0 -1px 0 var(--line)}

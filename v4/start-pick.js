@@ -110,7 +110,7 @@ function fact(p,side){ try{ var dd=dayData(); if(!dd) return null; var d=dd.d, U
   if(p==='lake') return wind?{t:T('Άνεμος ','Wind ')+wind+(dd.tom?T(' αύριο',' tomorrow'):T(' σήμερα',' today'))}:null;
   if(p==='spear'){ var pl=null; try{ var c=ls.get('alkyon-fc7',null); pl=(ls.get('alkyon-places',[])||[]).filter(function(x){ return x&&x.id===c.id; })[0]; }catch(e){}
     var v=pl&&B.clarityEst?B.clarityEst(pl.lat,pl.lon,d.date,B.pad(nh)+':00'):null;
-    var t=[v!=null?T('Διαύγεια ~','Visibility ~')+Math.round(v)+' m':null,wave?T('κύμα ','waves ')+wave:null].filter(Boolean).join(' · '); if(!t) return null; t=t.charAt(0).toUpperCase()+t.slice(1);
+    var lv=v!=null&&B.clarity&&B.clarity.level?B.clarity.level(v)[1]:null, t=[lv?T('Διαύγεια ','Visibility ')+lv:null,wave?T('κύμα ','waves ')+wave:null].filter(Boolean).join(' · '); if(!t) return null; t=t.charAt(0).toUpperCase()+t.slice(1);
     return {t:t+(over?T(' · πάνω από τα όριά σου',' · above your limits'):''),bad:over}; }
   if(!d.safe||!d.win) return {t:when+T('εκτός ορίων ασφαλείας σου','outside your safety limits'),bad:true};
   var past=!dd.tom&&d.win.e<now.getHours(), t2=past?T('Η καλύτερη ώρα πέρασε','Best time has passed'):(dd.tom?T('Αύριο καλύτερη ','Tomorrow best '):T('Καλύτερη ώρα ','Best time '))+B.pad(d.win.s)+':00–'+B.pad((d.win.e+1)%24)+':00';
