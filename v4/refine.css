@@ -346,6 +346,8 @@ html.nightred .hero .hsun1 .mj{color:inherit}
 .sptoday .sttx{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:6px;align-items:baseline}
 .sptoday .sttx .stlab::after{content:' ·'}
 .sptoday .sttx small{grid-column:1 / -1}
+/* 28/11/2026: «Βαθμός ψαρέματος · Καλύτερο σήμερα · σημείο» σε ένα μέγεθος (το b ήταν 14 px, το «Βαθμός ψαρέματος» 12 px) */
+.sptoday .sttx b{font-size:12px;letter-spacing:.2px}
 .sppage.splight .sptoday{background:none;box-shadow:none;padding:0;border-radius:0;gap:12px}
 .sppage.splight .sptoday .stsc{min-width:44px;height:40px;border-radius:12px;font-size:19px}
 .sptitle .sptoday{margin:8px 0 16px}
