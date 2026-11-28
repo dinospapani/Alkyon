@@ -320,6 +320,8 @@ function privGroup(page,s){ var nbl=(ls.get('alkyon-comm-block',[])||[]).length;
   page.append(group(T('Απόρρητο και κοινοποίηση','Privacy and sharing'),[
     (s&&B.commAvatarPick)?row('camera',T('Φωτογραφία προφίλ','Profile photo'),T('Φαίνεται στις αναρτήσεις και στα σχόλιά σου','Shown on your posts and comments'),null,function(){ B.commAvatarPick(); }):null,
     B.contrib?row('stats',T('Βοήθησε την πρόγνωση','Help the forecast'),B.contrib.on()?T('Συμμετέχεις ανώνυμα · ευχαριστούμε','Taking part anonymously · thank you'):T('Ανώνυμα στοιχεία τσιμπημάτων','Anonymous bite data'),null,function(){ B.contrib.sheet(); }):null,
+    /* stage2 (28/11/2026): συγκατάθεση για τα στιγμιότυπα πρόγνωσης ανά έξοδο */
+    (s&&B.snapConsent)?row('stats',T('Ακρίβεια της πρόγνωσης','Forecast accuracy'),B.snapConsent.on()?T('Κρατά τι πρόβλεπε σε κάθε έξοδο','Keeps what it predicted for each trip'):T('Ανενεργό','Off'),null,function(){ B.snapConsent.sheet(); }):null,
     nbl?row('block',T('Αποκλεισμένοι χρήστες','Blocked users'),String(nbl),null,blockedSheet):null])); }
 /* ---------- λογαριασμός ---------- */
 function accountCard(s){
