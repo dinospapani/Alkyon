@@ -3,11 +3,11 @@
    Νέος χρήστης (χωρίς alkyon-onboard και χωρίς δεδομένα): πρώτα το καλωσόρισμα, με την ίδια επιλογή μέσα. */
 (function(){
 'use strict';
-var B=window.AK, h=B.h, T=B.T, ls=B.ls;
+var B=window.AK, h=B.h, T=B.T, ls=B.ls, S=B.s;
 function raw(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
 function put(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
-var SIDE={shore:{n:T('Ακτή','Shore'),d:T('Μόλος · Βράχια · Λίμνη','Beach · Rocks · Dam'),img:'alk-card-shore.jpg'},
-  boat:{n:T('Σκάφος','Offshore'),d:T('Ανοιχτή θάλασσα · Κουμπιά ασφαλείας','Open sea · Safety buttons'),img:'alk-card-boat.jpg'}};
+var SIDE={shore:{n:T('Ακτή','Shore'),d:T('Παραλία · Βράχια · Μόλος','Beach · Rocks · Pier'),img:'alk-card-shore.jpg'},
+  boat:{n:T('Σκάφος','Offshore'),d:T('Ανοιχτή θάλασσα · Βάρκα','Open sea · Boat'),img:'alk-card-boat.jpg'}};
 /* εικονίδια γραμμής (ίδιο στυλ με την υπόλοιπη εφαρμογή) */
 var IC={rod:'<path d="M4 20L18.5 5.5"/><path d="M18.5 5.5c1.2-1.2 2.5-.4 2.5 1v5"/><circle cx="7.5" cy="16.5" r="2.2"/><path d="M21 11.5v2.5a1.5 1.5 0 0 1-3 0"/>',
   spear:'<path d="M2 14h13"/><path d="M15 12.5h3l4 1.5-4 1.5h-3z"/><path d="M5 14v3.5M8 14v2"/><path d="M2 11.5l2.5 2.5L2 16.5"/>',
@@ -15,8 +15,8 @@ var IC={rod:'<path d="M4 20L18.5 5.5"/><path d="M18.5 5.5c1.2-1.2 2.5-.4 2.5 1v5
   shore:'<path d="M3 17c2.2 0 2.2-1.5 4.5-1.5S9.8 17 12 17s2.2-1.5 4.5-1.5S19 17 21 17"/><path d="M5 13l5-8"/><path d="M10 5l8 4"/>',
   boat:'<path d="M3 15h18l-2.5 4.5h-13z"/><path d="M7 15V9h7l3 6"/><path d="M10 9V5"/>'};
 function svg(k){ return '<svg viewBox="0 0 24 24" aria-hidden="true">'+(IC[k]||'')+'</svg>'; }
-var METH={shore:[{p:'shore',n:T('Καλάμι από την ακτή','Rod from the shore'),d:T('Βυθός · Spinning · Surfcasting','Bottom · Spinning · Surfcasting'),i:'rod',th:'alk-th-shorerod.jpg'},{p:'spear',n:T('Ψαροντούφεκο από την ακτή','Spearfishing from the shore'),d:T('Βουτιά · Σημαδούρα · Ασφάλεια','Dive · Float · Safety'),i:'spear',th:'alk-th-spear.jpg'},{p:'lake',n:T('Φράγμα ή λίμνη','Dam or lake'),d:T('Γλυκό νερό · Χωρίς κύμα','Fresh water · No waves'),i:'lake',th:'alk-th-lake.jpg'}],
-  boat:[{p:'boat',n:T('Καλάμι','Rod'),d:T('Βυθός · Συρτή · Jigging · Casting','Bottom · Trolling · Jigging · Casting'),i:'rod',th:'alk-th-boatrod.jpg'},{p:'spear',n:T('Ψαροντούφεκο από σκάφος','Spearfishing from a boat'),d:T('Βουτιά · Ψαροντούφεκο · Σημαδούρα','Dive · Speargun · Float · Safety'),i:'spear',th:'alk-th-spear.jpg'}]};
+var METH={shore:[{p:'shore',n:T('Καλάμι','Rod'),d:T('Βυθός · Spinning · Surfcasting','Bottom · Spinning · Surfcasting'),i:'rod',th:'alk-th-shorerod.jpg'},{p:'spear',n:T('Ψαροντούφεκο','Spearfishing'),d:T('Βουτιά · Σημαδούρα · Ασφάλεια','Dive · Float · Safety'),i:'spear',th:'alk-th-spear.jpg'},{p:'lake',n:T('Φράγμα ή λίμνη','Dam or lake'),d:T('Γλυκό νερό · Χωρίς κύμα','Fresh water · No waves'),i:'lake',th:'alk-th-lake.jpg'}],
+  boat:[{p:'boat',n:T('Καλάμι','Rod'),d:T('Βυθός · Συρτή · Jigging · Casting','Bottom · Trolling · Jigging · Casting'),i:'rod',th:'alk-th-boatrod.jpg'},{p:'spear',n:T('Ψαροντούφεκο','Spearfishing'),d:T('Βουτιά · Ψαροντούφεκο · Σημαδούρα','Dive · Speargun · Float · Safety'),i:'spear',th:'alk-th-spear.jpg'}]};
 function cur(){ return B.prof(); }
 function side(){ var p=cur(), s=raw('alkyon-fside'); if(p==='boat') return 'boat'; if(p==='shore'||p==='lake') return 'shore'; return s==='boat'?'boat':'shore'; }
 function label(p,s){ return s==='boat'?(p==='boat'?T('Σκάφος, καλάμι','Offshore, rod'):T('Σκάφος, ψαροντούφεκο','Offshore, spearfishing')):(p==='lake'?T('Φράγμα ή λίμνη','Dam or lake'):p==='spear'?T('Ακτή, ψαροντούφεκο','Shore, spearfishing'):T('Ακτή, καλάμι','Shore, rod')); }
@@ -24,9 +24,10 @@ B.fishSide=side;
 var CHK='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>', CHEV='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>';
 
 /* η επιλογή (κάρτες + τρόποι): χρησιμοποιείται στη σελίδα και στο καλωσόρισμα */
-function picker(st,onChange){
-  var box=h('div',{class:'spk'});
+function picker(st,onChange,live){
+  var box=h('div',{class:'spk'+(live?' splive2':'')});
   function paint(){ box.replaceChildren();
+    if(live){ paintLive(); return; }
     var g=h('div',{class:'spcards',role:'radiogroup','aria-label':T('Περιβάλλον','Environment')});
     ['shore','boat'].forEach(function(k){ var x=SIDE[k], on=st.s===k;
       g.append(h('button',{type:'button',class:'spcard'+(on?' on':''),role:'radio','aria-checked':String(on),onclick:function(){ st.s=k; if(!METH[k].some(function(m){ return m.p===st.p; })) st.p=METH[k][0].p; paint(); onChange&&onChange(); }},
@@ -36,6 +37,18 @@ function picker(st,onChange){
     METH[st.s].forEach(function(m){ var on=st.p===m.p;
       l.append(h('button',{type:'button',class:'sprow'+(on?' on':''),role:'radio','aria-checked':String(on),onclick:function(){ st.p=m.p; paint(); onChange&&onChange(); }},
         (m.th?h('span',{class:'spmi sph',style:{backgroundImage:'url('+m.th+')'}}):h('span',{class:'spmi',html:svg(m.i)})),h('span',{class:'tx'},h('b',{text:m.n}),h('small',{text:m.d})),h('span',{class:'sprad',html:on?CHK:''}))); });
+    box.append(g,h('h3',{class:'sph3',text:T('Με τι ψαρεύεις;','How are you fishing?')}),l); }
+  /* 28/11/2026 (πρωτότυπο): στην καθημερινή Αρχική χωρίς φωτογραφίες: Ακτή | Σκάφος σε διακόπτη και κάθε τρόπος με εικονίδιο
+     και ένα στοιχείο της μέρας από την πρόγνωση (χωρίς πρόγνωση: η περιγραφή όπως πριν). Οι φωτογραφίες μένουν στο καλωσόρισμα. */
+  function pick(k){ st.s=k; if(!METH[k].some(function(m){ return m.p===st.p; })) st.p=METH[k][0].p; paint(); onChange&&onChange(); }
+  function paintLive(){
+    var g=h('div',{class:'spseg',role:'radiogroup','aria-label':T('Περιβάλλον','Environment')});
+    ['shore','boat'].forEach(function(k){ var on=st.s===k;
+      g.append(h('button',{type:'button',class:on?'on':'',role:'radio','aria-checked':String(on),onclick:function(){ pick(k); }},h('span',{class:'spic',html:svg(k)}),h('b',{text:SIDE[k].n}))); });
+    var l=h('div',{class:'spmeth',role:'radiogroup','aria-label':T('Με τι ψαρεύεις','How you fish')});
+    METH[st.s].forEach(function(m){ var on=st.p===m.p, f=fact(m.p,st.s);
+      l.append(h('button',{type:'button',class:'sprow'+(on?' on':''),role:'radio','aria-checked':String(on),onclick:function(){ st.p=m.p; paint(); onChange&&onChange(); }},
+        h('span',{class:'spmi',html:svg(m.i)}),h('span',{class:'tx'},h('b',{text:m.n}),f?h('small',{class:'spfact'+(f.bad?' bad':''),text:f.t}):h('small',{text:m.d})),h('span',{class:'sprad',html:on?CHK:''}))); });
     box.append(g,h('h3',{class:'sph3',text:T('Με τι ψαρεύεις;','How are you fishing?')}),l); }
   paint(); return box;
 }
@@ -48,9 +61,10 @@ B.startPick=function(){ try{ sessionStorage.setItem('alkyon-sp-seen','1'); }catc
   var ask=h('input',{type:'checkbox',checked:raw('alkyon-askfp')==='0'}), go=h('button',{class:'spgo',type:'button'});
   /* 1.12.15: η φωτογραφία ακολουθεί την επιλογή (ακτή / σκάφος / ψαροντούφεκο) */
   function heroImg(){ return st.p==='spear'?'alk-hero-spear.jpg':st.s==='shore'?'alk-card-shore.jpg':'alk-hero-boat.jpg'; }
-  function lab(){ go.replaceChildren(h('span',{text:T('Συνέχεια · ','Continue · ')+label(st.p,st.s)}),h('i',{html:CHEV})); try{ var hi=pg&&pg.querySelector('.sphero'); if(hi) hi.style.backgroundImage='url('+heroImg()+')'; }catch(e){} }
+  function lab(){ go.replaceChildren(h('span',{text:T('Συνέχεια · ','Continue · ')+label(st.p,st.s)}),h('i',{html:CHEV})); try{ var hi=pg&&pg.querySelector('.sphero'); if(hi&&!hi.classList.contains('day')) hi.style.backgroundImage='url('+heroImg()+')'; }catch(e){} }
   /* 1.12.22: το «πίσω» του κινητού κλείνει τη σελίδα χωρίς αλλαγή (όπως το «Παράλειψη»), αντί να βγάζει από την εφαρμογή ή τη σελίδα.
      Μπαίνει μία εγγραφή στο ιστορικό· αν κλείσει με κουμπί, την αφαιρούμε εμείς (δεν αλλάζει η διεύθυνση, άρα δεν μπλέκει με την πλοήγηση). */
+  function title(){ return h('div',{class:'sptitle'},h('p',{class:'sphi',text:hello()}),(function(){ var c=todayChip(); return c?[c,h('h1',{text:T('Πού ψαρεύεις σήμερα;','Where are you fishing today?')})]:[h('h1',{text:T('Πού ψαρεύεις σήμερα;','Where are you fishing today?')}),h('p',{text:T('Διάλεξε πού και πώς ψαρεύεις','Choose where and how you fish')})]; })()); }
   var hist=false, gone=false;
   function onPop(){ if(!hist) return; hist=false; close(true); }
   function close(fromPop){ if(gone) return; gone=true; pg.classList.add('out'); cover(false); document.removeEventListener('keydown',key); setTimeout(function(){ pg.remove(); window.removeEventListener('popstate',onPop); },260); try{ prev&&prev.focus&&prev.focus(); }catch(e){}
@@ -60,12 +74,21 @@ B.startPick=function(){ try{ sessionStorage.setItem('alkyon-sp-seen','1'); }catc
   var pg=h('div',{class:'sppage',role:'dialog','aria-modal':'true','aria-label':T('Πού ψαρεύεις σήμερα;','Where are you fishing today?')},
     h('div',{class:'sphero',style:{backgroundImage:'url('+heroImg()+')'}},h('span',{class:'spheroshade'}),
       h('button',{class:'spskip',type:'button',text:T('Παράλειψη','Skip'),title:T('Κλείσιμο χωρίς αλλαγή: θα ξαναρωτήσει την επόμενη φορά','Close without changes: it will ask again next time'),onclick:close}),brand(),
-      h('div',{class:'sptitle'},h('p',{class:'sphi',text:hello()}),h('h1',{text:T('Πού ψαρεύεις σήμερα;','Where are you fishing today?')}),todayChip()||h('p',{text:T('Διάλεξε πού και πώς ψαρεύεις','Choose where and how you fish')}))),
-    h('div',{class:'spbody'},picker(st,lab),
+      title()),
+    h('div',{class:'spbody'},picker(st,lab,false),
       h('label',{class:'spask'},ask,h('span',{class:'spbox',html:CHK}),h('span',{text:T('Να μη ρωτάει κάθε φορά','Don’t ask every time')})),
-      go,h('p',{class:'spfoot',text:T('Αλλαγή αργότερα: Προφίλ › Τύπος ψαρέματος','Change later: Profile › Fishing type')})));
+      /* 28/11/2026: «Συνέχεια» και «Αλλαγή αργότερα» σε μία κάτω μπάρα με φόντο, μέσα στην ασφαλή ζώνη· τίποτα δεν κρύβεται πίσω από το κουμπί */
+      h('div',{class:'spbar'},go,h('p',{class:'spfoot',text:T('Αλλαγή αργότερα: Προφίλ › Τύπος ψαρέματος','Change later: Profile › Fishing type')}))));
   /* 1.12.20: με φωτεινό θέμα η είσοδος ταιριάζει με την εφαρμογή: η φωτογραφία μένει πάνω, από κάτω ανοιχτό φόντο και λευκές κάρτες */
-  if(isLight()){ pg.classList.add('splight'); var ttl=pg.querySelector('.sptitle'), bd=pg.querySelector('.spbody'); if(ttl&&bd) bd.insertBefore(ttl,bd.firstChild); }
+  if(isLight()) pg.classList.add('splight');
+  /* «η μέρα σου» πάνω (αν υπάρχει πρόγνωση): ο τίτλος πάει κάτω και στο σκοτεινό θέμα, η επιλογή χωρίς φωτογραφίες */
+  function upgrade(){ try{ if(pg.classList.contains('spdayon')) return true; var dh=dayHero(); if(!dh) return false;
+      var he=pg.querySelector('.sphero'), body=pg.querySelector('.spbody'), old=pg.querySelector('.sptitle'), k=pg.querySelector('.spk');
+      he.classList.add('day'); he.style.backgroundImage='none'; he.insertBefore(dh,he.firstChild); pg.classList.add('spdayon');
+      if(old) old.remove(); body.insertBefore(title(),body.firstChild); if(k) k.replaceWith(picker(st,lab,true)); return true; }catch(e){ return false; } }
+  if(isLight()){ var ttl=pg.querySelector('.sptitle'), bd=pg.querySelector('.spbody'); if(ttl&&bd) bd.insertBefore(ttl,bd.firstChild); }
+  if(!upgrade()&&B.fcBg){ /* παλιά ή καθόλου πρόγνωση: φέρνει νέα στο παρασκήνιο· όταν έρθει, η σελίδα γίνεται «η μέρα σου» */
+    B.fcBg().then(function(c){ if(c&&!gone) upgrade(); }); }
   lab(); cover(true); document.body.append(pg); document.addEventListener('keydown',key);
   /* 1.12.28: η εγγραφή στο ιστορικό μπαίνει στο πρώτο άγγιγμα της σελίδας, όχι με το άνοιγμα.
      Το Chrome σημαδεύει ως «παρακάμψιμη» μια σελίδα που προσθέτει εγγραφή χωρίς άγγιγμα του χρήστη, και το history.back()
@@ -77,7 +100,52 @@ function isLight(){ var r=document.documentElement, t=r.getAttribute('data-theme
 /* 1.12.15: χαιρετισμός και «σήμερα» από την τελευταία πρόγνωση (χωρίς δίκτυο, από το κινητό) */
 function hello(){ var hr=new Date().getHours(), g=hr<5?T('Καλή νύχτα','Good night'):hr<12?T('Καλημέρα','Good morning'):hr<18?T('Καλησπέρα','Good afternoon'):T('Καλό βράδυ','Good evening');
   var nm=''; try{ var s=B.cloud&&B.cloud.session&&B.cloud.session(); nm=s&&(s.name||'').trim().split(/\s+/)[0]||''; }catch(e){} return nm?g+', '+nm:g; }
-function todayChip(){ try{ var c=ls.get('alkyon-fc7',null); if(!c||!c.fc||!c.fc.days||Date.now()-(c.t||0)>12*3600e3) return null;
+/* 28/11/2026 (πρωτότυπο): η πάνω εικόνα = η μέρα σου. Ο βαθμός ψαρέματος ώρα-ώρα για το σημείο της πρόγνωσης, με τη νύχτα,
+   την καλύτερη ώρα (πορτοκαλί), τις ώρες εκτός ορίων ασφαλείας (κόκκινη βάση) και το «τώρα». Από την πρόγνωση που είναι ήδη στο κινητό:
+   χωρίς δίκτυο, παντού (ακτή ή ανοιχτά). Χωρίς πρόσφατη πρόγνωση (12 ώρες): μένει η φωτογραφία. */
+/* 28/11/2026: πρόγνωση έως 24 ωρών (ήταν 12)· έχει 7 μέρες, άρα και η χθεσινή έχει τη σημερινή μέρα ώρα-ώρα */
+var FC_MAX=24*3600e3;
+function fcPt(c){ try{ if(!c) return null; if(c.id==='gps'){ var q=B.lastPos&&B.lastPos(); return q&&typeof q.lat==='number'?{lat:q.lat,lon:q.lon,name:''}:null; }
+  var pl=(ls.get('alkyon-places',[])||[]).filter(function(x){ return x&&x.id===c.id; })[0]; return pl&&typeof pl.lat==='number'?pl:null; }catch(e){ return null; } }
+function dayData(){ var c=ls.get('alkyon-fc7',null); if(!c||!c.fc||!c.fc.days||Date.now()-(c.t||0)>FC_MAX) return null;
+  var d0=new Date(), td=d0.getFullYear()+'-'+B.pad(d0.getMonth()+1)+'-'+B.pad(d0.getDate()), d=c.fc.days.filter(function(x){ return x.date===td; })[0], tom=false; if(!d) return null;
+  if(!d.safe&&d.why==='night'){ var d2=c.fc.days[c.fc.days.indexOf(d)+1]; if(!d2) return null; d=d2; tom=true; }
+  if(!d.hours||d.hours.length<12) return null; return {d:d,tom:tom}; }
+/* ένα στοιχείο της μέρας για κάθε τρόπο ψαρέματος (από την πρόγνωση στο κινητό· τίποτα αν λείπει) */
+function fact(p,side){ try{ var dd=dayData(); if(!dd) return null; var d=dd.d, U=window.AlkyonUnits, now=new Date(), nh=dd.tom?(d.win?d.win.s:10):now.getHours();
+  var wind=d.avgWind!=null?(U&&U.windP?U.windP(d.avgWind).join(' '):Math.round(d.avgWind)+' kn'):null, wave=d.avgWave!=null?B.num(d.avgWave,1)+' m':null;
+  var L=B.limits?B.limits():null, ow=false, oi=false; if(L) d.hours.forEach(function(q){ if(q.hr<nh) return; if(q.wave!=null&&q.wave>L.wave) ow=true; if(q.wind!=null&&q.wind>L.wind) oi=true; });
+  var over=ow||oi, overT=(ow&&oi?T('Κύμα και άνεμος','Waves and wind'):ow?T('Κύμα','Waves'):T('Άνεμος','Wind'))+T(' πάνω από τα όριά σου',' above your limits')+(dd.tom?T(' αύριο',' tomorrow'):'');
+  if(p==='lake') return wind?{t:T('Άνεμος ','Wind ')+wind+(dd.tom?T(' αύριο',' tomorrow'):T(' σήμερα',' today'))}:null;
+  if(p==='spear'){ var pl=fcPt(ls.get('alkyon-fc7',null));
+    var v=pl&&B.clarityEst?B.clarityEst(pl.lat,pl.lon,d.date,B.pad(nh)+':00'):null;
+    var lv=v==null?null:v>=15?T('πολύ καλή','very good'):v>=10?T('καλή','good'):v>=6?T('μέτρια','fair'):T('κακή','poor'), /* ίδια όρια με την κάρτα διαύγειας (clarity.js) */ t=[lv?T('Διαύγεια ','Visibility ')+lv:null,wave?T('κύμα ','waves ')+wave:null].filter(Boolean).join(' · '); if(!t) return null; t=t.charAt(0).toUpperCase()+t.slice(1);
+    return over?{t:overT,bad:true}:{t:t}; }
+  if(!d.safe||!d.win) return {t:dd.tom?T('Αύριο εκτός ορίων ασφαλείας σου','Tomorrow outside your safety limits'):T('Εκτός ορίων ασφαλείας σου','Outside your safety limits'),bad:true};
+  var past=!dd.tom&&d.win.e<now.getHours(), t2=past?T('Η καλύτερη ώρα πέρασε','Best time has passed'):(dd.tom?T('Αύριο: καλύτερη ώρα ','Tomorrow: best time '):T('Καλύτερη ώρα ','Best time '))+B.pad(d.win.s)+':00–'+B.pad((d.win.e+1)%24)+':00';
+  if(side==='boat') return over?{t:overT,bad:true}:{t:t2+(wave?T(' · κύμα ',' · waves ')+wave:'')};
+  return {t:t2}; }catch(e){ return null; } }
+function dayHero(){ var dd=dayData(); if(!dd) return null; var d=dd.d, hs=d.hours, W=400, H=100;
+  /* κλίμακα από τη μέρα (όχι 0–100), για να φαίνεται πού ανεβαίνει· όπως η καμπύλη της Πρόγνωσης */
+  var sc=hs.map(function(q){ return q.score||0; }), lo=Math.max(0,Math.min.apply(null,sc)-10), hi=Math.min(100,Math.max.apply(null,sc)+6); if(hi-lo<30) hi=Math.min(100,lo+30);
+  var x=function(hr){ return W*(hr+0.5)/24; }, y=function(v){ return H-6-(H-30)*Math.max(0,Math.min(1,((v||0)-lo)/(hi-lo))); };
+  var pts=hs.map(function(q){ return [x(q.hr),y(q.score)]; }), p='M0,'+pts[0][1]+' L'+pts[0][0]+','+pts[0][1];
+  for(var i=0;i<pts.length-1;i++){ var a=pts[i-1]||pts[i], b=pts[i], c=pts[i+1], e=pts[i+2]||c;
+    p+=' C'+(b[0]+(c[0]-a[0])/6).toFixed(1)+','+(b[1]+(c[1]-a[1])/6).toFixed(1)+' '+(c[0]-(e[0]-b[0])/6).toFixed(1)+','+(c[1]-(e[1]-b[1])/6).toFixed(1)+' '+c[0].toFixed(1)+','+c[1].toFixed(1); }
+  p+=' L'+W+','+pts[pts.length-1][1];
+  var svg=S('svg',{viewBox:'0 0 '+W+' '+H,preserveAspectRatio:'none',class:'spdayc'}), r=(d.rise||360)/60, sn=(d.set||1080)/60;
+  svg.append(S('rect',{x:0,y:0,width:W*r/24,height:H,class:'n'}),S('rect',{x:W*sn/24,y:0,width:W*(24-sn)/24,height:H,class:'n'}));
+  if(d.safe&&d.win) svg.appendChild(S('rect',{x:W*d.win.s/24,y:0,width:W*(d.win.e-d.win.s+1)/24,height:H,class:'w'}));
+  svg.append(S('path',{d:p+' L'+W+','+H+' L0,'+H+' Z',class:'a'}),S('path',{d:p,class:'l'}));
+  hs.forEach(function(q){ if(q.safe===false) svg.appendChild(S('rect',{x:W*q.hr/24,y:H-3,width:W/24,height:3,class:'u'})); });
+  var box=h('div',{class:'spday','aria-hidden':'true'},svg), pc=function(v){ return (v*100).toFixed(2)+'%'; };
+  [6,12,18].forEach(function(t){ box.appendChild(h('span',{class:'spdayt',style:{left:pc(t/24)},text:B.pad(t)})); });
+  if(d.safe&&d.win) box.appendChild(h('span',{class:'spdayw',style:{left:pc((d.win.s+d.win.e+1)/48)},text:B.pad(d.win.s)+':00–'+B.pad((d.win.e+1)%24)+':00'}));
+  if(!dd.tom){ var n=new Date(), nh=n.getHours()+n.getMinutes()/60, q0=hs.filter(function(q){ return q.hr===n.getHours(); })[0];
+    if(q0){ box.append(h('span',{class:'spdayn',style:{left:pc(nh/24)}}),h('span',{class:'spdayd',style:{left:pc(nh/24),top:pc(y(q0.score)/H)}}),h('span',{class:'spdaynl'+(nh>19?' r':''),style:{left:pc(nh/24),top:pc(y(q0.score)/H)},text:q0.safe===false?T('τώρα · εκτός ορίων','now · outside limits'):T('τώρα ','now ')+Math.round(q0.score||0)})); } }
+  else box.appendChild(h('span',{class:'spdaytag',text:T('Αύριο','Tomorrow')}));
+  return box; }
+function todayChip(){ try{ var c=ls.get('alkyon-fc7',null); if(!c||!c.fc||!c.fc.days||Date.now()-(c.t||0)>FC_MAX) return null;
   var d0=new Date(), td=d0.getFullYear()+'-'+B.pad(d0.getMonth()+1)+'-'+B.pad(d0.getDate()), d=c.fc.days.filter(function(x){ return x.date===td; })[0]; if(!d) return null;
   /* 1.14.19: το βράδυ δεν μένουν ώρες φωτός σήμερα (why='night'): δεν είναι «εκτός ορίων», δείχνει το αύριο */
   var lab=T('Σήμερα','Today'); if(!d.safe&&d.why==='night'){ var i0=c.fc.days.indexOf(d), d2=c.fc.days[i0+1]; if(!d2) return null; d=d2; lab=T('Αύριο','Tomorrow'); }
@@ -85,7 +153,7 @@ function todayChip(){ try{ var c=ls.get('alkyon-fc7',null); if(!c||!c.fc||!c.fc.
   var wx=[d.avgWind!=null?(U&&U.windP?U.windP(d.avgWind).join(' '):Math.round(d.avgWind)+' kn'):'',d.avgWave!=null?B.num(d.avgWave,1)+' m':''].filter(Boolean).join(' · ');
   var past=lab===T('Σήμερα','Today')&&d.win&&d.win.e<d0.getHours(), ch=h('div',{class:'sptoday'+(d.safe?'':' bad')},
     h('span',{class:'stsc',text:d.safe&&d.best!=null?String(d.best):'!'}),
-    h('span',{class:'sttx'},h('b',{text:lab+(nm?' · '+nm:'')}),h('small',{text:d.safe&&d.win?(past?T('η καλύτερη ώρα πέρασε','the best time has passed'):T('καλύτερη ώρα ','best time ')+B.pad(d.win.s)+':00–'+B.pad((d.win.e+1)%24)+':00')+(wx?' · '+wx:''):T('εκτός ορίων ασφαλείας σου','outside your safety limits')+(wx?' · '+wx:'')})));
+    h('span',{class:'sttx'},h('i',{class:'stlab',text:T('Βαθμός ψαρέματος','Fishing score')}),h('b',{text:lab+(nm?' · '+nm:'')}),h('small',{text:d.safe&&d.win?(past?T('η καλύτερη ώρα πέρασε','the best time has passed'):T('καλύτερη ώρα ','best time ')+B.pad(d.win.s)+':00–'+B.pad((d.win.e+1)%24)+':00')+(wx?' · '+wx:''):T('εκτός ορίων ασφαλείας σου','outside your safety limits')+(wx?' · '+wx:'')})));
   return ch; }catch(e){ return null; } }
 function wanted(){ if(!raw('alkyon-onboard')) return false; try{ if(sessionStorage.getItem('alkyon-sp-seen')) return false; }catch(e){} /* 1.14.17: όχι ξανά στην ίδια καρτέλα (π.χ. όταν η κάμερα του κινητού ξαναφόρτωσε τη σελίδα) */ if(raw('alkyon-askfp')==='0'&&raw('alkyon-fprof-done')) return false; var s=ls.get('alkyon-safe',null); if(s&&s.active) return false; if(/#(new|trip|addfriend)/.test(location.hash)) return false; return true; }
 

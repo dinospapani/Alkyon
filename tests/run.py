@@ -1847,6 +1847,47 @@ with sync_playwright() as p:
     r=pg.evaluate("()=>{ const p=document.querySelector('.sppage'), a=p&&p.querySelector('.spask'), g=p&&p.querySelector('.spgo'); if(!a||!g) return null; const ra=a.getBoundingClientRect(), rg=g.getBoundingClientRect(); return [ra.bottom<=rg.top+1, rg.bottom<=innerHeight+1, getComputedStyle(p).backgroundColor===getComputedStyle(document.body).backgroundColor||true]; }")
     check('Είσοδος (ακτή, 3 τρόποι, μικρή οθόνη): το «Να μη ρωτάει» φαίνεται πάνω από το «Συνέχεια» (1.14.43)', r and r[0] and r[1] and not pg._errs, [r,pg._errs]); c.close()
 
+    # 28/11/2026: Αρχική «Πού ψαρεύεις σήμερα;»: τίποτα πίσω από το «Συνέχεια»/μπάρα, σειρά χαιρετισμός → βαθμός → ερώτηση, πορτοκαλί μόνο σε κάρτα/σημάδι/Συνέχεια
+    _fch=_jj.dumps(_jj.dumps({'id':'p1','t':int(_tt.time()*1000),'fc':{'days':[{'date':_dt.date.today().isoformat(),'best':72,'safe':True,'win':{'s':16,'e':16},'avgWind':2,'avgWave':0.3}]}}))
+    hp=[]
+    for (vw,vh) in [(360,640),(390,844),(412,915)]:
+      for sd in ['shore','boat']:
+        c=ctx(b,lang='en'); c.add_init_script("if(!sessionStorage.hp){sessionStorage.hp=1;localStorage.removeItem('alkyon-fprof-done');localStorage.setItem('alkyon-askfp','1');localStorage.setItem('alkyon-fprof','%s');localStorage.setItem('alkyon-fside','%s');localStorage.setItem('alkyon-fc7',%s);}"%(sd,sd,_fch))
+        pg=page(c); pg.set_viewport_size({'width':vw,'height':vh}); pg.goto(BASE+'/v4/'); pg.wait_for_timeout(2500)
+        hp.append(pg.evaluate("""()=>{ const p=document.querySelector('.sppage'); if(!p) return null; const bar=p.querySelector('.spbar'), ask=p.querySelector('.spask'), go=p.querySelector('.spgo'); if(!bar||!ask||!go) return null;
+          const kids=[...p.querySelectorAll('.sptitle > *')].map(e=>e.classList.contains('sptoday')?'score':e.tagName==='H1'?'q':e.classList.contains('sphi')?'hi':'?');
+          const fits=p.scrollHeight<=p.clientHeight+1, foot=getComputedStyle(p.querySelector('.spfoot')).display!=='none';
+          p.scrollTop=p.scrollHeight; const rb=bar.getBoundingClientRect(), ra=ask.getBoundingClientRect(), rg=go.getBoundingClientRect(), bg=getComputedStyle(bar).backgroundColor;
+          ask.querySelector('input').checked=true; const box=getComputedStyle(ask.querySelector('.spbox')).backgroundColor, acc=getComputedStyle(go).backgroundColor;
+          const th=p.querySelector('.sprow.on .spmi'), thb=th?getComputedStyle(th).boxShadow:'';
+          const names=[...p.querySelectorAll('.sprow .tx b')].map(e=>e.textContent), caps=[...p.querySelectorAll('.spcap small')].map(e=>e.textContent);
+          return {end: ra.bottom<=rb.top+1 && rg.top>=rb.top && rb.bottom<=innerHeight+1, solid: bg!=='rgba(0, 0, 0, 0)', order: kids.join('>'), lab: (p.querySelector('.sptoday .stlab')||{}).textContent||'',
+            neutralBox: box!==acc, thumbNoAccent: thb.indexOf(acc)<0, askH: Math.round(ask.getBoundingClientRect().height), names, caps, fits, foot}; }"""))
+        c.close()
+    ok=all(r and r['end'] and r['solid'] and r['order']=='hi>score>q' and r['lab']=='Fishing score' and r['neutralBox'] and r['thumbNoAccent'] and r['askH']>=44 for r in hp)
+    ok=ok and all(r['foot'] for r in hp) and all(hp[i]['fits'] for i in (2,3,4,5))   # «Αλλαγή αργότερα» παντού· από 390×844 χωρά χωρίς κύλιση (και η Ακτή με 3 τρόπους)
+    ok=ok and all(hp[i]['names']==['Rod','Spearfishing','Dam or lake'] for i in (0,2,4)) and all(hp[i]['names']==['Rod','Spearfishing'] for i in (1,3,5)) and hp[3]['caps']==['Beach · Rocks · Pier','Open sea · Boat']
+    check('Αρχική: στο τέλος της κύλισης τίποτα πίσω από το «Συνέχεια» (360×640, 390×844, 412×915, ακτή/σκάφος)· χωρά από 390×844· «Αλλαγή αργότερα» παντού· σειρά χαιρετισμός → βαθμός → ερώτηση· «Fishing score»· ουδέτερο κουτάκι· νέα κείμενα (28/11/2026)', ok, hp)
+
+    # 28/11/2026: «Η μέρα σου»: με πρόγνωση ώρα-ώρα, πάνω το γράφημα της μέρας και επιλογή χωρίς φωτογραφίες, με ένα στοιχείο της μέρας σε κάθε τρόπο
+    _hrs=[{'hr':h,'score':40+(h*7)%45,'safe':True,'wave':0.3,'wind':4} for h in range(24)]
+    _fcd={'id':'p1','t':int(_tt.time()*1000),'fc':{'days':[{'date':_dt.date.today().isoformat(),'best':79,'safe':True,'win':{'s':23,'e':23},'rise':400,'set':1000,'avgWind':4,'avgWave':0.3,'hours':_hrs}]}}
+    _pl=_jj.dumps(_jj.dumps([{'id':'p1','name':'Latchi','lat':35.045,'lon':32.395}]))
+    dy=[]
+    for (vw,vh,lim) in [(390,844,None),(360,640,None),(390,844,{'wind':14,'wave':0.1,'gust':24})]:
+      c=ctx(b); c.add_init_script("if(!sessionStorage.dy){sessionStorage.dy=1;localStorage.removeItem('alkyon-fprof-done');localStorage.setItem('alkyon-askfp','1');localStorage.setItem('alkyon-fprof','shore');localStorage.setItem('alkyon-fside','shore');localStorage.setItem('alkyon-places',%s);localStorage.setItem('alkyon-fc7',%s);%s}"%(_pl,_jj.dumps(_jj.dumps(_fcd)),("localStorage.setItem('alkyon-limits',%s);"%_jj.dumps(_jj.dumps(lim))) if lim else ''))
+      pg=page(c); pg.set_viewport_size({'width':vw,'height':vh}); pg.goto(BASE+'/v4/'); pg.wait_for_timeout(2500)
+      dy.append(pg.evaluate("""()=>{ const p=document.querySelector('.sppage'); if(!p) return null;
+        return {day:!!p.querySelector('.sphero.day .spday svg path.l'), win:(p.querySelector('.spdayw')||{}).textContent||'', cards:p.querySelectorAll('.spcard').length, seg:p.querySelectorAll('.spseg button').length,
+          facts:[...p.querySelectorAll('.sprow .spfact')].map(e=>e.textContent), bad:[...p.querySelectorAll('.sprow .spfact.bad')].length, thumbs:p.querySelectorAll('.spmi.sph').length,
+          titleBelow:!!p.querySelector('.spbody > .sptitle'), fits:p.scrollHeight<=p.clientHeight+1, sh:[p.scrollHeight,p.clientHeight]}; }"""))
+      if dy[-1] is not None: dy[-1]['errs']=list(pg._errs)
+      c.close()
+    ok=all(r and r['day'] and r['win']=='23:00–00:00' and r['cards']==0 and r['seg']==2 and r['thumbs']==0 and r['titleBelow'] and r['fits'] and not r['errs'] for r in dy)
+    ok=ok and len(dy[0]['facts'])==3 and dy[0]['facts'][0]=='Καλύτερη ώρα 23:00–00:00' and dy[0]['facts'][1].lower().endswith('κύμα 0,3 m') and dy[0]['facts'][2].startswith('Άνεμος ') and dy[0]['facts'][2].endswith(' σήμερα') and dy[0]['bad']==0
+    ok=ok and dy[2]['bad']>=1 and dy[2]['facts'][1]=='Κύμα πάνω από τα όριά σου'
+    check('Αρχική «Η μέρα σου»: γράφημα της μέρας με καλύτερη ώρα, διακόπτης Ακτή/Σκάφος, χωρίς φωτογραφίες, στοιχείο της μέρας σε κάθε τρόπο, κόκκινο πάνω από τα όρια, χωρά σε 360×640 και 390×844 (28/11/2026)', ok, dy)
+
     print('# 1.14.45 όψη')
     c=ctx(b,lang='en'); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(3500)
     r=pg.evaluate("()=>{ const n=document.querySelector('.nav'), cs=getComputedStyle(n,'::before'); const t=document.createElement('p'); t.textContent='\U0001F313 x \u2605 y \U0001F991'; document.querySelector('main').append(t); return new Promise(res=>setTimeout(()=>res([cs.content!=='none'&&cs.display!=='none', document.documentElement.getAttribute('data-view'), t.querySelectorAll('i.pik').length, [...t.textContent].some(ch=>ch.codePointAt(0)>0x1F000||ch.codePointAt(0)===0x2605)]),600)); }")

@@ -300,3 +300,115 @@ html.nightred .hero .hsun1 .mj{color:inherit}
 
 /* ---------- 4. ειδικές λειτουργίες ---------- */
 @media (prefers-reduced-motion:reduce){.hring{transform:none}}
+
+/* ===== §10 Αρχική «Πού ψαρεύεις σήμερα;» (28/11/2026): ΠΟΥ → ΠΩΣ → ΣΥΝΕΧΕΙΑ. Μόνο εμφάνιση· ίδια λογική, ίδια κλειδιά ===== */
+/* 1/8: «Συνέχεια» + «Αλλαγή αργότερα» σε κοινή κάτω μπάρα με φόντο, μέσα στην ασφαλή ζώνη (και στο Android, όπου το env() μπορεί να είναι 0) */
+.sppage:not(.tour) .spbody{padding-bottom:0}
+.sppage:not(.tour) .spbar{position:sticky;bottom:0;z-index:2;margin:0 -18px;padding:10px 18px calc(max(var(--safe-b,0px),var(--safe-area-inset-bottom,0px)) + 10px);background:#061420}
+.sppage.splight:not(.tour) .spbar{background:var(--bg)}
+.sppage:not(.tour) .spbar .spgo{position:static}
+.sppage:not(.tour) .spbar .spfoot{margin:8px 0 0}
+/* 9: λίγο χαμηλότερη φωτογραφία· πιο σκούρο «Παράλειψη» στις φωτεινές εικόνες */
+.sppage.splight:not(.tour) .sphero{min-height:clamp(128px,18dvh,196px)}
+.sppage:not(.tour):not(.splight) .sphero{min-height:clamp(176px,26dvh,290px)}
+.sppage .spskip{background:rgba(6,20,32,.58);border-color:rgba(255,255,255,.28)}
+/* 4: χαιρετισμός δευτερεύων· η ερώτηση μένει το πιο έντονο κείμενο */
+.sptitle .sphi{font-weight:500}
+.sppage.splight .sptitle .sphi{color:var(--ink-2)}
+/* 2: η ερώτηση ακριβώς πάνω από τις κάρτες (ο βαθμός πάει πάνω της) */
+.sptitle .sptoday{margin:6px 0 12px}
+.sppage.splight .sptitle{margin-bottom:12px}
+/* 3: ένας αριθμός-ήρωας, ήσυχες λεπτομέρειες */
+.sptoday .sttx .stlab{font:500 12px var(--font);font-style:normal;letter-spacing:.2px;color:rgba(255,255,255,.72)}
+.sptoday .sttx b{font-weight:500;color:rgba(255,255,255,.86)}
+.sppage.splight .sptoday .sttx .stlab,.sppage.splight .sptoday .sttx b,.sppage.splight .sptoday .sttx small{color:var(--ink-2)}
+.sptoday .sttx small{font-weight:400}
+/* 5: τρόποι: επιλεγμένο = πορτοκαλί σημάδι + ουδέτερο απαλό φόντο· χωρίς πορτοκαλί περίγραμμα στη μικρογραφία */
+.sprow.on{background:rgba(255,255,255,.07)}
+.sppage.splight .sprow.on{background:var(--surface-2)}
+.sprow.on .spmi.sph{box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+.sppage.splight .sprow.on .spmi.sph{box-shadow:none}
+.sprow.on .spmi:not(.sph){background-color:rgba(255,255,255,.12)}
+.sppage.splight .sprow.on .spmi:not(.sph){background-color:var(--surface-2)}
+.sprow .tx b{font-weight:600}
+.sprow .tx small{font-weight:400}
+/* 7: «Να μη ρωτάει κάθε φορά»: ουδέτερο κουτάκι, κανονικό κείμενο, στόχος αφής ≥ 44 px */
+.spask{min-height:44px;font-weight:400;margin:10px 4px}
+.spask input:checked+.spbox{background:rgba(255,255,255,.88);border-color:rgba(255,255,255,.88)}
+.spask input:checked+.spbox svg{stroke:#061420}
+.sppage.splight .spask input:checked+.spbox{background:var(--ink-2);border-color:var(--ink-2)}
+.sppage.splight .spask input:checked+.spbox svg{stroke:var(--surface)}
+/* 8: «Αλλαγή αργότερα»: μικρό, δευτερεύον, με αναγνώσιμη αντίθεση */
+.sppage .spbar .spfoot{color:rgba(255,255,255,.7)}
+.sppage.splight .spbar .spfoot{color:var(--ink-2)}
+/* §10β (28/11/2026, «επαγγελματικό επίπεδο»): ο βαθμός σε 2 γραμμές και επίπεδος στο φωτεινό θέμα (μόνο το 72 ξεχωρίζει),
+   αποστάσεις σε κάνναβο 8 px, «Αλλαγή αργότερα» και στις μικρές οθόνες, η Ακτή χωρά σε μία οθόνη από 390×844 */
+.sptoday .sttx{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:6px;align-items:baseline}
+.sptoday .sttx .stlab::after{content:' ·'}
+.sptoday .sttx small{grid-column:1 / -1}
+.sppage.splight .sptoday{background:none;box-shadow:none;padding:0;border-radius:0;gap:12px}
+.sppage.splight .sptoday .stsc{min-width:44px;height:40px;border-radius:12px;font-size:19px}
+.sptitle .sptoday{margin:8px 0 16px}
+.sppage.splight .sptitle{margin:0 2px 16px}
+.sptitle h1{margin:0}
+.sph3{margin:16px 2px 8px}
+.spask{margin:8px 4px 0}
+.sppage:not(.tour) .spbar{padding-top:8px}
+.sppage:not(.tour) .spbar .spfoot{margin-top:8px}
+@media (max-height:700px){.sppage:not(.tour) .spbar .spfoot{display:block}}
+/* χαμηλές οθόνες (≤ 740 px): η φωτογραφία μικραίνει ώστε, με το «Αλλαγή αργότερα» ορατό, το «Να μη ρωτάει» να φαίνεται πάνω από το «Συνέχεια» χωρίς κύλιση (1.14.43) */
+@media (max-height:740px){.sppage.splight:not(.tour) .sphero{min-height:104px}}
+/* §10γ (28/11/2026, πρωτότυπο): πάνω εικόνα = η μέρα σου (βαθμός ώρα-ώρα από την πρόγνωση)· χωρίς πρόγνωση μένει η φωτογραφία */
+.sphero.day{background:#0b2a3a}
+.sphero.day .spheroshade{background:linear-gradient(180deg,rgba(6,20,32,.35) 0%,rgba(6,20,32,0) 45%)}
+.sppage .sphero.day{border-radius:0 0 24px 24px;overflow:hidden}
+/* σταθερό ύψος: δεν «πηδά» η σελίδα όταν αλλάζεις Ακτή / Σκάφος */
+.sppage:not(.tour) .sphero.day{min-height:0;flex:0 0 auto;height:clamp(150px,27dvh,230px);max-height:none}
+@media (max-height:740px){.sppage:not(.tour) .sphero.day{height:150px}}
+/* μικρές οθόνες (π.χ. 360×640): όλα σε μία οθόνη χωρίς κύλιση */
+@media (max-height:700px){
+  .sppage:not(.tour) .sphero.day{height:116px}
+  .sppage.spdayon .spday{top:calc(var(--safe-t) + 64px);bottom:20px}
+  .sppage.spdayon .sptitle .sphi{display:none}
+  .sppage.spdayon .sptitle .sptoday{margin:0 0 10px}
+  .sppage.spdayon .sptitle{margin-bottom:10px}
+  .sppage.spdayon .spbody{padding-top:12px}
+  .spseg button{height:42px}
+  .splive2 .sprow{min-height:54px;padding-top:7px;padding-bottom:7px}
+  .splive2 .spmi{width:40px;height:40px}
+  .splive2 .sph3{margin-top:12px;margin-bottom:8px}
+}
+.spday{position:absolute;left:0;right:0;bottom:22px;top:calc(var(--safe-t) + 72px);pointer-events:none}
+.spday svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.spday .n{fill:#000;opacity:.28}
+.spday .w{fill:var(--accent);opacity:.38}
+.spday .a{fill:#4FB3D9;opacity:.22}
+.spday .l{fill:none;stroke:#7FD0EC;stroke-width:2.4;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.spday .u{fill:#F06A55}
+.spdayt{position:absolute;bottom:-20px;transform:translateX(-50%);color:rgba(255,255,255,.72);font:600 12px var(--font)}
+.spdayw{position:absolute;top:2px;transform:translateX(-50%);padding:2px 8px;border-radius:999px;background:var(--accent);color:#fff;font:700 12px var(--font);white-space:nowrap}
+.spdayn{position:absolute;top:0;bottom:0;width:0;border-left:1.5px dashed rgba(255,255,255,.7)}
+.spdayd{position:absolute;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.25)}
+.spdaytag{position:absolute;right:12px;top:-4px;transform:translateY(-100%);color:#fff;font:700 12px var(--font);opacity:.85}
+.spdaynl{position:absolute;transform:translate(10px,-140%);color:#fff;font:700 12px var(--font);white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+.spdaynl.r{transform:translate(calc(-100% - 10px),-140%)}
+.sppage.spdayon:not(.splight) .sptitle{position:static;margin:0 2px 16px}
+.sppage.spdayon:not(.splight) .sptitle h1,.sppage.spdayon:not(.splight) .sptitle .sphi{text-shadow:none}
+.sppage.spdayon:not(.splight) .sptitle .sphi{color:var(--ink-2)}
+.sppage.spdayon:not(.splight) .sptoday{background:none;border:0;box-shadow:none;padding:0;border-radius:0;gap:12px}
+.sppage.spdayon:not(.splight) .sptoday .stsc{min-width:44px;height:40px;border-radius:12px;font-size:19px}
+.sppage.spdayon:not(.splight) .spbody{padding-top:16px}
+.sppage.spdayon:not(.splight) .sphero.day{background:#0b2a3a;box-shadow:inset 0 -1px 0 var(--line)}
+/* §10δ (πρωτότυπο): επιλογή χωρίς φωτογραφίες: Ακτή | Σκάφος σε διακόπτη, τρόποι με εικονίδιο και στοιχείο της μέρας */
+.spseg{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:16px;background:var(--surface-2);box-shadow:inset 0 0 0 1px var(--line)}
+.spseg button{display:flex;align-items:center;justify-content:center;gap:8px;height:48px;border:0;border-radius:12px;background:none;color:var(--ink-2);font:650 16px var(--font);cursor:pointer}
+.spseg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12),inset 0 0 0 1.5px var(--accent)}
+.spseg .spic svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;display:block}
+.spseg button.on .spic{color:var(--accent)}
+.splive2 .spmi{background:var(--surface-2)}
+.splive2 .spmi svg{stroke:var(--ink-2)}
+.splive2 .sprow.on .spmi{background:color-mix(in srgb,var(--accent) 16%,transparent)}
+.splive2 .sprow.on .spmi svg{stroke:var(--accent)}
+.splive2 .spfact{color:var(--ink-2)}
+.sppage .spk.splive2 .sprow .tx small.spfact.bad{color:var(--poor-ink,var(--poor));font-weight:600}
+.sppage:not(.splight) .splive2 .sprow{color:var(--ink)}
