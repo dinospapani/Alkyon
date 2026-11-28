@@ -114,7 +114,7 @@ function fact(p,side){ try{ var dd=dayData(); if(!dd) return null; var d=dd.d, U
     return {t:t+(over?T(' · πάνω από τα όριά σου',' · above your limits'):''),bad:over}; }
   if(!d.safe||!d.win) return {t:when+T('εκτός ορίων ασφαλείας σου','outside your safety limits'),bad:true};
   var past=!dd.tom&&d.win.e<now.getHours(), t2=past?T('Η καλύτερη ώρα πέρασε','Best time has passed'):(dd.tom?T('Αύριο καλύτερη ','Tomorrow best '):T('Καλύτερη ώρα ','Best time '))+B.pad(d.win.s)+':00–'+B.pad((d.win.e+1)%24)+':00';
-  if(side==='boat') return {t:t2+(wave?' · '+wave:'')+(over?T(' · προσοχή στα όρια',' · check your limits'):''),bad:over};
+  if(side==='boat') return {t:t2+(wave?T(' · κύμα ',' · waves ')+wave:'')+(over?T(' · προσοχή στα όρια',' · check your limits'):''),bad:over};
   return {t:t2}; }catch(e){ return null; } }
 function dayHero(){ var dd=dayData(); if(!dd) return null; var d=dd.d, hs=d.hours, W=400, H=100;
   /* κλίμακα από τη μέρα (όχι 0–100), για να φαίνεται πού ανεβαίνει· όπως η καμπύλη της Πρόγνωσης */
