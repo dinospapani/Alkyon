@@ -48,7 +48,7 @@ B.startPick=function(){ try{ sessionStorage.setItem('alkyon-sp-seen','1'); }catc
   var ask=h('input',{type:'checkbox',checked:raw('alkyon-askfp')==='0'}), go=h('button',{class:'spgo',type:'button'});
   /* 1.12.15: η φωτογραφία ακολουθεί την επιλογή (ακτή / σκάφος / ψαροντούφεκο) */
   function heroImg(){ return st.p==='spear'?'alk-hero-spear.jpg':st.s==='shore'?'alk-card-shore.jpg':'alk-hero-boat.jpg'; }
-  function lab(){ go.replaceChildren(h('span',{text:T('Συνέχεια · ','Continue · ')+label(st.p,st.s)}),h('i',{html:CHEV})); try{ var hi=pg&&pg.querySelector('.sphero'); if(hi) hi.style.backgroundImage='url('+heroImg()+')'; }catch(e){} }
+  function lab(){ go.replaceChildren(h('span',{text:T('Συνέχεια · ','Continue · ')+label(st.p,st.s)}),h('i',{html:CHEV})); try{ var hi=pg&&pg.querySelector('.sphero'); if(hi){ hi.style.backgroundImage='url('+heroImg()+')'; liveHero(hi,st.s); } }catch(e){} }
   /* 1.12.22: το «πίσω» του κινητού κλείνει τη σελίδα χωρίς αλλαγή (όπως το «Παράλειψη»), αντί να βγάζει από την εφαρμογή ή τη σελίδα.
      Μπαίνει μία εγγραφή στο ιστορικό· αν κλείσει με κουμπί, την αφαιρούμε εμείς (δεν αλλάζει η διεύθυνση, άρα δεν μπλέκει με την πλοήγηση). */
   var hist=false, gone=false;
@@ -78,6 +78,28 @@ function isLight(){ var r=document.documentElement, t=r.getAttribute('data-theme
 /* 1.12.15: χαιρετισμός και «σήμερα» από την τελευταία πρόγνωση (χωρίς δίκτυο, από το κινητό) */
 function hello(){ var hr=new Date().getHours(), g=hr<5?T('Καλή νύχτα','Good night'):hr<12?T('Καλημέρα','Good morning'):hr<18?T('Καλησπέρα','Good afternoon'):T('Καλό βράδυ','Good evening');
   var nm=''; try{ var s=B.cloud&&B.cloud.session&&B.cloud.session(); nm=s&&(s.name||'').trim().split(/\s+/)[0]||''; }catch(e){} return nm?g+', '+nm:g; }
+/* 28/11/2026 (πρωτότυπο): η πάνω εικόνα = η θάλασσα του σημείου σου, ζωντανά. Δορυφορικά πλακίδια Esri World Imagery (ίδια με τον Χάρτη),
+   με κέντρο το σημείο της πρόγνωσης ή την τελευταία θέση. Στατική εικόνα, χωρίς αγγίγματα. Χωρίς σήμα / σημείο / μέχρι να φορτώσουν όλα: μένει η φωτογραφία.
+   Ακτή: πιο κοντά (z12), Σκάφος: πιο ανοιχτά (z10). Η θέση δεν φεύγει από το κινητό· ζητούνται μόνο πλακίδια, όπως ήδη κάνει ο Χάρτης. */
+var LIVE_URL='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/';
+function livePt(){ try{ var c=ls.get('alkyon-fc7',null), pl=c&&(ls.get('alkyon-places',[])||[]).filter(function(x){ return x&&x.id===c.id; })[0];
+  if(pl&&typeof pl.lat==='number'&&typeof pl.lon==='number') return {lat:pl.lat,lon:pl.lon,name:pl.name||''};
+  var p=B.lastPos&&B.lastPos(); if(p&&typeof p.lat==='number') return {lat:p.lat,lon:p.lon,name:''}; }catch(e){} return null; }
+function liveHero(el,side){ try{
+  var old=el.querySelector('.splive'); var p=livePt(); if(!p||navigator.onLine===false){ if(old) old.remove(); el.classList.remove('live'); return; }
+  var Z=side==='boat'?10:12, n=Math.pow(2,Z), lr=p.lat*Math.PI/180, cx=(p.lon+180)/360*n*256, cy=(1-Math.log(Math.tan(lr)+1/Math.cos(lr))/Math.PI)/2*n*256;
+  var key=Z+':'+Math.round(cx)+':'+Math.round(cy); if(old&&old.getAttribute('data-k')===key) return;
+  var HW=Math.max(260,Math.ceil((innerWidth||400)/2)+16), HH=230, x0=Math.floor((cx-HW)/256), x1=Math.floor((cx+HW)/256), y0=Math.floor((cy-HH)/256), y1=Math.floor((cy+HH)/256);
+  var wrap=h('span',{class:'splive','aria-hidden':'true','data-k':key}), tiles=h('span',{class:'splivet'}), need=0, got=0, dead=false;
+  for(var ty=y0;ty<=y1;ty++) for(var tx=x0;tx<=x1;tx++){ if(ty<0||ty>=n) continue; need++;
+    var im=new Image(); im.alt=''; im.decoding='async'; im.style.left=Math.round(tx*256-cx)+'px'; im.style.top=Math.round(ty*256-cy)+'px';
+    im.onload=function(){ got++; if(got===need&&!dead){ if(old) old.remove(); el.insertBefore(wrap,el.firstChild); el.classList.add('live'); } };
+    im.onerror=function(){ dead=true; };
+    im.src=LIVE_URL+Z+'/'+ty+'/'+(((tx%n)+n)%n); tiles.appendChild(im); }
+  wrap.appendChild(tiles); wrap.appendChild(h('span',{class:'splivedot'}));
+  var nm=p.name; if(B.EN) nm=({'Σημείο χάρτη':'Map point','Η θέση μου':'My location','Έξοδος τώρα':'Trip now'})[nm]||nm;
+  wrap.appendChild(h('span',{class:'splivelab',text:nm||T('Η θάλασσά σου','Your sea')})); wrap.appendChild(h('span',{class:'splivecr',text:'Esri, Maxar'}));
+}catch(e){} }
 function todayChip(){ try{ var c=ls.get('alkyon-fc7',null); if(!c||!c.fc||!c.fc.days||Date.now()-(c.t||0)>12*3600e3) return null;
   var d0=new Date(), td=d0.getFullYear()+'-'+B.pad(d0.getMonth()+1)+'-'+B.pad(d0.getDate()), d=c.fc.days.filter(function(x){ return x.date===td; })[0]; if(!d) return null;
   /* 1.14.19: το βράδυ δεν μένουν ώρες φωτός σήμερα (why='night'): δεν είναι «εκτός ορίων», δείχνει το αύριο */

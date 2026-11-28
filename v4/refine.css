@@ -358,3 +358,11 @@ html.nightred .hero .hsun1 .mj{color:inherit}
 @media (max-height:700px){.sppage:not(.tour) .spbar .spfoot{display:block}}
 /* χαμηλές οθόνες (≤ 740 px): η φωτογραφία μικραίνει ώστε, με το «Αλλαγή αργότερα» ορατό, το «Να μη ρωτάει» να φαίνεται πάνω από το «Συνέχεια» χωρίς κύλιση (1.14.43) */
 @media (max-height:740px){.sppage.splight:not(.tour) .sphero{min-height:104px}}
+/* §10γ (28/11/2026, πρωτότυπο): ζωντανή πάνω εικόνα = δορυφορική εικόνα του σημείου σου· η φωτογραφία μένει από κάτω ως εφεδρικό */
+.sphero .splive{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.sphero .splivet{position:absolute;left:50%;top:58%;width:0;height:0}
+.sphero .splivet img{position:absolute;width:256px;height:256px;max-width:none;filter:saturate(.92) brightness(.92)}
+.sphero .splivedot{position:absolute;left:50%;top:58%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.28)}
+.sphero .splivelab{position:absolute;left:50%;top:58%;transform:translate(14px,-50%);max-width:46%;padding:4px 10px;border-radius:999px;background:rgba(6,20,32,.62);color:#fff;font:600 13px var(--font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sphero .splivecr{position:absolute;right:10px;bottom:6px;color:rgba(255,255,255,.75);font:500 12px var(--font);text-shadow:0 1px 2px rgba(0,0,0,.6)}
+.sppage.splight .sphero .splivecr{bottom:auto;top:58px}
