@@ -1816,16 +1816,18 @@ with sync_playwright() as p:
         pg=page(c); pg.set_viewport_size({'width':vw,'height':vh}); pg.goto(BASE+'/v4/'); pg.wait_for_timeout(2500)
         hp.append(pg.evaluate("""()=>{ const p=document.querySelector('.sppage'); if(!p) return null; const bar=p.querySelector('.spbar'), ask=p.querySelector('.spask'), go=p.querySelector('.spgo'); if(!bar||!ask||!go) return null;
           const kids=[...p.querySelectorAll('.sptitle > *')].map(e=>e.classList.contains('sptoday')?'score':e.tagName==='H1'?'q':e.classList.contains('sphi')?'hi':'?');
+          const fits=p.scrollHeight<=p.clientHeight+1, foot=getComputedStyle(p.querySelector('.spfoot')).display!=='none';
           p.scrollTop=p.scrollHeight; const rb=bar.getBoundingClientRect(), ra=ask.getBoundingClientRect(), rg=go.getBoundingClientRect(), bg=getComputedStyle(bar).backgroundColor;
           ask.querySelector('input').checked=true; const box=getComputedStyle(ask.querySelector('.spbox')).backgroundColor, acc=getComputedStyle(go).backgroundColor;
           const th=p.querySelector('.sprow.on .spmi'), thb=th?getComputedStyle(th).boxShadow:'';
           const names=[...p.querySelectorAll('.sprow .tx b')].map(e=>e.textContent), caps=[...p.querySelectorAll('.spcap small')].map(e=>e.textContent);
           return {end: ra.bottom<=rb.top+1 && rg.top>=rb.top && rb.bottom<=innerHeight+1, solid: bg!=='rgba(0, 0, 0, 0)', order: kids.join('>'), lab: (p.querySelector('.sptoday .stlab')||{}).textContent||'',
-            neutralBox: box!==acc, thumbNoAccent: thb.indexOf(acc)<0, askH: Math.round(ask.getBoundingClientRect().height), names, caps}; }"""))
+            neutralBox: box!==acc, thumbNoAccent: thb.indexOf(acc)<0, askH: Math.round(ask.getBoundingClientRect().height), names, caps, fits, foot}; }"""))
         c.close()
     ok=all(r and r['end'] and r['solid'] and r['order']=='hi>score>q' and r['lab']=='Fishing score' and r['neutralBox'] and r['thumbNoAccent'] and r['askH']>=44 for r in hp)
+    ok=ok and all(r['foot'] for r in hp) and all(hp[i]['fits'] for i in (2,3,4,5))   # «Αλλαγή αργότερα» παντού· από 390×844 χωρά χωρίς κύλιση (και η Ακτή με 3 τρόπους)
     ok=ok and all(hp[i]['names']==['Rod','Spearfishing','Dam or lake'] for i in (0,2,4)) and all(hp[i]['names']==['Rod','Spearfishing'] for i in (1,3,5)) and hp[3]['caps']==['Beach · Rocks · Pier','Open sea · Boat']
-    check('Αρχική: στο τέλος της κύλισης τίποτα πίσω από το «Συνέχεια» (360×640, 390×844, 412×915, ακτή/σκάφος)· σειρά χαιρετισμός → βαθμός → ερώτηση· «Fishing score»· ουδέτερο κουτάκι· νέα κείμενα (28/11/2026)', ok, hp)
+    check('Αρχική: στο τέλος της κύλισης τίποτα πίσω από το «Συνέχεια» (360×640, 390×844, 412×915, ακτή/σκάφος)· χωρά από 390×844· «Αλλαγή αργότερα» παντού· σειρά χαιρετισμός → βαθμός → ερώτηση· «Fishing score»· ουδέτερο κουτάκι· νέα κείμενα (28/11/2026)', ok, hp)
 
     print('# 1.14.45 όψη')
     c=ctx(b,lang='en'); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(3500)

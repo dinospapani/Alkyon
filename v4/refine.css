@@ -309,7 +309,7 @@ html.nightred .hero .hsun1 .mj{color:inherit}
 .sppage:not(.tour) .spbar .spgo{position:static}
 .sppage:not(.tour) .spbar .spfoot{margin:8px 0 0}
 /* 9: λίγο χαμηλότερη φωτογραφία· πιο σκούρο «Παράλειψη» στις φωτεινές εικόνες */
-.sppage.splight:not(.tour) .sphero{min-height:clamp(132px,19dvh,200px)}
+.sppage.splight:not(.tour) .sphero{min-height:clamp(128px,18dvh,196px)}
 .sppage:not(.tour):not(.splight) .sphero{min-height:clamp(176px,26dvh,290px)}
 .sppage .spskip{background:rgba(6,20,32,.58);border-color:rgba(255,255,255,.28)}
 /* 4: χαιρετισμός δευτερεύων· η ερώτηση μένει το πιο έντονο κείμενο */
@@ -341,3 +341,20 @@ html.nightred .hero .hsun1 .mj{color:inherit}
 /* 8: «Αλλαγή αργότερα»: μικρό, δευτερεύον, με αναγνώσιμη αντίθεση */
 .sppage .spbar .spfoot{color:rgba(255,255,255,.7)}
 .sppage.splight .spbar .spfoot{color:var(--ink-2)}
+/* §10β (28/11/2026, «επαγγελματικό επίπεδο»): ο βαθμός σε 2 γραμμές και επίπεδος στο φωτεινό θέμα (μόνο το 72 ξεχωρίζει),
+   αποστάσεις σε κάνναβο 8 px, «Αλλαγή αργότερα» και στις μικρές οθόνες, η Ακτή χωρά σε μία οθόνη από 390×844 */
+.sptoday .sttx{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:6px;align-items:baseline}
+.sptoday .sttx .stlab::after{content:' ·'}
+.sptoday .sttx small{grid-column:1 / -1}
+.sppage.splight .sptoday{background:none;box-shadow:none;padding:0;border-radius:0;gap:12px}
+.sppage.splight .sptoday .stsc{min-width:44px;height:40px;border-radius:12px;font-size:19px}
+.sptitle .sptoday{margin:8px 0 16px}
+.sppage.splight .sptitle{margin:0 2px 16px}
+.sptitle h1{margin:0}
+.sph3{margin:16px 2px 8px}
+.spask{margin:8px 4px 0}
+.sppage:not(.tour) .spbar{padding-top:8px}
+.sppage:not(.tour) .spbar .spfoot{margin-top:8px}
+@media (max-height:700px){.sppage:not(.tour) .spbar .spfoot{display:block}}
+/* χαμηλές οθόνες (≤ 740 px): η φωτογραφία μικραίνει ώστε, με το «Αλλαγή αργότερα» ορατό, το «Να μη ρωτάει» να φαίνεται πάνω από το «Συνέχεια» χωρίς κύλιση (1.14.43) */
+@media (max-height:740px){.sppage.splight:not(.tour) .sphero{min-height:104px}}
