@@ -110,7 +110,7 @@ function fcPt(c){ try{ if(!c) return null; if(c.id==='gps'){ var q=B.lastPos&&B.
 function dayData(){ var c=ls.get('alkyon-fc7',null); if(!c||!c.fc||!c.fc.days||Date.now()-(c.t||0)>FC_MAX) return null;
   var d0=new Date(), td=d0.getFullYear()+'-'+B.pad(d0.getMonth()+1)+'-'+B.pad(d0.getDate()), d=c.fc.days.filter(function(x){ return x.date===td; })[0], tom=false; if(!d) return null;
   if(!d.safe&&d.why==='night'){ var d2=c.fc.days[c.fc.days.indexOf(d)+1]; if(!d2) return null; d=d2; tom=true; }
-  if(!d.hours||d.hours.length<12) return null; return {d:d,tom:tom}; }
+  if(!d.hours||d.hours.length<12) return null; return {d:d,tom:tom,t:c.t||0}; }
 /* ένα στοιχείο της μέρας για κάθε τρόπο ψαρέματος (από την πρόγνωση στο κινητό· τίποτα αν λείπει) */
 function fact(p,side){ try{ var dd=dayData(); if(!dd) return null; var d=dd.d, U=window.AlkyonUnits, now=new Date(), nh=dd.tom?(d.win?d.win.s:10):now.getHours();
   var wind=d.avgWind!=null?(U&&U.windP?U.windP(d.avgWind).join(' '):Math.round(d.avgWind)+' kn'):null, wave=d.avgWave!=null?B.num(d.avgWave,1)+' m':null;
@@ -158,15 +158,26 @@ function dayHero(){ var dd=dayData(); if(!dd) return null; var d=dd.d, hs=d.hour
       S('rect',{x:W*(sn-gd)/24,y:0,width:W*tot/24,height:H,fill:'url(#'+gid+'b)'})); }
   /* καλύτερη ώρα: πράσινη ζώνη με έντονο περίγραμμα (όχι πορτοκαλί γέμισμα), ώστε να μη μπερδεύεται με τα χρώματα του σούρουπου */
   svg.append(S('path',{d:p+' L'+W+','+H+' L0,'+H+' Z',class:'a'}),S('path',{d:p,class:'l'}));
-  hs.forEach(function(q){ if(q.safe===false) svg.appendChild(S('rect',{x:W*q.hr/24,y:H-3,width:W/24,height:3,class:'u'})); });
+  /* 28/11/2026: ώρες εκτός ορίων ασφαλείας: αχνή κόκκινη σκίαση σε όλο το ύψος + η κόκκινη βάση */
+  var ru=[]; hs.forEach(function(q){ if(q.safe!==false) return; var l=ru[ru.length-1]; if(l&&l[1]===q.hr) l[1]=q.hr+1; else ru.push([q.hr,q.hr+1]); }); /* συνεχόμενες ώρες = ένα κομμάτι (χωρίς γραμμές ανάμεσα) */
+  ru.forEach(function(g){ svg.append(S('rect',{x:W*g[0]/24,y:0,width:W*(g[1]-g[0])/24,height:H,class:'ub'}),S('rect',{x:W*g[0]/24,y:H-3,width:W*(g[1]-g[0])/24,height:3,class:'u'})); });
   /* 28/11/2026: οι ώρες που πέρασαν πιο αχνές (σήμερα), για να πηγαίνει το μάτι σε όσα έρχονται */
   if(!dd.tom){ var n0=new Date(), nx=W*(n0.getHours()+n0.getMinutes()/60)/24; if(nx>0) svg.appendChild(S('rect',{x:0,y:0,width:nx,height:H,class:'past'})); }
-  var box=h('div',{class:'spday','aria-hidden':'true'},svg), pc=function(v){ return (v*100).toFixed(2)+'%'; };
+  /* 28/11/2026: για αναγνώστη οθόνης το γράφημα είναι μία εικόνα με περίληψη (αντί για κρυφό) */
+  var hm=function(v){ var m=Math.round(v*60); return B.pad(Math.floor(m/60)%24)+':'+B.pad(m%60); }, nq=dd.tom?null:hs.filter(function(q){ return q.hr===new Date().getHours(); })[0];
+  var sum=[(dd.tom?T('Βαθμός ψαρέματος ώρα-ώρα, αύριο','Hourly fishing score, tomorrow'):T('Βαθμός ψαρέματος ώρα-ώρα, σήμερα','Hourly fishing score, today')),
+    d.safe&&d.win?T('καλύτερη ώρα ','best time ')+B.pad(d.win.s)+':00–'+B.pad((d.win.e+1)%24)+':00'+(d.best!=null?T(', βαθμός ',', score ')+d.best:''):null,
+    nq?(nq.safe===false?T('τώρα εκτός ορίων ασφαλείας','now outside safety limits'):T('τώρα ','now ')+Math.round(nq.score||0)):null,
+    d.rise!=null&&d.set!=null?T('ανατολή ','sunrise ')+hm(r)+T(', δύση ',', sunset ')+hm(sn):null].filter(Boolean).join('. ')+'.';
+  var box=h('div',{class:'spday',role:'img','aria-label':sum},svg), pc=function(v){ return (v*100).toFixed(2)+'%'; };
+  /* 28/11/2026: πότε ήρθε η πρόγνωση, πάνω αριστερά· πορτοκαλί όταν είναι πάνω από 6 ώρες παλιά (η Αρχική τη δέχεται έως 24 ώρες) */
+  if(dd.t){ var ag=(Date.now()-dd.t)/36e5, tt=new Date(dd.t), old=ag>6;
+    box.appendChild(h('span',{class:'spdayage'+(old?' old':''),text:old?T('Πρόγνωση πριν ','Forecast ')+Math.floor(ag)+T(' ώρες',' h ago'):T('Πρόγνωση ','Forecast ')+B.pad(tt.getHours())+':'+B.pad(tt.getMinutes())})); }
   /* 28/11/2026: στον άξονα η ώρα ανατολής και δύσης (με εικονίδιο)· οι 06/18 φεύγουν όταν είναι κοντά τους (< 2,5 ώρες) */
   var sunT=d.rise!=null&&d.set!=null?[[r,'rise'],[sn,'set']]:[];
   [6,12,18].forEach(function(t){ if(sunT.some(function(q){ return Math.abs(q[0]-t)<2.5; })) return; box.appendChild(h('span',{class:'spdayt',style:{left:pc(t/24)},text:B.pad(t)})); });
   sunT.forEach(function(q){ var m=Math.round(q[0]*60); box.appendChild(h('span',{class:'spdayt sun '+q[1],style:{left:pc(q[0]/24)}},h('i',{html:SUNI[q[1]]}),h('span',{text:B.pad(Math.floor(m/60)%24)+':'+B.pad(m%60)}))); });
-  /* 28/11/2026: χωρίς ετικέτα ωρών πάνω/κάτω από το γράφημα: η καλύτερη ώρα φαίνεται από την πράσινη ζώνη και γράφεται ακριβώς από κάτω (βαθμός, τρόποι) */
+  /* 28/11/2026: χωρίς ετικέτα ωρών στο γράφημα: η καλύτερη ώρα γράφεται ακριβώς από κάτω (βαθμός, τρόποι) */
   /* 28/11/2026: καλύτερη ώρα = πράσινη κουκκίδα πάνω στην κορυφή της καμπύλης (χωρίς ζώνη) */
   if(d.safe&&d.win){ var qb=null; hs.forEach(function(q){ if(q.hr>=d.win.s&&q.hr<=d.win.e&&(!qb||(q.score||0)>(qb.score||0))) qb=q; });
     if(qb) box.appendChild(h('span',{class:'spdayb',style:{left:pc((qb.hr+0.5)/24),top:pc(y(qb.score)/H)}})); }

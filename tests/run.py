@@ -1881,7 +1881,7 @@ with sync_playwright() as p:
         return {day:!!p.querySelector('.sphero.day .spday svg path.l'), win:(p.querySelector('.spdayw')||{}).textContent||'', cards:p.querySelectorAll('.spcard').length, seg:p.querySelectorAll('.spseg button').length,
           facts:[...p.querySelectorAll('.sprow .spfact')].map(e=>e.textContent), bad:[...p.querySelectorAll('.sprow .spfact.bad')].length, thumbs:p.querySelectorAll('.spmi.sph').length,
           titleBelow:!!p.querySelector('.spbody > .sptitle'), fits:p.scrollHeight<=p.clientHeight+1, sh:[p.scrollHeight,p.clientHeight],
-          tw:p.querySelectorAll('.spday rect[fill^="url(#spg"]').length, wo:p.querySelectorAll('.spday rect.wo').length, bdot:p.querySelectorAll('.spday .spdayb').length, past:p.querySelectorAll('.spday rect.past').length, sun:[...p.querySelectorAll('.spdayt.sun')].map(e=>e.className.split(' ').pop()+' '+e.textContent), ax:[...p.querySelectorAll('.spdayt:not(.sun)')].map(e=>e.textContent),
+          tw:p.querySelectorAll('.spday rect[fill^="url(#spg"]').length, wo:p.querySelectorAll('.spday rect.wo').length, bdot:p.querySelectorAll('.spday .spdayb').length, age:(p.querySelector('.spdayage')||{}).textContent||'', aold:!!p.querySelector('.spdayage.old'), role:(p.querySelector('.spday')||{getAttribute:()=>''}).getAttribute('role'), alab:(p.querySelector('.spday')||{getAttribute:()=>''}).getAttribute('aria-label')||'', past:p.querySelectorAll('.spday rect.past').length, sun:[...p.querySelectorAll('.spdayt.sun')].map(e=>e.className.split(' ').pop()+' '+e.textContent), ax:[...p.querySelectorAll('.spdayt:not(.sun)')].map(e=>e.textContent),
           chip:(p.querySelector('.sptoday b')||{}).textContent||'', fs:[p.querySelector('.sptoday .stlab'),p.querySelector('.sptoday b')].map(e=>e?getComputedStyle(e).fontSize:'')}; }"""))
       if dy[-1] is not None: dy[-1]['errs']=list(pg._errs)
       c.close()
@@ -1889,8 +1889,14 @@ with sync_playwright() as p:
     ok=ok and len(dy[0]['facts'])==3 and dy[0]['facts'][0]=='Καλύτερη ώρα 23:00–00:00 · κύμα 0,3 m' and dy[0]['facts'][1].lower().endswith('κύμα 0,3 m') and __import__('re').fullmatch(r'Άνεμος σημείου πρόγνωσης [\d,.]+ (Bft|kn|km/h|m/s|mph)',dy[0]['facts'][2]) is not None and dy[0]['bad']==0
     ok=ok and dy[2]['bad']>=1 and dy[2]['facts'][1]=='Κύμα πάνω από τα όριά σου'
     # 28/11/2026 (home-day-fix): χρώματα αυγής/σούρουπου (2 ζώνες), καλύτερη ώρα = πράσινη κουκκίδα στην κορυφή (χωρίς ζώνη και ετικέτα ωρών), περασμένες ώρες αχνές, ανατολή 06:40 / δύση 16:40 στον άξονα (rise 400, set 1000), οι 06/18 φεύγουν, «Καλύτερο σήμερα», ίδιο μέγεθος γραμμάτων
-    ok2=all(r and r['tw']==2 and r['wo']==0 and r['bdot']==1 and r['past']==1 and r['sun']==['rise 06:40','set 16:40'] and r['ax']==['12'] and r['chip'].startswith('Καλύτερο σήμερα · Latchi') and r['fs'][0]==r['fs'][1] for r in dy)
+    ok2=all(r and r['tw']==2 and r['wo']==0 and r['bdot']==1 and r['past']==1 and r['sun']==['rise 06:40','set 16:40'] and r['ax']==['12'] and r['chip'].startswith('Καλύτερο σήμερα · Latchi') and r['fs'][0]==r['fs'][1] and __import__('re').fullmatch(r'Πρόγνωση \d\d:\d\d',r['age']) is not None and not r['aold'] and r['role']=='img' and 'καλύτερη ώρα 23:00–00:00, βαθμός 79' in r['alab'] for r in dy)
     check('Αρχική «Η μέρα σου»: πολιτικό λυκόφως, ώρες ανατολής/δύσης στον άξονα, «Καλύτερο σήμερα», ίδιο μέγεθος στη γραμμή του βαθμού (home-day-fix, 28/11/2026)', ok2, [(r or {}).get(k) for r in dy for k in ('tw','sun','ax','chip','fs')])
+    # 28/11/2026 (home-day-fix): παλιά πρόγνωση (14 ώρες) = πορτοκαλί «Πρόγνωση πριν 14 ώρες»· 2 συνεχόμενες ώρες εκτός ορίων = μία κόκκινη σκίαση
+    _hu=[dict(q,safe=not (20<=q['hr']<=21)) for q in _hrs]; _fco=dict(_fcd,t=int(_tt.time()*1000)-int(14.2*3600e3),fc={'days':[dict(_fcd['fc']['days'][0],hours=_hu)]})
+    c=ctx(b); c.add_init_script("if(!sessionStorage.dy){sessionStorage.dy=1;localStorage.removeItem('alkyon-fprof-done');localStorage.setItem('alkyon-askfp','1');localStorage.setItem('alkyon-fprof','shore');localStorage.setItem('alkyon-fside','shore');localStorage.setItem('alkyon-places',%s);localStorage.setItem('alkyon-fc7',%s);}"%(_pl,_jj.dumps(_jj.dumps(_fco))))
+    pg=page(c); pg.goto(BASE+'/v4/'); pg.wait_for_timeout(2500)
+    r3=pg.evaluate("()=>{ const p=document.querySelector('.sppage .spday'); return p?[(p.querySelector('.spdayage.old')||{}).textContent||'', p.querySelectorAll('rect.ub').length, p.querySelectorAll('rect.u').length]:null; }")
+    check('Αρχική «Η μέρα σου»: πρόγνωση 14 ωρών = «Πρόγνωση πριν 14 ώρες» (πορτοκαλί)· συνεχόμενες ώρες εκτός ορίων = μία σκίαση (home-day-fix, 28/11/2026)', r3==['Πρόγνωση πριν 14 ώρες',1,1] and not pg._errs, [r3,pg._errs]); c.close()
     check('Αρχική «Η μέρα σου»: γράφημα της μέρας με καλύτερη ώρα, διακόπτης Ακτή/Σκάφος, χωρίς φωτογραφίες, στοιχείο της μέρας σε κάθε τρόπο, κόκκινο πάνω από τα όρια, χωρά σε 360×640 και 390×844 (28/11/2026)', ok, dy)
 
     print('# 1.14.45 όψη')
