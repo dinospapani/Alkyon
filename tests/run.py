@@ -1899,6 +1899,38 @@ with sync_playwright() as p:
     check('Αρχική «Η μέρα σου»: πρόγνωση 14 ωρών = «Πρόγνωση πριν 14 ώρες» (πορτοκαλί)· συνεχόμενες ώρες εκτός ορίων = μία σκίαση (home-day-fix, 28/11/2026)', r3==['Πρόγνωση πριν 14 ώρες',1,1] and not pg._errs, [r3,pg._errs]); c.close()
     check('Αρχική «Η μέρα σου»: γράφημα της μέρας με καλύτερη ώρα, διακόπτης Ακτή/Σκάφος, χωρίς φωτογραφίες, στοιχείο της μέρας σε κάθε τρόπο, κόκκινο πάνω από τα όρια, χωρά σε 360×640 και 390×844 (28/11/2026)', ok, dy)
 
+    print('# stage2: φίλοι (μόνο τα πεδία της οθόνης, κοινή χρήση όχι αυτόματα αμοιβαία) και συγκατάθεση στιγμιοτύπων')
+    FRJS="""window.__fr=[]; const J=(o,st)=>Promise.resolve({ok:(st||200)<300,status:st||200,json:()=>Promise.resolve(o),text:()=>Promise.resolve(JSON.stringify(o))});
+      AK.cloud.session=function(){ return {name:'Εγώ',token:'t',uid:'me1'}; };
+      AK.cloud.rest=function(p,o){ window.__fr.push([p,(o&&o.method)||'GET',(o&&o.body)||'']);
+        if(p.indexOf('friends?select=')===0) return J([{owner:'fr1',viewer:'me1',owner_name:'Φίλος Α',share:true},{owner:'me1',viewer:'fr1',viewer_name:'Φίλος Α',share:true}]);
+        if(p==='rpc/friend_view') return J({bites:[{species:'Συναγρίδα',cnt:2,kg:3.4,len:61,date:'2026-11-20',time:'07:15'},{species:'Σαργός',date:'2026-11-21',time:'06:00'}],trips:4,spots:2});
+        if(p==='rpc/redeem_friend') return J({friend:'fr2',name:'Φίλος Β',mine:false});
+        return J([]); };"""
+    c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(2500)
+    r=pg.evaluate("async()=>{ const W=ms=>new Promise(z=>setTimeout(z,ms)); "+FRJS+" location.hash='#friends'; await W(1500);"
+      " const card=document.querySelector('#main .card.fr'); const tg=card&&card.querySelector('.tg span'); const btn=card&&[...card.querySelectorAll('.btn.pri')].find(x=>/ψάρια/.test(x.textContent)); btn&&btn.click(); await W(1200);"
+      " const sh=document.querySelector('.sheet.on'); const txt=sh?sh.textContent:''; const calls=window.__fr.map(c=>c[0]);"
+      " const out={tg:tg?tg.textContent:'', fv:window.__fr.filter(c=>c[0]==='rpc/friend_view').map(c=>c[2]), direct:calls.filter(p=>/^records\\?/.test(p)).length,"
+      "  first:(()=>{ const it=[...(sh?sh.querySelectorAll('.list .li b'):[])].map(x=>x.textContent); return it[0]==='Σαργός'&&it[1]==='Συναγρίδα ×2'; })(), syn:/Συναγρίδα ×2/.test(txt), kg:/3,4 kg · 61 cm/.test(txt), kpis:[...(sh?sh.querySelectorAll('.kpi'):[])].map(k=>k.textContent).join('|')};"
+      " sh&&sh.querySelector('.x,.close,[aria-label]')&&0; AK.closeSheet&&AK.closeSheet(); await W(500);"
+      " const ci=document.querySelector('#main input[placeholder=\"ABCD-1234\"]'); ci.value='WXYZ-2345'; const rb=[...document.querySelectorAll('#main .btn')].find(x=>/^(Σύνδεση|Connect)$/.test(x.textContent)); rb.click(); await W(1200);"
+      " const s2=[...document.querySelectorAll('.sheet.on')].pop(); out.ask=s2?s2.textContent:''; const yes=s2&&[...s2.querySelectorAll('.btn.pri')].find(x=>/^(Ναι|Yes)$/.test(x.textContent)); yes&&yes.click(); await W(800);"
+      " out.patch=window.__fr.filter(c=>c[1]==='PATCH').map(c=>c[0]+' '+c[2]); return out; }")
+    ok=r['fv']==['{"p_owner":"fr1"}'] and r['direct']==0 and r['first'] and r['syn'] and r['kg'] and r['kpis'].startswith('3') and '4' in r['kpis'] and 'όχι θέσεις' in r['tg']
+    check('Φίλοι: τα ψάρια του φίλου έρχονται από τη friend_view (όχι απευθείας από τις εγγραφές)· είδος ×πλήθος, κιλά · μήκος, πλήθος εξόδων/σημείων· ο διακόπτης λέει «όχι θέσεις» (stage2)', ok and not pg._errs, [r,pg._errs])
+    check('Φίλοι: μετά τη σύνδεση με κωδικό ρωτά «Να βλέπει τα δικά σου;» και με «Ναι» ανοίγει την κοινή χρήση μόνο από τη δική σου μεριά (stage2)', 'Φίλος Β' in r['ask'] and r['patch']==['friends?owner=eq.me1&viewer=eq.fr2 {"share":true}'] and not pg._errs, [r.get('ask'),r.get('patch'),pg._errs]); c.close()
+    # συγκατάθεση: χωρίς απάντηση / με «Όχι» δεν φτιάχνεται ούτε ανεβαίνει στιγμιότυπο· η ερώτηση βγαίνει μία φορά στην έξοδο με λογαριασμό· «Όχι» αργότερα σβήνει ουρά και server
+    SNJS="AK.cloud.session=function(){ return {name:'T',token:'t',uid:'u9'}; }; window.__sn=[]; AK.cloud.rest=function(p,o){ window.__sn.push([p,(o&&o.method)||'GET']); return Promise.resolve({ok:true,status:201,json:()=>Promise.resolve([])}); };"
+    c=ctx(b); c.add_init_script("if(!sessionStorage.__s){sessionStorage.__s=1;localStorage.setItem('alkyon-safe',JSON.stringify({active:true,id:'trip-c1',start:Date.now()-5*60000,due:Date.now()+3*3600000,route:'C',last:{lat:34.7,lon:32.4,t:Date.now()}}));}")
+    pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(9500)
+    r=pg.evaluate("async()=>{ const W=ms=>new Promise(z=>setTimeout(z,ms)); const sc=JSON.parse(localStorage.getItem('alkyon-tscore')||'null'); const o={noSnap:!!sc&&!sc.snap, asked:AK.snapConsent.asked()};"
+      " "+SNJS+" for(let i=0;i<4;i++){ AK.closeSheet&&AK.closeSheet(); await W(300); } AK.snapConsent.ask(); await W(600); const q=[...document.querySelectorAll('.sheet.on')].pop(); o.ask=q?q.textContent:''; const no=q&&[...q.querySelectorAll('.btn')].find(x=>/^(Όχι|No)$/.test(x.textContent)); no&&no.click(); await W(400);"
+      " o.after=[AK.snapConsent.asked(), AK.snapConsent.on()]; localStorage.setItem('alkyon-snapq',JSON.stringify([{id:'x',snap:{v:1},uid:'u9',n:0}])); await AK.snapUp(); o.up=window.__sn.filter(c=>c[0].indexOf('trip_snaps')===0&&c[1]==='POST').length;"
+      " AK.snapConsent.set(true); AK.snapConsent.set(false); await W(300); o.off=[JSON.parse(localStorage.getItem('alkyon-snapq')||'null'), window.__sn.filter(c=>c[1]==='DELETE').map(c=>c[0])]; return o; }")
+    check('Στιγμιότυπα: χωρίς συγκατάθεση δεν φτιάχνεται· στην έξοδο με λογαριασμό ρωτά μία φορά· με «Όχι» δεν ανεβαίνει τίποτα· το κλείσιμο αδειάζει την ουρά και σβήνει από τον server (stage2)',
+      r['noSnap'] and r['asked'] is False and 'πρόγνωση' in r['ask'] and r['after']==[True,False] and r['up']==0 and r['off'][0]==[] and len(r['off'][1])>=1 and all(x=='trip_snaps?user_id=eq.u9' for x in r['off'][1]) and not pg._errs, [r,pg._errs]); c.close()
+
     print('# 1.14.45 όψη')
     c=ctx(b,lang='en'); pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(3500)
     r=pg.evaluate("()=>{ const n=document.querySelector('.nav'), cs=getComputedStyle(n,'::before'); const t=document.createElement('p'); t.textContent='\U0001F313 x \u2605 y \U0001F991'; document.querySelector('main').append(t); return new Promise(res=>setTimeout(()=>res([cs.content!=='none'&&cs.display!=='none', document.documentElement.getAttribute('data-view'), t.querySelectorAll('i.pik').length, [...t.textContent].some(ch=>ch.codePointAt(0)>0x1F000||ch.codePointAt(0)===0x2605)]),600)); }")
@@ -2313,6 +2345,35 @@ with sync_playwright() as p:
     ok=all(v and v[0]==0 and v[1]==0 and v[2]==30 and v[3]>=70 and v[4]=='fixed' and v[5]=='none' for v in res.values())
     check('γραμμή κατάστασης: σε Ημερολόγιο, Προφίλ, Πρόγνωση και Χάρτη υπάρχει φόντο 30px στην κορυφή (0px σε υπολογιστή), πάνω από το περιεχόμενο, χωρίς να πιάνει αγγίγματα (1.14.99)', ok and not pg._errs, [res,pg._errs])
     check('γραμμή κατάστασης: στον Χάρτη το φόντο είναι ημιδιάφανο (διαβάθμιση), στις άλλες οθόνες συμπαγές (1.14.99)', res.get('map') and res['map'][6] and res['map'][7] and not res['log'][7], res); c.close()
+    print('# 1.14.93 παγωμένο στιγμιότυπο πρόγνωσης (ML Data Foundation)')
+    # stage2 (δηλωμένη αλλαγή): ο έλεγχος τρέχει με συγκατάθεση (alkyon-snapok = true)· χωρίς αυτήν δεν φτιάχνεται στιγμιότυπο (βλ. «stage2» παρακάτω)
+    c=ctx(b); c.add_init_script("if(!sessionStorage.__s){sessionStorage.__s=1;localStorage.setItem('alkyon-snapok','true');localStorage.setItem('alkyon-safe',JSON.stringify({active:true,id:'trip-s1',start:Date.now()-50*60000,due:Date.now()+3*3600000,route:'S',last:{lat:34.7,lon:32.4,t:Date.now()}}));}")
+    pg=page(c); pg.goto(BASE+'/v4/#forecast'); pg.wait_for_timeout(11500)
+    r=pg.evaluate("""async()=>{ const W=ms=>new Promise(r=>setTimeout(r,ms)), o={}, SN=window.AlkyonSnapshot;
+      const sc0=JSON.parse(localStorage.getItem('alkyon-tscore')||'null'); o.held=[!!sc0, sc0&&sc0.id, !!(sc0&&sc0.snap), sc0&&sc0.snap&&SN.valid(sc0.snap), sc0&&sc0.snap&&sc0.snap.app===window.ALKYON_VERSION, sc0&&sc0.snap&&sc0.snap.pf, sc0&&sc0.snap&&sc0.snap.cfg===PF.scoreConfig, sc0&&sc0.snap&&Math.abs(Date.now()-sc0.snap.at)<60000];
+      const score0=[...document.querySelectorAll('.fscore,.score,.dial b')].map(x=>x.textContent).join('|');
+      AK.trip.back(); await W(900); const bt=[...document.querySelectorAll('.sheet.on .zeroq .btn')].find(x=>x.textContent==='Δεν έπιασα τίποτα'); bt&&bt.click(); await W(3600);
+      const tr=()=>JSON.parse(localStorage.getItem('alkyon-trips')||'[]').filter(t=>!t.deleted); let t=tr().find(x=>x.sid==='trip-s1'); if(!t) return {held:o.held,err:'no trip'};
+      const lo=Math.floor(t.startMs/3600000), hi=Math.floor(t.endMs/3600000), Q=()=>JSON.parse(localStorage.getItem('alkyon-snapq')||'[]'), q0=Q(), it=q0.find(x=>x.id===t.id), sn=it&&it.snap;
+      o.trip=[!('snap' in t), !/"cols"/.test(JSON.stringify(t)), q0.length, !!sn, sn&&SN.valid(sn), sn&&sn.h.every(r=>r[0]>=lo&&r[0]<=hi), Array.isArray(t.scoreH)&&t.scoreH.length===(sn?sn.h.length:-1), t.scoreCfg===PF.scoreConfig, SN.late(sn,t.startMs)];
+      o.keys=sn?Object.keys(sn).sort().join(','):''; o.size=sn?JSON.stringify(sn).length:0;
+      const row=AK.contrib._rowOf('trip',t); o.sent=[!(row.cond&&row.cond.snap), !/"snap"|"cols"/.test(JSON.stringify(row)), row.cond&&row.cond.k, !/34\\.7\\d|32\\.4\\d/.test(JSON.stringify(sn))];
+      /* δεν ξαναγράφεται: δεύτερο τέλος της ίδιας εξόδου με άλλο στιγμιότυπο δεν αλλάζει την ουρά */
+      localStorage.setItem('alkyon-tscore',JSON.stringify({id:'trip-s1',h:t.scoreH,snap:Object.assign({},sn,{at:1})})); AK.emit('tripend',{id:t.id}); await W(3200); o.once=[Q().length===1, Q()[0].snap.at===sn.at];
+      /* ανέβασμα: χωρίς λογαριασμό τίποτα· με λογαριασμό ένα POST στον trip_snaps και η ουρά αδειάζει· σε αποτυχία μένει */
+      const calls=[], C0=AK.cloud.session, R0=AK.cloud.rest; let uid=null, okNext=false;
+      AK.cloud.session=()=>uid?{uid:uid}:null; AK.cloud.rest=(p,opt)=>{ calls.push([p,opt.method,opt.headers.Prefer,JSON.parse(opt.body)]); return Promise.resolve({ok:okNext,status:okNext?201:500}); };
+      await AK.snapUp(); o.up0=[calls.length, Q().length];
+      uid='user-1'; okNext=false; await AK.snapUp(); o.up1=[calls.length, Q().length, Q()[0].n];
+      okNext=true; await AK.snapUp(); const c=calls[calls.length-1]; o.up2=[calls.length, Q().length, c[0], c[1], c[2], c[3].length, c[3][0].user_id, c[3][0].trip_id===t.id, JSON.stringify(c[3][0].snap)===JSON.stringify(sn), Object.keys(c[3][0]).sort().join(',')];
+      await AK.snapUp(); o.up3=calls.length; AK.cloud.session=C0; AK.cloud.rest=R0;
+      o.score=score0===[...document.querySelectorAll('.fscore,.score,.dial b')].map(x=>x.textContent).join('|'); return o; }""")
+    check('στιγμιότυπο: παίρνεται στην έξοδο με τις εισόδους του βαθμού, την έκδοση της εφαρμογής, την πλατφόρμα και την έκδοση κανόνων (1.14.93)', r.get('held')==[True,'trip-s1',True,True,True,'web',True,True], r.get('held'))
+    check('στιγμιότυπο: ΔΕΝ γράφεται μέσα στην έξοδο (που μοιράζεται με φίλους)· μπαίνει σε ουρά, μόνο για τις ώρες της εξόδου· το scoreH γράφεται όπως πριν· 50′ μετά την έναρξη = «αργό» (1.14.93)', r.get('trip')==[True,True,1,True,True,True,True,True,True] and r.get('keys')=='app,at,cfg,cols,h,pf,prof,sp,src,v' and 0<r.get('size',0)<6000, [r.get('trip'),r.get('keys'),r.get('size'),r.get('err')])
+    check('στιγμιότυπο: ΔΕΝ πηγαίνει στις ανώνυμες συνεισφορές και δεν έχει θέση μέσα του (1.14.93)', r.get('sent')==[True,True,'l',True], r.get('sent'))
+    check('στιγμιότυπο: μία φορά ανά έξοδο (δεύτερο τέλος δεν το αλλάζει)· ο βαθμός στην οθόνη δεν αλλάζει (1.14.93)', r.get('once')==[True,True] and r.get('score') is True, [r.get('once'),r.get('score')])
+    check('ανέβασμα: χωρίς λογαριασμό δεν φεύγει τίποτα· σε αποτυχία μένει στην ουρά· σε επιτυχία ένα POST στον trip_snaps (ignore-duplicates) με user_id, trip_id, snap και η ουρά αδειάζει (1.14.93)', r.get('up0')==[0,1] and r.get('up1')==[1,1,1] and r.get('up2')==[2,0,'trip_snaps?on_conflict=user_id,trip_id','POST','resolution=ignore-duplicates,return=minimal',1,'user-1',True,True,'snap,trip_id,user_id'] and r.get('up3')==2, [r.get('up0'),r.get('up1'),r.get('up2'),r.get('up3')])
+    check('1.14.93: χωρίς σφάλματα JS', not pg._errs, pg._errs); c.close()
 
     print('# 1.12.27 κόμποι: εκτός εφαρμογής')
     c=ctx(b); pg=page(c); pg.goto(BASE+'/v4/#guide'); pg.wait_for_timeout(3500)

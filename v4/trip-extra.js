@@ -20,15 +20,45 @@ function trips(){ return B.store.raw('trips').filter(function(t){ return !t.dele
 function patchTrip(id,o){ var t=B.store.get('trips',id); if(t) B.store.save('trips',Object.assign({},t,o)); }
 
 /* ---------- scoreH: βαθμός ανά ώρα στην αρχή της εξόδου ---------- */
+/* ---------- 1.14.93: ανέβασμα του στιγμιότυπου στον προσωπικό πίνακα trip_snaps (μία κατεύθυνση, εκτός συγχρονισμού) ---------- */
+var SNQ='alkyon-snapq', snBusy=false;
+/* stage2 (28/11/2026): συγκατάθεση για τα στιγμιότυπα. Χωρίς «Ναι» (alkyon-snapok = true) δεν φτιάχνεται, δεν μπαίνει σε ουρά και δεν ανεβαίνει τίποτα.
+   Ρωτά μία φορά, στην πρώτη έξοδο με λογαριασμό· αλλάζει από Προφίλ › Ρυθμίσεις › Απόρρητο. Με «Όχι» αργότερα σβήνονται και από τον server. */
+var SOK='alkyon-snapok';
+function snapOk(){ return ls.get(SOK,null)===true; }
+function snapSet(v){ ls.set(SOK,!!v); if(!v){ ls.set(SNQ,[]); var s=snapSess(); if(s&&s.uid&&B.cloud&&B.cloud.rest) B.cloud.rest('trip_snaps?user_id=eq.'+encodeURIComponent(s.uid),{method:'DELETE',headers:{Prefer:'return=minimal'}}).catch(function(){}); }
+  else if(on()) setTimeout(scoreSnap,500); }
+function snapText(){ return T('Να κρατάει το Alkyon, στον λογαριασμό σου, τι πρόβλεπε για τις συνθήκες στην αρχή κάθε εξόδου; Χρησιμεύει μόνο για να μετράμε πόσο σωστή είναι η πρόγνωση. Δεν περιέχει θέση ή όνομα και δεν το βλέπει κανείς άλλος. Αλλάζει από Προφίλ › Ρυθμίσεις.','Keep, in your account, what Alkyon predicted for the conditions at the start of each trip? It is used only to measure how accurate the forecast is. It has no location or name and nobody else sees it. Change it in Profile › Settings.'); }
+function snapAsk(){ if(ls.get(SOK,null)!==null||!on()) return; var s=snapSess(); if(!s||!s.uid) return;
+  if(document.querySelector('.sheet.on,.sppage,.camov')||document.hidden){ setTimeout(snapAsk,30000); return; }
+  var sh=B.sheet({title:T('Πόσο σωστή είναι η πρόγνωση;','How accurate is the forecast?'),body:h('div',{class:'bform snapq'},h('p',{text:snapText()}),
+    h('button',{class:'btn pri full',type:'button',text:T('Ναι','Yes'),onclick:function(){ snapSet(true); sh.close(); }}),
+    h('button',{class:'btn full',type:'button',text:T('Όχι','No'),onclick:function(){ snapSet(false); sh.close(); }}))}); }
+function snapSheet(){ var cb=h('input',{type:'checkbox',checked:snapOk()}); cb.addEventListener('change',function(){ snapSet(cb.checked); B.toast(cb.checked?T('Ενεργό · ευχαριστούμε','On · thank you'):T('Ανενεργό · σβήστηκαν από τον λογαριασμό σου','Off · deleted from your account')); });
+  B.sheet({title:T('Ακρίβεια της πρόγνωσης','Forecast accuracy'),body:h('div',{class:'bform'},h('p',{class:'sub',text:snapText()}),h('label',{class:'tg',style:'padding:10px 4px'},cb,h('span',null,h('b',{text:T('Να κρατάει τι πρόβλεπε σε κάθε έξοδο','Keep what it predicted for each trip')}))))}); }
+B.snapConsent={on:snapOk,set:snapSet,ask:snapAsk,sheet:snapSheet,asked:function(){ return ls.get(SOK,null)!==null; }};
+function snapSess(){ try{ return B.cloud&&B.cloud.session&&B.cloud.session(); }catch(e){ return null; } }
+function snapUp(){ var SN=window.AlkyonSnapshot, s=snapSess(); if(snBusy||!snapOk()||!SN||!s||!s.uid||!B.cloud||!B.cloud.rest) return Promise.resolve(false);
+  var q=ls.get(SNQ,[])||[], items=SN.qPick(q,s.uid).slice(0,20); if(!items.length){ var c=SN.qAfter(q,s.uid,[],true); if(c.length!==q.length) ls.set(SNQ,c); return Promise.resolve(false); }
+  snBusy=true; var ids=items.map(function(x){ return x.id; }), fin=function(ok){ try{ ls.set(SNQ,SN.qAfter(ls.get(SNQ,[])||[],s.uid,ids,ok)); }catch(e){} snBusy=false; return ok; };
+  /* ignore-duplicates: αν υπάρχει ήδη στιγμιότυπο για την έξοδο, μένει το πρώτο (ο πίνακας δεν επιτρέπει ενημέρωση) */
+  return B.cloud.rest('trip_snaps?on_conflict=user_id,trip_id',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'resolution=ignore-duplicates,return=minimal'},body:JSON.stringify(SN.qRows(items,s.uid))})
+    .then(function(r){ return fin(!!(r&&r.ok)); },function(){ snBusy=false; return false; }); }
+B.snapUp=snapUp;
+setTimeout(function(){ snapUp(); },15000); try{ window.addEventListener('online',function(){ setTimeout(snapUp,3000); }); }catch(e){}
+function platform(){ try{ var c=window.Capacitor; if(c&&typeof c.getPlatform==='function') return String(c.getPlatform()); }catch(e){} return 'web'; }
 function scoreSnap(){
-  var s=st(); if(!s.active||!s.id||!window.PF) return; var cur=ls.get('alkyon-tscore',null); if(cur&&cur.id===s.id) return;
+  var s=st(); if(!s.active||!s.id||!window.PF) return; var cur=ls.get('alkyon-tscore',null); if(cur&&cur.id===s.id&&(cur.snap||!snapOk())) return; /* stage2: με «Ναι» μέσα στην έξοδο ξανατρέχει για να προστεθεί το στιγμιότυπο (θα σημειωθεί ως αργό αν πέρασαν > 10′) */
   var p=pos(); if(!p) return;
   PF.getForecast(+p.lat,+p.lon,undefined,{days:2}).then(function(fc){ var out=[], cfg=null;
     /* 1.14.85 (P1.2): μαζί με τον βαθμό κρατιούνται ο βαθμός πυρήνα, η βεβαιότητα, αν υπήρχε τοπική διόρθωση κύματος και αν εφαρμόστηκαν κοινά ευρήματα,
        και η έκδοση των βαρών (scoreCfg). Έτσι αργότερα μετριέται αν αυτά προβλέπουν κάτι. Οι δύο πρώτες στήλες μένουν όπως ήταν. */
     try{ if(PF.scoreRows){ var R=PF.scoreRows(fc,+p.lat,+p.lon); out=R.h; cfg=R.cfg; } }catch(e){ out=[]; }
     if(!out.length) fc.days.forEach(function(d){ d.hours.forEach(function(x){ if(x.score==null) return; out.push([Math.floor((Date.parse(x.t+':00Z')-fc.tz*60000)/3600000),x.score]); }); });
-    if(out.length) ls.set('alkyon-tscore',{id:s.id,h:out,sp:ls.get('alkyon-advsp','')||'',cfg:cfg}); }).catch(function(){});
+    /* 1.14.93 (ML Data Foundation): μαζί με τους βαθμούς παγώνουν και οι ΕΙΣΟΔΟΙ τους (snapshot.js): τι ήξερε η εφαρμογή στην αρχή της εξόδου, πότε, με ποια έκδοση.
+       Μόνο αποθήκευση: δεν διαβάζεται από τον βαθμό, τα Best Spots ή την προσωπική πρόγνωση, και δεν εμφανίζεται πουθενά. */
+    var snap=null; try{ if(snapOk()&&window.AlkyonSnapshot) snap=window.AlkyonSnapshot.build(fc,+p.lat,+p.lon,PF,{at:Date.now(),app:window.ALKYON_VERSION||null,pf:platform(),prof:B.prof?B.prof():null,sp:ls.get('alkyon-advsp','')||null}); }catch(e){ snap=null; }
+    if(out.length) ls.set('alkyon-tscore',{id:s.id,h:out,sp:ls.get('alkyon-advsp','')||'',cfg:cfg,snap:snap||undefined}); }).catch(function(){});
 }
 /* ---------- condH: πίεση και άνεμος κάθε ώρας της εξόδου ---------- */
 function condH(t){
@@ -46,7 +76,10 @@ function condH(t){
 B.on('tripend',function(e){ var id=e&&e.id; if(!id) { ls.set('alkyon-tscore',null); return; }
   setTimeout(function(){ var t=B.store.get('trips',id), sc=ls.get('alkyon-tscore',null);
     if(t&&sc&&Array.isArray(sc.h)&&(t.sid===sc.id||!t.sid)){ var lo=Math.floor(t.startMs/3600000), hi=Math.floor(t.endMs/3600000), hs=sc.h.filter(function(r){ return r[0]>=lo&&r[0]<=hi; });
-      if(hs.length) patchTrip(id,{scoreH:hs,scoreSp:sc.sp||undefined,scoreCfg:sc.cfg||undefined}); }
+      if(hs.length) patchTrip(id,{scoreH:hs,scoreSp:sc.sp||undefined,scoreCfg:sc.cfg||undefined});
+      /* 1.14.93: το στιγμιότυπο ΔΕΝ μπαίνει στην έξοδο (η έξοδος μοιράζεται με φίλους). Μόνο οι ώρες της εξόδου, σε ουρά, και από εκεί στον πίνακα trip_snaps
+         που διαβάζει μόνο ο ιδιοκτήτης. Γράφεται μία φορά ανά έξοδο. */
+      try{ if(sc.snap&&snapOk()&&window.AlkyonSnapshot){ var sn=window.AlkyonSnapshot.trim(sc.snap,t.startMs,t.endMs); if(sn){ var se0=snapSess(); ls.set(SNQ,window.AlkyonSnapshot.qAdd(ls.get(SNQ,[]),{id:t.id,snap:sn,uid:se0?se0.uid:null})); setTimeout(snapUp,4000); } } }catch(e){} }
     ls.set('alkyon-tscore',null); },2500);
   setTimeout(function(){ condH(B.store.get('trips',id)).catch(function(){}); },5000); });
 /* παλιότερες έξοδοι χωρίς condH: λίγες κάθε φορά, στο παρασκήνιο */
@@ -115,7 +148,7 @@ setInterval(restCheck,5*60000);
     if(p>25) warned[20]=warned[10]=false; }
   navigator.getBattery().then(function(b){ b.addEventListener('levelchange',function(){ chk(b); }); b.addEventListener('chargingchange',function(){ chk(b); }); setInterval(function(){ chk(b); },60000); }).catch(function(){}); })();
 
-B.on('tripstart',function(){ setTimeout(pressBrief,2500); setTimeout(scoreSnap,4000); dv.on=false; dv.lastDive=0; dv.lastSurf=0; paintSp(); });
+B.on('tripstart',function(){ setTimeout(pressBrief,2500); setTimeout(scoreSnap,4000); setTimeout(snapAsk,6000); dv.on=false; dv.lastDive=0; dv.lastSurf=0; paintSp(); });
 if(on()){ setTimeout(pressBrief,6000); setTimeout(scoreSnap,8000); }
 
 /* ---------- ψαροντούφεκο ---------- */
