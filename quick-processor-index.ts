@@ -1059,7 +1059,7 @@ const WL_T = {
         f: [['Fishing score 0–100', 'Sun, moon, pressure, wind and waves in one score, with the best hours of each day.'],
             ['Live sea map', 'Wind, waves, currents, sea temperature and depths — even without signal.'],
             ['Logbook and safety', 'Your catches and spots, a return-time alert for your safety contact, MOB and SOS.']],
-        follow: 'Follow the build until launch:',
+        follow: 'Follow along until launch:',
         foot: 'You’re receiving this because you signed up at alkyonfishing.com. Don’t want these emails? Reply to this message or write to info@alkyonfishing.com and we’ll remove you.' },
   el: { subject: 'Είσαι στη λίστα του Alkyon', pre: 'Θα σε ειδοποιήσουμε τη μέρα που θα κυκλοφορήσει το Alkyon.',
         h: 'Είσαι στη λίστα.', intro: 'Ευχαριστούμε για την εγγραφή. Θα σου στείλουμε email τη μέρα που το Alkyon θα κυκλοφορήσει στο Google Play και στο App Store — και πού και πού νέα που αξίζει να διαβάσεις.',
