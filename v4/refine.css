@@ -385,9 +385,7 @@ html.nightred .hero .hsun1 .mj{color:inherit}
 .spday svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
 .spday .n{fill:#000;opacity:.28}
 .spday .tw{fill:#000;opacity:.14}
-.spday .w{fill:#3CCB8A;opacity:.16}
 .spday .past{fill:#0b2a3a;opacity:.45}
-.spday .wo{fill:none;stroke:#3CCB8A;stroke-width:2;vector-effect:non-scaling-stroke}
 .spday .a{fill:#4FB3D9;opacity:.22}
 .spday .l{fill:none;stroke:#7FD0EC;stroke-width:2.4;stroke-linejoin:round;vector-effect:non-scaling-stroke}
 .spday .u{fill:#F06A55}
@@ -396,6 +394,7 @@ html.nightred .hero .hsun1 .mj{color:inherit}
 .spdayt.sun i{display:flex}
 .spday .spdayt.sun svg{position:static;inset:auto;overflow:visible;width:13px;height:13px;fill:none;stroke:#FFC46B;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .spdayn{position:absolute;top:0;bottom:0;width:0;border-left:1.5px dashed rgba(255,255,255,.7)}
+.spdayb{position:absolute;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:#3CCB8A;box-shadow:0 0 0 4px rgba(60,203,138,.28)}
 .spdayd{position:absolute;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.25)}
 .spdaytag{position:absolute;right:12px;top:-4px;transform:translateY(-100%);color:#fff;font:700 12px var(--font);opacity:.85}
 .spdaynl{position:absolute;transform:translate(10px,-140%);color:#fff;font:700 12px var(--font);white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.6)}
