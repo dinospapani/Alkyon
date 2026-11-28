@@ -247,6 +247,8 @@ body.mapon .sbbg{background:linear-gradient(color-mix(in srgb,var(--bg) 80%,tran
 .updbar{position:fixed;left:12px;right:12px;bottom:calc(var(--nav-h) + var(--safe-b) + 16px);z-index:60;max-width:536px;margin:0 auto;display:flex;align-items:center;gap:10px;padding:10px 10px 10px 16px;border-radius:14px;background:var(--ink);color:var(--bg);font:600 14px var(--font);box-shadow:0 8px 22px rgba(0,0,0,.3)}
 .updbar span{flex:1}
 .updbar .x{width:32px;height:32px;border:0;border-radius:50%;background:transparent;color:inherit;font-size:15px}
+/* 1.14.102: καμία μπάρα ενημέρωσης μέσα σε έξοδο (ούτε αυτή που είχε βγει πριν ξεκινήσει η έξοδος) */
+body.ontrip .updbar{display:none}
 /* καλωσόρισμα */
 .obd{display:flex;justify-content:center;gap:8px;margin:8px 0}
 .obd i{width:8px;height:8px;border-radius:50%;background:var(--line)}
